@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Receipt</title>
+
+<style>
+
+body{
+font-family:monospace;
+background:white;
+padding:20px;
+}
+
+.bill-box{
+width:360px;
+margin:auto;
+}
+
+.center{
+text-align:center;
+}
+
+hr{
+border-top:1px dashed black;
+margin:10px 0;
+}
+
+table{
+font-size:14px;
+}
+
+.modifier{
+font-size:12px;
+padding-left:15px;
+}
+
+button{
+padding:8px 12px;
+margin:4px;
+cursor:pointer;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="bill-box">
+
+<div class="center">
+
+<h3>{{ request.user.outlet.name }}</h3>
+
+<p>{{ request.user.outlet }}</p>
+
+</div>
+
+<hr>
+
+<p>
+Order #: 
+{{ order.order_number|default:order.id }}
+</p>
+
+<p>
+Table:
+{% if order.table %}
+{{ order.table.name }}
+{% else %}
+Takeaway
+{% endif %}
+</p>
+
+<p>
+Date: {{ order.created_at|date:"d M Y H:i" }}
+</p>
+
+<hr>
+
+<table width="100%">
+
+<tr>
+<th align="left">Item</th>
+<th align="center">Qty</th>
+<th align="right">Total</th>
+</tr>
+
+{% for item in order.items.all %}
+
+<tr>
+
+<td>{{ item.menu_item.name }}</td>
+
+<td align="center">{{ item.quantity }}</td>
+
+<td align="right">₹{{ item.total_price }}</td>
+
+</tr>
+
+<!-- MODIFIERS -->
+
+{% for mod in item.modifiers.all %}
+
+<tr>
+
+<td class="modifier">+ {{ mod.name }}</td>
+<td></td>
+<td></td>
+
+</tr>
+
+{% endfor %}
+
+{% endfor %}
+
+</table>
+
+<hr>
+
+<p>Subtotal: ₹{{ order.subtotal }}</p>
+
+<p>GST: ₹{{ order.gst_total }}</p>
+
+<hr>
+
+<h3>Total: ₹{{ order.grand_total }}</h3>
+
+<hr>
+
+<div class="center">
+
+<button onclick="pay('cash')">Cash</button>
+<button onclick="pay('upi')">UPI</button>
+<button onclick="pay('card')">Card</button>
+
+<br><br>
+
+<button onclick="window.print()">Print Receipt</button>
+
+</div>
+
+</div>
+
+<script>
+
+let paymentProcessing=false
+
+function pay(method){
+
+if(paymentProcessing) return
+
+paymentProcessing=true
+
+fetch(`/pay/{{ order.id }}/`,{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+
+body:JSON.stringify({method:method})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+paymentProcessing=false
+
+if(data.success){
+
+alert("Payment successful")
+
+window.location.href="/tables/"
+
+}
+
+else{
+
+alert("Payment failed")
+
+}
+
+})
+
+}
+
+
+function getCookie(name){
+
+let cookieValue=null
+
+if(document.cookie && document.cookie!==""){
+
+let cookies=document.cookie.split(";")
+
+for(let i=0;i<cookies.length;i++){
+
+let cookie=cookies[i].trim()
+
+if(cookie.substring(0,name.length+1)===(name+"=")){
+
+cookieValue=decodeURIComponent(cookie.substring(name.length+1))
+
+break
+
+}
+
+}
+
+}
+
+return cookieValue
+
+}
+
+</script>
+
+</body>
+</html>

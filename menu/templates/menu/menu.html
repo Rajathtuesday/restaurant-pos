@@ -1,0 +1,51 @@
+<!-- menu/templates/menu/menu.html -->
+<!DOCTYPE html>
+<html>
+<head>
+<title>Menu</title>
+</head>
+
+<body>
+
+<h2>Table {{ table.name }}</h2>
+
+<button onclick="callWaiter()">Call Waiter</button>
+
+<hr>
+
+{% for category in categories %}
+
+<h3>{{ category.name }}</h3>
+
+{% for item in category.items.all %}
+
+<p>
+{{ item.name }} - ₹{{ item.price }}
+</p>
+
+{% endfor %}
+
+{% endfor %}
+
+<script>
+
+function callWaiter(){
+
+fetch("/call-waiter/{{ table.qr_token }}/")
+
+.then(res => res.json())
+
+.then(data => {
+
+if(data.success){
+alert("Waiter has been called")
+}
+
+})
+
+}
+
+</script>
+
+</body>
+</html>

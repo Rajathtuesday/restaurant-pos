@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Running Bill</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+body{
+background:#f5f7fb;
+font-family:system-ui;
+}
+
+.bill-box{
+background:white;
+border-radius:12px;
+padding:25px;
+box-shadow:0 6px 15px rgba(0,0,0,0.08);
+}
+
+.item{
+padding:10px 0;
+border-bottom:1px solid #eee;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.status{
+font-size:12px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container mt-4">
+
+<div class="bill-box">
+
+<h4>Running Bill</h4>
+
+<div id="items"></div>
+
+<hr>
+
+<h6 id="subtotal">Subtotal ₹0</h6>
+<h6 id="gst">GST ₹0</h6>
+
+<h4 id="total">Total ₹0</h4>
+
+</div>
+
+</div>
+
+<script>
+
+function serveItem(id){
+
+fetch(`/serve-item/${id}/`,{
+
+method:"POST",
+
+headers:{
+"X-CSRFToken":getCookie("csrftoken")
+}
+
+}).then(()=>refreshRunningOrder())
+
+}
+
+function refreshRunningOrder(){
+
+fetch("/order-data/{{order.id}}/")
+.then(res=>res.json())
+.then(data=>{
+
+document.getElementById("subtotal").innerText =
+"Subtotal ₹"+data.subtotal
+
+document.getElementById("gst").innerText =
+"GST ₹"+data.gst
+
+document.getElementById("total").innerText =
+"Total ₹"+data.total
+
+let list=document.getElementById("items")
+
+list.innerHTML=""
+
+data.items.forEach(i=>{
+
+let action=""
+
+if(i.status==="ready"){
+
+action=`
+<button class="btn btn-sm btn-success"
+onclick="serveItem(${i.id})">
+Serve
+</button>
+`
+
+}
+
+list.innerHTML+=`
+
+<div class="item">
+
+<div>
+<strong>${i.name}</strong> x ${i.quantity}
+<br>
+<span class="badge bg-secondary status">
+${i.status}
+</span>
+</div>
+
+<div>
+${action}
+</div>
+
+</div>
+
+`
+
+})
+
+})
+
+}
+
+function getCookie(name){
+
+let cookieValue=null
+
+if(document.cookie){
+
+let cookies=document.cookie.split(";")
+
+for(let i=0;i<cookies.length;i++){
+
+let cookie=cookies[i].trim()
+
+if(cookie.substring(0,name.length+1)===(name+"=")){
+cookieValue=decodeURIComponent(cookie.substring(name.length+1))
+}
+
+}
+
+}
+
+return cookieValue
+
+}
+
+refreshRunningOrder()
+
+setInterval(refreshRunningOrder,3000)
+
+</script>
+
+</body>
+</html>
