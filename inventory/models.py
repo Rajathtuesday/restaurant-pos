@@ -272,7 +272,7 @@ class Recipe(models.Model):
 
     quantity_required = models.DecimalField(
         max_digits=10,
-        decimal_places=3
+        decimal_places=2
     )
 
     unit = models.CharField(
@@ -289,4 +289,4 @@ class Recipe(models.Model):
 
     def __str__(self):
 
-        return f"{self.menu_item.name} → {self.inventory_item.name}"
+        return f"{self.menu_item.name} → {self.quantity_required} {self.unit}"

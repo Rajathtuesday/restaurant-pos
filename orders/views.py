@@ -44,22 +44,22 @@ def billing_view(request):
 
     order = None
 
-    if order:
-
-        locked, user = lock_order(order, request.user)
-
-        if not locked:
-
-            return render(request,"orders/order_locked.html",{
-                "locked_by":user,
-                "order":order
-            })
     
+    # FIRST: Fetch order
     if table_id:
         order = Order.objects.filter(
             table_id=table_id,
             status__in=["open", "billing"]
         ).first()
+    
+    # SECOND: Check lock (AFTER fetching)
+    if order:
+        locked, user = lock_order(order, request.user)
+        if not locked:
+            return render(request, "orders/order_locked.html", {
+                "locked_by": user,
+                "order": order
+            })
 
     categories = MenuCategory.objects.filter(
         tenant=request.user.tenant,

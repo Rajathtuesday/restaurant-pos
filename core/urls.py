@@ -41,4 +41,7 @@ urlpatterns = [
 
     # inventory module
     path('inventory/', include('inventory.urls')),
+    
+    # setup module
+    path('setup/', include('setup.urls')),
 ]

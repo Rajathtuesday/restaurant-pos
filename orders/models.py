@@ -917,25 +917,5 @@ class DailyKOTCounter(models.Model):
     def __str__(self):
         return f"{self.date} -> {self.value}"
     
-    
-# =====================================================
-# Discounts (future feature)
-# =====================================================
-discount_type = models.CharField(
-    max_length=20,
-    choices=[("percentage","Percentage"),("amount","Amount")],
-    null=True,
-    blank=True
-)
 
-discount_value = models.DecimalField(
-    max_digits=10,
-    decimal_places=2,
-    default=0
-)
 
-discount_total = models.DecimalField(
-    max_digits=10,
-    decimal_places=2,
-    default=0
-)

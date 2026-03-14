@@ -235,6 +235,25 @@ Logout
 </div>
 
 
+{% if request.user.role == "owner" or request.user.role == "manager" %}
+
+<div class="col-md-3">
+
+<div class="quick-card" onclick="location.href='/setup/'">
+
+<div class="icon">⚙️</div>
+
+<h5>Setup</h5>
+
+<p>Restaurant settings & staff</p>
+
+</div>
+
+</div>
+
+{% endif %}
+
+
 
 <h5 class="section-title">Business</h5>
 
