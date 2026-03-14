@@ -1,12 +1,10 @@
-{% comment %} # reports/templates/reports/dashboard.html {% endcomment %}
 <!DOCTYPE html>
 <html>
 <head>
 
-<title>Reports Dashboard</title>
+<title>Restaurant Reports</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -20,11 +18,15 @@ font-family:system-ui;
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:20px;
+margin-bottom:25px;
+}
+
+.header h3{
+font-weight:700;
 }
 
 .card{
-border-radius:14px;
+border-radius:16px;
 border:none;
 box-shadow:0 6px 18px rgba(0,0,0,0.08);
 }
@@ -35,8 +37,13 @@ font-weight:700;
 }
 
 .metric-label{
-color:#777;
 font-size:13px;
+color:#777;
+}
+
+.section-title{
+font-weight:700;
+margin-bottom:12px;
 }
 
 .table td{
@@ -51,95 +58,74 @@ vertical-align:middle;
 
 <div class="container mt-4">
 
+<!-- HEADER -->
+
 <div class="header">
 
 <h3>Restaurant Reports</h3>
 
 <div>
-
 <a href="/tables/" class="btn btn-dark me-2">Tables</a>
 <a href="/billing/" class="btn btn-success">Billing</a>
-
 </div>
 
 </div>
+
+
+
+<!-- METRICS -->
 
 <div class="row g-3 mb-4">
 
 <div class="col-md-3">
-
 <div class="card p-3">
-
-<div class="metric">₹{{sales.total_sales}}</div>
-
+<div class="metric">₹{{sales.total_sales|default:0|floatformat:0}}</div>
 <div class="metric-label">Today's Sales</div>
-
 </div>
-
 </div>
 
 <div class="col-md-3">
-
 <div class="card p-3">
-
-<div class="metric">{{sales.orders}}</div>
-
+<div class="metric">{{sales.orders|default:0}}</div>
 <div class="metric-label">Orders</div>
-
 </div>
-
-</div>
-
-<div class="col-md-3">
-
-<div class="card p-3">
-
-<div class="metric">
-
-₹{% if sales.orders %}{{sales.total_sales|floatformat:0|add:"0"}}{% else %}0{% endif %}
-
-</div>
-
-<div class="metric-label">Avg Order Value</div>
-
-</div>
-
 </div>
 
 <div class="col-md-3">
-
 <div class="card p-3">
+<div class="metric">₹{{sales.avg_order_value|default:0|floatformat:2}}</div>
+<div class="metric-label">Average Order Value</div>
+</div>
+</div>
 
+<div class="col-md-3">
+<div class="card p-3">
 <div class="metric">{{sales.payments|length}}</div>
-
 <div class="metric-label">Payment Methods</div>
-
+</div>
 </div>
 
 </div>
 
-</div>
 
+
+<!-- TOP ITEMS + PAYMENT -->
 
 <div class="row g-4">
-
-<!-- TOP ITEMS -->
 
 <div class="col-md-6">
 
 <div class="card p-4">
 
-<h5 class="mb-3">Top Selling Items</h5>
+<h5 class="section-title">Top Selling Items</h5>
 
 <table class="table">
 
 <thead>
-
 <tr>
 <th>Item</th>
-<th>Qty Sold</th>
+<th>Qty</th>
 </tr>
-
 </thead>
 
 <tbody>
@@ -147,19 +133,102 @@ vertical-align:middle;
 {% for item in items %}
 
 <tr>
-
 <td>{{item.menu_item__name}}</td>
-
 <td>{{item.total}}</td>
-
 </tr>
 
 {% empty %}
 
 <tr>
-
 <td colspan="2">No sales yet</td>
+</tr>
 
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<div class="col-md-6">
+
+<div class="card p-4">
+
+<h5 class="section-title">Payment Breakdown</h5>
+
+{% if sales.payments %}
+
+<canvas id="paymentChart"></canvas>
+
+{% else %}
+
+<p class="text-muted">No payments today</p>
+
+{% endif %}
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- HOURLY SALES -->
+
+<div class="row mt-4">
+
+<div class="col-md-12">
+
+<div class="card p-4">
+
+<h5 class="section-title">Hourly Sales</h5>
+
+<canvas id="salesChart"></canvas>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<!-- CATEGORY + TABLE -->
+
+<div class="row mt-4 g-4">
+
+<div class="col-md-6">
+
+<div class="card p-4">
+
+<h5 class="section-title">Category Sales</h5>
+
+<table class="table">
+
+<thead>
+<tr>
+<th>Category</th>
+<th>Revenue</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for c in categories %}
+
+<tr>
+<td>{{c.menu_item__category__name}}</td>
+<td>₹{{c.revenue|floatformat:0}}</td>
+</tr>
+
+{% empty %}
+
+<tr>
+<td colspan="2">No category data</td>
 </tr>
 
 {% endfor %}
@@ -173,15 +242,42 @@ vertical-align:middle;
 </div>
 
 
-<!-- PAYMENT BREAKDOWN -->
 
 <div class="col-md-6">
 
 <div class="card p-4">
 
-<h5 class="mb-3">Payment Breakdown</h5>
+<h5 class="section-title">Table Turnover</h5>
 
-<canvas id="paymentChart"></canvas>
+<table class="table">
+
+<thead>
+<tr>
+<th>Table</th>
+<th>Orders</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for t in table_stats %}
+
+<tr>
+<td>{{t.table__name}}</td>
+<td>{{t.turnovers}}</td>
+</tr>
+
+{% empty %}
+
+<tr>
+<td colspan="2">No activity</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
 
 </div>
 
@@ -190,7 +286,8 @@ vertical-align:middle;
 </div>
 
 
-<!-- HOURLY SALES -->
+
+<!-- WAITER PERFORMANCE -->
 
 <div class="row mt-4">
 
@@ -198,9 +295,37 @@ vertical-align:middle;
 
 <div class="card p-4">
 
-<h5 class="mb-3">Hourly Sales</h5>
+<h5 class="section-title">Waiter Performance</h5>
 
-<canvas id="salesChart"></canvas>
+<table class="table">
+
+<thead>
+<tr>
+<th>Waiter</th>
+<th>Orders</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for w in waiters %}
+
+<tr>
+<td>{{w.created_by__username}}</td>
+<td>{{w.orders}}</td>
+</tr>
+
+{% empty %}
+
+<tr>
+<td colspan="2">No waiter data</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
 
 </div>
 
@@ -210,87 +335,76 @@ vertical-align:middle;
 
 </div>
 
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 
-const paymentData = {
+/* PAYMENT CHART */
 
-labels: [
+{% if sales.payments %}
 
+new Chart(document.getElementById("paymentChart"),{
+
+type:"doughnut",
+
+data:{
+
+labels:[
 {% for p in sales.payments %}
 "{{p.method}}",
 {% endfor %}
-
 ],
 
-datasets: [{
-
-data: [
-
+datasets:[{
+data:[
 {% for p in sales.payments %}
 {{p.total}},
 {% endfor %}
-
-]
-
+],
+backgroundColor:["#22c55e","#3b82f6","#f59e0b","#ef4444"]
 }]
 
 }
 
-new Chart(
+})
 
-document.getElementById("paymentChart"),
-
-{
-
-type: "doughnut",
-
-data: paymentData
-
-}
-
-)
+{% endif %}
 
 
-const hourlyData = {
 
-labels: [
+/* HOURLY SALES */
 
+new Chart(document.getElementById("salesChart"),{
+
+type:"line",
+
+data:{
+labels:[
 {% for h in hourly_sales %}
 "{{h.hour}}",
 {% endfor %}
-
 ],
-
-datasets: [{
-
-label: "Sales",
-
-data: [
-
+datasets:[{
+label:"Sales",
+data:[
 {% for h in hourly_sales %}
 {{h.total}},
 {% endfor %}
-
-]
-
+],
+borderColor:"#2563eb",
+backgroundColor:"rgba(37,99,235,0.1)",
+fill:true,
+tension:0.3
 }]
+},
 
+options:{
+scales:{y:{beginAtZero:true}}
 }
 
-new Chart(
-
-document.getElementById("salesChart"),
-
-{
-
-type: "line",
-
-data: hourlyData
-
-}
-
-)
+})
 
 </script>
 

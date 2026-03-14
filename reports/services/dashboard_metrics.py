@@ -1,44 +1,48 @@
-from django.db.models import Sum, F , Count
-from django.utils import timezone
+# reports/services/dashboard_metrics.py
+from django.db.models import Sum, Count, F
+from django.utils.timezone import localdate
 
-from accounts import models
-from orders.models import Order, Table
+from orders.models import Order
 from inventory.models import InventoryItem
 from tenants.models import Outlet
+from orders.models import Table
 
 
 def owner_dashboard_metrics(user):
 
     tenant = user.tenant
-    today = timezone.now().date()
+    today = localdate()
 
     if user.role == "owner":
         outlets = Outlet.objects.filter(tenant=tenant)
     else:
-        outlets = [user.outlet]
+        outlets = Outlet.objects.filter(id=user.outlet.id)
 
-    metrics = []
+    results = []
 
     for outlet in outlets:
 
-        orders = Order.objects.filter(
+        orders_today = Order.objects.filter(
             tenant=tenant,
             outlet=outlet,
-            created_at__date=today
+            created_at__date=today,
+            status__in=["closed", "paid"]
         )
 
-        revenue = orders.filter(
-            status="closed"
-        ).aggregate(total=Sum("grand_total"))["total"] or 0
+        revenue = orders_today.aggregate(
+            total=Sum("grand_total")
+        )["total"] or 0
+
+        total_orders = orders_today.count()
+
+        avg_order_value = 0
+        if total_orders:
+            avg_order_value = revenue / total_orders
 
         active_tables = Table.objects.filter(
             tenant=tenant,
             outlet=outlet,
-            state__in=["ordering","preparing","ready","served"]
-        ).count()
-
-        kitchen_orders = orders.filter(
-            status="open"
+            state__in=["ordering", "preparing", "ready"]
         ).count()
 
         low_stock = InventoryItem.objects.filter(
@@ -47,13 +51,13 @@ def owner_dashboard_metrics(user):
             stock__lte=F("low_stock_threshold")
         ).count()
 
-        metrics.append({
+        results.append({
             "outlet": outlet.name,
             "revenue": revenue,
-            "orders": orders.count(),
+            "orders": total_orders,
+            "avg_order_value": avg_order_value,
             "active_tables": active_tables,
-            "kitchen_orders": kitchen_orders,
             "low_stock": low_stock
         })
-    
-    return metrics
+
+    return results

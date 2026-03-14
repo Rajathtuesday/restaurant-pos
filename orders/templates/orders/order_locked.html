@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Order Locked</title>
+
+<style>
+
+body{
+font-family:system-ui;
+background:#f4f6fb;
+display:flex;
+align-items:center;
+justify-content:center;
+height:100vh;
+}
+
+.box{
+background:white;
+padding:40px;
+border-radius:12px;
+box-shadow:0 6px 18px rgba(0,0,0,0.1);
+text-align:center;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>Order Currently Being Edited</h2>
+
+<p>
+This order is being edited by:
+<strong>{{locked_by}}</strong>
+</p>
+
+<p>Please wait a few seconds.</p>
+
+<a href="/tables/">Back to Tables</a>
+
+</div>
+
+</body>
+</html>

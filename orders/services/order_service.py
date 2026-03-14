@@ -1,3 +1,4 @@
+# orders/services/order_service.py
 from decimal import Decimal
 from django.db import transaction, IntegrityError
 
@@ -7,18 +8,20 @@ from menu.models import MenuItem, Modifier
 from orders.services.event_service import log_event
 
 
+# -------------------------------------------------
+# GET OR CREATE OPEN ORDER (SAFE FOR CONCURRENCY)
+# -------------------------------------------------
+
 def get_or_create_open_order(user, table):
 
     try:
 
-        order = Order.objects.get(
+        return Order.objects.get(
             tenant=user.tenant,
             outlet=user.outlet,
             table=table,
             status="open"
         )
-
-        return order
 
     except Order.DoesNotExist:
 
@@ -34,7 +37,6 @@ def get_or_create_open_order(user, table):
                     status="open"
                 )
 
-                # Log order creation
                 log_event(
                     order,
                     "order_created",
@@ -52,7 +54,7 @@ def get_or_create_open_order(user, table):
 
         except IntegrityError:
 
-            # If another terminal created it simultaneously
+            # Another terminal created it simultaneously
             return Order.objects.get(
                 tenant=user.tenant,
                 outlet=user.outlet,
@@ -61,18 +63,44 @@ def get_or_create_open_order(user, table):
             )
 
 
+# -------------------------------------------------
+# ADD ITEMS TO ORDER
+# -------------------------------------------------
+
 @transaction.atomic
 def add_items_to_order(user, order, cart_items):
 
+    # Lock order row to prevent simultaneous updates
+    order = (
+        Order.objects
+        .select_for_update()
+        .get(id=order.id)
+    )
+
+    if order.status not in ["open", "billing"]:
+        raise Exception("Order is not editable")
+
+    if not cart_items:
+        raise Exception("Cart is empty")
+
     for item in cart_items:
 
-        menu_item = MenuItem.objects.get(
-            id=item["id"],
+        menu_item = MenuItem.objects.filter(
+            id=item.get("id"),
             tenant=user.tenant,
             outlet=user.outlet
-        )
+        ).first()
+
+        if not menu_item:
+            raise Exception("Menu item not found")
+
+        if not menu_item.is_available:
+            raise Exception(f"{menu_item.name} is currently unavailable")
 
         quantity = int(item.get("quantity", 1))
+
+        if quantity <= 0:
+            raise Exception("Invalid quantity")
 
         base_price = menu_item.price * quantity
 
@@ -83,10 +111,14 @@ def add_items_to_order(user, order, cart_items):
             price=menu_item.price,
             gst_percentage=menu_item.gst_percentage,
             total_price=base_price,
+            notes=item.get("note"),
             status="pending"
         )
 
-        # Log item addition
+        # -------------------------------------------------
+        # LOG EVENT
+        # -------------------------------------------------
+
         log_event(
             order,
             "item_added",
@@ -97,11 +129,20 @@ def add_items_to_order(user, order, cart_items):
             }
         )
 
+        # -------------------------------------------------
+        # ADD MODIFIERS
+        # -------------------------------------------------
+
         modifier_ids = item.get("modifiers", [])
+
+        modifier_total = Decimal("0")
 
         for mod_id in modifier_ids:
 
-            modifier = Modifier.objects.get(id=mod_id)
+            modifier = Modifier.objects.filter(id=mod_id).first()
+
+            if not modifier:
+                raise Exception("Modifier not found")
 
             OrderItemModifier.objects.create(
                 order_item=order_item,
@@ -110,15 +151,29 @@ def add_items_to_order(user, order, cart_items):
                 price=modifier.price
             )
 
+            modifier_total += modifier.price
+
+        # Update total price including modifiers
+        if modifier_total > 0:
+
+            order_item.total_price = (
+                (menu_item.price + modifier_total) * quantity
+            )
+
+            order_item.save(update_fields=["total_price"])
+
+    # -------------------------------------------------
+    # RECALCULATE TOTALS
+    # -------------------------------------------------
+
     order.recalculate_totals()
 
     return order
 
 
 # -------------------------------------------------
-# Update table state depending on order items
+# UPDATE TABLE STATE
 # -------------------------------------------------
-
 def update_table_state(order):
 
     table = order.table
@@ -128,16 +183,20 @@ def update_table_state(order):
 
     items = order.items.all()
 
-    if not items.exists():
-        table.state = "ordering"
+    if items.filter(status__in=["pending","sent","preparing"]).exists():
 
-    elif items.filter(status__in=["pending", "sent", "preparing"]).exists():
         table.state = "preparing"
 
     elif items.filter(status="ready").exists():
+
+        table.state = "ready"
+
+    elif items.exclude(status="served").count() == 0:
+
         table.state = "served"
 
-    elif items.filter(status="served").exists():
-        table.state = "served"
+    else:
+
+        table.state = "ordering"
 
     table.save(update_fields=["state"])

@@ -1,3 +1,4 @@
+{% comment %} # orders/templates/orders/bill.html
 <!DOCTYPE html>
 <html>
 <head>
@@ -131,6 +132,10 @@ Date: {{ order.created_at|date:"d M Y H:i" }}
 
 <div class="center">
 
+<button onclick="openSplit()">Split Bill</button>
+
+<br><br>
+
 <button onclick="pay('cash')">Cash</button>
 <button onclick="pay('upi')">UPI</button>
 <button onclick="pay('card')">Card</button>
@@ -216,6 +221,458 @@ break
 }
 
 return cookieValue
+
+}
+
+
+/* function generateBill */
+
+function openSplit(){
+
+let people = prompt("Number of people to split bill:")
+
+if(!people) return
+
+people = parseInt(people)
+
+let total = parseFloat("{{ order.grand_total }}")
+
+let per = (total / people).toFixed(2)
+
+alert(`Each person pays ₹${per}`)
+
+}
+
+</script>
+
+</body>
+</html> {% endcomment %}
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Receipt</title>
+
+<style>
+
+body{
+font-family:system-ui;
+background:#f4f6fb;
+padding:40px;
+}
+
+.bill-container{
+max-width:420px;
+margin:auto;
+background:white;
+border-radius:14px;
+padding:28px;
+box-shadow:0 8px 25px rgba(0,0,0,0.1);
+}
+
+.center{
+text-align:center;
+}
+
+h3{
+margin:0;
+}
+
+hr{
+border-top:1px dashed #bbb;
+margin:15px 0;
+}
+
+table{
+width:100%;
+font-size:14px;
+border-collapse:collapse;
+}
+
+th{
+text-align:left;
+padding-bottom:8px;
+}
+
+td{
+padding:6px 0;
+vertical-align:top;
+}
+
+.qty{
+text-align:center;
+width:40px;
+}
+
+.price{
+text-align:right;
+width:80px;
+}
+
+.modifier{
+font-size:12px;
+padding-left:15px;
+color:#666;
+}
+
+.total-box{
+margin-top:10px;
+font-size:15px;
+}
+
+.total-row{
+display:flex;
+justify-content:space-between;
+margin-bottom:6px;
+}
+
+.discount-row{
+color:#d9534f;
+font-weight:600;
+}
+
+.grand-total{
+font-size:20px;
+font-weight:700;
+display:flex;
+justify-content:space-between;
+margin-top:10px;
+}
+
+button{
+padding:10px 14px;
+margin:4px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-weight:500;
+}
+
+.cash-btn{background:#28a745;color:white;}
+.upi-btn{background:#0d6efd;color:white;}
+.card-btn{background:#6c757d;color:white;}
+.discount-btn{background:#ffc107;}
+.print-btn{background:black;color:white;}
+.split-btn{background:#17a2b8;color:white;}
+
+input{
+padding:6px;
+width:90px;
+border-radius:5px;
+border:1px solid #ccc;
+margin-right:5px;
+}
+
+.action-buttons{
+margin-top:10px;
+}
+
+@media print{
+
+body{
+background:white;
+padding:0;
+}
+
+.bill-container{
+box-shadow:none;
+}
+
+button,input{
+display:none;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="bill-container">
+
+<div class="center">
+<h3>{{ request.user.outlet.name }}</h3>
+<p>{{ request.user.outlet }}</p>
+</div>
+
+<hr>
+
+<div>
+
+<p><strong>Order:</strong> {{ order.order_number|default:order.id }}</p>
+
+<p>
+<strong>Table:</strong>
+{% if order.table %}
+{{ order.table.name }}
+{% else %}
+Takeaway
+{% endif %}
+</p>
+
+<p>
+<strong>Date:</strong>
+{{ order.created_at|date:"d M Y H:i" }}
+</p>
+
+</div>
+
+<hr>
+
+<table>
+
+<tr>
+<th>Item</th>
+<th class="qty">Qty</th>
+<th class="price">Total</th>
+</tr>
+
+{% for item in order.items.all %}
+
+<tr>
+<td>{{ item.menu_item.name }}</td>
+<td class="qty">{{ item.quantity }}</td>
+<td class="price">
+{% if item.is_complimentary %}
+<span style="color:#28a745;font-weight:600;">Complimentary</span>
+{% else %}
+₹{{ item.total_price }}
+{% endif %}
+</td>
+</tr>
+
+{% for mod in item.modifiers.all %}
+
+<tr>
+<td class="modifier">+ {{ mod.name }}</td>
+<td></td>
+<td></td>
+</tr>
+
+{% endfor %}
+
+{% endfor %}
+
+</table>
+
+<hr>
+
+<div class="total-box">
+
+<div class="total-row">
+<span>Subtotal</span>
+<span id="subtotal">₹{{ order.subtotal }}</span>
+</div>
+
+<div class="total-row">
+<span>GST</span>
+<span id="gst">₹{{ order.gst_total }}</span>
+</div>
+
+<div class="total-row discount-row"
+id="discountRow"
+{% if order.discount_total == 0 %}
+style="display:none"
+{% endif %}
+>
+<span>Discount</span>
+<span id="discountValue">- ₹{{ order.discount_total }}</span>
+</div>
+
+</div>
+
+<hr>
+
+<div class="grand-total">
+<span>Total</span>
+<span id="grandTotal">₹{{ order.grand_total }}</span>
+</div>
+
+<hr>
+
+<div class="center action-buttons">
+
+<button class="split-btn" onclick="openSplit()">Split Bill</button>
+
+<br><br>
+
+{% if request.user.role == "manager" or request.user.role == "cashier" or request.user.role == "owner" %}
+
+<div>
+
+<input
+type="number"
+id="discountPercent"
+placeholder="%"
+min="0"
+max="100"
+/>
+
+<button class="discount-btn" onclick="applyDiscount()">
+Apply Discount
+</button>
+
+</div>
+
+<br>
+
+{% endif %}
+
+<button class="cash-btn" onclick="pay('cash')">Cash</button>
+<button class="upi-btn" onclick="pay('upi')">UPI</button>
+<button class="card-btn" onclick="pay('card')">Card</button>
+
+<br><br>
+
+<button class="print-btn" onclick="window.print()">Print Receipt</button>
+
+</div>
+
+</div>
+
+<script>
+
+let paymentProcessing=false
+
+function pay(method){
+
+if(paymentProcessing) return
+
+paymentProcessing=true
+
+fetch(`/pay/{{ order.id }}/`,{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+
+body:JSON.stringify({method:method})
+
+})
+.then(res=>res.json())
+.then(data=>{
+
+paymentProcessing=false
+
+if(data.success){
+
+alert("Payment successful")
+window.location.href="/tables/"
+
+}else{
+
+alert(data.error || "Payment failed")
+
+}
+
+})
+
+}
+
+
+function applyDiscount(){
+
+let percent=document.getElementById("discountPercent").value
+
+if(!percent){
+alert("Enter discount %")
+return
+}
+
+fetch(`/apply-discount/{{order.id}}/`,{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+
+body:JSON.stringify({
+percent:percent
+})
+
+})
+.then(res=>res.json())
+.then(data=>{
+
+if(data.success){
+
+document.getElementById("subtotal").innerText="₹"+data.subtotal.toFixed(2)
+document.getElementById("gst").innerText="₹"+data.gst.toFixed(2)
+document.getElementById("grandTotal").innerText="₹"+data.total.toFixed(2)
+
+document.getElementById("discountRow").style.display="flex"
+document.getElementById("discountValue").innerText="- ₹"+data.discount.toFixed(2)
+
+}else{
+
+alert(data.error)
+
+}
+
+})
+
+}
+
+
+function getCookie(name){
+
+let cookieValue=null
+
+if(document.cookie && document.cookie!==""){
+
+let cookies=document.cookie.split(";")
+
+for(let i=0;i<cookies.length;i++){
+
+let cookie=cookies[i].trim()
+
+if(cookie.substring(0,name.length+1)===(name+"=")){
+
+cookieValue=decodeURIComponent(cookie.substring(name.length+1))
+break
+
+}
+
+}
+
+}
+
+return cookieValue
+
+}
+
+
+function openSplit(){
+
+let people=prompt("Number of people to split bill:")
+
+if(!people) return
+
+people=parseInt(people)
+
+let total=parseFloat(document.getElementById("grandTotal").innerText.replace("₹",""))
+
+let per=(total/people).toFixed(2)
+
+alert(`Each person pays ₹${per}`)
 
 }
 

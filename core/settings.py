@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_extensions',
     'accounts',
     'menu',
     'orders',
@@ -142,3 +143,50 @@ STATIC_URL = 'static/'
 # Default primary key field type
 
 AUTH_USER_MODEL = 'accounts.User'
+
+
+LOGGING = {
+
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+
+        "pos_format": {
+            "format": "[{levelname}] {asctime} {name} {message}",
+            "style": "{",
+        }
+
+    },
+
+    "handlers": {
+
+        "file": {
+
+            "level": "INFO",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(BASE_DIR, "pos.log"),
+            "formatter": "pos_format",
+
+        },
+
+        "console": {
+
+            "class": "logging.StreamHandler",
+            "formatter": "pos_format",
+
+        },
+
+    },
+
+    "loggers": {
+
+        "pos.notifications": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
+    },
+
+}

@@ -1,4 +1,4 @@
-{% comment %} # inventory/templates/inventory/inventory_board.html {% endcomment %}
+{% comment %} inventory/templates/inventory/inventory_board.html {% endcomment %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -14,6 +14,13 @@ background:#f4f6fb;
 font-family:system-ui;
 }
 
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:20px;
+}
+
 .card{
 border-radius:14px;
 box-shadow:0 6px 18px rgba(0,0,0,0.08);
@@ -24,6 +31,14 @@ color:red;
 font-weight:600;
 }
 
+.stock{
+font-weight:600;
+}
+
+.restock-input{
+width:90px;
+}
+
 </style>
 
 </head>
@@ -32,11 +47,24 @@ font-weight:600;
 
 <div class="container mt-4">
 
-<h3 class="mb-4">Inventory Board</h3>
+<div class="header">
+
+<h3>Inventory Board</h3>
+
+<div>
+
+<a href="/tables/" class="btn btn-dark me-2">Tables</a>
+<a href="/billing/" class="btn btn-success me-2">Billing</a>
+<a href="/dashboard/" class="btn btn-secondary">Reports</a>
+
+</div>
+
+</div>
+
 
 <div class="card p-4">
 
-<table class="table">
+<table class="table table-striped">
 
 <thead>
 
@@ -45,6 +73,7 @@ font-weight:600;
 <th>Stock</th>
 <th>Unit</th>
 <th>Status</th>
+<th>Refill</th>
 </tr>
 
 </thead>
@@ -57,7 +86,9 @@ font-weight:600;
 
 <td>{{item.name}}</td>
 
-<td>{{item.stock}}</td>
+<td id="stock{{item.id}}" class="stock">
+{{item.stock}}
+</td>
 
 <td>{{item.unit}}</td>
 
@@ -66,8 +97,30 @@ font-weight:600;
 {% if item.is_low_stock %}
 <span class="low">Low Stock</span>
 {% else %}
-OK
+<span class="text-success">OK</span>
 {% endif %}
+
+</td>
+
+<td>
+
+<div class="d-flex">
+
+<input
+type="number"
+min="0"
+step="0.01"
+id="add{{item.id}}"
+class="form-control form-control-sm restock-input me-2"
+placeholder="+">
+
+<button
+class="btn btn-sm btn-success"
+onclick="restock({{item.id}})">
+Add
+</button>
+
+</div>
 
 </td>
 
@@ -82,6 +135,84 @@ OK
 </div>
 
 </div>
+
+
+<script>
+
+function getCookie(name){
+
+let cookieValue=null
+
+if(document.cookie){
+
+let cookies=document.cookie.split(";")
+
+for(let i=0;i<cookies.length;i++){
+
+let cookie=cookies[i].trim()
+
+if(cookie.substring(0,name.length+1)===(name+"=")){
+cookieValue=decodeURIComponent(cookie.substring(name.length+1))
+}
+
+}
+
+}
+
+return cookieValue
+
+}
+
+
+
+function restock(id){
+
+let qty=document.getElementById("add"+id).value
+
+if(!qty || qty<=0){
+
+alert("Enter quantity")
+
+return
+
+}
+
+fetch(`/inventory/restock/${id}/`,{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+
+body:JSON.stringify({
+quantity:qty
+})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.success){
+
+document.getElementById("stock"+id).innerText=data.new_stock
+
+document.getElementById("add"+id).value=""
+
+}else{
+
+alert("Restock failed")
+
+}
+
+})
+
+}
+
+</script>
 
 </body>
 </html>

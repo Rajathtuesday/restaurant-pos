@@ -1,3 +1,5 @@
+{% comment %} # orders/templates/orders/kitchen.html {% endcomment %}
+{% comment %} 
 <!DOCTYPE html>
 <html>
 <head>
@@ -221,7 +223,20 @@ itemsHTML+=`
 
 <div class="item">
 
-<div>${i.quantity} × ${i.name}</div>
+<div>
+
+${i.quantity} × ${i.name}
+
+${i.notes ? `<div style="
+margin-top:4px;
+font-size:13px;
+color:#facc15;
+font-weight:600;
+">
+📝 ${i.notes}
+</div>` : ""}
+
+</div>
 
 <div>${action}</div>
 
@@ -308,6 +323,382 @@ headers:{
 refreshOrders()
 
 setInterval(refreshOrders,3000)
+
+</script>
+
+</body>
+</html> {% endcomment %}
+
+
+
+
+{% comment %} 
+
+// This file is the template for the kitchen display page.
+//It shows active kitchen orders with timers and allows staff to update item statuses. {% endcomment %}
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Kitchen Display</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+body{
+background:#111827;
+color:white;
+font-family:system-ui;
+}
+
+/* header */
+
+.header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:16px;
+background:#0f172a;
+border-bottom:2px solid #1f2937;
+}
+
+/* grid */
+
+.orders-grid{
+padding:20px;
+}
+
+/* order cards */
+
+.order-card{
+background:#1f2937;
+border-radius:16px;
+padding:18px;
+margin-bottom:20px;
+box-shadow:0 10px 25px rgba(0,0,0,0.4);
+display:flex;
+flex-direction:column;
+height:100%;
+}
+
+/* severity colors */
+
+.green{border-left:8px solid #22c55e}
+.orange{border-left:8px solid #f59e0b}
+.red{border-left:8px solid #ef4444}
+
+/* header */
+
+.order-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:10px;
+}
+
+.table-name{
+font-size:20px;
+font-weight:700;
+}
+
+.kot{
+font-size:14px;
+opacity:.7;
+}
+
+.timer{
+font-size:16px;
+font-weight:600;
+}
+
+/* items */
+
+.items{
+flex-grow:1;
+overflow-y:auto;
+max-height:220px;
+}
+
+.item{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:8px 0;
+border-bottom:1px solid rgba(255,255,255,0.1);
+font-size:16px;
+}
+
+.note{
+font-size:13px;
+color:#facc15;
+margin-top:3px;
+}
+
+/* states */
+
+.badge-ready{
+background:#22c55e;
+}
+
+/* empty */
+
+.empty{
+text-align:center;
+padding:80px;
+opacity:.7;
+font-size:20px;
+}
+
+.loading{
+text-align:center;
+padding:60px;
+opacity:.6;
+}
+
+.error{
+color:#ef4444;
+text-align:center;
+padding:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+
+<h3>Kitchen Display</h3>
+
+<a href="/tables/" class="btn btn-light btn-sm">Tables</a>
+
+</div>
+
+<div class="container-fluid orders-grid">
+
+<div class="row" id="orders">
+
+<div class="loading">Loading kitchen orders...</div>
+
+</div>
+
+</div>
+
+<script>
+
+/* request guard */
+
+let loading=false
+
+/* csrf */
+
+function getCookie(name){
+
+let cookieValue=null
+
+if(document.cookie){
+
+let cookies=document.cookie.split(";")
+
+for(let i=0;i<cookies.length;i++){
+
+let cookie=cookies[i].trim()
+
+if(cookie.substring(0,name.length+1)===(name+"=")){
+cookieValue=decodeURIComponent(cookie.substring(name.length+1))
+}
+
+}
+
+}
+
+return cookieValue
+
+}
+
+/* card color by wait time */
+
+function getColor(minutes){
+
+if(minutes < 5) return "green"
+if(minutes < 10) return "orange"
+return "red"
+
+}
+
+/* render kitchen */
+
+function loadKitchen(){
+
+if(loading) return
+
+loading=true
+
+fetch("/kitchen-data/")
+
+.then(res=>res.json())
+
+.then(data=>{
+
+let container=document.getElementById("orders")
+
+container.innerHTML=""
+
+if(!data.kots || data.kots.length===0){
+
+container.innerHTML=`<div class="empty">No active kitchen orders</div>`
+
+loading=false
+return
+}
+
+data.kots.forEach(kot=>{
+
+let created=new Date(kot.created_at)
+
+let minutes=0
+
+if(!isNaN(created)){
+minutes=Math.floor((Date.now()-created)/60000)
+}
+
+let color=getColor(minutes)
+
+let itemsHTML=""
+
+kot.items.forEach(i=>{
+
+let action=""
+
+if(i.status==="sent"){
+
+action=`<button class="btn btn-warning btn-sm"
+onclick="startPreparing(${i.id})">
+Start
+</button>`
+
+}
+
+else if(i.status==="preparing"){
+
+action=`<button class="btn btn-success btn-sm"
+onclick="markReady(${i.id})">
+Ready
+</button>`
+
+}
+
+else{
+
+action=`<span class="badge badge-ready">Ready</span>`
+
+}
+
+itemsHTML+=`
+
+<div class="item">
+
+<div>
+
+${i.quantity} × ${i.name}
+
+${i.notes ? `<div class="note">📝 ${i.notes}</div>` : ""}
+
+</div>
+
+<div>${action}</div>
+
+</div>
+
+`
+
+})
+
+container.innerHTML+=`
+
+<div class="col-lg-3 col-md-4 col-sm-6">
+
+<div class="order-card ${color}">
+
+<div class="order-header">
+
+<div>
+
+<div class="table-name">${kot.table}</div>
+
+<div class="kot">KOT #${kot.kot_number}</div>
+
+</div>
+
+<div class="timer">${minutes} min</div>
+
+</div>
+
+<div class="items">
+
+${itemsHTML}
+
+</div>
+
+</div>
+
+</div>
+
+`
+
+})
+
+loading=false
+
+})
+
+.catch(()=>{
+
+document.getElementById("orders").innerHTML=
+`<div class="error">Kitchen connection error</div>`
+
+loading=false
+
+})
+
+}
+
+/* actions */
+
+function startPreparing(id){
+
+fetch(`/item-start/${id}/`,{
+method:"POST",
+headers:{
+"X-CSRFToken":getCookie("csrftoken")
+}
+})
+.then(()=>loadKitchen())
+
+}
+
+function markReady(id){
+
+fetch(`/item-ready/${id}/`,{
+method:"POST",
+headers:{
+"X-CSRFToken":getCookie("csrftoken")
+}
+})
+.then(()=>loadKitchen())
+
+}
+
+/* init */
+
+loadKitchen()
+
+setInterval(loadKitchen,3000)
 
 </script>
 

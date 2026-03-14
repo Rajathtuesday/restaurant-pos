@@ -1,7 +1,27 @@
 # orders/urls.py
 from django.urls import path
 
-from .views import *
+from .views import (
+    apply_discount,
+    billing_view,
+    create_order,
+    make_item_complimentary,
+    send_to_kitchen,
+    kitchen_view,
+    kitchen_data,
+    start_preparing,
+    mark_ready,
+    serve_item,
+    bill_view,
+    pay_order,
+    table_dashboard,
+    tables_data,
+    mark_table_cleaned,
+    running_order_items,
+    running_order_view,
+    running_order_data,
+    generate_bill,
+)
 
 urlpatterns = [
 
@@ -26,11 +46,14 @@ urlpatterns = [
     path("tables-data/", tables_data),
 
     path("clean-table/<int:table_id>/", mark_table_cleaned),
-    
-    
+
     path("running-order-items/", running_order_items),
     path("order/<int:order_id>/", running_order_view),
     path("order-data/<int:order_id>/", running_order_data),
-    
 
+    path("generate-bill/<int:table_id>/", generate_bill),
+
+    path("apply-discount/<int:order_id>/", apply_discount),
+    
+    path("complimentary-item/<int:item_id>/", make_item_complimentary),
 ]
