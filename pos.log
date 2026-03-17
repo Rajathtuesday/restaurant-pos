@@ -43,3 +43,10 @@
 [INFO] 2026-03-14 19:30:51,927 pos.notifications [NOTIFICATION] tenant=3 outlet=3 type=order_ready message=Order ready for T6
 [INFO] 2026-03-14 19:30:53,139 pos.notifications [NOTIFICATION] tenant=3 outlet=3 type=order_ready message=Order ready for T6
 [INFO] 2026-03-14 19:31:33,450 pos.notifications [NOTIFICATION] tenant=3 outlet=3 type=order_ready message=Order ready for T6
+[INFO] 2026-03-17 00:34:40,044 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 1
+[INFO] 2026-03-17 00:34:40,957 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 1
+[INFO] 2026-03-17 00:35:46,751 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 3
+[INFO] 2026-03-17 00:35:50,179 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 3
+[INFO] 2026-03-17 00:36:10,515 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 5
+[INFO] 2026-03-17 01:02:14,615 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 7
+[INFO] 2026-03-17 11:24:08,023 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 7
