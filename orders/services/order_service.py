@@ -1,6 +1,7 @@
 # orders/services/order_service.py
 from decimal import Decimal
 from django.db import transaction, IntegrityError
+from core.decorators import tenant_required
 
 from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier

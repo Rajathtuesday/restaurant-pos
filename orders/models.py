@@ -918,4 +918,37 @@ class DailyKOTCounter(models.Model):
         return f"{self.date} -> {self.value}"
     
 
+# =====================================================
+# TABLE MERGE (for future feature)
+# =====================================================
+
+
+class TableMerge(models.Model):
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+
+    primary_table = models.ForeignKey(
+        "Table",
+        on_delete=models.CASCADE,
+        related_name="merged_primary"
+    )
+
+    tables = models.ManyToManyField("Table")
+
+    created_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    is_active = models.BooleanField(default=True)
+
+    class META:
+        indexes = [
+            models.Index(fields=["tenant", "outlet" ,"is_active"]),
+        ]
+
 

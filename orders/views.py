@@ -1,5 +1,6 @@
 # orders/views.py
 
+from heapq import merge
 import json
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
@@ -9,15 +10,19 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from notifications.services.notification_service import create_notification
 from django.db.models import Prefetch
+from core.decorators import tenant_required
+import traceback
 
 from menu.models import MenuCategory, MenuItem
+from orders.services.table_merge_service import merge_tables, unmerge_tables
 
 from .models import (
     Order,
     OrderItem,
     OrderLock,
     Table,
-    KOTBatch
+    KOTBatch,
+    TableMerge
 )
 
 from orders.services.order_service import (
@@ -38,14 +43,36 @@ from orders.models import Order
 from orders.services.order_lock_service import lock_order
 
 @login_required
+@tenant_required
 def billing_view(request):
 
     table_id = request.GET.get("table")
 
     order = None
+# --------------------------------
+# Check if table is merged 
+# --------------------------------
+    if table_id:
+        
+        merge = (
+            TableMerge.objects
+            .filter(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                is_active=True,
+                tables__id=table_id
+            )
+            .select_related("primary_table")
+            .first()
+        )
 
-    
-    # FIRST: Fetch order
+        if merge and str(table_id) != str(merge.primary_table.id):
+            table_id = merge.primary_table.id
+            
+            
+# ------------------------------------------
+# FIRST: Fetch order
+# -----------------------------------------
     if table_id:
         order = Order.objects.filter(
             table_id=table_id,
@@ -91,6 +118,7 @@ def billing_view(request):
 
 @login_required
 @require_POST
+@tenant_required
 def create_order(request):
 
     try:
@@ -132,7 +160,7 @@ def create_order(request):
         })
 
     except Exception as e:
-
+        print(traceback.format_exc())
         return JsonResponse({
             "error": str(e)
         }, status=500)
@@ -419,69 +447,168 @@ def table_dashboard(request):
 @login_required
 def tables_data(request):
 
-    tenant = request.user.tenant
-    outlet = request.user.outlet
+    try:
 
-    tables = (
-        Table.objects
-        .filter(
-            tenant=tenant,
-            outlet=outlet,
-            is_active=True
-        )
-        .order_by("name")
-    )
+        tenant = request.user.tenant
+        outlet = request.user.outlet
+        now = timezone.now()
 
-    open_orders = (
-        Order.objects
-        .filter(
-            tenant=tenant,
-            outlet=outlet,
-            status="open"
-        )
-        .select_related("table")
-        .prefetch_related("items")
-    )
+        # -------------------------------------------------
+        # FETCH TABLES
+        # -------------------------------------------------
 
-    # Map table_id → order
-    orders_map = {o.table_id: o for o in open_orders}
-
-    data = []
-
-    now = timezone.now()
-
-    for table in tables:
-
-        order = orders_map.get(table.id)
-
-        status = table.state
-        cooking_items = 0
-        elapsed_minutes = 0
-
-        if order:
-
-            cooking_items = sum(
-                1 for i in order.items.all()
-                if i.status in ["sent", "preparing"]
+        tables = (
+            Table.objects
+            .filter(
+                tenant=tenant,
+                outlet=outlet,
+                is_active=True
             )
+            .order_by("name")
+        )
 
-            elapsed_minutes = int(
-                (now - order.created_at).total_seconds() / 60
+        # -------------------------------------------------
+        # FETCH OPEN ORDERS
+        # -------------------------------------------------
+
+        open_orders = (
+            Order.objects
+            .filter(
+                tenant=tenant,
+                outlet=outlet,
+                status="open"
             )
+            .select_related("table")
+            .prefetch_related("items")
+        )
 
-        if not order and table.state != "cleaning":
-            status = "free"
+        orders_map = {o.table_id: o for o in open_orders}
 
-        data.append({
-            "id": table.id,
-            "name": table.name,
-            "status": status,
-            "order_id": order.id if order else None,
-            "cooking_items": cooking_items,
-            "elapsed": elapsed_minutes
-        })
+        # -------------------------------------------------
+        # FETCH ACTIVE MERGES
+        # -------------------------------------------------
 
-    return JsonResponse({"tables": data})
+        merges = (
+            TableMerge.objects
+            .filter(
+                tenant=tenant,
+                outlet=outlet,
+                is_active=True
+            )
+            .select_related("primary_table")
+            .prefetch_related("tables")
+        )
+
+        # Map secondary table -> primary table
+        merged_lookup = {}
+
+        for merge in merges:
+            for t in merge.tables.all():
+                if t.id != merge.primary_table.id:
+                    merged_lookup[t.id] = merge.primary_table.id
+
+        data = []
+
+        # -------------------------------------------------
+        # PROCESS TABLES
+        # -------------------------------------------------
+
+        for table in tables:
+
+            try:
+
+                primary_table_id = merged_lookup.get(table.id)
+
+                is_merged = False
+
+                if primary_table_id and primary_table_id != table.id:
+                    is_merged = True
+
+                # -------------------------------------------------
+                # DETERMINE WHICH ORDER TO USE
+                # -------------------------------------------------
+
+                order = None
+
+                if primary_table_id:
+                    order = orders_map.get(primary_table_id)
+                else:
+                    order = orders_map.get(table.id)
+
+                # -------------------------------------------------
+                # CALCULATE METRICS
+                # -------------------------------------------------
+
+                cooking_items = 0
+                elapsed_minutes = 0
+                status = table.state
+
+                if order:
+
+                    cooking_items = sum(
+                        1 for i in order.items.all()
+                        if i.status in ["sent", "preparing"]
+                    )
+
+                    elapsed_minutes = int(
+                        (now - order.created_at).total_seconds() / 60
+                    )
+
+                # -------------------------------------------------
+                # FIX FREE STATE
+                # -------------------------------------------------
+
+                if not order and table.state not in ["cleaning"]:
+                    status = "free"
+
+                # -------------------------------------------------
+                # MERGED TABLE STATE
+                # -------------------------------------------------
+
+                primary_table_name =  None
+                
+                if primary_table_id:
+                    primary_table_name= tables.filter(id=primary_table_id).first().name
+                    
+                if is_merged:
+                    status = "merged"
+                
+
+                
+                data.append({
+                    "id": table.id,
+                    "name": table.name,
+                    "status": status,
+                    "order_id": order.id if order else None,
+                    "cooking_items": cooking_items,
+                    "elapsed": elapsed_minutes,
+                    "merged": is_merged,
+                    "primary_table": primary_table_id,
+                    "primary_table_name": primary_table_name
+                })
+
+            except Exception as table_error:
+
+                # Prevent single table failure breaking dashboard
+                data.append({
+                    "id": table.id,
+                    "name": table.name,
+                    "status": "error",
+                    "order_id": None,
+                    "cooking_items": 0,
+                    "elapsed": 0,
+                    "merged": False,
+                    "primary_table": None
+                })
+
+        return JsonResponse({"tables": data})
+
+    except Exception as e:
+
+        return JsonResponse({
+            "error": "tables_data_failed",
+            "message": str(e)
+        }, status=500)
 # -------------------------------------------------
 # CLEAN TABLE
 # -------------------------------------------------
@@ -635,7 +762,7 @@ def lock_order(order, user):
         }
     )
 
-    return True
+    return True ,user
 
 
 
@@ -755,3 +882,44 @@ def make_item_complimentary(request, item_id):
 
         return JsonResponse({"error":"Item not found"},status=404)
     
+    
+    
+@login_required
+@require_POST
+def merge_tables_view(request):
+
+    data = json.loads(request.body)
+
+    primary = data.get("primary_table")
+    tables = data.get("tables")
+
+    merge = merge_tables(
+        request.user,
+        primary,
+        tables
+    )
+
+    return JsonResponse({
+        "success": True,
+        "merge_id": merge.id
+    })
+    
+    
+
+@login_required
+@require_POST
+def unmerge_tables_view(request, primary_id):
+
+    merge = TableMerge.objects.filter(
+        primary_table_id=primary_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_active=True
+    ).first()
+
+    if not merge:
+        return JsonResponse({"error": "Merge not found"}, status=404)
+
+    unmerge_tables(request.user, merge.id)
+
+    return JsonResponse({"success": True})
