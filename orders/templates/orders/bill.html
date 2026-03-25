@@ -251,95 +251,39 @@ alert(`Each person pays ₹${per}`)
 
 
 
-
-
-
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Receipt</title>
+<title>Billing</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
 
 body{
-font-family:system-ui;
 background:#f4f6fb;
-padding:40px;
+font-family:system-ui;
 }
 
 .bill-container{
 max-width:420px;
 margin:auto;
 background:white;
-border-radius:14px;
-padding:28px;
-box-shadow:0 8px 25px rgba(0,0,0,0.1);
+border-radius:16px;
+padding:24px;
+box-shadow:0 10px 30px rgba(0,0,0,0.08);
 }
 
-.center{
-text-align:center;
-}
-
-h3{
-margin:0;
-}
-
-hr{
-border-top:1px dashed #bbb;
-margin:15px 0;
-}
-
-table{
-width:100%;
-font-size:14px;
-border-collapse:collapse;
-}
-
-th{
-text-align:left;
-padding-bottom:8px;
-}
-
-td{
-padding:6px 0;
-vertical-align:top;
-}
-
-.qty{
-text-align:center;
-width:40px;
-}
-
-.price{
-text-align:right;
-width:80px;
-}
-
-.modifier{
-font-size:12px;
-padding-left:15px;
-color:#666;
-}
-
-.total-box{
-margin-top:10px;
-font-size:15px;
-}
-
-.total-row{
+.item-row{
 display:flex;
 justify-content:space-between;
-margin-bottom:6px;
-}
-
-.discount-row{
-color:#d9534f;
-font-weight:600;
+padding:6px 0;
+border-bottom:1px dashed #ddd;
+font-size:14px;
 }
 
 .grand-total{
@@ -347,53 +291,23 @@ font-size:20px;
 font-weight:700;
 display:flex;
 justify-content:space-between;
-margin-top:10px;
 }
 
-button{
-padding:10px 14px;
-margin:4px;
-border:none;
-border-radius:6px;
-cursor:pointer;
-font-weight:500;
+.btn-pay{
+width:100%;
+margin-bottom:8px;
 }
 
-.cash-btn{background:#28a745;color:white;}
-.upi-btn{background:#0d6efd;color:white;}
-.card-btn{background:#6c757d;color:white;}
-.discount-btn{background:#ffc107;}
-.print-btn{background:black;color:white;}
-.split-btn{background:#17a2b8;color:white;}
-
-input{
-padding:6px;
-width:90px;
-border-radius:5px;
-border:1px solid #ccc;
-margin-right:5px;
-}
-
-.action-buttons{
-margin-top:10px;
-}
-
-@media print{
-
-body{
-background:white;
-padding:0;
-}
-
-.bill-container{
-box-shadow:none;
-}
-
-button,input{
+.status-box{
 display:none;
+padding:10px;
+border-radius:10px;
+margin-top:10px;
+font-size:14px;
 }
 
-}
+.success{background:#d4edda;color:#155724;}
+.error{background:#f8d7da;color:#721c24;}
 
 </style>
 
@@ -403,95 +317,46 @@ display:none;
 
 <div class="bill-container">
 
-<div class="center">
-<h3>{{ request.user.outlet.name }}</h3>
-<p>{{ request.user.outlet }}</p>
-</div>
+<h5 class="text-center">{{ request.user.outlet.name }}</h5>
 
 <hr>
 
-<div>
-
-<p><strong>Order:</strong> {{ order.order_number|default:order.id }}</p>
-
-<p>
-<strong>Table:</strong>
-{% if order.table %}
-{{ order.table.name }}
-{% else %}
-Takeaway
-{% endif %}
-</p>
-
-<p>
-<strong>Date:</strong>
-{{ order.created_at|date:"d M Y H:i" }}
-</p>
-
-</div>
+<p><strong>Order:</strong> {{ order.id }}</p>
+<p><strong>Table:</strong> {{ order.table.name|default:"Takeaway" }}</p>
 
 <hr>
 
-<table>
-
-<tr>
-<th>Item</th>
-<th class="qty">Qty</th>
-<th class="price">Total</th>
-</tr>
-
+<!-- ITEMS -->
 {% for item in order.items.all %}
-
-<tr>
-<td>{{ item.menu_item.name }}</td>
-<td class="qty">{{ item.quantity }}</td>
-<td class="price">
+<div class="item-row">
+<span>{{ item.menu_item.name }} × {{ item.quantity }}</span>
+<span>
 {% if item.is_complimentary %}
-<span style="color:#28a745;font-weight:600;">Complimentary</span>
+<span class="text-success">Free</span>
 {% else %}
 ₹{{ item.total_price }}
 {% endif %}
-</td>
-</tr>
-
-{% for mod in item.modifiers.all %}
-
-<tr>
-<td class="modifier">+ {{ mod.name }}</td>
-<td></td>
-<td></td>
-</tr>
-
+</span>
+</div>
 {% endfor %}
-
-{% endfor %}
-
-</table>
 
 <hr>
 
-<div class="total-box">
-
-<div class="total-row">
+<!-- TOTAL -->
+<div class="d-flex justify-content-between">
 <span>Subtotal</span>
 <span id="subtotal">₹{{ order.subtotal }}</span>
 </div>
 
-<div class="total-row">
+<div class="d-flex justify-content-between">
 <span>GST</span>
 <span id="gst">₹{{ order.gst_total }}</span>
 </div>
 
-<div class="total-row discount-row"
-id="discountRow"
-{% if order.discount_total == 0 %}
-style="display:none"
-{% endif %}
->
+<div class="d-flex justify-content-between text-danger" id="discountRow"
+{% if order.discount_total == 0 %}style="display:none"{% endif %}>
 <span>Discount</span>
 <span id="discountValue">- ₹{{ order.discount_total }}</span>
-</div>
-
 </div>
 
 <hr>
@@ -501,179 +366,177 @@ style="display:none"
 <span id="grandTotal">₹{{ order.grand_total }}</span>
 </div>
 
+<div class="text-muted mt-1">
+Remaining: ₹<span id="remaining">{{ order.grand_total }}</span>
+</div>
+
 <hr>
 
-<div class="center action-buttons">
-
-<button class="split-btn" onclick="openSplit()">Split Bill</button>
-
-<br><br>
-
-{% if request.user.role == "manager" or request.user.role == "cashier" or request.user.role == "owner" %}
-
-<div>
-
-<input
-type="number"
-id="discountPercent"
-placeholder="%"
-min="0"
-max="100"
-/>
-
-<button class="discount-btn" onclick="applyDiscount()">
-Apply Discount
-</button>
-
+<!-- DISCOUNT -->
+{% if request.user.role in "manager cashier owner" %}
+<div class="mb-2">
+<input type="number" id="discountPercent" class="form-control mb-1" placeholder="Discount %">
+<button class="btn btn-warning w-100" onclick="applyDiscount()">Apply Discount</button>
 </div>
-
-<br>
-
 {% endif %}
 
-<button class="cash-btn" onclick="pay('cash')">Cash</button>
-<button class="upi-btn" onclick="pay('upi')">UPI</button>
-<button class="card-btn" onclick="pay('card')">Card</button>
+<!-- PAYMENT -->
+<input type="number" id="payAmount" class="form-control mb-2" placeholder="Enter amount">
 
-<br><br>
-
-<button class="print-btn" onclick="window.print()">Print Receipt</button>
-
+<div class="d-flex gap-2 mb-2">
+<button class="btn btn-outline-primary w-100" onclick="fillFull()">Full</button>
+<button class="btn btn-outline-secondary w-100" onclick="split()">Split</button>
 </div>
+
+<button class="btn btn-success btn-pay" onclick="pay('cash')">Cash</button>
+<button class="btn btn-primary btn-pay" onclick="pay('upi')">UPI</button>
+<button class="btn btn-dark btn-pay" onclick="pay('card')">Card</button>
+
+<div id="statusBox" class="status-box"></div>
+
+<button class="btn btn-outline-dark w-100 mt-2" onclick="window.print()">Print</button>
 
 </div>
 
 <script>
 
-let paymentProcessing=false
+let processing=false
+
+function showStatus(msg, ok=true){
+let box=document.getElementById("statusBox")
+box.style.display="block"
+box.className="status-box "+(ok?"success":"error")
+box.innerText=msg
+}
+
+function fillFull(){
+let remaining = parseFloat(document.getElementById("remaining").innerText) || 0
+document.getElementById("payAmount").value = remaining.toFixed(2)
+}
+
+function split(){
+let people=prompt("Split how many people?")
+if(!people) return
+let remaining = parseFloat(document.getElementById("remaining").innerText) || 0
+let val=(remaining/people).toFixed(2)
+document.getElementById("payAmount").value=val
+}
 
 function pay(method){
 
-if(paymentProcessing) return
+if(processing) return
 
-paymentProcessing=true
+let amount=parseFloat(document.getElementById("payAmount").value)
 
-fetch(`/pay/{{ order.id }}/`,{
+if(!amount || amount<=0){
+showStatus("Enter valid amount",false)
+return
+}
 
+processing=true
+disableButtons(true)
+
+fetch(`/pay/{{order.id}}/`,{
 method:"POST",
-
 headers:{
 "Content-Type":"application/json",
 "X-CSRFToken":getCookie("csrftoken")
 },
-
-body:JSON.stringify({method:method})
-
+body:JSON.stringify({method,amount})
 })
-.then(res=>res.json())
+.then(r=>r.json())
 .then(data=>{
 
-paymentProcessing=false
+processing=false
+disableButtons(false)
 
 if(data.success){
 
-alert("Payment successful")
-window.location.href="/tables/"
+if(data.remaining !== undefined){
+
+    let remaining = parseFloat(data.remaining)
+
+    if(isNaN(remaining)){
+        showStatus("Error updating remaining", false)
+        return
+    }
+
+    // ✅ update remaining
+    document.getElementById("remaining").innerText = remaining.toFixed(2)
+
+    // ✅ clear old input (VERY IMPORTANT)
+    document.getElementById("payAmount").value = ""
+
+    // ✅ show helpful placeholder
+    document.getElementById("payAmount").placeholder = "Remaining ₹" + remaining.toFixed(2)
+
+    showStatus("Partial payment recorded")
+}else{
+showStatus("Payment complete")
+setTimeout(()=>window.location.href="/tables/",1200)
+}
 
 }else{
+showStatus(data.error,false)
 
-alert(data.error || "Payment failed")
-
+if(data.error==="Order already completed"){
+setTimeout(()=>window.location.href="/tables/",1200)
+}
 }
 
 })
 
 }
 
+function disableButtons(state){
+document.querySelectorAll("button").forEach(b=>b.disabled=state)
+}
 
 function applyDiscount(){
 
 let percent=document.getElementById("discountPercent").value
 
 if(!percent){
-alert("Enter discount %")
+showStatus("Enter discount %",false)
 return
 }
 
 fetch(`/apply-discount/{{order.id}}/`,{
-
 method:"POST",
-
 headers:{
 "Content-Type":"application/json",
 "X-CSRFToken":getCookie("csrftoken")
 },
-
-body:JSON.stringify({
-percent:percent
+body:JSON.stringify({percent})
 })
-
-})
-.then(res=>res.json())
+.then(r=>r.json())
 .then(data=>{
-
 if(data.success){
-
 document.getElementById("subtotal").innerText="₹"+data.subtotal.toFixed(2)
 document.getElementById("gst").innerText="₹"+data.gst.toFixed(2)
 document.getElementById("grandTotal").innerText="₹"+data.total.toFixed(2)
+document.getElementById("remaining").innerText=data.total.toFixed(2)
 
 document.getElementById("discountRow").style.display="flex"
 document.getElementById("discountValue").innerText="- ₹"+data.discount.toFixed(2)
 
+showStatus("Discount applied")
+
 }else{
-
-alert(data.error)
-
+showStatus(data.error,false)
 }
-
 })
-
 }
-
 
 function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie && document.cookie!==""){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-break
-
+let v=null
+document.cookie.split(";").forEach(c=>{
+c=c.trim()
+if(c.startsWith(name+"=")){
+v=decodeURIComponent(c.substring(name.length+1))
 }
-
-}
-
-}
-
-return cookieValue
-
-}
-
-
-function openSplit(){
-
-let people=prompt("Number of people to split bill:")
-
-if(!people) return
-
-people=parseInt(people)
-
-let total=parseFloat(document.getElementById("grandTotal").innerText.replace("₹",""))
-
-let per=(total/people).toFixed(2)
-
-alert(`Each person pays ₹${per}`)
-
+})
+return v
 }
 
 </script>

@@ -1,13 +1,14 @@
+# setup/views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 
 from orders.models import Table
-from menu.models import MenuCategory, MenuItem, KitchenStation
+from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet
-
-
+from django.views.decorators.http import require_POST
+from setup.models import KitchenStation
 # -------------------------------------------------
 # MAIN SETUP DASHBOARD
 # -------------------------------------------------
@@ -159,14 +160,14 @@ def setup_menu(request):
 
 
 # -------------------------------------------------
-# PRINTER SETUP
+# KITCHEN STATIONS SETUP
 # -------------------------------------------------
 
 @login_required
-def setup_printers(request):
+def setup_kitchen_stations(request):
 
     """
-    Printers will later connect to kitchen stations
+    Kitchen stations will later connect to 
     """
 
     stations = KitchenStation.objects.filter(
@@ -180,7 +181,7 @@ def setup_printers(request):
 
         if not name:
             messages.error(request, "Station name required")
-            return redirect("setup_printers")
+            return redirect("setup_kitchen_stations")
 
         KitchenStation.objects.create(
             tenant=request.user.tenant,
@@ -190,11 +191,11 @@ def setup_printers(request):
 
         messages.success(request, "Kitchen station created")
 
-        return redirect("setup_printers")
+        return redirect("setup_kitchen_stations")
 
     return render(
         request,
-        "setup/setup_printers.html",
+        "setup/setup_kitchen_stations.html",
         {
             "stations": stations
         }
@@ -289,3 +290,27 @@ def setup_staff(request):
         "setup/setup_staff.html",
         {"staff": staff}
     )
+    
+
+@login_required
+@require_POST
+def set_default_station(request, station_id):
+
+    station = KitchenStation.objects.get(
+        id=station_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+
+    # remove old default
+    KitchenStation.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_default=True
+    ).update(is_default=False)
+
+    # set new default
+    station.is_default = True
+    station.save(update_fields=["is_default"])
+
+    return redirect("/setup/kitchen-stations/")

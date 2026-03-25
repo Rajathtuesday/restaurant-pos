@@ -1,10 +1,13 @@
 # orders/urls.py
 from django.urls import path
 
+from orders.services.table_transfer_service import transfer_table
+
 
 
 from .views import (
     apply_discount,
+    available_tables,
     billing_view,
     create_order,
     make_item_complimentary,
@@ -24,6 +27,7 @@ from .views import (
     running_order_data,
     generate_bill,
     merge_tables_view,
+    transfer_table_view,
     unmerge_tables_view
     
 )
@@ -65,5 +69,9 @@ urlpatterns = [
     
     path("merge-tables/", merge_tables_view ,name="merge-tables"),
     path("unmerge-tables/<int:primary_id>/",unmerge_tables_view ,name="unmerge-tables"),
+    
+    path("transfer-table/", transfer_table_view ,name="transfer-table"),
+    
+    path("available-tables/", available_tables ,name="available-tables"),
     
 ]

@@ -521,73 +521,119 @@ class Order(models.Model):
     # -------------------------------------------------
     # TOTAL RECALCULATION
     # -------------------------------------------------
+    # def recalculate_totals(self):
+    #     """
+    #     Recalculate subtotal, gst_total, discount_total and grand_total.
+    #     - Complimentary items (OrderItem.is_complimentary == True) are ignored for subtotal & GST.
+    #     - Discount is applied against subtotal.
+    #     - discount_total is subtracted after GST (if you want discount to reduce taxable amount, change logic).
+    #     """
+
+    #     subtotal = Decimal("0.00")
+    #     gst_total = Decimal("0.00")
+
+    #     # exclude voided items
+    #     items_qs = self.items.exclude(status="voided")
+
+    #     for item in items_qs:
+    #         # if an item is complimentary, skip pricing (but it still exists for records)
+    #         if getattr(item, "is_complimentary", False):
+    #             continue
+
+    #         # item.price and item.quantity assumed to be Decimal/int
+    #         item_price = Decimal(item.price)
+    #         quantity = Decimal(item.quantity)
+
+    #         base = (item_price * quantity)
+    #         # modifiers may be a queryset or list of objects with .price
+    #         modifier_total = sum(Decimal(m.price) for m in getattr(item, "modifiers", []).all()) if hasattr(item, "modifiers") else Decimal("0.00")
+    #         modifier_total = modifier_total * quantity
+
+    #         item_total = base + modifier_total
+
+    #         # GST per item (gst_percentage stored as Decimal percentage)
+    #         gst_pct = Decimal(item.gst_percentage or Decimal("0.00"))
+    #         gst = (item_total * gst_pct) / Decimal("100")
+
+    #         subtotal += item_total
+    #         gst_total += gst
+
+    #     # quantize intermediate totals
+    #     subtotal = self._quantize(subtotal)
+    #     gst_total = self._quantize(gst_total)
+
+    #     # compute discount_total based on subtotal
+    #     discount_total = Decimal("0.00")
+    #     if self.discount_type == "percentage" and (self.discount_value or Decimal("0.00")) > 0:
+    #         # discount_value is e.g. 10 for 10%
+    #         discount_total = (subtotal * (Decimal(self.discount_value) / Decimal("100.00")))
+    #     elif self.discount_type == "amount" and (self.discount_value or Decimal("0.00")) > 0:
+    #         discount_total = Decimal(self.discount_value)
+
+    #     # make sure discount doesn't exceed subtotal
+    #     if discount_total > subtotal:
+    #         discount_total = subtotal
+
+    #     discount_total = self._quantize(discount_total)
+
+    #     # final grand total: subtotal + gst - discount_total
+    #     grand_total = subtotal + gst_total - discount_total
+    #     grand_total = self._quantize(max(grand_total, Decimal("0.00")))
+
+    #     # persist
+    #     self.subtotal = subtotal
+    #     self.gst_total = gst_total
+    #     self.discount_total = discount_total
+    #     self.grand_total = grand_total
+
+    #     self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total"])
     def recalculate_totals(self):
-        """
-        Recalculate subtotal, gst_total, discount_total and grand_total.
-        - Complimentary items (OrderItem.is_complimentary == True) are ignored for subtotal & GST.
-        - Discount is applied against subtotal.
-        - discount_total is subtracted after GST (if you want discount to reduce taxable amount, change logic).
-        """
 
         subtotal = Decimal("0.00")
         gst_total = Decimal("0.00")
 
-        # exclude voided items
-        items_qs = self.items.exclude(status="voided")
+        items = self.items.exclude(status="voided")
 
-        for item in items_qs:
-            # if an item is complimentary, skip pricing (but it still exists for records)
+        for item in items:
+
+            # skip complimentary
             if getattr(item, "is_complimentary", False):
                 continue
 
-            # item.price and item.quantity assumed to be Decimal/int
-            item_price = Decimal(item.price)
-            quantity = Decimal(item.quantity)
+            # 🔥 USE STORED VALUE
+            item_total = Decimal(item.total_price or 0)
 
-            base = (item_price * quantity)
-            # modifiers may be a queryset or list of objects with .price
-            modifier_total = sum(Decimal(m.price) for m in getattr(item, "modifiers", []).all()) if hasattr(item, "modifiers") else Decimal("0.00")
-            modifier_total = modifier_total * quantity
-
-            item_total = base + modifier_total
-
-            # GST per item (gst_percentage stored as Decimal percentage)
-            gst_pct = Decimal(item.gst_percentage or Decimal("0.00"))
+            gst_pct = Decimal(item.gst_percentage or 0)
             gst = (item_total * gst_pct) / Decimal("100")
 
             subtotal += item_total
             gst_total += gst
 
-        # quantize intermediate totals
         subtotal = self._quantize(subtotal)
         gst_total = self._quantize(gst_total)
 
-        # compute discount_total based on subtotal
         discount_total = Decimal("0.00")
-        if self.discount_type == "percentage" and (self.discount_value or Decimal("0.00")) > 0:
-            # discount_value is e.g. 10 for 10%
-            discount_total = (subtotal * (Decimal(self.discount_value) / Decimal("100.00")))
-        elif self.discount_type == "amount" and (self.discount_value or Decimal("0.00")) > 0:
+
+        if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
+            discount_total = subtotal * (Decimal(self.discount_value) / Decimal("100"))
+
+        elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
             discount_total = Decimal(self.discount_value)
 
-        # make sure discount doesn't exceed subtotal
         if discount_total > subtotal:
             discount_total = subtotal
 
         discount_total = self._quantize(discount_total)
 
-        # final grand total: subtotal + gst - discount_total
         grand_total = subtotal + gst_total - discount_total
         grand_total = self._quantize(max(grand_total, Decimal("0.00")))
 
-        # persist
         self.subtotal = subtotal
         self.gst_total = gst_total
         self.discount_total = discount_total
         self.grand_total = grand_total
 
         self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total"])
-
 # =====================================================
 # KOT
 # =====================================================
@@ -722,7 +768,7 @@ class OrderItemModifier(models.Model):
         on_delete=models.CASCADE,
         related_name="modifiers"
     )
-
+    
     modifier = models.ForeignKey(
         "menu.Modifier",
         on_delete=models.SET_NULL,
@@ -755,7 +801,7 @@ class Payment(models.Model):
 
     order = models.ForeignKey(
         Order,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="payments"
     )
 
@@ -821,28 +867,53 @@ class WaiterCall(models.Model):
 
 
 # =====================================================
-# ORDER EVENTS
+# ORDER EVENTS (PRODUCTION GRADE)
 # =====================================================
 
 class OrderEvent(models.Model):
 
     EVENT_TYPES = [
 
+        # Order lifecycle
         ("order_created", "Order Created"),
+        ("order_cancelled", "Order Cancelled"),
+
+        # Items
         ("item_added", "Item Added"),
+        ("item_updated", "Item Updated"),
         ("item_voided", "Item Voided"),
+
+        # Kitchen
         ("kot_sent", "KOT Sent"),
         ("kitchen_preparing", "Kitchen Preparing"),
         ("kitchen_ready", "Kitchen Ready"),
+
+        # Payments
+        ("payment_added", "Payment Added"),
         ("payment_completed", "Payment Completed"),
-        ("order_cancelled", "Order Cancelled"),
+        ("payment_refunded", "Payment Refunded"),
+
+        # Table actions
+        ("table_transferred", "Table Transferred"),
+        ("tables_merged", "Tables Merged"),
+        ("tables_unmerged", "Tables Unmerged"),
+
+        # System
+        ("status_changed", "Status Changed"),
     ]
 
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    tenant = models.ForeignKey(
+        "tenants.Tenant",
+        on_delete=models.CASCADE
+    )
+
+    outlet = models.ForeignKey(
+        "tenants.Outlet",
+        on_delete=models.CASCADE
+    )
 
     order = models.ForeignKey(
-        Order,
+        "orders.Order",
         on_delete=models.CASCADE,
         related_name="events"
     )
@@ -852,7 +923,20 @@ class OrderEvent(models.Model):
         choices=EVENT_TYPES
     )
 
+    # 🔥 WHAT CHANGED (STRUCTURED)
     metadata = models.JSONField(blank=True, null=True)
+
+    # 🔥 FINANCIAL TRACKING (IMPORTANT)
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
+
+    # 🔥 STATE SNAPSHOT (CRITICAL)
+    before_state = models.JSONField(null=True, blank=True)
+    after_state = models.JSONField(null=True, blank=True)
 
     created_by = models.ForeignKey(
         "accounts.User",
@@ -865,11 +949,13 @@ class OrderEvent(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["order"]),
+            models.Index(fields=["event_type"]),
+            models.Index(fields=["created_at"]),
         ]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.event_type} - Order {self.order.id}"
-
 
 # =====================================================
 # ORDER LOCK

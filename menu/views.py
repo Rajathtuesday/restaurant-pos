@@ -14,7 +14,7 @@ import json
 from .models import MenuItemModifierGroup
 
 from inventory.models import InventoryItem, Recipe
-
+from setup.models import KitchenStation
 
 
 
@@ -79,15 +79,25 @@ def menu_management(request):
 
     inventory = InventoryItem.objects.filter(
         tenant=request.user.tenant,
-        outlet=request.user.outlet
+        outlet=request.user.outlet,
+        
     )
+    
+    stations = KitchenStation.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_active=True
+    )
+    
+    
 
     return render(
         request,
         "menu/menu_management.html",
         {
             "categories": categories,
-            "inventory": inventory
+            "inventory": inventory,
+            "stations": stations
         }
     )
     
@@ -142,12 +152,23 @@ def create_menu_item(request):
             outlet=request.user.outlet
         )
 
+        station_id = data.get("station")
+
+        station = None
+        if station_id:
+            station = KitchenStation.objects.get(
+                id=station_id,
+                tenant=request.user.tenant,
+                outlet=request.user.outlet
+            )
+
         MenuItem.objects.create(
             tenant=request.user.tenant,
             outlet=request.user.outlet,
             name=name,
             price=price,
-            category=category
+            category=category,
+            station=station
         )
 
         return JsonResponse({"success": True})
@@ -310,3 +331,35 @@ def menu_item_modifiers(request, item_id):
         })
 
     return JsonResponse({"groups": data})
+
+
+@login_required
+@require_POST
+def update_station(request, item_id):
+
+    try:
+        data = json.loads(request.body)
+        station_id = data.get("station")
+
+        item = MenuItem.objects.get(
+            id=item_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+
+        if station_id:
+            station = KitchenStation.objects.get(
+                id=station_id,
+                tenant=request.user.tenant,
+                outlet=request.user.outlet
+            )
+            item.station = station
+        else:
+            item.station = None
+
+        item.save(update_fields=["station"])
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

@@ -10,7 +10,7 @@ def inventory_usage(tenant, outlet):
         .filter(
             tenant=tenant,
             outlet=outlet,
-            type="usage"
+            transaction_type="consume"
         )
         .values("item__name")
         .annotate(total=Sum("quantity"))
@@ -27,7 +27,7 @@ def inventory_cost(tenant, outlet):
         .filter(
             tenant=tenant,
             outlet=outlet,
-            type="usage"
+            transaction_type="consume"
         )
         .values("item__name")
         .annotate(total=Sum("quantity"))

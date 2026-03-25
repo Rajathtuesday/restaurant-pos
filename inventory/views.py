@@ -54,3 +54,36 @@ def restock_item(request, item_id):
         "success":True,
         "new_stock":float(item.stock)
     })
+    
+    
+
+@login_required
+@require_POST
+def create_inventory_item(request):
+
+    if request.user.role not in ["owner","manager"]:
+        return HttpResponseForbidden()
+
+    data = json.loads(request.body)
+
+    name = data.get("name")
+    unit = data.get("unit")
+    stock = Decimal(data.get("stock", "0"))
+    threshold = Decimal(data.get("threshold", "0"))
+
+    if not name:
+        return JsonResponse({"error": "Name required"}, status=400)
+
+    item = InventoryItem.objects.create(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        name=name,
+        unit=unit,
+        stock=stock,
+        low_stock_threshold=threshold
+    )
+
+    return JsonResponse({
+        "success": True,
+        "id": item.id
+    })

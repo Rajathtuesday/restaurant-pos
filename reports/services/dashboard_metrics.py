@@ -6,7 +6,7 @@ from orders.models import Order
 from inventory.models import InventoryItem
 from tenants.models import Outlet
 from orders.models import Table
-
+from orders.models import Payment
 
 def owner_dashboard_metrics(user):
 
@@ -29,8 +29,16 @@ def owner_dashboard_metrics(user):
             status__in=["closed", "paid"]
         )
 
-        revenue = orders_today.aggregate(
-            total=Sum("grand_total")
+
+
+        payments = Payment.objects.filter(
+            order__tenant=tenant,
+            order__outlet=outlet,
+            order__created_at__date=today
+        )
+
+        revenue = payments.aggregate(
+            total=Sum("amount")
         )["total"] or 0
 
         total_orders = orders_today.count()

@@ -2,22 +2,31 @@
 
 from heapq import merge
 import json
-from django.utils import timezone
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from notifications.services.notification_service import create_notification
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Sum
 from core.decorators import tenant_required
 import traceback
 
+from django.utils import timezone
+from datetime import timedelta
+
 from menu.models import MenuCategory, MenuItem
 from orders.services.table_merge_service import merge_tables, unmerge_tables
+from orders.services.table_transfer_service import transfer_table
+from setup.models import KitchenStation
+
+from orders.utils.order_utils import validate_order_editable
+
 
 from .models import (
     Order,
+    OrderEvent,
     OrderItem,
     OrderLock,
     Table,
@@ -39,8 +48,17 @@ from orders.services.payment_service import process_payment
 # BILLING PAGE
 # -------------------------------------------------
 
-from orders.models import Order
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.db.models import Prefetch
+from django.http import Http404
+
+from orders.models import Order, Table, TableMerge
 from orders.services.order_lock_service import lock_order
+from menu.models import MenuCategory, MenuItem
+from decimal import Decimal, InvalidOperation
+from core.decorators import tenant_required
+
 
 @login_required
 @tenant_required
@@ -49,11 +67,13 @@ def billing_view(request):
     table_id = request.GET.get("table")
 
     order = None
-# --------------------------------
-# Check if table is merged 
-# --------------------------------
+
+    # --------------------------------------------------
+    # STEP 1: Resolve merged tables
+    # --------------------------------------------------
+
     if table_id:
-        
+
         merge = (
             TableMerge.objects
             .filter(
@@ -66,52 +86,90 @@ def billing_view(request):
             .first()
         )
 
+        # If secondary merged table → redirect to primary
         if merge and str(table_id) != str(merge.primary_table.id):
             table_id = merge.primary_table.id
-            
-            
-# ------------------------------------------
-# FIRST: Fetch order
-# -----------------------------------------
-    if table_id:
-        order = Order.objects.filter(
-            table_id=table_id,
-            status__in=["open", "billing"]
-        ).first()
-    
-    # SECOND: Check lock (AFTER fetching)
-    if order:
-        locked, user = lock_order(order, request.user)
-        if not locked:
-            return render(request, "orders/order_locked.html", {
-                "locked_by": user,
-                "order": order
-            })
 
-    categories = MenuCategory.objects.filter(
-        tenant=request.user.tenant,
-        outlet=request.user.outlet,
-        is_active=True
-    ).prefetch_related(
-        Prefetch(
-            "items",
-            queryset=MenuItem.objects.filter(is_available=True)
+    # --------------------------------------------------
+    # STEP 2: Fetch order safely
+    # --------------------------------------------------
+
+    if table_id:
+
+        order = (
+            Order.objects
+            .filter(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                table_id=table_id,
+                status__in=["open", "billing"]
+            )
+            .select_related("table")
+            .first()
+        )
+
+    # --------------------------------------------------
+    # STEP 3: Apply order lock
+    # --------------------------------------------------
+
+    if order:
+
+        locked, locked_user = lock_order(order, request.user)
+
+        if not locked:
+
+            return render(
+                request,
+                "orders/order_locked.html",
+                {
+                    "locked_by": locked_user,
+                    "order": order
+                }
+            )
+
+    # --------------------------------------------------
+    # STEP 4: Fetch menu
+    # --------------------------------------------------
+
+    categories = (
+        MenuCategory.objects
+        .filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            is_active=True
+        )
+        .prefetch_related(
+            Prefetch(
+                "items",
+                queryset=MenuItem.objects.filter(is_available=True)
+            )
         )
     )
+
+    # --------------------------------------------------
+    # STEP 5: Fetch tables
+    # --------------------------------------------------
 
     tables = Table.objects.filter(
         tenant=request.user.tenant,
         outlet=request.user.outlet,
         is_active=True
-    )
+    ).order_by("name")
 
-    return render(request,"orders/billing.html",{
-        "categories":categories,
-        "tables":tables,
-        "order":order,
-        "selected_table":table_id
-    })
+    # --------------------------------------------------
+    # STEP 6: Render page
+    # --------------------------------------------------
 
+    return render(
+        request,
+        "orders/billing.html",
+        {
+            "categories": categories,
+            "tables": tables,
+            "order": order,
+            "selected_table": table_id
+        }
+    )   
 # -------------------------------------------------
 # CREATE ORDER
 # -------------------------------------------------
@@ -170,6 +228,7 @@ def create_order(request):
 # -------------------------------------------------
 @login_required
 @require_POST
+@tenant_required
 def send_to_kitchen(request, order_id):
 
     try:
@@ -186,8 +245,9 @@ def send_to_kitchen(request, order_id):
                 )
             )
 
-            if order.status not in ["open", "billing"]:
-                return JsonResponse({"error": "Order not editable"}, status=400)
+            # 🔥 ONLY OPEN ALLOWED
+            if order.status != "open":
+                return JsonResponse({"error": "Order is locked"}, status=400)
 
             kots = create_kot(request.user, order)
 
@@ -206,23 +266,45 @@ def send_to_kitchen(request, order_id):
 # KITCHEN SCREEN
 # -------------------------------------------------
 
+
+
 @login_required
+@tenant_required
+
 def kitchen_view(request):
-    return render(request, "orders/kitchen.html")
 
+    stations = KitchenStation.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_active=True
+    )
+
+    return render(request, "orders/kitchen.html", {
+        "stations": stations
+    })
 
 @login_required
-def kitchen_data(request):
+@tenant_required
 
+def kitchen_data(request):
+    
+    station_name = request.GET.get("station")
+
+    kots = KOTBatch.objects.filter(
+        order__tenant=request.user.tenant,
+        order__outlet=request.user.outlet,
+        order__status="open"
+    )
+
+    # 🔥 APPLY STATION FILTER (IMPORTANT)
+    if station_name:
+        kots = kots.filter(station=station_name)
+
+    # THEN optimize
     kots = (
-        KOTBatch.objects
-        .filter(
-            order__tenant=request.user.tenant,
-            order__outlet=request.user.outlet,
-            order__status="open"
-        )
+        kots
         .select_related("order", "order__table")
-        .prefetch_related("items__menu_item")
+        .prefetch_related("items","items__menu_item")
         .order_by("created_at")
     )
 
@@ -248,6 +330,7 @@ def kitchen_data(request):
         data.append({
             "id": kot.id,
             "kot_number": kot.kot_number,
+            "station": kot.station,
             "table": kot.order.table.name if kot.order.table else "Takeaway",
             "created_at": kot.created_at.isoformat(),
             "items": items
@@ -261,6 +344,8 @@ def kitchen_data(request):
 
 @login_required
 @require_POST
+@tenant_required
+
 def start_preparing(request, item_id):
 
     try:
@@ -289,6 +374,7 @@ def start_preparing(request, item_id):
 
 @login_required
 @require_POST
+@tenant_required
 def mark_ready(request, item_id):
 
     try:
@@ -337,6 +423,7 @@ def mark_ready(request, item_id):
 
 @login_required
 @require_POST
+@tenant_required
 def serve_item(request, item_id):
 
     try:
@@ -365,6 +452,7 @@ def serve_item(request, item_id):
 # BILL
 # -------------------------------------------------
 
+@tenant_required
 @login_required
 def bill_view(request, order_id):
 
@@ -398,19 +486,31 @@ def bill_view(request, order_id):
 
 @login_required
 @require_POST
+@tenant_required
 def pay_order(request, order_id):
 
     try:
-
         data = json.loads(request.body)
 
         method = data.get("method")
+        amount = data.get("amount")  # 🔥 allow partial payments
 
         if method not in ["cash", "upi", "card"]:
             return JsonResponse({"error": "Invalid payment method"}, status=400)
 
+        if amount is None:
+            return JsonResponse({"error": "Amount required"}, status=400)
+        try:
+            amount = Decimal(str(amount))
+        except InvalidOperation:
+            return JsonResponse({"error": "Invalid amount"}, status=400)
+
+        if amount <= 0:
+            return JsonResponse({"error": "Amount must be positive"}, status=400)
+
         with transaction.atomic():
 
+            # 🔒 LOCK ORDER
             order = (
                 Order.objects
                 .select_for_update()
@@ -421,30 +521,79 @@ def pay_order(request, order_id):
                 )
             )
 
-            if order.status not in ["billing", "open"]:
-                return JsonResponse({"error": "Order not payable"}, status=400)
+            # ----------------------------
+            # STATE VALIDATION
+            # ----------------------------
+            if order.status in ["paid", "closed"]:
+                return JsonResponse({"error": "Order already completed"}, status=400)
 
-            amount = order.grand_total
+            # ----------------------------
+            # PROCESS PAYMENT
+            # ----------------------------
+            process_payment(order, method, amount, request.user)
 
-            process_payment(order, method, amount)
+            # 🔄 Refresh updated order
+            order.refresh_from_db()
 
-        return JsonResponse({"success": True})
+            # ----------------------------
+            # IF FULLY PAID → CLOSE ORDER
+            # ----------------------------
+            if order.status == "paid":
+
+                from orders.utils.payment_utils import validate_order_payment
+
+                # Safety check
+                validate_order_payment(order)
+
+                # ----------------------------
+                # CLOSE ORDER
+                # ----------------------------
+                order.status = "closed"
+                order.closed_at = timezone.now()
+                order.save(update_fields=["status", "closed_at"])
+
+                # ----------------------------
+                # MOVE TABLE STATE
+                # ----------------------------
+                if order.table:
+                    order.table.state = "cleaning"
+                    order.table.save(update_fields=["state"])
+
+                return JsonResponse({
+                    "success": True,
+                    "message": "Payment complete, order closed"
+                })
+
+            # ----------------------------
+            # PARTIAL PAYMENT RESPONSE
+            # ----------------------------
+            remaining = order.grand_total - (
+                order.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+            )
+
+            return JsonResponse({
+                "success": True,
+                "message": "Partial payment recorded",
+                "remaining": remaining
+            })
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
-
+    
 # -------------------------------------------------
 # TABLE DASHBOARD
 # -------------------------------------------------
 
 @login_required
+@tenant_required
 def table_dashboard(request):
     return render(request, "orders/tables.html")
 
 @login_required
+@tenant_required
 def tables_data(request):
 
     try:
@@ -456,38 +605,19 @@ def tables_data(request):
         # -------------------------------------------------
         # FETCH TABLES
         # -------------------------------------------------
-
-        tables = (
-            Table.objects
-            .filter(
+        tables = list(
+            Table.objects.filter(
                 tenant=tenant,
                 outlet=outlet,
                 is_active=True
-            )
-            .order_by("name")
+            ).order_by("name")
         )
 
-        # -------------------------------------------------
-        # FETCH OPEN ORDERS
-        # -------------------------------------------------
-
-        open_orders = (
-            Order.objects
-            .filter(
-                tenant=tenant,
-                outlet=outlet,
-                status="open"
-            )
-            .select_related("table")
-            .prefetch_related("items")
-        )
-
-        orders_map = {o.table_id: o for o in open_orders}
+        table_name_lookup = {t.id: t.name for t in tables}
 
         # -------------------------------------------------
-        # FETCH ACTIVE MERGES
+        # FETCH MERGES
         # -------------------------------------------------
-
         merges = (
             TableMerge.objects
             .filter(
@@ -499,52 +629,58 @@ def tables_data(request):
             .prefetch_related("tables")
         )
 
-        # Map secondary table -> primary table
         merged_lookup = {}
 
         for merge in merges:
+            primary_id = merge.primary_table.id
             for t in merge.tables.all():
-                if t.id != merge.primary_table.id:
-                    merged_lookup[t.id] = merge.primary_table.id
+                if t.id != primary_id:
+                    merged_lookup[t.id] = primary_id
 
-        data = []
+        # -------------------------------------------------
+        # FETCH ORDERS (IMPORTANT FIX)
+        # -------------------------------------------------
+        orders = (
+            Order.objects
+            .filter(
+                tenant=tenant,
+                outlet=outlet,
+                status__in=["open", "billing"]
+            )
+            .select_related("table")
+            .prefetch_related("items")
+        )
+
+        orders_map = {o.table_id: o for o in orders}
 
         # -------------------------------------------------
         # PROCESS TABLES
         # -------------------------------------------------
+        data = []
 
         for table in tables:
 
             try:
 
                 primary_table_id = merged_lookup.get(table.id)
-
                 is_merged = False
 
                 if primary_table_id and primary_table_id != table.id:
                     is_merged = True
 
-                # -------------------------------------------------
-                # DETERMINE WHICH ORDER TO USE
-                # -------------------------------------------------
+                # --------------------------------------------
+                # DETERMINE ORDER SOURCE
+                # --------------------------------------------
+                lookup_table_id = primary_table_id if primary_table_id else table.id
+                order = orders_map.get(lookup_table_id)
 
-                order = None
-
-                if primary_table_id:
-                    order = orders_map.get(primary_table_id)
-                else:
-                    order = orders_map.get(table.id)
-
-                # -------------------------------------------------
-                # CALCULATE METRICS
-                # -------------------------------------------------
-
+                # --------------------------------------------
+                # METRICS
+                # --------------------------------------------
                 cooking_items = 0
                 elapsed_minutes = 0
-                status = table.state
 
                 if order:
-
                     cooking_items = sum(
                         1 for i in order.items.all()
                         if i.status in ["sent", "preparing"]
@@ -554,27 +690,53 @@ def tables_data(request):
                         (now - order.created_at).total_seconds() / 60
                     )
 
-                # -------------------------------------------------
-                # FIX FREE STATE
-                # -------------------------------------------------
-
-                if not order and table.state not in ["cleaning"]:
-                    status = "free"
-
-                # -------------------------------------------------
-                # MERGED TABLE STATE
-                # -------------------------------------------------
-
-                primary_table_name =  None
-                
-                if primary_table_id:
-                    primary_table_name= tables.filter(id=primary_table_id).first().name
-                    
+                # --------------------------------------------
+                # 🔥 DERIVE STATUS (CORE FIX)
+                # --------------------------------------------
                 if is_merged:
                     status = "merged"
-                
 
-                
+                elif table.state == "cleaning":
+                    status = "cleaning"
+
+                elif not order:
+                    status = "free"
+
+                elif order.status == "billing":
+                    status = "billing"
+
+                else:
+                    items = order.items.all()
+
+                    if not items.exists():
+                        status = "ordering"
+
+                    elif items.filter(status="pending").exists():
+                        status = "ordering"
+
+                    elif items.filter(status__in=["sent", "preparing"]).exists():
+                        status = "preparing"
+
+                    elif items.filter(status="ready").exists():
+                        status = "ready"
+
+                    elif items.filter(status="served").exists():
+                        status = "served"
+
+                    else:
+                        status = "ordering"
+
+                # --------------------------------------------
+                # MERGE DISPLAY INFO
+                # --------------------------------------------
+                primary_table_name = None
+
+                if primary_table_id:
+                    primary_table_name = table_name_lookup.get(primary_table_id)
+
+                # --------------------------------------------
+                # APPEND
+                # --------------------------------------------
                 data.append({
                     "id": table.id,
                     "name": table.name,
@@ -587,9 +749,8 @@ def tables_data(request):
                     "primary_table_name": primary_table_name
                 })
 
-            except Exception as table_error:
+            except Exception as e:
 
-                # Prevent single table failure breaking dashboard
                 data.append({
                     "id": table.id,
                     "name": table.name,
@@ -598,7 +759,8 @@ def tables_data(request):
                     "cooking_items": 0,
                     "elapsed": 0,
                     "merged": False,
-                    "primary_table": None
+                    "primary_table": None,
+                    "primary_table_name": None
                 })
 
         return JsonResponse({"tables": data})
@@ -615,6 +777,7 @@ def tables_data(request):
 
 @login_required
 @require_POST
+@tenant_required
 def mark_table_cleaned(request, table_id):
 
     try:
@@ -633,52 +796,102 @@ def mark_table_cleaned(request, table_id):
     except Table.DoesNotExist:
         return JsonResponse({"error": "Table not found"}, status=404)
 
+
 # -------------------------------------------------
 # RUNNING ORDER ITEMS (used in billing screen)
 # -------------------------------------------------
-
 @login_required
+@tenant_required
 def running_order_items(request):
 
-    table_id = request.GET.get("table")
+    try:
 
-    if not table_id:
-        return JsonResponse({"items": []})
+        table_id = request.GET.get("table")
 
-    order = (
-        Order.objects
-        .filter(
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-            table_id=table_id,
-            status__in=["open", "billing"]
+        # --------------------------------------------
+        # 🔥 VALIDATE INPUT
+        # --------------------------------------------
+        if not table_id:
+            return JsonResponse({"items": []})
+
+        try:
+            table_id = int(table_id)
+        except ValueError:
+            return JsonResponse({"items": []})
+
+        tenant = request.user.tenant
+        outlet = request.user.outlet
+
+        # --------------------------------------------
+        # 🔥 RESOLVE MERGE (CRITICAL)
+        # --------------------------------------------
+        merge = (
+            TableMerge.objects
+            .filter(
+                tenant=tenant,
+                outlet=outlet,
+                is_active=True,
+                tables__id=table_id
+            )
+            .select_related("primary_table")
+            .first()
         )
-        .prefetch_related("items__menu_item")
-        .first()
-    )
 
-    if not order:
-        return JsonResponse({"items": []})
+        if merge:
+            table_id = merge.primary_table.id
 
-    items = []
+        # --------------------------------------------
+        # 🔥 FETCH ORDER (STRICT + SAFE)
+        # --------------------------------------------
+        orders = (
+            Order.objects
+            .filter(
+                tenant=tenant,
+                outlet=outlet,
+                table_id=table_id,
+                status__in=["open", "billing"]
+            )
+            .prefetch_related("items__menu_item")
+            .order_by("-created_at")
+        )
 
-    for i in order.items.exclude(status="served"):
+        order = orders.first()
 
-        items.append({
-            "id": i.id,
-            "name": i.menu_item.name,
-            "quantity": i.quantity,
-            "status": i.status
-        })
+        # 🔴 SAFETY CHECK (should never happen)
+        if orders.count() > 1:
+            print("⚠️ Multiple active orders for table:", table_id)
 
-    return JsonResponse({"items": items})
+        if not order:
+            return JsonResponse({"items": []})
 
+        # --------------------------------------------
+        # 🔥 RETURN ITEMS (ORDERED)
+        # --------------------------------------------
+        items = []
 
+        for i in order.items.exclude(status="served").order_by("created_at"):
+
+            items.append({
+                "id": i.id,
+                "name": i.menu_item.name,
+                "quantity": i.quantity,
+                "status": i.status
+            })
+
+        return JsonResponse({"items": items})
+
+    except Exception as e:
+
+        return JsonResponse({
+            "error": "running_order_failed",
+            "message": str(e)
+        }, status=500)
 # -------------------------------------------------
 # RUNNING ORDER PAGE
 # -------------------------------------------------
 
 @login_required
+@tenant_required
 def running_order_view(request, order_id):
 
     order = Order.objects.filter(
@@ -702,6 +915,7 @@ def running_order_view(request, order_id):
 # -------------------------------------------------
 
 @login_required
+@tenant_required
 def running_order_data(request, order_id):
 
     order = (
@@ -741,36 +955,11 @@ def running_order_data(request, order_id):
     
     
 
-from django.utils import timezone
-from datetime import timedelta
-
-@transaction.atomic
-def lock_order(order, user):
-
-    now = timezone.now()
-
-    lock = getattr(order, "lock", None)
-
-    if lock and lock.expires_at > now:
-        return False
-
-    OrderLock.objects.update_or_create(
-        order=order,
-        defaults={
-            "locked_by": user,
-            "expires_at": now + timedelta(seconds=30)
-        }
-    )
-
-    return True ,user
-
-
-
 # -------------------------------------------------
 # GENERATE BILL
 # -------------------------------------------------
-
 @login_required
+@tenant_required
 @require_POST
 def generate_bill(request, table_id):
 
@@ -788,6 +977,10 @@ def generate_bill(request, table_id):
     if not order:
         return JsonResponse({"error":"Order not found"},status=404)
 
+    # 🔥 PREVENT DOUBLE BILLING
+    if order.status != "open":
+        return JsonResponse({"error": "Order already locked"}, status=400)
+
     order.status = "billing"
     order.save(update_fields=["status"])
 
@@ -801,12 +994,12 @@ def generate_bill(request, table_id):
     })
     
     
-    
 # -------------------------------------------------
 # APPLY DISCOUNT (MANAGER / CASHIER ONLY)
 # -------------------------------------------------
 
 @login_required
+@tenant_required
 @require_POST
 def apply_discount(request, order_id):
 
@@ -814,6 +1007,7 @@ def apply_discount(request, order_id):
         return JsonResponse({"error":"Permission denied"},status=403)
 
     try:
+        from orders.utils.order_utils import validate_order_editable
 
         data = json.loads(request.body)
         percent = float(data.get("percent",0))
@@ -832,6 +1026,9 @@ def apply_discount(request, order_id):
                     outlet=request.user.outlet
                 )
             )
+
+            # 🔥 LOCK CHECK
+            validate_order_editable(order)
 
             order.discount_type="percentage"
             order.discount_value=percent
@@ -853,6 +1050,7 @@ def apply_discount(request, order_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def make_item_complimentary(request, item_id):
 
@@ -871,6 +1069,8 @@ def make_item_complimentary(request, item_id):
             )
         )
 
+        validate_order_editable(item.order)
+
         item.is_complimentary = True
         item.save(update_fields=["is_complimentary"])
 
@@ -885,6 +1085,7 @@ def make_item_complimentary(request, item_id):
     
     
 @login_required
+@tenant_required
 @require_POST
 def merge_tables_view(request):
 
@@ -907,6 +1108,8 @@ def merge_tables_view(request):
     
 
 @login_required
+@tenant_required
+
 @require_POST
 def unmerge_tables_view(request, primary_id):
 
@@ -923,3 +1126,231 @@ def unmerge_tables_view(request, primary_id):
     unmerge_tables(request.user, merge.id)
 
     return JsonResponse({"success": True})
+
+
+from django.db import transaction
+
+@login_required
+@tenant_required
+@require_POST
+def transfer_table_view(request):
+
+    try:
+
+        data = json.loads(request.body)
+
+        order_id = data.get("order_id")
+        table_id = data.get("table_id")
+
+        if not order_id or not table_id:
+            return JsonResponse({"error": "Missing parameters"}, status=400)
+
+        try:
+            order_id = int(order_id)
+            table_id = int(table_id)
+        except ValueError:
+            return JsonResponse({"error": "Invalid IDs"}, status=400)
+
+        tenant = request.user.tenant
+        outlet = request.user.outlet
+
+        # -------------------------------------------------
+        # 🔥 CRITICAL: ATOMIC TRANSACTION
+        # -------------------------------------------------
+        with transaction.atomic():
+
+            # --------------------------------------------
+            # 🔒 LOCK ORDER
+            # --------------------------------------------
+            order = (
+                Order.objects
+                .select_for_update()
+                .filter(
+                    id=order_id,
+                    tenant=tenant,
+                    outlet=outlet
+                )
+
+                .first()
+            )
+
+            if not order:
+                return JsonResponse({"error": "Order not found"}, status=404)
+
+            if order.status in ["billing", "paid", "closed"]:
+                return JsonResponse({"error": "Cannot transfer at this stage"}, status=400)
+
+            # --------------------------------------------
+            # 🔥 FETCH NEW TABLE
+            # --------------------------------------------
+            new_table = Table.objects.filter(
+                id=table_id,
+                tenant=tenant,
+                outlet=outlet,
+                is_active=True
+            ).first()
+
+            if not new_table:
+                return JsonResponse({"error": "Invalid table"}, status=400)
+
+            if new_table.id == order.table_id:
+                return JsonResponse({"error": "Same table"}, status=400)
+
+            # --------------------------------------------
+            # 🔥 BLOCK MERGED TABLES
+            # --------------------------------------------
+            is_merged = TableMerge.objects.filter(
+                tenant=tenant,
+                outlet=outlet,
+                is_active=True,
+                tables=new_table
+            ).exists()
+
+            if is_merged:
+                return JsonResponse({"error": "Cannot transfer to merged table"}, status=400)
+
+            # --------------------------------------------
+            # 🔥 CHECK OCCUPANCY (REAL CHECK)
+            # --------------------------------------------
+            occupied = Order.objects.filter(
+                tenant=tenant,
+                outlet=outlet,
+                table=new_table,
+                status__in=["open", "billing"]
+            ).exists()
+
+            if occupied:
+                return JsonResponse({"error": "Table already occupied"}, status=400)
+
+            # --------------------------------------------
+            # 🔥 PERFORM TRANSFER
+            # --------------------------------------------
+            old_table = order.table
+
+            order.table = new_table
+            order.save(update_fields=["table"])
+
+            # --------------------------------------------
+            # 🔥 UPDATE TABLE STATES (SECONDARY ONLY)
+            # --------------------------------------------
+            if old_table:
+                old_table.state = "free"
+                old_table.save(update_fields=["state"])
+
+            new_table.state = "occupied"
+            new_table.save(update_fields=["state"])
+
+            # --------------------------------------------
+            # 🔥 AUDIT EVENT (PRODUCTION SAFE)
+            # --------------------------------------------
+            OrderEvent.objects.create(
+                tenant=tenant,
+                outlet=outlet,
+                order=order,
+                event_type="table_transferred",
+                metadata={
+                    "from_table_id": old_table.id if old_table else None,
+                    "to_table_id": new_table.id
+                },
+                created_by=request.user
+            )
+
+        return JsonResponse({
+            "success": True,
+            "order_id": order.id
+        })
+
+    except Exception as e:
+
+        return JsonResponse({
+            "error": str(e)
+        }, status=400)    
+    
+
+@login_required
+@tenant_required    
+def available_tables(request):
+
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+
+    # --------------------------------------------
+    # 🔥 GET ACTIVE ORDERS (REAL OCCUPANCY)
+    # --------------------------------------------
+    active_table_ids = set(
+        Order.objects.filter(
+            tenant=tenant,
+            outlet=outlet,
+            status__in=["open", "billing"]
+        ).values_list("table_id", flat=True)
+    )
+
+    # --------------------------------------------
+    # 🔥 GET MERGED TABLES (BLOCK THEM)
+    # --------------------------------------------
+    merged_table_ids = set(
+        TableMerge.objects.filter(
+            tenant=tenant,
+            outlet=outlet,
+            is_active=True
+        ).values_list("tables__id", flat=True)
+    )
+
+    # --------------------------------------------
+    # 🔥 FILTER AVAILABLE TABLES
+    # --------------------------------------------
+    tables = (
+        Table.objects
+        .filter(
+            tenant=tenant,
+            outlet=outlet,
+            is_active=True
+        )
+        .exclude(id__in=active_table_ids)
+        .exclude(id__in=merged_table_ids)
+        .values("id", "name")
+    )
+
+    return JsonResponse({
+        "tables": list(tables)
+    })
+    
+    
+    
+@login_required
+@require_POST
+@tenant_required
+def refund_payment(request, order_id):
+
+    try:
+
+        data = json.loads(request.body)
+
+        payment_id = data.get("payment_id")
+        amount = data.get("amount")
+
+        order = Order.objects.get(
+            id=order_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+
+        from orders.services.refund_service import process_refund
+
+        refund = process_refund(
+            order,
+            payment_id,
+            amount,
+            request.user
+        )
+
+        return JsonResponse({
+            "success": True,
+            "refund_id": refund.id
+        })
+
+    except Exception as e:
+
+        return JsonResponse({
+            "error": str(e)
+        }, status=400)

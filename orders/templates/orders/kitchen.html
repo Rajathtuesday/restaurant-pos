@@ -337,8 +337,6 @@ setInterval(refreshOrders,3000)
 // This file is the template for the kitchen display page.
 //It shows active kitchen orders with timers and allows staff to update item statuses. {% endcomment %}
 
-
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -350,32 +348,63 @@ setInterval(refreshOrders,3000)
 <style>
 
 body{
-background:#111827;
+background:#0b1220;
 color:white;
 font-family:system-ui;
 }
 
-/* header */
+/* HEADER */
 
 .header{
 display:flex;
 justify-content:space-between;
 align-items:center;
-padding:16px;
-background:#0f172a;
-border-bottom:2px solid #1f2937;
+padding:16px 24px;
+background:#020617;
+border-bottom:1px solid #1e293b;
+position:sticky;
+top:0;
+z-index:100;
 }
 
-/* grid */
+/* STATION TABS */
+
+.station-tabs{
+display:flex;
+gap:10px;
+padding:12px 20px;
+background:#020617;
+border-bottom:1px solid #1e293b;
+overflow-x:auto;
+}
+
+.station-btn{
+padding:8px 16px;
+border-radius:999px;
+background:#1e293b;
+border:none;
+color:white;
+cursor:pointer;
+transition:.2s;
+white-space:nowrap;
+}
+
+.station-btn.active{
+background:#22c55e;
+color:black;
+font-weight:600;
+}
+
+/* GRID */
 
 .orders-grid{
 padding:20px;
 }
 
-/* order cards */
+/* CARDS */
 
 .order-card{
-background:#1f2937;
+background:#111827;
 border-radius:16px;
 padding:18px;
 margin-bottom:20px;
@@ -385,13 +414,13 @@ flex-direction:column;
 height:100%;
 }
 
-/* severity colors */
+/* COLORS */
 
-.green{border-left:8px solid #22c55e}
-.orange{border-left:8px solid #f59e0b}
-.red{border-left:8px solid #ef4444}
+.green{border-left:6px solid #22c55e}
+.orange{border-left:6px solid #f59e0b}
+.red{border-left:6px solid #ef4444}
 
-/* header */
+/* HEADER */
 
 .order-header{
 display:flex;
@@ -401,21 +430,21 @@ margin-bottom:10px;
 }
 
 .table-name{
-font-size:20px;
+font-size:18px;
 font-weight:700;
 }
 
 .kot{
-font-size:14px;
-opacity:.7;
+font-size:13px;
+opacity:.6;
 }
 
 .timer{
-font-size:16px;
+font-size:14px;
 font-weight:600;
 }
 
-/* items */
+/* ITEMS */
 
 .items{
 flex-grow:1;
@@ -428,29 +457,27 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 padding:8px 0;
-border-bottom:1px solid rgba(255,255,255,0.1);
-font-size:16px;
+border-bottom:1px solid rgba(255,255,255,0.05);
+font-size:14px;
 }
 
 .note{
-font-size:13px;
+font-size:12px;
 color:#facc15;
-margin-top:3px;
 }
 
-/* states */
+/* STATES */
 
 .badge-ready{
 background:#22c55e;
 }
 
-/* empty */
+/* EMPTY */
 
 .empty{
 text-align:center;
 padding:80px;
 opacity:.7;
-font-size:20px;
 }
 
 .loading{
@@ -471,13 +498,33 @@ padding:20px;
 
 <body>
 
+<!-- HEADER -->
+
 <div class="header">
 
-<h3>Kitchen Display</h3>
+<h5 class="mb-0">Kitchen Display</h5>
 
-<a href="/tables/" class="btn btn-light btn-sm">Tables</a>
+<a href="/tables/" class="btn btn-outline-light btn-sm">Tables</a>
 
 </div>
+
+<!-- STATIONS -->
+
+<div class="station-tabs" id="stationTabs">
+
+<button class="station-btn active" onclick="changeStation('')">
+All
+</button>
+
+{% for s in stations %}
+<button class="station-btn" onclick="changeStation('{{s.name}}',this)">
+{{s.name}}
+</button>
+{% endfor %}
+
+</div>
+
+<!-- GRID -->
 
 <div class="container-fluid orders-grid">
 
@@ -491,11 +538,10 @@ padding:20px;
 
 <script>
 
-/* request guard */
-
 let loading=false
+let currentStation=""
 
-/* csrf */
+/* CSRF */
 
 function getCookie(name){
 
@@ -518,41 +564,57 @@ cookieValue=decodeURIComponent(cookie.substring(name.length+1))
 }
 
 return cookieValue
+}
+
+/* CHANGE STATION */
+
+function changeStation(station,el){
+
+currentStation=station
+
+document.querySelectorAll(".station-btn").forEach(btn=>{
+btn.classList.remove("active")
+})
+
+el.classList.add("active")
+
+loadKitchen()
 
 }
 
-/* card color by wait time */
+/* COLOR */
 
 function getColor(minutes){
-
 if(minutes < 5) return "green"
 if(minutes < 10) return "orange"
 return "red"
-
 }
 
-/* render kitchen */
+/* LOAD */
 
 function loadKitchen(){
 
 if(loading) return
-
 loading=true
 
-fetch("/kitchen-data/")
+let url="/kitchen-data/"
+
+if(currentStation){
+url+=`?station=${currentStation}`
+}
+
+fetch(url)
 
 .then(res=>res.json())
 
 .then(data=>{
 
 let container=document.getElementById("orders")
-
 container.innerHTML=""
 
 if(!data.kots || data.kots.length===0){
 
-container.innerHTML=`<div class="empty">No active kitchen orders</div>`
-
+container.innerHTML=`<div class="empty">No orders</div>`
 loading=false
 return
 }
@@ -560,13 +622,7 @@ return
 data.kots.forEach(kot=>{
 
 let created=new Date(kot.created_at)
-
-let minutes=0
-
-if(!isNaN(created)){
-minutes=Math.floor((Date.now()-created)/60000)
-}
-
+let minutes=Math.floor((Date.now()-created)/60000)
 let color=getColor(minutes)
 
 let itemsHTML=""
@@ -576,43 +632,23 @@ kot.items.forEach(i=>{
 let action=""
 
 if(i.status==="sent"){
-
-action=`<button class="btn btn-warning btn-sm"
-onclick="startPreparing(${i.id})">
-Start
-</button>`
-
+action=`<button class="btn btn-warning btn-sm" onclick="startPreparing(${i.id})">Start</button>`
 }
-
 else if(i.status==="preparing"){
-
-action=`<button class="btn btn-success btn-sm"
-onclick="markReady(${i.id})">
-Ready
-</button>`
-
+action=`<button class="btn btn-success btn-sm" onclick="markReady(${i.id})">Ready</button>`
 }
-
 else{
-
 action=`<span class="badge badge-ready">Ready</span>`
-
 }
 
 itemsHTML+=`
 
 <div class="item">
-
 <div>
-
 ${i.quantity} × ${i.name}
-
 ${i.notes ? `<div class="note">📝 ${i.notes}</div>` : ""}
-
 </div>
-
 <div>${action}</div>
-
 </div>
 
 `
@@ -628,11 +664,8 @@ container.innerHTML+=`
 <div class="order-header">
 
 <div>
-
 <div class="table-name">${kot.table}</div>
-
 <div class="kot">KOT #${kot.kot_number}</div>
-
 </div>
 
 <div class="timer">${minutes} min</div>
@@ -640,9 +673,7 @@ container.innerHTML+=`
 </div>
 
 <div class="items">
-
 ${itemsHTML}
-
 </div>
 
 </div>
@@ -658,27 +689,21 @@ loading=false
 })
 
 .catch(()=>{
-
-document.getElementById("orders").innerHTML=
-`<div class="error">Kitchen connection error</div>`
-
+document.getElementById("orders").innerHTML=`<div class="error">Connection error</div>`
 loading=false
-
 })
 
 }
 
-/* actions */
+/* ACTIONS */
 
 function startPreparing(id){
 
 fetch(`/item-start/${id}/`,{
 method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
+headers:{"X-CSRFToken":getCookie("csrftoken")}
 })
-.then(()=>loadKitchen())
+.then(loadKitchen)
 
 }
 
@@ -686,18 +711,15 @@ function markReady(id){
 
 fetch(`/item-ready/${id}/`,{
 method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
+headers:{"X-CSRFToken":getCookie("csrftoken")}
 })
-.then(()=>loadKitchen())
+.then(loadKitchen)
 
 }
 
-/* init */
+/* INIT */
 
 loadKitchen()
-
 setInterval(loadKitchen,3000)
 
 </script>

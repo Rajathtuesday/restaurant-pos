@@ -1,4 +1,4 @@
-{% comment %} <!DOCTYPE html>
+{% comment %} {% comment %} <!DOCTYPE html>
 <html>
 <head>
 
@@ -554,8 +554,8 @@ return cookieValue
 
 
 
-{% comment %} --------------------------------------v3----------------------------------- {% endcomment %}
-<!DOCTYPE html>
+{% comment %} --------------------------------------v3----------------------------------- 
+<!DOCTYPE html> 
 <html>
 <head>
 
@@ -618,10 +618,6 @@ display:flex;
 justify-content:space-between;
 align-items:center;
 }
-
-.badge-ready{background:#22c55e;}
-.badge-preparing{background:#f59e0b;}
-.badge-served{background:#6c757d;}
 
 </style>
 </head>
@@ -693,7 +689,7 @@ onkeyup="searchMenu(this.value)"
 <div class="col-md-4 mb-3 menu-card">
 
 <div class="card menu-item"
-onclick="openItemModal({{item.id}},'{{item.name}}',{{item.price}})">
+onclick="openItemModal({{item.id}},`{{item.name}}`,{{item.price}})">
 
 <div class="card-body text-center">
 
@@ -753,18 +749,19 @@ selected
 
 <div class="d-grid gap-2 mt-3">
 
-<button class="btn btn-success"
-onclick="submitOrder()">
+<button class="btn btn-success" onclick="submitOrder()">
 Send To Kitchen
 </button>
 
-<button class="btn btn-dark"
-onclick="generateBill()">
+<button class="btn btn-dark" onclick="generateBill()">
 Generate Bill
 </button>
 
-<button class="btn btn-outline-danger"
-onclick="clearCart()">
+<button class="btn btn-warning" onclick="openTransferModal()">
+Transfer Table
+</button>
+
+<button class="btn btn-outline-danger" onclick="clearCart()">
 Clear Cart
 </button>
 
@@ -832,6 +829,42 @@ Add Item
 </div>
 
 
+<!-- TRANSFER MODAL -->
+
+<div class="modal fade" id="transferModal">
+
+<div class="modal-dialog">
+
+<div class="modal-content">
+
+<div class="modal-header">
+<h5>Transfer Table</h5>
+</div>
+
+<div class="modal-body">
+
+<p>Select available table</p>
+
+<div id="availableTables"></div>
+
+</div>
+
+<div class="modal-footer">
+
+<button class="btn btn-secondary"
+data-bs-dismiss="modal">
+Cancel
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -860,9 +893,7 @@ cookieValue=decodeURIComponent(cookie.substring(name.length+1))
 }
 
 return cookieValue
-
 }
-
 
 /* OPEN ITEM MODAL */
 
@@ -911,8 +942,7 @@ new bootstrap.Modal(document.getElementById("itemModal")).show()
 
 }
 
-
-/* ADD ITEM */
+/* ADD ITEM WITH MODIFIERS */
 
 function addItemWithModifiers(){
 
@@ -928,8 +958,8 @@ id:selectedItem.id,
 name:selectedItem.name,
 price:selectedItem.price,
 quantity:1,
-modifiers,
-note
+modifiers:modifiers,
+note:note
 })
 
 renderCart()
@@ -939,7 +969,6 @@ document.getElementById("itemModal")
 ).hide()
 
 }
-
 
 /* CART */
 
@@ -990,49 +1019,610 @@ function inc(i){cart[i].quantity++;renderCart()}
 function dec(i){cart[i].quantity--;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()}
 function clearCart(){cart=[];renderCart()}
 
+/* TRANSFER TABLE */
 
-/* ORDER */
+function openTransferModal(){
 
-function submitOrder(){
+let orderId="{{order.id|default:''}}"
 
-if(cart.length===0){
-alert("Cart empty")
+if(!orderId){
+alert("No order to transfer")
 return
 }
 
-let tableId=document.getElementById("tableSelect").value
+fetch("/available-tables/")
+.then(res=>res.json())
+.then(data=>{
 
-fetch("/create-order/",{
+let container=document.getElementById("availableTables")
+
+container.innerHTML=""
+
+data.tables.forEach(t=>{
+
+container.innerHTML+=`
+
+<button class="btn btn-outline-dark w-100 mb-2"
+onclick="transferTable(${orderId},${t.id})">
+
+${t.name}
+
+</button>
+
+`
+
+})
+
+new bootstrap.Modal(
+document.getElementById("transferModal")
+).show()
+
+})
+
+}
+
+function transferTable(orderId,tableId){
+
+fetch("/transfer-table/",{
 method:"POST",
 headers:{
 "Content-Type":"application/json",
 "X-CSRFToken":getCookie("csrftoken")
 },
 body:JSON.stringify({
-cart:cart,
+order_id:orderId,
 table_id:tableId
 })
 })
 .then(res=>res.json())
 .then(data=>{
 
+if(data.success){
+
+alert("Table transferred")
+
+window.location.href="/tables/"
+
+}else{
+
+alert(data.error)
+
+}
+
+})
+
+}
+
+</script>
+
+</body>
+</html> {% endcomment %}
+
+{% comment %} v4 {% endcomment %}
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+
+<title>POS Billing</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+body{
+background:#f4f6fb;
+font-family:system-ui;
+}
+
+.sidebar,.menu-area,.cart-box{
+background:white;
+border-radius:14px;
+padding:18px;
+height:85vh;
+overflow-y:auto;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+.menu-item{
+cursor:pointer;
+transition:.2s;
+border:1px solid #eee;
+}
+
+.menu-item:hover{
+transform:scale(1.04);
+box-shadow:0 8px 14px rgba(0,0,0,0.15);
+}
+
+.cart-row{
+padding:10px 0;
+border-bottom:1px solid #eee;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.qty-btn{
+width:26px;
+height:26px;
+border:none;
+background:#eee;
+border-radius:4px;
+}
+
+.note{
+font-size:12px;
+color:#666;
+}
+
+.running-row{
+padding:10px 0;
+border-bottom:1px solid #eee;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container-fluid mt-3">
+
+<div class="d-flex justify-content-between mb-3">
+
+<h3>POS Billing</h3>
+
+<div>
+<a href="/tables/" class="btn btn-dark">Tables</a>
+<a href="/kitchen/" class="btn btn-secondary">Kitchen</a>
+</div>
+
+</div>
+
+<div class="row">
+
+<!-- CATEGORY -->
+<div class="col-md-2">
+<div class="sidebar">
+
+<h5>Categories</h5>
+
+<ul class="list-group">
+
+{% for category in categories %}
+
+<li class="list-group-item list-group-item-action"
+onclick="scrollToCategory('cat{{category.id}}')">
+{{category.name}}
+</li>
+
+{% endfor %}
+
+</ul>
+
+</div>
+</div>
+
+
+<!-- MENU -->
+<div class="col-md-6">
+<div class="menu-area">
+
+<input
+class="form-control mb-3"
+placeholder="Search menu..."
+onkeyup="searchMenu(this.value)"
+>
+
+{% for category in categories %}
+
+<h5 id="cat{{category.id}}" class="mt-4">
+{{category.name}}
+</h5>
+
+<div class="row">
+
+{% for item in category.items.all %}
+
+<div class="col-md-4 mb-3 menu-card">
+
+<div class="card menu-item"
+onclick="openItemModal({{item.id}},`{{item.name}}`,{{item.price}})">
+
+<div class="card-body text-center">
+
+<strong class="item-name">{{item.name}}</strong>
+<p>₹{{item.price}}</p>
+
+</div>
+</div>
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+</div>
+</div>
+
+
+<!-- CART -->
+<div class="col-md-4">
+
+<div class="cart-box">
+
+<h4>Order</h4>
+
+<select id="tableSelect" class="form-select mb-3">
+
+<option value="">Takeaway</option>
+
+{% for table in tables %}
+
+<option value="{{table.id}}"
+{% if selected_table == table.id|stringformat:"s" %}
+selected
+{% endif %}
+>
+
+{{table.name}}
+
+</option>
+
+{% endfor %}
+
+</select>
+
+<h5>Cart</h5>
+
+<div id="cart"></div>
+
+<hr>
+
+<h6 id="subtotal">Subtotal ₹0</h6>
+<h6 id="gst">GST ₹0</h6>
+
+<h4 id="total">Total ₹0</h4>
+
+<div class="d-grid gap-2 mt-3">
+
+<button class="btn btn-success" id="sendBtn" onclick="submitOrder()">
+Send To Kitchen
+</button>
+
+<button class="btn btn-primary" onclick="openRunningOrder()">
+Running Order
+</button>
+
+<button class="btn btn-dark" onclick="generateBill()">
+Generate Bill
+</button>
+
+<button class="btn btn-warning" onclick="openTransferModal()">
+Transfer Table
+</button>
+
+<button class="btn btn-outline-danger" onclick="clearCart()">
+Clear Cart
+</button>
+
+</div>
+
+<hr>
+
+<h5>Running Items</h5>
+
+<div id="running-items"></div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ITEM MODAL -->
+
+<div class="modal fade" id="itemModal">
+<div class="modal-dialog modal-lg">
+<div class="modal-content">
+
+<div class="modal-header">
+<h5 id="modalItemName"></h5>
+</div>
+
+<div class="modal-body">
+
+<div id="modifierGroups"></div>
+
+<hr>
+
+<textarea
+id="itemNote"
+class="form-control"
+placeholder="Special instruction"
+></textarea>
+
+</div>
+
+<div class="modal-footer">
+
+<button class="btn btn-secondary"
+data-bs-dismiss="modal">
+Cancel
+</button>
+
+<button class="btn btn-primary"
+onclick="addItemWithModifiers()">
+Add Item
+</button>
+
+</div>
+
+</div>
+</div>
+</div>
+
+
+
+<!-- TRANSFER MODAL -->
+
+<div class="modal fade" id="transferModal">
+<div class="modal-dialog">
+<div class="modal-content">
+
+<div class="modal-header">
+<h5>Transfer Table</h5>
+</div>
+
+<div class="modal-body">
+
+<p>Select available table</p>
+
+<div id="availableTables"></div>
+
+</div>
+
+<div class="modal-footer">
+<button class="btn btn-secondary"
+data-bs-dismiss="modal">
+Cancel
+</button>
+</div>
+
+</div>
+</div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+let cart=[]
+let selectedItem=null
+let sending=false
+
+
+function getCookie(name){
+
+let cookieValue=null
+
+if(document.cookie){
+
+let cookies=document.cookie.split(";")
+
+for(let i=0;i<cookies.length;i++){
+
+let cookie=cookies[i].trim()
+
+if(cookie.substring(0,name.length+1)===(name+"=")){
+cookieValue=decodeURIComponent(cookie.substring(name.length+1))
+}
+
+}
+
+}
+
+return cookieValue
+}
+
+
+
+function openItemModal(id,name,price){
+
+selectedItem={id,name,price}
+
+document.getElementById("modalItemName").innerText=name
+document.getElementById("itemNote").value=""
+
+fetch(`/menu/item-modifiers/${id}/`)
+.then(res=>res.json())
+.then(data=>{
+
+let container=document.getElementById("modifierGroups")
+
+container.innerHTML=""
+
+data.groups.forEach(group=>{
+
+let html=`<h6>${group.group_name}</h6>`
+
+group.modifiers.forEach(m=>{
+
+html+=`
+
+<div class="form-check">
+<input class="form-check-input modifier-input"
+type="checkbox"
+value="${m.id}">
+<label class="form-check-label">
+${m.name}
+</label>
+</div>
+
+`
+
+})
+
+container.innerHTML+=html
+
+})
+
+new bootstrap.Modal(document.getElementById("itemModal")).show()
+
+})
+
+}
+
+
+
+function addItemWithModifiers(){
+
+let modifiers=[]
+
+document.querySelectorAll(".modifier-input:checked")
+.forEach(el=>modifiers.push(parseInt(el.value)))
+
+let note=document.getElementById("itemNote").value
+
+cart.push({
+id:selectedItem.id,
+name:selectedItem.name,
+price:selectedItem.price,
+quantity:1,
+modifiers:modifiers,
+note:note
+})
+
+renderCart()
+
+bootstrap.Modal.getInstance(
+document.getElementById("itemModal")
+).hide()
+
+}
+
+
+
+function renderCart(){
+
+let cartDiv=document.getElementById("cart")
+
+cartDiv.innerHTML=""
+
+let subtotal=0
+
+cart.forEach((item,i)=>{
+
+let total=item.price*item.quantity
+subtotal+=total
+
+cartDiv.innerHTML+=`
+
+<div class="cart-row">
+
+<div>
+${item.name}
+${item.note?`<div class="note">${item.note}</div>`:""}
+</div>
+
+<div>
+
+<button class="qty-btn" onclick="dec(${i})">-</button>
+${item.quantity}
+<button class="qty-btn" onclick="inc(${i})">+</button>
+
+</div>
+
+<div>₹${total.toFixed(2)}</div>
+
+</div>
+
+`
+
+})
+
+let gst=subtotal*0.05
+let total=subtotal+gst
+
+document.getElementById("subtotal").innerText="Subtotal ₹"+subtotal.toFixed(2)
+document.getElementById("gst").innerText="GST ₹"+gst.toFixed(2)
+document.getElementById("total").innerText="Total ₹"+total.toFixed(2)
+
+}
+
+
+
+function inc(i){cart[i].quantity++;renderCart()}
+function dec(i){cart[i].quantity--;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()}
+function clearCart(){cart=[];renderCart()}
+
+
+
+function submitOrder(){
+
+if(sending)return
+
+if(cart.length===0){
+alert("Cart empty")
+return
+}
+
+sending=true
+
+let tableId=document.getElementById("tableSelect").value
+
+fetch("/create-order/",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+
+body:JSON.stringify({
+cart:cart,
+table_id:tableId
+})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
 if(!data.success){
 alert(data.error)
+sending=false
 return
 }
 
 fetch(`/send-to-kitchen/${data.order_id}/`,{
+
 method:"POST",
 headers:{
 "X-CSRFToken":getCookie("csrftoken")
 }
+
 })
+
 .then(()=>{
 
 alert("Order sent to kitchen")
 
 cart=[]
 renderCart()
+
+sending=false
 
 loadRunningOrder()
 
@@ -1043,42 +1633,137 @@ loadRunningOrder()
 }
 
 
-/* BILL */
+
+function openRunningOrder(){
+
+let tableId=document.getElementById("tableSelect").value
+
+if(!tableId){
+alert("Select table first")
+return
+}
+
+window.location.href="/order/"+tableId+"/"
+
+}
+
+
 
 function generateBill(){
 
 let tableId=document.getElementById("tableSelect").value
 
-fetch(`/generate-bill/${tableId}/`,{
-method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
+if(!tableId){
+alert("Select table")
+return
 }
-})
+
+window.location.href="/bill/"+tableId+"/"
+
+}
+
+
+
+function openTransferModal(){
+
+fetch("/available-tables/")
 .then(res=>res.json())
 .then(data=>{
 
-if(data.success){
-window.location.href=`/bill/${data.order_id}/`
-}
+let container=document.getElementById("availableTables")
+
+container.innerHTML=""
+
+data.tables.forEach(t=>{
+
+container.innerHTML+=`
+
+<button class="btn btn-outline-dark w-100 mb-2"
+onclick="transferTable(${t.id})">
+
+${t.name}
+
+</button>
+
+`
+
+})
+
+new bootstrap.Modal(
+document.getElementById("transferModal")
+).show()
 
 })
 
 }
 
 
-/* RUNNING ORDER */
+
+function transferTable(newTableId){
+
+let orderId="{{order.id|default:''}}"
+
+if(!orderId){
+alert("No active order to transfer")
+return
+}
+
+fetch("/transfer-table/",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+
+body:JSON.stringify({
+order_id:orderId,
+table_id:newTableId
+})
+
+})
+
+.then(res=>res.json())
+
+.then(data=>{
+
+if(data.success){
+
+alert("Table transferred")
+
+window.location.href="/tables/"
+
+}else{
+
+alert(data.error)
+
+}
+
+})
+
+.catch(()=>{
+alert("Transfer failed")
+})
+
+}
+
 
 function loadRunningOrder(){
 
 let tableId=document.getElementById("tableSelect").value
-if(!tableId) return
+
+if(!tableId){
+document.getElementById("running-items").innerHTML=""
+return
+}
 
 fetch(`/running-order-items/?table=${tableId}`)
 .then(res=>res.json())
 .then(data=>{
 
 let container=document.getElementById("running-items")
+
 container.innerHTML=""
 
 data.items.forEach(i=>{
@@ -1102,7 +1787,6 @@ container.innerHTML+=`
 }
 
 
-/* SEARCH */
 
 function searchMenu(text){
 
@@ -1119,15 +1803,469 @@ card.style.display=name.includes(text)?"block":"none"
 }
 
 
+
+function scrollToCategory(id){
+
+document.getElementById(id)
+.scrollIntoView({behavior:"smooth"})
+
+}
+
+
+
+window.onload=function(){
+
+loadRunningOrder()
+
+setInterval(loadRunningOrder,4000)
+
+}
+
+document.getElementById("tableSelect")
+.addEventListener("change",loadRunningOrder)
+
+</script>
+
+</body>
+</html> {% endcomment %}
+
+
+
+
+
+
+
+
+
+
+
+{% comment %} v5 {% endcomment %}
+
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>POS Billing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+:root{
+--bg:#f4f6fb;
+--card:#ffffff;
+--text:#111;
+}
+
+body.dark{
+--bg:#0f172a;
+--card:#1e293b;
+--text:#e2e8f0;
+}
+
+body{
+background:var(--bg);
+color:var(--text);
+font-family:system-ui;
+}
+
+/* layout */
+.panel{
+background:var(--card);
+border-radius:14px;
+padding:16px;
+height:85vh;
+overflow-y:auto;
+box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+
+/* menu */
+.menu-item{
+cursor:pointer;
+border-radius:10px;
+transition:.2s;
+border:1px solid #ddd;
+}
+.menu-item:hover{
+transform:translateY(-3px);
+box-shadow:0 6px 14px rgba(0,0,0,0.15);
+}
+
+/* cart */
+.cart-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:8px 0;
+border-bottom:1px dashed #ccc;
+}
+
+.qty-btn{
+width:30px;
+height:30px;
+border:none;
+background:#ddd;
+border-radius:6px;
+}
+
+/* toast */
+#toastBox{
+position:fixed;
+top:20px;
+right:20px;
+z-index:999;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="toastBox"></div>
+
+<div class="container-fluid mt-3">
+
+<div class="d-flex justify-content-between mb-3">
+
+<h4>POS Billing</h4>
+
+<div>
+<button class="btn btn-sm btn-outline-secondary" onclick="toggleDark()">🌙</button>
+<a href="/tables/" class="btn btn-dark btn-sm">Tables</a>
+<a href="/kitchen/" class="btn btn-secondary btn-sm">Kitchen</a>
+</div>
+
+</div>
+
+<div class="row g-3">
+
+<!-- CATEGORY -->
+<div class="col-12 col-md-2">
+<div class="panel">
+
+<h6>Categories</h6>
+
+<ul class="list-group">
+
+{% for category in categories %}
+<li class="list-group-item list-group-item-action"
+onclick="scrollToCategory('cat{{category.id}}')">
+{{category.name}}
+</li>
+{% endfor %}
+
+</ul>
+
+</div>
+</div>
+
+<!-- MENU -->
+<div class="col-12 col-md-6">
+<div class="panel">
+
+<input id="menuSearch" class="form-control mb-3" placeholder="Search item...">
+
+{% for category in categories %}
+
+<h6 id="cat{{category.id}}" class="mt-3">{{category.name}}</h6>
+
+<div class="row">
+
+{% for item in category.items.all %}
+<div class="col-6 col-md-4 mb-3 menu-card">
+
+<div class="card menu-item"
+onclick="openItemModal({{item.id}}, '{{item.name|escapejs}}', {{item.price}})">
+
+<div class="card-body text-center">
+<strong class="item-name">{{item.name}}</strong>
+<p class="mb-0">₹{{item.price}}</p>
+</div>
+
+</div>
+
+</div>
+{% endfor %}
+
+</div>
+
+{% endfor %}
+
+</div>
+</div>
+
+<!-- CART -->
+<div class="col-12 col-md-4">
+<div class="panel">
+
+<h5>Order</h5>
+
+<select id="tableSelect" class="form-select mb-3">
+<option value="">Takeaway</option>
+{% for table in tables %}
+<option value="{{table.id}}" {% if selected_table == table.id|stringformat:"s" %}selected{% endif %}>
+{{table.name}}
+</option>
+{% endfor %}
+</select>
+
+<div id="cart"></div>
+
+<hr>
+
+<h6 id="subtotal">Subtotal ₹0</h6>
+<h6 id="gst">GST ₹0</h6>
+<h4 id="total">Total ₹0</h4>
+
+<div class="d-grid gap-2 mt-3">
+
+<button class="btn btn-success" id="sendBtn" onclick="submitOrder()">Send To Kitchen</button>
+<button class="btn btn-primary" onclick="openRunningOrder()">Running Order</button>
+<button class="btn btn-dark" onclick="generateBill()">Generate Bill</button>
+<button class="btn btn-warning" onclick="openTransferModal()">Transfer Table</button>
+<button class="btn btn-outline-danger" onclick="clearCart()">Clear Cart</button>
+
+</div>
+
+<hr>
+
+<h6>Running Items</h6>
+<div id="running-items"></div>
+
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal fade" id="itemModal">
+<div class="modal-dialog">
+<div class="modal-content">
+
+<div class="modal-header">
+<h5 id="modalItemName"></h5>
+</div>
+
+<div class="modal-body">
+<div id="modifierGroups"></div>
+<textarea id="itemNote" class="form-control mt-2" placeholder="Note"></textarea>
+</div>
+
+<div class="modal-footer">
+<button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+<button class="btn btn-primary" onclick="addItemWithModifiers()">Add</button>
+</div>
+
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+let cart=[]
+let selectedItem=null
+let sending=false
+
+/* TOAST */
+function showToast(msg){
+let t=document.createElement("div")
+t.className="alert alert-dark"
+t.innerText=msg
+document.getElementById("toastBox").appendChild(t)
+setTimeout(()=>t.remove(),2000)
+}
+
+/* DARK MODE */
+function toggleDark(){
+document.body.classList.toggle("dark")
+localStorage.setItem("dark",document.body.classList.contains("dark"))
+}
+
+if(localStorage.getItem("dark")==="true"){
+document.body.classList.add("dark")
+}
+
+/* SEARCH */
+document.addEventListener("DOMContentLoaded",()=>{
+
+document.getElementById("menuSearch").addEventListener("input",function(){
+let t=this.value.toLowerCase()
+document.querySelectorAll(".menu-card").forEach(c=>{
+let n=c.querySelector(".item-name").innerText.toLowerCase()
+c.style.display=n.includes(t)?"block":"none"
+})
+})
+
+})
+
+/* MODAL */
+function openItemModal(id,name,price){
+selectedItem={id,name,price}
+document.getElementById("modalItemName").innerText=name
+document.getElementById("itemNote").value=""
+new bootstrap.Modal(document.getElementById("itemModal")).show()
+}
+
+/* ADD ITEM */
+function addItemWithModifiers(){
+
+let note=document.getElementById("itemNote").value
+
+let existing=cart.find(i=>i.id===selectedItem.id && i.note===note)
+
+if(existing){
+existing.quantity++
+}else{
+cart.push({
+id:selectedItem.id,
+name:selectedItem.name,
+price:selectedItem.price,
+quantity:1,
+note
+})
+}
+
+renderCart()
+
+bootstrap.Modal.getInstance(document.getElementById("itemModal")).hide()
+}
+
+/* CART */
+function renderCart(){
+
+let div=document.getElementById("cart")
+div.innerHTML=""
+
+let subtotal=0
+
+cart.forEach((i,idx)=>{
+
+let total=i.price*i.quantity
+subtotal+=total
+
+div.innerHTML+=`
+<div class="cart-row">
+<div>${i.name}</div>
+<div>
+<button class="qty-btn" onclick="dec(${idx})">-</button>
+${i.quantity}
+<button class="qty-btn" onclick="inc(${idx})">+</button>
+</div>
+<div>₹${total}</div>
+</div>
+`
+
+})
+
+let gst=subtotal*0.05
+let total=subtotal+gst
+
+document.getElementById("subtotal").innerText="Subtotal ₹"+subtotal
+document.getElementById("gst").innerText="GST ₹"+gst
+document.getElementById("total").innerText="Total ₹"+total
+
+}
+
+function inc(i){cart[i].quantity++;renderCart()}
+function dec(i){cart[i].quantity--;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()}
+function clearCart(){cart=[];renderCart()}
+
+/* ORDER */
+function submitOrder(){
+
+if(sending)return
+if(cart.length===0){showToast("Cart empty");return}
+
+sending=true
+document.getElementById("sendBtn").disabled=true
+
+fetch("/create-order/",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+body:JSON.stringify({cart:cart,table_id:tableSelect.value})
+})
+.then(r=>r.json())
+.then(d=>{
+
+if(!d.success){showToast(d.error);sending=false;return}
+
+fetch(`/send-to-kitchen/${d.order_id}/`,{
+method:"POST",
+headers:{"X-CSRFToken":getCookie("csrftoken")}
+}).then(()=>{
+
+showToast("Order sent")
+cart=[]
+renderCart()
+sending=false
+document.getElementById("sendBtn").disabled=false
+loadRunningOrder()
+
+})
+
+})
+
+}
+
+/* RUNNING */
+function loadRunningOrder(){
+
+let tableId=tableSelect.value
+if(!tableId)return
+
+fetch(`/running-order-items/?table=${tableId}`)
+.then(r=>r.json())
+.then(d=>{
+
+let c=document.getElementById("running-items")
+c.innerHTML=""
+
+d.items.forEach(i=>{
+c.innerHTML+=`<div class="running-row">${i.quantity} × ${i.name} - ${i.status}</div>`
+})
+
+})
+
+}
+
+/* OTHER */
+function openRunningOrder(){
+if(!tableSelect.value){showToast("Select table");return}
+window.location.href="/order/"+tableSelect.value+"/"
+}
+
+function generateBill(){
+if(!tableSelect.value){showToast("Select table");return}
+window.location.href="/bill/"+tableSelect.value+"/"
+}
+
 function scrollToCategory(id){
 document.getElementById(id).scrollIntoView({behavior:"smooth"})
 }
 
-
-window.onload=function(){
-loadRunningOrder()
-setInterval(loadRunningOrder,3000)
+function getCookie(name){
+let v=null
+document.cookie.split(";").forEach(c=>{
+if(c.trim().startsWith(name+"=")){
+v=decodeURIComponent(c.split("=")[1])
 }
+})
+return v
+}
+
+/* INIT */
+document.addEventListener("DOMContentLoaded",()=>{
+loadRunningOrder()
+setInterval(loadRunningOrder,4000)
+})
 
 </script>
 

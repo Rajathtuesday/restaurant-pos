@@ -70,6 +70,7 @@ def get_or_create_open_order(user, table):
 
 @transaction.atomic
 def add_items_to_order(user, order, cart_items):
+    
 
     # Lock order row to prevent simultaneous updates
     order = (
@@ -103,7 +104,9 @@ def add_items_to_order(user, order, cart_items):
         if quantity <= 0:
             raise Exception("Invalid quantity")
 
-        base_price = menu_item.price * quantity
+        base_price = Decimal((menu_item.price)) * Decimal((quantity))
+        
+        modifier_total = Decimal("0")
 
         order_item = OrderItem.objects.create(
             order=order,
@@ -111,7 +114,7 @@ def add_items_to_order(user, order, cart_items):
             quantity=quantity,
             price=menu_item.price,
             gst_percentage=menu_item.gst_percentage,
-            total_price=base_price,
+            total_price=Decimal((base_price)),
             notes=item.get("note"),
             status="pending"
         )
@@ -152,14 +155,14 @@ def add_items_to_order(user, order, cart_items):
                 price=modifier.price
             )
 
-            modifier_total += modifier.price
+            modifier_total += Decimal((modifier.price))
 
         # Update total price including modifiers
         if modifier_total > 0:
+            
+            total=(menu_item.price * quantity) + (modifier_total * quantity)
 
-            order_item.total_price = (
-                (menu_item.price + modifier_total) * quantity
-            )
+            order_item.total_price = total
 
             order_item.save(update_fields=["total_price"])
 

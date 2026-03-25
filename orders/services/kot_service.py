@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from orders.models import KOTBatch, OrderItem, DailyKOTCounter
 from orders.services.inventory_service import deduct_inventory
+from setup.services.station_service import get_default_station
 
 
 @transaction.atomic
@@ -44,6 +45,7 @@ def create_kot(user, order):
 
     for item in items:
 
+        
         station = item.menu_item.station
 
         station_key = station.id if station else "default"
@@ -79,6 +81,9 @@ def create_kot(user, order):
         
 
         station = group_items[0].menu_item.station
+        
+        if not station :
+            station = get_default_station(user)
 
         station_name = station.name if station else "General"
 

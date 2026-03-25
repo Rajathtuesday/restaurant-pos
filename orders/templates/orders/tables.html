@@ -1051,12 +1051,23 @@ Loading tables...
 
 </div>
 
+<div id="transferBox" style="display:none; position:fixed; top:25%; left:50%; transform:translateX(-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:999; width:300px;">
+
+<h5>Select Table</h5>
+
+<select id="transferSelect" class="form-control mb-2"></select>
+
+<button class="btn btn-success w-100 mb-2" onclick="confirmTransfer()">Confirm Transfer</button>
+<button class="btn btn-secondary w-100" onclick="closeTransfer()">Cancel</button>
+
+</div>
 <script>
 
 let loading=false
 let failureCount=0
 let mergeMode=false
 let selectedTables=[]
+let currentOrderId=null
 
 
 function safe(v,f){
@@ -1088,7 +1099,7 @@ refreshTables()
 }
 
 
-function handleTableClick(id, merged, primary){
+function handleTableClick(event, id, merged, primary){
 
 if(merged){
 
@@ -1100,14 +1111,16 @@ return
 if(mergeMode){
 
 if(selectedTables.includes(id)){
-selectedTables=selectedTables.filter(t=>t!==id)
+selectedTables = selectedTables.filter(t=>t!==id)
 }else{
 selectedTables.push(id)
 }
 
-refreshTables()
-return
+// update UI only
+let el = event.currentTarget
+el.classList.toggle("selected")
 
+return
 }
 
 openBilling(id)
@@ -1310,6 +1323,11 @@ onclick="event.stopPropagation();openRunningOrder(${t.order_id})">
 Running Bill
 </button>
 
+<button class="btn btn-warning btn-sm mb-1 w-100"
+onclick="event.stopPropagation();openTransfer(${t.order_id})">
+Transfer Table
+</button>
+
 <a href="/bill/${t.order_id}/"
 class="btn btn-success btn-sm w-100"
 onclick="event.stopPropagation()">
@@ -1323,10 +1341,15 @@ else if(status==="billing"){
 
 actions=`
 <a href="/bill/${t.order_id}/"
-class="btn btn-light btn-sm w-100"
+class="btn btn-light btn-sm mb-1 w-100"
 onclick="event.stopPropagation()">
 Open Bill
 </a>
+
+<button class="btn btn-warning btn-sm w-100"
+onclick="event.stopPropagation();openTransfer(${t.order_id})">
+Transfer Table
+</button>
 `
 
 }
@@ -1347,7 +1370,7 @@ container.innerHTML+=`
 <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
 
 <div class="table-card ${status} ${selectedClass}"
-onclick="handleTableClick(${t.id},${t.merged},${t.primary_table})">
+onclick="handleTableClick(event,${t.id},${t.merged},${t.primary_table})">
 
 <div>
 
@@ -1395,6 +1418,85 @@ loading=false
 })
 
 }
+//-----------------
+// table transfer 
+//-----------------
+function openTransfer(orderId){
+
+currentOrderId = orderId
+
+document.getElementById("transferBox").style.display = "block"
+
+fetch("/available-tables/")
+.then(res => res.json())
+.then(data => {
+
+let select = document.getElementById("transferSelect")
+select.innerHTML = ""
+
+if(!data.tables || data.tables.length === 0){
+alert("No available tables")
+return
+}
+
+data.tables.forEach(t => {
+
+let opt = document.createElement("option")
+opt.value = t.id
+opt.text = t.name
+
+select.appendChild(opt)
+
+})
+
+})
+
+}
+
+
+function closeTransfer(){
+document.getElementById("transferBox").style.display = "none"
+}
+
+function confirmTransfer(){
+
+let tableId = document.getElementById("transferSelect").value
+
+if(!tableId){
+alert("Select a table")
+return
+}
+
+fetch("/transfer-table/",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken":getCookie("csrftoken")
+},
+body:JSON.stringify({
+order_id: currentOrderId,
+table_id: tableId
+})
+})
+.then(res => res.json())
+.then(data => {
+
+if(data.success){
+
+alert("Table transferred")
+
+closeTransfer()
+refreshTables()
+
+}else{
+alert(data.error)
+}
+
+})
+
+}
+
+
 
 
 function getCookie(name){
@@ -1450,7 +1552,11 @@ alert("Cleaning failed")
 
 refreshTables()
 
-setInterval(refreshTables,5000)
+setInterval(() => {
+    if(!document.hidden){
+        refreshTables()
+    }
+}, 5000)
 
 </script>
 

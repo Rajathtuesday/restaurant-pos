@@ -1,3 +1,4 @@
+# reports/services/kitichen_reports.py
 from django.db.models import Avg, F, ExpressionWrapper, DurationField
 from orders.models import OrderEvent
 

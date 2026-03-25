@@ -2,19 +2,7 @@
 from django.db import models
 from django.db.models import UniqueConstraint, Index
 from django.core.exceptions import ValidationError
-
-
-class KitchenStation(models.Model):
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-
-    name = models.CharField(max_length=100)
-
-    is_active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return self.name
+from setup.models import KitchenStation
 
 
 

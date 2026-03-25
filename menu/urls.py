@@ -11,6 +11,7 @@ from .views import (
     delete_menu_item,
     update_price,
     toggle_item,
+    update_station,
 )
 
 urlpatterns = [
@@ -26,6 +27,8 @@ urlpatterns = [
     path("delete-item/<int:item_id>/", delete_menu_item, name="delete_menu_item"),
     path("update-price/<int:item_id>/", update_price, name="update_price"),
     path("toggle-item/<int:item_id>/", toggle_item, name="toggle_item"),
+    
+    path("update-station/<int:item_id>/", update_station, name="update_station"),
 
     # modifier API
     path("item-modifiers/<int:item_id>/", menu_item_modifiers, name="menu_item_modifiers"),

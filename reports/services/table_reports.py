@@ -1,18 +1,22 @@
 # reports/services/table_reports.py
 from django.db.models import Count
 from orders.models import Order, OrderItem
+from django.utils import timezone
 
 
 def table_turnover(tenant, outlet):
+    query = Order.objects.filter(
+        tenant=tenant,
+        status__in=["closed", "paid"],
+        table__isnull=False,
+        created_at__date=timezone.now().date()
+    )
+
+    if outlet:
+        query = query.filter(outlet=outlet)
 
     data = (
-        Order.objects
-        .filter(
-            tenant=tenant,
-            outlet=outlet,
-            status__in=["closed", "paid"],
-            table__isnull=False
-        )
+        query
         .values("table__name")
         .annotate(turnovers=Count("id"))
         .order_by("-turnovers")

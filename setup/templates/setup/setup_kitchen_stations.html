@@ -23,7 +23,7 @@ box-shadow:0 8px 25px rgba(0,0,0,0.1);
 }
 
 .station{
-padding:8px;
+padding:12px;
 border-bottom:1px solid #eee;
 }
 
@@ -42,7 +42,6 @@ Example: Bar, Kitchen, Grill.
 </p>
 
 <form method="POST">
-
 {% csrf_token %}
 
 <div class="input-group mb-3">
@@ -67,16 +66,37 @@ Add
 
 {% for s in stations %}
 
-<div class="station">
+<div class="station d-flex justify-content-between align-items-center">
 
-{{s.name}}
+    <div>
+        <strong>{{s.name}}</strong>
+
+        {% if s.is_default %}
+            <span class="badge bg-success ms-2">Default</span>
+        {% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+
+        {% if not s.is_default %}
+        <form method="POST" action="{% url 'set-default-station' s.id %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-primary">
+                Make Default
+            </button>
+        </form>
+        {% endif %}
+
+    </div>
 
 </div>
 
 {% empty %}
 
 <p class="text-muted">
-No stations created yet.
+No stations created.
+
+All orders will go to <strong>General Kitchen</strong> by default.
 </p>
 
 {% endfor %}

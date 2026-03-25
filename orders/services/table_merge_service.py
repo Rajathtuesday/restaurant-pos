@@ -44,24 +44,33 @@ def merge_tables(user, primary_table_id, table_ids):
 @transaction.atomic
 def unmerge_tables(user, merge_id):
 
-    merge = TableMerge.objects.select_related("primary_table").prefetch_related("tables").get(
-        id=merge_id,
-        tenant=user.tenant,
-        outlet=user.outlet,
-        is_active=True
+    merge = (
+        TableMerge.objects
+        .select_related("primary_table")
+        .prefetch_related("tables")
+        .get(
+            id=merge_id,
+            tenant=user.tenant,
+            outlet=user.outlet,
+            is_active=True
+        )
     )
 
     primary = merge.primary_table
 
-    # restore tables properly
+    # get active order of the primary table
+    order = Order.objects.filter(
+        table=primary,
+        status="open"
+    ).first()
+
     for table in merge.tables.all():
 
-        order_exists = Order.objects.filter(
-            table=table,
-            status="open"
-        ).exists()
+        if table == primary:
+            continue
 
-        if order_exists:
+        # restore proper state
+        if order:
             table.state = "ordering"
         else:
             table.state = "free"
