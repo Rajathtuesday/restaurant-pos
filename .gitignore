@@ -24,5 +24,6 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+
 # log
 pos.log
