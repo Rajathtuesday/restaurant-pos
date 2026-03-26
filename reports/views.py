@@ -25,20 +25,25 @@ def dashboard(request):
 
         if outlet_id:
             outlet = outlets.filter(id=outlet_id).first()
+
+            # 🔴 IMPORTANT FIX (security + correctness)
+            if not outlet:
+                return HttpResponseForbidden("Invalid outlet")
         else:
-            outlet = None
+            outlet = None  # means ALL outlets
+
     else:
         outlet = request.user.outlet
         outlets = [outlet]
 
-    outlet_filter = outlet
+    selected_outlet = outlet
 
-    sales = daily_sales(tenant, outlet_filter)
-    items = top_items(tenant, outlet)
-    hourly = hourly_sales(tenant, outlet)
-    table_stats = table_turnover(tenant, outlet)
-    categories = category_sales(tenant, outlet)
-    waiters = waiter_performance(tenant, outlet)
+    sales = daily_sales(tenant, selected_outlet)
+    items = top_items(tenant, selected_outlet)
+    hourly = hourly_sales(tenant, selected_outlet)
+    table_stats = table_turnover(tenant, selected_outlet)
+    categories = category_sales(tenant, selected_outlet)
+    waiters = waiter_performance(tenant, selected_outlet)
 
     return render(request, "reports/dashboard.html", {
         "sales": sales,
