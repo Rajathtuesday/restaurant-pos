@@ -630,7 +630,7 @@ class Order(models.Model):
 
         self.subtotal = subtotal
         self.gst_total = gst_total
-        self.discount_total = discount_total
+        self.discount_total = discount_total    
         self.grand_total = grand_total
 
         self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total"])

@@ -4,6 +4,8 @@
 
 <title>Owner Dashboard</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
@@ -13,64 +15,64 @@ background:#f4f6fb;
 font-family:system-ui;
 }
 
-/* header */
+/* HEADER */
 
 .header{
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:25px;
+flex-wrap:wrap;
+gap:10px;
+margin-bottom:20px;
 }
 
 .header h3{
 font-weight:700;
+margin:0;
 }
 
-/* quick nav */
+/* CARDS */
 
 .quick-card{
 background:white;
 border-radius:16px;
-padding:25px;
+padding:18px;
 text-align:center;
 cursor:pointer;
 transition:.2s;
-box-shadow:0 8px 20px rgba(0,0,0,0.06);
+box-shadow:0 6px 16px rgba(0,0,0,0.06);
 height:100%;
 }
 
 .quick-card:hover{
-transform:translateY(-5px);
-box-shadow:0 10px 24px rgba(0,0,0,0.12);
+transform:translateY(-4px);
+box-shadow:0 10px 22px rgba(0,0,0,0.12);
 }
 
 .icon{
-font-size:32px;
-margin-bottom:10px;
+font-size:28px;
+margin-bottom:8px;
 }
 
 .quick-card h5{
 margin:0;
 font-weight:600;
+font-size:16px;
 }
 
 .quick-card p{
-font-size:13px;
+font-size:12px;
 color:#666;
+margin:4px 0 0;
 }
 
-/* outlet metrics */
+/* METRICS */
 
 .outlet-card{
 background:white;
 border-radius:16px;
-padding:22px;
+padding:18px;
 box-shadow:0 6px 18px rgba(0,0,0,0.08);
-transition:.2s;
-}
-
-.outlet-card:hover{
-transform:translateY(-3px);
 }
 
 .metric{
@@ -99,10 +101,36 @@ color:#dc3545;
 font-weight:600;
 }
 
+/* TITLES */
+
 .section-title{
-margin-top:30px;
-margin-bottom:15px;
+margin-top:25px;
+margin-bottom:12px;
 font-weight:700;
+font-size:18px;
+}
+
+/* MOBILE */
+
+@media (max-width:576px){
+
+.header{
+flex-direction:column;
+align-items:flex-start;
+}
+
+.header h3{
+font-size:20px;
+}
+
+.quick-card{
+padding:14px;
+}
+
+.icon{
+font-size:24px;
+}
+
 }
 
 </style>
@@ -111,11 +139,15 @@ font-weight:700;
 
 <body>
 
+<div class="container py-3">
+
+<!-- HEADER -->
+
 <div class="header">
 
-<h3>Restaurant Owner Dashboard</h3>
+<h3>Restaurant Dashboard</h3>
 
-<div class="d-flex align-items-center gap-3">
+<div class="d-flex align-items-center gap-2">
 
 <div class="dropdown">
 
@@ -133,33 +165,25 @@ data-bs-toggle="dropdown">
 </button>
 
 <ul class="dropdown-menu dropdown-menu-end p-2"
-style="width:300px">
+style="width:100%; max-width:280px">
 
 {% if notifications %}
-
 {% for n in notifications %}
-
 <li class="mb-2 small">
-
 {{n.message}}
-
 </li>
-
 {% endfor %}
-
 {% else %}
-
 <li class="text-muted small">
 No notifications
 </li>
-
 {% endif %}
 
 </ul>
 
 </div>
 
-<a href="/logout/" class="btn btn-outline-danger">
+<a href="/logout/" class="btn btn-outline-danger btn-sm">
 Logout
 </a>
 
@@ -167,185 +191,119 @@ Logout
 
 </div>
 
-<!-- QUICK ACTIONS -->
+<!-- OPERATIONS -->
 
 <h5 class="section-title">Operations</h5>
 
-<div class="row g-4">
+<div class="row g-3">
 
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/tables/'">
-
 <div class="icon">🍽</div>
-
 <h5>Tables</h5>
-
-<p>Manage dining tables</p>
-
+<p>Manage dining</p>
+</div>
 </div>
 
-</div>
-
-
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/kitchen/'">
-
 <div class="icon">👨‍🍳</div>
-
 <h5>Kitchen</h5>
-
-<p>Kitchen display screen</p>
-
+<p>Live orders</p>
+</div>
 </div>
 
-</div>
-
-
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/billing/'">
-
 <div class="icon">💳</div>
-
 <h5>Billing</h5>
-
-<p>POS billing terminal</p>
-
+<p>POS terminal</p>
+</div>
 </div>
 
-</div>
-
-
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/menu/'">
-
 <div class="icon">📋</div>
-
 <h5>Menu</h5>
-
-<p>Manage menu items</p>
-
+<p>Manage items</p>
 </div>
-
 </div>
-
-</div>
-
 
 {% if request.user.role == "owner" or request.user.role == "manager" %}
 
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/setup/'">
-
 <div class="icon">⚙️</div>
-
 <h5>Setup</h5>
-
-<p>Restaurant settings & staff</p>
-
+<p>Settings</p>
 </div>
-
 </div>
 
 {% endif %}
 
+</div>
 
+<!-- BUSINESS -->
 
 <h5 class="section-title">Business</h5>
 
-<div class="row g-4">
+<div class="row g-3">
 
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/reports/dashboard/'">
-
 <div class="icon">📊</div>
-
 <h5>Reports</h5>
-
-<p>Sales analytics</p>
-
+<p>Analytics</p>
+</div>
 </div>
 
-</div>
-
-
-<div class="col-md-3">
-
+<div class="col-6 col-md-3">
 <div class="quick-card" onclick="location.href='/inventory/board/'">
-
 <div class="icon">📦</div>
-
 <h5>Inventory</h5>
-
-<p>Stock monitoring</p>
-
+<p>Stock</p>
+</div>
 </div>
 
 </div>
 
-</div>
-
-
-
-<!-- OUTLET METRICS -->
+<!-- METRICS -->
 
 <h5 class="section-title">Today's Performance</h5>
 
-<div class="row g-4">
+<div class="row g-3">
 
 {% for m in metrics %}
 
-<div class="col-lg-4 col-md-6">
+<div class="col-12 col-md-6 col-lg-4">
 
 <div class="outlet-card">
 
-<h5>{{m.outlet}}</h5>
-
-<hr>
+<h6 class="fw-bold mb-2">{{m.outlet}}</h6>
 
 <div class="metric">
-
 <span>Revenue</span>
-
 <span class="revenue">₹ {{m.revenue}}</span>
-
 </div>
 
 <div class="metric">
-
-<span>Total Orders</span>
-
+<span>Orders</span>
 <span><strong>{{m.orders}}</strong></span>
-
 </div>
 
 <div class="metric">
-
 <span>Active Tables</span>
-
 <span><strong>{{m.active_tables}}</strong></span>
-
 </div>
 
 <div class="metric">
-
-<span>Kitchen Orders</span>
-
+<span>Kitchen</span>
 <span><strong>{{m.kitchen_orders}}</strong></span>
-
 </div>
 
 <div class="metric">
-
-<span>Low Stock Items</span>
-
+<span>Low Stock</span>
 <span class="low-stock">{{m.low_stock}}</span>
-
 </div>
 
 </div>
@@ -357,6 +315,8 @@ Logout
 </div>
 
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

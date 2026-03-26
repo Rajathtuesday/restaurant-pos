@@ -164,7 +164,7 @@ def setup_menu(request):
 # -------------------------------------------------
 
 @login_required
-def setup_kitchen_stations(request):
+def setup_kitchen_stations(request, station_id):
 
     """
     Kitchen stations will later connect to 

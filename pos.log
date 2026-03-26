@@ -149,3 +149,4 @@
 [INFO] 2026-03-25 13:27:21,672 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 3
 [INFO] 2026-03-25 13:27:22,490 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 3
 [INFO] 2026-03-25 13:27:46,559 pos.notifications [NOTIFICATION] tenant=3 outlet=2 type=order_ready message=Order ready for Table 3
+[INFO] 2026-03-26 06:04:06,812 pos.notifications [NOTIFICATION] tenant=4 outlet=4 type=order_ready message=Order ready for Table 1
