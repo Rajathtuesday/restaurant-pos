@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    set_default_station,
     setup_wizard,
     setup_tables,
     setup_menu,
@@ -16,5 +17,5 @@ urlpatterns = [
     path('kitchen-stations/', setup_kitchen_stations, name='setup_kitchen_stations'),
     path('payment-methods/', setup_payment_methods, name='setup_payment_methods'),
     path('staff/', setup_staff, name='setup_staff'),
-    path("set-default-station/<int:station_id>/", setup_kitchen_stations, name="set-default-station"),
+    path("set-default-station/<int:station_id>/", set_default_station, name="set-default-station"),
 ]

@@ -164,11 +164,7 @@ def setup_menu(request):
 # -------------------------------------------------
 
 @login_required
-def setup_kitchen_stations(request, station_id):
-
-    """
-    Kitchen stations will later connect to 
-    """
+def setup_kitchen_stations(request):
 
     stations = KitchenStation.objects.filter(
         tenant=request.user.tenant,
@@ -181,17 +177,25 @@ def setup_kitchen_stations(request, station_id):
 
         if not name:
             messages.error(request, "Station name required")
-            return redirect("setup_kitchen_stations")
+            return redirect("/setup/kitchen-stations/")  # ✅ FIX
 
+        if KitchenStation.objects.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            name=name.strip()
+            ).exists():
+            messages.warning(request, "Station already exists")
+            return redirect("/setup/kitchen-stations/")
+        
         KitchenStation.objects.create(
             tenant=request.user.tenant,
             outlet=request.user.outlet,
-            name=name
+            name=name.strip()
         )
 
         messages.success(request, "Kitchen station created")
 
-        return redirect("setup_kitchen_stations")
+        return redirect("/setup/kitchen-stations/")  # ✅ FIX
 
     return render(
         request,
@@ -200,7 +204,6 @@ def setup_kitchen_stations(request, station_id):
             "stations": stations
         }
     )
-
 
 # -------------------------------------------------
 # PAYMENT METHODS
