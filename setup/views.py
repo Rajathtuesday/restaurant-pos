@@ -8,7 +8,7 @@ from orders.models import Table
 from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet
 from django.views.decorators.http import require_POST
-from setup.models import KitchenStation
+from setup.models import KitchenStation, PaymentConfig
 # -------------------------------------------------
 # MAIN SETUP DASHBOARD
 # -------------------------------------------------
@@ -65,8 +65,8 @@ def setup_tables(request):
     if request.method == "POST":
 
         try:
-            count = int(request.POST.get("table_count"))
-        except:
+            count = int(request.POST.get("table_count", 0))
+        except (ValueError, TypeError):
             messages.error(request, "Invalid table count")
             return redirect("setup_tables")
 
@@ -211,31 +211,43 @@ def setup_kitchen_stations(request):
 
 @login_required
 def setup_payment_methods(request):
+    """
+    Persists payment method configuration per outlet to the database.
+    Replaces the old session-based approach.
+    """
+    tenant = request.user.tenant
+    outlet = request.user.outlet
 
-    """
-    For MVP we store payment methods in session
-    Later this should be a PaymentConfig model
-    """
+    # Get or create the config record for this outlet
+    config, _ = PaymentConfig.objects.get_or_create(
+        tenant=tenant,
+        outlet=outlet
+    )
 
     if request.method == "POST":
+        config.cash_enabled = "cash" in request.POST.getlist("methods")
+        config.upi_enabled = "upi" in request.POST.getlist("methods")
+        config.card_enabled = "card" in request.POST.getlist("methods")
 
-        methods = request.POST.getlist("methods")
+        # Optional label overrides
+        cash_label = request.POST.get("cash_label", "").strip()
+        upi_label = request.POST.get("upi_label", "").strip()
+        card_label = request.POST.get("card_label", "").strip()
+        if cash_label:
+            config.cash_label = cash_label
+        if upi_label:
+            config.upi_label = upi_label
+        if card_label:
+            config.card_label = card_label
 
-        if not methods:
-            messages.error(request, "Select at least one method")
-            return redirect("setup_payment_methods")
-
-        request.session["payment_methods"] = methods
-
-        messages.success(request, "Payment methods saved")
-
+        config.save()
+        messages.success(request, "Payment methods saved.")
         return redirect("/tables/")
 
-    return render(request, "setup/setup_payment_methods.html")
+    return render(request, "setup/setup_payment_methods.html", {"config": config})
 
 
 from accounts.models import User
-from django.contrib.auth.hashers import make_password
 
 
 @login_required
@@ -270,21 +282,15 @@ def setup_staff(request):
 
             return redirect("setup_staff")
 
-        User.objects.create(
-
+        user = User.objects.create_user(
             username=username,
-
-            password=make_password(password),
-
+            password=password,
             role=role,
-
             tenant=tenant,
-
             outlet=outlet
-
         )
 
-        messages.success(request, "Staff account created")
+        messages.success(request, f"Staff account '{username}' created ({role})")
 
         return redirect("setup_staff")
 

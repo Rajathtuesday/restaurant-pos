@@ -167,12 +167,12 @@ LOGGING = {
     "handlers": {
 
         "file": {
-
             "level": "INFO",
-            "class": "logging.FileHandler",
+            "class": "logging.handlers.RotatingFileHandler",
             "filename": os.path.join(BASE_DIR, "pos.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 7,
             "formatter": "pos_format",
-
         },
 
         "console": {
@@ -185,13 +185,26 @@ LOGGING = {
     },
 
     "loggers": {
-
         "pos.notifications": {
             "handlers": ["file", "console"],
             "level": "INFO",
             "propagate": False,
         },
-
+        "pos.menu": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "pos.orders": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "pos.inventory": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 
 }

@@ -1,171 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tables Setup | Fine Dining POS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bg: #0f1115; --panel: #1a1d24; --text: #f9fafb; --muted: #9ca3af; --border: #2d3139; --gold: #c5a059; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+        .site-header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 1.5rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+        .brand { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; }
+        .nav-link { color: var(--muted); text-decoration: none; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; }
+        .nav-link:hover { color: var(--gold); }
 
-<title>Restaurant Tables Setup</title>
+        .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 2fr; gap: 3rem; align-items: start; }
+        @media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold); margin-bottom: 0.5rem; }
+        .page-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; }
+        .divider { width: 40px; height: 1px; background: var(--gold); margin: 1.2rem 0; }
+        .page-sub { color: var(--muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
 
-<style>
+        .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: 0.6rem 0; font-size: 1.2rem; font-weight: 600; outline: none; margin-bottom: 1.5rem; font-family: inherit; text-align: center; }
+        .form-control:focus { border-bottom-color: var(--gold); }
+        .form-hint { font-size: 0.7rem; color: var(--muted); margin-bottom: 1.5rem; text-align: center; }
+        .btn-add { width: 100%; padding: 0.9rem; background: var(--gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .btn-add:hover { background: #b59250; }
 
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
+        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--gold); background: rgba(197,160,89,0.08); }
+        .alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
 
-/* container */
-
-.container-box{
-max-width:650px;
-margin:80px auto;
-background:white;
-padding:35px;
-border-radius:16px;
-box-shadow:0 10px 30px rgba(0,0,0,0.08);
-}
-
-/* header */
-
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:15px;
-}
-
-.header h4{
-font-weight:700;
-margin:0;
-}
-
-/* tables grid */
-
-.tables-grid{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:10px;
-margin-top:10px;
-}
-
-.table-pill{
-background:#f1f3f5;
-border-radius:8px;
-padding:6px;
-text-align:center;
-font-size:13px;
-}
-
-.table-count{
-font-weight:600;
-color:#666;
-font-size:13px;
-margin-top:6px;
-}
-
-</style>
-
+        /* Table grid */
+        .tables-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 600; margin-bottom: 1.5rem; }
+        .tables-count { color: var(--gold); margin-left: 8px; }
+        .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 0.75rem; }
+        .table-chip { background: var(--panel); border: 1px solid var(--border); padding: 0.75rem; text-align: center; font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+        .table-chip:first-child { border-color: var(--gold); color: var(--gold); }
+        .empty-state { color: var(--muted); font-size: 0.8rem; font-style: italic; padding: 2rem 0; }
+    </style>
 </head>
-
 <body>
+<header class="site-header">
+    <span class="brand">Tables Setup</span>
+    <a href="/setup/" class="nav-link">← Back to Setup</a>
+</header>
 
-<div class="container-box">
+<div class="page-body">
+    <!-- LEFT: ADD TABLES -->
+    <div>
+        <p class="page-eyebrow">Floor Plan</p>
+        <h1 class="page-title">Add Tables</h1>
+        <div class="divider"></div>
+        <p class="page-sub">Enter the number of tables to add. Tables are numbered sequentially from your current count.</p>
 
-<div class="header">
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert {% if 'error' in msg.tags %}alert-warning{% endif %}">{{ msg }}</div>
+        {% endfor %}
+        {% endif %}
 
-<h4>Restaurant Tables</h4>
+        <form method="post">
+            {% csrf_token %}
+            <label class="form-label" for="table_count">How many tables?</label>
+            <input type="number" id="table_count" name="table_count" class="form-control" min="1" max="50" placeholder="4">
+            <p class="form-hint">Max 50 at a time. You currently have <strong style="color:var(--gold)">{{ tables.count }}</strong> tables.</p>
+            <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Add Tables</button>
+        </form>
+    </div>
 
-<a href="/setup/" class="btn btn-outline-secondary btn-sm">
-Back
-</a>
+    <!-- RIGHT: EXISTING TABLES -->
+    <div>
+        <p class="tables-title">Configured Tables <span class="tables-count">{{ tables.count }}</span></p>
 
+        {% if tables %}
+        <div class="table-grid">
+            {% for table in tables %}
+            <div class="table-chip">{{ table.name }}</div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-state">No tables configured yet. Add your first table to get started.</p>
+        {% endif %}
+    </div>
 </div>
-
-<p class="text-muted">
-Add dining tables for your restaurant.  
-You can add more tables later anytime.
-</p>
-
-
-<!-- FORM -->
-
-<form method="POST">
-
-{% csrf_token %}
-
-<div class="row g-2">
-
-<div class="col-md-8">
-
-<label class="form-label">
-Add Tables
-</label>
-
-<input
-type="number"
-name="table_count"
-class="form-control"
-min="1"
-max="200"
-placeholder="Example: 10"
-required
->
-
-</div>
-
-<div class="col-md-4 d-grid">
-
-<label class="form-label invisible">.</label>
-
-<button class="btn btn-dark">
-Add Tables
-</button>
-
-</div>
-
-</div>
-
-</form>
-
-
-<!-- CURRENT TABLES -->
-
-<hr>
-
-<h6>Existing Tables</h6>
-
-<div class="table-count">
-{{tables|length}} tables configured
-</div>
-
-<div class="tables-grid">
-
-{% for t in tables %}
-
-<div class="table-pill">
-{{t.name}}
-</div>
-
-{% empty %}
-
-<p class="text-muted">
-No tables created yet.
-</p>
-
-{% endfor %}
-
-</div>
-
-<hr>
-
-<div class="text-center">
-
-<a href="/setup/menu/" class="btn btn-success">
-Next: Setup Menu →
-</a>
-
-</div>
-
-</div>
-
 </body>
 </html>

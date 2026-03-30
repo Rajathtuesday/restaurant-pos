@@ -28,8 +28,9 @@ from .views import (
     generate_bill,
     merge_tables_view,
     transfer_table_view,
-    unmerge_tables_view
-    
+    unmerge_tables_view,
+    waiter_dashboard,
+    resolve_waiter_call
 )
 
 urlpatterns = [
@@ -73,5 +74,7 @@ urlpatterns = [
     path("transfer-table/", transfer_table_view ,name="transfer-table"),
     
     path("available-tables/", available_tables ,name="available-tables"),
-    
+
+    path("waiter-dashboard/", waiter_dashboard, name="waiter-calls"),
+    path("resolve-waiter/<int:call_id>/", resolve_waiter_call, name="resolve-waiter"),
 ]

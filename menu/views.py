@@ -2,13 +2,16 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 
-import inventory
 from .models import MenuCategory,MenuItem
 from orders.models import Table, WaiterCall
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 import json
+from django.db import transaction
+import logging
+
+logger = logging.getLogger("pos.menu")
 
 
 from .models import MenuItemModifierGroup
@@ -46,8 +49,20 @@ def menu_view(request, qr_token):
 
 
 def call_waiter(request, qr_token):
+    from django.utils import timezone
+    from datetime import timedelta
 
     table = get_object_or_404(Table, qr_token=qr_token)
+
+    # ✅ Rate limit: one call per table every 60 seconds
+    recent = WaiterCall.objects.filter(
+        table=table,
+        is_resolved=False,
+        created_at__gte=timezone.now() - timedelta(seconds=60)
+    ).exists()
+
+    if recent:
+        return JsonResponse({"error": "A waiter has already been called. Please wait."}, status=429)
 
     WaiterCall.objects.create(
         tenant=table.tenant,
@@ -121,11 +136,39 @@ def create_category(request):
             outlet=request.user.outlet,
             name=name
         )
+        
+        logger.info(f"User {request.user.username} created category '{name}' for outlet {request.user.outlet.name}")
 
         return JsonResponse({"success": True})
 
     except Exception as e:
+        logger.error(f"Error creating category: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
 
+
+@login_required
+@require_POST
+def delete_category(request, category_id):
+    """
+    Deletes a category and all its attached items.
+    """
+    try:
+        category = get_object_or_404(
+            MenuCategory,
+            id=category_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+        
+        name = category.name
+        category.delete()
+        
+        logger.warning(f"User {request.user.username} deleted category '{name}' and all its items")
+        
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        logger.error(f"Error deleting category: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -170,11 +213,13 @@ def create_menu_item(request):
             category=category,
             station=station
         )
+        
+        logger.info(f"User {request.user.username} created item '{name}' (₹{price}) in category '{category.name}'")
 
         return JsonResponse({"success": True})
 
     except Exception as e:
-
+        logger.error(f"Error creating menu item: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -236,8 +281,11 @@ def delete_menu_item(request, item_id):
         tenant=request.user.tenant,
         outlet=request.user.outlet
     )
-
+    
+    item_name = item.name
     item.delete()
+    
+    logger.warning(f"User {request.user.username} deleted menu item '{item_name}'")
 
     return JsonResponse({"success": True})
 
@@ -360,6 +408,90 @@ def update_station(request, item_id):
         item.save(update_fields=["station"])
 
         return JsonResponse({"success": True})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+import re
+from decimal import Decimal
+
+@login_required
+@require_POST
+def ai_menu_importer(request):
+    """
+    Smart Menu Parser: Takes raw text and 'senses' categories and items.
+    Pattern: 
+    - Lines with just text -> Category
+    - Lines with name + number -> Item in the current category
+    """
+    try:
+        data = json.loads(request.body)
+        raw_text = data.get("text", "")
+        
+        lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
+        
+        current_category = None
+        imported_count = 0
+        
+        # Pre-fetch existing categories to avoid duplicates and map variations
+        existing_categories = list(MenuCategory.objects.filter(
+            tenant=request.user.tenant, 
+            outlet=request.user.outlet
+        ))
+        
+        def find_best_category(name):
+            # 1. Precise normalization: lowercase, strip, and singularize (simple)
+            target = name.lower().strip().rstrip("s")
+            
+            for cat in existing_categories:
+                # Compare singular normalized names
+                if cat.name.lower().strip().rstrip("s") == target:
+                    return cat
+            
+            # 2. Key-word match (if "Pasta" is in "Signature Pasta")
+            for cat in existing_categories:
+                if target in cat.name.lower() or cat.name.lower() in target:
+                    return cat
+            
+            # 3. Create if truly new
+            new_cat = MenuCategory.objects.create(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                name=name
+            )
+            existing_categories.append(new_cat)
+            return new_cat
+
+        with transaction.atomic():
+            for line in lines:
+                # Look for price at the end
+                match = re.search(r'(\d+(?:\.\d+)?)$', line)
+                
+                if match:
+                    price = Decimal(match.group(1))
+                    name = line[:match.start()].strip().rstrip("-").strip()
+                    
+                    if not current_category:
+                        current_category = find_best_category("General")
+                    
+                    # Prevent duplicate items in the same import session/category
+                    MenuItem.objects.get_or_create(
+                        tenant=request.user.tenant,
+                        outlet=request.user.outlet,
+                        category=current_category,
+                        name=name,
+                        defaults={"price": price}
+                    )
+                    imported_count += 1
+                else:
+                    # Detected a Category Header line
+                    current_category = find_best_category(line)
+
+        return JsonResponse({
+            "success": True, 
+            "message": f"Successfully imported {imported_count} items across multiple categories."
+        })
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)

@@ -1,49 +1,164 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Locked | {{ request.user.outlet.name|default:"POS" }}</title>
 
-<title>Order Locked</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-<style>
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-gold: #c5a059;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
 
-body{
-font-family:system-ui;
-background:#f4f6fb;
-display:flex;
-align-items:center;
-justify-content:center;
-height:100vh;
-}
+        body.dark {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
 
-.box{
-background:white;
-padding:40px;
-border-radius:12px;
-box-shadow:0 6px 18px rgba(0,0,0,0.1);
-text-align:center;
-}
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
 
-</style>
+        h2 { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--text-main); }
 
+        .lock-container {
+            background: var(--panel-bg);
+            padding: 3rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-hover);
+            text-align: center;
+            max-width: 480px;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .lock-icon {
+            font-size: 4rem;
+            color: var(--accent-gold);
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            animation: pulse-gold 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-gold {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        p { color: var(--text-muted); font-size: 1rem; margin-top: 1rem; line-height: 1.6; }
+
+        .user-badge {
+            font-weight: 700;
+            color: var(--text-main);
+            background: rgba(197, 160, 89, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-gold);
+            font-size: 0.9rem;
+        }
+
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-main);
+            padding: 0.75rem 1.75rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            margin-top: 2rem;
+        }
+
+        .btn-luxury:hover {
+            border-color: var(--text-main);
+            color: var(--panel-bg);
+            background: var(--text-main);
+        }
+
+        .btn-theme {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .btn-theme:hover { color: var(--text-main); }
+    </style>
 </head>
-
 <body>
 
-<div class="box">
+    <div class="lock-container">
+        <button class="btn-theme" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
 
-<h2>Order Currently Being Edited</h2>
+        <div class="lock-icon">
+            <i class="bi bi-shield-lock"></i>
+        </div>
 
-<p>
-This order is being edited by:
-<strong>{{locked_by}}</strong>
-</p>
+        <h2>Order Currently Locked</h2>
 
-<p>Please wait a few seconds.</p>
+        <p>
+            An active session is being managed by: 
+            <span class="user-badge">{{locked_by}}</span>
+        </p>
 
-<a href="/tables/">Back to Tables</a>
+        <p>Please wait a few moments while the editor completes their changes. This ensures data integrity across the floor.</p>
 
-</div>
+        <a href="/tables/" class="btn-luxury"><i class="bi bi-arrow-left me-2"></i> Back to Floors</a>
+    </div>
 
+    <script>
+        /* THEME MANAGEMENT */
+        let isDark = localStorage.getItem("dark") === "true";
+        function updateIcons() {
+            let icon = document.getElementById("themeIcon");
+            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
+            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+        }
+        updateIcons();
+        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+        /* Auto-refresh or redirect could be added here if needed, but per original it's informational */
+    </script>
 </body>
 </html>
