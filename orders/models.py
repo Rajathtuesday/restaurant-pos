@@ -429,6 +429,60 @@ class Payment(models.Model):
 
 
 # =====================================================
+# REFUND
+# =====================================================
+
+class Refund(models.Model):
+
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    )
+
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.PROTECT,
+        related_name="refunds"
+    )
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.PROTECT,
+        related_name="refunds"
+    )
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    reason = models.CharField(max_length=255)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="approved"
+    )
+
+    refunded_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="refunds_issued"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["order"]),
+            models.Index(fields=["payment"]),
+        ]
+
+    def __str__(self):
+        return f"Refund ₹{self.amount} for Order {self.order_id}"
+
+
+
+# =====================================================
 # WAITER CALL
 # =====================================================
 

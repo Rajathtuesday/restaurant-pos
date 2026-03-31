@@ -4,6 +4,7 @@ from django.urls import path
 from orders.services.table_transfer_service import transfer_table
 
 from .views.order_actions import cancel_order, cancel_item
+from .views.billing_views import refund_payment, apply_item_discount
 
 
 
@@ -86,4 +87,7 @@ urlpatterns = [
     path("waiter-dashboard/", waiter_dashboard, name="waiter-calls"),
     path("resolve-waiter/<int:call_id>/", resolve_waiter_call, name="resolve-waiter"),
     path("resolve-kitchen-message/<int:message_id>/", resolve_kitchen_message, name="resolve-kitchen-message"),
+
+    path("refund/<int:payment_id>/", refund_payment, name="refund-payment"),
+    path("item-discount/<int:item_id>/", apply_item_discount, name="item-discount"),
 ]

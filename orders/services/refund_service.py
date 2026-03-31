@@ -2,61 +2,57 @@
 from django.db import transaction
 from django.db.models import Sum
 from decimal import Decimal
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 
-from orders.models import Payment, OrderEvent
+from orders.models import Payment, Refund, OrderEvent
 
 
 @transaction.atomic
 def process_refund(order, payment_id, amount, user):
+    """
+    Issues a refund against a specific payment.
+    - Manager/Owner only
+    - Amount cannot exceed remaining refundable amount on the payment
+    """
+    if user.role not in ("manager", "owner") and not user.is_superuser:
+        raise PermissionDenied("Only managers or owners can issue refunds")
 
     payment = Payment.objects.select_for_update().get(id=payment_id, order=order)
 
-    if payment.is_refund:
-        raise ValidationError("Cannot refund a refund")
-
-    amount = Decimal(amount)
+    amount = Decimal(str(amount))
 
     if amount <= 0:
         raise ValidationError("Invalid refund amount")
 
-    # --------------------------------------------
-    # 🔥 CALCULATE ALREADY REFUNDED
-    # --------------------------------------------
-    refunded_total = payment.refunds.aggregate(
+    # How much has already been refunded against this payment?
+    refunded_total = payment.refunds.filter(status="approved").aggregate(
         total=Sum("amount")
     )["total"] or Decimal("0")
 
     remaining = payment.amount - refunded_total
 
     if amount > remaining:
-        raise ValidationError("Refund exceeds available amount")
+        raise ValidationError(f"Refund exceeds available amount. Max: ₹{remaining:.2f}")
 
-    # --------------------------------------------
-    # 🔥 CREATE REFUND ENTRY
-    # --------------------------------------------
-    refund = Payment.objects.create(
+    # Create Refund record
+    refund = Refund.objects.create(
+        payment=payment,
         order=order,
-        method=payment.method,
         amount=amount,
-        is_refund=True,
-        parent_payment=payment,
-        created_by=user
+        reason="Manager refund",
+        status="approved",
+        refunded_by=user,
     )
 
-    # --------------------------------------------
-    # 🔥 AUDIT EVENT
-    # --------------------------------------------
+    # Audit event
     OrderEvent.objects.create(
         tenant=order.tenant,
         outlet=order.outlet,
         order=order,
         event_type="payment_refunded",
         amount=amount,
-        metadata={
-            "payment_id": payment.id
-        },
-        created_by=user
+        metadata={"payment_id": payment.id, "refund_id": refund.id, "refunded_by": user.username},
+        created_by=user,
     )
 
     return refund

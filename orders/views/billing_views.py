@@ -333,3 +333,89 @@ def make_item_complimentary(request, item_id):
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+
+
+# -------------------------------------------------
+# REFUND PAYMENT  (Manager/Owner only)
+# -------------------------------------------------
+
+@login_required
+@tenant_required
+@require_POST
+def refund_payment(request, payment_id):
+    if request.user.role not in ["manager", "owner"] and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        from orders.models import Payment
+        from orders.services.refund_service import process_refund
+
+        data = json.loads(request.body)
+        amount = data.get("amount")
+        reason = data.get("reason", "Manager refund")
+
+        if not amount:
+            return JsonResponse({"error": "Amount required"}, status=400)
+
+        payment = Payment.objects.select_related("order").get(
+            id=payment_id,
+            order__tenant=request.user.tenant,
+            order__outlet=request.user.outlet
+        )
+
+        with transaction.atomic():
+            refund = process_refund(payment.order, payment_id, amount, request.user)
+
+        logger.warning(f"User {request.user.username} issued refund of ₹{amount} for payment #{payment_id}")
+        return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+# -------------------------------------------------
+# PER-ITEM DISCOUNT  (Manager/Owner only)
+# -------------------------------------------------
+
+@login_required
+@tenant_required
+@require_POST
+def apply_item_discount(request, item_id):
+    if request.user.role not in ["manager", "cashier", "owner"] and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+        discount_pct = Decimal(str(data.get("percent", 0)))
+
+        if discount_pct < 0 or discount_pct > 100:
+            return JsonResponse({"error": "Invalid percentage"}, status=400)
+
+        with transaction.atomic():
+            item = (
+                OrderItem.objects.select_related("order")
+                .select_for_update()
+                .get(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
+            )
+            validate_order_editable(item.order)
+
+            # Recalculate item total after per-line discount
+            base_total = item.price * item.quantity
+            discounted = base_total * (1 - discount_pct / 100)
+            item.total_price = discounted.quantize(Decimal("0.01"))
+            item.notes = (item.notes or "") + f" [Discount: {discount_pct}%]"
+            item.save(update_fields=["total_price", "notes"])
+            item.order.recalculate_totals()
+
+            OrderEvent.objects.create(
+                tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
+                event_type="item_updated",
+                metadata={"item_id": item.id, "discount_pct": str(discount_pct)},
+                created_by=request.user
+            )
+
+        logger.warning(f"User {request.user.username} applied {discount_pct}% discount to item #{item_id}")
+        return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     'inventory',
     'notifications',
     'setup',
+    'shifts',
+    'crm',
 ]
 
 MIDDLEWARE = [

@@ -56,6 +56,12 @@ urlpatterns = [
     
     # setup module
     path('setup/', include('setup.urls')),
+
+    # shifts module
+    path('shifts/', include('shifts.urls')),
+
+    # crm module
+    path('crm/', include('crm.urls')),
 ]
 
 from django.conf import settings

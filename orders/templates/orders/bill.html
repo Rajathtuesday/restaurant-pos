@@ -205,9 +205,68 @@
             }
         }
     </script>
-</body>
-</html>
-t>
 
+    <!-- CRM GUEST LINK SECTION (no-print) -->
+    <div class="no-print" style="margin-top:1.5rem;">
+        <div id="crmSection" style="border:1px dashed var(--border); padding:1.2rem; border-radius:2px;">
+            <p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:0.8rem;">Link Guest &amp; Award Points</p>
+            <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                <input id="guestPhone" type="tel" placeholder="Guest phone number" class="input-pay" style="margin:0; flex:1; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Inter',sans-serif;">
+                <button onclick="lookupGuest()" class="btn-set" style="flex:0 0 80px;">Lookup</button>
+            </div>
+            <div id="guestInfo" style="display:none; font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; padding:0.5rem; border:1px solid var(--border);"></div>
+            <input id="guestName" type="text" placeholder="Guest name (optional)" class="input-pay" style="margin-bottom:0.5rem; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Inter',sans-serif;">
+            <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.8rem;">
+                <label style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); white-space:nowrap;">Redeem pts:</label>
+                <input id="redeemPts" type="number" min="0" value="0" class="input-pay" style="margin:0; flex:1; padding:0.5rem; font-size:0.85rem;">
+            </div>
+            <button onclick="linkGuest()" class="btn-pay" style="width:100%; padding:0.8rem;">
+                <i class="bi bi-stars"></i> Award Points
+            </button>
+            <div id="crmMsg" style="display:none; margin-top:0.7rem; font-size:0.75rem; text-align:center; letter-spacing:1px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const ORDER_ID = {{ order.id }};
+        const CSRF = document.cookie.split('; ').find(r=>r.startsWith('csrftoken=')).split('=')[1];
+
+        async function lookupGuest() {
+            const phone = document.getElementById('guestPhone').value.trim();
+            if (!phone) return;
+            const r = await fetch(`/crm/lookup/?phone=${encodeURIComponent(phone)}`);
+            const d = await r.json();
+            const info = document.getElementById('guestInfo');
+            info.style.display = 'block';
+            if (d.found) {
+                info.innerHTML = `<strong>${d.name || 'Guest'}</strong> &nbsp;·&nbsp; ${d.visits} visits &nbsp;·&nbsp; <span style="color:var(--gold)">${d.points} pts</span>`;
+                document.getElementById('guestName').value = d.name || '';
+            } else {
+                info.innerHTML = 'New guest — will be registered automatically.';
+            }
+        }
+
+        async function linkGuest() {
+            const phone = document.getElementById('guestPhone').value.trim();
+            const name = document.getElementById('guestName').value.trim();
+            const redeem = parseInt(document.getElementById('redeemPts').value) || 0;
+            const msg = document.getElementById('crmMsg');
+            if (!phone) { msg.style.display='block'; msg.style.color='#ef4444'; msg.textContent='Phone required.'; return; }
+            const r = await fetch(`/crm/link/${ORDER_ID}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone, name, redeem_points: redeem })
+            });
+            const d = await r.json();
+            msg.style.display = 'block';
+            if (d.success) {
+                msg.style.color = '#22c55e';
+                msg.textContent = `✓ +${d.points_earned} pts earned! Balance: ${d.total_points} pts`;
+            } else {
+                msg.style.color = '#ef4444';
+                msg.textContent = d.error;
+            }
+        }
+    </script>
 </body>
 </html>

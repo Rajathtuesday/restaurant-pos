@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ guest.name|default:guest.phone }} | CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root { --bg-color:#fafafa; --panel-bg:#ffffff; --text-main:#111; --text-muted:#737373; --border-color:#eaeaea; --accent-gold:#c5a059; }
+        body.dark { --bg-color:#0a0a0a; --panel-bg:#111111; --text-main:#f5f5f5; --text-muted:#888; --border-color:#262626; --accent-gold:#d4af37; }
+        body { background:var(--bg-color); color:var(--text-main); font-family:'Inter',sans-serif; min-height:100vh; }
+        .pos-header { padding:2rem 0 1.5rem; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:2rem; }
+        .pos-header h4 { font-family:'Playfair Display',serif; font-size:1.6rem; margin:0; }
+        .btn-luxury { border:1px solid var(--border-color); background:transparent; color:var(--text-main); border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px; padding:0.55rem 1.2rem; text-decoration:none; display:inline-block; }
+        .btn-luxury:hover { border-color:var(--text-main); background:var(--text-main); color:var(--bg-color); }
+        .btn-icon { border:none; background:transparent; color:var(--text-main); font-size:1.2rem; cursor:pointer; }
+        .btn-icon:hover { color:var(--accent-gold); }
+        .profile-hero { background:var(--panel-bg); border:1px solid var(--border-color); padding:2rem; margin-bottom:2rem; }
+        .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1.5rem; margin-top:1.5rem; }
+        .stat-item { text-align:center; border-left:1px solid var(--border-color); padding-left:1.5rem; }
+        .stat-item:first-child { border-left:none; padding-left:0; }
+        .stat-val { font-family:'Playfair Display',serif; font-size:2rem; color:var(--accent-gold); }
+        .stat-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); }
+        .tx-table { width:100%; border-collapse:collapse; }
+        .tx-table th { font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); padding:0.8rem 0; border-bottom:1px solid var(--border-color); }
+        .tx-table td { padding:0.8rem 0; border-bottom:1px dashed var(--border-color); font-size:0.88rem; }
+        .earn { color:#10b981; font-weight:600; }
+        .redeem { color:#ef4444; font-weight:600; }
+        .dashboard-card { background:var(--panel-bg); border:1px solid var(--border-color); padding:2rem; }
+    </style>
+</head>
+<body>
+<div class="container-fluid mx-auto" style="max-width:1100px; padding:0 1.5rem;">
+
+    <header class="pos-header">
+        <h4><i class="bi bi-person-circle me-2" style="color:var(--accent-gold);"></i>{{ guest.name|default:guest.phone }}</h4>
+        <div class="d-flex gap-2">
+            <a href="/crm/" class="btn-luxury">← All Guests</a>
+            <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <!-- PROFILE HERO -->
+    <div class="profile-hero">
+        <h3 style="font-family:'Playfair Display',serif;">{{ guest.name|default:"Guest" }}</h3>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin:0;">
+            <i class="bi bi-telephone me-1"></i>{{ guest.phone }}
+            {% if guest.email %} &nbsp;·&nbsp; <i class="bi bi-envelope me-1"></i>{{ guest.email }}{% endif %}
+            &nbsp;·&nbsp; Member since {{ guest.created_at|date:"M Y" }}
+        </p>
+        <div class="stat-grid">
+            <div class="stat-item">
+                <div class="stat-val">{{ guest.visit_count }}</div>
+                <div class="stat-label">Visits</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val">₹{{ guest.total_spent|floatformat:0 }}</div>
+                <div class="stat-label">Total Spent</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-val" style="color:var(--accent-gold);">{{ guest.total_points }}</div>
+                <div class="stat-label">Points Balance</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSACTION HISTORY -->
+    <div class="dashboard-card mb-5">
+        <h5 style="font-family:'Playfair Display',serif; text-transform:uppercase; letter-spacing:3px; font-size:0.9rem; margin-bottom:1.5rem;">Loyalty History</h5>
+        <table class="tx-table">
+            <thead>
+                <tr>
+                    <th>Date</th><th>Type</th><th>Description</th><th class="text-end">Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td style="color:var(--text-muted);">{{ tx.created_at|date:"M d, Y H:i" }}</td>
+                    <td>
+                        {% if tx.transaction_type == "earn" %}<span class="earn">Earned</span>
+                        {% elif tx.transaction_type == "redeem" %}<span class="redeem">Redeemed</span>
+                        {% else %}<span>Adjusted</span>{% endif %}
+                    </td>
+                    <td>{{ tx.description }}</td>
+                    <td class="text-end {% if tx.points > 0 %}earn{% else %}redeem{% endif %}">
+                        {% if tx.points > 0 %}+{% endif %}{{ tx.points }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--text-muted);">No transactions yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if (isDark) { document.body.classList.add("dark"); icon.className = "bi bi-sun"; }
+        else { document.body.classList.remove("dark"); icon.className = "bi bi-moon"; }
+    }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+</script>
+</body>
+</html>
