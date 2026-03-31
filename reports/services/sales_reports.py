@@ -69,8 +69,12 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
 
 def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     """
-    Hourly revenue distribution (based on payments)
+    Shows revenue distribution over time:
+    - If 1 day: Groups by Hour
+    - If multi-day: Groups by Date
     """
+    from django.db.models.functions import TruncDate
+    from datetime import timedelta
 
     if not start_date: start_date = timezone.now().date()
     if not end_date: end_date = timezone.now().date()
@@ -83,22 +87,27 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     if outlet:
         payments = payments.filter(order__outlet=outlet)
 
-    payments = payments.annotate(
-        hour=ExtractHour("order__created_at")
-    )
-
-    data = (
-        payments
-        .values("hour")
-        .annotate(total=Sum("amount"))
-    )
-
-    # ----------------------------
-    # FILL MISSING HOURS
-    # ----------------------------
-    hours = {h: 0 for h in range(24)}
-
-    for row in data:
-        hours[row["hour"]] = float(row["total"])
-
-    return [{"hour": h, "total": hours[h]} for h in range(24)]
+    if start_date != end_date:
+        payments = payments.annotate(date=TruncDate('order__created_at'))
+        data = payments.values("date").annotate(total=Sum("amount")).order_by("date")
+        
+        days_diff = (end_date - start_date).days
+        data_dict = {row["date"]: float(row["total"]) for row in data if row["date"]}
+        result = []
+        for i in range(days_diff + 1):
+            curr_date = start_date + timedelta(days=i)
+            result.append({
+                "label": curr_date.strftime("%b %d"),
+                "total": data_dict.get(curr_date, 0)
+            })
+        return result
+    else:
+        payments = payments.annotate(hour=ExtractHour("order__created_at"))
+        data = payments.values("hour").annotate(total=Sum("amount"))
+        
+        hours = {h: 0 for h in range(24)}
+        for row in data:
+            if row["hour"] is not None:
+                hours[row["hour"]] = float(row["total"])
+                
+        return [{"label": f"{h:02d}:00", "total": hours[h]} for h in range(24)]
