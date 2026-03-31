@@ -84,7 +84,11 @@
 
         <div class="receipt-container">
             <div class="header">
+                {% if request.user.tenant.logo %}
+                <img src="{{ request.user.tenant.logo.url }}" alt="Logo" style="max-height: 80px; margin-bottom: 0.5rem;">
+                {% else %}
                 <div class="logo serif">{{ request.user.outlet.name }}</div>
+                {% endif %}
                 <div class="address">{{ request.user.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
                 <div class="gst">GSTIN: {{ request.user.outlet.gst_no|default:"27AABCU9603R1ZX" }}</div>
             </div>

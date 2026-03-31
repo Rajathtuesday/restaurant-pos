@@ -69,3 +69,26 @@ def owner_dashboard(request):
             "notifications": notifications
         }
     )
+
+@login_required
+def sales_dashboard(request):
+    """
+    Shows all clients (Tenants). 
+    If superuser: sees all. 
+    Otherwise: sees only clients they are the sales_agent for.
+    """
+    from tenants.models import Tenant
+    if request.user.is_superuser:
+        clients = Tenant.objects.all().select_related("sales_agent")
+        # Give access to superuser
+    else:
+        clients = Tenant.objects.filter(sales_agent=request.user)
+        # Give access to regular users ONLY if they are assigned a client
+        if not clients.exists():
+            return redirect("/dashboard/")
+
+    return render(
+        request,
+        "accounts/sales_dashboard.html",
+        {"clients": clients}
+    )

@@ -37,6 +37,22 @@ class Tenant(models.Model):
         auto_now_add=True
     )
 
+    logo = models.ImageField(
+        upload_to="tenant_logos/",
+        null=True,
+        blank=True,
+        help_text="Restaurant Logo for bills"
+    )
+
+    sales_agent = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tenants_sold",
+        help_text="Superuser/Agent who brought this client"
+    )
+
     class Meta:
 
         ordering = ["name"]

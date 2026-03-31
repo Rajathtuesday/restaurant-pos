@@ -23,6 +23,13 @@ def setup_wizard(request):
         messages.error(request, "User is not assigned to a tenant/outlet.")
         return redirect("/dashboard/")
 
+    if request.method == "POST":
+        if "logo" in request.FILES:
+            tenant.logo = request.FILES["logo"]
+            tenant.save(update_fields=["logo"])
+            messages.success(request, "Restaurant logo updated successfully.")
+            return redirect("setup_wizard")
+
     tables_exist = Table.objects.filter(
         tenant=tenant,
         outlet=outlet
@@ -260,9 +267,10 @@ def setup_staff(request):
     outlet = request.user.outlet
 
     staff = User.objects.filter(
-        tenant=tenant,
-        outlet=outlet
+        tenant=tenant
     ).exclude(role="owner")
+
+    outlets = Outlet.objects.filter(tenant=tenant)
 
     if request.method == "POST":
 
@@ -282,12 +290,21 @@ def setup_staff(request):
 
             return redirect("setup_staff")
 
+        outlet_id = request.POST.get("outlet")
+        selected_outlet = None
+        if outlet_id:
+            try:
+                selected_outlet = Outlet.objects.get(id=outlet_id, tenant=tenant)
+            except Outlet.DoesNotExist:
+                messages.error(request, "Invalid outlet selected")
+                return redirect("setup_staff")
+
         user = User.objects.create_user(
             username=username,
             password=password,
             role=role,
             tenant=tenant,
-            outlet=outlet
+            outlet=selected_outlet
         )
 
         messages.success(request, f"Staff account '{username}' created ({role})")
@@ -297,7 +314,7 @@ def setup_staff(request):
     return render(
         request,
         "setup/setup_staff.html",
-        {"staff": staff}
+        {"staff": staff, "outlets": outlets}
     )
     
 

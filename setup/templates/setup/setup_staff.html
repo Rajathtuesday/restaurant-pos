@@ -114,6 +114,13 @@
                 <option value="chef">Chef</option>
             </select>
 
+            <label class="form-label">Outlet</label>
+            <select name="outlet" class="form-select" required>
+                {% for o in outlets %}
+                <option value="{{ o.id }}">{{ o.name }}</option>
+                {% endfor %}
+            </select>
+
             <button type="submit" class="btn-create">Create Account</button>
         </form>
     </div>
@@ -129,6 +136,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Role</th>
+                    <th>Outlet</th>
                 </tr>
             </thead>
             <tbody>
@@ -136,10 +144,11 @@
                 <tr>
                     <td>{{ member.username }}</td>
                     <td><span class="role-badge {{ member.role }}">{{ member.get_role_display }}</span></td>
+                    <td style="color:var(--text-muted); font-size: 0.75rem;">{{ member.outlet.name|default:"-" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="2" style="color:var(--text-muted); font-size:0.8rem; padding-top:1.5rem;">No staff accounts yet.</td>
+                    <td colspan="3" style="color:var(--text-muted); font-size:0.8rem; padding-top:1.5rem;">No staff accounts yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>
