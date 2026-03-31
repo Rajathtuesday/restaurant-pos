@@ -806,7 +806,7 @@
             return;
         }
 
-        fetch(`/running-order-items/?table=${tableId}`)
+        fetch("{% url 'running-order-items' %}?table=" + tableId)
         .then(r => r.json())
         .then(d => {
             let html = "";
@@ -841,7 +841,7 @@
             b.disabled = true; b.innerHTML = 'Dispatching...';
         });
 
-        fetch("/create-order/", {
+        fetch("{% url 'create-order' %}", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
             body: JSON.stringify({ cart: cart, table_id: tableId })
@@ -849,7 +849,7 @@
         .then(r => r.json())
         .then(d => {
             if(!d.success) { showToast(d.error); resetSendBtn(); return; }
-            fetch(`/send-to-kitchen/${d.order_id}/`, { method: "POST", headers: {"X-CSRFToken": getCookie("csrftoken")} })
+            fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: {"X-CSRFToken": getCookie("csrftoken")} })
             .then(() => {
                 showToast("Order Sent");
                 clearCart();
@@ -873,12 +873,12 @@
     function generateBill() {
         let tableId = document.getElementById("tableSelectDesktop").value;
         if(!tableId) { showToast("Select table."); return; }
-        window.location.href = "/bill/" + tableId + "/";
+        window.location.href = "{% url 'generate-bill' 0 %}".replace('0', tableId);
     }
 
     function cancelOrder(orderId) {
         if(!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
-        fetch(`/cancel-order/${orderId}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
         .then(res => res.json())
         .then(data => {
             if(data.success) {

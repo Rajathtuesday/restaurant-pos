@@ -184,7 +184,7 @@
             toast.className = "toast-msg";
 
             try {
-                const res = await fetch(`/pay/{{order.id}}/`, {
+                const res = await fetch("{% url 'pay-order' order.id %}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                     body: JSON.stringify({ method, amount })
@@ -234,7 +234,7 @@
         async function lookupGuest() {
             const phone = document.getElementById('guestPhone').value.trim();
             if (!phone) return;
-            const r = await fetch(`/crm/lookup/?phone=${encodeURIComponent(phone)}`);
+            const r = await fetch("{% url 'crm_lookup' %}?phone=" + encodeURIComponent(phone));
             const d = await r.json();
             const info = document.getElementById('guestInfo');
             info.style.display = 'block';
@@ -252,7 +252,7 @@
             const redeem = parseInt(document.getElementById('redeemPts').value) || 0;
             const msg = document.getElementById('crmMsg');
             if (!phone) { msg.style.display='block'; msg.style.color='#ef4444'; msg.textContent='Phone required.'; return; }
-            const r = await fetch(`/crm/link/${ORDER_ID}/`, {
+            const r = await fetch("{% url 'crm_link_order' order.id %}", {
                 method: 'POST',
                 headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
                 body: JSON.stringify({ phone, name, redeem_points: redeem })

@@ -452,11 +452,11 @@
     }
 
     function startPreparing(id) {
-        fetch(`/item-start/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } }).then(loadKitchen).catch(console.error);
+        fetch("{% url 'item-start' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } }).then(loadKitchen).catch(console.error);
     }
 
     function markReady(id) {
-        fetch(`/item-ready/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } }).then(loadKitchen).catch(console.error);
+        fetch("{% url 'mark-ready' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } }).then(loadKitchen).catch(console.error);
     }
 
     let activeOrderId = null;
@@ -473,8 +473,8 @@
     function submitKitchenMessage() {
         let text = document.getElementById('customMsgText').value;
         if(!text || !activeOrderId) return;
-        fetch(`/send-kitchen-message/${activeOrderId}/`, {
-            method: "POST",
+        let url = "{% url 'send-kitchen-message' 0 %}".replace('0', activeOrderId);
+        fetch(url, {
             headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
             body: JSON.stringify({ message: text })
         }).then(r => r.json()).then(d => {

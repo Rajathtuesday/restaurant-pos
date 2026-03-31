@@ -471,7 +471,7 @@
         }
 
         function updateStation(itemId, stationId){
-            fetch(`/menu/update-station/${itemId}//`, {
+            fetch("{% url 'update_station' 0 %}".replace('/0/', '/' + itemId + '/'), {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
                 body: JSON.stringify({ station: stationId })
@@ -490,7 +490,7 @@
 
         function deleteItem(id){
             if(!confirm("Erase this menu item permanently?")) return;
-            fetch(`/menu/delete-item/${id}/`, {
+            fetch("{% url 'delete_menu_item' 0 %}".replace('0', id), {
                 method: "POST",
                 headers: { "X-CSRFToken": getCookie("csrftoken") }
             }).then(() => location.reload());
@@ -498,14 +498,14 @@
 
         function deleteCategory(id, name){
             if(!confirm(`DANGER: This will permanently delete the category "${name}" and ALL its menu items. Continue?`)) return;
-            fetch(`/menu/delete-category/${id}/`, {
+            fetch("{% url 'delete_category' 0 %}".replace('0', id), {
                 method: "POST",
                 headers: { "X-CSRFToken": getCookie("csrftoken") }
             }).then(() => location.reload());
         }
 
         function toggleItem(id){
-            fetch(`/menu/toggle-item/${id}/`, {
+            fetch("{% url 'toggle_item' 0 %}".replace('0', id), {
                 method: "POST",
                 headers: { "X-CSRFToken": getCookie("csrftoken") }
             }).then(() => location.reload());
@@ -514,7 +514,7 @@
         function editPrice(id, current){
             let price = prompt("Designate new standard price:", current);
             if(!price) return;
-            fetch(`/menu/update-price/${id}/`, {
+            fetch("{% url 'update_price' 0 %}".replace('0', id), {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
                 body: JSON.stringify({ price: price })

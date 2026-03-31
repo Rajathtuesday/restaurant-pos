@@ -624,20 +624,20 @@
     }
 
     function generateBillForTable(tableId) {
-        fetch(`/generate-bill/${tableId}/`, {
+        fetch("{% url 'generate-bill' 0 %}".replace('0', tableId), {
             method: "POST",
             headers: { "X-CSRFToken": getCookie("csrftoken") }
         })
         .then(r => r.json())
         .then(d => {
-            if(d.success) window.location.href = `/bill/${d.order_id}/`;
+            if(d.success) window.location.href = "/bill/" + d.order_id + "/";
             else showToast(d.error || "Failed to generate bill");
         })
         .catch(err => showToast("Request failed"));
     }
 
     function markTableCleaned(tableId) {
-        fetch(`/clean-table/${tableId}/`, {
+        fetch("{% url 'clean-table' 0 %}".replace('0', tableId), {
             method: "POST",
             headers: { "X-CSRFToken": getCookie("csrftoken") }
         })
@@ -655,7 +655,7 @@
 
     function unmergeTable(primaryId) {
         if(!confirm("Are you sure you want to unmerge all tables linked to this primary table?")) return;
-        fetch(`/unmerge-tables/${primaryId}/`, {
+        fetch("{% url 'unmerge-tables' 0 %}".replace('0', primaryId), {
             method: "POST",
             headers: { "X-CSRFToken": getCookie("csrftoken") }
         })
@@ -673,7 +673,7 @@
         if(!p || !s) return;
         if(p === s) { showToast("Cannot merge table with itself"); return; }
         
-        fetch("/merge-tables/", {
+        fetch("{% url 'merge-tables' %}", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
             body: JSON.stringify({ primary_table: parseInt(p), tables: [parseInt(s)] })
@@ -691,7 +691,7 @@
         let tId = document.getElementById("transferTo").value;
         if(!o || !tId) return;
 
-        fetch("/transfer-table/", {
+        fetch("{% url 'transfer-table' %}", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
             body: JSON.stringify({ order_id: parseInt(o), table_id: parseInt(tId) })
