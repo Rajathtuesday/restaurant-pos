@@ -149,9 +149,15 @@
                     <div style="text-align:center; padding:1rem; color:var(--success); font-weight:700; letter-spacing:2px; font-size:0.75rem;">
                         <i class="bi bi-patch-check-fill me-2"></i> PAYMENT COMPLETE
                     </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;" class="no-print">
+                        <button class="btn-action" style="margin-top:0; border-color:var(--gold); color:var(--gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Receipt</button>
+                        <a href="/tables/" class="btn-action" style="margin-top:0; text-align:center; text-decoration:none;"><i class="bi bi-grid me-2"></i> Tables</a>
+                    </div>
                 {% endif %}
 
+                {% if remaining > 0 %}
                 <button class="btn-action" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print thermal Receipt</button>
+                {% endif %}
             </div>
         </div>
     </div>

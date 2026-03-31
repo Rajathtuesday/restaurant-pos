@@ -32,12 +32,12 @@ def running_order_items(request):
         table_id = request.GET.get("table")
 
         if not table_id:
-            return JsonResponse({"items": []})
+            return JsonResponse({"items": [], "order_id": None})
 
         try:
             table_id = int(table_id)
         except (ValueError, TypeError):
-            return JsonResponse({"items": []})
+            return JsonResponse({"items": [], "order_id": None})
 
         tenant = request.user.tenant
         outlet = request.user.outlet
@@ -68,7 +68,7 @@ def running_order_items(request):
         )
 
         if not order:
-            return JsonResponse({"items": []})
+            return JsonResponse({"items": [], "order_id": None})
 
         items = []
         for i in order.items.exclude(status="served").order_by("id"):
@@ -80,11 +80,11 @@ def running_order_items(request):
                 "status": i.status
             })
 
-        return JsonResponse({"items": items})
+        return JsonResponse({"items": items, "order_id": order.id})
 
     except Exception as e:
         logger.error(f"running_order_items error: {str(e)}")
-        return JsonResponse({"items": []})
+        return JsonResponse({"items": [], "order_id": None})
 
 
 @login_required

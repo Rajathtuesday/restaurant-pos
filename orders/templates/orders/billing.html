@@ -819,6 +819,9 @@
                         <span class="status-badge ${statusClass}">${i.status}</span>
                     </div>`;
                 });
+                if(d.order_id) {
+                    html += `<div class="mt-4"><button class="btn-luxury w-100 border-danger text-danger" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Entire Order</button></div>`;
+                }
             }
             if(rd) rd.innerHTML = html;
             if(rm) rm.innerHTML = html;
@@ -869,6 +872,20 @@
         let tableId = document.getElementById("tableSelectDesktop").value;
         if(!tableId) { showToast("Select table."); return; }
         window.location.href = "/bill/" + tableId + "/";
+    }
+
+    function cancelOrder(orderId) {
+        if(!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
+        fetch(`/cancel-order/${orderId}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                showToast("Order Cancelled!");
+                loadRunningOrder();
+            } else {
+                showToast(data.error || "Failed to cancel order.");
+            }
+        });
     }
 
     function getCookie(name) {

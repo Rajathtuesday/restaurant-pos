@@ -44,6 +44,7 @@ def get_kitchen_data(user, station_name=None):
             "kot_number": kot.kot_number,
             "station": kot.station,
             "table": kot.order.table.name if kot.order.table else "Takeaway",
+            "order_id": kot.order.id,
             "created_at": kot.created_at.isoformat(),
             "items": items
         })

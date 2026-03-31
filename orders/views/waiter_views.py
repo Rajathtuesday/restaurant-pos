@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required
-from orders.models import WaiterCall
+from orders.models import WaiterCall, KitchenMessage
 
 logger = logging.getLogger("pos.orders")
 
@@ -20,7 +20,16 @@ def waiter_dashboard(request):
         is_resolved=False
     ).select_related("table").order_by("-created_at")
 
-    return render(request, "orders/waiter_dashboard.html", {"calls": calls})
+    kitchen_messages = KitchenMessage.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_resolved=False
+    ).select_related("order", "order__table").order_by("-created_at")
+
+    return render(request, "orders/waiter_dashboard.html", {
+        "calls": calls,
+        "kitchen_messages": kitchen_messages
+    })
 
 
 @login_required
@@ -41,3 +50,23 @@ def resolve_waiter_call(request, call_id):
 
     except WaiterCall.DoesNotExist:
         return JsonResponse({"error": "Call not found"}, status=404)
+
+
+@login_required
+@tenant_required
+@require_POST
+def resolve_kitchen_message(request, message_id):
+    try:
+        msg = KitchenMessage.objects.get(
+            id=message_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+        msg.is_resolved = True
+        msg.save(update_fields=["is_resolved"])
+
+        logger.info(f"User {request.user.username} read kitchen message #{message_id}")
+        return JsonResponse({"success": True})
+
+    except KitchenMessage.DoesNotExist:
+        return JsonResponse({"error": "Message not found"}, status=404)

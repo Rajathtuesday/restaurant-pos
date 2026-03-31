@@ -3,6 +3,8 @@ from django.urls import path
 
 from orders.services.table_transfer_service import transfer_table
 
+from .views.order_actions import cancel_order, cancel_item
+
 
 
 from .views import (
@@ -17,6 +19,7 @@ from .views import (
     start_preparing,
     mark_ready,
     serve_item,
+    send_kitchen_message,
     bill_view,
     pay_order,
     table_dashboard,
@@ -30,7 +33,8 @@ from .views import (
     transfer_table_view,
     unmerge_tables_view,
     waiter_dashboard,
-    resolve_waiter_call
+    resolve_waiter_call,
+    resolve_kitchen_message
 )
 
 urlpatterns = [
@@ -40,6 +44,7 @@ urlpatterns = [
     path("create-order/", create_order, name="create-order"),
 
     path("send-to-kitchen/<int:order_id>/", send_to_kitchen , name="send-to-kitchen"),
+    path("send-kitchen-message/<int:order_id>/", send_kitchen_message, name="send-kitchen-message"),
 
     path("kitchen/", kitchen_view ,name="kitchen-view"),
     path("kitchen-data/", kitchen_data, name="kitchen-data"),
@@ -56,6 +61,9 @@ urlpatterns = [
     path("tables-data/", tables_data ,name="tables-data"),
 
     path("clean-table/<int:table_id>/", mark_table_cleaned ,name="clean-table"),
+
+    path("cancel-order/<int:order_id>/", cancel_order, name="cancel-order"),
+    path("cancel-item/<int:item_id>/", cancel_item, name="cancel-item"),
 
     path("running-order-items/", running_order_items ,name="running-order-items"),
     path("order/<int:order_id>/", running_order_view, name="running-order"),
@@ -77,4 +85,5 @@ urlpatterns = [
 
     path("waiter-dashboard/", waiter_dashboard, name="waiter-calls"),
     path("resolve-waiter/<int:call_id>/", resolve_waiter_call, name="resolve-waiter"),
+    path("resolve-kitchen-message/<int:message_id>/", resolve_kitchen_message, name="resolve-kitchen-message"),
 ]

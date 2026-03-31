@@ -101,6 +101,12 @@
             100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
         }
 
+        @keyframes pulse-warning {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.1); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+
         .call-card:hover { transform: translateY(-3px); }
 
         .table-name {
@@ -179,7 +185,7 @@
         Django filters the WaiterCall models and passes them down as 'calls'. 
         If there are any unresolved ones, it loops over them and displays a pulse-card!
     -->
-    {% if calls %}
+    {% if calls or kitchen_messages %}
     <div class="row g-4">
         {% for call in calls %}
         <div class="col-12 col-md-4 col-xl-3">
@@ -192,6 +198,23 @@
                 
                 <button class="btn-resolve" onclick="resolveCall({{ call.id }})">
                     <i class="bi bi-check2-circle fs-5 d-block mb-1"></i> Mark Resolved
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+
+        {% for msg in kitchen_messages %}
+        <div class="col-12 col-md-4 col-xl-3">
+            <div class="call-card" style="border-top-color: #f59e0b; animation: pulse-warning 2s infinite;">
+                <div>
+                    <div class="text-uppercase text-warning fw-bold" style="font-size:0.7rem; letter-spacing:2px;">Kitchen Message</div>
+                    <div class="table-name" style="font-size: 1.8rem;">Table {{ msg.order.table.name|default:"Walk-in" }}</div>
+                    <div class="mb-2 fw-semibold text-danger">{{ msg.message }}</div>
+                    <div class="call-time"><i class="bi bi-clock me-1"></i> {{ msg.created_at|time:"H:i" }}</div>
+                </div>
+                
+                <button class="btn-resolve" style="color: #f59e0b; border-color: #f59e0b;" onmouseover="this.style.backgroundColor='#f59e0b'; this.style.color='#fff';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#f59e0b';" onclick="resolveKitchenMsg({{ msg.id }})">
+                    <i class="bi bi-check2-circle fs-5 d-block mb-1"></i> Acknowledge
                 </button>
             </div>
         </div>
@@ -249,6 +272,13 @@
             // Once Django successfully marks it as resolved, just reload the page to refresh the list
             if(data.success) location.reload();
         });
+    }
+
+    function resolveKitchenMsg(callId){
+        fetch(`/resolve-kitchen-message/${callId}/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCookie("csrftoken") }
+        }).then(res => res.json()).then(data => { if(data.success) location.reload(); });
     }
 
     /* Helper function to securely extract the CSRF token from the browser cookies */

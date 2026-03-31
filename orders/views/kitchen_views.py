@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 
 from core.decorators import tenant_required
-from orders.models import Order, OrderItem, OrderEvent
+from orders.models import Order, OrderItem, OrderEvent, KitchenMessage
 from setup.models import KitchenStation
 
 logger = logging.getLogger("pos.orders")
@@ -119,4 +119,29 @@ def serve_item(request, item_id):
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
     except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+@login_required
+@require_POST
+@tenant_required
+def send_kitchen_message(request, order_id):
+    import json
+    try:
+        data = json.loads(request.body)
+        message_text = data.get("message")
+        if not message_text:
+            return JsonResponse({"error": "Message text is required"}, status=400)
+            
+        order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+        
+        KitchenMessage.objects.create(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            order=order,
+            message=message_text
+        )
+        return JsonResponse({"success": True})
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)

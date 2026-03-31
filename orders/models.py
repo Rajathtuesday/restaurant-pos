@@ -628,3 +628,33 @@ class TableMerge(models.Model):
         ]
 
 
+# =====================================================
+# KITCHEN MESSAGE
+# =====================================================
+
+class KitchenMessage(models.Model):
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="kitchen_messages"
+    )
+
+    message = models.CharField(max_length=255)
+
+    is_resolved = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "outlet", "is_resolved"]),
+        ]
+
+    def __str__(self):
+        return f"Message for {self.order.table.name if self.order.table else 'Walk-in'}: {self.message}"
+
+
