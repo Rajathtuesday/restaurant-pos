@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>500 — Server Error</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@1,400;0,700&display=swap" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root { --bg: #0f1115; --red: #ef4444; --text: #f9fafb; --muted: #6b7280; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .error-container { text-align: center; padding: 2rem; }
+        .error-code { font-family: 'Playfair Display', serif; font-size: 8rem; font-weight: 700; color: var(--red); line-height: 1; letter-spacing: -4px; }
+        .error-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; text-transform: uppercase; letter-spacing: 4px; }
+        .error-msg { color: var(--muted); font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 2.5rem; }
+        .divider { width: 40px; height: 1px; background: var(--red); margin: 1.5rem auto; }
+        .btn-home { display: inline-block; border: 1px solid #ef4444; color: #ef4444; padding: 0.8rem 2rem; text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 600; transition: all 0.3s ease; }
+        .btn-home:hover { background: #ef4444; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">500</div>
+        <div class="divider"></div>
+        <h1 class="error-title">Server Error</h1>
+        <p class="error-msg">Something went wrong on our end. Our team has been notified.</p>
+        <a href="/" class="btn-home">Return to Dashboard</a>
+    </div>
+</body>
+</html>

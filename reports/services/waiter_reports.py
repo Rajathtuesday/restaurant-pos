@@ -5,14 +5,15 @@ from django.utils import timezone
 from orders.models import Order
 
 
-def waiter_performance(tenant, outlet=None):
+def waiter_performance(tenant, outlet=None, start_date=None, end_date=None):
     """
     Returns number of completed orders per waiter for today.
     - Uses only financially valid orders (paid/closed)
     - Supports multi-outlet (outlet=None)
     """
 
-    today = timezone.now().date()
+    if not start_date: start_date = timezone.now().date()
+    if not end_date: end_date = timezone.now().date()
 
     # ----------------------------
     # BASE QUERY
@@ -20,7 +21,7 @@ def waiter_performance(tenant, outlet=None):
     query = Order.objects.filter(
         tenant=tenant,
         status__in=["paid", "closed"],
-        created_at__date=today
+        created_at__date__gte=start_date, created_at__date__lte=end_date
     )
 
     # ----------------------------

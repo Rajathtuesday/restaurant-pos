@@ -1,545 +1,272 @@
-{% comment %} # orders/templates/orders/bill.html
-<!DOCTYPE html>
-<html>
-<head>
-
-<title>Receipt</title>
-
-<style>
-
-body{
-font-family:monospace;
-background:white;
-padding:20px;
-}
-
-.bill-box{
-width:360px;
-margin:auto;
-}
-
-.center{
-text-align:center;
-}
-
-hr{
-border-top:1px dashed black;
-margin:10px 0;
-}
-
-table{
-font-size:14px;
-}
-
-.modifier{
-font-size:12px;
-padding-left:15px;
-}
-
-button{
-padding:8px 12px;
-margin:4px;
-cursor:pointer;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="bill-box">
-
-<div class="center">
-
-<h3>{{ request.user.outlet.name }}</h3>
-
-<p>{{ request.user.outlet }}</p>
-
-</div>
-
-<hr>
-
-<p>
-Order #: 
-{{ order.order_number|default:order.id }}
-</p>
-
-<p>
-Table:
-{% if order.table %}
-{{ order.table.name }}
-{% else %}
-Takeaway
-{% endif %}
-</p>
-
-<p>
-Date: {{ order.created_at|date:"d M Y H:i" }}
-</p>
-
-<hr>
-
-<table width="100%">
-
-<tr>
-<th align="left">Item</th>
-<th align="center">Qty</th>
-<th align="right">Total</th>
-</tr>
-
-{% for item in order.items.all %}
-
-<tr>
-
-<td>{{ item.menu_item.name }}</td>
-
-<td align="center">{{ item.quantity }}</td>
-
-<td align="right">₹{{ item.total_price }}</td>
-
-</tr>
-
-<!-- MODIFIERS -->
-
-{% for mod in item.modifiers.all %}
-
-<tr>
-
-<td class="modifier">+ {{ mod.name }}</td>
-<td></td>
-<td></td>
-
-</tr>
-
-{% endfor %}
-
-{% endfor %}
-
-</table>
-
-<hr>
-
-<p>Subtotal: ₹{{ order.subtotal }}</p>
-
-<p>GST: ₹{{ order.gst_total }}</p>
-
-<hr>
-
-<h3>Total: ₹{{ order.grand_total }}</h3>
-
-<hr>
-
-<div class="center">
-
-<button onclick="openSplit()">Split Bill</button>
-
-<br><br>
-
-<button onclick="pay('cash')">Cash</button>
-<button onclick="pay('upi')">UPI</button>
-<button onclick="pay('card')">Card</button>
-
-<br><br>
-
-<button onclick="window.print()">Print Receipt</button>
-
-</div>
-
-</div>
-
-<script>
-
-let paymentProcessing=false
-
-function pay(method){
-
-if(paymentProcessing) return
-
-paymentProcessing=true
-
-fetch(`/pay/{{ order.id }}/`,{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({method:method})
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-paymentProcessing=false
-
-if(data.success){
-
-alert("Payment successful")
-
-window.location.href="/tables/"
-
-}
-
-else{
-
-alert("Payment failed")
-
-}
-
-})
-
-}
-
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie && document.cookie!==""){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-
-break
-
-}
-
-}
-
-}
-
-return cookieValue
-
-}
-
-
-/* function generateBill */
-
-function openSplit(){
-
-let people = prompt("Number of people to split bill:")
-
-if(!people) return
-
-people = parseInt(people)
-
-let total = parseFloat("{{ order.grand_total }}")
-
-let per = (total / people).toFixed(2)
-
-alert(`Each person pays ₹${per}`)
-
-}
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice | {{ request.user.outlet.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg: #0f1115; --panel: #1a1d24; --text: #f9fafb; --muted: #9ca3af;
+            --border: #2d3139; --gold: #c5a059; --success: #22c55e;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+        h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
+        
+        .receipt-container { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border); padding: 3rem 2.5rem; border-radius: 4px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); position: relative; }
+        
+        /* HEADER */
+        .header { text-align: center; margin-bottom: 2rem; border-bottom: 1px dashed var(--border); padding-bottom: 1.5rem; }
+        .logo { font-size: 2rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem; }
+        .address { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+        .gst { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; font-weight: 600; }
+        
+        /* INFO */
+        .meta { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 1.2rem; }
+        .meta div { display: flex; flex-direction: column; }
+        .label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 2px; }
+        
+        /* ITEMS */
+        .item-list { border-bottom: 1px dashed var(--border); margin-bottom: 1.5rem; padding-bottom: 1rem; }
+        .item { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; }
+        .item-name { flex: 1; padding-right: 1rem; }
+        .item-val { font-family: 'Space Mono', monospace; font-weight: 600; }
+        
+        /* TOTALS */
+        .total-row { display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.85rem; }
+        .grand-total { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+        
+        /* STATUS */
+        .balance-card { background: rgba(197,160,89,0.08); border: 1px solid var(--border); padding: 1.2rem; text-align: center; margin: 1.5rem 0; border-radius: 2px; }
+        .balance-card.fully-paid { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); }
+        .balance-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
+        .balance-val { font-size: 1.2rem; font-weight: 700; font-family: 'Space Mono', monospace; }
+        
+        /* PAYMENT AREA */
+        .pay-area { margin-top: 2rem; }
+        .input-pay { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 1rem; font-size: 1.1rem; font-family: 'Space Mono', monospace; text-align: center; outline: none; margin-bottom: 1rem; }
+        .input-pay:focus { border-color: var(--gold); }
+        
+        .btn-set { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.6rem; flex: 1; cursor: pointer; transition: 0.2s; }
+        .btn-set:hover { border-color: var(--gold); color: var(--text); }
+        
+        .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; margin-top: 1.5rem; }
+        .btn-pay { background: var(--panel); border: 1px solid var(--gold); color: var(--gold); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .btn-pay:hover { background: var(--gold); color: #000; }
+        .btn-pay i { font-size: 1.2rem; }
+        
+        .btn-action { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; cursor: pointer; margin-top: 2rem; }
+        .btn-action:hover { border-color: var(--text); color: var(--text); }
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+        .toast-msg { display: none; padding: 0.8rem; border-radius: 2px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 1rem; border: 1px solid transparent; }
+        .toast-msg.success { background: rgba(34,197,94,0.1); color: var(--success); border-color: var(--success); }
+        .toast-msg.error { background: rgba(239,68,68,0.1); color: #ef4444; border-color: #ef4444; }
 
-<title>Billing</title>
+        .nav-back { position: absolute; top: -50px; left: 0; color: var(--muted); text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; transition: color 0.2s; }
+        .nav-back:hover { color: var(--gold); }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-.bill-container{
-max-width:420px;
-margin:auto;
-background:white;
-border-radius:16px;
-padding:24px;
-box-shadow:0 10px 30px rgba(0,0,0,0.08);
-}
-
-.item-row{
-display:flex;
-justify-content:space-between;
-padding:6px 0;
-border-bottom:1px dashed #ddd;
-font-size:14px;
-}
-
-.grand-total{
-font-size:20px;
-font-weight:700;
-display:flex;
-justify-content:space-between;
-}
-
-.btn-pay{
-width:100%;
-margin-bottom:8px;
-}
-
-.status-box{
-display:none;
-padding:10px;
-border-radius:10px;
-margin-top:10px;
-font-size:14px;
-}
-
-.success{background:#d4edda;color:#155724;}
-.error{background:#f8d7da;color:#721c24;}
-
-</style>
-
+        @media print {
+            body { padding: 0; background: #fff; color: #000; }
+            .receipt-container { box-shadow: none; border: none; max-width: 100%; padding: 0; }
+            .no-print { display: none !important; }
+            .logo, .address, .item, .total-row, .meta { color: #000 !important; }
+            * { border-color: #000 !important; }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="bill-container">
+    <div style="position: relative; width: 100%; max-width: 440px;">
+        <a href="/tables/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
 
-<h5 class="text-center">{{ request.user.outlet.name }}</h5>
+        <div class="receipt-container">
+            <div class="header">
+                {% if request.user.tenant.logo %}
+                <img src="{{ request.user.tenant.logo.url }}" alt="Logo" style="max-height: 80px; margin-bottom: 0.5rem;">
+                {% else %}
+                <div class="logo serif">{{ request.user.outlet.name }}</div>
+                {% endif %}
+                <div class="address">{{ request.user.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
+                <div class="gst">GSTIN: {{ request.user.outlet.gst_no|default:"27AABCU9603R1ZX" }}</div>
+            </div>
 
-<hr>
+            <div class="meta">
+                <div><span class="label">Invoice</span><span>#{{ order.id }}</span></div>
+                <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
+            </div>
+            <div class="meta" style="margin-top:-8px">
+                <div><span class="label">Table</span><span>{{ order.table.name|default:"Takeaway" }}</span></div>
+                <div style="text-align:right"><span class="label">Staff</span><span>{{ request.user.username|title }}</span></div>
+            </div>
 
-<p><strong>Order:</strong> {{ order.id }}</p>
-<p><strong>Table:</strong> {{ order.table.name|default:"Takeaway" }}</p>
+            <div class="item-list">
+                {% for item in order.items.all %}
+                <div class="item">
+                    <span class="item-name">{{ item.menu_item.name }} <span style="color:var(--muted)">× {{ item.quantity }}</span></span>
+                    <span class="item-val">{% if item.is_complimentary %}COMP{% else %}₹{{ item.total_price }}{% endif %}</span>
+                </div>
+                {% endfor %}
+            </div>
 
-<hr>
+            <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
+            <div class="total-row"><span>GST (5%)</span><span>₹{{ order.gst_total }}</span></div>
+            {% if order.discount_total > 0 %}
+            <div class="total-row" style="color:#ef4444"><span>Discount</span><span>- ₹{{ order.discount_total }}</span></div>
+            {% endif %}
+            
+            <div class="grand-total serif">
+                <span>TOTAL</span>
+                <span id="grandTotalLabel">₹{{ order.grand_total }}</span>
+            </div>
 
-<!-- ITEMS -->
-{% for item in order.items.all %}
-<div class="item-row">
-<span>{{ item.menu_item.name }} × {{ item.quantity }}</span>
-<span>
-{% if item.is_complimentary %}
-<span class="text-success">Free</span>
-{% else %}
-₹{{ item.total_price }}
-{% endif %}
-</span>
-</div>
-{% endfor %}
+            <div class="balance-card {% if remaining <= 0 %}fully-paid{% endif %} no-print">
+                <div class="balance-label">{% if remaining <= 0 %}Status{% else %}Balance Due{% endif %}</div>
+                <div class="balance-val" id="balanceVal">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
+            </div>
 
-<hr>
+            <div class="pay-area no-print">
+                <div id="toast" class="toast-msg"></div>
 
-<!-- TOTAL -->
-<div class="d-flex justify-content-between">
-<span>Subtotal</span>
-<span id="subtotal">₹{{ order.subtotal }}</span>
-</div>
+                {% if remaining > 0 %}
+                    <input type="number" id="payAmount" class="input-pay" placeholder="Enter amount..." value="{{ remaining }}">
+                    
+                    <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem">
+                        <button class="btn-set" onclick="setVal({{ remaining }})">Pay All</button>
+                        <button class="btn-set" onclick="splitVal({{ remaining }})">Split</button>
+                    </div>
 
-<div class="d-flex justify-content-between">
-<span>GST</span>
-<span id="gst">₹{{ order.gst_total }}</span>
-</div>
+                    <div class="pay-grid">
+                        {% if config.cash_enabled %}
+                        <button class="btn-pay" onclick="recordPay('cash')"><i class="bi bi-cash"></i> {{ config.cash_label }}</button>
+                        {% endif %}
+                        {% if config.upi_enabled %}
+                        <button class="btn-pay" onclick="recordPay('upi')"><i class="bi bi-qr-code"></i> {{ config.upi_label }}</button>
+                        {% endif %}
+                        {% if config.card_enabled %}
+                        <button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i> {{ config.card_label }}</button>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div style="text-align:center; padding:1rem; color:var(--success); font-weight:700; letter-spacing:2px; font-size:0.75rem;">
+                        <i class="bi bi-patch-check-fill me-2"></i> PAYMENT COMPLETE
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;" class="no-print">
+                        <button class="btn-action" style="margin-top:0; border-color:var(--gold); color:var(--gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Receipt</button>
+                        <a href="/tables/" class="btn-action" style="margin-top:0; text-align:center; text-decoration:none;"><i class="bi bi-grid me-2"></i> Tables</a>
+                    </div>
+                {% endif %}
 
-<div class="d-flex justify-content-between text-danger" id="discountRow"
-{% if order.discount_total == 0 %}style="display:none"{% endif %}>
-<span>Discount</span>
-<span id="discountValue">- ₹{{ order.discount_total }}</span>
-</div>
+                {% if remaining > 0 %}
+                <button class="btn-action" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print thermal Receipt</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 
-<hr>
+    <script>
+        function setVal(v) { document.getElementById('payAmount').value = v; }
+        function splitVal(v) { 
+            let p = prompt("Split into how many?"); 
+            if(p > 0) document.getElementById('payAmount').value = (v / p).toFixed(2); 
+        }
 
-<div class="grand-total">
-<span>Total</span>
-<span id="grandTotal">₹{{ order.grand_total }}</span>
-</div>
+        async function recordPay(method) {
+            const amount = document.getElementById('payAmount').value;
+            const toast = document.getElementById('toast');
+            
+            toast.style.display = "block";
+            toast.innerText = "Processing...";
+            toast.className = "toast-msg";
 
-<div class="text-muted mt-1">
-Remaining: ₹<span id="remaining">{{ order.grand_total }}</span>
-</div>
+            try {
+                const res = await fetch(`/pay/{{order.id}}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ method, amount })
+                });
+                const data = await res.json();
+                
+                if(data.success) {
+                    toast.innerText = data.message;
+                    toast.classList.add("success");
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    toast.innerText = data.error;
+                    toast.classList.add("error");
+                }
+            } catch(e) {
+                toast.innerText = "Connection error";
+                toast.classList.add("error");
+            }
+        }
+    </script>
 
-<hr>
+    <!-- CRM GUEST LINK SECTION (no-print) -->
+    <div class="no-print" style="margin-top:1.5rem;">
+        <div id="crmSection" style="border:1px dashed var(--border); padding:1.2rem; border-radius:2px;">
+            <p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:0.8rem;">Link Guest &amp; Award Points</p>
+            <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
+                <input id="guestPhone" type="tel" placeholder="Guest phone number" class="input-pay" style="margin:0; flex:1; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Inter',sans-serif;">
+                <button onclick="lookupGuest()" class="btn-set" style="flex:0 0 80px;">Lookup</button>
+            </div>
+            <div id="guestInfo" style="display:none; font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; padding:0.5rem; border:1px solid var(--border);"></div>
+            <input id="guestName" type="text" placeholder="Guest name (optional)" class="input-pay" style="margin-bottom:0.5rem; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Inter',sans-serif;">
+            <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.8rem;">
+                <label style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); white-space:nowrap;">Redeem pts:</label>
+                <input id="redeemPts" type="number" min="0" value="0" class="input-pay" style="margin:0; flex:1; padding:0.5rem; font-size:0.85rem;">
+            </div>
+            <button onclick="linkGuest()" class="btn-pay" style="width:100%; padding:0.8rem;">
+                <i class="bi bi-stars"></i> Award Points
+            </button>
+            <div id="crmMsg" style="display:none; margin-top:0.7rem; font-size:0.75rem; text-align:center; letter-spacing:1px;"></div>
+        </div>
+    </div>
 
-<!-- DISCOUNT -->
-{% if request.user.role in "manager cashier owner" %}
-<div class="mb-2">
-<input type="number" id="discountPercent" class="form-control mb-1" placeholder="Discount %">
-<button class="btn btn-warning w-100" onclick="applyDiscount()">Apply Discount</button>
-</div>
-{% endif %}
+    <script>
+        const ORDER_ID = {{ order.id }};
+        const CSRF = document.cookie.split('; ').find(r=>r.startsWith('csrftoken=')).split('=')[1];
 
-<!-- PAYMENT -->
-<input type="number" id="payAmount" class="form-control mb-2" placeholder="Enter amount">
+        async function lookupGuest() {
+            const phone = document.getElementById('guestPhone').value.trim();
+            if (!phone) return;
+            const r = await fetch(`/crm/lookup/?phone=${encodeURIComponent(phone)}`);
+            const d = await r.json();
+            const info = document.getElementById('guestInfo');
+            info.style.display = 'block';
+            if (d.found) {
+                info.innerHTML = `<strong>${d.name || 'Guest'}</strong> &nbsp;·&nbsp; ${d.visits} visits &nbsp;·&nbsp; <span style="color:var(--gold)">${d.points} pts</span>`;
+                document.getElementById('guestName').value = d.name || '';
+            } else {
+                info.innerHTML = 'New guest — will be registered automatically.';
+            }
+        }
 
-<div class="d-flex gap-2 mb-2">
-<button class="btn btn-outline-primary w-100" onclick="fillFull()">Full</button>
-<button class="btn btn-outline-secondary w-100" onclick="split()">Split</button>
-</div>
-
-<button class="btn btn-success btn-pay" onclick="pay('cash')">Cash</button>
-<button class="btn btn-primary btn-pay" onclick="pay('upi')">UPI</button>
-<button class="btn btn-dark btn-pay" onclick="pay('card')">Card</button>
-
-<div id="statusBox" class="status-box"></div>
-
-<button class="btn btn-outline-dark w-100 mt-2" onclick="window.print()">Print</button>
-
-</div>
-
-<script>
-
-let processing=false
-
-function showStatus(msg, ok=true){
-let box=document.getElementById("statusBox")
-box.style.display="block"
-box.className="status-box "+(ok?"success":"error")
-box.innerText=msg
-}
-
-function fillFull(){
-let remaining = parseFloat(document.getElementById("remaining").innerText) || 0
-document.getElementById("payAmount").value = remaining.toFixed(2)
-}
-
-function split(){
-let people=prompt("Split how many people?")
-if(!people) return
-let remaining = parseFloat(document.getElementById("remaining").innerText) || 0
-let val=(remaining/people).toFixed(2)
-document.getElementById("payAmount").value=val
-}
-
-function pay(method){
-
-if(processing) return
-
-let amount=parseFloat(document.getElementById("payAmount").value)
-
-if(!amount || amount<=0){
-showStatus("Enter valid amount",false)
-return
-}
-
-processing=true
-disableButtons(true)
-
-fetch(`/pay/{{order.id}}/`,{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({method,amount})
-})
-.then(r=>r.json())
-.then(data=>{
-
-processing=false
-disableButtons(false)
-
-if(data.success){
-
-if(data.remaining !== undefined){
-
-    let remaining = parseFloat(data.remaining)
-
-    if(isNaN(remaining)){
-        showStatus("Error updating remaining", false)
-        return
-    }
-
-    // ✅ update remaining
-    document.getElementById("remaining").innerText = remaining.toFixed(2)
-
-    // ✅ clear old input (VERY IMPORTANT)
-    document.getElementById("payAmount").value = ""
-
-    // ✅ show helpful placeholder
-    document.getElementById("payAmount").placeholder = "Remaining ₹" + remaining.toFixed(2)
-
-    showStatus("Partial payment recorded")
-}else{
-showStatus("Payment complete")
-setTimeout(()=>window.location.href="/tables/",1200)
-}
-
-}else{
-showStatus(data.error,false)
-
-if(data.error==="Order already completed"){
-setTimeout(()=>window.location.href="/tables/",1200)
-}
-}
-
-})
-
-}
-
-function disableButtons(state){
-document.querySelectorAll("button").forEach(b=>b.disabled=state)
-}
-
-function applyDiscount(){
-
-let percent=document.getElementById("discountPercent").value
-
-if(!percent){
-showStatus("Enter discount %",false)
-return
-}
-
-fetch(`/apply-discount/{{order.id}}/`,{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({percent})
-})
-.then(r=>r.json())
-.then(data=>{
-if(data.success){
-document.getElementById("subtotal").innerText="₹"+data.subtotal.toFixed(2)
-document.getElementById("gst").innerText="₹"+data.gst.toFixed(2)
-document.getElementById("grandTotal").innerText="₹"+data.total.toFixed(2)
-document.getElementById("remaining").innerText=data.total.toFixed(2)
-
-document.getElementById("discountRow").style.display="flex"
-document.getElementById("discountValue").innerText="- ₹"+data.discount.toFixed(2)
-
-showStatus("Discount applied")
-
-}else{
-showStatus(data.error,false)
-}
-})
-}
-
-function getCookie(name){
-let v=null
-document.cookie.split(";").forEach(c=>{
-c=c.trim()
-if(c.startsWith(name+"=")){
-v=decodeURIComponent(c.substring(name.length+1))
-}
-})
-return v
-}
-
-</script>
-
+        async function linkGuest() {
+            const phone = document.getElementById('guestPhone').value.trim();
+            const name = document.getElementById('guestName').value.trim();
+            const redeem = parseInt(document.getElementById('redeemPts').value) || 0;
+            const msg = document.getElementById('crmMsg');
+            if (!phone) { msg.style.display='block'; msg.style.color='#ef4444'; msg.textContent='Phone required.'; return; }
+            const r = await fetch(`/crm/link/${ORDER_ID}/`, {
+                method: 'POST',
+                headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+                body: JSON.stringify({ phone, name, redeem_points: redeem })
+            });
+            const d = await r.json();
+            msg.style.display = 'block';
+            if (d.success) {
+                msg.style.color = '#22c55e';
+                msg.textContent = `✓ +${d.points_earned} pts earned! Balance: ${d.total_points} pts`;
+            } else {
+                msg.style.color = '#ef4444';
+                msg.textContent = d.error;
+            }
+        }
+    </script>
 </body>
 </html>

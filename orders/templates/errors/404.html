@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>404 — Page Not Found</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@1,400;0,700&display=swap" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root { --bg: #0f1115; --gold: #c5a059; --text: #f9fafb; --muted: #6b7280; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .error-container { text-align: center; padding: 2rem; }
+        .error-code { font-family: 'Playfair Display', serif; font-size: 8rem; font-weight: 700; color: var(--gold); line-height: 1; letter-spacing: -4px; }
+        .error-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.5rem; text-transform: uppercase; letter-spacing: 4px; }
+        .error-msg { color: var(--muted); font-size: 0.9rem; letter-spacing: 1px; margin-bottom: 2.5rem; }
+        .divider { width: 40px; height: 1px; background: var(--gold); margin: 1.5rem auto; }
+        .btn-home { display: inline-block; border: 1px solid var(--gold); color: var(--gold); padding: 0.8rem 2rem; text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 600; transition: all 0.3s ease; }
+        .btn-home:hover { background: var(--gold); color: #000; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">404</div>
+        <div class="divider"></div>
+        <h1 class="error-title">Not Found</h1>
+        <p class="error-msg">The page you're looking for doesn't exist or has been moved.</p>
+        <a href="/" class="btn-home">Return to Dashboard</a>
+    </div>
+</body>
+</html>

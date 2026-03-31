@@ -1,277 +1,280 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Running Order</title>
 
-<title>Running Order</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-gold: #c5a059;
+            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
 
-<style>
+            --c-pending: #9ca3af;
+            --c-order: #eab308;
+            --c-prepare: #f97316;
+            --c-ready: #10b981;
+            --c-serve: #3b82f6;
 
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
+        body.dark {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
 
-.bill-box{
-background:white;
-border-radius:14px;
-padding:25px;
-box-shadow:0 8px 20px rgba(0,0,0,0.08);
-}
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
 
-.order-item{
-padding:14px;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-transition:.15s;
-}
+        /* HEADER */
+        .page-header {
+            display: flex; justify-content: space-between; align-items: center;
+            max-width: 800px; margin: 0 auto 2rem auto; padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .route-title { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--text-main); line-height: 1; margin: 0; }
+        .route-subtitle { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 5px; }
 
-.order-item:hover{
-background:#fafafa;
-}
+        .btn-luxury {
+            border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
+            padding: 0.6rem 1.2rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+            transition: var(--transition-smooth); border-radius: 4px; text-decoration: none; cursor: pointer;
+        }
+        .btn-luxury:hover { background: var(--text-main); color: var(--bg-color); }
+        .btn-gold { border-color: var(--accent-gold); color: var(--accent-gold); }
+        .btn-gold:hover { background: var(--accent-gold); color: #fff; }
 
-.item-info{
-display:flex;
-flex-direction:column;
-}
+        /* ITEM CARD */
+        .order-container {
+            max-width: 800px; margin: 0 auto;
+        }
+        .item-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-soft);
+            transition: var(--transition-smooth);
+        }
+        .item-card:hover { transform: translateY(-2px); border-color: var(--accent-gold); }
+        
+        .item-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+        .item-meta { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; align-items: center; }
 
-.item-name{
-font-weight:600;
-font-size:16px;
-}
+        /* BADGES */
+        .status-badge {
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+            padding: 4px 8px; border-radius: 4px;
+        }
+        .badge-pending { background: rgba(156, 163, 175, 0.1); color: var(--c-pending); border: 1px solid var(--c-pending); }
+        .badge-ordering { background: rgba(234, 179, 8, 0.1); color: var(--c-order); border: 1px solid var(--c-order); }
+        .badge-preparing { background: rgba(249, 115, 22, 0.1); color: var(--c-prepare); border: 1px solid var(--c-prepare); }
+        .badge-ready { background: rgba(16, 185, 129, 0.1); color: var(--c-ready); border: 1px solid var(--c-ready); }
+        .badge-served { background: rgba(59, 130, 246, 0.1); color: var(--c-serve); border: 1px solid var(--c-serve); }
 
-.item-qty{
-font-size:13px;
-color:#666;
-}
+        /* TOTALS BLOCK */
+        .totals-block {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: var(--shadow-soft);
+        }
+        .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.95rem; color: var(--text-muted); }
+        .total-row.final { border-top: 1px solid var(--border-color); font-size: 1.4rem; font-weight: 700; font-family: 'Playfair Display', serif; color: var(--text-main); margin-top: 10px; padding-top: 15px; }
 
-.status-badge{
-font-size:11px;
-padding:4px 8px;
-border-radius:6px;
-margin-top:4px;
-display:inline-block;
-}
-
-.status-pending{background:#e9ecef;}
-.status-preparing{background:#ffc107;}
-.status-ready{background:#28a745;color:white;}
-.status-served{background:#6c757d;color:white;}
-
-.action-buttons button{
-margin-left:5px;
-}
-
-.totals{
-margin-top:20px;
-}
-
-.total-row{
-display:flex;
-justify-content:space-between;
-margin-bottom:6px;
-font-size:15px;
-}
-
-.total-final{
-font-size:20px;
-font-weight:700;
-}
-
-</style>
-
+        .btn-theme { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; transition: color 0.3s ease; }
+        .btn-theme:hover { color: var(--text-main); }
+    </style>
 </head>
-
 <body>
 
-<div class="container mt-4">
+    <div style="width: 100%;">
+        <!-- HEADER -->
+        <div class="page-header">
+            <div>
+                <h1 class="route-title">Running Order</h1>
+                <div class="route-subtitle">Table: {{ order.table.name|default:"Takeaway" }} | Order #{{ order.id }}</div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn-theme" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
+                <button class="btn-luxury border-danger text-danger" onclick="cancelOrder({{ order.id }})"><i class="bi bi-x-circle me-1"></i> Cancel Order</button>
+                <a href="/tables/" class="btn-luxury"><i class="bi bi-grid-3x3 me-1"></i> Tables</a>
+            </div>
+        </div>
 
-<div class="header">
+        <!-- MAIN CONTAINER -->
+        <div class="order-container">
+            <div id="items">
+                <!-- Javascript will inject item cards here -->
+            </div>
 
-<h3>Running Order</h3>
+            <!-- TOTALS -->
+            <div class="totals-block">
+                <div class="total-row"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
+                <div class="total-row"><span>GST (Tax)</span><span id="gst">₹0.00</span></div>
+                <div class="total-row final"><span>Total</span><span id="total">₹0.00</span></div>
+            </div>
+        </div>
+    </div>
 
-<a href="/tables/" class="btn btn-dark">
-Back to Tables
-</a>
-
-</div>
-
-<div class="bill-box">
-
-<div id="items"></div>
-
-<div class="totals">
-
-<hr>
-
-<div class="total-row">
-<span>Subtotal</span>
-<span id="subtotal">₹0</span>
-</div>
-
-<div class="total-row">
-<span>GST</span>
-<span id="gst">₹0</span>
-</div>
-
-<div class="total-row total-final">
-<span>Total</span>
-<span id="total">₹0</span>
-</div>
-
-</div>
-
-</div>
-
-</div>
 
 <script>
+    /* THEME MANAGEMENT */
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
+        else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+    }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
 
-function serveItem(id){
+    /* CORE API FUNCTIONS */
+    function cancelOrder(id){
+        if(!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
+        fetch(`/cancel-order/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert("Order cancelled successfully.");
+                window.location.href = "/tables/";
+            } else {
+                alert(data.error || "Failed to cancel order.");
+            }
+        });
+    }
 
-fetch(`/serve-item/${id}/`,{
-method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-})
-.then(()=>refreshRunningOrder())
+    function cancelItem(id){
+        if(!confirm("Cancel this item?")) return;
+        fetch(`/cancel-item/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) refreshRunningOrder();
+            else alert(data.error || "Failed to cancel item.");
+        });
+    }
 
-}
+    function serveItem(id){
+        fetch(`/serve-item/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        .then(() => refreshRunningOrder())
+    }
 
+    function makeComplimentary(id){
+        fetch(`/complimentary-item/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        .then(() => refreshRunningOrder())
+    }
 
-function makeComplimentary(id){
+    function refreshRunningOrder(){
+        fetch("/order-data/{{order.id}}/")
+        .then(res => res.json())
+        .then(data => {
 
-fetch(`/complimentary-item/${id}/`,{
-method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-})
-.then(()=>refreshRunningOrder())
+            document.getElementById("subtotal").innerText = "₹" + data.subtotal.toFixed(2);
+            document.getElementById("gst").innerText = "₹" + data.gst.toFixed(2);
+            document.getElementById("total").innerText = "₹" + data.total.toFixed(2);
 
-}
+            let container = document.getElementById("items");
+            container.innerHTML = "";
 
+            if (data.items.length === 0) {
+                container.innerHTML = `<div class="text-center py-5" style="color: var(--text-muted); font-style: italic;">No items currently in this order.</div>`;
+                return;
+            }
 
-function refreshRunningOrder(){
+            data.items.forEach(i => {
+                
+                // Style mapping
+                let badgeClass = "badge-pending";
+                if(i.status === "sent") badgeClass = "badge-ordering";
+                if(i.status === "preparing") badgeClass = "badge-preparing";
+                if(i.status === "ready") badgeClass = "badge-ready";
+                if(i.status === "served") badgeClass = "badge-served";
 
-fetch("/order-data/{{order.id}}/")
-.then(res=>res.json())
-.then(data=>{
+                // Action buttons 
+                let actions = "";
+                if(i.status === "ready") {
+                    actions += `<button class="btn-luxury btn-gold me-2" onclick="serveItem(${i.id})"><i class="bi bi-check2-circle"></i> Serve</button>`;
+                }
+                if(i.status !== "served" && i.status !== "voided") {
+                    actions += `<button class="btn-luxury me-2 text-danger border-danger px-2" style="font-size:0.7rem;" onclick="cancelItem(${i.id})">CANCEL</button>`;
+                }
 
-document.getElementById("subtotal").innerText="₹"+data.subtotal
-document.getElementById("gst").innerText="₹"+data.gst
-document.getElementById("total").innerText="₹"+data.total
+                /* If user is manager or owner, they can Comp the item */
+                let userRole = "{{ request.user.role }}";
+                if (userRole === "manager" || userRole === "owner") {
+                    actions += `<button class="btn-luxury px-2" style="font-size:0.7rem;" title="Make Complimentary" onclick="makeComplimentary(${i.id})">COMP</button>`;
+                }
 
-let container=document.getElementById("items")
-container.innerHTML=""
+                // Render High-End Card
+                container.innerHTML += `
+                    <div class="item-card">
+                        <div>
+                            <div class="item-name">${i.name}</div>
+                            <div class="item-meta">
+                                <span>Qty: ${i.quantity}</span>
+                                <span class="status-badge ${badgeClass}">${i.status}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            ${actions}
+                        </div>
+                    </div>
+                `;
+            });
+        }).catch(err => console.error("Polling error:", err));
+    }
 
-data.items.forEach(i=>{
+    function getCookie(name){
+        let cookieValue = null;
+        if(document.cookie && document.cookie !== ""){
+            let cookies = document.cookie.split(";");
+            for(let i=0; i<cookies.length; i++){
+                let cookie = cookies[i].trim();
+                if(cookie.substring(0,name.length+1) === (name+"=")){
+                    cookieValue = decodeURIComponent(cookie.substring(name.length+1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
 
-let badgeClass="status-pending"
-
-if(i.status==="preparing") badgeClass="status-preparing"
-if(i.status==="ready") badgeClass="status-ready"
-if(i.status==="served") badgeClass="status-served"
-
-let actions=""
-
-if(i.status==="ready"){
-
-actions+=`
-<button class="btn btn-success btn-sm"
-onclick="serveItem(${i.id})">
-Serve
-</button>
-`
-
-}
-
-{% if request.user.role == "manager" or request.user.role == "owner" %}
-
-actions+=`
-<button class="btn btn-warning btn-sm"
-onclick="makeComplimentary(${i.id})">
-Comp
-</button>
-`
-
-{% endif %}
-
-container.innerHTML+=`
-
-<div class="order-item">
-
-<div class="item-info">
-
-<span class="item-name">${i.name}</span>
-
-<span class="item-qty">
-Qty: ${i.quantity}
-</span>
-
-<span class="status-badge ${badgeClass}">
-${i.status}
-</span>
-
-</div>
-
-<div class="action-buttons">
-${actions}
-</div>
-
-</div>
-
-`
-
-})
-
-})
-
-}
-
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-}
-
-}
-
-}
-
-return cookieValue
-
-}
-
-
-refreshRunningOrder()
-
-setInterval(refreshRunningOrder,3000)
+    // Initial fetch and polling loop
+    refreshRunningOrder();
+    setInterval(refreshRunningOrder, 3000);
 
 </script>
 
 </body>
-
 </html>

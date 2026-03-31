@@ -1,349 +1,3 @@
-# # orders/models.py
-# import uuid
-# from decimal import Decimal
-
-# from django.db import models
-# from django.db.models import Q
-
-
-# class Table(models.Model):
-
-#     tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE)
-#     outlet = models.ForeignKey('tenants.Outlet', on_delete=models.CASCADE)
-
-#     name = models.CharField(max_length=100)
-#     qr_token = models.UUIDField(default=uuid.uuid4, unique=True)
-
-#     is_active = models.BooleanField(default=True)
-
-#     def __str__(self):
-#         return self.name
-
-
-# class Order(models.Model):
-
-#     STATUS_CHOICES = (
-#         ('open', 'Open'),
-#         ('confirmed', 'Confirmed'),
-#         ('preparing', 'Preparing'),
-#         ('ready', 'Ready'),
-#         ('paid', 'Paid'),
-#         ('cancelled', 'Cancelled'),
-#     )
-
-#     tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE)
-#     outlet = models.ForeignKey('tenants.Outlet', on_delete=models.CASCADE)
-
-#     table = models.ForeignKey(
-#         Table,
-#         on_delete=models.SET_NULL,
-#         null=True,
-#         blank=True
-#     )
-
-#     created_by = models.ForeignKey(
-#         'accounts.User',
-#         on_delete=models.SET_NULL,
-#         null=True
-#     )
-
-#     status = models.CharField(
-#         max_length=20,
-#         choices=STATUS_CHOICES,
-#         default='open'
-#     )
-
-#     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-#     gst_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-#     grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"Order {self.id}"
-
-#     def recalculate_totals(self):
-
-#         items = self.items.all()
-
-#         subtotal = sum(i.price * i.quantity for i in items)
-
-#         gst = sum(
-#             (i.price * i.quantity * i.gst_percentage) / Decimal("100")
-#             for i in items
-#         )
-
-#         self.subtotal = subtotal
-#         self.gst_total = gst
-#         self.grand_total = subtotal + gst
-
-#         self.save(update_fields=["subtotal", "gst_total", "grand_total"])
-
-#     class Meta:
-
-#         indexes = [
-
-#             models.Index(fields=["tenant"]),
-#             models.Index(fields=["outlet"]),
-#             models.Index(fields=["table"]),
-#             models.Index(fields=["status"]),
-#             models.Index(fields=["created_at"]),
-
-#             # PERFORMANCE INDEX
-#             models.Index(fields=["tenant", "outlet", "status"]),
-
-#         ]
-
-#         constraints = [
-
-#             models.UniqueConstraint(
-#                 fields=["tenant", "outlet", "table"],
-#                 condition=Q(status="open"),
-#                 name="unique_open_order_per_table"
-#             )
-
-#         ]
-
-# class KOTBatch(models.Model):
-
-#     tenant = models.ForeignKey(
-#         "tenants.Tenant",
-#         on_delete=models.CASCADE
-#     )
-
-#     outlet = models.ForeignKey(
-#         "tenants.Outlet",
-#         on_delete=models.CASCADE
-#     )
-
-#     order = models.ForeignKey(
-#         Order,
-#         on_delete=models.CASCADE,
-#         related_name="kots"
-#     )
-
-#     kot_number = models.IntegerField()
-
-#     # optional future feature
-#     station = models.CharField(
-#         max_length=50,
-#         null=True,
-#         blank=True
-#     )
-
-#     status = models.CharField(
-#         max_length=20,
-#         choices=[
-#             ("confirmed", "Confirmed"),
-#             ("preparing", "Preparing"),
-#             ("ready", "Ready")
-#         ],
-#         default="confirmed"
-#     )
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"KOT {self.kot_number}"
-
-#     class Meta:
-
-#         indexes = [
-
-#             models.Index(fields=["tenant", "outlet"]),
-#             models.Index(fields=["status", "created_at"]),
-#             models.Index(fields=["kot_number"]),
-
-#             # kitchen screen performance
-#             models.Index(fields=["tenant", "outlet", "status"]),
-#         ]
-
-# class OrderItem(models.Model):
-
-#     order = models.ForeignKey(
-#         Order,
-#         on_delete=models.CASCADE,
-#         related_name="items"
-#     )
-
-#     menu_item = models.ForeignKey(
-#         'menu.MenuItem',
-#         on_delete=models.CASCADE
-#     )
-
-#     quantity = models.IntegerField(default=1)
-
-#     price = models.DecimalField(max_digits=10, decimal_places=2)
-
-#     gst_percentage = models.DecimalField(
-#         max_digits=5,
-#         decimal_places=2
-#     )
-
-#     total_price = models.DecimalField(
-#         max_digits=10,
-#         decimal_places=2
-#     )
-
-#     kot = models.ForeignKey(
-#         KOTBatch,
-#         null=True,
-#         blank=True,
-#         on_delete=models.SET_NULL,
-#         related_name="items"
-#     )
-
-#     def __str__(self):
-#         return f"{self.menu_item.name} x {self.quantity}"
-
-# class OrderItemModifier(models.Model):
-
-#     order_item = models.ForeignKey(
-#         OrderItem,
-#         on_delete=models.CASCADE,
-#         related_name="modifiers"
-#     )
-
-#     modifier = models.ForeignKey(
-#         "menu.Modifier",
-#         on_delete=models.CASCADE
-#     )
-
-#     # snapshot (important if modifier price changes later)
-#     name = models.CharField(max_length=200)
-
-#     price = models.DecimalField(
-#         max_digits=10,
-#         decimal_places=2,
-#         default=0
-#     )
-
-#     def __str__(self):
-#         return f"{self.name} ({self.price})"
-
-# class Payment(models.Model):
-
-#     METHOD_CHOICES = (
-#         ('cash', 'Cash'),
-#         ('upi', 'UPI'),
-#         ('card', 'Card'),
-#     )
-
-#     order = models.OneToOneField(
-#         Order,
-#         on_delete=models.CASCADE
-#     )
-
-#     method = models.CharField(
-#         max_length=20,
-#         choices=METHOD_CHOICES
-#     )
-
-#     amount = models.DecimalField(
-#         max_digits=10,
-#         decimal_places=2
-#     )
-
-#     paid_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"{self.method} - {self.amount}"
-
-
-# class WaiterCall(models.Model):
-
-#     tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE)
-#     outlet = models.ForeignKey('tenants.Outlet', on_delete=models.CASCADE)
-
-#     table = models.ForeignKey(Table, on_delete=models.CASCADE)
-
-#     is_resolved = models.BooleanField(default=False)
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"Waiter Call - {self.table.name}"
-
-
-# class OrderEvent(models.Model):
-
-#     EVENT_TYPES = [
-
-#         ("order_created","Order Created"),
-#         ("item_added","Item Added"),
-#         ("kot_sent","KOT Sent"),
-#         ("kitchen_preparing","Kitchen Preparing"),
-#         ("kitchen_ready","Kitchen Ready"),
-#         ("payment_completed","Payment Completed"),
-#         ("order_cancelled","Order Cancelled"),
-
-#     ]
-
-#     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-#     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-
-#     order = models.ForeignKey(
-#         Order,
-#         on_delete=models.CASCADE,
-#         related_name="events"
-#     )
-
-#     event_type = models.CharField(
-#         max_length=50,
-#         choices=EVENT_TYPES
-#     )
-
-#     metadata = models.JSONField(blank=True, null=True)
-
-#     created_by = models.ForeignKey(
-#         "accounts.User",
-#         null=True,
-#         on_delete=models.SET_NULL
-#     )
-
-#     created_at = models.DateTimeField(auto_now_add=True)
-
-#     def __str__(self):
-#         return f"{self.event_type} - Order {self.order.id}"
-
-
-# class OrderLock(models.Model):
-
-#     order = models.OneToOneField(
-#         Order,
-#         on_delete=models.CASCADE,
-#         related_name="lock"
-#     )
-
-#     locked_by = models.ForeignKey(
-#         "accounts.User",
-#         on_delete=models.CASCADE
-#     )
-
-#     locked_at = models.DateTimeField(auto_now_add=True)
-
-#     expires_at = models.DateTimeField()
-
-#     def __str__(self):
-#         return f"Order {self.order.id} locked by {self.locked_by}"
-    
-    
-
-# class DailyKOTCounter(models.Model):
-
-#     date = models.DateField(unique=True)
-
-#     value = models.IntegerField(default=0)
-
-#     def __str__(self):
-#         return f"{self.date} -> {self.value}"
-
-
-
-
-
-
-
 
 # ============================v2==============================
 # orders/models.py
@@ -521,72 +175,7 @@ class Order(models.Model):
     # -------------------------------------------------
     # TOTAL RECALCULATION
     # -------------------------------------------------
-    # def recalculate_totals(self):
-    #     """
-    #     Recalculate subtotal, gst_total, discount_total and grand_total.
-    #     - Complimentary items (OrderItem.is_complimentary == True) are ignored for subtotal & GST.
-    #     - Discount is applied against subtotal.
-    #     - discount_total is subtracted after GST (if you want discount to reduce taxable amount, change logic).
-    #     """
-
-    #     subtotal = Decimal("0.00")
-    #     gst_total = Decimal("0.00")
-
-    #     # exclude voided items
-    #     items_qs = self.items.exclude(status="voided")
-
-    #     for item in items_qs:
-    #         # if an item is complimentary, skip pricing (but it still exists for records)
-    #         if getattr(item, "is_complimentary", False):
-    #             continue
-
-    #         # item.price and item.quantity assumed to be Decimal/int
-    #         item_price = Decimal(item.price)
-    #         quantity = Decimal(item.quantity)
-
-    #         base = (item_price * quantity)
-    #         # modifiers may be a queryset or list of objects with .price
-    #         modifier_total = sum(Decimal(m.price) for m in getattr(item, "modifiers", []).all()) if hasattr(item, "modifiers") else Decimal("0.00")
-    #         modifier_total = modifier_total * quantity
-
-    #         item_total = base + modifier_total
-
-    #         # GST per item (gst_percentage stored as Decimal percentage)
-    #         gst_pct = Decimal(item.gst_percentage or Decimal("0.00"))
-    #         gst = (item_total * gst_pct) / Decimal("100")
-
-    #         subtotal += item_total
-    #         gst_total += gst
-
-    #     # quantize intermediate totals
-    #     subtotal = self._quantize(subtotal)
-    #     gst_total = self._quantize(gst_total)
-
-    #     # compute discount_total based on subtotal
-    #     discount_total = Decimal("0.00")
-    #     if self.discount_type == "percentage" and (self.discount_value or Decimal("0.00")) > 0:
-    #         # discount_value is e.g. 10 for 10%
-    #         discount_total = (subtotal * (Decimal(self.discount_value) / Decimal("100.00")))
-    #     elif self.discount_type == "amount" and (self.discount_value or Decimal("0.00")) > 0:
-    #         discount_total = Decimal(self.discount_value)
-
-    #     # make sure discount doesn't exceed subtotal
-    #     if discount_total > subtotal:
-    #         discount_total = subtotal
-
-    #     discount_total = self._quantize(discount_total)
-
-    #     # final grand total: subtotal + gst - discount_total
-    #     grand_total = subtotal + gst_total - discount_total
-    #     grand_total = self._quantize(max(grand_total, Decimal("0.00")))
-
-    #     # persist
-    #     self.subtotal = subtotal
-    #     self.gst_total = gst_total
-    #     self.discount_total = discount_total
-    #     self.grand_total = grand_total
-
-    #     self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total"])
+    
     def recalculate_totals(self):
 
         subtotal = Decimal("0.00")
@@ -754,7 +343,8 @@ class OrderItem(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.menu_item.name} x {self.quantity}"
+        item_name = self.menu_item.name if self.menu_item else "Unknown Item"
+        return f"{item_name} x {self.quantity}"
 
 
 # =====================================================
@@ -836,6 +426,60 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.method} - {self.amount}"
+
+
+# =====================================================
+# REFUND
+# =====================================================
+
+class Refund(models.Model):
+
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    )
+
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.PROTECT,
+        related_name="refunds"
+    )
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.PROTECT,
+        related_name="refunds"
+    )
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    reason = models.CharField(max_length=255)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="approved"
+    )
+
+    refunded_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="refunds_issued"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["order"]),
+            models.Index(fields=["payment"]),
+        ]
+
+    def __str__(self):
+        return f"Refund ₹{self.amount} for Order {self.order_id}"
+
 
 
 # =====================================================
@@ -1032,9 +676,39 @@ class TableMerge(models.Model):
 
     is_active = models.BooleanField(default=True)
 
-    class META:
+    class Meta:
         indexes = [
-            models.Index(fields=["tenant", "outlet" ,"is_active"]),
+            models.Index(fields=["tenant", "outlet", "is_active"]),
         ]
+
+
+# =====================================================
+# KITCHEN MESSAGE
+# =====================================================
+
+class KitchenMessage(models.Model):
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="kitchen_messages"
+    )
+
+    message = models.CharField(max_length=255)
+
+    is_resolved = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "outlet", "is_resolved"]),
+        ]
+
+    def __str__(self):
+        return f"Message for {self.order.table.name if self.order.table else 'Walk-in'}: {self.message}"
 
 

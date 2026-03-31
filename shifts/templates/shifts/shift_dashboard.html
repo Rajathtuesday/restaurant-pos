@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shift Management | POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111; --text-muted: #737373;
+            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s ease;
+        }
+        body.dark {
+            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888;
+            --border-color: #262626; --accent-gold: #d4af37;
+        }
+        body { background: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; min-height: 100vh; }
+        .pos-header { padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+        .pos-header h4 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 0; }
+        .pos-header h4 i { color: var(--accent-gold); }
+        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 2px; padding: 0.65rem 1.4rem; transition: var(--transition-smooth); cursor: pointer; }
+        .btn-luxury:hover, .btn-luxury.active { border-color: var(--accent-gold); background: var(--accent-gold); color: #fff; }
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.2rem; cursor: pointer; padding: 0.4rem; }
+        .btn-icon:hover { color: var(--accent-gold); }
+        .dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); }
+        .section-title { font-family: 'Playfair Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
+        .shift-table { width: 100%; border-collapse: collapse; }
+        .shift-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+        .shift-table td { padding: 0.9rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
+        .badge-active { background: rgba(16,185,129,0.12); color: #10b981; font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
+        .badge-done { background: rgba(100,100,100,0.1); color: var(--text-muted); font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
+        .clock-card { background: var(--panel-bg); border: 1px solid var(--accent-gold); padding: 2rem; text-align: center; max-width: 400px; margin: 0 auto 2.5rem; }
+        .clock-time { font-family: 'Playfair Display', serif; font-size: 2.5rem; color: var(--accent-gold); }
+        .form-control-shift { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.4rem 0; font-size: 0.85rem; width: 100%; outline: none; }
+        .form-control-shift:focus { border-color: var(--accent-gold); }
+    </style>
+</head>
+<body>
+<div class="container-fluid mx-auto" style="max-width:1200px; padding:0 1.5rem;">
+
+    <header class="pos-header">
+        <h4><i class="bi bi-clock-history me-2"></i>Shift <i>Management</i></h4>
+        <div class="d-flex gap-3 align-items-center">
+            <form method="GET" class="d-flex gap-2 align-items-center">
+                <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control-shift" style="max-width:160px;" onchange="this.form.submit()">
+            </form>
+            <a href="/dashboard/" class="btn-luxury text-decoration-none">Dashboard</a>
+            <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <!-- CLOCK IN/OUT CARD -->
+    <div class="clock-card">
+        <div class="clock-time" id="liveClock">--:--:--</div>
+        <p style="font-size:0.7rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin: 0.5rem 0 1.5rem;">{{ request.user.get_full_name|default:request.user.username }}</p>
+
+        {% if active_shift %}
+        <p style="font-size:0.8rem; color:var(--text-muted);">Clocked in at <strong>{{ active_shift.clocked_in_at|date:"H:i" }}</strong></p>
+        <div class="mb-3">
+            <input type="number" id="tipsInput" placeholder="Tips earned (₹)" class="form-control-shift text-center" min="0" step="0.50">
+        </div>
+        <button class="btn-luxury w-100" style="background:#ef4444; border-color:#ef4444; color:#fff;" onclick="clockOut()">
+            <i class="bi bi-stop-circle me-1"></i> Clock Out
+        </button>
+        {% else %}
+        <p style="font-size:0.8rem; color:var(--text-muted);">You are currently <strong>off shift</strong></p>
+        <button class="btn-luxury w-100" onclick="clockIn()">
+            <i class="bi bi-play-circle me-1"></i> Clock In
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- SHIFT TABLE -->
+    {% if request.user.role in "manager,owner" or request.user.is_superuser %}
+    <div class="dashboard-card p-0 mb-5">
+        <div class="p-3 pb-0">
+            <h5 class="section-title">Shifts — {{ view_date|date:"N j, Y" }}</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="shift-table">
+                <thead>
+                    <tr>
+                        <th>Staff</th><th>Role</th><th>Clocked In</th><th>Clocked Out</th>
+                        <th>Duration</th><th>Tips</th><th>Status</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in shifts %}
+                    <tr>
+                        <td><strong>{{ s.staff.get_full_name|default:s.staff.username }}</strong></td>
+                        <td style="color:var(--text-muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">{{ s.staff.role }}</td>
+                        <td>{{ s.clocked_in_at|date:"H:i" }}</td>
+                        <td>{{ s.clocked_out_at|date:"H:i"|default:"—" }}</td>
+                        <td>{{ s.duration_hours|default:"Active" }}{% if s.duration_hours %} hrs{% endif %}</td>
+                        <td>₹{{ s.tips }}</td>
+                        <td>
+                            {% if s.is_active %}
+                            <span class="badge-active">Active</span>
+                            {% else %}
+                            <span class="badge-done">Done</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 align-items-center">
+                                <input type="number" id="tips-{{ s.id }}" value="{{ s.tips }}" style="width:70px;" class="form-control-shift" step="0.50" min="0">
+                                <button class="btn-icon" onclick="updateTips({{ s.id }})" title="Save tips"><i class="bi bi-check-lg"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">No shifts recorded for this date.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if (isDark) { document.body.classList.add("dark"); icon.className = "bi bi-sun"; }
+        else { document.body.classList.remove("dark"); icon.className = "bi bi-moon"; }
+    }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+    // Live clock
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-IN');
+    }
+    updateClock(); setInterval(updateClock, 1000);
+
+    function getCsrf() { return document.cookie.split('; ').find(r => r.startsWith('csrftoken=')).split('=')[1]; }
+
+    async function clockIn() {
+        const r = await fetch('/shifts/clock-in/', { method: 'POST', headers: {'X-CSRFToken': getCsrf()} });
+        const d = await r.json();
+        if (d.success) location.reload();
+        else alert(d.error);
+    }
+
+    async function clockOut() {
+        const tips = document.getElementById('tipsInput')?.value || 0;
+        const r = await fetch('/shifts/clock-out/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json'},
+            body: JSON.stringify({ tips })
+        });
+        const d = await r.json();
+        if (d.success) location.reload();
+        else alert(d.error);
+    }
+
+    async function updateTips(shiftId) {
+        const tips = document.getElementById('tips-' + shiftId).value;
+        const r = await fetch(`/shifts/${shiftId}/tips/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json'},
+            body: JSON.stringify({ tips })
+        });
+        const d = await r.json();
+        if (d.success) { const btn = event.currentTarget; btn.innerHTML = '<i class="bi bi-check2-all"></i>'; }
+        else alert(d.error);
+    }
+</script>
+</body>
+</html>

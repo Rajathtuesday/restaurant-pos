@@ -7,6 +7,9 @@ from django.http import JsonResponse
 import json
 from decimal import Decimal
 from django.http import JsonResponse, HttpResponseForbidden
+import logging
+
+logger = logging.getLogger("pos.inventory")
 
 
 @login_required
@@ -49,6 +52,8 @@ def restock_item(request, item_id):
     )
 
     item.add_stock(quantity)
+    
+    logger.info(f"User {request.user.username} restocked '{item.name}' with {quantity} {item.unit}. New stock: {item.stock}")
 
     return JsonResponse({
         "success":True,
@@ -82,6 +87,8 @@ def create_inventory_item(request):
         stock=stock,
         low_stock_threshold=threshold
     )
+    
+    logger.info(f"User {request.user.username} created new inventory item '{name}' ({stock} {unit})")
 
     return JsonResponse({
         "success": True,

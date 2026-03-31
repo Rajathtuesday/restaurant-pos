@@ -1,0 +1,8 @@
+# Development-only dependencies
+# Install with: pip install -r requirements-dev.txt
+# These are NOT needed in production
+
+graphviz==0.21
+pydotplus==2.0.2
+pyparsing==3.3.2
+django-extensions==4.1

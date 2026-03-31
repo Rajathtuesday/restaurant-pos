@@ -1,2273 +1,912 @@
-{% comment %} {% comment %} <!DOCTYPE html>
-<html>
-<head>
-
-<title>POS Billing</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-/* layout */
-
-.sidebar,
-.menu-area,
-.cart-box{
-background:white;
-border-radius:14px;
-padding:18px;
-height:85vh;
-overflow-y:auto;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-/* menu */
-
-.menu-item{
-cursor:pointer;
-transition:.2s;
-border:1px solid #eee;
-}
-
-.menu-item:hover{
-transform:scale(1.04);
-box-shadow:0 8px 14px rgba(0,0,0,0.15);
-}
-
-/* cart */
-
-.cart-row{
-padding:10px 0;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.qty-btn{
-width:26px;
-height:26px;
-border:none;
-background:#eee;
-border-radius:4px;
-}
-
-/* running order */
-
-.running-row{
-padding:10px 0;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.badge-ready{
-background:#22c55e;
-}
-
-.badge-preparing{
-background:#f59e0b;
-}
-
-.badge-served{
-background:#6c757d;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container-fluid mt-3">
-
-<div class="d-flex justify-content-between mb-3">
-
-<h3>POS Billing</h3>
-
-<div>
-<a href="/tables/" class="btn btn-dark">Tables</a>
-<a href="/kitchen/" class="btn btn-secondary">Kitchen</a>
-
-{% if request.user.role == "owner" or request.user.role == "manager" %}
-<a href="/dashboard/" class="btn btn-dark">Reports</a>
-{% endif %}
-
-</div>
-
-</div>
-
-<div class="row">
-
-<!-- CATEGORY -->
-
-<div class="col-md-2">
-
-<div class="sidebar">
-
-<h5>Categories</h5>
-
-<ul class="list-group">
-
-{% for category in categories %}
-
-<li class="list-group-item list-group-item-action"
-onclick="scrollToCategory('cat{{category.id}}')">
-
-{{category.name}}
-
-</li>
-
-{% endfor %}
-
-</ul>
-
-</div>
-
-</div>
-
-
-<!-- MENU -->
-
-<div class="col-md-6">
-
-<div class="menu-area">
-
-<input
-class="form-control mb-3"
-placeholder="Search menu..."
-onkeyup="searchMenu(this.value)"
->
-
-{% for category in categories %}
-
-<h5 id="cat{{category.id}}" class="mt-4">
-{{category.name}}
-</h5>
-
-<div class="row">
-
-{% for item in category.items.all %}
-
-<div class="col-md-4 mb-3 menu-card">
-
-<div class="card menu-item"
-onclick="addItem({{item.id}},'{{item.name}}',{{item.price}})">
-
-<div class="card-body text-center">
-
-<strong class="item-name">{{item.name}}</strong>
-
-<p>₹{{item.price}}</p>
-
-</div>
-
-</div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-{% endfor %}
-
-</div>
-
-</div>
-
-
-<!-- CART + RUNNING ORDER -->
-
-<div class="col-md-4">
-
-<div class="cart-box">
-
-<h4>Order</h4>
-
-<select id="tableSelect" class="form-select mb-3">
-
-<option value="">Takeaway</option>
-
-{% for table in tables %}
-
-<option value="{{table.id}}"
-{% if selected_table == table.id|stringformat:"s" %}
-selected
-{% endif %}
->
-{{table.name}}
-</option>
-
-{% endfor %}
-
-</select>
-
-<h5>Cart</h5>
-
-<div id="cart"></div>
-
-<hr>
-
-<h6 id="subtotal">Subtotal ₹0</h6>
-<h6 id="gst">GST ₹0</h6>
-
-<h4 id="total">Total ₹0</h4>
-
-<div class="d-grid gap-2 mt-3">
-
-<button class="btn btn-success"
-onclick="submitOrder()">
-Send To Kitchen
-</button>
-
-<button class="btn btn-outline-danger"
-onclick="clearCart()">
-Clear Cart
-</button>
-
-</div>
-
-<hr>
-
-<h5>Running Order</h5>
-
-<div id="running-items"></div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-
-let cart=[]
-
-/* ---------------- CART ---------------- */
-
-function addItem(id,name,price){
-
-cart.push({
-id:id,
-name:name,
-price:price,
-quantity:1
-})
-
-renderCart()
-
-}
-
-function renderCart(){
-
-let cartDiv=document.getElementById("cart")
-
-cartDiv.innerHTML=""
-
-let subtotal=0
-
-cart.forEach((item,index)=>{
-
-let total=item.price*item.quantity
-
-subtotal+=total
-
-cartDiv.innerHTML+=`
-
-<div class="cart-row">
-
-<div>${item.name}</div>
-
-<div>
-
-<button class="qty-btn" onclick="dec(${index})">-</button>
-
-${item.quantity}
-
-<button class="qty-btn" onclick="inc(${index})">+</button>
-
-</div>
-
-<div>₹${total.toFixed(2)}</div>
-
-</div>
-
-`
-
-})
-
-let gst=subtotal*0.05
-let total=subtotal+gst
-
-document.getElementById("subtotal").innerText="Subtotal ₹"+subtotal.toFixed(2)
-document.getElementById("gst").innerText="GST ₹"+gst.toFixed(2)
-document.getElementById("total").innerText="Total ₹"+total.toFixed(2)
-
-}
-
-function inc(i){
-cart[i].quantity++
-renderCart()
-}
-
-function dec(i){
-
-cart[i].quantity--
-
-if(cart[i].quantity<=0){
-cart.splice(i,1)
-}
-
-renderCart()
-
-}
-
-function clearCart(){
-cart=[]
-renderCart()
-}
-
-
-/* ---------------- ORDER ---------------- */
-
-function submitOrder(){
-
-if(cart.length===0){
-alert("Cart empty")
-return
-}
-
-let tableId=document.getElementById("tableSelect").value
-
-fetch("/create-order/",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-cart:cart,
-table_id:tableId
-})
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-if(!data.success){
-alert(data.error)
-return
-}
-
-fetch(`/send-to-kitchen/${data.order_id}/`,{
-method:"POST",
-headers:{"X-CSRFToken":getCookie("csrftoken")}
-})
-
-alert("Order sent to kitchen")
-
-cart=[]
-renderCart()
-
-loadRunningOrder()
-
-})
-
-}
-
-
-/* ---------------- RUNNING ORDER ---------------- */
-
-function loadRunningOrder(){
-
-let tableId=document.getElementById("tableSelect").value
-
-if(!tableId){
-document.getElementById("running-items").innerHTML=""
-return
-}
-
-fetch(`/running-order-items/?table=${tableId}`)
-
-.then(res=>res.json())
-
-.then(data=>{
-
-let container=document.getElementById("running-items")
-
-container.innerHTML=""
-
-data.items.forEach(i=>{
-
-let badge=""
-let action=""
-
-if(i.status==="ready"){
-
-badge=`<span class="badge badge-ready">Ready</span>`
-
-action=`<button class="btn btn-success btn-sm"
-onclick="serveItem(${i.id})">
-Serve
-</button>`
-
-}
-
-else if(i.status==="preparing"){
-
-badge=`<span class="badge badge-preparing">Preparing</span>`
-
-}
-
-else if(i.status==="served"){
-
-badge=`<span class="badge badge-served">Served</span>`
-
-}
-
-container.innerHTML+=`
-
-<div class="running-row">
-
-<div>
-${i.quantity} × ${i.name}
-</div>
-
-<div>
-
-${badge}
-
-${action}
-
-</div>
-
-</div>
-
-`
-
-})
-
-})
-
-}
-
-function serveItem(itemId){
-
-fetch(`/serve-item/${itemId}/`,{
-
-method:"POST",
-
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-
-.then(()=>loadRunningOrder())
-
-}
-
-
-/* ---------------- MENU SEARCH ---------------- */
-
-function searchMenu(text){
-
-text=text.toLowerCase()
-
-document.querySelectorAll(".menu-card").forEach(card=>{
-
-let name=card.querySelector(".item-name").innerText.toLowerCase()
-
-card.style.display=name.includes(text)?"block":"none"
-
-})
-
-}
-
-
-/* ---------------- CATEGORY SCROLL ---------------- */
-
-function scrollToCategory(id){
-document.getElementById(id).scrollIntoView({behavior:"smooth"})
-}
-
-
-/* ---------------- AUTO LOAD ---------------- */
-
-window.onload=function(){
-loadRunningOrder()
-}
-
-document.getElementById("tableSelect").addEventListener("change",loadRunningOrder)
-
-
-/* ---------------- CSRF ---------------- */
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-}
-
-}
-
-}
-
-return cookieValue
-
-}
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-
-
-
-
-
-{% comment %} --------------------------------------v3----------------------------------- 
-<!DOCTYPE html> 
-<html>
-<head>
-
-<title>POS Billing</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-.sidebar,.menu-area,.cart-box{
-background:white;
-border-radius:14px;
-padding:18px;
-height:85vh;
-overflow-y:auto;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-.menu-item{
-cursor:pointer;
-transition:.2s;
-border:1px solid #eee;
-}
-
-.menu-item:hover{
-transform:scale(1.04);
-box-shadow:0 8px 14px rgba(0,0,0,0.15);
-}
-
-.cart-row{
-padding:10px 0;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.qty-btn{
-width:26px;
-height:26px;
-border:none;
-background:#eee;
-border-radius:4px;
-}
-
-.note{
-font-size:12px;
-color:#666;
-}
-
-.running-row{
-padding:10px 0;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-</style>
-</head>
-
-<body>
-
-<div class="container-fluid mt-3">
-
-<div class="d-flex justify-content-between mb-3">
-
-<h3>POS Billing</h3>
-
-<div>
-<a href="/tables/" class="btn btn-dark">Tables</a>
-<a href="/kitchen/" class="btn btn-secondary">Kitchen</a>
-</div>
-
-</div>
-
-
-<div class="row">
-
-<!-- CATEGORY -->
-<div class="col-md-2">
-<div class="sidebar">
-
-<h5>Categories</h5>
-
-<ul class="list-group">
-
-{% for category in categories %}
-
-<li class="list-group-item list-group-item-action"
-onclick="scrollToCategory('cat{{category.id}}')">
-
-{{category.name}}
-
-</li>
-
-{% endfor %}
-
-</ul>
-
-</div>
-</div>
-
-
-<!-- MENU -->
-<div class="col-md-6">
-
-<div class="menu-area">
-
-<input
-class="form-control mb-3"
-placeholder="Search menu..."
-onkeyup="searchMenu(this.value)"
->
-
-{% for category in categories %}
-
-<h5 id="cat{{category.id}}" class="mt-4">
-{{category.name}}
-</h5>
-
-<div class="row">
-
-{% for item in category.items.all %}
-
-<div class="col-md-4 mb-3 menu-card">
-
-<div class="card menu-item"
-onclick="openItemModal({{item.id}},`{{item.name}}`,{{item.price}})">
-
-<div class="card-body text-center">
-
-<strong class="item-name">{{item.name}}</strong>
-<p>₹{{item.price}}</p>
-
-</div>
-</div>
-</div>
-
-{% endfor %}
-
-</div>
-
-{% endfor %}
-
-</div>
-
-</div>
-
-
-<!-- CART -->
-<div class="col-md-4">
-
-<div class="cart-box">
-
-<h4>Order</h4>
-
-<select id="tableSelect" class="form-select mb-3">
-
-<option value="">Takeaway</option>
-
-{% for table in tables %}
-
-<option value="{{table.id}}"
-{% if selected_table == table.id|stringformat:"s" %}
-selected
-{% endif %}
->
-{{table.name}}
-</option>
-
-{% endfor %}
-
-</select>
-
-<h5>Cart</h5>
-
-<div id="cart"></div>
-
-<hr>
-
-<h6 id="subtotal">Subtotal ₹0</h6>
-<h6 id="gst">GST ₹0</h6>
-
-<h4 id="total">Total ₹0</h4>
-
-<div class="d-grid gap-2 mt-3">
-
-<button class="btn btn-success" onclick="submitOrder()">
-Send To Kitchen
-</button>
-
-<button class="btn btn-dark" onclick="generateBill()">
-Generate Bill
-</button>
-
-<button class="btn btn-warning" onclick="openTransferModal()">
-Transfer Table
-</button>
-
-<button class="btn btn-outline-danger" onclick="clearCart()">
-Clear Cart
-</button>
-
-</div>
-
-<hr>
-
-<h5>Running Order</h5>
-
-<div id="running-items"></div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- ITEM MODAL -->
-
-<div class="modal fade" id="itemModal">
-
-<div class="modal-dialog modal-lg">
-
-<div class="modal-content">
-
-<div class="modal-header">
-<h5 id="modalItemName"></h5>
-</div>
-
-<div class="modal-body">
-
-<div id="modifierGroups"></div>
-
-<hr>
-
-<textarea
-id="itemNote"
-class="form-control"
-placeholder="Special instruction"
-></textarea>
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-secondary"
-data-bs-dismiss="modal">
-Cancel
-</button>
-
-<button class="btn btn-primary"
-onclick="addItemWithModifiers()">
-Add Item
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- TRANSFER MODAL -->
-
-<div class="modal fade" id="transferModal">
-
-<div class="modal-dialog">
-
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Transfer Table</h5>
-</div>
-
-<div class="modal-body">
-
-<p>Select available table</p>
-
-<div id="availableTables"></div>
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-secondary"
-data-bs-dismiss="modal">
-Cancel
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-
-let cart=[]
-let selectedItem=null
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-}
-
-}
-
-}
-
-return cookieValue
-}
-
-/* OPEN ITEM MODAL */
-
-function openItemModal(id,name,price){
-
-selectedItem={id,name,price}
-
-document.getElementById("modalItemName").innerText=name
-document.getElementById("itemNote").value=""
-
-fetch(`/menu/item-modifiers/${id}/`)
-.then(res=>res.json())
-.then(data=>{
-
-let container=document.getElementById("modifierGroups")
-container.innerHTML=""
-
-if(!data.groups) return
-
-data.groups.forEach(group=>{
-
-let html=`<h6>${group.group_name}</h6>`
-
-group.modifiers.forEach(m=>{
-
-html+=`
-<div class="form-check">
-<input class="form-check-input modifier-input"
-type="checkbox"
-value="${m.id}">
-<label class="form-check-label">
-${m.name}
-</label>
-</div>
-`
-
-})
-
-container.innerHTML+=html
-
-})
-
-new bootstrap.Modal(document.getElementById("itemModal")).show()
-
-})
-
-}
-
-/* ADD ITEM WITH MODIFIERS */
-
-function addItemWithModifiers(){
-
-let modifiers=[]
-
-document.querySelectorAll(".modifier-input:checked")
-.forEach(el=>modifiers.push(parseInt(el.value)))
-
-let note=document.getElementById("itemNote").value
-
-cart.push({
-id:selectedItem.id,
-name:selectedItem.name,
-price:selectedItem.price,
-quantity:1,
-modifiers:modifiers,
-note:note
-})
-
-renderCart()
-
-bootstrap.Modal.getInstance(
-document.getElementById("itemModal")
-).hide()
-
-}
-
-/* CART */
-
-function renderCart(){
-
-let cartDiv=document.getElementById("cart")
-cartDiv.innerHTML=""
-
-let subtotal=0
-
-cart.forEach((item,i)=>{
-
-let total=item.price*item.quantity
-subtotal+=total
-
-cartDiv.innerHTML+=`
-
-<div class="cart-row">
-
-<div>
-${item.name}
-${item.note ? `<div class="note">${item.note}</div>` : ""}
-</div>
-
-<div>
-<button class="qty-btn" onclick="dec(${i})">-</button>
-${item.quantity}
-<button class="qty-btn" onclick="inc(${i})">+</button>
-</div>
-
-<div>₹${total.toFixed(2)}</div>
-
-</div>
-`
-
-})
-
-let gst=subtotal*0.05
-let total=subtotal+gst
-
-document.getElementById("subtotal").innerText="Subtotal ₹"+subtotal.toFixed(2)
-document.getElementById("gst").innerText="GST ₹"+gst.toFixed(2)
-document.getElementById("total").innerText="Total ₹"+total.toFixed(2)
-
-}
-
-function inc(i){cart[i].quantity++;renderCart()}
-function dec(i){cart[i].quantity--;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()}
-function clearCart(){cart=[];renderCart()}
-
-/* TRANSFER TABLE */
-
-function openTransferModal(){
-
-let orderId="{{order.id|default:''}}"
-
-if(!orderId){
-alert("No order to transfer")
-return
-}
-
-fetch("/available-tables/")
-.then(res=>res.json())
-.then(data=>{
-
-let container=document.getElementById("availableTables")
-
-container.innerHTML=""
-
-data.tables.forEach(t=>{
-
-container.innerHTML+=`
-
-<button class="btn btn-outline-dark w-100 mb-2"
-onclick="transferTable(${orderId},${t.id})">
-
-${t.name}
-
-</button>
-
-`
-
-})
-
-new bootstrap.Modal(
-document.getElementById("transferModal")
-).show()
-
-})
-
-}
-
-function transferTable(orderId,tableId){
-
-fetch("/transfer-table/",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({
-order_id:orderId,
-table_id:tableId
-})
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.success){
-
-alert("Table transferred")
-
-window.location.href="/tables/"
-
-}else{
-
-alert(data.error)
-
-}
-
-})
-
-}
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-{% comment %} v4 {% endcomment %}
-{% comment %} <!DOCTYPE html>
-<html>
-<head>
-
-<title>POS Billing</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-.sidebar,.menu-area,.cart-box{
-background:white;
-border-radius:14px;
-padding:18px;
-height:85vh;
-overflow-y:auto;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-.menu-item{
-cursor:pointer;
-transition:.2s;
-border:1px solid #eee;
-}
-
-.menu-item:hover{
-transform:scale(1.04);
-box-shadow:0 8px 14px rgba(0,0,0,0.15);
-}
-
-.cart-row{
-padding:10px 0;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-.qty-btn{
-width:26px;
-height:26px;
-border:none;
-background:#eee;
-border-radius:4px;
-}
-
-.note{
-font-size:12px;
-color:#666;
-}
-
-.running-row{
-padding:10px 0;
-border-bottom:1px solid #eee;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
-</style>
-</head>
-
-<body>
-
-<div class="container-fluid mt-3">
-
-<div class="d-flex justify-content-between mb-3">
-
-<h3>POS Billing</h3>
-
-<div>
-<a href="/tables/" class="btn btn-dark">Tables</a>
-<a href="/kitchen/" class="btn btn-secondary">Kitchen</a>
-</div>
-
-</div>
-
-<div class="row">
-
-<!-- CATEGORY -->
-<div class="col-md-2">
-<div class="sidebar">
-
-<h5>Categories</h5>
-
-<ul class="list-group">
-
-{% for category in categories %}
-
-<li class="list-group-item list-group-item-action"
-onclick="scrollToCategory('cat{{category.id}}')">
-{{category.name}}
-</li>
-
-{% endfor %}
-
-</ul>
-
-</div>
-</div>
-
-
-<!-- MENU -->
-<div class="col-md-6">
-<div class="menu-area">
-
-<input
-class="form-control mb-3"
-placeholder="Search menu..."
-onkeyup="searchMenu(this.value)"
->
-
-{% for category in categories %}
-
-<h5 id="cat{{category.id}}" class="mt-4">
-{{category.name}}
-</h5>
-
-<div class="row">
-
-{% for item in category.items.all %}
-
-<div class="col-md-4 mb-3 menu-card">
-
-<div class="card menu-item"
-onclick="openItemModal({{item.id}},`{{item.name}}`,{{item.price}})">
-
-<div class="card-body text-center">
-
-<strong class="item-name">{{item.name}}</strong>
-<p>₹{{item.price}}</p>
-
-</div>
-</div>
-</div>
-
-{% endfor %}
-
-</div>
-
-{% endfor %}
-
-</div>
-</div>
-
-
-<!-- CART -->
-<div class="col-md-4">
-
-<div class="cart-box">
-
-<h4>Order</h4>
-
-<select id="tableSelect" class="form-select mb-3">
-
-<option value="">Takeaway</option>
-
-{% for table in tables %}
-
-<option value="{{table.id}}"
-{% if selected_table == table.id|stringformat:"s" %}
-selected
-{% endif %}
->
-
-{{table.name}}
-
-</option>
-
-{% endfor %}
-
-</select>
-
-<h5>Cart</h5>
-
-<div id="cart"></div>
-
-<hr>
-
-<h6 id="subtotal">Subtotal ₹0</h6>
-<h6 id="gst">GST ₹0</h6>
-
-<h4 id="total">Total ₹0</h4>
-
-<div class="d-grid gap-2 mt-3">
-
-<button class="btn btn-success" id="sendBtn" onclick="submitOrder()">
-Send To Kitchen
-</button>
-
-<button class="btn btn-primary" onclick="openRunningOrder()">
-Running Order
-</button>
-
-<button class="btn btn-dark" onclick="generateBill()">
-Generate Bill
-</button>
-
-<button class="btn btn-warning" onclick="openTransferModal()">
-Transfer Table
-</button>
-
-<button class="btn btn-outline-danger" onclick="clearCart()">
-Clear Cart
-</button>
-
-</div>
-
-<hr>
-
-<h5>Running Items</h5>
-
-<div id="running-items"></div>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- ITEM MODAL -->
-
-<div class="modal fade" id="itemModal">
-<div class="modal-dialog modal-lg">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5 id="modalItemName"></h5>
-</div>
-
-<div class="modal-body">
-
-<div id="modifierGroups"></div>
-
-<hr>
-
-<textarea
-id="itemNote"
-class="form-control"
-placeholder="Special instruction"
-></textarea>
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-secondary"
-data-bs-dismiss="modal">
-Cancel
-</button>
-
-<button class="btn btn-primary"
-onclick="addItemWithModifiers()">
-Add Item
-</button>
-
-</div>
-
-</div>
-</div>
-</div>
-
-
-
-<!-- TRANSFER MODAL -->
-
-<div class="modal fade" id="transferModal">
-<div class="modal-dialog">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Transfer Table</h5>
-</div>
-
-<div class="modal-body">
-
-<p>Select available table</p>
-
-<div id="availableTables"></div>
-
-</div>
-
-<div class="modal-footer">
-<button class="btn btn-secondary"
-data-bs-dismiss="modal">
-Cancel
-</button>
-</div>
-
-</div>
-</div>
-</div>
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-
-let cart=[]
-let selectedItem=null
-let sending=false
-
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-}
-
-}
-
-}
-
-return cookieValue
-}
-
-
-
-function openItemModal(id,name,price){
-
-selectedItem={id,name,price}
-
-document.getElementById("modalItemName").innerText=name
-document.getElementById("itemNote").value=""
-
-fetch(`/menu/item-modifiers/${id}/`)
-.then(res=>res.json())
-.then(data=>{
-
-let container=document.getElementById("modifierGroups")
-
-container.innerHTML=""
-
-data.groups.forEach(group=>{
-
-let html=`<h6>${group.group_name}</h6>`
-
-group.modifiers.forEach(m=>{
-
-html+=`
-
-<div class="form-check">
-<input class="form-check-input modifier-input"
-type="checkbox"
-value="${m.id}">
-<label class="form-check-label">
-${m.name}
-</label>
-</div>
-
-`
-
-})
-
-container.innerHTML+=html
-
-})
-
-new bootstrap.Modal(document.getElementById("itemModal")).show()
-
-})
-
-}
-
-
-
-function addItemWithModifiers(){
-
-let modifiers=[]
-
-document.querySelectorAll(".modifier-input:checked")
-.forEach(el=>modifiers.push(parseInt(el.value)))
-
-let note=document.getElementById("itemNote").value
-
-cart.push({
-id:selectedItem.id,
-name:selectedItem.name,
-price:selectedItem.price,
-quantity:1,
-modifiers:modifiers,
-note:note
-})
-
-renderCart()
-
-bootstrap.Modal.getInstance(
-document.getElementById("itemModal")
-).hide()
-
-}
-
-
-
-function renderCart(){
-
-let cartDiv=document.getElementById("cart")
-
-cartDiv.innerHTML=""
-
-let subtotal=0
-
-cart.forEach((item,i)=>{
-
-let total=item.price*item.quantity
-subtotal+=total
-
-cartDiv.innerHTML+=`
-
-<div class="cart-row">
-
-<div>
-${item.name}
-${item.note?`<div class="note">${item.note}</div>`:""}
-</div>
-
-<div>
-
-<button class="qty-btn" onclick="dec(${i})">-</button>
-${item.quantity}
-<button class="qty-btn" onclick="inc(${i})">+</button>
-
-</div>
-
-<div>₹${total.toFixed(2)}</div>
-
-</div>
-
-`
-
-})
-
-let gst=subtotal*0.05
-let total=subtotal+gst
-
-document.getElementById("subtotal").innerText="Subtotal ₹"+subtotal.toFixed(2)
-document.getElementById("gst").innerText="GST ₹"+gst.toFixed(2)
-document.getElementById("total").innerText="Total ₹"+total.toFixed(2)
-
-}
-
-
-
-function inc(i){cart[i].quantity++;renderCart()}
-function dec(i){cart[i].quantity--;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()}
-function clearCart(){cart=[];renderCart()}
-
-
-
-function submitOrder(){
-
-if(sending)return
-
-if(cart.length===0){
-alert("Cart empty")
-return
-}
-
-sending=true
-
-let tableId=document.getElementById("tableSelect").value
-
-fetch("/create-order/",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-cart:cart,
-table_id:tableId
-})
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-if(!data.success){
-alert(data.error)
-sending=false
-return
-}
-
-fetch(`/send-to-kitchen/${data.order_id}/`,{
-
-method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-
-.then(()=>{
-
-alert("Order sent to kitchen")
-
-cart=[]
-renderCart()
-
-sending=false
-
-loadRunningOrder()
-
-})
-
-})
-
-}
-
-
-
-function openRunningOrder(){
-
-let tableId=document.getElementById("tableSelect").value
-
-if(!tableId){
-alert("Select table first")
-return
-}
-
-window.location.href="/order/"+tableId+"/"
-
-}
-
-
-
-function generateBill(){
-
-let tableId=document.getElementById("tableSelect").value
-
-if(!tableId){
-alert("Select table")
-return
-}
-
-window.location.href="/bill/"+tableId+"/"
-
-}
-
-
-
-function openTransferModal(){
-
-fetch("/available-tables/")
-.then(res=>res.json())
-.then(data=>{
-
-let container=document.getElementById("availableTables")
-
-container.innerHTML=""
-
-data.tables.forEach(t=>{
-
-container.innerHTML+=`
-
-<button class="btn btn-outline-dark w-100 mb-2"
-onclick="transferTable(${t.id})">
-
-${t.name}
-
-</button>
-
-`
-
-})
-
-new bootstrap.Modal(
-document.getElementById("transferModal")
-).show()
-
-})
-
-}
-
-
-
-function transferTable(newTableId){
-
-let orderId="{{order.id|default:''}}"
-
-if(!orderId){
-alert("No active order to transfer")
-return
-}
-
-fetch("/transfer-table/",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-order_id:orderId,
-table_id:newTableId
-})
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-if(data.success){
-
-alert("Table transferred")
-
-window.location.href="/tables/"
-
-}else{
-
-alert(data.error)
-
-}
-
-})
-
-.catch(()=>{
-alert("Transfer failed")
-})
-
-}
-
-
-function loadRunningOrder(){
-
-let tableId=document.getElementById("tableSelect").value
-
-if(!tableId){
-document.getElementById("running-items").innerHTML=""
-return
-}
-
-fetch(`/running-order-items/?table=${tableId}`)
-.then(res=>res.json())
-.then(data=>{
-
-let container=document.getElementById("running-items")
-
-container.innerHTML=""
-
-data.items.forEach(i=>{
-
-container.innerHTML+=`
-
-<div class="running-row">
-
-<div>${i.quantity} × ${i.name}</div>
-
-<div>${i.status}</div>
-
-</div>
-
-`
-
-})
-
-})
-
-}
-
-
-
-function searchMenu(text){
-
-text=text.toLowerCase()
-
-document.querySelectorAll(".menu-card").forEach(card=>{
-
-let name=card.querySelector(".item-name").innerText.toLowerCase()
-
-card.style.display=name.includes(text)?"block":"none"
-
-})
-
-}
-
-
-
-function scrollToCategory(id){
-
-document.getElementById(id)
-.scrollIntoView({behavior:"smooth"})
-
-}
-
-
-
-window.onload=function(){
-
-loadRunningOrder()
-
-setInterval(loadRunningOrder,4000)
-
-}
-
-document.getElementById("tableSelect")
-.addEventListener("change",loadRunningOrder)
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-
-
-
-
-
-
-
-
-
-
-{% comment %} v5 {% endcomment %}
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <title>POS | Point of Sale</title>
+    <!-- Explicit Mobile Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    
+    <!-- Premium Fonts: Playfair Display (Serif) & Inter (Sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap Modern -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-<title>POS Billing</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            /* Fine Dining Monochrome Palette */
+            --bg-color: #fafafa;
+            --panel-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #737373;
+            --border-color: #eaeaea;
+            --accent-gold: #c5a059;
+            --accent-hover: #b59250;
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        body.dark {
+            --bg-color: #0a0a0a;
+            --panel-bg: #111111;
+            --text-main: #f5f5f5;
+            --text-muted: #888888;
+            --border-color: #262626;
+            --accent-gold: #d4af37;
+            --accent-hover: #e5c45e;
+        }
 
-<style>
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden; /* App like */
+        }
 
-:root{
---bg:#f4f6fb;
---card:#ffffff;
---text:#111;
-}
+        /* Typography */
+        h1, h2, h3, h4, h5, h6, .serif-text {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
 
-body.dark{
---bg:#0f172a;
---card:#1e293b;
---text:#e2e8f0;
-}
+        /* Top Header */
+        .pos-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-color);
+            z-index: 100;
+            position: relative;
+        }
 
-body{
-background:var(--bg);
-color:var(--text);
-font-family:system-ui;
-}
+        .brand-title {
+            font-size: 1.3rem;
+            margin: 0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-title i { color: var(--accent-gold); }
 
-/* layout */
-.panel{
-background:var(--card);
-border-radius:14px;
-padding:16px;
-height:85vh;
-overflow-y:auto;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
+        /* Buttons & Controls */
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-main);
+            border-radius: 0;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            font-weight: 500;
+            padding: 0.6rem 1rem;
+            transition: var(--transition-smooth);
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main);
+            color: var(--bg-color);
+            background: var(--text-main);
+        }
+        .btn-luxury-primary {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: #fff;
+        }
+        .btn-luxury-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+            color: #fff;
+        }
+        .btn-icon {
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            cursor: pointer;
+        }
 
-/* menu */
-.menu-item{
-cursor:pointer;
-border-radius:10px;
-transition:.2s;
-border:1px solid #ddd;
-}
-.menu-item:hover{
-transform:translateY(-3px);
-box-shadow:0 6px 14px rgba(0,0,0,0.15);
-}
+        /* Workspace Grid */
+        .workspace {
+            display: flex;
+            height: calc(100vh - 65px); /* Header offset */
+        }
 
-/* cart */
-.cart-row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:8px 0;
-border-bottom:1px dashed #ccc;
-}
+        /* Desktop Sidebar */
+        .category-sidebar {
+            width: 260px;
+            border-right: 1px solid var(--border-color);
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: var(--panel-bg);
+            flex-shrink: 0;
+        }
+        
+        /* Mobile Horizontal Nav */
+        .mobile-category-nav {
+            display: none;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 1rem;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            scrollbar-width: none; /* Hide scrollbar Firefox */
+        }
+        .mobile-category-nav::-webkit-scrollbar { display: none; } /* Hide Chrome */
+        
+        .category-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .category-list { list-style: none; padding: 0; margin: 0; }
+        .category-item {
+            padding: 0.8rem 0;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            transition: var(--transition-smooth);
+            font-family: 'Playfair Display', serif;
+            position: relative;
+        }
+        .category-item:hover { color: var(--text-main); }
+        .category-item.active {
+            color: var(--accent-gold);
+            font-weight: 700;
+            font-style: italic;
+        }
+        /* Desktop active line */
+        .category-sidebar .category-item.active::before {
+            content: ''; position: absolute; left: -1.5rem; top: 50%; transform: translateY(-50%); width: 3px; height: 50%; background: var(--accent-gold);
+        }
+        /* Mobile category pill style active */
+        .mobile-category-nav .category-item {
+            display: inline-block;
+            margin-right: 1.5rem;
+            padding: 0.5rem 0;
+        }
+        .mobile-category-nav .category-item.active {
+            border-bottom: 2px solid var(--accent-gold);
+        }
 
-.qty-btn{
-width:30px;
-height:30px;
-border:none;
-background:#ddd;
-border-radius:6px;
-}
+        /* Menu Area */
+        .menu-area {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            background: var(--bg-color);
+        }
 
-/* toast */
-#toastBox{
-position:fixed;
-top:20px;
-right:20px;
-z-index:999;
-}
+        .search-box {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 0;
+            padding: 0.75rem 0;
+            font-size: 1rem;
+            box-shadow: none !important;
+            margin-bottom: 2rem;
+        }
+        .search-box:focus { border-color: var(--accent-gold); }
 
-</style>
+        .menu-section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+            padding-top: 1rem;
+        }
 
+        .menu-card {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .menu-card:hover {
+            border-color: var(--accent-gold);
+            background: var(--panel-bg);
+            transform: translateY(-2px);
+        }
+        .item-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.05rem;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+        .item-price {
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        /* Context Area (Cart/Running) - Desktop */
+        .context-sidebar {
+            width: 380px;
+            border-left: 1px solid var(--border-color);
+            background: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+
+        .context-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .context-tab {
+            flex: 1;
+            text-align: center;
+            padding: 1rem 0;
+            cursor: pointer;
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+        }
+        .context-tab.active {
+            color: var(--text-main);
+            border-bottom-color: var(--accent-gold);
+        }
+        
+        .context-body {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* Cart Rows Minimal */
+        .cart-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+        .cart-item-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+        .cart-item-note {
+            font-size: 0.75rem;
+            color: var(--accent-gold);
+            font-style: italic;
+        }
+        .cart-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
+        .qty-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        .qty-value {
+            font-size: 0.85rem;
+            width: 20px;
+            text-align: center;
+        }
+        .cart-item-price {
+            font-weight: 500;
+            font-size: 0.85rem;
+            width: 55px;
+            text-align: right;
+            color: var(--text-main);
+        }
+
+        /* Desktop Cart Summary Fixed Footer */
+        .cart-summary {
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem;
+            background: var(--panel-bg);
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            margin: 1rem 0 1.5rem;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: var(--text-main);
+        }
+
+        /* Form Controls Minimal */
+        .form-select-luxury, .form-control-minimal {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 0;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+        .form-select-luxury { margin-bottom: 1.5rem; }
+        .form-select-luxury:focus, .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); }
+
+        /* Running Item Rows */
+        .running-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+        .status-badge {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            padding: 0.3rem 0.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Modal */
+        .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
+        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+        .modal-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+
+        /* MOBILE FLOATING FAB & OFFCANVAS CART */
+        .fab-cart {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            background: var(--accent-gold);
+            color: #fff;
+            padding: 1rem;
+            border-radius: 0;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            z-index: 1020;
+            text-align: center;
+            border: none;
+            transition: var(--transition-smooth);
+        }
+        
+        .offcanvas-luxury {
+            background: var(--panel-bg);
+            color: var(--text-main);
+            border-left: 1px solid var(--border-color);
+        }
+        .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 991px) {
+            .category-sidebar { display: none; }
+            .mobile-category-nav { display: block; }
+            .context-sidebar { display: none; } /* Replaced by Offcanvas */
+            .fab-cart { display: block; }
+            
+            .workspace { flex-direction: column; overflow-y: auto; height: 100vh; padding-bottom: 80px; }
+            .menu-area { padding: 1.5rem 1rem; overflow-y: visible; }
+            .pos-header { padding: 1rem; }
+            
+            body { overflow-y: auto; } /* Allow native scroll on mobile */
+        }
+        
+        @media (min-width: 992px) {
+            .offcanvas-luxury { display: none !important; }
+        }
+
+        /* Toast Minimal */
+        .toast-minimal {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--text-main);
+            color: var(--bg-color);
+            padding: 1rem 1.5rem;
+            z-index: 1060;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+        .toast-minimal.show { opacity: 1; pointer-events: auto; }
+        
+    </style>
 </head>
 
 <body>
 
-<div id="toastBox"></div>
+<div id="toastBox" class="toast-minimal">Message</div>
 
-<div class="container-fluid mt-3">
+<!-- HEADER -->
+<header class="pos-header">
+    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS</h1>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
+        <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
+        <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-bell me-1"></i> Calls</a>
+        <a href="/reports/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+        <a href="/login/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+        
+        <!-- Mobile compact links -->
+        <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
+        <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
+        <a href="/waiter-dashboard/" class="btn-icon d-sm-none" title="Calls"><i class="bi bi-bell"></i></a>
+        <a href="/reports/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+        <a href="/login/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 
-<div class="d-flex justify-content-between mb-3">
+        <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
+            <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+    </div>
+</header>
 
-<h4>POS Billing</h4>
+<div class="workspace">
 
-<div>
-<button class="btn btn-sm btn-outline-secondary" onclick="toggleDark()">🌙</button>
-<a href="/tables/" class="btn btn-dark btn-sm">Tables</a>
-<a href="/kitchen/" class="btn btn-secondary btn-sm">Kitchen</a>
-</div>
+    <!-- DESKTOP CATEGORIES -->
+    <aside class="category-sidebar">
+        <div class="category-title">Menu</div>
+        <ul class="category-list">
+            {% for category in categories %}
+            <li class="category-item" onclick="scrollToCategory('cat{{category.id}}', this)">
+                {{category.name}}
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
 
-</div>
+    <!-- MOBILE CATEGORIES (Horizontal Strip) -->
+    <div class="mobile-category-nav">
+        {% for category in categories %}
+        <div class="category-item" onclick="scrollToCategory('cat{{category.id}}', this)">
+            {{category.name}}
+        </div>
+        {% endfor %}
+    </div>
 
-<div class="row g-3">
+    <!-- MAIN MENU AREA -->
+    <main class="menu-area">
+        <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu...">
 
-<!-- CATEGORY -->
-<div class="col-12 col-md-2">
-<div class="panel">
+        <div id="menuCardsContainer">
+            {% for category in categories %}
+            <h3 id="cat{{category.id}}" class="menu-section-title">{{category.name}}</h3>
+            <div class="row g-3 g-md-4 mb-5">
+                {% for item in category.items.all %}
+                <div class="col-6 col-lg-6 menu-item-searchable">
+                    <div class="menu-card" onclick="openItemModal({{item.id}}, '{{item.name|escapejs}}', {{item.price}})">
+                        <div>
+                            <div class="item-name">{{item.name}}</div>
+                        </div>
+                        <div class="item-price">₹{{item.price|floatformat:0}}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </main>
 
-<h6>Categories</h6>
+    <!-- DESKTOP CONTEXT SIDEBAR -->
+    <aside class="context-sidebar">
+        <div class="context-tabs">
+            <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">Order</div>
+            <div class="context-tab" id="tabRunning" onclick="switchTab('running')">Active</div>
+        </div>
 
-<ul class="list-group">
+        <div class="context-body" id="cartView">
+            <select id="tableSelectDesktop" class="form-select-luxury table-syncer" onchange="syncTableSelect(this.value)">
+                <option value="">Walk-in</option>
+                {% for table in tables %}
+                <option value="{{table.id}}" {% if selected_table == table.id|stringformat:"s" %}selected{% endif %}>{{table.name}}</option>
+                {% endfor %}
+            </select>
+            <div id="cartItemsContainerDesktop" style="min-height: 200px;"></div>
+        </div>
 
-{% for category in categories %}
-<li class="list-group-item list-group-item-action"
-onclick="scrollToCategory('cat{{category.id}}')">
-{{category.name}}
-</li>
-{% endfor %}
+        <div class="context-body d-none" id="runningView">
+            <div id="runningItemsDesktop"></div>
+        </div>
 
-</ul>
-
-</div>
-</div>
-
-<!-- MENU -->
-<div class="col-12 col-md-6">
-<div class="panel">
-
-<input id="menuSearch" class="form-control mb-3" placeholder="Search item...">
-
-{% for category in categories %}
-
-<h6 id="cat{{category.id}}" class="mt-3">{{category.name}}</h6>
-
-<div class="row">
-
-{% for item in category.items.all %}
-<div class="col-6 col-md-4 mb-3 menu-card">
-
-<div class="card menu-item"
-onclick="openItemModal({{item.id}}, '{{item.name|escapejs}}', {{item.price}})">
-
-<div class="card-body text-center">
-<strong class="item-name">{{item.name}}</strong>
-<p class="mb-0">₹{{item.price}}</p>
-</div>
-
-</div>
-
-</div>
-{% endfor %}
-
-</div>
-
-{% endfor %}
-
-</div>
-</div>
-
-<!-- CART -->
-<div class="col-12 col-md-4">
-<div class="panel">
-
-<h5>Order</h5>
-
-<select id="tableSelect" class="form-select mb-3">
-<option value="">Takeaway</option>
-{% for table in tables %}
-<option value="{{table.id}}" {% if selected_table == table.id|stringformat:"s" %}selected{% endif %}>
-{{table.name}}
-</option>
-{% endfor %}
-</select>
-
-<div id="cart"></div>
-
-<hr>
-
-<h6 id="subtotal">Subtotal ₹0</h6>
-<h6 id="gst">GST ₹0</h6>
-<h4 id="total">Total ₹0</h4>
-
-<div class="d-grid gap-2 mt-3">
-
-<button class="btn btn-success" id="sendBtn" onclick="submitOrder()">Send To Kitchen</button>
-<button class="btn btn-primary" onclick="openRunningOrder()">Running Order</button>
-<button class="btn btn-dark" onclick="generateBill()">Generate Bill</button>
-<button class="btn btn-warning" onclick="openTransferModal()">Transfer Table</button>
-<button class="btn btn-outline-danger" onclick="clearCart()">Clear Cart</button>
-
-</div>
-
-<hr>
-
-<h6>Running Items</h6>
-<div id="running-items"></div>
+        <div class="cart-summary" id="cartSummaryBlock">
+            <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row"><span>Taxes (5%)</span><span class="view-gst">₹0</span></div>
+            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+            <div class="d-flex flex-column gap-2 mt-3">
+                <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch <i class="bi bi-arrow-right ms-2"></i></button>
+                <div class="d-flex gap-2">
+                    <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
+                    <button class="btn-luxury w-50" style="color:var(--text-muted); border-color:var(--border-color);" onclick="clearCart()">Clear</button>
+                </div>
+            </div>
+        </div>
+    </aside>
 
 </div>
+
+<!-- MOBILE FLOATING ACTION BUTTON -->
+<button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas">
+    View Order (<span class="view-total">₹0</span>)
+</button>
+
+<!-- MOBILE OFFCANVAS CART -->
+<div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
+    <div class="offcanvas-header">
+        <h5 class="custom-title m-0" style="font-family:'Playfair Display', serif;">Current Order</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    
+    <div class="context-tabs">
+        <div class="context-tab active" id="tabCartMobile" onclick="switchTabMobile('cart')">Order</div>
+        <div class="context-tab" id="tabRunningMobile" onclick="switchTabMobile('running')">Active</div>
+    </div>
+        
+    <div class="offcanvas-body d-flex flex-column p-0">
+        
+        <div class="context-body flex-grow-1" id="cartViewMobile">
+            <select id="tableSelectMobile" class="form-select-luxury table-syncer" style="margin-bottom:1rem;" onchange="syncTableSelect(this.value)">
+                <option value="">Walk-in</option>
+                {% for table in tables %}
+                <option value="{{table.id}}" {% if selected_table == table.id|stringformat:"s" %}selected{% endif %}>{{table.name}}</option>
+                {% endfor %}
+            </select>
+            <div id="cartItemsContainerMobile"></div>
+        </div>
+        
+        <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
+            <div id="runningItemsMobile"></div>
+        </div>
+        
+        <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
+            <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row"><span>Taxes (5%)</span><span class="view-gst">₹0</span></div>
+            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+            <div class="d-flex flex-column gap-2 mt-3">
+                <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
+                <div class="d-flex gap-2">
+                    <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
+                    <button class="btn-luxury w-50" style="color:var(--text-muted); border-color:var(--border-color);" onclick="clearCart()">Clear</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-</div>
-</div>
 
-<!-- MODAL -->
-<div class="modal fade" id="itemModal">
-<div class="modal-dialog">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5 id="modalItemName"></h5>
-</div>
-
-<div class="modal-body">
-<div id="modifierGroups"></div>
-<textarea id="itemNote" class="form-control mt-2" placeholder="Note"></textarea>
-</div>
-
-<div class="modal-footer">
-<button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-<button class="btn btn-primary" onclick="addItemWithModifiers()">Add</button>
-</div>
-
-</div>
-</div>
+<!-- ITEM MODAL -->
+<div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="modalItemName">Item Name</h5>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Special Instructions</p>
+                <textarea id="itemNote" class="form-control form-control-minimal" rows="3" placeholder="Dietary requirements or prep notes..."></textarea>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn-luxury btn-luxury-primary" onclick="addItemWithModifiers()">Add to Order</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+    /* THEME MANAGEMENT */
+    let isDark = localStorage.getItem("dark") === "true";
 
-let cart=[]
-let selectedItem=null
-let sending=false
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
+        else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+    }
+    updateIcons();
 
-/* TOAST */
-function showToast(msg){
-let t=document.createElement("div")
-t.className="alert alert-dark"
-t.innerText=msg
-document.getElementById("toastBox").appendChild(t)
-setTimeout(()=>t.remove(),2000)
-}
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
 
-/* DARK MODE */
-function toggleDark(){
-document.body.classList.toggle("dark")
-localStorage.setItem("dark",document.body.classList.contains("dark"))
-}
+    /* TOAST */
+    function showToast(msg){
+        let t = document.getElementById("toastBox");
+        t.innerText = msg; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
+    }
 
-if(localStorage.getItem("dark")==="true"){
-document.body.classList.add("dark")
-}
+    /* STATE */
+    let cart = [];
+    let selectedItem = null;
+    let sending = false;
 
-/* SEARCH */
-document.addEventListener("DOMContentLoaded",()=>{
+    /* TABS DESKTOP */
+    function switchTab(tab) {
+        document.getElementById("tabCart").classList.toggle("active", tab==='cart');
+        document.getElementById("tabRunning").classList.toggle("active", tab==='running');
+        document.getElementById("cartView").classList.toggle("d-none", tab!=='cart');
+        document.getElementById("runningView").classList.toggle("d-none", tab!=='running');
+        document.getElementById("cartSummaryBlock").classList.toggle("d-none", tab!=='cart');
+    }
+    
+    /* TABS MOBILE */
+    function switchTabMobile(tab) {
+        document.getElementById("tabCartMobile").classList.toggle("active", tab==='cart');
+        document.getElementById("tabRunningMobile").classList.toggle("active", tab==='running');
+        document.getElementById("cartViewMobile").classList.toggle("d-none", tab!=='cart');
+        document.getElementById("runningViewMobile").classList.toggle("d-none", tab!=='running');
+        document.getElementById("cartSummaryBlockMobile").classList.toggle("d-none", tab!=='cart');
+    }
 
-document.getElementById("menuSearch").addEventListener("input",function(){
-let t=this.value.toLowerCase()
-document.querySelectorAll(".menu-card").forEach(c=>{
-let n=c.querySelector(".item-name").innerText.toLowerCase()
-c.style.display=n.includes(t)?"block":"none"
-})
-})
+    /* SEARCH */
+    document.getElementById("menuSearch").addEventListener("input", function() {
+        let t = this.value.toLowerCase();
+        document.querySelectorAll(".menu-item-searchable").forEach(c => {
+            c.style.display = c.querySelector(".item-name").innerText.toLowerCase().includes(t) ? "block" : "none";
+        });
+    });
 
-})
+    /* SCROLL CATEGORIES */
+    function scrollToCategory(id, el){
+        document.querySelectorAll(".category-item").forEach(i => i.classList.remove("active"));
+        if(el) el.classList.add("active");
+        
+        // Also sync the other nav (desktop vs mobile)
+        let idx = Array.from(el.parentNode.children).indexOf(el);
+        if(document.querySelectorAll('.category-sidebar .category-item')[idx]){
+            document.querySelectorAll('.category-sidebar .category-item')[idx].classList.add("active");
+        }
+        if(document.querySelectorAll('.mobile-category-nav .category-item')[idx]){
+            document.querySelectorAll('.mobile-category-nav .category-item')[idx].classList.add("active");
+        }
 
-/* MODAL */
-function openItemModal(id,name,price){
-selectedItem={id,name,price}
-document.getElementById("modalItemName").innerText=name
-document.getElementById("itemNote").value=""
-new bootstrap.Modal(document.getElementById("itemModal")).show()
-}
+        const target = document.getElementById(id);
+        if(target) {
+            // Check if mobile or desktop view for scrolling context
+            if(window.innerWidth < 992) {
+                window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+            } else {
+                document.querySelector(".menu-area").scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+            }
+        }
+    }
 
-/* ADD ITEM */
-function addItemWithModifiers(){
+    /* SYNC SELECT */
+    function syncTableSelect(val) {
+        document.querySelectorAll(".table-syncer").forEach(s => s.value = val);
+        loadRunningOrder();
+    }
 
-let note=document.getElementById("itemNote").value
+    /* MODAL */
+    let activeModal = null;
+    function openItemModal(id, name, price) {
+        selectedItem = { id, name, price };
+        document.getElementById("modalItemName").innerText = name;
+        document.getElementById("itemNote").value = "";
+        activeModal = new bootstrap.Modal(document.getElementById("itemModal"));
+        activeModal.show();
+    }
 
-let existing=cart.find(i=>i.id===selectedItem.id && i.note===note)
+    /* ADD ITEM */
+    function addItemWithModifiers() {
+        let note = document.getElementById("itemNote").value.trim();
+        let existing = cart.find(i => i.id === selectedItem.id && i.note === note);
+        if(existing) existing.quantity++;
+        else cart.push({ id: selectedItem.id, name: selectedItem.name, price: selectedItem.price, quantity: 1, note: note });
+        
+        renderCart();
+        if(activeModal) activeModal.hide();
+    }
 
-if(existing){
-existing.quantity++
-}else{
-cart.push({
-id:selectedItem.id,
-name:selectedItem.name,
-price:selectedItem.price,
-quantity:1,
-note
-})
-}
+    /* RENDER CART */
+    function renderCart() {
+        let dc = document.getElementById("cartItemsContainerDesktop");
+        let mc = document.getElementById("cartItemsContainerMobile");
+        dc.innerHTML = ""; mc.innerHTML = "";
+        
+        let subtotal = 0;
 
-renderCart()
+        if (cart.length === 0) {
+            let emptyMsg = `<div class="text-center text-muted" style="margin-top:20px; text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;">Empty Order</div>`;
+            dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
+        }
 
-bootstrap.Modal.getInstance(document.getElementById("itemModal")).hide()
-}
+        cart.forEach((i, idx) => {
+            let total = i.price * i.quantity;
+            subtotal += total;
 
-/* CART */
-function renderCart(){
+            let html = `
+            <div class="cart-row">
+                <div style="flex-grow:1; padding-right:10px;">
+                    <div class="cart-item-name">${i.name}</div>
+                    ${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}
+                </div>
+                <div class="cart-controls">
+                    <div class="qty-controls">
+                        <button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button>
+                        <span class="qty-value">${i.quantity}</span>
+                        <button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button>
+                    </div>
+                    <div class="cart-item-price">₹${total}</div>
+                </div>
+            </div>`;
+            dc.innerHTML += html;
+            mc.innerHTML += html;
+        });
 
-let div=document.getElementById("cart")
-div.innerHTML=""
+        let gst = Math.round(subtotal * 0.05);
+        let grandTotal = subtotal + gst;
 
-let subtotal=0
+        document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + subtotal);
+        document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + gst);
+        document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + grandTotal);
+    }
 
-cart.forEach((i,idx)=>{
+    function inc(i) { cart[i].quantity++; renderCart(); }
+    function dec(i) { cart[i].quantity--; if(cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
+    function clearCart() { cart = []; renderCart(); }
 
-let total=i.price*i.quantity
-subtotal+=total
+    /* RUNNING ORDER */
+    function loadRunningOrder() {
+        let tableId = document.getElementById("tableSelectDesktop").value;
+        let rd = document.getElementById("runningItemsDesktop");
+        let rm = document.getElementById("runningItemsMobile");
+        
+        if(!tableId) {
+            let msg = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>Select table</div>";
+            if(rd) rd.innerHTML = msg;
+            if(rm) rm.innerHTML = msg;
+            return;
+        }
 
-div.innerHTML+=`
-<div class="cart-row">
-<div>${i.name}</div>
-<div>
-<button class="qty-btn" onclick="dec(${idx})">-</button>
-${i.quantity}
-<button class="qty-btn" onclick="inc(${idx})">+</button>
-</div>
-<div>₹${total}</div>
-</div>
-`
+        fetch(`/running-order-items/?table=${tableId}`)
+        .then(r => r.json())
+        .then(d => {
+            let html = "";
+            if(!d.items || d.items.length === 0){
+                html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>No active services</div>";
+            } else {
+                d.items.forEach(i => {
+                    let statusClass = i.status === "ready" ? "status-ready" : (i.status==="preparing" ? "border-warning text-warning" : "");
+                    html += `
+                    <div class="running-row">
+                        <span style="font-family:'Playfair Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
+                        <span class="status-badge ${statusClass}">${i.status}</span>
+                    </div>`;
+                });
+                if(d.order_id) {
+                    html += `<div class="mt-4"><button class="btn-luxury w-100 border-danger text-danger" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Entire Order</button></div>`;
+                }
+            }
+            if(rd) rd.innerHTML = html;
+            if(rm) rm.innerHTML = html;
+        }).catch(err => console.error(err));
+    }
 
-})
+    /* SUBMIT ORDER */
+    function submitOrder() {
+        if(sending) return;
+        if(cart.length === 0){ showToast("Empty order."); return; }
+        
+        let tableId = document.getElementById("tableSelectDesktop").value;
+        sending = true;
+        document.querySelectorAll(".send-btn").forEach(b => {
+            b.disabled = true; b.innerHTML = 'Dispatching...';
+        });
 
-let gst=subtotal*0.05
-let total=subtotal+gst
+        fetch("/create-order/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            body: JSON.stringify({ cart: cart, table_id: tableId })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(!d.success) { showToast(d.error); resetSendBtn(); return; }
+            fetch(`/send-to-kitchen/${d.order_id}/`, { method: "POST", headers: {"X-CSRFToken": getCookie("csrftoken")} })
+            .then(() => {
+                showToast("Order Sent");
+                clearCart();
+                resetSendBtn();
+                loadRunningOrder();
+                // Optionally close offcanvas
+                let offcanvasEl = document.getElementById('mobileCartOffcanvas');
+                let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                if(offcanvas) offcanvas.hide();
+            });
+        }).catch(() => resetSendBtn());
+    }
+    
+    function resetSendBtn() {
+        sending = false;
+        document.querySelectorAll(".send-btn").forEach(b => {
+            b.disabled = false; b.innerHTML = 'Dispatch <i class="bi bi-arrow-right ms-2"></i>';
+        });
+    }
 
-document.getElementById("subtotal").innerText="Subtotal ₹"+subtotal
-document.getElementById("gst").innerText="GST ₹"+gst
-document.getElementById("total").innerText="Total ₹"+total
+    function generateBill() {
+        let tableId = document.getElementById("tableSelectDesktop").value;
+        if(!tableId) { showToast("Select table."); return; }
+        window.location.href = "/bill/" + tableId + "/";
+    }
 
-}
+    function cancelOrder(orderId) {
+        if(!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
+        fetch(`/cancel-order/${orderId}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                showToast("Order Cancelled!");
+                loadRunningOrder();
+            } else {
+                showToast(data.error || "Failed to cancel order.");
+            }
+        });
+    }
 
-function inc(i){cart[i].quantity++;renderCart()}
-function dec(i){cart[i].quantity--;if(cart[i].quantity<=0)cart.splice(i,1);renderCart()}
-function clearCart(){cart=[];renderCart()}
+    function getCookie(name) {
+        let v = null;
+        if (document.cookie) {
+            document.cookie.split(";").forEach(c => {
+                if(c.trim().startsWith(name + "=")) v = decodeURIComponent(c.split("=")[1]);
+            });
+        }
+        return v;
+    }
 
-/* ORDER */
-function submitOrder(){
-
-if(sending)return
-if(cart.length===0){showToast("Cart empty");return}
-
-sending=true
-document.getElementById("sendBtn").disabled=true
-
-fetch("/create-order/",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({cart:cart,table_id:tableSelect.value})
-})
-.then(r=>r.json())
-.then(d=>{
-
-if(!d.success){showToast(d.error);sending=false;return}
-
-fetch(`/send-to-kitchen/${d.order_id}/`,{
-method:"POST",
-headers:{"X-CSRFToken":getCookie("csrftoken")}
-}).then(()=>{
-
-showToast("Order sent")
-cart=[]
-renderCart()
-sending=false
-document.getElementById("sendBtn").disabled=false
-loadRunningOrder()
-
-})
-
-})
-
-}
-
-/* RUNNING */
-function loadRunningOrder(){
-
-let tableId=tableSelect.value
-if(!tableId)return
-
-fetch(`/running-order-items/?table=${tableId}`)
-.then(r=>r.json())
-.then(d=>{
-
-let c=document.getElementById("running-items")
-c.innerHTML=""
-
-d.items.forEach(i=>{
-c.innerHTML+=`<div class="running-row">${i.quantity} × ${i.name} - ${i.status}</div>`
-})
-
-})
-
-}
-
-/* OTHER */
-function openRunningOrder(){
-if(!tableSelect.value){showToast("Select table");return}
-window.location.href="/order/"+tableSelect.value+"/"
-}
-
-function generateBill(){
-if(!tableSelect.value){showToast("Select table");return}
-window.location.href="/bill/"+tableSelect.value+"/"
-}
-
-function scrollToCategory(id){
-document.getElementById(id).scrollIntoView({behavior:"smooth"})
-}
-
-function getCookie(name){
-let v=null
-document.cookie.split(";").forEach(c=>{
-if(c.trim().startsWith(name+"=")){
-v=decodeURIComponent(c.split("=")[1])
-}
-})
-return v
-}
-
-/* INIT */
-document.addEventListener("DOMContentLoaded",()=>{
-loadRunningOrder()
-setInterval(loadRunningOrder,4000)
-})
+    document.addEventListener("DOMContentLoaded", () => {
+        renderCart(); loadRunningOrder(); setInterval(loadRunningOrder, 5000);
+        // Default category select desktop & mobile
+        const f1 = document.querySelector(".category-sidebar .category-item"); if(f1) f1.classList.add("active");
+        const f2 = document.querySelector(".mobile-category-nav .category-item"); if(f2) f2.classList.add("active");
+    });
 
 </script>
-
 </body>
 </html>

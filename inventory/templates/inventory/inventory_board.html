@@ -1,310 +1,362 @@
-{% comment %} inventory/templates/inventory/inventory_board.html {% endcomment %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-
-<title>Inventory</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
-
-.card{
-border-radius:14px;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-.low{
-color:red;
-font-weight:600;
-}
-
-.stock{
-font-weight:600;
-}
-
-.restock-input{
-width:90px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container mt-4">
-
-<div class="header">
-
-<h3>Inventory Board</h3>
-
-<div>
-<button class="btn btn-primary me-2" onclick="openAddInventoryModal()">➕ Add Ingredient</button>
-
-<a href="/tables/" class="btn btn-dark me-2">Tables</a>
-<a href="/billing/" class="btn btn-success me-2">Billing</a>
-<a href="/dashboard/" class="btn btn-secondary">Reports</a>
-
-</div>
-
-</div>
-
-
-<div class="card p-4">
-
-<table class="table table-striped">
-
-<thead>
-
-<tr>
-<th>Ingredient</th>
-<th>Stock</th>
-<th>Unit</th>
-<th>Status</th>
-<th>Refill</th>
-</tr>
-
-</thead>
-
-<tbody>
-
-{% for item in items %}
-
-<tr>
-
-<td>{{item.name}}</td>
-
-<td id="stock{{item.id}}" class="stock">
-{{item.stock}}
-</td>
-
-<td>{{item.unit}}</td>
-
-<td>
-
-{% if item.is_low_stock %}
-<span class="low">Low Stock</span>
-{% else %}
-<span class="text-success">OK</span>
-{% endif %}
-
-</td>
-
-<td>
-
-<div class="d-flex">
-
-<input
-type="number"
-min="0"
-step="0.01"
-id="add{{item.id}}"
-class="form-control form-control-sm restock-input me-2"
-placeholder="+">
-
-<button
-class="btn btn-sm btn-success"
-onclick="restock({{item.id}})">
-Add
-</button>
-
-</div>
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
-
-</div>
-
-
-<!-- ADD INVENTORY MODAL -->
-
-<div class="modal fade" id="inventoryModal">
-<div class="modal-dialog">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Inventory Item</h5>
-<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-</div>
-
-<div class="modal-body">
-
-<input id="invName" class="form-control mb-2" placeholder="Item name">
-
-<select id="invUnit" class="form-select mb-2">
-<option value="pcs">Pieces</option>
-<option value="g">Grams</option>
-<option value="kg">Kilograms</option>
-<option value="ml">Milliliters</option>
-<option value="l">Liters</option>
-</select>
-
-<input id="invStock" type="number" step="0.01" class="form-control mb-2" placeholder="Initial stock">
-
-<input id="invThreshold" type="number" step="0.01" class="form-control" placeholder="Low stock threshold">
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-success" onclick="createInventoryItem()">
-Create
-</button>
-
-</div>
-
-</div>
-</div>
-</div>
-
-<script>
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-}
-
-}
-
-}
-
-return cookieValue
-
-}
-
-
-
-function restock(id){
-
-let qty=document.getElementById("add"+id).value
-
-if(!qty || qty<=0){
-
-alert("Enter quantity")
-
-return
-
-}
-
-fetch(`/inventory/restock/${id}/`,{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-quantity:qty
-})
-
-})
-
-.then(res=>res.json())
-
-.then(data=>{
-
-if(data.success){
-
-document.getElementById("stock"+id).innerText=data.new_stock
-
-document.getElementById("add"+id).value=""
-
-}else{
-
-alert("Restock failed")
-
-}
-
-})
-
-}
-
-function openAddInventoryModal(){
-    new bootstrap.Modal(
-        document.getElementById("inventoryModal")
-    ).show()
-}
-
-
-function createInventoryItem(){
-
-    let name = document.getElementById("invName").value
-    let unit = document.getElementById("invUnit").value
-    let stock = document.getElementById("invStock").value
-    let threshold = document.getElementById("invThreshold").value
-
-    if(!name){
-        alert("Enter name")
-        return
-    }
-
-    fetch("/inventory/create/",{
-
-        method:"POST",
-
-        headers:{
-            "Content-Type":"application/json",
-            "X-CSRFToken":getCookie("csrftoken")
-        },
-
-        body:JSON.stringify({
-            name:name,
-            unit:unit,
-            stock:parseFloat(stock) || 0,
-            threshold:parseFloat(threshold) || 0
-        })
-
-    })
-    .then(res=>res.json())
-    .then(data=>{
-
-        if(data.success){
-            location.reload()
-        }else{
-            alert(data.error || "Failed")
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory | {{ request.user.outlet.name|default:"POS" }}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-gold: #c5a059;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-    })
+        body.dark {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
 
-}
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+        }
 
+        h1, h2, h3, h4, h5, .serif-text { font-family: 'Playfair Display', serif; }
 
-</script>
+        /* HEADER */
+        .pos-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            flex-wrap: wrap;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
 
+        .brand-title {
+            font-size: 1.5rem; margin: 0; color: var(--text-main);
+            font-weight: 700; letter-spacing: 0.5px;
+        }
+
+        /* BUTTONS */
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-main);
+            padding: 0.5rem 1.2rem; font-size: 0.85rem; text-transform: uppercase;
+            letter-spacing: 1px; font-weight: 600; border-radius: 4px;
+            transition: var(--transition-smooth); display: inline-flex; align-items: center;
+            text-decoration: none;
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main);
+        }
+        .btn-gold {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
+        }
+        .btn-gold:hover {
+            background: #b59250; border-color: #b59250; color: #fff;
+        }
+
+        /* TABLE STYLING */
+        .inventory-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-soft);
+            overflow: hidden;
+            margin-top: 2rem;
+        }
+        
+        .table {
+            margin-bottom: 0;
+            color: var(--text-main);
+        }
+        
+        .table th {
+            background: rgba(0,0,0,0.02);
+            border-bottom: 1px solid var(--border-color);
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            padding: 1.2rem 1.5rem;
+            font-weight: 600;
+        }
+        body.dark .table th { background: rgba(255,255,255,0.02); color: var(--text-muted); }
+
+        .table td {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.2rem 1.5rem;
+            vertical-align: middle;
+            color: var(--text-main);
+        }
+
+        .table-hover tbody tr:hover td {
+            background: rgba(197, 160, 89, 0.05);
+        }
+
+        .stock-val { font-family: 'Space Mono', monospace; font-weight: 600; font-size: 1.1rem; }
+        
+        /* STATUS BADGES */
+        .status-badge {
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+            padding: 5px 10px; border-radius: 4px; display: inline-block;
+        }
+        .badge-ok { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
+        .badge-low { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
+
+        /* INPUTS */
+        .input-luxury {
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 4px; width: 100px;
+            font-family: 'Space Mono', monospace; transition: var(--transition-smooth);
+        }
+        .input-luxury:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2); }
+        .input-luxury::placeholder { font-family: 'Inter', sans-serif; color: var(--text-muted); }
+
+        /* MODALS */
+        .modal-content { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
+        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+        .modal-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--text-main); }
+        .modal-body { padding: 1.5rem; }
+        .modal .form-control, .modal .form-select {
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+            padding: 0.8rem; border-radius: 4px;
+        }
+        .modal .form-control:focus, .modal .form-select:focus {
+            border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2); background: transparent; color: var(--text-main);
+        }
+        body.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
+        .btn-close { filter: var(--bs-btn-close-filter); }
+        body.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="pos-header">
+        <h1 class="brand-title serif-text">Inventory Management</h1>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn-luxury btn-gold d-none d-sm-inline-flex" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+            <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
+            <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+            <a href="/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+            
+            <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
+            
+            <button class="btn-icon" style="background:transparent; border:none; color:var(--text-main); font-size:1.2rem; cursor:pointer;" onclick="toggleDark()" title="Toggle Theme">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="container-fluid mx-auto py-4" style="max-width: 1200px; padding: 0 2rem;">
+        
+        <!-- Action bar for mobile -->
+        <div class="d-sm-none mb-3">
+             <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+        </div>
+
+        <div class="inventory-card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Current Stock</th>
+                            <th>Unit</th>
+                            <th>Status</th>
+                            <th>Refill Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="fw-semibold">{{item.name}}</td>
+                            <td id="stock{{item.id}}" class="stock-val">
+                                {{item.stock}}
+                            </td>
+                            <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{item.unit}}</td>
+                            <td>
+                                {% if item.is_low_stock %}
+                                <span class="status-badge badge-low"><i class="bi bi-exclamation-triangle me-1"></i> Low Stock</span>
+                                {% else %}
+                                <span class="status-badge badge-ok"><i class="bi bi-check-circle me-1"></i> Optimal</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <input type="number" min="0" step="0.01" id="add{{item.id}}" class="input-luxury" placeholder="Qty">
+                                    <button class="btn-luxury px-3" onclick="restock({{item.id}})">Add</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ADD INVENTORY MODAL -->
+    <div class="modal fade" id="inventoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title m-0">Add Ingredient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
+                        <input id="invName" class="form-control" placeholder="e.g. Flour, Tomatoes, Olive Oil">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Measurement Unit</label>
+                        <select id="invUnit" class="form-select">
+                            <option value="pcs">Pieces (pcs)</option>
+                            <option value="g">Grams (g)</option>
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="ml">Milliliters (ml)</option>
+                            <option value="l">Liters (l)</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Initial Stock</label>
+                            <input id="invStock" type="number" step="0.01" class="form-control" placeholder="0.00">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
+                            <input id="invThreshold" type="number" step="0.01" class="form-control" placeholder="Alert below...">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="createInventoryItem()">Create Ingredient</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        /* THEME MANAGEMENT */
+        let isDark = localStorage.getItem("dark") === "true";
+        function updateIcons() {
+            let icon = document.getElementById("themeIcon");
+            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
+            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+        }
+        updateIcons();
+        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+        /* API */
+        function getCookie(name){
+            let cookieValue=null;
+            if(document.cookie){
+                let cookies=document.cookie.split(";");
+                for(let i=0;i<cookies.length;i++){
+                    let cookie=cookies[i].trim();
+                    if(cookie.substring(0,name.length+1)===(name+"=")){
+                        cookieValue=decodeURIComponent(cookie.substring(name.length+1));
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function restock(id){
+            let qty = document.getElementById("add"+id).value;
+            if(!qty || qty <= 0){ alert("Please enter a valid quantity."); return; }
+
+            fetch(`/inventory/restock/${id}/`,{
+                method:"POST",
+                headers:{ "Content-Type":"application/json", "X-CSRFToken":getCookie("csrftoken") },
+                body:JSON.stringify({ quantity:qty })
+            })
+            .then(res=>res.json())
+            .then(data=>{
+                if(data.success){
+                    document.getElementById("stock"+id).innerText=data.new_stock;
+                    document.getElementById("add"+id).value="";
+                    // Optionally, reload to refresh low-stock badges
+                    location.reload();
+                }else{
+                    alert("Restock failed");
+                }
+            })
+        }
+
+        function openAddInventoryModal(){
+            new bootstrap.Modal(document.getElementById("inventoryModal")).show();
+        }
+
+        function createInventoryItem(){
+            let name = document.getElementById("invName").value;
+            let unit = document.getElementById("invUnit").value;
+            let stock = document.getElementById("invStock").value;
+            let threshold = document.getElementById("invThreshold").value;
+
+            if(!name){ alert("Please enter an ingredient name."); return; }
+
+            fetch("/inventory/create/",{
+                method:"POST",
+                headers:{ "Content-Type":"application/json", "X-CSRFToken":getCookie("csrftoken") },
+                body:JSON.stringify({
+                    name:name,
+                    unit:unit,
+                    stock:parseFloat(stock) || 0,
+                    threshold:parseFloat(threshold) || 0
+                })
+            })
+            .then(res=>res.json())
+            .then(data=>{
+                if(data.success){
+                    location.reload();
+                }else{
+                    alert(data.error || "Failed to create ingredient.");
+                }
+            })
+        }
+    </script>
 </body>
 </html>

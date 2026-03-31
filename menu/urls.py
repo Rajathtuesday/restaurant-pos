@@ -12,6 +12,8 @@ from .views import (
     update_price,
     toggle_item,
     update_station,
+    ai_menu_importer,
+    delete_category,
 )
 
 urlpatterns = [
@@ -22,7 +24,9 @@ urlpatterns = [
     # menu APIs
     path("create-category/", create_category, name="create_category"),
     path("create-item/", create_menu_item, name="create_menu_item"),
+    path("delete-category/<int:category_id>/", delete_category, name="delete_category"),
     path("add-recipe/", add_recipe, name="add_recipe"),
+    path("ai-import/", ai_menu_importer, name="ai_menu_importer"),
 
     path("delete-item/<int:item_id>/", delete_menu_item, name="delete_menu_item"),
     path("update-price/<int:item_id>/", update_price, name="update_price"),

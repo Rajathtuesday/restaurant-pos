@@ -1,89 +1,146 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Methods | Setup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
+            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        body.dark {
+            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888888;
+            --border-color: #262626; --accent-gold: #d4af37;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; min-height: 100vh; transition: var(--transition-smooth); -webkit-font-smoothing: antialiased; }
+        
+        /* HEADER */
+        .pos-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); }
+        .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; font-weight: 700; }
+        .brand-title i { color: var(--accent-gold); }
+        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition-smooth); text-decoration: none; }
+        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
 
-<title>Payment Methods</title>
+        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+        .page-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; }
+        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        .form-label, .section-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 1.2rem; font-weight: 600; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+        .form-control:focus { border-bottom-color: var(--accent-gold); box-shadow: none; background: transparent; color: var(--text-main); }
+        .form-hint, .empty-state { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .btn-add:hover { opacity: 0.9; }
 
-<style>
+        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+        .alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
 
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
 
-.box{
-max-width:500px;
-margin:100px auto;
-background:white;
-padding:35px;
-border-radius:14px;
-box-shadow:0 8px 25px rgba(0,0,0,0.1);
-}
+        .page-body { max-width: 680px; margin: 4rem auto; padding: 0 2rem; }
+        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+        .page-title { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; margin-bottom: 2.5rem; }
+        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.5rem 0; }
 
-</style>
+        .method-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.5rem 2rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; transition: border-color 0.2s; }
+        .method-card:has(input:checked) { border-color: var(--accent-gold); }
+        .method-icon { font-size: 1.4rem; color: var(--accent-gold); width: 36px; }
+        .method-info { flex: 1; }
+        .method-name { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+        .method-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        .method-label-input { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.75rem; width: 130px; padding: 4px 0; outline: none; }
+        .method-label-input:focus { border-bottom-color: var(--accent-gold); color: var(--text-main); }
 
+        /* Toggle switch */
+        .toggle { position: relative; width: 44px; height: 24px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background: var(--border-color); border-radius: 24px; cursor: pointer; transition: 0.3s; }
+        .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: var(--text-muted); border-radius: 50%; transition: 0.3s; }
+        input:checked + .slider { background: var(--accent-gold); }
+        input:checked + .slider::before { transform: translateX(20px); background: #fff; }
+
+        .btn-save { width: 100%; padding: 1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 2rem; transition: background 0.2s; }
+        .btn-save:hover { background: #b59250; }
+    </style>
 </head>
-
 <body>
+<header class="pos-header">
+    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS Setup</h1>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/setup/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-gear me-1"></i> Setup Area</a>
+        <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
+            <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+    </div>
+</header>
 
-<div class="box">
+<div class="page-body">
+    <p class="page-eyebrow">Configuration</p>
+    <h1 class="page-title">Payment Methods</h1>
+    <div class="divider"></div>
+    <p class="page-sub">Enable the payment types your outlet accepts. You can customise label names (e.g. show "GPay" instead of "UPI").</p>
 
-<h4>Select Payment Methods</h4>
+    <form method="post">
+        {% csrf_token %}
 
-<p class="text-muted">
-Choose the payment methods accepted in your restaurant.
-</p>
+        <div class="method-card">
+            <div class="method-icon"><i class="bi bi-cash-coin"></i></div>
+            <div class="method-info">
+                <div class="method-name">Cash</div>
+                <div class="method-desc">Physical currency payment</div>
+                <input type="text" name="cash_label" class="method-label-input mt-2" value="{{ config.cash_label }}" placeholder="Label (e.g. Cash)">
+            </div>
+            <label class="toggle">
+                <input type="checkbox" name="methods" value="cash" {% if config.cash_enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+        </div>
 
-<form method="POST">
+        <div class="method-card">
+            <div class="method-icon"><i class="bi bi-qr-code-scan"></i></div>
+            <div class="method-info">
+                <div class="method-name">UPI</div>
+                <div class="method-desc">Google Pay, PhonePe, Paytm</div>
+                <input type="text" name="upi_label" class="method-label-input mt-2" value="{{ config.upi_label }}" placeholder="Label (e.g. GPay / UPI)">
+            </div>
+            <label class="toggle">
+                <input type="checkbox" name="methods" value="upi" {% if config.upi_enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+        </div>
 
-{% csrf_token %}
+        <div class="method-card">
+            <div class="method-icon"><i class="bi bi-credit-card"></i></div>
+            <div class="method-info">
+                <div class="method-name">Card</div>
+                <div class="method-desc">Debit / Credit card via POS machine</div>
+                <input type="text" name="card_label" class="method-label-input mt-2" value="{{ config.card_label }}" placeholder="Label (e.g. Card)">
+            </div>
+            <label class="toggle">
+                <input type="checkbox" name="methods" value="card" {% if config.card_enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+        </div>
 
-<div class="form-check">
-
-<input class="form-check-input" type="checkbox" name="methods" value="cash">
-<label class="form-check-label">
-Cash
-</label>
-
+        <button type="submit" class="btn-save">Save Configuration</button>
+    </form>
 </div>
 
-<div class="form-check">
-
-<input class="form-check-input" type="checkbox" name="methods" value="upi">
-<label class="form-check-label">
-UPI
-</label>
-
-</div>
-
-<div class="form-check">
-
-<input class="form-check-input" type="checkbox" name="methods" value="card">
-<label class="form-check-label">
-Card
-</label>
-
-</div>
-
-<br>
-
-<button class="btn btn-dark w-100">
-Save Payment Methods
-</button>
-
-</form>
-
-<div class="text-center mt-3">
-
-<a href="/setup/" class="btn btn-outline-secondary btn-sm">
-Back
-</a>
-
-</div>
-
-</div>
-
+<script>
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+</script>
 </body>
+
 </html>

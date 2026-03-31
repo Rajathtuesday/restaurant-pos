@@ -19,7 +19,19 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
+from django.views.defaults import page_not_found, server_error
 
+
+def custom_404(request, exception):
+    from django.shortcuts import render
+    return render(request, "errors/404.html", status=404)
+
+def custom_500(request):
+    from django.shortcuts import render
+    return render(request, "errors/500.html", status=500)
+
+handler404 = "core.urls.custom_404"
+handler500 = "core.urls.custom_500"
 
 urlpatterns = [
 
@@ -44,4 +56,16 @@ urlpatterns = [
     
     # setup module
     path('setup/', include('setup.urls')),
+
+    # shifts module
+    path('shifts/', include('shifts.urls')),
+
+    # crm module
+    path('crm/', include('crm.urls')),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

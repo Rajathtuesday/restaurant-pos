@@ -1,1006 +1,525 @@
-{% comment %} #menu/templates/menu/menu_management.html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Management | Fine Dining</title>
 
-<title>Menu Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-gold: #c5a059;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
 
-<style>
+        body.dark {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
 
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+        }
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:25px;
-}
+        h1, h2, h3, h4, h5, .serif-text { font-family: 'Playfair Display', serif; }
 
-.category-card{
-background:white;
-border-radius:14px;
-padding:18px;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
+        /* HEADER */
+        .pos-header {
+            padding: 2.5rem 0 1.5rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
 
-.menu-item{
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid #eee;
-padding:8px 0;
-}
+        .brand-title {
+            font-size: 1.5rem; margin: 0; color: var(--text-main);
+            font-weight: 700; letter-spacing: 0.5px;
+        }
+        .brand-title i { color: var(--accent-gold); font-size: 1.2rem; }
 
-.menu-item:last-child{
-border:none;
-}
+        /* BUTTONS */
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-main);
+            padding: 0.6rem 1.4rem; font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 2px; font-weight: 600; border-radius: 0;
+            transition: var(--transition-smooth); display: inline-flex; align-items: center;
+            text-decoration: none;
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main); color: var(--bg-color); background: var(--text-main);
+        }
+        .btn-gold {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
+        }
+        .btn-gold:hover {
+            background: #b59250; border-color: #b59250; color: #fff;
+        }
 
-.recipe-btn{
-font-size:12px;
-}
+        /* CATEGORY CARD */
+        .category-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 2.5rem 2rem;
+            height: 100%;
+            transition: var(--transition-smooth);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-soft);
+        }
+        .category-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
 
-.disabled-badge{
-font-size:11px;
-margin-left:6px;
-}
+        .category-title {
+            font-size: 1.2rem; text-transform: uppercase; letter-spacing: 3px;
+            color: var(--text-main); text-align: left; margin-bottom: 0;
+        }
+        .category-title::after {
+            content: ''; display: block; width: 40px; height: 1px;
+            background: var(--accent-gold); margin: 15px 0 0;
+        }
 
-.recipe-list{
-font-size:13px;
-color:#666;
-}
+        /* MENU ITEMS */
+        .menu-item-row {
+            padding: 1.25rem 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition-smooth);
+        }
+        .menu-item-row:last-child { border-bottom: none; }
+        
+        .item-identity { display: flex; flex-direction: column; }
+        .item-name { font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 2px; }
+        .item-price { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--accent-gold); font-size: 1.1rem; font-style: italic; }
 
-</style>
+        /* BADGES */
+        .luxury-badge {
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+            font-weight: 600; padding: 2px 8px; border-radius: 0; margin-left: 8px;
+        }
+        .badge-station { background: rgba(31, 41, 55, 0.1); color: var(--text-main); border: 1px solid var(--border-color); }
+        .badge-disabled { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
 
+        /* RECIPE LIST */
+        .recipe-block {
+            padding-left: 1rem; margin-top: 8px; border-left: 1px solid var(--accent-gold);
+            font-size: 0.8rem; color: var(--text-muted);
+        }
+        .recipe-item { margin-bottom: 4px; font-family: 'Space Mono', monospace; }
+
+        /* MODALS */
+        .modal-content { background: var(--panel-bg); border-radius: 0; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
+        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.2rem; }
+        .modal-title { font-family: 'Playfair Display', serif; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+
+        .form-select-luxury, .form-input-luxury {
+            background-color: transparent !important;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main) !important;
+            border-radius: 0;
+            padding: 0.5rem 0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .form-select-luxury:focus, .form-input-luxury:focus { box-shadow: none; border-bottom-color: var(--accent-gold); }
+        
+        .station-select {
+            background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 2px 5px;
+            border-radius: 0; cursor: pointer; transition: var(--transition-smooth);
+        }
+        .station-select:hover { border-color: var(--accent-gold); color: var(--text-main); }
+        body.dark .station-select option { background: var(--panel-bg); color: var(--text-main); }
+
+        .btn-delete:hover { color: #ef4444; }
+
+        /* MULTI-CATEGORY NAVIGATION BAR */
+        .cat-nav-bar {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 2rem;
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            position: sticky;
+            top: 73px; /* Just below main header */
+            z-index: 999;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .cat-nav-bar::-webkit-scrollbar { display: none; }
+        .cat-nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            transition: var(--transition-smooth);
+        }
+        .cat-nav-link:hover { color: var(--accent-gold); }
+
+        .category-section { scroll-margin-top: 150px; }
+
+    </style>
 </head>
-
 <body>
 
-<div class="container mt-4">
-
-<div class="header">
-
-<h3>Menu Management</h3>
-
-<div>
-
-<button class="btn btn-primary btn-sm"
-onclick="openCategoryModal()">
-Add Category
-</button>
-
-<button class="btn btn-success btn-sm"
-onclick="openItemModal()">
-Add Item
-</button>
-
-<a href="/dashboard/" class="btn btn-secondary btn-sm">
-Back
-</a>
-
-</div>
-
-</div>
-
-
-<div class="row">
-
-{% for category in categories %}
-
-<div class="col-md-4 mb-4">
-
-<div class="category-card">
-
-<h5>{{category.name}}</h5>
-
-<hr>
-
-{% for item in category.items.all %}
-
-<div class="menu-item">
-
-<span>
-
-{{item.name}}
-
-{% if not item.is_available %}
-<span class="badge bg-danger disabled-badge">Disabled</span>
-{% endif %}
-
-</span>
-
-<div>
-
-<strong>₹{{item.price}}</strong>
-
-<button
-class="btn btn-outline-primary btn-sm ms-1"
-onclick="editPrice({{item.id}},{{item.price}})">
-Edit
-</button>
-
-<button
-class="btn btn-outline-secondary btn-sm ms-1"
-onclick="toggleItem({{item.id}})">
-Toggle
-</button>
-
-<button
-class="btn btn-outline-dark btn-sm ms-1"
-onclick="openRecipeModal({{item.id}})">
-Recipe
-</button>
-
-<button
-class="btn btn-outline-danger btn-sm ms-1"
-onclick="deleteItem({{item.id}})">
-Delete
-</button>
-
-</div>
-
-</div>
-
-
-<div class="ps-2 recipe-list">
-
-{% for r in item.recipes.all %}
-
-<div>
-
-• {{r.inventory_item.name}} — {{r.quantity_required}}
-
-</div>
-
-{% empty %}
-
-<div style="color:#aaa;font-size:12px;">
-No recipe yet
-</div>
-
-{% endfor %}
-
-</div>
-
-{% empty %}
-
-<p class="text-muted">No items</p>
-
-{% endfor %}
-
-</div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-</div>
-
-
-<!-- CATEGORY MODAL -->
-
-<div class="modal fade" id="categoryModal">
-
-<div class="modal-dialog">
-
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Category</h5>
-</div>
-
-<div class="modal-body">
-
-<input
-id="categoryName"
-class="form-control"
-placeholder="Category name"
-/>
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-primary"
-onclick="createCategory()">
-Create
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- ITEM MODAL -->
-
-<div class="modal fade" id="itemModal">
-
-<div class="modal-dialog">
-
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Menu Item</h5>
-</div>
-
-<div class="modal-body">
-
-<input
-id="itemName"
-class="form-control mb-2"
-placeholder="Item name"
-/>
-
-<input
-id="itemPrice"
-class="form-control mb-2"
-placeholder="Price"
-/>
-
-<select id="itemCategory" class="form-select ">
-
-{% for category in categories %}
-
-<option value="{{category.id}}">
-{{category.name}}
-</option>
-
-{% endfor %}
-
-</select>
-
-<select id="itemStation" class="form-select mt-2">
-
-<option value="">Default Station</option>
-
-{% for s in stations %}
-<option value="{{s.id}}">
-{{s.name}}
-</option>
-{% endfor %}
-
-</select>
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-success"
-onclick="createItem()">
-Create
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<!-- RECIPE MODAL -->
-
-<div class="modal fade" id="recipeModal">
-
-<div class="modal-dialog">
-
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Recipe Ingredient</h5>
-</div>
-
-<div class="modal-body">
-
-<select id="inventorySelect" class="form-select mb-2">
-
-{% for item in inventory %}
-
-<option value="{{item.id}}">
-{{item.name}}
-</option>
-
-{% endfor %}
-
-</select>
-
-<input
-id="recipeQty"
-class="form-control"
-placeholder="Quantity required"
-/>
-
-</div>
-
-<div class="modal-footer">
-
-<button class="btn btn-success"
-onclick="createRecipe()">
-Add Ingredient
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-
-let currentMenuItem=null
-
-
-function getCookie(name){
-
-let cookieValue=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let cookie=cookies[i].trim()
-
-if(cookie.substring(0,name.length+1)===(name+"=")){
-
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-
-}
-
-}
-
-}
-
-return cookieValue
-
-}
-
-
-function openCategoryModal(){
-
-new bootstrap.Modal(
-document.getElementById("categoryModal")
-).show()
-
-}
-
-
-function openItemModal(){
-
-new bootstrap.Modal(
-document.getElementById("itemModal")
-).show()
-
-}
-
-
-function openRecipeModal(itemId){
-
-currentMenuItem=itemId
-
-new bootstrap.Modal(
-document.getElementById("recipeModal")
-).show()
-
-}
-
-
-function createCategory(){
-
-let name=document.getElementById("categoryName").value
-
-fetch("{% url 'create_category' %}",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({name:name})
-
-})
-.then(()=>location.reload())
-
-}
-
-
-function createItem(){
-
-let name=document.getElementById("itemName").value
-let price=document.getElementById("itemPrice").value
-let category=document.getElementById("itemCategory").value
-let station=document.getElementById("itemStation").value
-
-fetch("{% url 'create_menu_item' %}",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-name:name,
-price:price,
-category:category
-station:station
-})
-
-})
-.then(()=>location.reload())
-
-}
-
-
-function createRecipe(){
-
-let inventory=document.getElementById("inventorySelect").value
-let qty=document.getElementById("recipeQty").value
-
-fetch("{% url 'add_recipe' %}",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-menu_item:currentMenuItem,
-inventory_item:inventory,
-quantity:qty
-})
-
-})
-.then(()=>alert("Ingredient added"))
-
-}
-
-
-function deleteItem(id){
-
-if(!confirm("Delete this menu item?")) return
-
-fetch(`/menu/delete-item/${id}/`,{
-
-method:"POST",
-
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-.then(()=>location.reload())
-
-}
-
-
-function toggleItem(id){
-
-fetch(`/menu/toggle-item/${id}/`,{
-
-method:"POST",
-
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-.then(()=>location.reload())
-
-}
-
-
-function editPrice(id,current){
-
-let price=prompt("New price:",current)
-
-if(!price) return
-
-fetch(`/menu/update-price/${id}/`,{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-price:price
-})
-
-})
-.then(()=>location.reload())
-
-}
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-
-
-
-
-
-{% comment %} #menu/templates/menu/menu_management.html {% endcomment %}
-<!DOCTYPE html>
-<html>
-<head>
-
-<title>Menu Management</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:25px;
-}
-
-.category-card{
-background:white;
-border-radius:14px;
-padding:18px;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-
-.menu-item{
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-bottom:1px solid #eee;
-padding:10px 0;
-}
-
-.menu-item:last-child{
-border:none;
-}
-
-.disabled-badge{
-font-size:11px;
-margin-left:6px;
-}
-
-.recipe-list{
-font-size:13px;
-color:#666;
-}
-
-.station-badge{
-font-size:11px;
-margin-left:6px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container mt-4">
-
-<div class="header">
-
-<h3>Menu Management</h3>
-
-<div>
-
-<button class="btn btn-primary btn-sm" onclick="openCategoryModal()">
-Add Category
-</button>
-
-<button class="btn btn-success btn-sm" onclick="openItemModal()">
-Add Item
-</button>
-
-<a href="/dashboard/" class="btn btn-secondary btn-sm">
-Back
-</a>
-
-</div>
-
-</div>
-
-<div class="row">
-
-{% for category in categories %}
-
-<div class="col-md-4 mb-4">
-
-<div class="category-card">
-
-<h5>{{category.name}}</h5>
-
-<hr>
-
-{% for item in category.items.all %}
-
-<div class="menu-item">
-
-<!-- LEFT -->
-<div>
-
-<strong>{{item.name}}</strong>
-
-{% if item.station %}
-<span class="badge bg-dark station-badge">
-{{item.station.name}}
-</span>
-{% else %}
-<span class="badge bg-secondary station-badge">
-Default
-</span>
-{% endif %}
-
-{% if not item.is_available %}
-<span class="badge bg-danger disabled-badge">Disabled</span>
-{% endif %}
-
-</div>
-
-<!-- RIGHT -->
-<div>
-
-<strong>₹{{item.price}}</strong>
-
-<!-- Station Selector -->
-<select
-class="form-select form-select-sm d-inline w-auto ms-2"
-onchange="updateStation({{item.id}}, this.value)">
-
-<option value="">Default</option>
-
-{% for s in stations %}
-<option value="{{s.id}}"
-{% if item.station and item.station.id == s.id %}
-selected
-{% endif %}
->
-{{s.name}}
-</option>
-{% endfor %}
-
-</select>
-
-<button class="btn btn-outline-primary btn-sm ms-1"
-onclick="editPrice({{item.id}},{{item.price}})">
-Edit
-</button>
-
-<button class="btn btn-outline-secondary btn-sm ms-1"
-onclick="toggleItem({{item.id}})">
-Toggle
-</button>
-
-<button class="btn btn-outline-dark btn-sm ms-1"
-onclick="openRecipeModal({{item.id}})">
-Recipe
-</button>
-
-<button class="btn btn-outline-danger btn-sm ms-1"
-onclick="deleteItem({{item.id}})">
-Delete
-</button>
-
-</div>
-
-</div>
-
-<!-- RECIPES -->
-<div class="ps-2 recipe-list">
-
-{% for r in item.recipes.all %}
-<div>
-• {{r.inventory_item.name}} — {{r.quantity_required}}
-</div>
-{% empty %}
-<div style="color:#aaa;font-size:12px;">
-No recipe yet
-</div>
-{% endfor %}
-
-</div>
-
-{% empty %}
-<p class="text-muted">No items</p>
-{% endfor %}
-
-</div>
-
-</div>
-
-{% endfor %}
-
-</div>
-
-</div>
-
-
-<!-- CATEGORY MODAL -->
-<div class="modal fade" id="categoryModal">
-<div class="modal-dialog">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Category</h5>
-</div>
-
-<div class="modal-body">
-<input id="categoryName" class="form-control" placeholder="Category name"/>
-</div>
-
-<div class="modal-footer">
-<button class="btn btn-primary" onclick="createCategory()">Create</button>
-</div>
-
-</div>
-</div>
-</div>
-
-
-<!-- ITEM MODAL -->
-<div class="modal fade" id="itemModal">
-<div class="modal-dialog">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Menu Item</h5>
-</div>
-
-<div class="modal-body">
-
-<input id="itemName" class="form-control mb-2" placeholder="Item name"/>
-
-<input id="itemPrice" class="form-control mb-2" placeholder="Price"/>
-
-<select id="itemCategory" class="form-select">
-{% for category in categories %}
-<option value="{{category.id}}">
-{{category.name}}
-</option>
-{% endfor %}
-</select>
-
-<select id="itemStation" class="form-select mt-2">
-<option value="">Default Station</option>
-{% for s in stations %}
-<option value="{{s.id}}">
-{{s.name}}
-</option>
-{% endfor %}
-</select>
-
-</div>
-
-<div class="modal-footer">
-<button class="btn btn-success" onclick="createItem()">Create</button>
-</div>
-
-</div>
-</div>
-</div>
-
-
-<!-- RECIPE MODAL -->
-<div class="modal fade" id="recipeModal">
-<div class="modal-dialog">
-<div class="modal-content">
-
-<div class="modal-header">
-<h5>Add Recipe Ingredient</h5>
-</div>
-
-<div class="modal-body">
-
-<select id="inventorySelect" class="form-select mb-2">
-{% for item in inventory %}
-<option value="{{item.id}}">
-{{item.name}}
-</option>
-{% endfor %}
-</select>
-
-<input id="recipeQty" class="form-control" placeholder="Quantity required"/>
-
-</div>
-
-<div class="modal-footer">
-<button class="btn btn-success" onclick="createRecipe()">Add Ingredient</button>
-</div>
-
-</div>
-</div>
-</div>
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-
-let currentMenuItem=null
-
-function getCookie(name){
-let cookieValue=null
-if(document.cookie){
-let cookies=document.cookie.split(";")
-for(let i=0;i<cookies.length;i++){
-let cookie=cookies[i].trim()
-if(cookie.substring(0,name.length+1)===(name+"=")){
-cookieValue=decodeURIComponent(cookie.substring(name.length+1))
-}
-}
-}
-return cookieValue
-}
-
-function openCategoryModal(){
-new bootstrap.Modal(document.getElementById("categoryModal")).show()
-}
-
-function openItemModal(){
-new bootstrap.Modal(document.getElementById("itemModal")).show()
-}
-
-function openRecipeModal(itemId){
-currentMenuItem=itemId
-new bootstrap.Modal(document.getElementById("recipeModal")).show()
-}
-
-function createCategory(){
-let name=document.getElementById("categoryName").value
-
-fetch("{% url 'create_category' %}",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({name:name})
-})
-.then(()=>location.reload())
-}
-
-function createItem(){
-
-let name=document.getElementById("itemName").value
-let price=document.getElementById("itemPrice").value
-let category=document.getElementById("itemCategory").value
-let station=document.getElementById("itemStation").value
-
-fetch("{% url 'create_menu_item' %}",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-name:name,
-price:price,
-category:category,
-station:station   // ✅ FIXED BUG
-})
-
-})
-.then(()=>location.reload())
-
-}
-
-function updateStation(itemId, stationId){
-
-fetch(`/menu/update-station/${itemId}/`,{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-station:stationId
-})
-
-})
-.then(()=>location.reload())
-
-}
-
-function createRecipe(){
-
-let inventory=document.getElementById("inventorySelect").value
-let qty=document.getElementById("recipeQty").value
-
-fetch("{% url 'add_recipe' %}",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({
-menu_item:currentMenuItem,
-inventory_item:inventory,
-quantity:qty
-})
-})
-.then(()=>alert("Ingredient added"))
-
-}
-
-function deleteItem(id){
-if(!confirm("Delete this menu item?")) return
-
-fetch(`/menu/delete-item/${id}/`,{
-method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-})
-.then(()=>location.reload())
-}
-
-function toggleItem(id){
-fetch(`/menu/toggle-item/${id}/`,{
-method:"POST",
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-})
-.then(()=>location.reload())
-}
-
-function editPrice(id,current){
-
-let price=prompt("New price:",current)
-if(!price) return
-
-fetch(`/menu/update-price/${id}/`,{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({price:price})
-})
-.then(()=>location.reload())
-
-}
-
-</script>
-
+    <!-- MAIN HEADER -->
+    <header class="pos-header">
+        <h4 class="brand-title serif-text"><i class="bi bi-diamond-half me-3"></i>Menu Management</h4>
+        
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn-luxury btn-gold" onclick="openAiImportModal()"><i class="bi bi-magic me-1"></i> AI Smart Import</button>
+            <button class="btn-luxury" onclick="openCategoryModal()">Add Category</button>
+            <button class="btn-luxury" onclick="openItemModal()">Add Item</button>
+            <a href="/dashboard/" class="btn-luxury">Reports</a>
+            
+            <button class="btn-icon" style="background:transparent; border:none; color:var(--text-main); font-size:1.25rem;" onclick="toggleDark()" title="Toggle Theme">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- STICKY CATEGORY NAV (Optimized for multiple categories) -->
+    <div class="cat-nav-bar">
+        {% for category in categories %}
+        <a href="#cat-{{category.id}}" class="cat-nav-link">{{category.name}}</a>
+        {% endfor %}
+    </div>
+
+    <div class="container-fluid mx-auto py-4" style="max-width: 1400px; padding: 0 2rem;">
+        
+        <div class="row g-4 overflow-hidden">
+            {% for category in categories %}
+            <div class="col-12 col-md-6 col-xl-4 mb-4 category-section" id="cat-{{category.id}}">
+                <div class="category-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="category-title mb-0" style="text-align: left;">{{category.name}}</h5>
+                        <button class="btn-action-icon btn-delete" title="Delete Category" onclick="deleteCategory({{category.id}}, '{{category.name|escapejs}}')">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+
+                    <div class="item-list">
+                        {% for item in category.items.all %}
+                        <div class="menu-item-row">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div class="item-identity">
+                                    <span class="item-name">
+                                        {{item.name}}
+                                        {% if not item.is_available %}
+                                        <span class="luxury-badge badge-disabled">Offline</span>
+                                        {% endif %}
+                                    </span>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="item-price">₹{{item.price}}</span>
+                                        
+                                        <select class="station-select" onchange="updateStation({{item.id}}, this.value)">
+                                            <option value="">Default Station</option>
+                                            {% for s in stations %}
+                                            <option value="{{s.id}}" {% if item.station and item.station.id == s.id %}selected{% endif %}>
+                                                {{s.name}}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="btn-group-luxury">
+                                    <button class="btn-action-icon" title="Edit Price" onclick="editPrice({{item.id}},{{item.price}})"><i class="bi bi-pencil-square"></i></button>
+                                    <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem({{item.id}})"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
+                                    <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal({{item.id}})"><i class="bi bi-journal-text"></i></button>
+                                    <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem({{item.id}})"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- RECIPE PREVIEW -->
+                            <div class="recipe-block">
+                                {% for r in item.recipes.all %}
+                                <div class="recipe-item">• {{r.inventory_item.name}} — {{r.quantity_required}} {{r.inventory_item.unit}}</div>
+                                {% empty %}
+                                <div class="recipe-item text-muted" style="font-style: italic; font-size: 0.7rem;">No recipe defined</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4 text-muted" style="font-size: 0.8rem; letter-spacing: 1px;">Category Empty</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- CATEGORY MODAL -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Classification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Identifier</label>
+                    <input id="categoryName" class="form-control form-input-luxury" placeholder="e.g. Appetizers, Beverage, Mains"/>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createCategory()">Establish Category</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ITEM MODAL -->
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Menu Selection</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Dish Name</label>
+                        <input id="itemName" class="form-control form-input-luxury" placeholder="Signature Dish Name"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Standard Pricing (₹)</label>
+                        <input id="itemPrice" class="form-control form-input-luxury" placeholder="0.00"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Classification</label>
+                        <select id="itemCategory" class="form-select form-select-luxury">
+                            {% for category in categories %}
+                            <option value="{{category.id}}">{{category.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Preparation Station</label>
+                        <select id="itemStation" class="form-select form-select-luxury">
+                            <option value="">Default Kitchen</option>
+                            {% for s in stations %}
+                            <option value="{{s.id}}">{{s.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createItem()">Add to Collection</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI IMPORT MODAL -->
+    <div class="modal fade" id="aiImportModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-magic me-2"></i>AI Smart Menu Transcriber</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Paste your menu text below. Our AI logic will automatically detect <strong>Categories</strong> and <strong>Items with Prices</strong>.</p>
+                    <textarea id="aiMenuText" class="form-control form-input-luxury" rows="12" placeholder="Example:&#10;APPETIZERS&#10;Spring Rolls 120&#10;Paneer Tikka 250&#10;&#10;MAIN COURSE&#10;Butter Chicken 350"></textarea>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="runAiImport()">Process & Bulk Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- RECIPE MODAL -->
+    <div class="modal fade" id="recipeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Composition & Recipe</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Ingredient Selection</label>
+                        <select id="inventorySelect" class="form-select form-select-luxury">
+                            {% for item in inventory %}
+                            <option value="{{item.id}}">{{item.name}} ({{item.unit}})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Quantity Measurement</label>
+                        <input id="recipeQty" class="form-control form-input-luxury" placeholder="e.g. 0.50, 1.0"/>
+                    </div>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createRecipe()">Integrate Ingredient</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentMenuItem = null;
+
+        /* THEME MANAGEMENT */
+        let isDark = localStorage.getItem("dark") === "true";
+        function updateIcons() {
+            let icon = document.getElementById("themeIcon");
+            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
+            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+        }
+        updateIcons();
+        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+        /* CORE API */
+        function getCookie(name){
+            let cookieValue=null;
+            if(document.cookie){
+                let cookies=document.cookie.split(";");
+                for(let i=0;i<cookies.length;i++){
+                    let cookie=cookies[i].trim();
+                    if(cookie.substring(0,name.length+1)===(name+"=")){
+                        cookieValue=decodeURIComponent(cookie.substring(name.length+1));
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        /* MODAL TRIGGERS */
+        function openAiImportModal(){ new bootstrap.Modal(document.getElementById("aiImportModal")).show(); }
+        function openCategoryModal(){ new bootstrap.Modal(document.getElementById("categoryModal")).show(); }
+        function openItemModal(){ new bootstrap.Modal(document.getElementById("itemModal")).show(); }
+        function openRecipeModal(itemId){ currentMenuItem = itemId; new bootstrap.Modal(document.getElementById("recipeModal")).show(); }
+
+        /* OPERATIONS */
+        function runAiImport(){
+            let text = document.getElementById("aiMenuText").value;
+            if(!text.trim()){ alert("Please paste menu text to process."); return; }
+
+            fetch("{% url 'ai_menu_importer' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ text: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success){ alert(data.message); location.reload(); }
+                else { alert(data.error || "Import failed."); }
+            });
+        }
+        function createCategory(){
+            let name = document.getElementById("categoryName").value;
+            fetch("{% url 'create_category' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ name: name })
+            }).then(() => location.reload());
+        }
+
+        function createItem(){
+            let name = document.getElementById("itemName").value;
+            let price = document.getElementById("itemPrice").value;
+            let category = document.getElementById("itemCategory").value;
+            let station = document.getElementById("itemStation").value;
+
+            fetch("{% url 'create_menu_item' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ name: name, price: price, category: category, station: station })
+            }).then(() => location.reload());
+        }
+
+        function updateStation(itemId, stationId){
+            fetch(`/menu/update-station/${itemId}//`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ station: stationId })
+            }).then(() => location.reload());
+        }
+
+        function createRecipe(){
+            let inventory = document.getElementById("inventorySelect").value;
+            let qty = document.getElementById("recipeQty").value;
+            fetch("{% url 'add_recipe' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ menu_item: currentMenuItem, inventory_item: inventory, quantity: qty })
+            }).then(() => { alert("Ingredient integrated into recipe."); location.reload(); });
+        }
+
+        function deleteItem(id){
+            if(!confirm("Erase this menu item permanently?")) return;
+            fetch(`/menu/delete-item/${id}/`, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function deleteCategory(id, name){
+            if(!confirm(`DANGER: This will permanently delete the category "${name}" and ALL its menu items. Continue?`)) return;
+            fetch(`/menu/delete-category/${id}/`, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function toggleItem(id){
+            fetch(`/menu/toggle-item/${id}/`, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function editPrice(id, current){
+            let price = prompt("Designate new standard price:", current);
+            if(!price) return;
+            fetch(`/menu/update-price/${id}/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ price: price })
+            }).then(() => location.reload());
+        }
+    </script>
 </body>
 </html>

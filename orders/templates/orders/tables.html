@@ -1,1562 +1,713 @@
-{% comment %} <!--TABLES.HTML-->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <title>Floor Plan</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
-<title>Tables Dashboard</title>
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            /* True Premium Light Mode Palette */
+            --bg-color: #f3f4f6; /* A slightly cooler, rich linen backdrop */
+            --panel-bg: #ffffff;
+            --text-main: #1f2937; /* Warmer, softer true-black */
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb; /* Stronger structural lines */
+            --accent-gold: #c5a059;
+            
+            --c-free: #10b981; 
+            --c-order: #eab308;
+            --c-prepare: #f97316;
+            --c-serve: #3b82f6; 
+            --c-clean: #ec4899;
+            
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        body.dark {
+            --bg-color: #0f1115; /* Sophisticated Slate-Dark */
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
 
-<style>
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+        }
+        
+        h1, h2, h3, h4, h5, h6, .serif-text {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+        }
 
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
+        /* HEADER */
+        .pos-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg); /* Use panel instead of flat bg to pop */
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            flex-wrap: wrap; /* MOBILE WRAP */
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .brand-title {
+            font-size: 1.5rem; margin: 0; color: var(--text-main);
+        }
 
-/* header */
+        /* ACTIONS */
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-main);
+            border-radius: 0; text-transform: uppercase;
+            font-size: 0.75rem; letter-spacing: 1px; font-weight: 500;
+            padding: 0.6rem 1rem; display: inline-flex; align-items: center; justify-content: center;
+            transition: var(--transition-smooth); white-space: nowrap; cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main);
+        }
+        .btn-icon {
+            border: none; background: transparent; color: var(--text-main);
+            font-size: 1.25rem; padding: 0.5rem; cursor: pointer;
+        }
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
+        /* TABLES GRID */
+        .table-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 1.5rem 1.2rem;
+            text-align: left;
+            transition: var(--transition-smooth);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            border-radius: 12px;
+            box-shadow: var(--shadow-soft);
+        }
+        .table-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .table-status-line {
+            position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
+        }
 
-/* legend */
+        .table-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+        }
 
-.legend{
-display:flex;
-flex-wrap:wrap;
-gap:12px;
-font-size:13px;
-}
+        .table-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            color: var(--text-main);
+            margin: 0;
+            line-height: 1;
+        }
+        
+        .table-status {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            margin-top: 0.4rem;
+        }
 
-.legend span{
-display:flex;
-align-items:center;
-gap:6px;
-}
+        .table-timer {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            background: rgba(115, 115, 115, 0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+        }
 
-.dot{
-width:12px;
-height:12px;
-border-radius:50%;
-}
+        .status-free    { color: var(--c-free); }   .bg-free { background: var(--c-free); }
+        .status-ordering{ color: var(--c-order); }  .bg-order { background: var(--c-order); }
+        .status-preparing{color: var(--c-prepare);} .bg-prepare { background: var(--c-prepare); }
+        .status-served  { color: var(--c-serve); }  .bg-serve { background: var(--c-serve); }
+        .status-billing { color: #06b6d4; }         .bg-billing { background: #06b6d4; }
+        .status-cleaning{ color: var(--c-clean); }  .bg-clean { background: var(--c-clean); }
+        .status-merged  { color: #a855f7; }         .bg-merged { background: #a855f7; }
 
-/* table cards */
+        .occupancy {
+            font-size: 0.8rem; color: var(--text-muted); margin-top: 15px;
+            display: flex; align-items: center; gap: 5px;
+        }
 
-.table-card{
-border-radius:16px;
-padding:22px;
-text-align:center;
-font-weight:600;
-cursor:pointer;
-transition:.2s;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-min-height:180px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-}
+        /* QUICK ACTIONS */
+        .card-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap; /* allow wrapping on tiny screens */
+        }
+        .btn-card-action {
+            flex: 1;
+            min-width: 30%;
+            padding: 0.6rem 0.2rem;
+            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.05); /* slightly visible button background */
+            color: var(--text-main);
+            font-size: 0.70rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            border-radius: 4px;
+            transition: var(--transition-smooth);
+            text-align: center;
+        }
+        .btn-card-action:hover {
+            background: var(--text-main); color: var(--panel-bg);
+        }
+        .btn-card-primary {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
+        }
+        .btn-card-primary:hover {
+            background: #b59250; color: #fff;
+        }
 
-.table-card:hover{
-transform:translateY(-4px);
-}
+        /* INFOGRAPHICS METRICS */
+        .metric-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: var(--shadow-soft);
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: ''; position: absolute; top:0; left:0; width:4px; height:100%;
+            background: var(--accent-gold);
+        }
 
-/* titles */
+        .metric-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
 
-.table-title{
-font-size:22px;
-margin-bottom:6px;
-}
+        .metric-val { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; color: var(--text-main); line-height: 1; }
+        .metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; }
 
-.status{
-font-size:13px;
-opacity:.9;
-margin-bottom:12px;
-text-transform:capitalize;
-}
+        /* MODALS */
+        .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
+        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+        .modal-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+        
+        .form-select-luxury {
+            background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+            border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; margin-bottom: 1rem;
+        }
 
-/* states */
+        @media (max-width: 576px) {
+            .pos-header { padding: 1rem; justify-content: space-between; }
+            .action-group { width: 100%; display: flex; justify-content: space-between; margin-top: 10px; }
+            .btn-luxury { padding: 0.5rem; font-size: 0.7rem; }
+            .table-name { font-size: 1.5rem; }
+            .table-card { padding: 1.5rem 0.5rem; }
+        }
 
-.free{ background:#2ecc71;color:white }
-.seated{ background:#20c997;color:white }
-.ordering{ background:#ffc107;color:black }
-.preparing{ background:#dc3545;color:white }
-.ready{ background:#fd7e14;color:white }
-.served{ background:#0d6efd;color:white }
-.waiting_waiter{ background:#6f42c1;color:white }
-.billing{ background:#6c757d;color:white }
-.paid{ background:#343a40;color:white }
-.cleaning{ background:#8b5e3c;color:white }
+        /* TOAST */
+        .toast-minimal {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--text-main);
+            color: var(--bg-color);
+            padding: 1rem 1.5rem;
+            z-index: 1060;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.8rem;
+        }
+        .toast-minimal.show { opacity: 1; pointer-events: auto; }
 
-.dot.free{background:#2ecc71}
-.dot.seated{background:#20c997}
-.dot.ordering{background:#ffc107}
-.dot.preparing{background:#dc3545}
-.dot.ready{background:#fd7e14}
-.dot.served{background:#0d6efd}
-.dot.waiting_waiter{background:#6f42c1}
-.dot.billing{background:#6c757d}
-.dot.paid{background:#343a40}
-.dot.cleaning{background:#8b5e3c}
-
-</style>
-
+    </style>
 </head>
 
 <body>
 
-<div class="container mt-4">
+<div id="toastBox" class="toast-minimal">Message</div>
 
-<div class="header">
+<!-- HEADER -->
+<header class="pos-header">
+    <h1 class="brand-title"><i class="bi bi-asterisk"></i> Floor Plan</h1>
+    
+    <div class="action-group">
+        <button class="btn-luxury me-2" data-bs-toggle="modal" data-bs-target="#mergeModal">Combine</button>
+        <button class="btn-luxury me-2" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
+        <a href="/billing/" class="btn-luxury me-2 d-none d-sm-inline-flex">Billing</a>
+        <a href="/kitchen/" class="btn-luxury me-2 d-none d-sm-inline-flex">Kitchen</a>
+        <a href="/waiter-dashboard/" class="btn-luxury me-2 d-none d-sm-inline-flex"><i class="bi bi-bell me-1"></i> Calls</a>
+        <a href="/reports/" class="btn-luxury me-2 d-none d-sm-inline-flex">Reports</a>
+        
+        <!-- Mobile compact links -->
+        <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
+        <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
+        <a href="/waiter-dashboard/" class="btn-icon d-sm-none" title="Calls"><i class="bi bi-bell"></i></a>
+        <a href="/reports/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+        
+        <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
+            <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+    </div>
+</header>
 
-<h3>Tables Dashboard</h3>
+<div class="container-fluid mx-auto py-5" style="max-width: 1400px; padding: 0 2rem;">
+    
+    <!-- LIGHT INFOGRAPHICS -->
+    <div class="row g-4 mb-5">
+        <div class="col-6 col-md-3">
+            <div class="metric-card">
+                <div class="metric-val" id="stat-total">0</div>
+                <div class="metric-label">Total Tables</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card" style="--accent-gold: var(--c-free);">
+                <div class="metric-val" id="stat-free">0</div>
+                <div class="metric-label">Tables Free</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card" style="--accent-gold: var(--c-order);">
+                <div class="metric-val" id="stat-active">0</div>
+                <div class="metric-label">Active Orders</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card" style="--accent-gold: #06b6d4;">
+                <div class="metric-val" id="stat-billing">0</div>
+                <div class="metric-label">Awaiting Payment</div>
+            </div>
+        </div>
+    </div>
 
-<div>
+    <!-- LEGEND -->
+    <div class="d-flex flex-wrap gap-4 mb-5 justify-content-center text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-free); margin-right:6px;"></span> Free</div>
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-order); margin-right:6px;"></span> Ordering</div>
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-prepare); margin-right:6px;"></span> Preparing</div>
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-serve); margin-right:6px;"></span> Served</div>
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#06b6d4; margin-right:6px;"></span> Billing</div>
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-clean); margin-right:6px;"></span> Cleaning</div>
+        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#a855f7; margin-right:6px;"></span> Linked</div>
+    </div>
 
-<a href="/billing/" class="btn btn-success me-2">Billing</a>
-<a href="/kitchen/" class="btn btn-dark me-2">Kitchen</a>
-<a href="/waiter/" class="btn btn-warning">Waiter</a>
-
+    <!-- TABLES GRID -->
+    <div class="row g-4" id="tableGrid">
+        <div class="col-12 text-center text-muted" style="letter-spacing:2px; font-size:0.8rem; text-transform:uppercase;">Loading Configuration...</div>
+    </div>
 </div>
 
+<!-- ACTION MODAL -->
+<div class="modal fade" id="actionModal">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0" id="actionModalTitle">Table Name</h5>
+                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="text-muted text-uppercase mb-4" style="font-size:0.75rem; letter-spacing:1px;" id="actionModalStatus">Status</p>
+                
+                <div class="d-flex flex-column gap-2" id="actionModalButtons">
+                    <!-- Buttons injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MERGE MODAL -->
+<div class="modal fade" id="mergeModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0">Combine Tables</h5>
+                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="text-muted text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:1px;">Primary Table (Maintains Data)</label>
+                <select id="mergePrimary" class="form-select-luxury">
+                    <option value="" disabled selected>Select Primary Table...</option>
+                </select>
+                
+                <label class="text-muted text-uppercase mt-2 mb-2" style="font-size:0.7rem; letter-spacing:1px;">Secondary Table (Will be merged)</label>
+                <select id="mergeSecondary" class="form-select-luxury">
+                    <option value="" disabled selected>Select a table to merge...</option>
+                </select>
+                
+                <button onclick="executeMerge()" class="btn-luxury w-100 mt-4" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#111;">Execute Merge</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TRANSFER MODAL -->
+<div class="modal fade" id="transferModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0">Transfer Table</h5>
+                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="transferOrderId">
+                
+                <label class="text-muted text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:1px;">Source Table</label>
+                <select id="transferFrom" class="form-select-luxury" disabled>
+                    <!-- Auto populated -->
+                </select>
+                
+                <label class="text-muted text-uppercase mt-2 mb-2" style="font-size:0.7rem; letter-spacing:1px;">Destination (New) Table</label>
+                <select id="transferTo" class="form-select-luxury">
+                    <option value="" disabled selected>Select an empty table...</option>
+                </select>
+                
+                <button onclick="executeTransfer()" class="btn-luxury w-100 mt-4" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#111;">Execute Transfer</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 
-<div class="legend mb-3">
-
-<span><div class="dot free"></div>Free</span>
-<span><div class="dot seated"></div>Seated</span>
-<span><div class="dot ordering"></div>Ordering</span>
-<span><div class="dot preparing"></div>Preparing</span>
-<span><div class="dot ready"></div>Ready</span>
-<span><div class="dot served"></div>Served</span>
-<span><div class="dot waiting_waiter"></div>Waiter Call</span>
-<span><div class="dot billing"></div>Billing</span>
-<span><div class="dot paid"></div>Paid</span>
-<span><div class="dot cleaning"></div>Cleaning</span>
-
-</div>
-
-<div class="row" id="tables-container"></div>
-
-</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-
-function openBilling(tableId){
-window.location.href="/billing/?table="+tableId
-}
-
-function openRunningOrder(orderId){
-window.location.href="/order/"+orderId+"/"
-}
-
-function refreshTables(){
-
-fetch("/tables-data/")
-.then(res=>res.json())
-.then(data=>{
-
-let container=document.getElementById("tables-container")
-
-container.innerHTML=""
-
-data.tables.forEach(t=>{
-
-let button=""
-
-if(t.status==="free"){
-button=`<button class="btn btn-light btn-sm"
-onclick="openBilling(${t.id})">New Order</button>`
-}
-
-if(t.status==="ordering" || t.status==="preparing"){
-button=`<button class="btn btn-dark btn-sm"
-onclick="openBilling(${t.id})">Continue Order</button>`
-}
-
-if(t.status==="ready" || t.status==="served"){
-
-button=`
-
-<button class="btn btn-dark btn-sm mb-1 w-100"
-onclick="openBilling(${t.id})">
-Add Item
-</button>
-
-<button class="btn btn-primary btn-sm mb-1 w-100"
-onclick="openRunningOrder(${t.order_id})">
-Running Bill
-</button>
-
-<a href="/bill/${t.order_id}/"
-class="btn btn-success btn-sm w-100">
-Generate Bill
-</a>
-
-`
-}
-
-if(t.status==="billing"){
-button=`<a href="/bill/${t.order_id}/"
-class="btn btn-light btn-sm w-100">Open Bill</a>`
-}
-
-if(t.status==="cleaning"){
-
-button=`
-
-<button class="btn btn-light btn-sm w-100"
-onclick="markCleaned(${t.id})">
-Table Cleaned
-</button>
-
-`
-}
-
-container.innerHTML+=`
-
-<div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-
-<div class="table-card ${t.status}">
-
-<div class="table-title">
-${t.name}
-</div>
-
-<div class="status">
-Status: ${t.status}
-</div>
-
-<div style="font-size:13px;margin-bottom:10px">
-
-⏱ ${t.elapsed || 0} min
-<br>
-🍽 ${t.cooking_items || 0} cooking
-
-</div>
-
-${button}
-
-</div>
-
-</div>
-
-`
-
-})
-
-})
-
-}
-
-refreshTables()
-
-setInterval(refreshTables,5000)
-function getCookie(name) {
-let cookieValue = null;
-
-if (document.cookie && document.cookie !== "") {
-
-let cookies = document.cookie.split(";");
-
-for (let i = 0; i < cookies.length; i++) {
-
-let cookie = cookies[i].trim();
-
-if (cookie.substring(0, name.length + 1) === (name + "=")) {
-cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-break;
-}
-
-}
-
-}
-
-return cookieValue;
-}
-
-
-function markCleaned(id){
-
-fetch(`/clean-table/${id}/`,{
-method:"POST",
-headers:{
-"X-CSRFToken": getCookie("csrftoken")
-}
-})
-.then(res=>res.json())
-.then(data=>{
-
-console.log("clean response:",data)
-
-if(data.success){
-setTimeout(refreshTables,200)
-}else{
-alert("Cleaning failed")
-}
-
-})
-.catch(err=>{
-console.error("Error:",err)
-})
-
-}
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-
-
-
-
-
-
-<!--v2-->
-{% comment %} 
-<!DOCTYPE html>
-<html>
-<head>
-
-<title>Tables Dashboard</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-/* HEADER */
-
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
-
-.header h3{
-font-weight:700;
-}
-
-/* LEGEND */
-
-.legend{
-display:flex;
-flex-wrap:wrap;
-gap:14px;
-font-size:13px;
-margin-bottom:20px;
-}
-
-.legend span{
-display:flex;
-align-items:center;
-gap:6px;
-}
-
-.dot{
-width:12px;
-height:12px;
-border-radius:50%;
-}
-
-/* GRID */
-
-.table-grid{
-min-height:200px;
-}
-
-/* TABLE CARD */
-
-.table-card{
-border-radius:16px;
-padding:18px;
-text-align:center;
-font-weight:600;
-transition:.2s;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-min-height:190px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-cursor:pointer;
-}
-
-.table-card:hover{
-transform:translateY(-4px);
-box-shadow:0 10px 25px rgba(0,0,0,0.12);
-}
-
-/* SELECTED TABLE */
-
-.selected{
-outline:4px solid black;
-}
-
-/* TEXT */
-
-.table-title{
-font-size:22px;
-font-weight:700;
-}
-
-.status{
-font-size:13px;
-opacity:.9;
-margin-bottom:10px;
-text-transform:capitalize;
-}
-
-.metrics{
-font-size:13px;
-margin-bottom:12px;
-opacity:.9;
-}
-
-/* STATES */
-
-.free{ background:#2ecc71;color:white }
-.ordering{ background:#ffc107;color:black }
-.preparing{ background:#dc3545;color:white }
-.ready{ background:#fd7e14;color:white }
-.served{ background:#0d6efd;color:white }
-.billing{ background:#6c757d;color:white }
-.cleaning{ background:#8b5e3c;color:white }
-.merged{ background:#9b59b6;color:white }
-
-/* LEGEND COLORS */
-
-.dot.free{background:#2ecc71}
-.dot.ordering{background:#ffc107}
-.dot.preparing{background:#dc3545}
-.dot.ready{background:#fd7e14}
-.dot.served{background:#0d6efd}
-.dot.billing{background:#6c757d}
-.dot.cleaning{background:#8b5e3c}
-.dot.merged{background:#9b59b6}
-
-/* STATUS MESSAGE */
-
-.status-message{
-text-align:center;
-padding:60px;
-color:#666;
-font-size:16px;
-}
-
-.error{
-color:#dc3545;
-font-weight:600;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container mt-4">
-
-<div class="header">
-
-<h3>Tables Dashboard</h3>
-
-<div>
-
-<button class="btn btn-primary me-2" onclick="startMergeMode()">Merge Tables</button>
-
-<a href="/billing/" class="btn btn-success me-2">Billing</a>
-<a href="/kitchen/" class="btn btn-dark me-2">Kitchen</a>
-<a href="/waiter/" class="btn btn-warning">Waiter</a>
-
-</div>
-
-</div>
-
-<div id="merge-controls" style="display:none" class="mb-3">
-
-<button class="btn btn-success btn-sm me-2" onclick="finishMerge()">Finish Merge</button>
-<button class="btn btn-secondary btn-sm" onclick="cancelMerge()">Cancel</button>
-
-</div>
-
-<!-- LEGEND -->
-
-<div class="legend">
-
-<span><div class="dot free"></div>Free</span>
-<span><div class="dot ordering"></div>Ordering</span>
-<span><div class="dot preparing"></div>Preparing</span>
-<span><div class="dot ready"></div>Ready</span>
-<span><div class="dot served"></div>Served</span>
-<span><div class="dot billing"></div>Billing</span>
-<span><div class="dot cleaning"></div>Cleaning</span>
-<span><div class="dot merged"></div>Merged</span>
-
-</div>
-
-<div class="row table-grid" id="tables-container">
-
-<div class="status-message">
-Loading tables...
-</div>
-
-</div>
-
-</div>
-
-<script>
-
-let loading=false
-let failureCount=0
-
-let mergeMode=false
-let selectedTables=[]
-
-function safe(v,f){
-return v===undefined||v===null?f:v
-}
-
-function startMergeMode(){
-
-mergeMode=true
-selectedTables=[]
-
-document.getElementById("merge-controls").style.display="block"
-
-alert("Select tables to merge")
-
-}
-
-function cancelMerge(){
-
-mergeMode=false
-selectedTables=[]
-
-document.getElementById("merge-controls").style.display="none"
-
-refreshTables()
-
-}
-
-function handleTableClick(id,status){
-    if(status==="merged"){
-        alert("This table is merged with others. Unmerge to access billing.")
-        return
+    /* UTILS */
+    function showToast(msg){
+        let t = document.getElementById("toastBox");
+        t.innerText = msg; t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3000);
     }
 
-
-if(mergeMode){
-
-if(selectedTables.includes(id)){
-selectedTables=selectedTables.filter(t=>t!==id)
-}else{
-selectedTables.push(id)
-}
-
-refreshTables()
-return
-
-}
-
-openBilling(id)
-
-}
-
-function finishMerge(){
-
-if(selectedTables.length<2){
-
-alert("Select at least 2 tables")
-return
-
-}
-
-let primary=selectedTables[0]
-
-fetch("/merge-tables/",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-
-primary_table:primary,
-tables:selectedTables
-
-})
-
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.success){
-
-alert("Tables merged")
-
-mergeMode=false
-selectedTables=[]
-
-document.getElementById("merge-controls").style.display="none"
-
-refreshTables()
-
-}else{
-
-alert(data.error)
-
-}
-
-})
-.catch(()=>alert("Merge failed"))
-
-}
-
-function openBilling(id){
-window.location.href="/billing/?table="+id
-}
-
-function openRunningOrder(id){
-if(!id)return
-window.location.href="/order/"+id+"/"
-}
-
-function renderError(msg){
-
-document.getElementById("tables-container").innerHTML=`
-<div class="status-message error">
-${msg}
-<br><br>
-<button class="btn btn-outline-dark btn-sm" onclick="refreshTables()">Retry</button>
-</div>
-`
-
-}
-
-function refreshTables(){
-
-if(loading)return
-
-loading=true
-
-fetch("/tables-data/")
-.then(res=>{
-
-if(!res.ok){
-throw new Error("server")
-}
-
-return res.json()
-
-})
-.then(data=>{
-
-failureCount=0
-
-let container=document.getElementById("tables-container")
-
-container.innerHTML=""
-
-if(!data.tables||data.tables.length===0){
-
-container.innerHTML=`<div class="status-message">No tables configured</div>`
-
-loading=false
-return
-
-}
-
-data.tables.forEach(t=>{
-
-let status=t.status||"free"
-
-if(t.merged){
-status="merged"
-}
-
-let actions=""
-
-if(status==="free"){
-
-actions=`
-<button class="btn btn-light btn-sm w-100"
-onclick="event.stopPropagation();openBilling(${t.id})">
-New Order
-</button>
-`
-
-}
-
-else if(status==="ordering"||status==="preparing"){
-
-actions=`
-<button class="btn btn-dark btn-sm w-100"
-onclick="event.stopPropagation();openBilling(${t.id})">
-Continue Order
-</button>
-`
-
-}
-
-else if(status==="ready"||status==="served"){
-
-actions=`
-
-<button class="btn btn-dark btn-sm mb-1 w-100"
-onclick="event.stopPropagation();openBilling(${t.id})">
-Add Item
-</button>
-
-<button class="btn btn-primary btn-sm mb-1 w-100"
-onclick="event.stopPropagation();openRunningOrder(${t.order_id})">
-Running Bill
-</button>
-
-<a href="/bill/${t.order_id}/"
-class="btn btn-success btn-sm w-100"
-onclick="event.stopPropagation()">
-Generate Bill
-</a>
-
-`
-
-}
-
-else if(status==="billing"){
-
-actions=`
-<a href="/bill/${t.order_id}/"
-class="btn btn-light btn-sm w-100"
-onclick="event.stopPropagation()">
-Open Bill
-</a>
-`
-
-}
-
-else if(status==="cleaning"){
-
-actions=`
-<button class="btn btn-light btn-sm w-100"
-onclick="event.stopPropagation();markCleaned(${t.id})">
-Table Cleaned
-</button>
-`
-
-}
-
-else if(status==="merged"){
-
-actions=`<button class="btn btn-light btn-sm w-100" disabled>Merged</button>`
-
-}
-
-let selectedClass=selectedTables.includes(t.id)?"selected":""
-
-container.innerHTML+=`
-
-<div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-
-<div class="table-card ${status} ${selectedClass}"
-onclick="handleTableClick(${t.id},'${status}')">
-
-<div>
-
-<div class="table-title">${safe(t.name,"Table")}</div>
-
-<div class="status">Status: ${status}</div>
-
-<div class="metrics">
-
-⏱ ${safe(t.elapsed,0)} min<br>
-🍳 ${safe(t.cooking_items,0)} cooking
-
-</div>
-
-</div>
-
-<div>${actions}</div>
-
-</div>
-
-</div>
-
-`
-
-})
-
-loading=false
-
-})
-.catch(()=>{
-
-failureCount++
-
-if(failureCount>3){
-renderError("Lost connection to server")
-}else{
-document.getElementById("tables-container").innerHTML=`<div class="status-message">Reconnecting...</div>`
-}
-
-loading=false
-
-})
-
-}
-
-function getCookie(name){
-
-let value=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let c=cookies[i].trim()
-
-if(c.startsWith(name+"=")){
-value=decodeURIComponent(c.substring(name.length+1))
-}
-
-}
-
-}
-
-return value
-
-}
-
-function markCleaned(id){
-
-fetch(`/clean-table/${id}/`,{
-
-method:"POST",
-
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.success){
-refreshTables()
-}else{
-alert("Cleaning failed")
-}
-
-})
-.catch(()=>alert("Connection error"))
-
-}
-
-refreshTables()
-
-setInterval(refreshTables,5000)
-
-</script>
-
-</body>
-</html> {% endcomment %}
-
-
-
-
-
-<!--v3-->
-<!DOCTYPE html>
-
-<html>
-<head>
-
-<title>Tables Dashboard</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<style>
-
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
-
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:20px;
-}
-
-.header h3{
-font-weight:700;
-}
-
-.legend{
-display:flex;
-flex-wrap:wrap;
-gap:14px;
-font-size:13px;
-margin-bottom:20px;
-}
-
-.legend span{
-display:flex;
-align-items:center;
-gap:6px;
-}
-
-.dot{
-width:12px;
-height:12px;
-border-radius:50%;
-}
-
-.table-grid{
-min-height:200px;
-}
-
-.table-card{
-border-radius:16px;
-padding:18px;
-text-align:center;
-font-weight:600;
-transition:.2s;
-box-shadow:0 6px 18px rgba(0,0,0,0.08);
-min-height:190px;
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-cursor:pointer;
-}
-
-.table-card:hover{
-transform:translateY(-4px);
-box-shadow:0 10px 25px rgba(0,0,0,0.12);
-}
-
-.selected{
-outline:4px solid black;
-}
-
-.table-title{
-font-size:22px;
-font-weight:700;
-}
-
-.status{
-font-size:13px;
-opacity:.9;
-margin-bottom:6px;
-text-transform:capitalize;
-}
-
-.merge-info{
-font-size:12px;
-margin-bottom:8px;
-}
-
-.metrics{
-font-size:13px;
-margin-bottom:12px;
-opacity:.9;
-}
-
-.free{ background:#2ecc71;color:white }
-.ordering{ background:#ffc107;color:black }
-.preparing{ background:#dc3545;color:white }
-.ready{ background:#fd7e14;color:white }
-.served{ background:#0d6efd;color:white }
-.billing{ background:#6c757d;color:white }
-.cleaning{ background:#8b5e3c;color:white }
-.merged{ background:#9b59b6;color:white }
-
-.dot.free{background:#2ecc71}
-.dot.ordering{background:#ffc107}
-.dot.preparing{background:#dc3545}
-.dot.ready{background:#fd7e14}
-.dot.served{background:#0d6efd}
-.dot.billing{background:#6c757d}
-.dot.cleaning{background:#8b5e3c}
-.dot.merged{background:#9b59b6}
-
-.status-message{
-text-align:center;
-padding:60px;
-color:#666;
-font-size:16px;
-}
-
-.error{
-color:#dc3545;
-font-weight:600;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<div class="container mt-4">
-
-<div class="header">
-
-<h3>Tables Dashboard</h3>
-
-<div>
-
-<button class="btn btn-primary me-2" onclick="startMergeMode()">Merge Tables</button>
-
-<a href="/billing/" class="btn btn-success me-2">Billing</a> <a href="/kitchen/" class="btn btn-dark me-2">Kitchen</a>
-
-</div>
-
-</div>
-
-<div id="merge-controls" style="display:none" class="mb-3">
-
-<button class="btn btn-success btn-sm me-2" onclick="finishMerge()">Finish Merge</button> <button class="btn btn-secondary btn-sm" onclick="cancelMerge()">Cancel</button>
-
-</div>
-
-<div class="legend">
-
-<span><div class="dot free"></div>Free</span> <span><div class="dot ordering"></div>Ordering</span> <span><div class="dot preparing"></div>Preparing</span> <span><div class="dot ready"></div>Ready</span> <span><div class="dot served"></div>Served</span> <span><div class="dot billing"></div>Billing</span> <span><div class="dot cleaning"></div>Cleaning</span> <span><div class="dot merged"></div>Merged</span>
-
-</div>
-
-<div class="row table-grid" id="tables-container">
-
-<div class="status-message">
-Loading tables...
-</div>
-
-</div>
-
-</div>
-
-<div id="transferBox" style="display:none; position:fixed; top:25%; left:50%; transform:translateX(-50%); background:white; padding:20px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.2); z-index:999; width:300px;">
-
-<h5>Select Table</h5>
-
-<select id="transferSelect" class="form-control mb-2"></select>
-
-<button class="btn btn-success w-100 mb-2" onclick="confirmTransfer()">Confirm Transfer</button>
-<button class="btn btn-secondary w-100" onclick="closeTransfer()">Cancel</button>
-
-</div>
-<script>
-
-let loading=false
-let failureCount=0
-let mergeMode=false
-let selectedTables=[]
-let currentOrderId=null
-
-
-function safe(v,f){
-return v===undefined||v===null?f:v
-}
-
-
-function startMergeMode(){
-
-mergeMode=true
-selectedTables=[]
-
-document.getElementById("merge-controls").style.display="block"
-
-alert("Select tables to merge")
-
-}
-
-
-function cancelMerge(){
-
-mergeMode=false
-selectedTables=[]
-
-document.getElementById("merge-controls").style.display="none"
-
-refreshTables()
-
-}
-
-
-function handleTableClick(event, id, merged, primary){
-
-if(merged){
-
-alert("This table is merged with Table "+primary)
-return
-
-}
-
-if(mergeMode){
-
-if(selectedTables.includes(id)){
-selectedTables = selectedTables.filter(t=>t!==id)
-}else{
-selectedTables.push(id)
-}
-
-// update UI only
-let el = event.currentTarget
-el.classList.toggle("selected")
-
-return
-}
-
-openBilling(id)
-
-}
-
-
-function finishMerge(){
-
-if(selectedTables.length<2){
-
-alert("Select at least 2 tables")
-return
-
-}
-
-let primary=selectedTables[0]
-
-fetch("/merge-tables/",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-
-body:JSON.stringify({
-primary_table:primary,
-tables:selectedTables
-})
-
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.success){
-
-alert("Tables merged")
-
-mergeMode=false
-selectedTables=[]
-
-document.getElementById("merge-controls").style.display="none"
-
-refreshTables()
-
-}else{
-alert(data.error)
-}
-
-})
-.catch(()=>alert("Merge failed"))
-
-}
-
-
-function unmerge(primary){
-
-fetch(`/unmerge-tables/${primary}/`,{
-
-method:"POST",
-
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.success){
-refreshTables()
-}else{
-alert("Unmerge failed")
-}
-
-})
-
-}
-
-
-function openBilling(id){
-window.location.href="/billing/?table="+id
-}
-
-
-function openRunningOrder(id){
-
-if(!id) return
-
-window.location.href="/order/"+id+"/"
-
-}
-
-
-function renderError(msg){
-
-document.getElementById("tables-container").innerHTML=`
-<div class="status-message error">
-${msg}
-<br><br>
-<button class="btn btn-outline-dark btn-sm" onclick="refreshTables()">Retry</button>
-</div>
-`
-
-}
-
-
-function refreshTables(){
-
-if(loading)return
-
-loading=true
-
-fetch("/tables-data/")
-.then(res=>{
-
-if(!res.ok){
-throw new Error("server")
-}
-
-return res.json()
-
-})
-.then(data=>{
-
-failureCount=0
-
-let container=document.getElementById("tables-container")
-
-container.innerHTML=""
-
-if(!data.tables || data.tables.length===0){
-
-container.innerHTML=`<div class="status-message">No tables configured</div>`
-
-loading=false
-return
-
-}
-
-data.tables.forEach(t=>{
-
-let status=t.status || "free"
-
-let selectedClass=selectedTables.includes(t.id)?"selected":""
-
-let mergeInfo=""
-
-let actions=""
-
-if(t.merged){
-
-status="merged"
-
-mergeInfo=`<div class="merge-info">🔗 Merged →  ${t.primary_table_name}</div>`
-
-actions=`
-<button class="btn btn-warning btn-sm w-100"
-onclick="event.stopPropagation();unmerge(${t.primary_table})">
-Unmerge
-</button>
-`
-
-}
-
-else if(status==="free"){
-
-actions=`
-<button class="btn btn-light btn-sm w-100"
-onclick="event.stopPropagation();openBilling(${t.id})">
-New Order
-</button>
-`
-
-}
-
-else if(status==="ordering" || status==="preparing"){
-
-actions=`
-<button class="btn btn-dark btn-sm w-100"
-onclick="event.stopPropagation();openBilling(${t.id})">
-Continue Order
-</button>
-`
-
-}
-
-else if(status==="ready" || status==="served"){
-
-actions=`
-<button class="btn btn-dark btn-sm mb-1 w-100"
-onclick="event.stopPropagation();openBilling(${t.id})">
-Add Item
-</button>
-
-<button class="btn btn-primary btn-sm mb-1 w-100"
-onclick="event.stopPropagation();openRunningOrder(${t.order_id})">
-Running Bill
-</button>
-
-<button class="btn btn-warning btn-sm mb-1 w-100"
-onclick="event.stopPropagation();openTransfer(${t.order_id})">
-Transfer Table
-</button>
-
-<a href="/bill/${t.order_id}/"
-class="btn btn-success btn-sm w-100"
-onclick="event.stopPropagation()">
-Generate Bill
-</a>
-`
-
-}
-
-else if(status==="billing"){
-
-actions=`
-<a href="/bill/${t.order_id}/"
-class="btn btn-light btn-sm mb-1 w-100"
-onclick="event.stopPropagation()">
-Open Bill
-</a>
-
-<button class="btn btn-warning btn-sm w-100"
-onclick="event.stopPropagation();openTransfer(${t.order_id})">
-Transfer Table
-</button>
-`
-
-}
-
-else if(status==="cleaning"){
-
-actions=`
-<button class="btn btn-light btn-sm w-100"
-onclick="event.stopPropagation();markCleaned(${t.id})">
-Table Cleaned
-</button>
-`
-
-}
-
-container.innerHTML+=`
-
-<div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-
-<div class="table-card ${status} ${selectedClass}"
-onclick="handleTableClick(event,${t.id},${t.merged},${t.primary_table})">
-
-<div>
-
-<div class="table-title">${safe(t.name,"Table")}</div>
-
-<div class="status">Status: ${status}</div>
-
-${mergeInfo}
-
-<div class="metrics">
-
-⏱ ${safe(t.elapsed,0)} min
-<br>
-🍳 ${safe(t.cooking_items,0)} cooking
-
-</div>
-
-</div>
-
-<div>${actions}</div>
-
-</div>
-
-</div>
-
-`
-
-})
-
-loading=false
-
-})
-.catch(()=>{
-
-failureCount++
-
-if(failureCount>3){
-renderError("Lost connection to server")
-}else{
-document.getElementById("tables-container").innerHTML=`<div class="status-message">Reconnecting...</div>`
-}
-
-loading=false
-
-})
-
-}
-//-----------------
-// table transfer 
-//-----------------
-function openTransfer(orderId){
-
-currentOrderId = orderId
-
-document.getElementById("transferBox").style.display = "block"
-
-fetch("/available-tables/")
-.then(res => res.json())
-.then(data => {
-
-let select = document.getElementById("transferSelect")
-select.innerHTML = ""
-
-if(!data.tables || data.tables.length === 0){
-alert("No available tables")
-return
-}
-
-data.tables.forEach(t => {
-
-let opt = document.createElement("option")
-opt.value = t.id
-opt.text = t.name
-
-select.appendChild(opt)
-
-})
-
-})
-
-}
-
-
-function closeTransfer(){
-document.getElementById("transferBox").style.display = "none"
-}
-
-function confirmTransfer(){
-
-let tableId = document.getElementById("transferSelect").value
-
-if(!tableId){
-alert("Select a table")
-return
-}
-
-fetch("/transfer-table/",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-"X-CSRFToken":getCookie("csrftoken")
-},
-body:JSON.stringify({
-order_id: currentOrderId,
-table_id: tableId
-})
-})
-.then(res => res.json())
-.then(data => {
-
-if(data.success){
-
-alert("Table transferred")
-
-closeTransfer()
-refreshTables()
-
-}else{
-alert(data.error)
-}
-
-})
-
-}
-
-
-
-
-function getCookie(name){
-
-let value=null
-
-if(document.cookie){
-
-let cookies=document.cookie.split(";")
-
-for(let i=0;i<cookies.length;i++){
-
-let c=cookies[i].trim()
-
-if(c.startsWith(name+"=")){
-value=decodeURIComponent(c.substring(name.length+1))
-}
-
-}
-
-}
-
-return value
-
-}
-
-
-function markCleaned(id){
-
-fetch(`/clean-table/${id}/`,{
-
-method:"POST",
-
-headers:{
-"X-CSRFToken":getCookie("csrftoken")
-}
-
-})
-.then(res=>res.json())
-.then(data=>{
-
-if(data.success){
-refreshTables()
-}else{
-alert("Cleaning failed")
-}
-
-})
-.catch(()=>alert("Connection error"))
-
-}
-
-
-refreshTables()
-
-setInterval(() => {
-    if(!document.hidden){
-        refreshTables()
+    function getCookie(name) {
+        let v = null;
+        if (document.cookie) {
+            document.cookie.split(";").forEach(c => {
+                if(c.trim().startsWith(name + "=")) v = decodeURIComponent(c.split("=")[1]);
+            });
+        }
+        return v;
     }
-}, 5000)
+
+    /* THEME MANAGEMENT */
+    let isDark = localStorage.getItem("dark") === "true";
+
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if(isDark) { 
+            document.body.classList.add("dark"); 
+            icon.classList.replace("bi-moon", "bi-sun"); 
+            document.documentElement.style.setProperty('--invert-val', '1');
+        } 
+        else { 
+            document.body.classList.remove("dark"); 
+            icon.classList.replace("bi-sun", "bi-moon"); 
+            document.documentElement.style.setProperty('--invert-val', '0');
+        }
+    }
+    updateIcons();
+
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+    /* RENDER TABLES */
+    let tableDataStore = [];
+    
+    function refreshLayout() {
+        fetch("/tables-data/")
+        .then(r => r.json())
+        .then(d => {
+            tableDataStore = d.tables;
+            let container = document.getElementById("tableGrid");
+            container.innerHTML = "";
+            
+            d.tables.forEach(t => {
+                let statusText = t.status || "free";
+                let statusClass = "status-free";
+                let bgClass = "bg-free";
+                let timerHtml = "";
+                let actionsHtml = "";
+
+                if (statusText === "ordering") { statusClass = "status-ordering"; bgClass = "bg-order"; }
+                else if (statusText === "preparing") { statusClass = "status-preparing"; bgClass = "bg-prepare"; }
+                else if (statusText === "served" || statusText === "ready") { statusClass = "status-served"; bgClass = "bg-serve"; }
+                else if (statusText === "billing") { statusClass = "status-billing"; bgClass = "bg-billing"; }
+                else if (statusText === "cleaning") { statusClass = "status-cleaning"; bgClass = "bg-clean"; }
+                else if (statusText === "merged") { statusClass = "status-merged"; bgClass = "bg-merged"; }
+
+                // Waiter UX logic
+                if (statusText === "free") {
+                    actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
+                } 
+                else if (statusText === "merged") {
+                    let pName = t.primary_table_name || t.primary_table;
+                    timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
+                    actionsHtml = `
+                        <button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>
+                        <button onclick="unmergeTable(${t.primary_table})" class="btn-card-action" style="color:#ef4444;"><i class="bi bi-scissors"></i> Unmerge</button>
+                    `;
+                }
+                else if (statusText === "cleaning") {
+                    timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
+                    actionsHtml = `<button onclick="markTableCleaned(${t.id})" class="btn-card-action btn-card-primary w-100">Mark Clean</button>`;
+                }
+                else {
+                    // Active order (Ordering, Preparing, Served)
+                    if(t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
+                    
+                    let pNameStr = t.primary_table_name ? ` (Primary for ${t.merged_with || 'merged'})` : '';
+                    
+                    actionsHtml = `
+                        <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
+                        <button onclick="generateBillForTable(${t.id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
+                        <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
+                    `;
+                }
+
+                let html = `
+                <div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
+                    <div class="table-card w-100 shadow-sm">
+                        <div class="table-status-line ${bgClass}"></div>
+                        
+                        <div class="table-header">
+                            <div>
+                                <h3 class="table-name">${t.name}</h3>
+                                <div class="table-status ${statusClass}">${statusText}</div>
+                            </div>
+                            ${timerHtml}
+                        </div>
+
+                        ${t.primary_table_name ? `<div class="occupancy"><i class="bi bi-link-45deg"></i> Merged w/ ${t.name}</div>` : ''}
+                        
+                        <div class="mt-auto">
+                            <div class="card-actions">
+                                ${actionsHtml}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                container.innerHTML += html;
+            });
+            
+            // Update live metrics widgets
+            let statTotal = d.tables.length;
+            let statFree = d.tables.filter(x => x.status === "free").length;
+            let statBilling = d.tables.filter(x => x.status === "billing").length;
+            let statActive = statTotal - statFree - d.tables.filter(x => x.status === "cleaning" || x.status === "merged").length;
+            
+            document.getElementById("stat-total").innerText = statTotal;
+            document.getElementById("stat-free").innerText = statFree;
+            document.getElementById("stat-active").innerText = statActive;
+            document.getElementById("stat-billing").innerText = statBilling;
+
+            // Populate dropdowns once data is loaded
+            populateModals();
+        });
+    }
+
+    function populateModals() {
+        let p = document.getElementById("mergePrimary");
+        let s = document.getElementById("mergeSecondary");
+        let tf = document.getElementById("transferFrom");
+        let tt = document.getElementById("transferTo");
+        
+        let pVal = p.value, sVal = s.value, tfVal = tf.value, ttVal = tt.value;
+        
+        p.innerHTML = '<option value="" disabled selected>Select Primary Table...</option>';
+        s.innerHTML = '<option value="" disabled selected>Select a table to merge...</option>';
+        tf.innerHTML = '<option value="" disabled selected>Select source table...</option>';
+        tt.innerHTML = '<option value="" disabled selected>Select destination table...</option>';
+
+        tableDataStore.forEach(t => {
+            let opt = `<option value="${t.id}">${t.name}</option>`;
+            p.innerHTML += opt;
+            if(t.status === "free") tt.innerHTML += opt; // only transfer TO free tables
+            if(t.status === "free") s.innerHTML += opt;  // mostly merge secondary should be free or easily overriden
+            tf.innerHTML += opt;
+        });
+        
+        // Retain selections if possible
+        if(pVal) p.value = pVal;
+        if(sVal) s.value = sVal;
+        if(tfVal) tf.value = tfVal;
+        if(ttVal) tt.value = ttVal;
+    }
+
+    /* TABLE CLICK LOGIC */
+    let actionModal = null;
+    
+    function handleTableClick(tableId) {
+        let t = tableDataStore.find(x => x.id === tableId);
+        if(!t) return;
+
+        if(t.status === "free") {
+            window.location.href = `/billing/?table=${t.id}`;
+            return;
+        }
+
+        if(t.status === "cleaning") {
+            document.getElementById("actionModalTitle").innerText = t.name;
+            document.getElementById("actionModalStatus").innerText = `Table needs to be cleaned`;
+            
+            let btns = document.getElementById("actionModalButtons");
+            btns.innerHTML = `
+                <button onclick="markTableCleaned(${t.id})" class="btn-luxury w-100" style="color:var(--c-clean); border-color:var(--c-clean);"><i class="bi bi-stars me-2"></i>Mark as Cleaned</button>
+            `;
+
+            if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
+            actionModal.show();
+            return;
+        }
+
+        // It has an active order, show options
+        document.getElementById("actionModalTitle").innerText = t.name;
+        document.getElementById("actionModalStatus").innerText = `Order Active (${t.status})`;
+        
+        let btns = document.getElementById("actionModalButtons");
+        btns.innerHTML = `
+            <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add Items</button>
+            <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Show Running Order</button>
+            <button onclick="openSmartTransfer(${t.id}, ${t.order_id})" class="btn-luxury w-100">Transfer Table</button>
+            <button onclick="generateBillForTable(${t.id})" class="btn-luxury w-100" style="color:var(--c-fresh); border-color:var(--c-fresh);">Generate Bill</button>
+        `;
+
+        if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
+        actionModal.show();
+    }
+
+    function openSmartTransfer(tableId, orderId) {
+        if(actionModal) actionModal.hide();
+        document.getElementById("transferFrom").value = tableId;
+        document.getElementById("transferOrderId").value = orderId;
+        new bootstrap.Modal(document.getElementById("transferModal")).show();
+    }
+
+    function generateBillForTable(tableId) {
+        fetch(`/generate-bill/${tableId}/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCookie("csrftoken") }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) window.location.href = `/bill/${d.order_id}/`;
+            else showToast(d.error || "Failed to generate bill");
+        })
+        .catch(err => showToast("Request failed"));
+    }
+
+    function markTableCleaned(tableId) {
+        fetch(`/clean-table/${tableId}/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCookie("csrftoken") }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) {
+                if(actionModal) actionModal.hide();
+                showToast("Table Cleaned Successfully");
+                refreshLayout();
+            } else {
+                showToast(d.error || "Failed to mark table clear");
+            }
+        });
+    }
+
+    function unmergeTable(primaryId) {
+        if(!confirm("Are you sure you want to unmerge all tables linked to this primary table?")) return;
+        fetch(`/unmerge-tables/${primaryId}/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCookie("csrftoken") }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) { showToast("Tables Unmerged"); setTimeout(()=>location.reload(), 1000); }
+            else showToast(d.error || "Unmerge failed");
+        });
+    }
+
+    /* API MERGE */
+    function executeMerge() {
+        let p = document.getElementById("mergePrimary").value;
+        let s = document.getElementById("mergeSecondary").value;
+        if(!p || !s) return;
+        if(p === s) { showToast("Cannot merge table with itself"); return; }
+        
+        fetch("/merge-tables/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            body: JSON.stringify({ primary_table: parseInt(p), tables: [parseInt(s)] })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) { showToast("Tables Combined"); setTimeout(()=>location.reload(), 1000); }
+            else showToast(d.error || "Merge failed");
+        });
+    }
+
+    /* API TRANSFER */
+    function executeTransfer() {
+        let o = document.getElementById("transferOrderId").value;
+        let tId = document.getElementById("transferTo").value;
+        if(!o || !tId) return;
+
+        fetch("/transfer-table/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            body: JSON.stringify({ order_id: parseInt(o), table_id: parseInt(tId) })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) { showToast("Table Transferred"); setTimeout(()=>location.reload(), 1000); }
+            else showToast(d.error || "Transfer failed");
+        });
+    }
+
+    /* INIT */
+    document.addEventListener("DOMContentLoaded", () => {
+        refreshLayout();
+        setInterval(refreshLayout, 5000); // Polling for live status
+    });
 
 </script>
 

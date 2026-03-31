@@ -1,29 +1,45 @@
-.
 # Python
 __pycache__/
 *.pyc
 *.pyo
-cl
+*.pyd
+
 # Virtual env
 .venv/
 venv/
+env/
 
 # Django
 db.sqlite3
 media/
 staticfiles/
 
-# Environment
+# Environment — NEVER commit secrets
 .env
+.env.*
 
 # IDE
 .vscode/
 .idea/
+*.swp
 
 # OS
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
 
 # log
 pos.log
+=======
+# Logs & rotation files
+pos.log
+pos.log.*
+
+# Build artifacts — never commit zips
+*.zip
+*.tar.gz
+
+# Dev tools output (ER diagrams etc)
+er_diagrams_pos/
+>>>>>>> 30dc531c179b695d14c31fc2b05f3ff020ed0df4

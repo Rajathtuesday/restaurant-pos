@@ -1,150 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitchen Stations | Setup</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
+            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        body.dark {
+            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888888;
+            --border-color: #262626; --accent-gold: #d4af37;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg-color); color: var(--text-main); font-family: 'Inter', sans-serif; min-height: 100vh; transition: var(--transition-smooth); -webkit-font-smoothing: antialiased; }
+        
+        /* HEADER */
+        .pos-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); }
+        .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'Playfair Display', serif; font-weight: 700; }
+        .brand-title i { color: var(--accent-gold); }
+        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition-smooth); text-decoration: none; }
+        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
 
-<title>Kitchen Stations</title>
+        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+        .page-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; }
+        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+        .form-label, .section-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 1.2rem; font-weight: 600; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+        .form-control:focus { border-bottom-color: var(--accent-gold); box-shadow: none; background: transparent; color: var(--text-main); }
+        .form-hint, .empty-state { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .btn-add:hover { opacity: 0.9; }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+        .alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
 
-<style>
 
-body{
-background:#f4f6fb;
-font-family:system-ui;
-}
+        .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+        @media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
 
-/* CONTAINER */
+        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+        .page-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; }
+        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
 
-.box{
-max-width:700px;
-margin:40px auto;
-background:white;
-padding:25px;
-border-radius:16px;
-box-shadow:0 10px 30px rgba(0,0,0,0.08);
-}
+        .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+        .form-control:focus { border-bottom-color: var(--accent-gold); }
+        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+        .btn-add:hover { background: #b59250; }
 
-/* HEADER */
+        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
 
-.header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:15px;
-flex-wrap:wrap;
-gap:10px;
-}
-
-/* STATION ITEM */
-
-.station{
-padding:12px;
-border-bottom:1px solid #eee;
-}
-
-/* MOBILE */
-
-@media (max-width:576px){
-
-.box{
-margin:20px;
-padding:20px;
-}
-
-}
-
-</style>
-
+        /* Stations list */
+        .station-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.2rem 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
+        .station-card.is-default { border-color: var(--accent-gold); }
+        .station-name { font-size: 0.85rem; font-weight: 600; }
+        .station-icon { color: var(--accent-gold); margin-right: 0.75rem; }
+        .badge-default { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 2px 8px; }
+        .btn-set-default { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 10px; cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-block; }
+        .btn-set-default:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+        .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
+        .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
+    </style>
 </head>
-
 <body>
+<header class="pos-header">
+    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS Setup</h1>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/setup/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-gear me-1"></i> Setup Area</a>
+        <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
+            <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+    </div>
+</header>
 
-<div class="box">
-
-<!-- HEADER -->
-
-<div class="header">
-<h4 class="mb-0">Kitchen Stations</h4>
-<a href="/setup/" class="btn btn-outline-secondary btn-sm">Back</a>
-</div>
-
-<p class="text-muted mb-3">
-Example: Bar, Kitchen, Grill.
-</p>
-
-<!-- ADD FORM -->
-
-<form method="POST" action="{% url 'setup_kitchen_stations' %}">
-{% csrf_token %}
-
-<div class="input-group mb-3">
-
-<input
-type="text"
-name="station_name"
-class="form-control"
-placeholder="Enter station name"
-required
->
-
-<button class="btn btn-dark">
-Add
-</button>
-
-</div>
-
-</form>
-
-<hr>
-
-<!-- STATIONS LIST -->
-
-{% for s in stations %}
-
-<div class="station d-flex justify-content-between align-items-center flex-wrap gap-2">
-
+<div class="page-body">
+    <!-- LEFT: ADD STATION -->
     <div>
-        <strong>{{s.name}}</strong>
+        <p class="page-eyebrow">Configuration</p>
+        <h1 class="page-title">Stations</h1>
+        <div class="divider"></div>
+        <p class="page-sub">Define your kitchen stations (e.g. Hot Kitchen, Bar, Bakery). KOTs are routed to specific stations based on menu item assignments.</p>
 
-        {% if s.is_default %}
-            <span class="badge bg-success ms-2">Default</span>
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="alert">{{ msg }}</div>
+        {% endfor %}
         {% endif %}
-    </div>
 
-    <div class="d-flex gap-2">
-
-        {% if not s.is_default %}
-        <form method="POST" action="{% url 'set-default-station' s.id %}">
+        <form method="post">
             {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-primary">
-                Make Default
-            </button>
+            <label class="form-label">Station Name</label>
+            <input type="text" name="station_name" class="form-control" placeholder="e.g. Hot Kitchen, Bar" required>
+            <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Add Station</button>
         </form>
-        {% endif %}
-
     </div>
 
+    <!-- RIGHT: EXISTING STATIONS -->
+    <div>
+        <p class="section-label">Active Stations</p>
+
+        {% for station in stations %}
+        <div class="station-card {% if station.is_default %}is-default{% endif %}">
+            <div style="display:flex; align-items:center;">
+                <i class="bi bi-fire station-icon {% if not station.is_default %}" style="color:var(--text-muted){% endif %}"></i>
+                <div class="station-name">{{ station.name }}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                {% if station.is_default %}
+                <span class="badge-default">Default</span>
+                {% else %}
+                <a href="/setup/set-default-station/{{ station.id }}/" class="btn-set-default">Set Default</a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="empty-state">No stations yet. At least one station is required for KOT routing.</p>
+        {% endfor %}
+    </div>
 </div>
 
-{% empty %}
-
-<div class="text-center py-3">
-
-<p class="text-muted mb-2">
-No stations created.
-</p>
-
-<p class="small text-muted">
-Orders will go to <strong>General Kitchen</strong> by default.
-</p>
-
-</div>
-
-{% endfor %}
-
-</div>
-
+<script>
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+</script>
 </body>
+
 </html>
