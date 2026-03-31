@@ -236,8 +236,27 @@
         
         <div class="d-flex align-items-center gap-4">
             {% if request.user.role == "owner" %}
-            <form method="GET" class="m-0">
-                <select name="outlet" class="form-select form-select-luxury" onchange="this.form.submit()">
+            <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
+                <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
+                    if(this.value === 'custom') { 
+                        document.getElementById('customDates').style.display='flex'; 
+                    } else { 
+                        document.getElementById('filterForm').submit(); 
+                    }">
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                    <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+                
+                <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem;">
+                    <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
+                    <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
+                    <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                
+                <select name="outlet" class="form-select form-select-luxury ms-3" onchange="document.getElementById('filterForm').submit()">
                     <option value="">All Branches</option>
                     {% for o in outlets %}
                     <option value="{{o.id}}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>
@@ -245,6 +264,28 @@
                     </option>
                     {% endfor %}
                 </select>
+            </form>
+            {% else %}
+            <!-- For Manager role, they can only filter date -->
+            <form id="filterForm" method="GET" class="m-0 d-flex gap-2">
+                <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
+                    if(this.value === 'custom') { 
+                        document.getElementById('customDates').style.display='flex'; 
+                    } else { 
+                        this.form.submit(); 
+                    }">
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                    <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+                
+                <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem;">
+                    <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
+                    <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
+                    <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
+                </div>
             </form>
             {% endif %}
             
@@ -266,7 +307,14 @@
         <strong>ALL BRANCHES</strong>
         {% endif %}
         <span class="mx-3">|</span>
-        PERIOD: <strong>TODAY</strong>
+        PERIOD: <strong style="text-transform:uppercase;">
+            {% if date_filter == 'today' %}TODAY
+            {% elif date_filter == 'yesterday' %}YESTERDAY
+            {% elif date_filter == 'weekly' %}LAST 7 DAYS
+            {% elif date_filter == 'monthly' %}LAST 30 DAYS
+            {% else %}{{ start_date|date:'M d, Y' }} - {{ end_date|date:'M d, Y' }}
+            {% endif %}
+        </strong>
     </div>
 
     <!-- HIGH LEVEL METRICS -->

@@ -4,7 +4,7 @@ from orders.models import OrderItem
 from django.utils import timezone
 
 
-def category_sales(tenant, outlet):
+def category_sales(tenant, outlet=None, start_date=None, end_date=None):
 
     # ---------------------------------------------
     # SAFE REVENUE EXPRESSION
@@ -23,7 +23,7 @@ def category_sales(tenant, outlet):
         order__tenant=tenant,
         order__status__in=["paid", "closed"],
         is_complimentary=False,
-        order__created_at__date=timezone.now().date()
+        order__created_at__date__gte=start_date if start_date else timezone.now().date(), order__created_at__date__lte=end_date if end_date else timezone.now().date()
     ).exclude(status="voided")
 
     if outlet:

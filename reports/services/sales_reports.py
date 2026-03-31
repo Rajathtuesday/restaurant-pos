@@ -6,7 +6,7 @@ from django.db.models.functions import ExtractHour
 from orders.models import Order, Payment
 
 
-def daily_sales(tenant, outlet=None):
+def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     """
     Daily financial report.
 
@@ -15,14 +15,15 @@ def daily_sales(tenant, outlet=None):
     - Orders count is based on orders that actually have payments
     """
 
-    today = timezone.now().date()
+    if not start_date: start_date = timezone.now().date()
+    if not end_date: end_date = timezone.now().date()
 
     # ----------------------------
     # PAYMENTS (SOURCE OF TRUTH)
     # ----------------------------
     payments = Payment.objects.filter(
         order__tenant=tenant,
-        order__created_at__date=today
+        order__created_at__date__gte=start_date, order__created_at__date__lte=end_date
     )
 
     if outlet:
@@ -66,16 +67,17 @@ def daily_sales(tenant, outlet=None):
     }
 
 
-def hourly_sales(tenant, outlet=None):
+def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     """
     Hourly revenue distribution (based on payments)
     """
 
-    today = timezone.now().date()
+    if not start_date: start_date = timezone.now().date()
+    if not end_date: end_date = timezone.now().date()
 
     payments = Payment.objects.filter(
         order__tenant=tenant,
-        order__created_at__date=today
+        order__created_at__date__gte=start_date, order__created_at__date__lte=end_date
     )
 
     if outlet:

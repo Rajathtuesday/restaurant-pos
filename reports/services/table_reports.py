@@ -4,12 +4,12 @@ from orders.models import Order, OrderItem
 from django.utils import timezone
 
 
-def table_turnover(tenant, outlet):
+def table_turnover(tenant, outlet=None, start_date=None, end_date=None):
     query = Order.objects.filter(
         tenant=tenant,
         status__in=["closed", "paid"],
         table__isnull=False,
-        created_at__date=timezone.now().date()
+        created_at__date__gte=start_date if start_date else timezone.now().date(), created_at__date__lte=end_date if end_date else timezone.now().date()
     )
 
     if outlet:
