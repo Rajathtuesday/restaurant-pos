@@ -11,6 +11,8 @@ from reports.services.waiter_reports import waiter_performance
 from tenants.models import Outlet
 from django.utils import timezone
 from datetime import timedelta
+import csv
+from django.http import HttpResponse
 
 @login_required
 def dashboard(request):
@@ -71,6 +73,35 @@ def dashboard(request):
     table_stats = table_turnover(tenant, selected_outlet, start_date, end_date)
     categories = category_sales(tenant, selected_outlet, start_date, end_date)
     waiters = waiter_performance(tenant, selected_outlet, start_date, end_date)
+
+    if request.GET.get("export") == "csv":
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="pos_report_{start_date}_{end_date}.csv"'
+        writer = csv.writer(response)
+        
+        writer.writerow(['SUMMARY'])
+        writer.writerow(['Revenue', f"Rs {sales.get('total_sales', 0)}"])
+        writer.writerow(['Orders', sales.get('orders', 0)])
+        writer.writerow([])
+        
+        writer.writerow(['PAYMENT METHODS'])
+        writer.writerow(['Method', 'Total Amount'])
+        for pm in sales.get('payments', []):
+            writer.writerow([pm.get('method', 'Unknown'), pm.get('total', 0)])
+        writer.writerow([])
+        
+        writer.writerow(['TOP ITEMS'])
+        writer.writerow(['Item Name', 'Quantity Sold', 'Revenue generated'])
+        for item in items:
+            writer.writerow([item['menu_item__name'], item['total_qty'], item['total_rev']])
+        writer.writerow([])
+        
+        writer.writerow(['CATEGORY SALES'])
+        writer.writerow(['Category', 'Revenue'])
+        for cat, rev in categories:
+            writer.writerow([cat, rev])
+            
+        return response
 
     return render(request, "reports/dashboard.html", {
         "sales": sales,

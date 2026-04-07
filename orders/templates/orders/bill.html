@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice | {{ request.user.outlet.name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
     ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
@@ -15,8 +15,8 @@
             --border: #2d3139; --gold: #c5a059; --success: #22c55e;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
-        h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
+        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+        h1, h2, h3, .serif { font-family: 'DM Serif Display', serif; }
         
         .receipt-container { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border); padding: 3rem 2.5rem; border-radius: 4px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); position: relative; }
         
@@ -133,6 +133,22 @@
                 <span id="grandTotalLabel">₹{{ order.grand_total }}</span>
             </div>
 
+            {% if order.payments.exists %}
+            <div style="margin-top: 1.5rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.5rem;">Payment Splits</div>
+                {% for p in order.payments.all %}
+                <div class="total-row" style="font-size: 0.85rem;">
+                    <span>{{ p.method|title }} <small class="text-muted">({{ p.created_at|date:"H:i" }})</small></span>
+                    <span>- ₹{{ p.amount }}</span>
+                </div>
+                {% endfor %}
+                <div class="total-row" style="margin-top: 0.5rem; font-weight: bold;">
+                    <span>BALANCE DUE</span>
+                    <span>₹{{ remaining }}</span>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="balance-card {% if remaining <= 0 %}fully-paid{% endif %} no-print">
                 <div class="balance-label">{% if remaining <= 0 %}Status{% else %}Balance Due{% endif %}</div>
                 <div class="balance-val" id="balanceVal">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
@@ -220,11 +236,11 @@
         <div id="crmSection" style="border:1px dashed var(--border); padding:1.2rem; border-radius:2px;">
             <p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:0.8rem;">Link Guest &amp; Award Points</p>
             <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-                <input id="guestPhone" type="tel" placeholder="Guest phone number" class="input-pay" style="margin:0; flex:1; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Inter',sans-serif;">
+                <input id="guestPhone" type="tel" placeholder="Guest phone number" class="input-pay" style="margin:0; flex:1; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Outfit',sans-serif;">
                 <button onclick="lookupGuest()" class="btn-set" style="flex:0 0 80px;">Lookup</button>
             </div>
             <div id="guestInfo" style="display:none; font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; padding:0.5rem; border:1px solid var(--border);"></div>
-            <input id="guestName" type="text" placeholder="Guest name (optional)" class="input-pay" style="margin-bottom:0.5rem; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Inter',sans-serif;">
+            <input id="guestName" type="text" placeholder="Guest name (optional)" class="input-pay" style="margin-bottom:0.5rem; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Outfit',sans-serif;">
             <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.8rem;">
                 <label style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); white-space:nowrap;">Redeem pts:</label>
                 <input id="redeemPts" type="number" min="0" value="0" class="input-pay" style="margin:0; flex:1; padding:0.5rem; font-size:0.85rem;">

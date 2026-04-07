@@ -5,11 +5,13 @@
     <title>POS | Point of Sale</title>
     <!-- Explicit Mobile Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    
-    <!-- Premium Fonts: Playfair Display (Serif) & Inter (Sans-serif) -->
+    <!-- Premium Fonts: DM Serif Display (Serif) & Inter (Sans-serif) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
     
     <!-- Bootstrap Modern -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -44,7 +46,7 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            font-family: 'Outfit', sans-serif;
             transition: var(--transition-smooth);
             min-height: 100vh;
             -webkit-font-smoothing: antialiased;
@@ -53,7 +55,7 @@
 
         /* Typography */
         h1, h2, h3, h4, h5, h6, .serif-text {
-            font-family: 'Playfair Display', serif;
+            font-family: 'DM Serif Display', serif;
             font-weight: 600;
             letter-spacing: 0.5px;
         }
@@ -161,7 +163,7 @@
             font-size: 1.1rem;
             color: var(--text-muted);
             transition: var(--transition-smooth);
-            font-family: 'Playfair Display', serif;
+            font-family: 'DM Serif Display', serif;
             position: relative;
         }
         .category-item:hover { color: var(--text-main); }
@@ -230,7 +232,7 @@
             transform: translateY(-2px);
         }
         .item-name {
-            font-family: 'Playfair Display', serif;
+            font-family: 'DM Serif Display', serif;
             font-size: 1.05rem;
             color: var(--text-main);
             margin-bottom: 0.5rem;
@@ -263,7 +265,7 @@
             text-align: center;
             padding: 1rem 0;
             cursor: pointer;
-            font-family: 'Playfair Display', serif;
+            font-family: 'DM Serif Display', serif;
             font-size: 1rem;
             color: var(--text-muted);
             border-bottom: 2px solid transparent;
@@ -288,7 +290,7 @@
             border-bottom: 1px dashed var(--border-color);
         }
         .cart-item-name {
-            font-family: 'Playfair Display', serif;
+            font-family: 'DM Serif Display', serif;
             font-size: 0.95rem;
             color: var(--text-main);
             margin-bottom: 0.25rem;
@@ -351,7 +353,7 @@
             display: flex;
             justify-content: space-between;
             margin: 1rem 0 1.5rem;
-            font-family: 'Playfair Display', serif;
+            font-family: 'DM Serif Display', serif;
             font-size: 1.3rem;
             color: var(--text-main);
         }
@@ -389,7 +391,7 @@
         /* Modal */
         .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
         .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-        .modal-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; }
+        .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; }
         .modal-body { padding: 1.5rem; }
         .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
 
@@ -580,7 +582,7 @@
 <!-- MOBILE OFFCANVAS CART -->
 <div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
     <div class="offcanvas-header">
-        <h5 class="custom-title m-0" style="font-family:'Playfair Display', serif;">Current Order</h5>
+        <h5 class="custom-title m-0" style="font-family:'DM Serif Display', serif;">Current Order</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     
@@ -629,8 +631,9 @@
                 <h5 class="modal-title" id="modalItemName">Item Name</h5>
             </div>
             <div class="modal-body">
-                <p class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">Special Instructions</p>
-                <textarea id="itemNote" class="form-control form-control-minimal" rows="3" placeholder="Dietary requirements or prep notes..."></textarea>
+                <div id="modifierContainer"></div>
+                <p class="text-muted text-uppercase mt-3" style="font-size: 0.75rem; letter-spacing: 1px;">Special Instructions</p>
+                <textarea id="itemNote" class="form-control form-control-minimal" rows="2" placeholder="Dietary requirements or prep notes..."></textarea>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
@@ -642,7 +645,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(err => {
+                console.log('SW registration failed: ', err);
+            });
+        });
+    }
+
     /* THEME MANAGEMENT */
     let isDark = localStorage.getItem("dark") === "true";
 
@@ -730,6 +743,39 @@
         selectedItem = { id, name, price };
         document.getElementById("modalItemName").innerText = name;
         document.getElementById("itemNote").value = "";
+        
+        let modCont = document.getElementById("modifierContainer");
+        modCont.innerHTML = "<p class='text-center text-muted'>Loading modifiers...</p>";
+        
+        // Fetch Modifiers dynamically
+        fetch(`/menu/item-modifiers/${id}/`)
+        .then(r => r.json())
+        .then(data => {
+            let html = "";
+            if(data.groups && data.groups.length > 0) {
+                data.groups.forEach(g => {
+                    html += `<div class="mb-3">
+                                <label class="form-label fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px;">${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}</label>`;
+                    g.modifiers.forEach(m => {
+                        let inputType = g.max_select === 1 ? 'radio' : 'checkbox';
+                        let inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
+                        html += `
+                        <div class="form-check">
+                          <input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
+                          <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
+                            <span>${m.name}</span>
+                            <span class="text-muted">+₹${m.price}</span>
+                          </label>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                });
+            } else {
+                html = "";
+            }
+            modCont.innerHTML = html;
+        }).catch(e => { modCont.innerHTML = ""; });
+
         activeModal = new bootstrap.Modal(document.getElementById("itemModal"));
         activeModal.show();
     }
@@ -737,9 +783,22 @@
     /* ADD ITEM */
     function addItemWithModifiers() {
         let note = document.getElementById("itemNote").value.trim();
-        let existing = cart.find(i => i.id === selectedItem.id && i.note === note);
+        let addedPrice = 0;
+        let modsSelected = [];
+        
+        document.querySelectorAll('.modifier-check:checked').forEach(cb => {
+            modsSelected.push(cb.value);
+            addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
+        });
+        
+        let finalNote = modsSelected.join(", ");
+        if(note) finalNote += (finalNote ? " | " : "") + note;
+        
+        let finalPrice = parseFloat(selectedItem.price) + addedPrice;
+
+        let existing = cart.find(i => i.id === selectedItem.id && i.note === finalNote);
         if(existing) existing.quantity++;
-        else cart.push({ id: selectedItem.id, name: selectedItem.name, price: selectedItem.price, quantity: 1, note: note });
+        else cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, note: finalNote });
         
         renderCart();
         if(activeModal) activeModal.hide();
@@ -817,7 +876,7 @@
                     let statusClass = i.status === "ready" ? "status-ready" : (i.status==="preparing" ? "border-warning text-warning" : "");
                     html += `
                     <div class="running-row">
-                        <span style="font-family:'Playfair Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
+                        <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
                         <span class="status-badge ${statusClass}">${i.status}</span>
                     </div>`;
                 });

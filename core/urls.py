@@ -20,6 +20,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from django.views.defaults import page_not_found, server_error
+from django.views.generic import TemplateView
 
 
 def custom_404(request, exception):
@@ -39,6 +40,10 @@ urlpatterns = [
 
     # default redirect
     path('', lambda request: redirect('login')),
+
+    # PWA
+    path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript')),
+    path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/manifest+json')),
 
     # apps
     path('', include('accounts.urls')),

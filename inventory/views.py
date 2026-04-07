@@ -7,6 +7,7 @@ from django.http import JsonResponse
 import json
 from decimal import Decimal
 from django.http import JsonResponse, HttpResponseForbidden
+from django.utils import timezone
 import logging
 
 logger = logging.getLogger("pos.inventory")
@@ -93,4 +94,29 @@ def create_inventory_item(request):
     return JsonResponse({
         "success": True,
         "id": item.id
+    })
+
+@login_required
+def purchase_order_view(request):
+    if request.user.role not in ["owner", "manager"]:
+        return HttpResponseForbidden()
+        
+    items = InventoryItem.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+    
+    # Filter low stock locally just to calculate needed amounts safely
+    low_stock_items = []
+    for item in items:
+        if item.is_low_stock:
+            qty_needed = item.low_stock_threshold - item.stock + Decimal('10') # buffer
+            low_stock_items.append({
+                'item': item,
+                'qty_needed': qty_needed
+            })
+            
+    return render(request, "inventory/purchase_order.html", {
+        "low_stock_items": low_stock_items,
+        "date": timezone.now()
     })
