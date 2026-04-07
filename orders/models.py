@@ -150,6 +150,14 @@ class Order(models.Model):
             return Decimal("0.00")
         return (Decimal(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    @property
+    def cgst_total(self):
+        return (self.gst_total / Decimal("2.0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        
+    @property
+    def sgst_total(self):
+        return self.gst_total - self.cgst_total
+
     # -------------------------------------------------
     # APPLY / CLEAR DISCOUNT (helpers for views / API)
     # -------------------------------------------------

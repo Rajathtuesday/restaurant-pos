@@ -113,7 +113,7 @@
         {% if tables %}
         <div class="table-grid">
             {% for table in tables %}
-            <div class="table-chip">{{ table.name }}</div>
+            <div class="table-chip" style="cursor:pointer;" onclick="renameTable({{ table.id }}, '{{ table.name|escapejs }}')" title="Click to rename">{{ table.name }}</div>
             {% endfor %}
         </div>
         {% else %}
@@ -127,6 +127,24 @@
     function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
     updateIcons();
     function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+    function renameTable(id, currentName) {
+        let newName = prompt("Enter new table name:", currentName);
+        if (!newName || newName.trim() === currentName) return;
+        
+        let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch(`/setup/tables/${id}/rename/`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRFToken": csrfToken 
+            },
+            body: JSON.stringify({ name: newName.trim() })
+        }).then(r => r.json()).then(d => {
+            if(d.success) location.reload();
+            else alert(d.error || "Failed to rename table.");
+        }).catch(e => alert("Network error"));
+    }
 </script>
 </body>
 

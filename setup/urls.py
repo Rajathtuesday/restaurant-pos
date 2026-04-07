@@ -6,9 +6,10 @@ from .views import (
     setup_menu,
     setup_kitchen_stations,
     setup_payment_methods,
+    setup_payment_methods,
     setup_staff,
+    rename_table,
 )
-
 
 urlpatterns = [
     path('', setup_wizard, name='setup_wizard'),
@@ -18,4 +19,5 @@ urlpatterns = [
     path('payment-methods/', setup_payment_methods, name='setup_payment_methods'),
     path('staff/', setup_staff, name='setup_staff'),
     path("set-default-station/<int:station_id>/", set_default_station, name="set-default-station"),
+    path('tables/<int:table_id>/rename/', rename_table, name='rename_table'),
 ]

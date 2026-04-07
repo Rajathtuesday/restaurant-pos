@@ -1,8 +1,9 @@
 # setup/views.py
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
+from django.http import JsonResponse
 
 from orders.models import Table
 from menu.models import MenuCategory, MenuItem
@@ -340,3 +341,21 @@ def set_default_station(request, station_id):
     station.save(update_fields=["is_default"])
 
     return redirect("/setup/kitchen-stations/")
+
+
+@login_required
+@require_POST
+def rename_table(request, table_id):
+    import json
+    try:
+        data = json.loads(request.body)
+        new_name = data.get("name", "").strip()
+        if not new_name:
+            return JsonResponse({"success": False, "error": "Name cannot be empty"})
+        
+        table = get_object_or_404(Table, id=table_id, tenant=request.user.tenant, outlet=request.user.outlet)
+        table.name = new_name
+        table.save(update_fields=["name"])
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})

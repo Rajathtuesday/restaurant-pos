@@ -278,13 +278,13 @@
         <a href="/billing/" class="btn-luxury me-2 d-none d-sm-inline-flex">Billing</a>
         <a href="/kitchen/" class="btn-luxury me-2 d-none d-sm-inline-flex">Kitchen</a>
         <a href="/waiter-dashboard/" class="btn-luxury me-2 d-none d-sm-inline-flex"><i class="bi bi-bell me-1"></i> Calls</a>
-        <a href="/reports/" class="btn-luxury me-2 d-none d-sm-inline-flex">Reports</a>
+        <a href="/reports/dashboard/" class="btn-luxury me-2 d-none d-sm-inline-flex">Reports</a>
         
         <!-- Mobile compact links -->
         <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
         <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
         <a href="/waiter-dashboard/" class="btn-icon d-sm-none" title="Calls"><i class="bi bi-bell"></i></a>
-        <a href="/reports/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+        <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
         
         <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
             <i class="bi bi-moon" id="themeIcon"></i>
@@ -479,30 +479,44 @@
                 // Waiter UX logic
                 if (statusText === "free") {
                     actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
+                    if (t.is_primary) {
+                        actionsHtml += `<button onclick="unmergeTable(${t.id})" class="btn-card-action w-100" style="color:#ef4444; margin-top:5px;"><i class="bi bi-scissors"></i> Unmerge</button>`;
+                    }
                 } 
                 else if (statusText === "merged") {
                     let pName = t.primary_table_name || t.primary_table;
                     timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
                     actionsHtml = `
                         <button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>
-                        <button onclick="unmergeTable(${t.primary_table})" class="btn-card-action" style="color:#ef4444;"><i class="bi bi-scissors"></i> Unmerge</button>
                     `;
                 }
                 else if (statusText === "cleaning") {
                     timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
                     actionsHtml = `<button onclick="markTableCleaned(${t.id})" class="btn-card-action btn-card-primary w-100">Mark Clean</button>`;
                 }
+                else if (statusText === "billing") {
+                    timerHtml = `<div class="table-timer status-billing"><i class="bi bi-receipt"></i> Billing</div>`;
+                    actionsHtml = `
+                        <button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-card-action btn-card-primary w-100" style="background:#06b6d4; border-color:#06b6d4;"><i class="bi bi-credit-card me-1"></i> Pay Bill</button>
+                        <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
+                    `;
+                }
                 else {
                     // Active order (Ordering, Preparing, Served)
                     if(t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
-                    
-                    let pNameStr = t.primary_table_name ? ` (Primary for ${t.merged_with || 'merged'})` : '';
                     
                     actionsHtml = `
                         <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
                         <button onclick="generateBillForTable(${t.id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
                         <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
                     `;
+                }
+
+                let mergeBadge = '';
+                if (statusText === "merged") {
+                    mergeBadge = `<div class="occupancy"><i class="bi bi-link-45deg"></i> Linked to ${t.primary_table_name || 'Primary'}</div>`;
+                } else if (t.is_primary) {
+                    mergeBadge = `<div class="occupancy"><i class="bi bi-diagram-3"></i> Merged w/ ${t.merged_with_names}</div>`;
                 }
 
                 let html = `
@@ -518,7 +532,7 @@
                             ${timerHtml}
                         </div>
 
-                        ${t.primary_table_name ? `<div class="occupancy"><i class="bi bi-link-45deg"></i> Merged w/ ${t.name}</div>` : ''}
+                        ${mergeBadge}
                         
                         <div class="mt-auto">
                             <div class="card-actions">
@@ -605,11 +619,27 @@
         document.getElementById("actionModalStatus").innerText = `Order Active (${t.status})`;
         
         let btns = document.getElementById("actionModalButtons");
+
+        if (t.status === "billing") {
+            let unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444; border-color:#ef4444;">Unmerge Tables</button>` : '';
+            btns.innerHTML = `
+                <button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-luxury w-100" style="color:#06b6d4; border-color:#06b6d4;">Pay Bill UI</button>
+                <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add More Items</button>
+                ${unmergeBtn}
+            `;
+            if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
+            actionModal.show();
+            return;
+        }
+
+        let unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444; border-color:#ef4444;">Unmerge Tables</button>` : '';
+
         btns.innerHTML = `
             <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add Items</button>
             <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Show Running Order</button>
             <button onclick="openSmartTransfer(${t.id}, ${t.order_id})" class="btn-luxury w-100">Transfer Table</button>
-            <button onclick="generateBillForTable(${t.id})" class="btn-luxury w-100" style="color:var(--c-fresh); border-color:var(--c-fresh);">Generate Bill</button>
+            <button onclick="generateBillForTable(${t.id})" class="btn-luxury w-100" style="color:#10b981; border-color:#10b981;">Generate Bill</button>
+            ${unmergeBtn}
         `;
 
         if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));

@@ -37,11 +37,14 @@ def tables_data(request):
             .prefetch_related("tables")
         )
         merged_lookup = {}
+        primary_lookup = {}
         for merge in merges:
             primary_id = merge.primary_table.id
+            primary_name = merge.primary_table.name
+            primary_lookup[primary_id] = [t.name for t in merge.tables.all() if t.id != primary_id]
             for t in merge.tables.all():
                 if t.id != primary_id:
-                    merged_lookup[t.id] = primary_id
+                    merged_lookup[t.id] = (primary_id, primary_name)
 
         orders = (
             Order.objects
@@ -54,8 +57,14 @@ def tables_data(request):
         data = []
         for table in tables:
             try:
-                primary_table_id = merged_lookup.get(table.id)
-                is_merged = primary_table_id and primary_table_id != table.id
+                merge_info = merged_lookup.get(table.id)
+                is_secondary = bool(merge_info)
+                primary_table_id = merge_info[0] if merge_info else None
+                primary_table_name = merge_info[1] if merge_info else None
+                
+                is_primary = table.id in primary_lookup
+                merged_with_names = primary_lookup.get(table.id, [])
+
                 lookup_table_id = primary_table_id if primary_table_id else table.id
                 order = orders_map.get(lookup_table_id)
 
@@ -65,7 +74,7 @@ def tables_data(request):
                     cooking_items = sum(1 for i in order.items.all() if i.status in ["sent", "preparing"])
                     elapsed_minutes = int((now - order.created_at).total_seconds() / 60)
 
-                if is_merged:
+                if is_secondary:
                     status = "merged"
                 elif table.state == "cleaning":
                     status = "cleaning"
@@ -95,9 +104,11 @@ def tables_data(request):
                     "order_id": order.id if order else None,
                     "cooking_items": cooking_items,
                     "elapsed": elapsed_minutes,
-                    "merged": is_merged,
+                    "merged": is_secondary or is_primary,
+                    "is_primary": is_primary,
+                    "merged_with_names": ", ".join(merged_with_names),
                     "primary_table": primary_table_id,
-                    "primary_table_name": table_name_lookup.get(primary_table_id) if primary_table_id else None
+                    "primary_table_name": primary_table_name
                 })
             except Exception:
                 data.append({"id": table.id, "name": table.name, "status": "error",
