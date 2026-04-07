@@ -27,6 +27,11 @@ staticfiles/
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
+
+# log
+pos.log
+=======
 # Logs & rotation files
 pos.log
 pos.log.*
@@ -37,6 +42,10 @@ pos.log.*
 
 # Dev tools output (ER diagrams etc)
 er_diagrams_pos/
+<<<<<<< HEAD
 
 
 pem/
+=======
+>>>>>>> 30dc531c179b695d14c31fc2b05f3ff020ed0df4
+>>>>>>> 70626f6144946cc45f5a0908ec3e4118423485c0

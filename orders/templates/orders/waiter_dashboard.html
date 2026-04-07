@@ -262,7 +262,7 @@
      * that the server has attended the table.
      */
     function resolveCall(callId){
-        fetch(`/resolve-waiter/${callId}/`, {
+        fetch("{% url 'resolve-waiter' 0 %}".replace('0', callId), {
             method: "POST",
             headers: { 
                 /* CSRF Tokens are required by Django to prevent cross-site request forgery hacks */
@@ -277,7 +277,7 @@
     }
 
     function resolveKitchenMsg(callId){
-        fetch(`/resolve-kitchen-message/${callId}/`, {
+        fetch("{% url 'resolve-kitchen-message' 0 %}".replace('0', callId), {
             method: "POST",
             headers: { "X-CSRFToken": getCookie("csrftoken") }
         }).then(res => res.json()).then(data => { if(data.success) location.reload(); });

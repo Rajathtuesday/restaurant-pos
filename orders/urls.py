@@ -50,7 +50,7 @@ urlpatterns = [
     path("kitchen/", kitchen_view ,name="kitchen-view"),
     path("kitchen-data/", kitchen_data, name="kitchen-data"),
 
-    path("item-start/<int:item_id>/", start_preparing),
+    path("item-start/<int:item_id>/", start_preparing,name="item-start"),
     path("item-ready/<int:item_id>/", mark_ready, name="mark-ready"),
 
     path("serve-item/<int:item_id>/", serve_item, name="serve-item"),

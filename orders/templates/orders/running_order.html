@@ -129,7 +129,7 @@
             <div class="d-flex align-items-center gap-3">
                 <button class="btn-theme" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
                 <button class="btn-luxury border-danger text-danger" onclick="cancelOrder({{ order.id }})"><i class="bi bi-x-circle me-1"></i> Cancel Order</button>
-                <a href="/tables/" class="btn-luxury"><i class="bi bi-grid-3x3 me-1"></i> Tables</a>
+                <a href="{% url 'table-dashboard' %}" class="btn-luxury"><i class="bi bi-grid-3x3 me-1"></i> Tables</a>
             </div>
         </div>
 
@@ -163,12 +163,12 @@
     /* CORE API FUNCTIONS */
     function cancelOrder(id){
         if(!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
-        fetch(`/cancel-order/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        fetch("{% url 'cancel-order' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
         .then(res => res.json())
         .then(data => {
             if(data.success) {
                 alert("Order cancelled successfully.");
-                window.location.href = "/tables/";
+                window.location.href = "{% url 'table-dashboard' %}";
             } else {
                 alert(data.error || "Failed to cancel order.");
             }
@@ -177,7 +177,7 @@
 
     function cancelItem(id){
         if(!confirm("Cancel this item?")) return;
-        fetch(`/cancel-item/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        fetch("{% url 'cancel-item' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
         .then(res => res.json())
         .then(data => {
             if(data.success) refreshRunningOrder();
@@ -186,17 +186,17 @@
     }
 
     function serveItem(id){
-        fetch(`/serve-item/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        fetch("{% url 'serve-item' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
         .then(() => refreshRunningOrder())
     }
 
     function makeComplimentary(id){
-        fetch(`/complimentary-item/${id}/`, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
+        fetch("{% url 'make-complimentary' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
         .then(() => refreshRunningOrder())
     }
 
     function refreshRunningOrder(){
-        fetch("/order-data/{{order.id}}/")
+        fetch("{% url 'running-order-data' order.id %}")
         .then(res => res.json())
         .then(data => {
 

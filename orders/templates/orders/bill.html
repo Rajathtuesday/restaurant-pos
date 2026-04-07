@@ -209,7 +209,7 @@
             toast.className = "toast-msg";
 
             try {
-                const res = await fetch(`/pay/{{order.id}}/`, {
+                const res = await fetch("{% url 'pay-order' order.id %}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                     body: JSON.stringify({ method, amount })
