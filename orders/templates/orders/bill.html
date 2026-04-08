@@ -82,15 +82,24 @@
 <body>
 
     <div style="position: relative; width: 100%; max-width: 440px;">
+        {% if remaining > 0 %}
+            {% if request.user.role == 'owner' or request.user.role == 'manager' %}
+            <a href="#" onclick="logBypassAndRedirect({{ order.id }}); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard (Bypass)</a>
+            {% else %}
+            <a href="#" onclick="alert('Please complete the payment to exit billing screen.'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
+            {% endif %}
+        {% else %}
         <a href="/tables/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
+        {% endif %}
 
         <div class="receipt-container">
             <div class="header">
                 {% if request.user.tenant.logo %}
                 <img src="{{ request.user.tenant.logo.url }}" alt="Logo" style="max-height: 80px; margin-bottom: 0.5rem;">
                 {% else %}
-                <div class="logo serif">{{ request.user.outlet.name }}</div>
+                <div class="logo serif">{{ request.user.tenant.name }}</div>
                 {% endif %}
+                <div style="font-size: 0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; color:var(--text);">{{ request.user.outlet.name }}</div>
                 <div class="address">{{ request.user.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
                 <div class="gst">GSTIN: {{ request.user.outlet.gst_no|default:"27AABCU9603R1ZX" }}</div>
             </div>
@@ -106,8 +115,14 @@
 
             <div class="item-list">
                 {% for item in order.items.all %}
-                <div class="item">
-                    <span class="item-name">{{ item.menu_item.name }} <span style="color:var(--muted)">× {{ item.quantity }}</span></span>
+                <div class="item" {% if item.status == 'voided' %}style="text-decoration: line-through; opacity: 0.5;"{% endif %}>
+                    <span class="item-name">
+                        {{ item.menu_item.name }} 
+                        <span style="color:var(--muted)">× {{ item.quantity }}</span>
+                        {% if item.status == 'voided' %}
+                        <span style="font-size:0.6rem; color:#ef4444!important; text-decoration:none; display:inline-block; font-weight:700; margin-left:4px">[VOIDED]</span>
+                        {% endif %}
+                    </span>
                     <span class="item-val">{% if item.is_complimentary %}COMP{% else %}₹{{ item.total_price }}{% endif %}</span>
                 </div>
                 {% endfor %}
@@ -219,6 +234,8 @@
                 if(data.success) {
                     toast.innerText = data.message;
                     toast.classList.add("success");
+                    // Important for payment requirement logic
+                    window.onbeforeunload = null;
                     setTimeout(() => window.location.reload(), 1000);
                 } else {
                     toast.innerText = data.error;
@@ -229,6 +246,28 @@
                 toast.classList.add("error");
             }
         }
+
+        async function logBypassAndRedirect(orderId) {
+            try {
+                await fetch(`/orders/log-bypass/${orderId}/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
+                });
+            } catch(e) { console.error('Failed to log bypass:', e); }
+            window.location.href = "/tables/";
+        }
+
+        // Prevent users from going back using the browser back button
+        {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            history.go(1);
+            const toast = document.getElementById('toast');
+            toast.style.display = "block";
+            toast.innerText = "Please complete payment first.";
+            toast.className = "toast-msg error";
+        };
+        {% endif %}
     </script>
 
     <!-- CRM GUEST LINK SECTION (no-print) -->

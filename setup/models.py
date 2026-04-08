@@ -69,3 +69,34 @@ class PaymentConfig(models.Model):
 
     def __str__(self):
         return f"Payment Config for {self.outlet}"
+
+# -------------------------------------------------
+# AGGREGATOR CONFIG 
+# -------------------------------------------------
+
+class AggregatorConfig(models.Model):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.OneToOneField(
+        "tenants.Outlet",
+        on_delete=models.CASCADE,
+        related_name="aggregator_config"
+    )
+
+    zomato_enabled = models.BooleanField(default=False)
+    swiggy_enabled = models.BooleanField(default=False)
+    uber_eats_enabled = models.BooleanField(default=False)
+    
+    # Store aggregator sync API keys or webhook secrets
+    zomato_webhook_secret = models.CharField(max_length=255, null=True, blank=True)
+    swiggy_webhook_secret = models.CharField(max_length=255, null=True, blank=True)
+
+    auto_accept_orders = models.BooleanField(
+        default=True, 
+        help_text="Automatically accept online orders and send KOT to kitchen"
+    )
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Aggregator Config for {self.outlet}"
+

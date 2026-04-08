@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Kitchen Reports Dashboard | Fine Dining</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #fafafa;
+            --panel-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #737373;
+            --border-color: #eaeaea;
+            --accent-gold: #c5a059;
+            --transition-smooth: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        body.dark {
+            --bg-color: #0a0a0a;
+            --panel-bg: #111111;
+            --text-main: #f5f5f5;
+            --text-muted: #888888;
+            --border-color: #262626;
+            --accent-gold: #d4af37;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, .serif-text { font-family: 'DM Serif Display', serif; font-weight: 600; }
+
+        .pos-header { padding: 2.5rem 0 1.5rem; margin-bottom: 2.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+        .pos-header h4 { font-size: 1.8rem; letter-spacing: 0.5px; margin: 0; color: var(--text-main); }
+        .pos-header h4 i { color: var(--accent-gold); font-size: 1.5rem; }
+
+        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 2px; padding: 0.75rem 1.5rem; transition: var(--transition-smooth); text-decoration: none; display: inline-block; }
+        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; transition: var(--transition-smooth); }
+        .btn-icon:hover { color: var(--accent-gold); }
+
+        .form-select-luxury { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 1.5rem 0.5rem 0; font-size: 0.9rem; cursor: pointer; }
+        .form-select-luxury:focus { box-shadow: none; border-color: var(--accent-gold); outline: none; }
+
+        .card-elegant { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2.5rem 2rem; height: 100%; transition: var(--transition-smooth); }
+        .card-elegant:hover { border-color: var(--accent-gold); }
+
+        .metric-group { text-align: center; }
+        .metric-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 1rem; display: block; }
+        .metric-value { font-family: 'DM Serif Display', serif; font-size: 2.75rem; color: var(--text-main); line-height: 1; margin: 0; }
+
+        .section-title { font-size: 1.2rem; margin-bottom: 2rem; text-transform: uppercase; letter-spacing: 3px; text-align: center; }
+        .section-title::after { content: ''; display: block; width: 40px; height: 1px; background: var(--accent-gold); margin: 15px auto 0; }
+
+        .table-minimal { width: 100%; color: var(--text-main); }
+        .table-minimal th { border-bottom: 1px solid var(--border-color); padding: 1rem 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+        .table-minimal td { border-bottom: 1px solid var(--border-color); padding: 1.2rem 0; font-size: 0.95rem; }
+        .table-minimal tr:last-child td { border-bottom: none; }
+        .text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent-gold); }
+
+        .context-info { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 3rem; text-align: center; }
+        .context-info strong { color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid mx-auto" style="max-width: 1400px; padding: 0 2rem;">
+    <!-- HEADER -->
+    <header class="pos-header">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-fire me-2" style="color:var(--danger)"></i>{{ request.user.tenant.name }}</h4>
+            <p class="mb-0 text-muted" style="font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">
+                <i class="bi bi-geo-alt"></i> {{ request.user.outlet.name }} · Kitchen Operations
+            </p>
+        </div>
+        
+        <div class="d-flex align-items-center gap-4">
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
+            </div>
+            {% if request.user.role == "owner" %}
+            <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
+                <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
+                    if(this.value === 'custom') { 
+                        document.getElementById('customDates').style.display='flex'; 
+                    } else { 
+                        document.getElementById('filterForm').submit(); 
+                    }">
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                    <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+                
+                <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem;">
+                    <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
+                    <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
+                    <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
+                </div>
+                
+                <select name="outlet" class="form-select form-select-luxury ms-3" onchange="document.getElementById('filterForm').submit()">
+                    <option value="">All Branches</option>
+                    {% for o in outlets %}
+                    <option value="{{o.id}}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>
+                        {{o.name}}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% else %}
+            <!-- For Manager role, they can only filter date -->
+            <form id="filterForm" method="GET" class="m-0 d-flex gap-2">
+                <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
+                    if(this.value === 'custom') { 
+                        document.getElementById('customDates').style.display='flex'; 
+                    } else { 
+                        this.form.submit(); 
+                    }">
+                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                    <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                    <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                </select>
+                
+                <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem;">
+                    <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
+                    <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
+                    <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
+                </div>
+            </form>
+            {% endif %}
+            
+            <div class="d-flex gap-2">
+                <a href="/reports/" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Sales</a>
+                <a href="/reports/kitchen/" class="btn btn-outline-light active" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Kitchen KPIs</a>
+                <a href="/tables/" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">POS Dashboard</a>
+            </div>
+
+            <div class="d-flex gap-2 mx-3" style="border-left: 1px solid var(--border-color); padding-left:1.5rem;">
+                <button onclick="window.print()" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i class="bi bi-printer"></i></button>
+            </div>
+            
+            <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTEXT -->
+    <div class="context-info">
+        KITCHEN METRICS FOR: 
+        {% if current_outlet %}
+        <strong>{{current_outlet.name}}</strong>
+        {% else %}
+        <strong>ALL BRANCHES</strong>
+        {% endif %}
+        <span class="mx-3">|</span>
+        PERIOD: <strong style="text-transform:uppercase;">
+            {% if date_filter == 'today' %}TODAY
+            {% elif date_filter == 'yesterday' %}YESTERDAY
+            {% elif date_filter == 'weekly' %}LAST 7 DAYS
+            {% elif date_filter == 'monthly' %}LAST 30 DAYS
+            {% else %}{{ start_date|date:'M d, Y' }} - {{ end_date|date:'M d, Y' }}
+            {% endif %}
+        </strong>
+    </div>
+
+    <!-- HIGH LEVEL METRICS -->
+    <div class="row g-4 mb-5">
+        <div class="col-12 col-md-4">
+            <div class="card-elegant metric-group">
+                <span class="metric-label">Items Prepared</span>
+                <p class="metric-value">{{k_perf.total_items_prepared}}</p>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card-elegant metric-group">
+                <span class="metric-label">Total KOTs</span>
+                <p class="metric-value">{{k_perf.total_kots}}</p>
+            </div>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card-elegant metric-group">
+                <span class="metric-label" style="color:#ef4444!important">Voided Items</span>
+                <p class="metric-value" style="color:#ef4444">{{k_perf.total_voided}}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DATA TABLES -->
+    <div class="row g-4 mb-5 justify-content-center">
+        <!-- TOP ITEMS -->
+        <div class="col-12 col-lg-8">
+            <div class="card-elegant">
+                <h5 class="section-title">Most Prepared Items</h5>
+                <table class="table-minimal">
+                    <thead>
+                        <tr>
+                            <th>Item Name</th>
+                            <th class="text-end">Quantity Prepared</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in k_items %}
+                        <tr>
+                            <td>{{item.menu_item__name}}</td>
+                            <td class="text-end text-value">{{item.total_qty}}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="2" class="text-center py-4" style="color:var(--text-muted)">No items prepared in this period</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center pb-5">
+        <span class="text-muted" style="letter-spacing:2px; font-size:0.7rem; text-transform:uppercase;">End of Report</span>
+    </div>
+</div>
+
+<script>
+    let isDark = localStorage.getItem("dark") === "true";
+
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if(isDark) {
+            document.body.classList.add("dark");
+            icon.classList.remove("bi-moon");
+            icon.classList.add("bi-sun");
+        } else {
+            document.body.classList.remove("dark");
+            icon.classList.remove("bi-sun");
+            icon.classList.add("bi-moon");
+        }
+    }
+
+    updateIcons();
+
+    function toggleDark() {
+        isDark = !isDark;
+        localStorage.setItem("dark", isDark);
+        updateIcons();
+    }
+</script>
+
+</body>
+</html>

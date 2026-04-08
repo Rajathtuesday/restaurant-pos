@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Orders | Fine Dining POS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
+            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        body.dark {
+            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888888;
+            --border-color: #262626; --accent-gold: #d4af37;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg-color); color: var(--text-main); font-family: 'Outfit', sans-serif; min-height: 100vh; transition: var(--transition-smooth); -webkit-font-smoothing: antialiased; }
+        
+        .pos-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); }
+        .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'DM Serif Display', serif; font-weight: 700; }
+        .brand-title i { color: var(--accent-gold); }
+        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition-smooth); text-decoration: none; }
+        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
+        .btn-gold { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.8rem 2rem; cursor: pointer; transition: 0.2s; font-weight: 600; }
+        .btn-gold:hover { background: var(--accent-gold); color: #000; }
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
+
+        .setup-container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+        
+        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+        .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
+        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+
+        .panel-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 4px; padding: 2rem; margin-bottom: 2rem; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .form-control { width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: 2px; transition: 0.2s; }
+        .form-control:focus { border-color: var(--accent-gold); outline: none; }
+        .form-control[readonly] { background: rgba(0,0,0,0.02); color: var(--text-muted); cursor: not-allowed; font-family: 'Space Mono', monospace; font-size: 0.85rem; }
+
+        .switch-wrapper { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
+        .switch-wrapper:last-child { border-bottom: none; }
+        
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--border-color); transition: .2s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: var(--text-muted); transition: .2s; border-radius: 50%; }
+        input:checked + .slider { background-color: rgba(197,160,89,0.3); border: 1px solid var(--accent-gold); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: var(--accent-gold); }
+
+        .code-block { background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); padding: 1rem; border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--accent-gold); word-break: break-all; margin-top: 0.5rem; }
+        .dark .code-block { background: rgba(255,255,255,0.05); }
+
+        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+    </style>
+</head>
+<body>
+<header class="pos-header">
+    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS Setup</h1>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/setup/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-gear me-1"></i> Setup Area</a>
+        <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
+            <i class="bi bi-moon" id="themeIcon"></i>
+        </button>
+    </div>
+</header>
+
+<div class="setup-container py-4">
+    <p class="page-eyebrow">Configuration</p>
+    <h1 class="page-title">Online Order Setup</h1>
+    <div class="divider"></div>
+    <p class="page-sub">Configure Zomato, Swiggy, and Uber Eats webhooks to push orders right to the kitchen.</p>
+
+    {% if messages %}
+    <div class="mb-4">
+        {% for msg in messages %}
+        <div class="alert">{{ msg }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="panel-card">
+            <h5 style="font-family:'DM Serif Display'; color:var(--accent-gold); margin-bottom: 0.5rem;">Webhook Endpoints</h5>
+            <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:1.5rem;">Provide these details to your aggregator account manager to route orders directly into the POS.</p>
+            
+            <div class="form-group">
+                <label class="form-label">Global Webhook URL</label>
+                <div class="code-block">{{ webhook_url }}</div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label class="form-label">System Tenant ID</label>
+                    <input type="text" class="form-control" value="{{ tenant_id }}" readonly>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label class="form-label">Outlet ID</label>
+                    <input type="text" class="form-control" value="{{ outlet_id }}" readonly>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-card">
+            <h5 style="font-family:'DM Serif Display'; color:var(--accent-gold); margin-bottom: 1.5rem;">Aggregator Toggles</h5>
+            
+            <div class="switch-wrapper">
+                <div>
+                    <strong style="color:var(--text-main); font-size:1rem;">Zomato Integration</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Enable incoming Zomato webhooks</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="zomato_enabled" {% if config.zomato_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            {% if config.zomato_enabled %}
+            <div style="padding: 1rem 0 1rem 0; margin-bottom:1rem; border-bottom: 1px solid var(--border-color);">
+                <label class="form-label">Zomato Secret Key</label>
+                <input type="text" class="form-control" name="zomato_webhook_secret" value="{{ config.zomato_webhook_secret|default:'' }}" placeholder="ZOM-SECRET-1234">
+            </div>
+            {% endif %}
+
+            <div class="switch-wrapper">
+                <div>
+                    <strong style="color:var(--text-main); font-size:1rem;">Swiggy Integration</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Enable incoming Swiggy webhooks</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="swiggy_enabled" {% if config.swiggy_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+            {% if config.swiggy_enabled %}
+            <div style="padding: 1rem 0 1rem 0; margin-bottom:1rem; border-bottom: 1px solid var(--border-color);">
+                <label class="form-label">Swiggy App ID</label>
+                <input type="text" class="form-control" name="swiggy_webhook_secret" value="{{ config.swiggy_webhook_secret|default:'' }}" placeholder="SWG-APP-ID">
+            </div>
+            {% endif %}
+
+            <div class="switch-wrapper">
+                <div>
+                    <strong style="color:var(--text-main); font-size:1rem;">Uber Eats Integration</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Enable incoming Uber Eats webhooks</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="uber_eats_enabled" {% if config.uber_eats_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="panel-card">
+            <h5 style="font-family:'DM Serif Display'; color:var(--accent-gold); margin-bottom: 1.5rem;">Automation Preferences</h5>
+            <div class="switch-wrapper">
+                <div>
+                    <strong style="color:var(--text-main); font-size:1rem;">ZBT (Zero-Touch) Flow</strong>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Automatically accept aggregator orders and bypass cashier approval, firing directly to Kitchen Printers.</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="auto_accept_orders" {% if config.auto_accept_orders %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-bottom:4rem;">
+            <button type="submit" class="btn-gold"><i class="bi bi-cloud-check me-2"></i> Save Configurations</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+</script>
+</body>
+</html>

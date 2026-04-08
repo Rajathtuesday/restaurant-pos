@@ -64,6 +64,15 @@ class Order(models.Model):
         ("cancelled", "Cancelled"),
     )
 
+    SOURCE_CHOICES = (
+        ("dine_in", "Dine In"),
+        ("takeaway", "Takeaway"),
+        ("zomato", "Zomato"),
+        ("swiggy", "Swiggy"),
+        ("uber_eats", "Uber Eats"),
+        ("web", "Website"),
+    )
+
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
 
@@ -89,6 +98,18 @@ class Order(models.Model):
     order_number = models.CharField(
         max_length=20,
         unique=True,
+        null=True,
+        blank=True
+    )
+
+    source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default="dine_in"
+    )
+
+    aggregator_order_id = models.CharField(
+        max_length=100,
         null=True,
         blank=True
     )

@@ -419,3 +419,31 @@ def apply_item_discount(request, item_id):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+# -------------------------------------------------
+# LOG PAYMENT BYPASS 
+# -------------------------------------------------
+
+@login_required
+@tenant_required
+@require_POST
+def log_bypass(request, order_id):
+    if request.user.role not in ["manager", "owner"] and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+        logger.warning(f"User {request.user.username} bypassed payment gate for order #{order_id}")
+        
+        OrderEvent.objects.create(
+            tenant=order.tenant, outlet=order.outlet, order=order,
+            event_type="status_changed",
+            metadata={"action": "payment_gate_bypassed", "role": request.user.role},
+            created_by=request.user
+        )
+        return JsonResponse({"success": True})
+        
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+

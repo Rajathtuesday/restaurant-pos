@@ -9,6 +9,7 @@ from .views import (
     setup_payment_methods,
     setup_staff,
     rename_table,
+    aggregator_setup,
 )
 
 urlpatterns = [
@@ -20,4 +21,5 @@ urlpatterns = [
     path('staff/', setup_staff, name='setup_staff'),
     path("set-default-station/<int:station_id>/", set_default_station, name="set-default-station"),
     path('tables/<int:table_id>/rename/', rename_table, name='rename_table'),
+    path("aggregators/", aggregator_setup, name="setup_aggregators"),
 ]

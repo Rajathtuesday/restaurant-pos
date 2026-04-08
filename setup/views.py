@@ -359,3 +359,42 @@ def rename_table(request, table_id):
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)})
+
+# ==================================
+# AGGREGATOR CONFIG
+# ==================================
+from core.decorators import tenant_required
+
+@login_required
+@tenant_required
+def aggregator_setup(request):
+    if request.user.role != "owner":
+        return redirect("setup_wizard")
+
+    from setup.models import AggregatorConfig
+    config, created = AggregatorConfig.objects.get_or_create(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+
+    if request.method == "POST":
+        config.zomato_enabled = request.POST.get("zomato_enabled") == "on"
+        config.swiggy_enabled = request.POST.get("swiggy_enabled") == "on"
+        config.uber_eats_enabled = request.POST.get("uber_eats_enabled") == "on"
+        config.auto_accept_orders = request.POST.get("auto_accept_orders") == "on"
+        
+        config.zomato_webhook_secret = request.POST.get("zomato_webhook_secret")
+        config.swiggy_webhook_secret = request.POST.get("swiggy_webhook_secret")
+        config.save()
+        
+        messages.success(request, "Aggregator configuration saved.")
+        return redirect("setup_aggregators")
+
+    webhook_url = f"https://your-domain.com/orders/api/aggregator/webhook/"
+    
+    return render(request, "setup/aggregator_config.html", {
+        "config": config,
+        "webhook_url": webhook_url,
+        "tenant_id": request.user.tenant.id,
+        "outlet_id": request.user.outlet.id
+    })

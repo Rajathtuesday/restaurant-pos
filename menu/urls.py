@@ -15,6 +15,7 @@ from .views import (
     ai_menu_importer,
     delete_category,
 )
+from .api import api_categories, api_items
 
 urlpatterns = [
 
@@ -42,4 +43,7 @@ urlpatterns = [
 
     # qr menu (KEEP LAST)
     path("<uuid:qr_token>/", menu_view, name="menu_view"),
+    # API Routes for Headless/Mobile Clients
+    path('api/categories/', api_categories, name='api_categories'),
+    path('api/items/', api_items, name='api_items'),
 ]

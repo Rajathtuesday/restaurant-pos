@@ -234,12 +234,23 @@
 
     <!-- HEADER -->
     <header class="pos-header">
-        <h4><i class="bi bi-diamond-half me-3"></i>Reporting & Analytics</h4>
+        <div>
+            <h4 class="mb-1"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h4>
+            <p class="mb-0 text-muted" style="font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">
+                <i class="bi bi-geo-alt"></i> {{ request.user.outlet.name }}
+            </p>
+        </div>
         
         <div class="d-flex align-items-center gap-4">
+            
             <div class="d-flex gap-2">
-                <button onclick="window.print()" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i class="bi bi-file-earmark-pdf"></i> PDF</button>
-                {% comment %} <button onclick="exportCSV()" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i class="bi bi-file-excel"></i> Excel</button> {% endcomment %}
+                <a href="/reports/" class="btn btn-outline-light {% if request.path == '/reports/' %}active{% endif %}" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Sales</a>
+                <a href="/reports/kitchen/" class="btn btn-outline-light {% if 'kitchen' in request.path %}active{% endif %}" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Kitchen KPIs</a>
+                <a href="/dashboard/" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">POS Dashboard</a>
+            </div>
+
+            <div class="d-flex gap-2 mx-3" style="border-left: 1px solid var(--border-color); padding-left:1.5rem;">
+                <button onclick="window.print()" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i class="bi bi-printer"></i></button>
             </div>
             {% if request.user.role == "owner" %}
             <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
