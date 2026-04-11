@@ -291,6 +291,10 @@ def apply_discount(request, order_id):
             "total": float(order.grand_total)
         })
 
+    except Exception:
+        logger.exception("Error applying discount")
+        return JsonResponse({"error": "Internal Server Error"}, status=500)
+
 
 # -------------------------------------------------
 # COMPLIMENTARY ITEM
@@ -347,6 +351,10 @@ def refund_payment(request, payment_id):
         logger.warning(f"User {request.user.username} issued refund of ₹{amount} for payment #{payment_id}")
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
+    except Exception:
+        logger.exception("Error refunding payment")
+        return JsonResponse({"error": "Internal Server Error"}, status=500)
+
 
 # -------------------------------------------------
 # PER-ITEM DISCOUNT  (Manager/Owner only)
@@ -389,6 +397,10 @@ def apply_item_discount(request, item_id):
 
         logger.warning(f"User {request.user.username} applied {discount_pct}% discount to item #{item_id}")
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
+
+    except Exception:
+        logger.exception("Error applying item discount")
+        return JsonResponse({"error": "Internal Server Error"}, status=500)
 
 
 # -------------------------------------------------
