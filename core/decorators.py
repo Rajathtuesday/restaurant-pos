@@ -4,7 +4,19 @@ Authentication and authorization decorators
 from functools import wraps
 
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.shortcuts import redirect
+
+
+def role_required(*roles):
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.role not in roles and not request.user.is_superuser:
+                return JsonResponse({"error": "Permission denied"}, status=403)
+            return view_func(request, *args, **kwargs)
+        return _wrapped_view
+    return decorator
 
 
 def tenant_required(view_func):

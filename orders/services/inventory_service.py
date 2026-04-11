@@ -2,6 +2,9 @@
 # orders/services/inventory_service.py
 
 from django.db import transaction
+import logging
+
+logger = logging.getLogger("pos.inventory")
 from django.core.exceptions import ObjectDoesNotExist
 
 from inventory.models import InventoryItem
@@ -66,9 +69,9 @@ def deduct_inventory(order_item):
 
                     shortage = required_quantity - inventory.stock
 
-                    print(
-                        f"[STOCK WARNING] {inventory.name} shortage: "
-                        f"{shortage} units"
+                    logger.warning(
+                        "[STOCK WARNING] %s shortage: %s units",
+                        inventory.name, shortage
                     )
 
                     # consume remaining stock
@@ -78,16 +81,16 @@ def deduct_inventory(order_item):
 
         except ObjectDoesNotExist:
 
-            print(
-                f"[INVENTORY ERROR] Inventory item missing "
-                f"for recipe {recipe.id}"
+            logger.error(
+                "[INVENTORY ERROR] Inventory item missing for recipe %s",
+                recipe.id
             )
 
         except Exception as e:
 
-            print(
-                f"[INVENTORY ERROR] deduction failed "
-                f"for order_item={order_item.id}: {str(e)}"
+            logger.exception(
+                "[INVENTORY ERROR] deduction failed for order_item=%s: %s",
+                order_item.id, str(e)
             )
 
 

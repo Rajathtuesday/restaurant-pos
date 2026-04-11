@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied (403){% endblock %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-md-8 mx-auto text-center">
+        <h1 class="display-1 text-danger">403</h1>
+        <h2 class="mb-4">Access Denied</h2>
+        <p class="lead">You do not have permission to access this page or perform this action.</p>
+        <p class="text-muted">If you believe this is a mistake, please contact your restaurant manager.</p>
+        <a href="/" class="btn btn-primary mt-3">Return to Home</a>
+    </div>
+</div>
+{% endblock %}

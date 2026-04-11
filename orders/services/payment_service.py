@@ -1,5 +1,8 @@
 #`orders/services/payment_service.py`
 from django.db import transaction
+import logging
+
+logger = logging.getLogger("pos.orders")
 from django.db.models import Sum
 from decimal import Decimal
 from django.core.exceptions import ValidationError
@@ -59,9 +62,7 @@ def process_payment(order, method, amount, user=None):
         validate_order_payment(order) # Financial integrity check
         order.status = "paid"
         order.save(update_fields=["status"])
-        print("PAID:", paid_total)
-        print("NEW TOTAL:", new_total)
-        print("GRAND:", order.grand_total)
+        logger.debug("Payment processed: paid=%s new_total=%s grand=%s", paid_total, new_total, order.grand_total)
 
     return { "payment": payment,
             "remaining": order.grand_total - new_total }

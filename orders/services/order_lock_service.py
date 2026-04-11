@@ -4,7 +4,7 @@ from datetime import timedelta
 from orders.models import OrderLock
 
 
-LOCK_DURATION_SECONDS = 30
+LOCK_DURATION_SECONDS = 300
 
 
 def lock_order(order, user):

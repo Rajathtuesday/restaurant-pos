@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Bad Request (400){% endblock %}
+
+{% block content %}
+<div class="row mt-5">
+    <div class="col-md-8 mx-auto text-center">
+        <h1 class="display-1 text-warning">400</h1>
+        <h2 class="mb-4">Bad Request</h2>
+        <p class="lead">The server could not understand your request.</p>
+        <p class="text-muted">Please double-check your inputs or go back and try again.</p>
+        <a href="/" class="btn btn-primary mt-3">Return to Home</a>
+    </div>
+</div>
+{% endblock %}

@@ -12,11 +12,16 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, OrderEvent, OrderItem, Table, TableMerge
+from orders.models import Order, OrderEvent, OrderItem, Table, TableMerge, Payment
 from orders.services.order_lock_service import lock_order
+from orders.services.order_service import get_or_create_open_order, add_items_to_order
+from orders.services.payment_service import process_payment
+from orders.services.refund_service import process_refund
+from orders.utils.payment_utils import validate_order_payment
 from orders.utils.order_utils import validate_order_editable
+from setup.models import PaymentConfig
 
 logger = logging.getLogger("pos.orders")
 
@@ -98,26 +103,13 @@ def create_order(request):
         if not table:
             return JsonResponse({"error": "Invalid table"}, status=400)
 
-    try:
-        with transaction.atomic():
-            from orders.services.order_service import get_or_create_open_order, add_items_to_order
-            order = get_or_create_open_order(request.user, table)
-            add_items_to_order(request.user, order, cart)
+    with transaction.atomic():
+        order = get_or_create_open_order(request.user, table)
+        add_items_to_order(request.user, order, cart)
 
-            logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in'}")
+        logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in'}")
 
-            OrderEvent.objects.create(
-                tenant=order.tenant, outlet=order.outlet, order=order,
-                event_type="item_added",
-                metadata={"cart_count": len(cart)},
-                created_by=request.user
-            )
-
-        return JsonResponse({"success": True, "order_id": order.id})
-
-    except Exception as e:
-        print(traceback.format_exc())
-        return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"success": True, "order_id": order.id})
 
 
 # -------------------------------------------------
@@ -128,7 +120,6 @@ def create_order(request):
 @tenant_required
 def bill_view(request, order_id):
     try:
-        from setup.models import PaymentConfig
         
         order = Order.objects.get(
             id=order_id, tenant=request.user.tenant, outlet=request.user.outlet
@@ -219,7 +210,6 @@ def pay_order(request, order_id):
             if order.status in ["paid", "closed"]:
                 return JsonResponse({"error": "Order already completed"}, status=400)
 
-            from orders.services.payment_service import process_payment
             process_payment(order, method, amount, request.user)
 
             logger.info(f"User {request.user.username} recorded {method} payment of ₹{amount} for order #{order.id}")
@@ -235,7 +225,6 @@ def pay_order(request, order_id):
             order.refresh_from_db()
 
             if order.status == "paid":
-                from orders.utils.payment_utils import validate_order_payment
                 validate_order_payment(order)
                 order.status = "closed"
                 order.closed_at = timezone.now()
@@ -253,8 +242,6 @@ def pay_order(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
 
 
 # -------------------------------------------------
@@ -264,9 +251,8 @@ def pay_order(request, order_id):
 @login_required
 @tenant_required
 @require_POST
+@role_required("manager", "cashier", "owner")
 def apply_discount(request, order_id):
-    if request.user.role not in ["manager", "cashier", "owner"]:
-        return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -305,9 +291,6 @@ def apply_discount(request, order_id):
             "total": float(order.grand_total)
         })
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
-
 
 # -------------------------------------------------
 # COMPLIMENTARY ITEM
@@ -316,9 +299,8 @@ def apply_discount(request, order_id):
 @login_required
 @tenant_required
 @require_POST
+@role_required("manager", "owner")
 def make_item_complimentary(request, item_id):
-    if request.user.role not in ["manager", "owner"]:
-        return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:
         item = (
@@ -342,13 +324,9 @@ def make_item_complimentary(request, item_id):
 @login_required
 @tenant_required
 @require_POST
+@role_required("manager", "owner")
 def refund_payment(request, payment_id):
-    if request.user.role not in ["manager", "owner"] and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
-        from orders.models import Payment
-        from orders.services.refund_service import process_refund
 
         data = json.loads(request.body)
         amount = data.get("amount")
@@ -369,9 +347,6 @@ def refund_payment(request, payment_id):
         logger.warning(f"User {request.user.username} issued refund of ₹{amount} for payment #{payment_id}")
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
-
 
 # -------------------------------------------------
 # PER-ITEM DISCOUNT  (Manager/Owner only)
@@ -380,10 +355,8 @@ def refund_payment(request, payment_id):
 @login_required
 @tenant_required
 @require_POST
+@role_required("manager", "cashier", "owner")
 def apply_item_discount(request, item_id):
-    if request.user.role not in ["manager", "cashier", "owner"] and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         data = json.loads(request.body)
         discount_pct = Decimal(str(data.get("percent", 0)))
@@ -417,9 +390,6 @@ def apply_item_discount(request, item_id):
         logger.warning(f"User {request.user.username} applied {discount_pct}% discount to item #{item_id}")
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
-
 
 # -------------------------------------------------
 # LOG PAYMENT BYPASS 
@@ -428,10 +398,8 @@ def apply_item_discount(request, item_id):
 @login_required
 @tenant_required
 @require_POST
+@role_required("manager", "owner")
 def log_bypass(request, order_id):
-    if request.user.role not in ["manager", "owner"] and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
         logger.warning(f"User {request.user.username} bypassed payment gate for order #{order_id}")

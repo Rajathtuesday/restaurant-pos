@@ -105,8 +105,6 @@ def running_order_data(request, order_id):
     if not order:
         return JsonResponse({"error": "Order not found"}, status=404)
 
-    order.recalculate_totals()
-
     items = []
     for i in order.items.all():
         items.append({
