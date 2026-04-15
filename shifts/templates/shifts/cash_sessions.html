@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EOD Reconciliation | POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bg-color:#fafafa; --panel-bg:#ffffff; --text-main:#111; --text-muted:#737373; --border-color:#eaeaea; --accent-gold:#c5a059; --transition-smooth:all 0.3s ease; }
+        body.dark { --bg-color:#0a0a0a; --panel-bg:#111111; --text-main:#f5f5f5; --text-muted:#888; --border-color:#262626; --accent-gold:#d4af37; }
+        body { background:var(--bg-color); color:var(--text-main); font-family:'Outfit',sans-serif; min-height:100vh; }
+        .pos-header { padding:2rem 0 1.5rem; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:2rem; }
+        .pos-header h4 { font-family:'DM Serif Display',serif; font-size:1.6rem; margin:0; }
+        .pos-header h4 i { color:var(--accent-gold); }
+        .btn-luxury { border:1px solid var(--border-color); background:transparent; color:var(--text-main); border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px; padding:0.65rem 1.4rem; transition:var(--transition-smooth); cursor:pointer; text-decoration:none; display:inline-block; }
+        .btn-luxury:hover { border-color:var(--text-main); background:var(--text-main); color:var(--bg-color); }
+        .dashboard-card { background:var(--panel-bg); border:1px solid var(--border-color); padding:2rem; margin-bottom:2rem; }
+        .section-title { font-family:'DM Serif Display',serif; font-size:1.2rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:1.5rem; }
+        .stat-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin-bottom:0.5rem; display:block; }
+        .stat-val { font-family:'Space Mono', monospace; font-size:1.4rem; color:var(--text-main); }
+        .table-luxury { width:100%; }
+        .table-luxury th { font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); padding:1rem; border-bottom:1px solid var(--border-color); }
+        .table-luxury td { padding:1rem; border-bottom:1px dashed var(--border-color); font-size:0.9rem; }
+        .discrepancy-neg { color:#dc3545; font-weight:600; }
+        .discrepancy-pos { color:#198754; font-weight:600; }
+        .modal-content { border-radius:0; background:var(--panel-bg); color:var(--text-main); border:1px solid var(--border-color); }
+        .form-control { border-radius:0; background:transparent; color:var(--text-main); border:1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+<div class="container mx-auto" style="max-width:1100px; padding:0 1.5rem;">
+
+    <header class="pos-header">
+        <h4><i class="bi bi-safe2 me-2"></i>Cash <i>Sessions & EOD</i></h4>
+        <div class="d-flex gap-2">
+            {% if not active_session %}
+            <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#openSessionModal">Open Register</button>
+            {% else %}
+            <button class="btn-luxury" style="background:#dc3545; color:white; border:none;" data-bs-toggle="modal" data-bs-target="#closeSessionModal">Close Register</button>
+            {% endif %}
+            <a href="/dashboard/" class="btn-luxury">Exit</a>
+        </div>
+    </header>
+
+    {% if active_session %}
+    <div class="dashboard-card" style="border-left: 4px solid var(--accent-gold);">
+        <div class="section-title">Current Active session</div>
+        <div class="row">
+            <div class="col-md-3">
+                <span class="stat-label">Opened At</span>
+                <div class="stat-val">{{ active_session.opened_at|date:"H:i" }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="stat-label">Opened By</span>
+                <div class="stat-val" style="font-size:1rem">{{ active_session.opened_by.username }}</div>
+            </div>
+            <div class="col-md-3">
+                <span class="stat-label">Opening Cash</span>
+                <div class="stat-val">₹{{ active_session.opening_balance }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="dashboard-card p-0">
+        <table class="table-luxury">
+            <thead>
+                <tr>
+                    <th>Date</th><th>Opened</th><th>Closed</th><th>Total Sales</th><th>Discrepancy</th><th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td><strong>{{ s.opened_at|date:"M d, Y" }}</strong></td>
+                    <td>{{ s.opened_at|date:"H:i" }} ({{ s.opened_by.username }})</td>
+                    <td>{{ s.closed_at|date:"H:i"|default:"—" }}</td>
+                    <td>₹{{ s.total_sales }}</td>
+                    <td>
+                        <span class="{% if s.discrepancy < 0 %}discrepancy-neg{% else %}discrepancy-pos{% endif %}">
+                            {{ s.discrepancy|floatformat:2 }}
+                        </span>
+                    </td>
+                    <td><span class="text-uppercase" style="font-size:0.7rem; font-weight:600;">{{ s.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- OPEN MODAL -->
+<div class="modal fade" id="openSessionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0"> <h5 class="section-title">Open Register</h5> </div>
+            <div class="modal-body">
+                <label class="stat-label">Opening Cash Balance (Starting Float)</label>
+                <input type="number" id="open-amt" class="form-control" value="0.00">
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn-luxury" onclick="handleSession('open')">Start Session</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CLOSE MODAL -->
+<div class="modal fade" id="closeSessionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0"> <h5 class="section-title">Close Register</h5> </div>
+            <div class="modal-body">
+                <p class="text-muted" style="font-size:0.8rem">Counting the drawer? Enter the total physical cash currently in the register.</p>
+                <label class="stat-label">Total Physical Cash in Drawer</label>
+                <input type="number" id="close-amt" class="form-control" placeholder="0.00">
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn-luxury" onclick="handleSession('close')">Finalize & Reconcile</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function handleSession(type) {
+        const url = type === 'open' ? '/shifts/sessions/open/' : '/shifts/sessions/close/';
+        const val = type === 'open' ? document.getElementById('open-amt').value : document.getElementById('close-amt').value;
+        const body = type === 'open' ? {opening_balance: val} : {actual_cash: val};
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(body)
+        });
+        if (res.ok) window.location.reload();
+        else {
+            const data = await res.json();
+            alert(data.error || "Operation failed");
+        }
+    }
+</script>
+</body>
+</html>

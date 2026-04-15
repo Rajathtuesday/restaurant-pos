@@ -61,3 +61,40 @@ class LoyaltyTransaction(models.Model):
 
     def __str__(self):
         return f"{self.guest} – {self.transaction_type} {self.points}pts"
+
+
+class Reservation(models.Model):
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("confirmed", "Confirmed"),
+        ("seated", "Seated"),
+        ("cancelled", "Cancelled"),
+        ("no_show", "No Show"),
+    )
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+
+    guest = models.ForeignKey(Guest, on_delete=models.CASCADE, related_name="reservations")
+    table = models.ForeignKey("orders.Table", on_delete=models.SET_NULL, null=True, blank=True)
+
+    reservation_time = models.DateTimeField()
+    number_of_guests = models.PositiveIntegerField(default=2)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    notes = models.TextField(blank=True)
+
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "outlet", "reservation_time", "status"]),
+        ]
+        ordering = ["reservation_time"]
+
+    def __str__(self):
+        return f"Booking for {self.guest} @ {self.reservation_time}"
+
+
+from .feedback_models import GuestFeedback

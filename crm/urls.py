@@ -7,4 +7,6 @@ urlpatterns = [
     path("guest/<int:guest_id>/", views.guest_profile, name="guest-profile"),
     path("lookup/", views.guest_lookup, name="guest-lookup"),
     path("link/<int:order_id>/", views.link_guest_to_order, name="link-guest"),
+    path("reservations/", views.reservation_list, name="reservation-list"),
+    path("reservations/create/", views.create_reservation, name="create-reservation"),
 ]

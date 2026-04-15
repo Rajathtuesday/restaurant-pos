@@ -427,3 +427,31 @@ def log_bypass(request, order_id):
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
 
+
+@login_required
+@tenant_required
+@role_required("manager", "cashier", "owner")
+def print_bill_action(request, order_id):
+    """Triggers the physical thermal printer for a bill."""
+    from orders.services.printing_service import PrintingService
+    try:
+        order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+        
+        # In a real scenario, you'd fetch the printer config (IP/USB) from Outlet settings.
+        # For now, we'll try to find a configured printer in setup.models (to be added)
+        # or use a default if it's a local installation.
+        
+        # Hardcoded for demonstration - in production, this comes from database.
+        printer = PrintingService(printer_type="network", host="192.168.1.100") 
+        success = printer.print_bill(order)
+        
+        if success:
+            return JsonResponse({"success": True, "message": "Printing initiated"})
+        else:
+            return JsonResponse({"error": "Printer not reachable"}, status=503)
+            
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+

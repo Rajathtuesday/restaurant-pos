@@ -116,6 +116,7 @@ def add_items_to_order(user, order, cart_items):
             gst_percentage=menu_item.gst_percentage,
             total_price=Decimal((base_price)),
             notes=item.get("note"),
+            is_takeaway=item.get("is_takeaway", False),
             status="pending"
         )
 

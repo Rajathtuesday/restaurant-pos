@@ -437,28 +437,24 @@
             </div>
         </div>
 
-        <!-- TABLE TURNOVER -->
+        <!-- MANAGEMENT QUICK ACCESS -->
         <div class="col-12 col-lg-4">
             <div class="card-elegant">
-                <h5 class="section-title">Table Engagement</h5>
-                <table class="table-minimal">
-                    <thead>
-                        <tr>
-                            <th>Designation</th>
-                            <th class="text-end">Turnovers</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for t in table_stats|slice:":5" %}
-                        <tr>
-                            <td>{{t.table__name}}</td>
-                            <td class="text-end text-value">{{t.turnovers}}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="2" class="text-center py-4" style="color:var(--text-muted)">No data available</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <h5 class="section-title">Operations</h5>
+                <div class="d-flex flex-column gap-3 mt-4">
+                    <a href="/crm/reservations/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+                        Reservations <i class="bi bi-calendar-check"></i>
+                    </a>
+                    <a href="/shifts/sessions/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+                        Cash Reconciliation <i class="bi bi-cash-stack"></i>
+                    </a>
+                    <a href="/inventory/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+                        Inventory & Stock <i class="bi bi-box-seam"></i>
+                    </a>
+                    <a href="/menu/digital-menu/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+                        Digital QR Menu <i class="bi bi-qr-code"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

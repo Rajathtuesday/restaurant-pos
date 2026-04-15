@@ -108,6 +108,17 @@ def create_kot(user, order):
 
         created_kots.append(kot)
 
+        # -----------------------------------------
+        # AUTOMATIC KOT PRINTING
+        # -----------------------------------------
+        if station and station.printer_ip:
+            try:
+                from orders.services.printing_service import PrintingService
+                printer = PrintingService(printer_type="network", host=station.printer_ip, port=station.printer_port)
+                printer.print_kot(order, kot)
+            except Exception as e:
+                logger.error(f"Auto-printing KOT #{kot.kot_number} failed: {e}")
+
     # -----------------------------------------
     # UPDATE TABLE STATE
     # -----------------------------------------

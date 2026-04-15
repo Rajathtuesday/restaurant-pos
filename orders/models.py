@@ -342,6 +342,9 @@ class OrderItem(models.Model):
         default="pending"
     )
 
+    is_takeaway = models.BooleanField(default=False)
+
+
     is_complimentary = models.BooleanField(default=False)
 
     notes = models.TextField(blank=True)

@@ -105,10 +105,31 @@ def clock_out(request):
     shift.notes = data.get("notes", "") or ""
     shift.save(update_fields=["clocked_out_at", "tips", "notes"])
 
+    # Generate Shift Summary
+    from orders.models import Payment
+    from django.db.models import Sum, Q
+    
+    sales = Payment.objects.filter(
+        order__tenant=request.user.tenant,
+        created_by=request.user,
+        paid_at__gte=shift.clocked_in_at,
+        paid_at__lte=shift.clocked_out_at
+    ).aggregate(
+        total=Sum("amount"),
+        cash=Sum("amount", filter=Q(method="cash")),
+        digital=Sum("amount", filter=Q(method__in=["upi", "card"]))
+    )
+
     return JsonResponse({
         "success": True,
         "duration_hours": shift.duration_hours,
-        "clocked_out_at": shift.clocked_out_at.isoformat()
+        "clocked_out_at": shift.clocked_out_at.isoformat(),
+        "summary": {
+            "total_sales": float(sales["total"] or 0),
+            "cash": float(sales["cash"] or 0),
+            "digital": float(sales["digital"] or 0),
+            "tips": float(shift.tips)
+        }
     })
 
 
@@ -128,3 +149,115 @@ def update_shift_tips(request, shift_id):
         return JsonResponse({"success": True})
     except Shift.DoesNotExist:
         return JsonResponse({"error": "Shift not found"}, status=404)
+
+
+@login_required
+@tenant_required
+def cash_session_list(request):
+    """List of all EOD cash sessions."""
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    from .models import CashSession
+    sessions = CashSession.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    ).order_by("-opened_at")
+
+    active_session = sessions.filter(status="open").first()
+
+    return render(request, "shifts/cash_sessions.html", {
+        "sessions": sessions,
+        "active_session": active_session
+    })
+
+
+@login_required
+@tenant_required
+@require_POST
+def open_cash_session(request):
+    """Start a new cash register session."""
+    from .models import CashSession
+    try:
+        data = json.loads(request.body)
+        opening_balance = float(data.get("opening_balance", 0))
+
+        # Check for already open session
+        existing = CashSession.objects.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            status="open"
+        ).first()
+
+        if existing:
+            return JsonResponse({"error": "A session is already open"}, status=400)
+
+        session = CashSession.objects.create(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            opened_by=request.user,
+            opening_balance=opening_balance,
+            status="open"
+        )
+        return JsonResponse({"success": True, "session_id": session.id})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@require_POST
+def close_cash_session(request):
+    """Close active session and reconcile totals."""
+    from .models import CashSession
+    from orders.models import Payment, Order
+    from django.db.models import Sum
+
+    try:
+        data = json.loads(request.body)
+        actual_cash = float(data.get("actual_cash", 0))
+
+        session = CashSession.objects.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            status="open"
+        ).first()
+
+        if not session:
+            return JsonResponse({"error": "No open session found"}, status=400)
+
+        # 1. Calculate Expected Cash (Opening + All Cash Payments since opened_at)
+        cash_payments = Payment.objects.filter(
+            order__tenant=request.user.tenant,
+            order__outlet=request.user.outlet,
+            method="cash",
+            paid_at__gte=session.opened_at
+        ).aggregate(total=Sum("amount"))["total"] or 0
+
+        expected_cash = float(session.opening_balance) + float(cash_payments)
+
+        # 2. Calculate Digital Payments
+        digital_payments = Payment.objects.filter(
+            order__tenant=request.user.tenant,
+            order__outlet=request.user.outlet,
+            method__in=["upi", "card"],
+            paid_at__gte=session.opened_at
+        ).aggregate(total=Sum("amount"))["total"] or 0
+
+        # 3. Total Sales (Grand total of orders paid in this window)
+        total_sales = float(cash_payments) + float(digital_payments)
+
+        session.closed_at = timezone.now()
+        session.closed_by = request.user
+        session.expected_cash = expected_cash
+        session.actual_cash = actual_cash
+        session.discrepancy = float(actual_cash) - float(expected_cash)
+        session.total_digital_payments = digital_payments
+        session.total_sales = total_sales
+        session.status = "closed"
+        session.save()
+
+        return JsonResponse({"success": True, "discrepancy": float(session.discrepancy)})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

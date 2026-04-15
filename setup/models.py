@@ -12,6 +12,9 @@ class KitchenStation(models.Model):
 
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
+    
+    printer_ip = models.GenericIPAddressField(null=True, blank=True, help_text="IP of the thermal printer for this station")
+    printer_port = models.IntegerField(default=9100)
 
     class Meta:
         constraints = [

@@ -36,7 +36,8 @@ from .views import (
     unmerge_tables_view,
     waiter_dashboard,
     resolve_waiter_call,
-    resolve_kitchen_message
+    resolve_kitchen_message,
+    print_bill_action
 )
 
 urlpatterns = [
@@ -58,6 +59,7 @@ urlpatterns = [
 
     path("bill/<int:order_id>/", bill_view, name="bill-view"),
     path("pay/<int:order_id>/", pay_order, name="pay-order"),
+    path("print-bill/<int:order_id>/", print_bill_action, name="print-bill"),
 
     path("tables/", table_dashboard ,name="table-dashboard"),
     path("tables-data/", tables_data ,name="tables-data"),

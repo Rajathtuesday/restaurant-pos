@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reservations | POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bg-color:#fafafa; --panel-bg:#ffffff; --text-main:#111; --text-muted:#737373; --border-color:#eaeaea; --accent-gold:#c5a059; --transition-smooth:all 0.3s ease; }
+        body.dark { --bg-color:#0a0a0a; --panel-bg:#111111; --text-main:#f5f5f5; --text-muted:#888; --border-color:#262626; --accent-gold:#d4af37; }
+        body { background:var(--bg-color); color:var(--text-main); font-family:'Outfit',sans-serif; min-height:100vh; }
+        .pos-header { padding:2rem 0 1.5rem; border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:2rem; }
+        .pos-header h4 { font-family:'DM Serif Display',serif; font-size:1.6rem; margin:0; }
+        .pos-header h4 i { color:var(--accent-gold); }
+        .btn-luxury { border:1px solid var(--border-color); background:transparent; color:var(--text-main); border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px; padding:0.65rem 1.4rem; transition:var(--transition-smooth); cursor:pointer; text-decoration:none; display:inline-block; }
+        .btn-luxury:hover { border-color:var(--text-main); background:var(--text-main); color:var(--bg-color); }
+        .btn-icon { border:none; background:transparent; color:var(--text-main); font-size:1.2rem; cursor:pointer; padding:0.4rem; }
+        .btn-icon:hover { color:var(--accent-gold); }
+        .dashboard-card { background:var(--panel-bg); border:1px solid var(--border-color); }
+        .section-title { font-family:'DM Serif Display',serif; font-size:1.2rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:1.5rem; }
+        .booking-table { width:100%; border-collapse:collapse; }
+        .booking-table th { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); padding:0.8rem 1rem; border-bottom:1px solid var(--border-color); text-align:left; }
+        .booking-table td { padding:0.9rem 1rem; border-bottom:1px dashed var(--border-color); font-size:0.9rem; vertical-align:middle; }
+        .booking-table tr:hover td { background:rgba(197,160,89,0.04); }
+        .status-badge { font-size:0.6rem; text-transform:uppercase; letter-spacing:1px; padding:2px 8px; border-radius:2px; font-weight:600; }
+        .status-pending { background:#fff3cd; color:#856404; }
+        .status-confirmed { background:#d4edda; color:#155724; }
+        .status-seated { background:#d1ecf1; color:#0c5460; }
+        .modal-content { border-radius:0; border:1px solid var(--border-color); background:var(--panel-bg); color:var(--text-main); }
+        .form-control { border-radius:0; border:1px solid var(--border-color); background:transparent; color:var(--text-main); }
+        .form-control:focus { border-color:var(--accent-gold); box-shadow:none; background:transparent; color:var(--text-main); }
+    </style>
+</head>
+<body>
+<div class="container mx-auto" style="max-width:1100px; padding:0 1.5rem;">
+
+    <header class="pos-header">
+        <h4><i class="bi bi-calendar-check me-2"></i>Reservations</h4>
+        <div class="d-flex gap-3 align-items-center">
+            <input type="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control" style="width:160px" onchange="window.location.href='?date='+this.value">
+            <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#newBookingModal">New Booking</button>
+            <a href="/dashboard/" class="btn-luxury">Exit</a>
+            <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <div class="dashboard-card p-0">
+        <div class="table-responsive">
+            <table class="booking-table">
+                <thead>
+                    <tr>
+                        <th>Time</th><th>Guest</th><th>Phone</th><th>Table</th><th>Guests</th><th>Status</th><th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for res in reservations %}
+                    <tr>
+                        <td style="font-family:'Space Mono', monospace; font-size:0.85rem;">{{ res.reservation_time|date:"H:i" }}</td>
+                        <td><strong>{{ res.guest.name|default:"—" }}</strong></td>
+                        <td>{{ res.guest.phone }}</td>
+                        <td>{{ res.table.name|default:"TBD" }}</td>
+                        <td>{{ res.number_of_guests }} pax</td>
+                        <td><span class="status-badge status-{{ res.status }}">{{ res.status }}</span></td>
+                        <td>
+                            <button class="btn-icon" onclick="seatGuest({{ res.id }})"><i class="bi bi-box-arrow-in-right"></i></button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align:center; padding:5rem; color:var(--text-muted);">No bookings for this date.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- NEW BOOKING MODAL -->
+<div class="modal fade" id="newBookingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="section-title">New Reservation</h5>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="stat-label">Phone Number*</label>
+                    <input type="text" id="node-phone" class="form-control" placeholder="Phone">
+                </div>
+                <div class="mb-3">
+                    <label class="stat-label">Guest Name</label>
+                    <input type="text" id="node-name" class="form-control" placeholder="Name">
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="stat-label">Time*</label>
+                        <input type="datetime-local" id="node-time" class="form-control">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="stat-label">Table</label>
+                        <select id="node-table" class="form-control">
+                            <option value="">Any Free Table</option>
+                            {% for t in tables %}
+                            <option value="{{ t.id }}">{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="stat-label">Covers (Guests)</label>
+                    <input type="number" id="node-pax" class="form-control" value="2">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-luxury" onclick="saveBooking()">Confirm Booking</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    async function saveBooking() {
+        const data = {
+            phone: document.getElementById('node-phone').value,
+            name: document.getElementById('node-name').value,
+            reservation_time: document.getElementById('node-time').value,
+            table_id: document.getElementById('node-table').value,
+            guests: document.getElementById('node-pax').value
+        };
+
+        const res = await fetch('/crm/reservations/create/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify(data)
+        });
+
+        if (res.ok) { window.location.reload(); }
+        else { alert("Error saving booking"); }
+    }
+
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if (isDark) { document.body.classList.add("dark"); icon.className = "bi bi-sun"; }
+        else { document.body.classList.remove("dark"); icon.className = "bi bi-moon"; }
+    }
+    updateIcons();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+</script>
+</body>
+</html>

@@ -320,22 +320,52 @@ def update_price(request, item_id):
         return JsonResponse({"error": str(e)}, status=500)
     
 
+    return JsonResponse({"success": True})
+
+
 @login_required
 @require_POST
 def toggle_item(request, item_id):
-
+    """Toggle global visibility of an item."""
     item = get_object_or_404(
         MenuItem,
         id=item_id,
         tenant=request.user.tenant,
         outlet=request.user.outlet
     )
-
     item.is_available = not item.is_available
-
     item.save(update_fields=["is_available"])
-
     return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
+def toggle_platform_availability(request, item_id):
+    """Toggle item availability on specific platforms (takeaway, zomato, swiggy)."""
+    try:
+        data = json.loads(request.body)
+        platform = data.get("platform")  # "takeaway", "zomato", "swiggy"
+        
+        item = get_object_or_404(
+            MenuItem,
+            id=item_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+
+        if platform == "takeaway":
+            item.available_takeaway = not item.available_takeaway
+        elif platform == "zomato":
+            item.available_zomato = not item.available_zomato
+        elif platform == "swiggy":
+            item.available_swiggy = not item.available_swiggy
+        else:
+            return JsonResponse({"error": "Invalid platform"}, status=400)
+
+        item.save()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @login_required
@@ -413,85 +443,99 @@ def update_station(request, item_id):
         return JsonResponse({"error": str(e)}, status=400)
 
 
-import re
-from decimal import Decimal
-
 @login_required
-@require_POST
 def ai_menu_importer(request):
     """
-    Smart Menu Parser: Takes raw text and 'senses' categories and items.
-    Pattern: 
-    - Lines with just text -> Category
-    - Lines with name + number -> Item in the current category
+    Upgraded AI Parser: Uses Gemini to 'see' images or parse text into menu items.
+    Supports multipart/form-data for image/pdf uploads.
     """
-    try:
-        data = json.loads(request.body)
-        raw_text = data.get("text", "")
-        
-        lines = [l.strip() for l in raw_text.split("\n") if l.strip()]
-        
-        current_category = None
-        imported_count = 0
-        
-        # Pre-fetch existing categories to avoid duplicates and map variations
-        existing_categories = list(MenuCategory.objects.filter(
-            tenant=request.user.tenant, 
-            outlet=request.user.outlet
-        ))
-        
-        def find_best_category(name):
-            # 1. Precise normalization: lowercase, strip, and singularize (simple)
-            target = name.lower().strip().rstrip("s")
-            
-            for cat in existing_categories:
-                # Compare singular normalized names
-                if cat.name.lower().strip().rstrip("s") == target:
-                    return cat
-            
-            # 2. Key-word match (if "Pasta" is in "Signature Pasta")
-            for cat in existing_categories:
-                if target in cat.name.lower() or cat.name.lower() in target:
-                    return cat
-            
-            # 3. Create if truly new
-            new_cat = MenuCategory.objects.create(
-                tenant=request.user.tenant,
-                outlet=request.user.outlet,
-                name=name
-            )
-            existing_categories.append(new_cat)
-            return new_cat
+    from core.ai_service import AIService
+    from decimal import Decimal
 
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        text = request.POST.get("text")
+        file = request.FILES.get("file")
+        
+        ai = AIService()
+        
+        image_bytes = None
+        mime_type = None
+        if file:
+            image_bytes = file.read()
+            mime_type = file.content_type
+
+        # Call Gemini via our service
+        structured_data = ai.parse_menu(text=text, image_bytes=image_bytes, mime_type=mime_type)
+        
+        imported_count = 0
         with transaction.atomic():
-            for line in lines:
-                # Look for price at the end
-                match = re.search(r'(\d+(?:\.\d+)?)$', line)
+            for entry in structured_data:
+                category_name = entry.get("category", "General")
                 
-                if match:
-                    price = Decimal(match.group(1))
-                    name = line[:match.start()].strip().rstrip("-").strip()
+                category, _ = MenuCategory.objects.get_or_create(
+                    tenant=request.user.tenant,
+                    outlet=request.user.outlet,
+                    name=category_name
+                )
+                
+                for item_data in entry.get("items", []):
+                    name = item_data.get("name")
+                    price = item_data.get("price", 0)
                     
-                    if not current_category:
-                        current_category = find_best_category("General")
-                    
-                    # Prevent duplicate items in the same import session/category
-                    MenuItem.objects.get_or_create(
-                        tenant=request.user.tenant,
-                        outlet=request.user.outlet,
-                        category=current_category,
-                        name=name,
-                        defaults={"price": price}
-                    )
-                    imported_count += 1
-                else:
-                    # Detected a Category Header line
-                    current_category = find_best_category(line)
+                    if name:
+                        MenuItem.objects.get_or_create(
+                            tenant=request.user.tenant,
+                            outlet=request.user.outlet,
+                            category=category,
+                            name=name,
+                            defaults={"price": Decimal(str(price))}
+                        )
+                        imported_count += 1
 
         return JsonResponse({
             "success": True, 
-            "message": f"Successfully imported {imported_count} items across multiple categories."
+            "message": f"Gemini AI successfully parsed and imported {imported_count} items."
         })
 
     except Exception as e:
+        logger.exception("AI Import Error")
         return JsonResponse({"error": str(e)}, status=400)
+
+
+def digital_menu(request):
+    """Customer-facing menu for self-ordering via QR."""
+    from orders.models import Table
+    from tenants.models import Tenant, Outlet
+    
+    table_id = request.GET.get("table")
+    table = None
+    if table_id:
+        table = Table.objects.filter(id=table_id).first()
+        
+    # Determine tenant/outlet context
+    if table:
+        tenant = table.tenant
+        outlet = table.outlet
+    elif request.user.is_authenticated:
+        tenant = request.user.tenant
+        outlet = request.user.outlet
+    else:
+        # Fallback for public browsing (take the first tenant for demo)
+        tenant = Tenant.objects.first()
+        outlet = Outlet.objects.first()
+
+    categories = MenuCategory.objects.filter(
+        tenant=tenant,
+        outlet=outlet,
+        is_active=True
+    ).prefetch_related("items")
+
+    return render(request, "menu/digital_menu.html", {
+        "categories": categories,
+        "table": table,
+        "tenant": tenant,
+        "outlet": outlet
+    })

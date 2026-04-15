@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Digital Menu | {{ tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .menu-header {
+        background: var(--panel-bg);
+        padding: 2rem 1rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .digital-category {
+        margin-top: 2rem;
+    }
+    .digital-card {
+        border: 1px solid var(--border-color);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--panel-bg);
+    }
+    .add-btn {
+        background: var(--accent-gold);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+    }
+    .cart-summary-fixed {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--text-main);
+        color: var(--bg-color);
+        padding: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1000;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="menu-header">
+    <h1 class="serif-text">{{ tenant.name }}</h1>
+    <p class="text-muted">{{ outlet.name }}</p>
+    {% if table %}
+    <span class="badge bg-dark">Table: {{ table.name }}</span>
+    {% endif %}
+</div>
+
+<div class="container py-4 mb-5">
+    {% for category in categories %}
+    <div class="digital-category">
+        <h3 class="serif-text mb-3">{{ category.name }}</h3>
+        <div class="row">
+            {% for item in category.items.all %}
+                {% if item.is_available %}
+                <div class="col-12 col-md-6">
+                    <div class="digital-card">
+                        <div>
+                            <div class="fw-bold">{{ item.name }}</div>
+                            <div class="text-accent-gold">₹{{ item.price }}</div>
+                        </div>
+                        <button class="add-btn" onclick="addToCart({{ item.id }}, '{{ item.name|escapejs }}', {{ item.price }})">Add +</button>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="cartBar" class="cart-summary-fixed d-none">
+    <div>
+        <span id="cartCount">0</span> items selected
+    </div>
+    <button class="btn btn-outline-light btn-sm" onclick="submitOrder()">Order Now</button>
+</div>
+
+<script>
+    let cart = [];
+    
+    function addToCart(id, name, price) {
+        let item = cart.find(i => i.id === id);
+        if(item) {
+            item.quantity++;
+        } else {
+            cart.push({ id, name, price, quantity: 1 });
+        }
+        updateBar();
+    }
+
+    function updateBar() {
+        let count = cart.reduce((s, i) => s + i.quantity, 0);
+        let bar = document.getElementById("cartBar");
+        if(count > 0) {
+            bar.classList.remove("d-none");
+            document.getElementById("cartCount").innerText = count;
+        } else {
+            bar.classList.add("d-none");
+        }
+    }
+
+    function submitOrder() {
+        const tableId = "{{ table.id|default:'' }}";
+        if(!tableId) {
+            alert("No table detected. Please scan a valid table QR.");
+            return;
+        }
+
+        fetch("{% url 'create-order' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({
+                cart: cart,
+                table_id: tableId
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                alert("Order placed successfully!");
+                cart = [];
+                updateBar();
+                // Optionally redirect to a 'Status' page
+            } else {
+                alert("Error: " + data.error);
+            }
+        });
+    }
+</script>
+{% endblock %}

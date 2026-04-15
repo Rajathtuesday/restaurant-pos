@@ -94,6 +94,12 @@ class MenuItem(models.Model):
     display_order = models.IntegerField(default=0)
 
     is_available = models.BooleanField(default=True)
+    
+    # Platform specific toggles
+    available_takeaway = models.BooleanField(default=True)
+    available_zomato = models.BooleanField(default=True)
+    available_swiggy = models.BooleanField(default=True)
+
 
     created_at = models.DateTimeField(auto_now_add=True)
     

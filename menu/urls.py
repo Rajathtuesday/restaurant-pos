@@ -11,9 +11,11 @@ from .views import (
     delete_menu_item,
     update_price,
     toggle_item,
+    toggle_platform_availability,
     update_station,
     ai_menu_importer,
     delete_category,
+    digital_menu,
 )
 from .api import api_categories, api_items
 
@@ -32,6 +34,8 @@ urlpatterns = [
     path("delete-item/<int:item_id>/", delete_menu_item, name="delete_menu_item"),
     path("update-price/<int:item_id>/", update_price, name="update_price"),
     path("toggle-item/<int:item_id>/", toggle_item, name="toggle_item"),
+    path("toggle-platform/<int:item_id>/", toggle_platform_availability, name="toggle_platform"),
+    path("digital-menu/", digital_menu, name="digital_menu"),
     
     path("update-station/<int:item_id>/", update_station, name="update_station"),
 

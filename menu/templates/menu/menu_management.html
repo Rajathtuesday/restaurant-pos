@@ -129,6 +129,8 @@
         }
         .badge-station { background: rgba(31, 41, 55, 0.1); color: var(--text-main); border: 1px solid var(--border-color); }
         .badge-disabled { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
+        .badge-platform { background: rgba(197, 160, 89, 0.1); color: var(--accent-gold); border: 1px solid var(--accent-gold); font-size: 0.55rem; }
+        .badge-platform.off { background: transparent; color: var(--text-muted); border-color: var(--border-color); }
 
         /* RECIPE LIST */
         .recipe-block {
@@ -252,6 +254,12 @@
                                         <span class="luxury-badge badge-disabled">Offline</span>
                                         {% endif %}
                                     </span>
+                                    <div class="d-flex gap-1 mt-1">
+                                        <span class="luxury-badge badge-platform {% if not item.available_takeaway %}off{% endif %}" onclick="togglePlatform({{item.id}}, 'takeaway')">Takeaway</span>
+                                        <span class="luxury-badge badge-platform {% if not item.available_zomato %}off{% endif %}" onclick="togglePlatform({{item.id}}, 'zomato')">Zomato</span>
+                                        <span class="luxury-badge badge-platform {% if not item.available_swiggy %}off{% endif %}" onclick="togglePlatform({{item.id}}, 'swiggy')">Swiggy</span>
+                                    </div>
+
                                     <div class="d-flex align-items-center gap-2 mt-1">
                                         <span class="item-price">₹{{item.price}}</span>
                                         
@@ -363,11 +371,19 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted small mb-3">Paste your menu text below. Our AI logic will automatically detect <strong>Categories</strong> and <strong>Items with Prices</strong>.</p>
-                    <textarea id="aiMenuText" class="form-control form-input-luxury" rows="12" placeholder="Example:&#10;APPETIZERS&#10;Spring Rolls 120&#10;Paneer Tikka 250&#10;&#10;MAIN COURSE&#10;Butter Chicken 350"></textarea>
+                    <p class="text-muted small mb-3">Paste your menu text below <strong>OR upload a photo/PDF</strong> of your menu. Our Gemini AI will transcribe it perfectly.</p>
+                    
+                    <div class="mb-3">
+                        <label class="stat-label">Upload Image/PDF (Google Lens Import)</label>
+                        <input type="file" id="aiMenuFile" class="form-control" accept="image/*,application/pdf">
+                    </div>
+
+                    <div class="text-center my-2 text-muted small">— OR PASTE TEXT —</div>
+
+                    <textarea id="aiMenuText" class="form-control form-input-luxury" rows="8" placeholder="Example:&#10;APPETIZERS&#10;Spring Rolls 120&#10;Paneer Tikka 250"></textarea>
                 </div>
                 <div class="modal-footer pt-0 border-0">
-                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="runAiImport()">Process & Bulk Import</button>
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" id="aiProcessBtn" onclick="runAiImport()">Process with Gemini AI</button>
                 </div>
             </div>
         </div>
@@ -456,18 +472,41 @@
         /* OPERATIONS */
         function runAiImport(){
             let text = document.getElementById("aiMenuText").value;
-            if(!text.trim()){ alert("Please paste menu text to process."); return; }
+            let fileInput = document.getElementById("aiMenuFile");
+            let btn = document.getElementById("aiProcessBtn");
+            
+            if(!text.trim() && !fileInput.files[0]){ alert("Please provide text or an image."); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+
+            let formData = new FormData();
+            if(fileInput.files[0]) formData.append("file", fileInput.files[0]);
+            formData.append("text", text);
 
             fetch("{% url 'ai_menu_importer' %}", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-                body: JSON.stringify({ text: text })
+                headers: { "X-CSRFToken": getCookie("csrftoken") },
+                body: formData
             })
             .then(res => res.json())
             .then(data => {
                 if(data.success){ alert(data.message); location.reload(); }
-                else { alert(data.error || "Import failed."); }
+                else { alert(data.error || "Import failed."); btn.disabled = false; btn.innerText = "Process with Gemini AI"; }
+            })
+            .catch(err => {
+                alert("Error connecting to AI service");
+                btn.disabled = false;
+                btn.innerText = "Process with Gemini AI";
             });
+        }
+
+        function togglePlatform(itemId, platform){
+            fetch("{% url 'toggle_platform' 0 %}".replace('0', itemId), {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ platform: platform })
+            }).then(() => location.reload());
         }
         function createCategory(){
             let name = document.getElementById("categoryName").value;

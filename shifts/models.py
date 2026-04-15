@@ -45,3 +45,46 @@ class Shift(models.Model):
 
     def __str__(self):
         return f"{self.staff.username} – {self.clocked_in_at.date()}"
+
+
+class CashSession(models.Model):
+    """
+    Manages the cash drawer for an entire outlet shift/day.
+    Reconciles physical cash with digital payment records.
+    """
+    STATUS_CHOICES = (
+        ("open", "Open"),
+        ("closed", "Closed"),
+    )
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+
+    opened_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    opened_by = models.ForeignKey("accounts.User", on_delete=models.CASCADE, related_name="opened_sessions")
+    closed_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="closed_sessions")
+
+    opening_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    
+    # Financials populated at closing
+    expected_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    actual_cash = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    discrepancy = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    
+    total_digital_payments = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    total_sales = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="open")
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "outlet", "status"]),
+            models.Index(fields=["opened_at"]),
+        ]
+        ordering = ["-opened_at"]
+
+    def __str__(self):
+        return f"Session {self.id} ({self.status}) - {self.opened_at.date()}"
