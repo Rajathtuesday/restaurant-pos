@@ -76,6 +76,7 @@ def create_inventory_item(request):
     unit = data.get("unit")
     stock = Decimal(data.get("stock", "0"))
     threshold = Decimal(data.get("threshold", "0"))
+    cost_price = Decimal(data.get("cost_price", "0.00"))
 
     if not name:
         return JsonResponse({"error": "Name required"}, status=400)
@@ -86,10 +87,11 @@ def create_inventory_item(request):
         name=name,
         unit=unit,
         stock=stock,
-        low_stock_threshold=threshold
+        low_stock_threshold=threshold,
+        cost_price=cost_price
     )
     
-    logger.info(f"User {request.user.username} created new inventory item '{name}' ({stock} {unit})")
+    logger.info(f"User {request.user.username} created new inventory item '{name}'")
 
     return JsonResponse({
         "success": True,

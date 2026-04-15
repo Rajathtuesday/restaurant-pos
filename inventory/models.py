@@ -58,6 +58,13 @@ class InventoryItem(models.Model):
         default=0
     )
 
+    cost_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Cost price per unit"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)

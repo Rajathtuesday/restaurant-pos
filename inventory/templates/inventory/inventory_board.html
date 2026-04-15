@@ -195,8 +195,10 @@
                     <thead>
                         <tr>
                             <th>Ingredient</th>
+                            <th>Cost / Unit</th>
                             <th>Current Stock</th>
                             <th>Unit</th>
+                            <th>Value</th>
                             <th>Status</th>
                             <th>Refill Stock</th>
                         </tr>
@@ -205,10 +207,14 @@
                         {% for item in items %}
                         <tr>
                             <td class="fw-semibold">{{item.name}}</td>
+                            <td class="stock-val text-muted">₹{{item.cost_price}}</td>
                             <td id="stock{{item.id}}" class="stock-val">
                                 {{item.stock}}
                             </td>
                             <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{item.unit}}</td>
+                            <td class="stock-val text-accent-gold">
+                                {% widthratio item.cost_price 1 item.stock %}
+                            </td>
                             <td>
                                 {% if item.is_low_stock %}
                                 <span class="status-badge badge-low"><i class="bi bi-exclamation-triangle me-1"></i> Low Stock</span>
@@ -225,7 +231,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="5" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
+                            <td colspan="8" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -249,15 +255,21 @@
                         <input id="invName" class="form-control" placeholder="e.g. Flour, Tomatoes, Olive Oil">
                     </div>
                     
-                    <div class="mb-3">
-                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Measurement Unit</label>
-                        <select id="invUnit" class="form-select">
-                            <option value="pcs">Pieces (pcs)</option>
-                            <option value="g">Grams (g)</option>
-                            <option value="kg">Kilograms (kg)</option>
-                            <option value="ml">Milliliters (ml)</option>
-                            <option value="l">Liters (l)</option>
-                        </select>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Measurement Unit</label>
+                            <select id="invUnit" class="form-select">
+                                <option value="pcs">Pieces (pcs)</option>
+                                <option value="g">Grams (g)</option>
+                                <option value="kg">Kilograms (kg)</option>
+                                <option value="ml">Milliliters (ml)</option>
+                                <option value="l">Liters (l)</option>
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
+                            <input id="invCostPrice" type="number" step="0.01" class="form-control" placeholder="0.00">
+                        </div>
                     </div>
 
                     <div class="row">
@@ -336,6 +348,7 @@
             let unit = document.getElementById("invUnit").value;
             let stock = document.getElementById("invStock").value;
             let threshold = document.getElementById("invThreshold").value;
+            let costPrice = document.getElementById("invCostPrice").value;
 
             if(!name){ alert("Please enter an ingredient name."); return; }
 
@@ -346,7 +359,8 @@
                     name:name,
                     unit:unit,
                     stock:parseFloat(stock) || 0,
-                    threshold:parseFloat(threshold) || 0
+                    threshold:parseFloat(threshold) || 0,
+                    cost_price:parseFloat(costPrice) || 0
                 })
             })
             .then(res=>res.json())
