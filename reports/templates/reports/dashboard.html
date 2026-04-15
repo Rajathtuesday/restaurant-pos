@@ -306,8 +306,11 @@
             </form>
             {% endif %}
             
-            <a href="/tables/" class="btn-luxury text-decoration-none">Tables</a>
-            <a href="/billing/" class="btn-luxury text-decoration-none">Billing</a>
+            <button class="btn-luxury text-decoration-none" data-bs-toggle="offcanvas" data-bs-target="#opsMenu">
+                <i class="bi bi-grid me-1"></i> Operations
+            </button>
+            <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
+            <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
             
             <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
                 <i class="bi bi-moon" id="themeIcon"></i>
@@ -437,25 +440,60 @@
             </div>
         </div>
 
-        <!-- MANAGEMENT QUICK ACCESS -->
+        <!-- TABLE TURNOVER -->
         <div class="col-12 col-lg-4">
             <div class="card-elegant">
-                <h5 class="section-title">Operations</h5>
-                <div class="d-flex flex-column gap-3 mt-4">
-                    <a href="/crm/reservations/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
-                        Reservations <i class="bi bi-calendar-check"></i>
-                    </a>
-                    <a href="/shifts/sessions/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
-                        Cash Reconciliation <i class="bi bi-cash-stack"></i>
-                    </a>
-                    <a href="/inventory/board/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
-                        Inventory & Stock <i class="bi bi-box-seam"></i>
-                    </a>
-                    <a href="/menu/digital-menu/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
-                        Digital QR Menu <i class="bi bi-qr-code"></i>
-                    </a>
-                </div>
+                <h5 class="section-title">Table Turnover</h5>
+                <table class="table-minimal">
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th class="text-end">Orders</th>
+                            <th class="text-end">Avg Stay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for st in table_stats %}
+                        <tr>
+                            <td>{{st.table__name}}</td>
+                            <td class="text-end text-value">{{st.turnovers}}</td>
+                            <td class="text-end text-value">{{st.avg_turn_mins|floatformat:0}}m</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="3" class="text-center py-4" style="color:var(--text-muted)">No data available</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+        </div>
+    </div>
+    
+    <!-- OPERATIONS OFFCANVAS -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="opsMenu" style="background:var(--panel-bg); color:var(--text-main); border-left: 1px solid var(--border-color);">
+        <div class="offcanvas-header" style="border-bottom: 1px solid var(--border-color);">
+            <h5 class="serif-text m-0" style="font-size: 1.4rem;"><i class="bi bi-grid me-2" style="color:var(--accent-gold);"></i> Operations</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" style="filter: invert(var(--invert-val, 0));"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-3 p-4">
+            <a href="/crm/reservations/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                Reservations <i class="bi bi-calendar-check fs-5"></i>
+            </a>
+            <a href="/shifts/sessions/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                Cash Reconciliation <i class="bi bi-cash-stack fs-5"></i>
+            </a>
+            <a href="/inventory/board/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                Inventory & Stock <i class="bi bi-box-seam fs-5"></i>
+            </a>
+            <a href="/menu/digital-menu/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                Digital QR Menu <i class="bi bi-qr-code fs-5"></i>
+            </a>
+            <hr class="my-3" style="border-color:var(--border-color);">
+            <a href="/setup/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                Tenant Settings <i class="bi bi-gear fs-5"></i>
+            </a>
+            <a href="/admin/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+                System Admin <i class="bi bi-shield-lock border-0 fs-5"></i>
+            </a>
         </div>
     </div>
     

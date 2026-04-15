@@ -31,6 +31,8 @@ class Table(models.Model):
 
     name = models.CharField(max_length=100)
 
+    section = models.CharField(max_length=100, default="Main Hall", blank=True)
+
     qr_token = models.UUIDField(default=uuid.uuid4, unique=True)
 
     state = models.CharField(

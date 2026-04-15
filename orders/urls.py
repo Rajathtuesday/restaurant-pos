@@ -13,6 +13,7 @@ from .views import (
     apply_discount,
     available_tables,
     billing_view,
+    manage_table_view,
     create_order,
     make_item_complimentary,
     send_to_kitchen,
@@ -61,8 +62,9 @@ urlpatterns = [
     path("pay/<int:order_id>/", pay_order, name="pay-order"),
     path("print-bill/<int:order_id>/", print_bill_action, name="print-bill"),
 
-    path("tables/", table_dashboard ,name="table-dashboard"),
+    path("tables/", table_dashboard, name="table-dashboard"),
     path("tables-data/", tables_data ,name="tables-data"),
+    path("manage-table/", manage_table_view, name="manage-table"),
 
     path("clean-table/<int:table_id>/", mark_table_cleaned ,name="clean-table"),
 

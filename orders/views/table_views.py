@@ -100,6 +100,8 @@ def tables_data(request):
                 data.append({
                     "id": table.id,
                     "name": table.name,
+                    "section": table.section,
+                    "qr_token": str(table.qr_token),
                     "status": status,
                     "order_id": order.id if order else None,
                     "cooking_items": cooking_items,
@@ -110,8 +112,8 @@ def tables_data(request):
                     "primary_table": primary_table_id,
                     "primary_table_name": primary_table_name
                 })
-            except Exception:
-                data.append({"id": table.id, "name": table.name, "status": "error",
+            except Exception as e:
+                data.append({"id": table.id, "name": table.name, "section": table.section, "status": "error",
                              "order_id": None, "cooking_items": 0, "elapsed": 0,
                              "merged": False, "primary_table": None, "primary_table_name": None})
 
@@ -248,5 +250,38 @@ def transfer_table_view(request):
 
         return JsonResponse({"success": True, "order_id": order.id})
 
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@require_POST
+def manage_table_view(request):
+    import json
+    try:
+        data = json.loads(request.body)
+        table_id = data.get("table_id")
+        action = data.get("action")
+        
+        tenant = request.user.tenant
+        outlet = request.user.outlet
+        
+        if action == "create":
+            name = data.get("name")
+            section = data.get("section", "Main Hall")
+            Table.objects.create(name=name, section=section, tenant=tenant, outlet=outlet)
+            return JsonResponse({"success": True})
+            
+        table = Table.objects.get(id=table_id, tenant=tenant, outlet=outlet)
+        
+        if action == "edit":
+            name = data.get("name")
+            section = data.get("section")
+            if name: table.name = name
+            if section: table.section = section
+            table.save()
+            return JsonResponse({"success": True})
+            
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)

@@ -273,6 +273,7 @@
     <h1 class="brand-title"><i class="bi bi-asterisk"></i> Floor Plan</h1>
     
     <div class="action-group">
+        <button class="btn-luxury me-2 btn-gold" data-bs-toggle="modal" data-bs-target="#manageTablesModal"><i class="bi bi-gear me-1"></i> Tables</button>
         <button class="btn-luxury me-2" data-bs-toggle="modal" data-bs-target="#mergeModal">Combine</button>
         <button class="btn-luxury me-2" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
         <a href="/billing/" class="btn-luxury me-2 d-none d-sm-inline-flex">Billing</a>
@@ -410,6 +411,67 @@
     </div>
 </div>
 
+<!-- MANAGE TABLES MODAL -->
+<div class="modal fade" id="manageTablesModal">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0">Manage Tables</h5>
+                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body d-flex flex-column gap-3">
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle" style="color:var(--text-main);">
+                        <thead style="border-bottom: 2px solid var(--border-color);">
+                            <tr>
+                                <th>Table Name</th>
+                                <th>Section</th>
+                                <th>QR Code</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblManageList"></tbody>
+                    </table>
+                </div>
+                
+                <hr class="my-2" style="border-color:var(--border-color);">
+                <h6 class="serif-text">Add New Table</h6>
+                <div class="row g-2">
+                    <div class="col-5">
+                        <input type="text" id="newTableName" class="form-control form-select-luxury m-0" placeholder="Table Name (e.g. T-12)">
+                    </div>
+                    <div class="col-4">
+                        <input type="text" id="newTableSection" class="form-control form-select-luxury m-0" placeholder="Section (e.g. Patio)">
+                    </div>
+                    <div class="col-3">
+                        <button class="btn-luxury w-100 h-100" style="background:var(--accent-gold); color:#111;" onclick="createTable()">Create</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QR CODE MODAL -->
+<div class="modal fade" id="qrModal">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0" id="qrModalTitle">Table QR</h5>
+                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center p-4">
+                <img id="qrImage" src="" alt="QR Code" class="img-fluid rounded mb-3" style="border: 4px solid #fff;">
+                <p class="text-muted small">Scan this code to load the digital menu for this table.</p>
+                <div class="d-flex gap-2">
+                    <button class="btn-card-action w-50 target='_blank' id='qrViewBtn'">View Large</button>
+                    <button class="btn-card-action w-50" data-bs-toggle="modal" data-bs-target="#manageTablesModal">Back</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -518,6 +580,8 @@
                 } else if (t.is_primary) {
                     mergeBadge = `<div class="occupancy"><i class="bi bi-diagram-3"></i> Merged w/ ${t.merged_with_names}</div>`;
                 }
+                
+                let sectionBadge = t.section ? `<span class="badge bg-secondary ms-2 bg-opacity-25" style="color:var(--text-main);">${t.section}</span>` : '';
 
                 let html = `
                 <div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
@@ -525,12 +589,13 @@
                         <div class="table-status-line ${bgClass}"></div>
                         
                         <div class="table-header">
-                            <div>
-                                <h3 class="table-name">${t.name}</h3>
-                                <div class="table-status ${statusClass}">${statusText}</div>
+                            <div class="d-flex align-items-center flex-wrap">
+                                <h3 class="table-name mb-0">${t.name}</h3>
+                                ${sectionBadge}
                             </div>
                             ${timerHtml}
                         </div>
+                        <div class="table-status ${statusClass}">${statusText}</div>
 
                         ${mergeBadge}
                         
@@ -586,6 +651,55 @@
         if(sVal) s.value = sVal;
         if(tfVal) tf.value = tfVal;
         if(ttVal) tt.value = ttVal;
+        
+        let mList = document.getElementById("tblManageList");
+        mList.innerHTML = "";
+        tableDataStore.forEach(t => {
+            mList.innerHTML += `
+            <tr>
+                <td><input type="text" id="editName_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.name}"></td>
+                <td><input type="text" id="editSection_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.section || ''}"></td>
+                <td><button class="btn btn-sm btn-outline-secondary py-1" onclick="showQR('${t.name}', '${t.qr_token}')"><i class="bi bi-qr-code"></i></button></td>
+                <td><button class="btn btn-sm btn-dark py-1" onclick="saveTableEdit(${t.id})">Save</button></td>
+            </tr>`;
+        });
+    }
+
+    function showQR(name, token) {
+        let baseUrl = window.location.origin;
+        let qrUrl = `${baseUrl}/menu/digital-menu/?table_token=${token}`;
+        let apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+        
+        document.getElementById("qrModalTitle").innerText = name + " QR Reference";
+        document.getElementById("qrImage").src = apiUrl;
+        let vBtn = document.getElementById("qrViewBtn");
+        vBtn.onclick = () => window.open(apiUrl, '_blank');
+        
+        let m = bootstrap.Modal.getInstance(document.getElementById("manageTablesModal"));
+        if(m) m.hide();
+        new bootstrap.Modal(document.getElementById("qrModal")).show();
+    }
+
+    function createTable() {
+        let name = document.getElementById("newTableName").value;
+        let sec = document.getElementById("newTableSection").value;
+        if(!name) return showToast("Enter table name");
+        fetch("/manage-table/", {
+            method: "POST", headers:{"X-CSRFToken":getCookie("csrftoken"), "Content-Type":"application/json"},
+            body: JSON.stringify({action:"create", name: name, section: sec})
+        }).then(r=>r.json()).then(d=>{ if(d.success) refreshLayout(); else showToast(d.error); });
+    }
+
+    function saveTableEdit(id) {
+        let name = document.getElementById("editName_"+id).value;
+        let sec = document.getElementById("editSection_"+id).value;
+        fetch("/manage-table/", {
+            method: "POST", headers:{"X-CSRFToken":getCookie("csrftoken"), "Content-Type":"application/json"},
+            body: JSON.stringify({action:"edit", table_id: id, name: name, section: sec})
+        }).then(r=>r.json()).then(d=>{
+            if(d.success) { showToast("Table saved!"); refreshLayout(); }
+            else showToast(d.error);
+        });
     }
 
     /* TABLE CLICK LOGIC */
