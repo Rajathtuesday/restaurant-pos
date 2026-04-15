@@ -111,7 +111,7 @@
                             <div class="fw-bold">{{ item.name }}</div>
                             <div class="text-accent-gold">₹{{ item.price }}</div>
                         </div>
-                        <button class="add-btn" onclick="addToCart({{ item.id }}, '{{ item.name|escapejs }}', {{ item.price }})">Add +</button>
+                        <button class="add-btn" onclick="addToCart('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}')">Add +</button>
                     </div>
                 </div>
                 {% endif %}

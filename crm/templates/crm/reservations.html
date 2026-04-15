@@ -65,7 +65,7 @@
                         <td>{{ res.number_of_guests }} pax</td>
                         <td><span class="status-badge status-{{ res.status }}">{{ res.status }}</span></td>
                         <td>
-                            <button class="btn-icon" onclick="seatGuest({{ res.id }})"><i class="bi bi-box-arrow-in-right"></i></button>
+                            <button class="btn-icon" onclick="seatGuest('{{ res.id }}')"><i class="bi bi-box-arrow-in-right"></i></button>
                         </td>
                     </tr>
                     {% empty %}

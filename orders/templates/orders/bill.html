@@ -84,7 +84,7 @@
     <div style="position: relative; width: 100%; max-width: 440px;">
         {% if remaining > 0 %}
             {% if request.user.role == 'owner' or request.user.role == 'manager' %}
-            <a href="#" onclick="logBypassAndRedirect({{ order.id }}); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard (Bypass)</a>
+            <a href="#" onclick="logBypassAndRedirect('{{ order.id }}'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard (Bypass)</a>
             {% else %}
             <a href="#" onclick="alert('Please complete the payment to exit billing screen.'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
             {% endif %}
@@ -176,8 +176,8 @@
                     <input type="number" id="payAmount" class="input-pay" placeholder="Enter amount..." value="{{ remaining }}">
                     
                     <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem">
-                        <button class="btn-set" onclick="setVal({{ remaining }})">Pay All</button>
-                        <button class="btn-set" onclick="splitVal({{ remaining }})">Split</button>
+                        <button class="btn-set" onclick="setVal('{{ remaining }}')">Pay All</button>
+                        <button class="btn-set" onclick="splitVal('{{ remaining }}')">Split</button>
                     </div>
 
                     <div class="pay-grid">

@@ -113,7 +113,7 @@
         {% if tables %}
         <div class="table-grid">
             {% for table in tables %}
-            <div class="table-chip" style="cursor:pointer;" onclick="renameTable({{ table.id }}, '{{ table.name|escapejs }}')" title="Click to rename">{{ table.name }}</div>
+            <div class="table-chip" style="cursor:pointer;" onclick="renameTable('{{ table.id }}', '{{ table.name|escapejs }}')" title="Click to rename">{{ table.name }}</div>
             {% endfor %}
         </div>
         {% else %}

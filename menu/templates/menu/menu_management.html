@@ -239,7 +239,7 @@
                 <div class="category-card">
                     <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="category-title mb-0" style="text-align: left;">{{category.name}}</h5>
-                        <button class="btn-action-icon btn-delete" title="Delete Category" onclick="deleteCategory({{category.id}}, '{{category.name|escapejs}}')">
+                        <button class="btn-action-icon btn-delete" title="Delete Category" onclick="deleteCategory('{{category.id}}', '{{category.name|escapejs}}')">
                             <i class="bi bi-trash3"></i>
                         </button>
                     </div>
@@ -256,15 +256,15 @@
                                         {% endif %}
                                     </span>
                                     <div class="d-flex gap-1 mt-1">
-                                        <span class="luxury-badge badge-platform {% if not item.available_takeaway %}off{% endif %}" onclick="togglePlatform({{item.id}}, 'takeaway')">Takeaway</span>
-                                        <span class="luxury-badge badge-platform {% if not item.available_zomato %}off{% endif %}" onclick="togglePlatform({{item.id}}, 'zomato')">Zomato</span>
-                                        <span class="luxury-badge badge-platform {% if not item.available_swiggy %}off{% endif %}" onclick="togglePlatform({{item.id}}, 'swiggy')">Swiggy</span>
+                                        <span class="luxury-badge badge-platform {% if not item.available_takeaway %}off{% endif %}" onclick="togglePlatform('{{item.id}}', 'takeaway')">Takeaway</span>
+                                        <span class="luxury-badge badge-platform {% if not item.available_zomato %}off{% endif %}" onclick="togglePlatform('{{item.id}}', 'zomato')">Zomato</span>
+                                        <span class="luxury-badge badge-platform {% if not item.available_swiggy %}off{% endif %}" onclick="togglePlatform('{{item.id}}', 'swiggy')">Swiggy</span>
                                     </div>
 
                                     <div class="d-flex align-items-center gap-2 mt-1">
                                         <span class="item-price">₹{{item.price}}</span>
                                         
-                                        <select class="station-select" onchange="updateStation({{item.id}}, this.value)">
+                                        <select class="station-select" onchange="updateStation('{{item.id}}', this.value)">
                                             <option value="">Default Station</option>
                                             {% for s in stations %}
                                             <option value="{{s.id}}" {% if item.station and item.station.id == s.id %}selected{% endif %}>
@@ -276,10 +276,10 @@
                                 </div>
 
                                 <div class="btn-group-luxury">
-                                    <button class="btn-action-icon" title="Edit Price" onclick="editPrice({{item.id}},{{item.price}})"><i class="bi bi-pencil-square"></i></button>
-                                    <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem({{item.id}})"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
-                                    <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal({{item.id}})"><i class="bi bi-journal-text"></i></button>
-                                    <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem({{item.id}})"><i class="bi bi-trash"></i></button>
+                                    <button class="btn-action-icon" title="Edit Price" onclick="editPrice('{{item.id}}','{{item.price}}')"><i class="bi bi-pencil-square"></i></button>
+                                    <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem('{{item.id}}')"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
+                                    <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal('{{item.id}}')"><i class="bi bi-journal-text"></i></button>
+                                    <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem('{{item.id}}')"><i class="bi bi-trash"></i></button>
                                 </div>
                             </div>
 

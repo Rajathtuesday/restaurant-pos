@@ -661,7 +661,7 @@
                     {% for item in category.items.all %}
                     <div class="col-6 col-lg-6 menu-item-searchable">
                         <div class="menu-card"
-                            onclick="openItemModal({{item.id}} , '{{item.name|escapejs}}', {{item.price}})">
+                            onclick="openItemModal('{{item.id}}' , '{{item.name|escapejs}}', '{{item.price}}')">
                             <div>
                                 <div class="item-name">{{item.name}}</div>
                             </div>

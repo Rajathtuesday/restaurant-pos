@@ -198,7 +198,7 @@
                     <div class="call-time"><i class="bi bi-clock me-1"></i> {{ call.created_at|time:"H:i" }}</div>
                 </div>
                 
-                <button class="btn-resolve" onclick="resolveCall({{ call.id }})">
+                <button class="btn-resolve" onclick="resolveCall('{{ call.id }}')">
                     <i class="bi bi-check2-circle fs-5 d-block mb-1"></i> Mark Resolved
                 </button>
             </div>
@@ -215,7 +215,7 @@
                     <div class="call-time"><i class="bi bi-clock me-1"></i> {{ msg.created_at|time:"H:i" }}</div>
                 </div>
                 
-                <button class="btn-resolve" style="color: #f59e0b; border-color: #f59e0b;" onmouseover="this.style.backgroundColor='#f59e0b'; this.style.color='#fff';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#f59e0b';" onclick="resolveKitchenMsg({{ msg.id }})">
+                <button class="btn-resolve" style="color: #f59e0b; border-color: #f59e0b;" onmouseover="this.style.backgroundColor='#f59e0b'; this.style.color='#fff';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#f59e0b';" onclick="resolveKitchenMsg('{{ msg.id }}')">
                     <i class="bi bi-check2-circle fs-5 d-block mb-1"></i> Acknowledge
                 </button>
             </div>
