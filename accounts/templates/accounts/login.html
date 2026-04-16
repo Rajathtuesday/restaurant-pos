@@ -183,10 +183,13 @@
             <div class="brand-subtitle">Staff Authentication</div>
         </div>
 
-        {% if error %}
-            <div class="error-message">
-                <i class="bi bi-exclamation-triangle me-1"></i> {{ error }}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="error-message {% if message.tags == 'success' %}success-msg{% endif %}">
+                <i class="bi bi-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-1"></i>
+                {{ message }}
             </div>
+            {% endfor %}
         {% endif %}
 
         <form method="POST">

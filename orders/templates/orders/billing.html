@@ -686,7 +686,7 @@
                     onchange="syncTableSelect(this.value)">
                     <option value="">Walk-in</option>
                     {% for table in tables %}
-                    <option value="{{table.id}}" {% if selected_table==table.id|stringformat:"s" %}selected{% endif %}>
+                    <option value="{{table.id}}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>
                         {{table.name}}</option>
                     {% endfor %}
                 </select>
@@ -740,7 +740,7 @@
                     onchange="syncTableSelect(this.value)">
                     <option value="">Walk-in</option>
                     {% for table in tables %}
-                    <option value="{{table.id}}" {% if selected_table==table.id|stringformat:"s" %}selected{% endif %}>
+                    <option value="{{table.id}}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>
                         {{table.name}}</option>
                     {% endfor %}
                 </select>

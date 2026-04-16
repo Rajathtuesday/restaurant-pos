@@ -256,9 +256,11 @@
             } catch(e) { console.error('Failed to log bypass:', e); }
             window.location.href = "/tables/";
         }
+    </script>
 
+    {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
+    <script>
         // Prevent users from going back using the browser back button
-        {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
         history.pushState(null, null, location.href);
         window.onpopstate = function () {
             history.go(1);
@@ -267,8 +269,8 @@
             toast.innerText = "Please complete payment first.";
             toast.className = "toast-msg error";
         };
-        {% endif %}
     </script>
+    {% endif %}
 
     <!-- CRM GUEST LINK SECTION (no-print) -->
     <div class="no-print" style="margin-top:1.5rem;">
@@ -292,7 +294,7 @@
     </div>
 
     <script>
-        const ORDER_ID = {{ order.id }};
+        const ORDER_ID = '{{ order.id }}';
         const CSRF = document.cookie.split('; ').find(r=>r.startsWith('csrftoken=')).split('=')[1];
 
         async function lookupGuest() {
