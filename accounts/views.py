@@ -37,6 +37,8 @@ def login_view(request):
 
             else:
                 return redirect("/tables/")
+        else:
+            messages.error(request, "Invalid username or password.")
 
     return render(request, "accounts/login.html")
 

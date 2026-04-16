@@ -208,29 +208,16 @@ class Order(models.Model):
     # -------------------------------------------------
     
     def recalculate_totals(self):
+        from django.db.models import Sum, F, DecimalField
+        from django.db.models.functions import Coalesce
+        
+        agg = self.items.exclude(status="voided").filter(is_complimentary=False).aggregate(
+            agg_subtotal=Coalesce(Sum('total_price'), Decimal("0.0")),
+            agg_gst=Coalesce(Sum((F('total_price') * F('gst_percentage')) / 100.0, output_field=DecimalField()), Decimal("0.0"))
+        )
 
-        subtotal = Decimal("0.00")
-        gst_total = Decimal("0.00")
-
-        items = self.items.exclude(status="voided")
-
-        for item in items:
-
-            # skip complimentary
-            if getattr(item, "is_complimentary", False):
-                continue
-
-            # 🔥 USE STORED VALUE
-            item_total = Decimal(item.total_price or 0)
-
-            gst_pct = Decimal(item.gst_percentage or 0)
-            gst = (item_total * gst_pct) / Decimal("100")
-
-            subtotal += item_total
-            gst_total += gst
-
-        subtotal = self._quantize(subtotal)
-        gst_total = self._quantize(gst_total)
+        subtotal = self._quantize(agg['agg_subtotal'])
+        gst_total = self._quantize(agg['agg_gst'])
 
         discount_total = Decimal("0.00")
 
@@ -277,7 +264,13 @@ class KOTBatch(models.Model):
 
     kot_number = models.IntegerField()
 
-    station = models.CharField(max_length=50, null=True, blank=True)
+    station = models.ForeignKey(
+        "setup.KitchenStation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="kots"
+    )
 
     status = models.CharField(
         max_length=20,
@@ -493,7 +486,7 @@ class Refund(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="approved"
+        default="pending"
     )
 
     refunded_by = models.ForeignKey(
@@ -674,9 +667,14 @@ class OrderLock(models.Model):
 
 class DailyKOTCounter(models.Model):
 
-    date = models.DateField(unique=True)
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, null=True)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE, null=True)
+    date = models.DateField()
 
     value = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("tenant", "outlet", "date")
 
     def __str__(self):
         return f"{self.date} -> {self.value}"

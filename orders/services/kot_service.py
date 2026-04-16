@@ -1,8 +1,12 @@
 # orders/services/kot_service.py
+import logging
+import threading
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
+
+logger = logging.getLogger("pos.orders")
 
 from orders.models import KOTBatch, OrderItem, DailyKOTCounter
 from orders.services.inventory_service import deduct_inventory
@@ -61,7 +65,7 @@ def create_kot(user, order):
     counter, _ = (
         DailyKOTCounter.objects
         .select_for_update()
-        .get_or_create(date=today)
+        .get_or_create(date=today, tenant=user.tenant, outlet=user.outlet)
     )
 
     created_kots = []
@@ -85,14 +89,12 @@ def create_kot(user, order):
         if not station :
             station = get_default_station(user)
 
-        station_name = station.name if station else "General"
-
         kot = KOTBatch.objects.create(
             tenant=user.tenant,
             outlet=user.outlet,
             order=order,
             kot_number=kot_number,
-            station=station_name,
+            station=station,
             status="confirmed"
         )
 
@@ -112,12 +114,14 @@ def create_kot(user, order):
         # AUTOMATIC KOT PRINTING
         # -----------------------------------------
         if station and station.printer_ip:
-            try:
-                from orders.services.printing_service import PrintingService
-                printer = PrintingService(printer_type="network", host=station.printer_ip, port=station.printer_port)
-                printer.print_kot(order, kot)
-            except Exception as e:
-                logger.error(f"Auto-printing KOT #{kot.kot_number} failed: {e}")
+            def _print_kot():
+                try:
+                    from orders.services.printing_service import PrintingService
+                    printer = PrintingService(printer_type="network", host=station.printer_ip, port=station.printer_port)
+                    printer.print_kot(order, kot)
+                except Exception as e:
+                    logger.error(f"Auto-printing KOT #{kot.kot_number} failed: {e}")
+            threading.Thread(target=_print_kot, daemon=True).start()
 
     # -----------------------------------------
     # UPDATE TABLE STATE

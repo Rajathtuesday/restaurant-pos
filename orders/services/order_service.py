@@ -144,10 +144,15 @@ def add_items_to_order(user, order, cart_items):
 
         for mod_id in modifier_ids:
 
-            modifier = Modifier.objects.filter(id=mod_id).first()
+            # ⚠️ SECURITY: filter via ModifierGroup's tenant/outlet
+            modifier = Modifier.objects.filter(
+                id=mod_id,
+                group__tenant=user.tenant,
+                group__outlet=user.outlet
+            ).first()
 
             if not modifier:
-                raise Exception("Modifier not found")
+                raise Exception("Modifier not found or access denied")
 
             OrderItemModifier.objects.create(
                 order_item=order_item,
