@@ -57,6 +57,9 @@
     <h1 class="brand-title"><i class="bi bi-person-lines-fill"></i> Reseller Dashboard</h1>
     <div class="d-flex align-items-center gap-2">
         {% if request.user.is_superuser %}
+        <a href="/agency/dashboard/" class="btn-luxury me-2" style="background:var(--accent-gold); border-color:var(--accent-gold); color:white;">
+            <i class="bi bi-graph-up-arrow me-1"></i> Channel Analytics
+        </a>
         <span class="badge bg-danger me-2">Admin View</span>
         {% endif %}
         <a href="/logout/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
@@ -92,6 +95,7 @@
                         <th style="padding-left:1.5rem;">Restaurant (Tenant)</th>
                         <th>Created At</th>
                         <th>Status</th>
+                        <th>Analytics</th>
                         {% if request.user.is_superuser %}
                         <th>Sales Agent</th>
                         <th>Actions</th>
@@ -109,6 +113,11 @@
                             {% else %}
                             <span class="status-badge inactive">Inactive</span>
                             {% endif %}
+                        </td>
+                        <td>
+                            <a href="/reports/dashboard/?tenant_id={{ client.id }}" class="btn-action text-decoration-none">
+                                <i class="bi bi-bar-chart-line me-1"></i> View Reports
+                            </a>
                         </td>
                         {% if request.user.is_superuser %}
                         <td style="color:var(--accent-gold); font-weight:600;">

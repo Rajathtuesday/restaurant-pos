@@ -1,15 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Reports Dashboard | Fine Dining</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
     <!-- Premium Fonts: DM Serif Display (Serif) & Inter (Sans-serif) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap"
+        rel="stylesheet">
+
     <!-- Bootstrap Modern -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -18,8 +21,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        ::placeholder {
+            color: var(--text-muted) !important;
+            opacity: 0.7 !important;
+        }
+
+        ::-webkit-input-placeholder {
+            color: var(--text-muted) !important;
+            opacity: 0.7 !important;
+        }
+
         :root {
             /* Fine Dining Monochrome Palette */
             --bg-color: #fafafa;
@@ -30,6 +41,7 @@
             --accent-gold: #c5a059;
             --accent-hover: #b59250;
             --transition-smooth: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --invert-val: 0;
         }
 
         body.dark {
@@ -40,6 +52,7 @@
             --border-color: #262626;
             --accent-gold: #d4af37;
             --accent-hover: #e5c45e;
+            --invert-val: 1;
         }
 
         body {
@@ -53,7 +66,13 @@
         }
 
         /* Typography */
-        h1, h2, h3, h4, h5, h6, .serif-text {
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        .serif-text {
             font-family: 'DM Serif Display', serif;
             font-weight: 600;
         }
@@ -76,6 +95,7 @@
             margin: 0;
             color: var(--text-main);
         }
+
         .pos-header h4 i {
             color: var(--accent-gold);
             font-size: 1.5rem;
@@ -94,6 +114,7 @@
             padding: 0.75rem 1.5rem;
             transition: var(--transition-smooth);
         }
+
         .btn-luxury:hover {
             border-color: var(--text-main);
             color: var(--bg-color);
@@ -109,6 +130,7 @@
             cursor: pointer;
             transition: var(--transition-smooth);
         }
+
         .btn-icon:hover {
             color: var(--accent-gold);
         }
@@ -126,6 +148,7 @@
             cursor: pointer;
             max-width: 250px;
         }
+
         .form-select-luxury:focus {
             box-shadow: none;
             border-color: var(--accent-gold);
@@ -140,6 +163,7 @@
             height: 100%;
             transition: var(--transition-smooth);
         }
+
         .card-elegant:hover {
             border-color: var(--accent-gold);
         }
@@ -148,6 +172,7 @@
         .metric-group {
             text-align: center;
         }
+
         .metric-label {
             font-size: 0.7rem;
             text-transform: uppercase;
@@ -156,6 +181,7 @@
             margin-bottom: 1rem;
             display: block;
         }
+
         .metric-value {
             font-family: 'DM Serif Display', serif;
             font-size: 2.75rem;
@@ -174,6 +200,7 @@
             letter-spacing: 3px;
             text-align: center;
         }
+
         .section-title::after {
             content: '';
             display: block;
@@ -188,6 +215,7 @@
             width: 100%;
             color: var(--text-main);
         }
+
         .table-minimal th {
             border-bottom: 1px solid var(--border-color);
             padding: 1rem 0;
@@ -197,14 +225,17 @@
             color: var(--text-muted);
             font-weight: 500;
         }
+
         .table-minimal td {
             border-bottom: 1px solid var(--border-color);
             padding: 1.2rem 0;
             font-size: 0.95rem;
         }
+
         .table-minimal tbody tr:last-child td {
             border-bottom: none;
         }
+
         .text-value {
             font-family: 'DM Serif Display', serif;
             font-style: italic;
@@ -220,444 +251,495 @@
             margin-bottom: 3rem;
             text-align: center;
         }
+
         .context-info strong {
             color: var(--text-main);
             font-weight: 600;
         }
-
     </style>
 </head>
 
 <body>
 
-<div class="container-fluid mx-auto" style="max-width: 1400px; padding: 0 2rem;">
+    <div class="container-fluid mx-auto" style="max-width: 1400px; padding: 0 2rem;">
 
-    <!-- HEADER -->
-    <header class="pos-header">
-        <div>
-            <h4 class="mb-1"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h4>
-            <p class="mb-0 text-muted" style="font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">
-                <i class="bi bi-geo-alt"></i> {{ request.user.outlet.name }}
-            </p>
-        </div>
-        
-        <div class="d-flex align-items-center gap-4">
-            
-            <div class="d-flex gap-2">
-                <a href="/reports/" class="btn btn-outline-light {% if request.path == '/reports/' %}active{% endif %}" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Sales</a>
-                <a href="/reports/kitchen/" class="btn btn-outline-light {% if 'kitchen' in request.path %}active{% endif %}" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Kitchen KPIs</a>
-                <a href="/dashboard/" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">POS Dashboard</a>
+        <!-- HEADER -->
+        <header class="pos-header">
+            <div>
+                <h4 class="mb-1"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h4>
+                <p class="mb-0 text-muted" style="font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">
+                    <i class="bi bi-geo-alt"></i> {{ request.user.outlet.name }}
+                </p>
             </div>
 
-            <div class="d-flex gap-2 mx-3" style="border-left: 1px solid var(--border-color); padding-left:1.5rem;">
-                <button onclick="window.print()" class="btn btn-outline-light" style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i class="bi bi-printer"></i></button>
-            </div>
-            {% if request.user.role == "owner" %}
-            <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
-                <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
+            <div class="d-flex align-items-center gap-4">
+
+                <div class="d-flex gap-2">
+                    <a href="/reports/"
+                        class="btn btn-outline-light {% if request.path == '/reports/' %}active{% endif %}"
+                        style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Sales</a>
+                    <a href="/reports/kitchen/"
+                        class="btn btn-outline-light {% if 'kitchen' in request.path %}active{% endif %}"
+                        style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">Kitchen
+                        KPIs</a>
+                    <a href="/dashboard/" class="btn btn-outline-light"
+                        style="border-radius:0; border-color:var(--border-color); color:var(--text-main); font-size:0.8rem; text-transform:uppercase;">POS
+                        Dashboard</a>
+                </div>
+
+                <div class="d-flex gap-2 mx-3" style="border-left: 1px solid var(--border-color); padding-left:1.5rem;">
+                    <button onclick="window.print()" class="btn btn-outline-light"
+                        style="border-radius:0; border-color:var(--border-color); color:var(--text-main)"><i
+                            class="bi bi-printer"></i></button>
+                </div>
+                {% if request.user.role == "owner" %}
+                <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
+                    <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
                     if(this.value === 'custom') { 
                         document.getElementById('customDates').style.display='flex'; 
                     } else { 
                         document.getElementById('filterForm').submit(); 
                     }">
-                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
-                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-                    <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
-                    <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
-                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
-                </select>
-                
-                <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem;">
-                    <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
-                    <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
-                    <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
-                </div>
-                
-                <select name="outlet" class="form-select form-select-luxury ms-3" onchange="document.getElementById('filterForm').submit()">
-                    <option value="">All Branches</option>
-                    {% for o in outlets %}
-                    <option value="{{o.id}}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>
-                        {{o.name}}
-                    </option>
-                    {% endfor %}
-                </select>
-            </form>
-            {% else %}
-            <!-- For Manager role, they can only filter date -->
-            <form id="filterForm" method="GET" class="m-0 d-flex gap-2">
-                <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
+                        <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                        <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                    </select>
+
+                    <div id="customDates" {% if date_filter == 'custom' %}style="display: flex; gap:0.5rem;"{% else %}style="display: none; gap:0.5rem;"{% endif %}>
+                        <input type="date" name="start_date" class="form-select-luxury"
+                            value="{{ start_date|date:'Y-m-d' }}">
+                        <input type="date" name="end_date" class="form-select-luxury"
+                            value="{{ end_date|date:'Y-m-d' }}">
+                        <button type="submit" class="btn-icon" aria-label="Apply custom dates"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+
+                    <select name="outlet" class="form-select form-select-luxury ms-3"
+                        onchange="document.getElementById('filterForm').submit()">
+                        <option value="">All Branches</option>
+                        {% for o in outlets %}
+                        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>
+                            {{ o.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
+                {% else %}
+                <form id="filterForm" method="GET" class="m-0 d-flex gap-2">
+                    <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
                     if(this.value === 'custom') { 
                         document.getElementById('customDates').style.display='flex'; 
                     } else { 
                         this.form.submit(); 
                     }">
-                    <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
-                    <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-                    <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
-                    <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
-                    <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
-                </select>
-                
-                <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem;">
-                    <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
-                    <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
-                    <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
-                </div>
-            </form>
-            {% endif %}
-            
-            <button class="btn-luxury text-decoration-none" data-bs-toggle="offcanvas" data-bs-target="#opsMenu">
-                <i class="bi bi-grid me-1"></i> Operations
-            </button>
-            <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
-            <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
-            
-            <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
-                <i class="bi bi-moon" id="themeIcon"></i>
-            </button>
-        </div>
-    </header>
+                        <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                        <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
+                        <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
+                        <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
+                    </select>
 
-    <!-- CONTEXT -->
-    <div class="context-info">
-        REPORTING FOR: 
-        {% if current_outlet %}
-        <strong>{{current_outlet.name}}</strong>
+                    <div id="customDates" {% if date_filter == 'custom' %}style="display: flex; gap:0.5rem;"{% else %}style="display: none; gap:0.5rem;"{% endif %}>
+                        <input type="date" name="start_date" class="form-select-luxury"
+                            value="{{ start_date|date:'Y-m-d' }}">
+                        <input type="date" name="end_date" class="form-select-luxury"
+                            value="{{ end_date|date:'Y-m-d' }}">
+                        <button type="submit" class="btn-icon" aria-label="Apply custom dates"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </form>
+                {% endif %}
+
+                {% if not is_limited_view %}
+                <button class="btn-luxury text-decoration-none" data-bs-toggle="offcanvas" data-bs-target="#opsMenu">
+                    <i class="bi bi-grid me-1"></i> Operations
+                </button>
+                {% endif %}
+                <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
+                <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+
+                <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
+                    <i class="bi bi-moon" id="themeIcon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTEXT -->
+        <div class="context-info">
+            REPORTING FOR:
+            {% if current_outlet %}
+            <strong>{{current_outlet.name}}</strong>
+            {% else %}
+            <strong>ALL BRANCHES</strong>
+            {% endif %}
+            <span class="mx-3">|</span>
+            PERIOD: <strong style="text-transform:uppercase;">
+                {% if date_filter == 'today' %}TODAY
+                {% elif date_filter == 'yesterday' %}YESTERDAY
+                {% elif date_filter == 'weekly' %}LAST 7 DAYS
+                {% elif date_filter == 'monthly' %}LAST 30 DAYS
+                {% else %}{{ start_date|date:'M d, Y' }} - {{ end_date|date:'M d, Y' }}
+                {% endif %}
+            </strong>
+            {% if is_limited_view %}
+            <span class="ms-3 badge bg-info" style="font-size: 0.6rem; letter-spacing: 1px;">CHANNEL OVERSIGHT MODE</span>
+            {% endif %}
+        </div>
+
+        <!-- HIGH LEVEL METRICS -->
+        <div class="row g-4 mb-5">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card-elegant metric-group">
+                    <span class="metric-label">Net Sales Revenue</span>
+                    <p class="metric-value">₹{{sales.total_sales|floatformat:0}}</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card-elegant metric-group">
+                    <span class="metric-label">Total Orders</span>
+                    <p class="metric-value">{{sales.orders}}</p>
+                </div>
+            </div>
+            {% if not is_limited_view %}
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card-elegant metric-group">
+                    <span class="metric-label">Average Order Value</span>
+                    <p class="metric-value">₹{{sales.avg_order_value|floatformat:0}}</p>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card-elegant metric-group">
+                    <span class="metric-label">Payment Methods</span>
+                    <p class="metric-value">{{sales.payments|length}}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- CHARTS SECTION -->
+        <div class="row g-4 mb-5">
+            <!-- HOURLY SALES -->
+            <div class="col-12 {% if is_limited_view %}col-xl-12{% else %}col-xl-8{% endif %}">
+                <div class="card-elegant">
+                    <h5 class="section-title">Revenue Trajectory</h5>
+                    <div style="height: 350px; width: 100%;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            {% if not is_limited_view %}
+            <!-- PAYMENT BREAKDOWN -->
+            <div class="col-12 col-xl-4">
+                <div class="card-elegant">
+                    <h5 class="section-title">Payment Methods</h5>
+                    <div
+                        style="height: 350px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                        <canvas id="paymentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if not is_limited_view %}
+        <!-- DATA TABLES -->
+        <div class="row g-4 mb-5">
+            <!-- TOP ITEMS -->
+            <div class="col-12 col-lg-4">
+                <div class="card-elegant">
+                    <h5 class="section-title">Signature Dishes</h5>
+                    <table class="table-minimal">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th class="text-end">Units</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>{{item.menu_item__name}}</td>
+                                <td class="text-end text-value">{{item.total}}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center py-4" style="color:var(--text-muted)">No data
+                                    available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CATEGORY SALES -->
+            <div class="col-12 col-lg-4">
+                <div class="card-elegant">
+                    <h5 class="section-title">Category Revenue</h5>
+                    <table class="table-minimal">
+                        <thead>
+                            <tr>
+                                <th>Classification</th>
+                                <th class="text-end">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in categories %}
+                            <tr>
+                                <td>{{c.menu_item__category__name}}</td>
+                                <td class="text-end text-value">₹{{c.revenue|floatformat:0}}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center py-4" style="color:var(--text-muted)">No data
+                                    available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABLE TURNOVER -->
+            <div class="col-12 col-lg-4">
+                <div class="card-elegant">
+                    <h5 class="section-title">Table Turnover</h5>
+                    <table class="table-minimal">
+                        <thead>
+                            <tr>
+                                <th>Table</th>
+                                <th class="text-end">Orders</th>
+                                <th class="text-end">Avg Stay</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for st in table_stats %}
+                            <tr>
+                                <td>{{st.table__name}}</td>
+                                <td class="text-end text-value">{{st.turnovers}}</td>
+                                <td class="text-end text-value">{{st.avg_turn_mins|floatformat:0}}m</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4" style="color:var(--text-muted)">No data
+                                    available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
         {% else %}
-        <strong>ALL BRANCHES</strong>
+        <!-- AGENT VIEW: PRIVACY NOTICE -->
+        <div class="card-elegant text-center py-5 mb-5">
+            <i class="bi bi-shield-lock-fill mb-3" style="font-size: 2.5rem; color: var(--accent-gold);"></i>
+            <h5 class="serif-text">Channel Privacy Protection</h5>
+            <p class="text-muted small mx-auto" style="max-width: 500px;">Specific operational data (itemized sales, table turnover, and staff ranking) is suppressed for non-owner roles to protect restaurant privacy.</p>
+        </div>
         {% endif %}
-        <span class="mx-3">|</span>
-        PERIOD: <strong style="text-transform:uppercase;">
-            {% if date_filter == 'today' %}TODAY
-            {% elif date_filter == 'yesterday' %}YESTERDAY
-            {% elif date_filter == 'weekly' %}LAST 7 DAYS
-            {% elif date_filter == 'monthly' %}LAST 30 DAYS
-            {% else %}{{ start_date|date:'M d, Y' }} - {{ end_date|date:'M d, Y' }}
-            {% endif %}
-        </strong>
+
+        <!-- OPERATIONS OFFCANVAS -->
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="opsMenu"
+            style="background:var(--panel-bg); color:var(--text-main); border-left: 1px solid var(--border-color);">
+            <div class="offcanvas-header" style="border-bottom: 1px solid var(--border-color);">
+                <h5 class="serif-text m-0" style="font-size: 1.4rem;"><i class="bi bi-grid me-2"
+                        style="color:var(--accent-gold);"></i> Operations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+                    style="filter: invert(var(--invert-val, 0));"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column gap-3 p-4">
+                <a href="/crm/reservations/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                    Reservations <i class="bi bi-calendar-check fs-5"></i>
+                </a>
+                <a href="/shifts/sessions/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                    Cash Reconciliation <i class="bi bi-cash-stack fs-5"></i>
+                </a>
+                <a href="/inventory/board/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                    Inventory & Stock <i class="bi bi-box-seam fs-5"></i>
+                </a>
+                <a href="/menu/digital-menu/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                    Digital QR Menu <i class="bi bi-qr-code fs-5"></i>
+                </a>
+                <hr class="my-3" style="border-color:var(--border-color);">
+                <a href="/setup/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
+                    Tenant Settings <i class="bi bi-gear fs-5"></i>
+                </a>
+                {% if request.user.is_superuser or request.user.role == "agent" %}
+                <a href="/sales/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2" style="border-color: var(--accent-gold);">
+                    Partner Portal <i class="bi bi-briefcase fs-5"></i>
+                </a>
+                {% endif %}
+                <a href="/admin/"
+                    class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+                    System Admin <i class="bi bi-shield-lock border-0 fs-5"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="text-center pb-5">
+            <span class="text-muted" style="letter-spacing:2px; font-size:0.7rem; text-transform:uppercase;">End of
+                Report</span>
+        </div>
+
     </div>
 
-    <!-- HIGH LEVEL METRICS -->
-    <div class="row g-4 mb-5">
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card-elegant metric-group">
-                <span class="metric-label">Net Sales Revenue</span>
-                <p class="metric-value">₹{{sales.total_sales|floatformat:0}}</p>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card-elegant metric-group">
-                <span class="metric-label">Total Orders</span>
-                <p class="metric-value">{{sales.orders}}</p>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card-elegant metric-group">
-                <span class="metric-label">Average Order Value</span>
-                <p class="metric-value">₹{{sales.avg_order_value|floatformat:0}}</p>
-            </div>
-        </div>
-        <div class="col-12 col-md-6 col-xl-3">
-            <div class="card-elegant metric-group">
-                <span class="metric-label">Payment Methods</span>
-                <p class="metric-value">{{sales.payments|length}}</p>
-            </div>
-        </div>
-    </div>
+        {# Data for Charts (Passed as JSON to avoid script syntax errors) #}
+        {{ sales.payments|json_script:"payments-data" }}
+        {{ hourly_sales|json_script:"hourly-data" }}
 
-    <!-- CHARTS SECTION -->
-    <div class="row g-4 mb-5">
-        <!-- HOURLY SALES -->
-        <div class="col-12 col-xl-8">
-            <div class="card-elegant">
-                <h5 class="section-title">Sales Trajectory</h5>
-                <div style="height: 350px; width: 100%;">
-                    <canvas id="salesChart"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <!-- PAYMENT BREAKDOWN -->
-        <div class="col-12 col-xl-4">
-            <div class="card-elegant">
-                <h5 class="section-title">Payment Methods</h5>
-                <div style="height: 350px; width: 100%; display: flex; justify-content: center; align-items: center;">
-                    <canvas id="paymentChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+        <script>
+        /* THEME MANAGEMENT */
+        let isDark = localStorage.getItem("dark") === "true";
 
-    <!-- DATA TABLES -->
-    <div class="row g-4 mb-5">
-        <!-- TOP ITEMS -->
-        <div class="col-12 col-lg-4">
-            <div class="card-elegant">
-                <h5 class="section-title">Signature Dishes</h5>
-                <table class="table-minimal">
-                    <thead>
-                        <tr>
-                            <th>Item Name</th>
-                            <th class="text-end">Units</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in items %}
-                        <tr>
-                            <td>{{item.menu_item__name}}</td>
-                            <td class="text-end text-value">{{item.total}}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="2" class="text-center py-4" style="color:var(--text-muted)">No data available</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- CATEGORY SALES -->
-        <div class="col-12 col-lg-4">
-            <div class="card-elegant">
-                <h5 class="section-title">Category Revenue</h5>
-                <table class="table-minimal">
-                    <thead>
-                        <tr>
-                            <th>Classification</th>
-                            <th class="text-end">Revenue</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for c in categories %}
-                        <tr>
-                            <td>{{c.menu_item__category__name}}</td>
-                            <td class="text-end text-value">₹{{c.revenue|floatformat:0}}</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="2" class="text-center py-4" style="color:var(--text-muted)">No data available</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TABLE TURNOVER -->
-        <div class="col-12 col-lg-4">
-            <div class="card-elegant">
-                <h5 class="section-title">Table Turnover</h5>
-                <table class="table-minimal">
-                    <thead>
-                        <tr>
-                            <th>Table</th>
-                            <th class="text-end">Orders</th>
-                            <th class="text-end">Avg Stay</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for st in table_stats %}
-                        <tr>
-                            <td>{{st.table__name}}</td>
-                            <td class="text-end text-value">{{st.turnovers}}</td>
-                            <td class="text-end text-value">{{st.avg_turn_mins|floatformat:0}}m</td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="3" class="text-center py-4" style="color:var(--text-muted)">No data available</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <!-- OPERATIONS OFFCANVAS -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="opsMenu" style="background:var(--panel-bg); color:var(--text-main); border-left: 1px solid var(--border-color);">
-        <div class="offcanvas-header" style="border-bottom: 1px solid var(--border-color);">
-            <h5 class="serif-text m-0" style="font-size: 1.4rem;"><i class="bi bi-grid me-2" style="color:var(--accent-gold);"></i> Operations</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" style="filter: invert(var(--invert-val, 0));"></button>
-        </div>
-        <div class="offcanvas-body d-flex flex-column gap-3 p-4">
-            <a href="/crm/reservations/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
-                Reservations <i class="bi bi-calendar-check fs-5"></i>
-            </a>
-            <a href="/shifts/sessions/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
-                Cash Reconciliation <i class="bi bi-cash-stack fs-5"></i>
-            </a>
-            <a href="/inventory/board/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
-                Inventory & Stock <i class="bi bi-box-seam fs-5"></i>
-            </a>
-            <a href="/menu/digital-menu/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
-                Digital QR Menu <i class="bi bi-qr-code fs-5"></i>
-            </a>
-            <hr class="my-3" style="border-color:var(--border-color);">
-            <a href="/setup/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center mb-2">
-                Tenant Settings <i class="bi bi-gear fs-5"></i>
-            </a>
-            <a href="/admin/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
-                System Admin <i class="bi bi-shield-lock border-0 fs-5"></i>
-            </a>
-        </div>
-    </div>
-    
-    <div class="text-center pb-5">
-        <span class="text-muted" style="letter-spacing:2px; font-size:0.7rem; text-transform:uppercase;">End of Report</span>
-    </div>
-
-</div>
-
-<script>
-    /* THEME MANAGEMENT */
-    let isDark = localStorage.getItem("dark") === "true";
-
-    function updateIcons() {
-        let icon = document.getElementById("themeIcon");
-        if(isDark) {
-            document.body.classList.add("dark");
-            icon.classList.remove("bi-moon");
-            icon.classList.add("bi-sun");
-        } else {
-            document.body.classList.remove("dark");
-            icon.classList.remove("bi-sun");
-            icon.classList.add("bi-moon");
-        }
-    }
-
-    /* Initialize Theme */
-    updateIcons();
-
-    function toggleDark() {
-        isDark = !isDark;
-        localStorage.setItem("dark", isDark);
-        window.location.reload(); // Reload to redraw charts in correct colors
-    }
-
-    /* Chart.js Configuration for Minimalist Aesthetic */
-    let chartTextColor = isDark ? '#888888' : '#737373';
-    let chartGridColor = isDark ? '#262626' : '#eaeaea';
-    
-    Chart.defaults.color = chartTextColor;
-    Chart.defaults.font.family = "'Outfit', sans-serif";
-    Chart.defaults.font.size = 11;
-
-    /* PAYMENT CHART (Doughnut) */
-    if(document.getElementById("paymentChart")){
-        const paymentColors = isDark ? 
-            ["#ffffff", "#d4af37", "#555555", "#333333"] : 
-            ["#111111", "#c5a059", "#aaaaaa", "#e0e0e0"];
-            
-        new Chart(document.getElementById("paymentChart"), {
-            type: "doughnut",
-            data: {
-                labels: [
-                    {% for p in sales.payments %}
-                    "{{p.method}}",
-                    {% endfor %}
-                ],
-                datasets: [{
-                    data: [
-                        {% for p in sales.payments %}
-                        {{p.total}},
-                        {% endfor %}
-                    ],
-                    backgroundColor: paymentColors,
-                    borderWidth: 1,
-                    borderColor: isDark ? '#111111' : '#ffffff',
-                    hoverOffset: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { 
-                        position: 'bottom', 
-                        labels: { 
-                            padding: 20, 
-                            usePointStyle: true, 
-                            boxWidth: 8,
-                            font: { family: "'Outfit', sans-serif", size: 10, weight: '500' }
-                        } 
-                    }
-                },
-                cutout: '80%'
+        function updateIcons() {
+            let icon = document.getElementById("themeIcon");
+            if (isDark) {
+                document.body.classList.add("dark");
+                icon.classList.remove("bi-moon");
+                icon.classList.add("bi-sun");
+            } else {
+                document.body.classList.remove("dark");
+                icon.classList.remove("bi-sun");
+                icon.classList.add("bi-moon");
             }
-        });
-    }
-
-    /* HOURLY SALES CHART (Line) */
-    if(document.getElementById("salesChart")){
-        let gradientFill = document.getElementById("salesChart").getContext("2d").createLinearGradient(0, 0, 0, 350);
-        if(isDark) {
-            gradientFill.addColorStop(0, "rgba(212, 175, 55, 0.4)"); // Gold faded
-            gradientFill.addColorStop(1, "rgba(212, 175, 55, 0)");
-        } else {
-            gradientFill.addColorStop(0, "rgba(17, 17, 17, 0.15)"); // Black faded
-            gradientFill.addColorStop(1, "rgba(17, 17, 17, 0)");
         }
 
-        let lineColor = isDark ? "#d4af37" : "#111111";
+        /* Initialize Theme */
+        updateIcons();
 
-        new Chart(document.getElementById("salesChart"), {
-            type: "line",
-            data: {
-                labels: [
-                    {% for h in hourly_sales %}
-                    "{{h.label}}",
-                    {% endfor %}
-                ],
-                datasets: [{
-                    label: "Revenue",
-                    data: [
-                        {% for h in hourly_sales %}
-                        {{h.total}},
-                        {% endfor %}
-                    ],
-                    borderColor: lineColor,
-                    borderWidth: 2,
-                    backgroundColor: gradientFill,
-                    fill: true,
-                    tension: 0.4, // smooth curves
-                    pointBackgroundColor: isDark ? "#111111" : "#ffffff",
-                    pointBorderColor: lineColor,
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: isDark ? '#ffffff' : '#111111',
-                        titleColor: isDark ? '#111111' : '#ffffff',
-                        bodyColor: isDark ? '#111111' : '#ffffff',
-                        titleFont: { family: "'DM Serif Display', serif", size: 14 },
-                        bodyFont: { family: "'Outfit', sans-serif", size: 13 },
-                        padding: 12,
-                        displayColors: false,
-                        cornerRadius: 0,
-                        callbacks: {
-                            label: function(context) { return '₹' + context.parsed.y; }
+        function toggleDark() {
+            isDark = !isDark;
+            localStorage.setItem("dark", isDark);
+            window.location.reload(); 
+        }
+
+        /* Chart.js Configuration */
+        let chartTextColor = isDark ? '#888888' : '#737373';
+        let chartGridColor = isDark ? '#262626' : '#eaeaea';
+
+        Chart.defaults.color = chartTextColor;
+        Chart.defaults.font.family = "'Outfit', sans-serif";
+        Chart.defaults.font.size = 11;
+
+        /* Load Data from JSON Scripts */
+        const paymentsRaw = JSON.parse(document.getElementById('payments-data').textContent);
+        const hourlyRaw = JSON.parse(document.getElementById('hourly-data').textContent);
+
+        /* PAYMENT CHART (Doughnut) */
+        if (document.getElementById("paymentChart")) {
+            const paymentColors = isDark ?
+                ["#ffffff", "#d4af37", "#555555", "#333333"] :
+                ["#111111", "#c5a059", "#aaaaaa", "#e0e0e0"];
+
+            new Chart(document.getElementById("paymentChart"), {
+                type: "doughnut",
+                data: {
+                    labels: paymentsRaw.map(p => p.method),
+                    datasets: [{
+                        data: paymentsRaw.map(p => p.total || 0),
+                        backgroundColor: paymentColors,
+                        borderWidth: 1,
+                        borderColor: isDark ? '#111111' : '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                boxWidth: 8,
+                                font: { family: "'Outfit', sans-serif", size: 10, weight: '500' }
+                            }
+                        }
+                    },
+                    cutout: '80%'
+                }
+            });
+        }
+
+        /* HOURLY SALES CHART (Line) */
+        if (document.getElementById("salesChart")) {
+            const ctx = document.getElementById("salesChart").getContext("2d");
+            let gradientFill = ctx.createLinearGradient(0, 0, 0, 350);
+            if (isDark) {
+                gradientFill.addColorStop(0, "rgba(212, 175, 55, 0.4)"); 
+                gradientFill.addColorStop(1, "rgba(212, 175, 55, 0)");
+            } else {
+                gradientFill.addColorStop(0, "rgba(17, 17, 17, 0.15)"); 
+                gradientFill.addColorStop(1, "rgba(17, 17, 17, 0)");
+            }
+
+            let lineColor = isDark ? "#d4af37" : "#111111";
+
+            new Chart(document.getElementById("salesChart"), {
+                type: "line",
+                data: {
+                    labels: hourlyRaw.map(h => h.label),
+                    datasets: [{
+                        label: "Revenue",
+                        data: hourlyRaw.map(h => h.total || 0),
+                        borderColor: lineColor,
+                        borderWidth: 2,
+                        backgroundColor: gradientFill,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: isDark ? "#111111" : "#ffffff",
+                        pointBorderColor: lineColor,
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: isDark ? '#ffffff' : '#111111',
+                            titleColor: isDark ? '#111111' : '#ffffff',
+                            bodyColor: isDark ? '#111111' : '#ffffff',
+                            titleFont: { family: "'DM Serif Display', serif", size: 14 },
+                            bodyFont: { family: "'Outfit', sans-serif", size: 13 },
+                            padding: 12,
+                            displayColors: false,
+                            cornerRadius: 0,
+                            callbacks: {
+                                label: function(context) { return '₹' + context.parsed.y; }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: chartGridColor, drawBorder: false },
+                            border: { display: false },
+                            ticks: { padding: 10 }
+                        },
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { padding: 10 }
                         }
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: chartGridColor, drawBorder: false },
-                        border: { display: false },
-                        ticks: { padding: 10 }
-                    },
-                    x: {
-                        grid: { display: false },
-                        border: { display: false },
-                        ticks: { padding: 10 }
-                    }
                 }
-            }
-        });
-    }
-</script>
+            });
+        }
+    </script>
 
 </body>
+
 </html>

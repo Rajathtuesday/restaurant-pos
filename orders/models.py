@@ -562,7 +562,9 @@ class OrderEvent(models.Model):
         # Payments
         ("payment_added", "Payment Added"),
         ("payment_completed", "Payment Completed"),
+        ("payment_refund_requested", "Refund Requested"),
         ("payment_refunded", "Payment Refunded"),
+        ("payment_refund_rejected", "Refund Rejected"),
 
         # Table actions
         ("table_transferred", "Table Transferred"),

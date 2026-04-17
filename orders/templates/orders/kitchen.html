@@ -274,7 +274,10 @@
 
 <!-- HEADER -->
 <div class="header">
-    <h1 class="brand-title">Kitchen Display</h1>
+    <div class="d-flex flex-column">
+        <h1 class="brand-title mb-0" style="font-family:'DM Serif Display', serif;"><i class="bi bi-diamond-half me-2" style="color:var(--c-fresh);"></i>{{ request.user.tenant.name }}</h1>
+        <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">Kitchen Display — {{ request.user.outlet.name }}</p>
+    </div>
     <div class="header-actions">
         <a href="/tables/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-grid-3x3 me-2"></i>Tables</a>
         <a href="/billing/" class="btn-luxury d-none d-sm-inline-flex ms-2"><i class="bi bi-receipt me-2"></i>Billing</a>

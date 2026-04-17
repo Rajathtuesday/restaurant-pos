@@ -67,6 +67,9 @@ urlpatterns = [
 
     # crm module
     path('crm/', include('crm.urls')),
+
+    # agency module
+    path('agency/', include('agency.urls')),
 ]
 
 from django.conf import settings

@@ -15,11 +15,11 @@ def get_kitchen_data(user, station_name=None):
     )
 
     if station_name:
-        kots = kots.filter(station=station_name)
+        kots = kots.filter(station__name=station_name)
 
     kots = (
         kots
-        .select_related("order", "order__table")
+        .select_related("order", "order__table", "station")
         .prefetch_related("items", "items__menu_item")
         .order_by("created_at")
     )
@@ -42,7 +42,7 @@ def get_kitchen_data(user, station_name=None):
         data.append({
             "id": kot.id,
             "kot_number": kot.kot_number,
-            "station": kot.station,
+            "station": kot.station.name if kot.station else "General",
             "table": kot.order.table.name if kot.order.table else "Takeaway",
             "order_id": kot.order.id,
             "created_at": kot.created_at.isoformat(),

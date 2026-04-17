@@ -165,22 +165,21 @@
 <body>
 
     <!-- HEADER -->
-    <div class="pos-header">
-        <h1 class="brand-title serif-text">Inventory Management</h1>
-        <div class="d-flex align-items-center gap-2">
+    <header class="pos-header">
+        <div>
+            <h4 class="mb-1"><i class="bi bi-box-seam me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h4>
+            <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">{{ request.user.outlet.name }} · Inventory Management</p>
+        </div>
+        <div class="d-flex gap-2">
             <button class="btn-luxury d-none d-sm-inline-flex" style="border-color:#10b981; color:#10b981;" onclick="window.open('/inventory/purchase-order/', '_blank')"><i class="bi bi-file-earmark-pdf me-1"></i> Auto-PO (PDF)</button>
-            <button class="btn-luxury btn-gold d-none d-sm-inline-flex" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+            <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
             <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
             <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
-            <a href="/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
-            
-            <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
-            
-            <button class="btn-icon" style="background:transparent; border:none; color:var(--text-main); font-size:1.2rem; cursor:pointer;" onclick="toggleDark()" title="Toggle Theme">
+            <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
                 <i class="bi bi-moon" id="themeIcon"></i>
             </button>
         </div>
-    </div>
+    </header>
 
     <div class="container-fluid mx-auto py-4" style="max-width: 1200px; padding: 0 2rem;">
         

@@ -305,6 +305,13 @@ class PayOrderTest(TestCase):
         _order_item(self.order, self.menu_item, qty=1)
         self.order.recalculate_totals()
 
+        # Open a Cash Session (now required for payments)
+        CashSession.objects.create(
+            tenant=self.t, outlet=self.o,
+            opened_by=self.cashier, opening_balance=Decimal("0"),
+            status="open"
+        )
+
     def _pay(self, method="cash", amount=500):
         return self.c.post(
             f"/pay/{self.order.id}/",

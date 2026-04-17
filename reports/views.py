@@ -18,11 +18,27 @@ from reports.services.kitchen_reports import kitchen_performance, top_kitchen_it
 
 @login_required
 def dashboard(request):
-
-    if request.user.role not in ["owner", "manager"]:
+    # Allow Owners, Managers, Agents, and Superusers
+    if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
         return HttpResponseForbidden()
 
+    # Determine which tenant we are viewing
     tenant = request.user.tenant
+    
+    # If superuser or agent, they can specify a tenant_id to view
+    target_tenant_id = request.GET.get("tenant_id")
+    if target_tenant_id and (request.user.role == "agent" or request.user.is_superuser):
+        from tenants.models import Tenant
+        if request.user.is_superuser:
+            tenant = Tenant.objects.get(id=target_tenant_id)
+        else:
+            # Agent can ONLY see tenants assigned to them
+            tenant = Tenant.objects.filter(id=target_tenant_id, sales_agent=request.user).first()
+            if not tenant:
+                return HttpResponseForbidden("You are not the sales agent for this restaurant.")
+    
+    if not tenant:
+        return HttpResponseForbidden("No tenant context found.")
 
     # date filter
     date_filter = request.GET.get("date_filter", "today")
@@ -92,47 +108,58 @@ def dashboard(request):
             writer.writerow([pm.get('method', 'Unknown'), pm.get('total', 0)])
         writer.writerow([])
         
-        writer.writerow(['TOP ITEMS'])
-        writer.writerow(['Item Name', 'Quantity Sold', 'Revenue generated'])
-        for item in items:
-            writer.writerow([item['menu_item__name'], item['total_qty'], item['total_rev']])
-        writer.writerow([])
-        
-        writer.writerow(['CATEGORY SALES'])
-        writer.writerow(['Category', 'Revenue'])
-        for cat, rev in categories:
-            writer.writerow([cat, rev])
+        # Privacy check for CSV
+        if not (request.user.role == 'agent' and not request.user.is_superuser):
+            writer.writerow(['TOP ITEMS'])
+            writer.writerow(['Item Name', 'Quantity Sold', 'Revenue generated'])
+            for item in items:
+                writer.writerow([item.get('menu_item__name', 'Item'), item.get('total', 0), item.get('total_rev', 0)])
+            writer.writerow([])
             
+            writer.writerow(['CATEGORY SALES'])
+            writer.writerow(['Category', 'Revenue'])
+            for c in categories:
+                writer.writerow([c.get('menu_item__category__name', 'Misc'), c.get('revenue', 0)])
+        
         return response
 
     if request.GET.get('format') == 'json':
-        return JsonResponse({
-            "success": True,
-            "data": {
-                "sales": sales,
+        # Privacy check for JSON
+        is_limited = (request.user.role == 'agent' and not request.user.is_superuser)
+        
+        data = {
+            "sales": sales,
+            "hourly_sales": hourly,
+            "date_filter": date_filter,
+            "start_date": str(start_date),
+            "end_date": str(end_date)
+        }
+        
+        if not is_limited:
+            data.update({
                 "items": list(items),
-                "hourly_sales": hourly,
                 "table_stats": list(table_stats),
                 "categories": categories,
                 "waiters": list(waiters),
-                "date_filter": date_filter,
-                "start_date": str(start_date),
-                "end_date": str(end_date)
-            }
-        }, encoder=DjangoJSONEncoder)
+            })
+            
+        return JsonResponse({"success": True, "data": data}, encoder=DjangoJSONEncoder)
+
+    is_limited_view = (request.user.role == "agent" and not request.user.is_superuser)
 
     return render(request, "reports/dashboard.html", {
         "sales": sales,
-        "items": items,
+        "items": items if not is_limited_view else [],
         "hourly_sales": hourly,
-        "table_stats": table_stats,
-        "categories": categories,
-        "waiters": waiters,
+        "table_stats": table_stats if not is_limited_view else [],
+        "categories": categories if not is_limited_view else [],
+        "waiters": waiters if not is_limited_view else [],
         "outlets": outlets,
         "current_outlet": outlet,
         "date_filter": date_filter,
         "start_date": start_date,
-        "end_date": end_date
+        "end_date": end_date,
+        "is_limited_view": is_limited_view
     })
 
 @login_required

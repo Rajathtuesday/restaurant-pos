@@ -103,13 +103,17 @@ def create_order(request):
         if not table:
             return JsonResponse({"error": "Invalid table"}, status=400)
 
-    with transaction.atomic():
-        order = get_or_create_open_order(request.user, table)
-        add_items_to_order(request.user, order, cart)
+    try:
+        with transaction.atomic():
+            order = get_or_create_open_order(request.user, table)
+            add_items_to_order(request.user, order, cart)
 
-        logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in'}")
+            logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in'}")
 
-    return JsonResponse({"success": True, "order_id": order.id})
+        return JsonResponse({"success": True, "order_id": order.id})
+    except Exception as e:
+        logger.error(f"Order creation failed: {e}")
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 # -------------------------------------------------
@@ -203,6 +207,19 @@ def pay_order(request, order_id):
             return JsonResponse({"error": "Amount must be positive"}, status=400)
 
         with transaction.atomic():
+            # SECURITY: Ensure a Cash Session is open before accepting payment
+            from shifts.models import CashSession
+            active_session = CashSession.objects.filter(
+                tenant=request.user.tenant, 
+                outlet=request.user.outlet, 
+                status="open"
+            ).exists()
+            
+            if not active_session:
+                return JsonResponse({
+                    "error": "No open cash session. Please open a session in Shift Management first."
+                }, status=400)
+
             order = (
                 Order.objects.select_for_update()
                 .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
@@ -432,26 +449,33 @@ def log_bypass(request, order_id):
 @tenant_required
 @role_required("manager", "cashier", "owner")
 def print_bill_action(request, order_id):
-    """Triggers the physical thermal printer for a bill."""
+    """Triggers the physical thermal printer for a bill in the background."""
+    import threading
     from orders.services.printing_service import PrintingService
     try:
         order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
         
-        # In a real scenario, you'd fetch the printer config (IP/USB) from Outlet settings.
-        # For now, we'll try to find a configured printer in setup.models (to be added)
-        # or use a default if it's a local installation.
+        # SECURITY/FEAT: Pull printer IP from outlet/station settings
+        station = order.table.station if order.table else None
+        printer_host = station.printer_ip if station else "127.0.0.1" 
         
-        # Hardcoded for demonstration - in production, this comes from database.
-        printer = PrintingService(printer_type="network", host="192.168.1.100") 
-        success = printer.print_bill(order)
+        if not printer_host or printer_host == "0.0.0.0":
+             printer_host = "127.0.0.1" # Fallback to local agent
         
-        if success:
-            return JsonResponse({"success": True, "message": "Printing initiated"})
-        else:
-            return JsonResponse({"error": "Printer not reachable"}, status=503)
+        def _bg_print():
+            try:
+                printer = PrintingService(printer_type="network", host=printer_host) 
+                printer.print_bill(order)
+            except Exception as e:
+                logger.error(f"Background bill printing failed for order #{order_id}: {e}")
+
+        threading.Thread(target=_bg_print, daemon=True).start()
+        
+        return JsonResponse({"success": True, "message": "Printing initiated in background"})
             
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
     except Exception as e:
+        logger.exception("Error initiating background print")
         return JsonResponse({"error": str(e)}, status=500)
 

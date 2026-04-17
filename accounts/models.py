@@ -20,6 +20,7 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ("owner","Owner"),
         ("manager","Manager"),
+        ("agent","Agent"),
         ("cashier","Cashier"),
         ("waiter","Waiter"),
         ("chef","Chef"),

@@ -251,7 +251,7 @@
             try {
                 await fetch(`/orders/log-bypass/${orderId}/`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
                 });
             } catch(e) { console.error('Failed to log bypass:', e); }
             window.location.href = "/tables/";
@@ -295,7 +295,8 @@
 
     <script>
         const ORDER_ID = '{{ order.id }}';
-        const CSRF = document.cookie.split('; ').find(r=>r.startsWith('csrftoken=')).split('=')[1];
+        const csrf_match = document.cookie.split('; ').find(r => r.trim().startsWith('csrftoken='));
+        const CSRF = csrf_match ? csrf_match.split('=')[1] : '{{ csrf_token }}';
 
         async function lookupGuest() {
             const phone = document.getElementById('guestPhone').value.trim();

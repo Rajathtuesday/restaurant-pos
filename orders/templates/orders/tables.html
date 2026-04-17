@@ -270,7 +270,10 @@
 
 <!-- HEADER -->
 <header class="pos-header">
-    <h1 class="brand-title"><i class="bi bi-asterisk"></i> Floor Plan</h1>
+    <div class="d-flex flex-column">
+        <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
+        <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">Floor Plan — {{ request.user.outlet.name }}</p>
+    </div>
     
     <div class="action-group">
         <button class="btn-luxury me-2 btn-gold" data-bs-toggle="modal" data-bs-target="#manageTablesModal"><i class="bi bi-gear me-1"></i> Tables</button>

@@ -26,6 +26,9 @@ def login_view(request):
             if user.role in ["owner", "manager"]:
                 return redirect("/dashboard/")
 
+            elif user.role == "agent":
+                return redirect("/sales/")
+
             elif user.role == "waiter":
                 return redirect("/tables/")
 
