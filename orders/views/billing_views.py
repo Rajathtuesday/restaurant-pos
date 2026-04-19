@@ -223,59 +223,81 @@ def pay_order(request, order_id):
             amount = Decimal(str(amount))
         except InvalidOperation:
             return JsonResponse({"error": "Invalid amount"}, status=400)
-        if amount <= 0:
-            return JsonResponse({"error": "Amount must be positive"}, status=400)
+        if amount < 0:
+            return JsonResponse({"error": "Amount cannot be negative"}, status=400)
 
-        with transaction.atomic():
-            # SECURITY: Ensure a Cash Session is open before accepting payment
-            from shifts.models import CashSession
-            active_session = CashSession.objects.filter(
-                tenant=request.user.tenant, 
-                outlet=request.user.outlet, 
-                status="open"
-            ).exists()
-            
-            if not active_session:
-                return JsonResponse({
-                    "error": "No open cash session. Please open a session in Shift Management first."
-                }, status=400)
+        try:
+            with transaction.atomic():
+                order = (
+                    Order.objects.select_for_update()
+                    .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+                )
 
-            order = (
-                Order.objects.select_for_update()
-                .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
-            )
-            if order.status in ["paid", "closed"]:
-                return JsonResponse({"error": "Order already completed"}, status=400)
+                if order.status in ["paid", "closed"]:
+                    return JsonResponse({"error": "Order already completed"}, status=400)
 
-            process_payment(order, method, amount, request.user)
+                if order.grand_total == 0:
+                    # Fully complimentary order!
+                    order.status = "closed"
+                    order.closed_at = timezone.now()
+                    order.save(update_fields=["status", "closed_at"])
+                    if order.table:
+                        order.table.state = "cleaning"
+                        order.table.save(update_fields=["state"])
+                    logger.info(f"Order #{order.id} fully complimentary and closed")
+                    return JsonResponse({"success": True, "message": "Complimentary order closed"})
 
-            logger.info(f"User {request.user.username} recorded {method} payment of ₹{amount} for order #{order.id}")
+                if amount == 0:
+                    return JsonResponse({"error": "Amount must be greater than 0 for non-complimentary orders"}, status=400)
 
-            OrderEvent.objects.create(
-                tenant=order.tenant, outlet=order.outlet, order=order,
-                event_type="payment_added",
-                amount=amount,
-                metadata={"method": method, "amount": str(amount)},
-                created_by=request.user
-            )
+                # SECURITY: Ensure a Cash Session is open before accepting payment
+                from shifts.models import CashSession
+                active_session = CashSession.objects.filter(
+                    tenant=request.user.tenant, 
+                    outlet=request.user.outlet, 
+                    status="open"
+                ).exists()
+                
+                if not active_session:
+                    return JsonResponse({
+                        "error": "No open cash session. Please open a session in Shift Management first."
+                    }, status=400)
 
-            order.refresh_from_db()
+                process_payment(order, method, amount, request.user)
 
-            if order.status == "paid":
-                validate_order_payment(order)
-                order.status = "closed"
-                order.closed_at = timezone.now()
-                order.save(update_fields=["status", "closed_at"])
-                if order.table:
-                    order.table.state = "cleaning"
-                    order.table.save(update_fields=["state"])
-                logger.info(f"Order #{order.id} fully paid and closed")
-                return JsonResponse({"success": True, "message": "Payment complete, order closed"})
+                logger.info(f"User {request.user.username} recorded {method} payment of ₹{amount} for order #{order.id}")
 
-            remaining = order.grand_total - (
-                order.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
-            )
-            return JsonResponse({"success": True, "message": "Partial payment recorded", "remaining": remaining})
+                OrderEvent.objects.create(
+                    tenant=order.tenant, outlet=order.outlet, order=order,
+                    event_type="payment_added",
+                    amount=amount,
+                    metadata={"method": method, "amount": str(amount)},
+                    created_by=request.user
+                )
+
+                order.refresh_from_db()
+
+                if order.status == "paid":
+                    validate_order_payment(order)
+                    order.status = "closed"
+                    order.closed_at = timezone.now()
+                    order.save(update_fields=["status", "closed_at"])
+                    if order.table:
+                        order.table.state = "cleaning"
+                        order.table.save(update_fields=["state"])
+                    logger.info(f"Order #{order.id} fully paid and closed")
+                    return JsonResponse({"success": True, "message": "Payment complete, order closed"})
+
+                remaining = order.grand_total - (
+                    order.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+                )
+                return JsonResponse({"success": True, "message": "Partial payment recorded", "remaining": remaining})
+
+        except Exception as e:
+            logger.error(f"Payment error for order #{order_id}: {e}")
+            # Get the exact error message from ValidationError if possible
+            err_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
+            return JsonResponse({"error": err_msg}, status=400)
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
@@ -488,6 +510,9 @@ def log_bypass(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception as e:
+        logger.error(f"Bypass error for order #{order_id}: {e}")
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @login_required
