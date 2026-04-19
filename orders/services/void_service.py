@@ -9,7 +9,12 @@ from orders.services.event_service import log_event
 @transaction.atomic
 def void_order_item(user, item_id, reason):
 
-    item = OrderItem.objects.select_related("order").get(id=item_id)
+    item = (
+        OrderItem.objects
+        .select_for_update()
+        .select_related("order")
+        .get(id=item_id)
+    )
 
     if item.status == "voided":
         raise Exception("Item is already voided")

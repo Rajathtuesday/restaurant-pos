@@ -41,10 +41,18 @@ def lock_order(order, user):
     # No lock exists -> create one
     # ---------------------------------
 
-    OrderLock.objects.create(
-        order=order,
-        locked_by=user,
-        expires_at=now + timedelta(seconds=LOCK_DURATION_SECONDS)
-    )
+    from django.db import IntegrityError
 
-    return True, user
+    try:
+        OrderLock.objects.create(
+            order=order,
+            locked_by=user,
+            expires_at=now + timedelta(seconds=LOCK_DURATION_SECONDS)
+        )
+        return True, user
+    except IntegrityError:
+        try:
+            existing = OrderLock.objects.select_related("locked_by").get(order=order)
+            return False, existing.locked_by
+        except OrderLock.DoesNotExist:
+            return True, user

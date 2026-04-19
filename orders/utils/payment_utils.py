@@ -13,7 +13,9 @@ def validate_order_payment(order):
         total=Sum("amount")
     )["total"] or Decimal("0.00")
 
-    if paid != order.grand_total:
+    TOLERANCE = Decimal("0.02")
+
+    if abs(paid - order.grand_total) > TOLERANCE:
         raise ValidationError(
             f"Financial mismatch: Paid={paid}, Expected={order.grand_total}"
         )

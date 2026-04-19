@@ -179,27 +179,31 @@ def cash_session_list(request):
 def open_cash_session(request):
     """Start a new cash register session."""
     from .models import CashSession
+    from django.db import transaction
+
     try:
         data = json.loads(request.body)
         opening_balance = float(data.get("opening_balance", 0))
 
-        # Check for already open session
-        existing = CashSession.objects.filter(
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-            status="open"
-        ).first()
+        with transaction.atomic():
+            # Lock to prevent race condition between two managers
+            existing = CashSession.objects.select_for_update().filter(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                status="open"
+            ).first()
 
-        if existing:
-            return JsonResponse({"error": "A session is already open"}, status=400)
+            if existing:
+                return JsonResponse({"error": "A session is already open"}, status=400)
 
-        session = CashSession.objects.create(
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-            opened_by=request.user,
-            opening_balance=opening_balance,
-            status="open"
-        )
+            session = CashSession.objects.create(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                opened_by=request.user,
+                opening_balance=opening_balance,
+                status="open"
+            )
+
         return JsonResponse({"success": True, "session_id": session.id})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
@@ -227,12 +231,15 @@ def close_cash_session(request):
         if not session:
             return JsonResponse({"error": "No open session found"}, status=400)
 
+        close_time = timezone.now()
+
         # 1. Calculate Expected Cash (Opening + All Cash Payments since opened_at)
         cash_payments = Payment.objects.filter(
             order__tenant=request.user.tenant,
             order__outlet=request.user.outlet,
             method="cash",
-            paid_at__gte=session.opened_at
+            paid_at__gte=session.opened_at,
+            paid_at__lte=close_time
         ).aggregate(total=Sum("amount"))["total"] or 0
 
         expected_cash = float(session.opening_balance) + float(cash_payments)
@@ -242,13 +249,14 @@ def close_cash_session(request):
             order__tenant=request.user.tenant,
             order__outlet=request.user.outlet,
             method__in=["upi", "card"],
-            paid_at__gte=session.opened_at
+            paid_at__gte=session.opened_at,
+            paid_at__lte=close_time
         ).aggregate(total=Sum("amount"))["total"] or 0
 
         # 3. Total Sales (Grand total of orders paid in this window)
         total_sales = float(cash_payments) + float(digital_payments)
 
-        session.closed_at = timezone.now()
+        session.closed_at = close_time
         session.closed_by = request.user
         session.expected_cash = expected_cash
         session.actual_cash = actual_cash

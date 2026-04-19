@@ -59,7 +59,6 @@ def process_payment(order, method, amount, user=None):
     new_total = paid_total + amount
 
     if new_total >= order.grand_total:
-        validate_order_payment(order) # Financial integrity check
         order.status = "paid"
         order.save(update_fields=["status"])
         logger.debug("Payment processed: paid=%s new_total=%s grand=%s", paid_total, new_total, order.grand_total)

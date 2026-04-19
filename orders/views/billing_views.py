@@ -195,8 +195,28 @@ def pay_order(request, order_id):
         method = data.get("method")
         amount = data.get("amount")
 
-        if method not in ["cash", "upi", "card"]:
+        VALID_METHODS = ["cash", "upi", "card"]
+        if method not in VALID_METHODS:
             return JsonResponse({"error": "Invalid payment method"}, status=400)
+
+        # Enforce outlet-level PaymentConfig
+        try:
+            config = PaymentConfig.objects.get(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet
+            )
+            method_enabled = {
+                "cash": config.cash_enabled,
+                "upi":  config.upi_enabled,
+                "card": config.card_enabled,
+            }
+            if not method_enabled.get(method, False):
+                return JsonResponse(
+                    {"error": f"Payment method '{method}' is not enabled for this outlet."},
+                    status=400
+                )
+        except PaymentConfig.DoesNotExist:
+            pass  # No config = all methods allowed (safe default)
         if amount is None:
             return JsonResponse({"error": "Amount required"}, status=400)
         try:
@@ -430,17 +450,42 @@ def apply_item_discount(request, item_id):
 @role_required("manager", "owner")
 def log_bypass(request, order_id):
     try:
-        order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
-        logger.warning(f"User {request.user.username} bypassed payment gate for order #{order_id}")
-        
-        OrderEvent.objects.create(
-            tenant=order.tenant, outlet=order.outlet, order=order,
-            event_type="status_changed",
-            metadata={"action": "payment_gate_bypassed", "role": request.user.role},
-            created_by=request.user
-        )
-        return JsonResponse({"success": True})
-        
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(
+                id=order_id,
+                tenant=request.user.tenant,
+                outlet=request.user.outlet
+            )
+
+            if order.status in ["paid", "closed"]:
+                return JsonResponse({"error": "Order already completed"}, status=400)
+
+            logger.warning(
+                f"User {request.user.username} bypassed payment gate for order #{order_id}"
+            )
+
+            # Actually close the order
+            order.status = "closed"
+            order.closed_at = timezone.now()
+            order.save(update_fields=["status", "closed_at"])
+
+            if order.table:
+                order.table.state = "cleaning"
+                order.table.save(update_fields=["state"])
+
+            OrderEvent.objects.create(
+                tenant=order.tenant, outlet=order.outlet, order=order,
+                event_type="status_changed",
+                metadata={
+                    "action": "payment_gate_bypassed",
+                    "role": request.user.role,
+                    "bypassed_by": request.user.username
+                },
+                created_by=request.user
+            )
+
+        return JsonResponse({"success": True, "message": "Order closed via bypass"})
+
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
 
@@ -455,12 +500,14 @@ def print_bill_action(request, order_id):
     try:
         order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
         
-        # SECURITY/FEAT: Pull printer IP from outlet/station settings
-        station = order.table.station if order.table else None
-        printer_host = station.printer_ip if station else "127.0.0.1" 
-        
-        if not printer_host or printer_host == "0.0.0.0":
-             printer_host = "127.0.0.1" # Fallback to local agent
+        # Table does not have a .station attribute — get printer from setup config
+        from setup.models import PaymentConfig
+        printer_host = None
+
+        # Attempt to get outlet-level printer IP from setup if you store it there
+        # For now fall back to localhost (local print agent)
+        if not printer_host:
+            printer_host = "127.0.0.1"
         
         def _bg_print():
             try:

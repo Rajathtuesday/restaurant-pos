@@ -19,10 +19,14 @@ def transfer_table(user, order_id, new_table_id):
     if order.status not in ["open", "billing"]:
         raise Exception("Order cannot be transferred")
 
-    new_table = Table.objects.get(
-        id=new_table_id,
-        tenant=user.tenant,
-        outlet=user.outlet
+    new_table = (
+        Table.objects
+        .select_for_update()
+        .get(
+            id=new_table_id,
+            tenant=user.tenant,
+            outlet=user.outlet
+        )
     )
 
     old_table = order.table
