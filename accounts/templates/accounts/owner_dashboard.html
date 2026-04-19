@@ -163,6 +163,13 @@
             <p>Master Config</p>
         </a>
     </div>
+    <div class="col-6 col-md-3">
+        <a href="/reports/" class="quick-card" style="border-color: var(--accent-gold);">
+            <div class="icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <h5>Reports & Analytics</h5>
+            <p>Sales & Data</p>
+        </a>
+    </div>
     {% if request.user.is_superuser or request.user.role == "agent" %}
     <div class="col-6 col-md-3">
         <a href="/sales/" class="quick-card" style="border-color: var(--accent-gold);">

@@ -115,7 +115,7 @@
 
             <div class="item-list">
                 {% for item in order.items.all %}
-                <div class="item" {% if item.status == 'voided' %}style="text-decoration: line-through; opacity: 0.5;"{% endif %}>
+                <div class="item {% if item.status == 'voided' %}no-print{% endif %}" {% if item.status == 'voided' %}style="text-decoration: line-through; opacity: 0.5;"{% endif %}>
                     <span class="item-name">
                         {{ item.menu_item.name }} 
                         <span style="color:var(--muted)">× {{ item.quantity }}</span>
