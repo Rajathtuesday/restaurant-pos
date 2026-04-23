@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Print QR Codes | {{ request.user.tenant.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --accent-gold: #c5a059;
+            --text-main: #111111;
+        }
+        body {
+            background: #f8f9fa;
+            font-family: 'Outfit', sans-serif;
+            padding: 40px 20px;
+        }
+        .header-controls {
+            max-width: 1000px;
+            margin: 0 auto 40px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .qr-grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+        .qr-card {
+            background: #fff;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        .qr-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+        .restaurant-name {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+        .table-name {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            margin-bottom: 20px;
+        }
+        .qr-image {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto 20px auto;
+            border: 1px solid #f0f0f0;
+            padding: 10px;
+        }
+        .qr-hint {
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        @media print {
+            .header-controls { display: none; }
+            body { background: #fff; padding: 0; }
+            .qr-grid { display: block; }
+            .qr-card { 
+                page-break-inside: avoid; 
+                border: 2px solid #000; 
+                margin-bottom: 30px; 
+                box-shadow: none !important;
+                transform: none !important;
+            }
+        }
+        
+        .btn-luxury {
+            border: 1px solid #111;
+            background: transparent;
+            color: #111;
+            padding: 0.6rem 1.5rem;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-luxury:hover { background: #111; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="header-controls">
+        <div>
+            <h1 class="serif-text m-0">Table QR Codes</h1>
+            <p class="text-muted small">Print these and place them on your tables for self-ordering.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/setup/tables/" class="btn-luxury"><i class="bi bi-arrow-left me-2"></i> Back</a>
+            <button class="btn-luxury" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print All</button>
+        </div>
+    </div>
+
+    <div class="qr-grid">
+        {% for table in tables %}
+        <div class="qr-card">
+            <div class="restaurant-name">{{ request.user.tenant.name }}</div>
+            <div class="table-name">{{ table.name }}</div>
+            
+            <div class="qr-image">
+                <!-- Using a stable public QR API -->
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ menu_base_url }}{{ table.qr_token }}/" 
+                     alt="QR for {{ table.name }}" 
+                     style="width:100%; height:100%;">
+            </div>
+            
+            <div class="qr-hint">Scan to View Menu & Order</div>
+            <div style="font-size: 0.6rem; color: #ccc; margin-top: 5px;">{{ table.qr_token }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+</body>
+</html>
