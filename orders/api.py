@@ -80,13 +80,18 @@ def api_active_orders(request):
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 import json
+import hmac
+import hashlib
+import logging
+
+logger = logging.getLogger("pos.api")
 
 @csrf_exempt
 @require_POST
 def api_ingest_order(request):
     """
     Simulates a Webhook ingestion endpoint for Zomato / Swiggy / Online Orders.
-    Requires Tenant & Outlet mapping via API keys in production, but here we expect 'tenant_id' and 'outlet_id' in JSON for demonstration.
+    Validates HMAC signature.
     """
     try:
         data = json.loads(request.body)
@@ -98,8 +103,29 @@ def api_ingest_order(request):
         items = data.get("items", [])
         
         from tenants.models import Tenant, Outlet
+        from setup.models import AggregatorConfig
+        
         tenant = Tenant.objects.get(id=tenant_id)
         outlet = Outlet.objects.get(id=outlet_id, tenant=tenant)
+        config = AggregatorConfig.objects.get(tenant=tenant, outlet=outlet)
+        
+        # Verify HMAC Signature
+        signature = request.headers.get("X-Signature")
+        if not signature:
+            return JsonResponse({"error": "Missing signature"}, status=401)
+            
+        secret = config.zomato_webhook_secret if source == "zomato" else config.swiggy_webhook_secret
+        if not secret:
+            return JsonResponse({"error": "Aggregator not configured"}, status=401)
+            
+        expected_sig = hmac.new(
+            secret.encode(), 
+            request.body, 
+            hashlib.sha256
+        ).hexdigest()
+        
+        if not hmac.compare_digest(expected_sig, signature):
+            return JsonResponse({"error": "Invalid signature"}, status=401)
         
         from django.db import transaction
         from menu.models import MenuItem
@@ -138,13 +164,13 @@ def api_ingest_order(request):
             order.recalculate_totals()
             
             # Auto KOT Gen
-            from orders.services.kitchen_service import send_order_to_kitchen
-            send_order_to_kitchen(order, user=None)
+            if config.auto_accept_orders:
+                from orders.services.kitchen_service import send_order_to_kitchen
+                send_order_to_kitchen(order, user=None)
             
         return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number})
         
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return JsonResponse({"error": str(e)}, status=400)
+        logger.exception("Failed to ingest order via API")
+        return JsonResponse({"error": "Internal Server Error"}, status=500)
 

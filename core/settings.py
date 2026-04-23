@@ -33,8 +33,10 @@ env_hosts = os.getenv('ALLOWED_HOSTS', '')
 if env_hosts:
     ALLOWED_HOSTS = [host.strip() for host in env_hosts.split(',') if host.strip()]
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1','*']
-
+    from django.core.exceptions import ImproperlyConfigured
+    if not DEBUG:
+        raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production via environment variable.")
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
@@ -68,7 +70,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.middleware.TenantMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'

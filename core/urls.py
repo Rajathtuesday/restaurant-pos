@@ -21,16 +21,15 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.views.defaults import page_not_found, server_error
 from django.views.generic import TemplateView
-from core import sse_views
-
+from core import views
 
 def custom_404(request, exception):
     from django.shortcuts import render
-    return render(request, "errors/404.html", status=404)
+    return render(request, "404.html", status=404)
 
 def custom_500(request):
     from django.shortcuts import render
-    return render(request, "errors/500.html", status=500)
+    return render(request, "500.html", status=500)
 
 handler404 = "core.urls.custom_404"
 handler500 = "core.urls.custom_500"
@@ -41,6 +40,9 @@ urlpatterns = [
 
     # default redirect
     path('', lambda request: redirect('login')),
+
+    # Health check
+    path('health/', views.health_check, name='health_check'),
 
     # PWA
     path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript')),
@@ -71,9 +73,6 @@ urlpatterns = [
 
     # agency module
     path('agency/', include('agency.urls')),
-
-    # SSE Real-time updates
-    path('sse/outlet/<int:outlet_id>/', sse_views.sse_outlet_stream, name='sse-outlet'),
 ]
 
 from django.conf import settings

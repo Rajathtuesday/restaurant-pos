@@ -9,7 +9,22 @@ from notifications.models import Notification
 from reports.services.dashboard_metrics import owner_dashboard_metrics
 from django.shortcuts import redirect
 
+from django.core.cache import cache
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        return x_forwarded_for.split(',')[0]
+    return request.META.get('REMOTE_ADDR')
+
 def login_view(request):
+    ip = get_client_ip(request)
+    cache_key = f"login_attempts_{ip}"
+    attempts = cache.get(cache_key, 0)
+    
+    if attempts >= 5:
+        messages.error(request, "Too many failed attempts. Try again in 5 minutes.")
+        return render(request, "accounts/login.html")
 
     if request.method == "POST":
 
@@ -19,6 +34,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
+            cache.delete(cache_key)
 
             login(request, user)
 
@@ -41,6 +57,7 @@ def login_view(request):
             else:
                 return redirect("/tables/")
         else:
+            cache.set(cache_key, attempts + 1, 300)
             messages.error(request, "Invalid username or password.")
 
     return render(request, "accounts/login.html")

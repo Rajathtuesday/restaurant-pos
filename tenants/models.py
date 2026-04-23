@@ -18,10 +18,9 @@ class Tenant(models.Model):
     )
 
     slug = models.SlugField(
-    help_text="Unique identifier for the tenant",
-    blank=True,
-    null=True
-)
+        help_text="Unique identifier for the tenant",
+        unique=True
+    )
 
     timezone = models.CharField(
         max_length=50,

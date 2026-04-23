@@ -162,9 +162,6 @@ def bill_view(request, order_id):
             id=order_id, tenant=request.user.tenant, outlet=request.user.outlet
         )
         
-        # Ensure totals are fresh
-        order.recalculate_totals()
-        
         if order.table:
             order.table.state = "billing"
             order.table.save(update_fields=["state"])
@@ -249,7 +246,10 @@ def pay_order(request, order_id):
                     status=400
                 )
         except PaymentConfig.DoesNotExist:
-            pass  # No config = all methods allowed (safe default)
+            return JsonResponse(
+                {"error": "Payment methods not configured for this outlet. Please configure them in setup."},
+                status=400
+            )
         if amount is None:
             return JsonResponse({"error": "Amount required"}, status=400)
         try:
@@ -348,10 +348,17 @@ def apply_discount(request, order_id):
 
     try:
         data = json.loads(request.body)
-        percent = float(data.get("percent", 0))
+        discount_type = data.get("type", "percentage")
+        value = Decimal(str(data.get("value", 0)))
 
-        if percent < 0 or percent > 100:
-            return JsonResponse({"error": "Invalid percentage"}, status=400)
+        if discount_type not in ["percentage", "amount"]:
+            return JsonResponse({"error": "Invalid discount type"}, status=400)
+
+        if value < 0:
+            return JsonResponse({"error": "Invalid discount value"}, status=400)
+            
+        if discount_type == "percentage" and value > 100:
+            return JsonResponse({"error": "Percentage cannot exceed 100"}, status=400)
 
         with transaction.atomic():
             order = (
@@ -361,17 +368,17 @@ def apply_discount(request, order_id):
             if order.status in ["paid", "closed"]:
                 raise Exception("Order is already fully paid or closed")
 
-            order.discount_type = "percentage"
-            order.discount_value = percent
+            order.discount_type = discount_type
+            order.discount_value = value
             order.save(update_fields=["discount_type", "discount_value"])
             order.recalculate_totals()
 
-            logger.warning(f"User {request.user.username} applied {percent}% discount to order #{order_id}")
+            logger.warning(f"User {request.user.username} applied {discount_type} discount of {value} to order #{order_id}")
 
             OrderEvent.objects.create(
                 tenant=order.tenant, outlet=order.outlet, order=order,
                 event_type="status_changed",
-                metadata={"action": "discount_applied", "percent": percent},
+                metadata={"action": "discount_applied", "type": discount_type, "value": str(value)},
                 created_by=request.user
             )
 
@@ -383,9 +390,10 @@ def apply_discount(request, order_id):
             "total": float(order.grand_total)
         })
 
-    except Exception:
+    except Exception as e:
         logger.exception("Error applying discount")
-        return JsonResponse({"error": "Internal Server Error"}, status=500)
+        err_msg = str(e) if str(e) else "Internal Server Error"
+        return JsonResponse({"error": err_msg}, status=500)
 
 
 # -------------------------------------------------
@@ -443,9 +451,10 @@ def refund_payment(request, payment_id):
         logger.warning(f"User {request.user.username} issued refund of ₹{amount} for payment #{payment_id}")
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
-    except Exception:
+    except Exception as e:
         logger.exception("Error refunding payment")
-        return JsonResponse({"error": "Internal Server Error"}, status=500)
+        err_msg = str(e) if str(e) else "Internal Server Error"
+        return JsonResponse({"error": err_msg}, status=500)
 
 
 # -------------------------------------------------
@@ -490,9 +499,10 @@ def apply_item_discount(request, item_id):
         logger.warning(f"User {request.user.username} applied {discount_pct}% discount to item #{item_id}")
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
-    except Exception:
+    except Exception as e:
         logger.exception("Error applying item discount")
-        return JsonResponse({"error": "Internal Server Error"}, status=500)
+        err_msg = str(e) if str(e) else "Internal Server Error"
+        return JsonResponse({"error": err_msg}, status=500)
 
 
 # -------------------------------------------------
@@ -514,6 +524,20 @@ def log_bypass(request, order_id):
 
             if order.status in ["paid", "closed"]:
                 return JsonResponse({"error": "Order already completed"}, status=400)
+
+            # Enforce daily bypass limit for non-owners
+            if request.user.role != "owner":
+                today = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                bypass_count = OrderEvent.objects.filter(
+                    tenant=request.user.tenant,
+                    outlet=request.user.outlet,
+                    created_by=request.user,
+                    event_type="status_changed",
+                    created_at__gte=today
+                ).filter(metadata__action="payment_gate_bypassed").count()
+
+                if bypass_count >= 3:
+                    return JsonResponse({"error": "Daily payment bypass limit (3) reached. Contact owner."}, status=403)
 
             logger.warning(
                 f"User {request.user.username} bypassed payment gate for order #{order_id}"
@@ -567,20 +591,16 @@ def print_bill_action(request, order_id):
         if not printer_host:
             printer_host = "127.0.0.1"
         
-        def _bg_print():
-            try:
-                printer = PrintingService(printer_type="network", host=printer_host) 
-                printer.print_bill(order)
-            except Exception as e:
-                logger.error(f"Background bill printing failed for order #{order_id}: {e}")
-
-        threading.Thread(target=_bg_print, daemon=True).start()
+        # TODO: Implement proper Celery task for printing
+        # For now, execute synchronously to prevent daemon threads getting killed silently
+        printer = PrintingService(printer_type="network", host=printer_host) 
+        printer.print_bill(order)
         
-        return JsonResponse({"success": True, "message": "Printing initiated in background"})
+        return JsonResponse({"success": True, "message": "Printing initiated"})
             
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
     except Exception as e:
-        logger.exception("Error initiating background print")
+        logger.exception("Error initiating print")
         return JsonResponse({"error": str(e)}, status=500)
 

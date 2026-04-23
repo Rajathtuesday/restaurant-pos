@@ -15,14 +15,32 @@ def table_turnover(tenant, outlet=None, start_date=None, end_date=None):
     if outlet:
         query = query.filter(outlet=outlet)
 
-    data = (
-        query
-        .values("table__name")
-        .annotate(turnovers=Count("id"))
-        .order_by("-turnovers")
-    )
-
-    return list(data)
+    orders = query.values("table__name", "created_at", "closed_at", "updated_at")
+    table_stats = {}
+    for o in orders:
+        tname = o["table__name"]
+        if tname not in table_stats:
+            table_stats[tname] = {"turnovers": 0, "total_mins": 0}
+        
+        table_stats[tname]["turnovers"] += 1
+        
+        end_time = o["closed_at"] or o["updated_at"]
+        if end_time and o["created_at"]:
+            delta = (end_time - o["created_at"]).total_seconds() / 60.0
+            table_stats[tname]["total_mins"] += max(0, delta)
+            
+    result = []
+    for tname, stats in table_stats.items():
+        turnovers = stats["turnovers"]
+        avg_mins = stats["total_mins"] / turnovers if turnovers > 0 else 0
+        result.append({
+            "table__name": tname,
+            "turnovers": turnovers,
+            "avg_turn_mins": avg_mins
+        })
+        
+    result.sort(key=lambda x: x["turnovers"], reverse=True)
+    return result
 
 
 

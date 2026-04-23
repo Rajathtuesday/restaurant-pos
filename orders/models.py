@@ -132,6 +132,7 @@ class Order(models.Model):
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -156,6 +157,8 @@ class Order(models.Model):
     # -------------------------------------------------
     # SAFE ORDER NUMBER GENERATION
     # -------------------------------------------------
+    from django.db import transaction
+    @transaction.atomic
     def save(self, *args, **kwargs):
         creating = self._state.adding
         super().save(*args, **kwargs)
@@ -208,21 +211,19 @@ class Order(models.Model):
     # -------------------------------------------------
     
     def recalculate_totals(self):
-        from django.db.models import Sum, F, DecimalField
-        from django.db.models.functions import Coalesce
+        # Fetch items once to avoid multiple queries / N+1 issues
+        items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
         
-        # 1. Calculate Gross Subtotal (Sum of all item totals before discounts)
-        agg = self.items.exclude(status="voided").filter(is_complimentary=False).aggregate(
-            agg_subtotal=Coalesce(Sum('total_price'), Decimal("0.0"))
-        )
-        subtotal = self._quantize(agg['agg_subtotal'])
+        # 1. Calculate Gross Subtotal
+        raw_subtotal = sum((item.total_price for item in items), Decimal("0.0"))
+        subtotal = self._quantize(raw_subtotal)
 
         # 2. Calculate Total Discount
         discount_total = Decimal("0.00")
         if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
             discount_total = subtotal * (Decimal(self.discount_value) / Decimal("100"))
         elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
-            discount_total = Decimal(self.discount_value)
+            discount_total = Decimal(str(self.discount_value))
         
         if discount_total > subtotal:
             discount_total = subtotal
@@ -232,17 +233,21 @@ class Order(models.Model):
         taxable_amount = subtotal - discount_total
         
         # 4. Calculate GST on the Taxable Amount
-        # Note: We apportion the discount proportionally across items to get accurate tax per item if rates differ
         gst_total = Decimal("0.00")
         if subtotal > 0:
             discount_factor = taxable_amount / subtotal
-            for item in self.items.exclude(status="voided").filter(is_complimentary=False):
+            for item in items:
                 item_discounted_price = item.total_price * discount_factor
                 item_gst = (item_discounted_price * item.gst_percentage) / Decimal("100.0")
                 gst_total += item_gst
         
         gst_total = self._quantize(gst_total)
-        grand_total = self._quantize(max(taxable_amount + gst_total, Decimal("0.00")))
+        
+        # Guard against negative grand_total due to extreme edge case rounding
+        if taxable_amount + gst_total < 0:
+            grand_total = Decimal("0.00")
+        else:
+            grand_total = self._quantize(taxable_amount + gst_total)
 
         self.subtotal = subtotal
         self.gst_total = gst_total
