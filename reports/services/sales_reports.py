@@ -15,15 +15,15 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     - Orders count is based on orders that actually have payments
     """
 
-    if not start_date: start_date = timezone.now().date()
-    if not end_date: end_date = timezone.now().date()
+    if not start_date: start_date = timezone.localdate()
+    if not end_date: end_date = timezone.localdate()
 
     # ----------------------------
     # PAYMENTS (SOURCE OF TRUTH)
     # ----------------------------
     payments = Payment.objects.filter(
         order__tenant=tenant,
-        order__created_at__date__gte=start_date, order__created_at__date__lte=end_date
+        paid_at__date__gte=start_date, paid_at__date__lte=end_date
     )
 
     if outlet:
@@ -76,8 +76,8 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     from django.db.models.functions import TruncDate
     from datetime import timedelta
 
-    if not start_date: start_date = timezone.now().date()
-    if not end_date: end_date = timezone.now().date()
+    if not start_date: start_date = timezone.localdate()
+    if not end_date: end_date = timezone.localdate()
 
     payments = Payment.objects.filter(
         order__tenant=tenant,

@@ -1,0 +1,100 @@
+/* luxury.css - Global POS Design System */
+:root {
+    /* Fine Dining Palette */
+    --bg-color: #fafafa;
+    --panel-bg: #ffffff;
+    --text-main: #111111;
+    --text-muted: #737373;
+    --border-color: #eaeaea;
+    --accent-gold: #c5a059;
+    --accent-hover: #b59250;
+    --shadow-soft: 0 4px 15px rgba(0,0,0,0.02);
+    --shadow-heavy: 0 10px 30px rgba(0,0,0,0.1);
+    --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+body.dark {
+    --bg-color: #0a0a0a;
+    --panel-bg: #111111;
+    --text-main: #f5f5f5;
+    --text-muted: #888888;
+    --border-color: #262626;
+    --accent-gold: #d4af37;
+    --accent-hover: #e5c45e;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    transition: var(--transition-smooth);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .serif-text {
+    font-family: 'DM Serif Display', serif;
+    font-weight: 600;
+}
+
+/* BUTTONS */
+.btn-luxury {
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-main);
+    border-radius: 0;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    font-weight: 500;
+    padding: 0.6rem 1.4rem;
+    transition: var(--transition-smooth);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.btn-luxury:hover {
+    border-color: var(--text-main);
+    color: var(--bg-color);
+    background: var(--text-main);
+}
+
+.btn-gold {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: #000;
+}
+
+.btn-gold:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #000;
+}
+
+/* CARDS */
+.card-luxury {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    padding: 1.5rem;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-soft);
+}
+
+.card-luxury:hover {
+    border-color: var(--accent-gold);
+}
+
+/* TABLET/MOBILE OPTIMIZATIONS */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .btn-luxury {
+        padding: 0.5rem 1rem;
+        font-size: 0.7rem;
+    }
+}

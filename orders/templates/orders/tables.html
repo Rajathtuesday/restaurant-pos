@@ -572,7 +572,7 @@
                     
                     actionsHtml = `
                         <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
-                        <button onclick="generateBillForTable(${t.id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
+                        <button onclick="generateBillForOrder(${t.order_id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
                         <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
                     `;
                 }
@@ -755,7 +755,7 @@
             <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add Items</button>
             <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Show Running Order</button>
             <button onclick="openSmartTransfer(${t.id}, ${t.order_id})" class="btn-luxury w-100">Transfer Table</button>
-            <button onclick="generateBillForTable(${t.id})" class="btn-luxury w-100" style="color:#10b981; border-color:#10b981;">Generate Bill</button>
+            <button onclick="generateBillForOrder(${t.order_id})" class="btn-luxury w-100" style="color:#10b981; border-color:#10b981;">Generate Bill</button>
             ${unmergeBtn}
         `;
 
@@ -770,8 +770,12 @@
         new bootstrap.Modal(document.getElementById("transferModal")).show();
     }
 
-    function generateBillForTable(tableId) {
-        fetch("{% url 'generate-bill' 0 %}".replace('0', tableId), {
+    function generateBillForOrder(orderId) {
+        if (!orderId) {
+            showToast("No active order for this table");
+            return;
+        }
+        fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), {
             method: "POST",
             headers: { "X-CSRFToken": getCookie("csrftoken") }
         })

@@ -211,29 +211,38 @@ class Order(models.Model):
         from django.db.models import Sum, F, DecimalField
         from django.db.models.functions import Coalesce
         
+        # 1. Calculate Gross Subtotal (Sum of all item totals before discounts)
         agg = self.items.exclude(status="voided").filter(is_complimentary=False).aggregate(
-            agg_subtotal=Coalesce(Sum('total_price'), Decimal("0.0")),
-            agg_gst=Coalesce(Sum((F('total_price') * F('gst_percentage')) / 100.0, output_field=DecimalField()), Decimal("0.0"))
+            agg_subtotal=Coalesce(Sum('total_price'), Decimal("0.0"))
         )
-
         subtotal = self._quantize(agg['agg_subtotal'])
-        gst_total = self._quantize(agg['agg_gst'])
 
+        # 2. Calculate Total Discount
         discount_total = Decimal("0.00")
-
         if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
             discount_total = subtotal * (Decimal(self.discount_value) / Decimal("100"))
-
         elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
             discount_total = Decimal(self.discount_value)
-
+        
         if discount_total > subtotal:
             discount_total = subtotal
-
         discount_total = self._quantize(discount_total)
 
-        grand_total = subtotal + gst_total - discount_total
-        grand_total = self._quantize(max(grand_total, Decimal("0.00")))
+        # 3. Calculate Taxable Amount (Post-Discount)
+        taxable_amount = subtotal - discount_total
+        
+        # 4. Calculate GST on the Taxable Amount
+        # Note: We apportion the discount proportionally across items to get accurate tax per item if rates differ
+        gst_total = Decimal("0.00")
+        if subtotal > 0:
+            discount_factor = taxable_amount / subtotal
+            for item in self.items.exclude(status="voided").filter(is_complimentary=False):
+                item_discounted_price = item.total_price * discount_factor
+                item_gst = (item_discounted_price * item.gst_percentage) / Decimal("100.0")
+                gst_total += item_gst
+        
+        gst_total = self._quantize(gst_total)
+        grand_total = self._quantize(max(taxable_amount + gst_total, Decimal("0.00")))
 
         self.subtotal = subtotal
         self.gst_total = gst_total

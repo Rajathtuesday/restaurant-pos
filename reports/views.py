@@ -43,8 +43,8 @@ def dashboard(request):
     # date filter
     date_filter = request.GET.get("date_filter", "today")
     
-    start_date = timezone.now().date()
-    end_date = timezone.now().date()
+    start_date = timezone.localdate()
+    end_date = timezone.localdate()
 
     if date_filter == "yesterday":
         start_date = start_date - timedelta(days=1)

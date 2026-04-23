@@ -76,7 +76,7 @@ urlpatterns = [
     path("order/<int:order_id>/", running_order_view, name="running-order"),
     path("order-data/<int:order_id>/", running_order_data, name="running-order-data"),
 
-    path("generate-bill/<int:table_id>/", generate_bill, name="generate-bill"),
+    path("generate-bill/<int:order_id>/", generate_bill, name="generate-bill"),
 
     path("apply-discount/<int:order_id>/", apply_discount, name="apply-discount"),
     

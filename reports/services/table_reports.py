@@ -9,7 +9,7 @@ def table_turnover(tenant, outlet=None, start_date=None, end_date=None):
         tenant=tenant,
         status__in=["closed", "paid"],
         table__isnull=False,
-        created_at__date__gte=start_date if start_date else timezone.now().date(), created_at__date__lte=end_date if end_date else timezone.now().date()
+        created_at__date__gte=start_date if start_date else timezone.localdate(), created_at__date__lte=end_date if end_date else timezone.localdate()
     )
 
     if outlet:

@@ -23,7 +23,7 @@ def category_sales(tenant, outlet=None, start_date=None, end_date=None):
         order__tenant=tenant,
         order__status__in=["paid", "closed"],
         is_complimentary=False,
-        order__created_at__date__gte=start_date if start_date else timezone.now().date(), order__created_at__date__lte=end_date if end_date else timezone.now().date()
+        order__created_at__date__gte=start_date if start_date else timezone.localdate(), order__created_at__date__lte=end_date if end_date else timezone.localdate()
     ).exclude(status="voided")
 
     if outlet:

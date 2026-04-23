@@ -9,7 +9,7 @@ def top_items(tenant, outlet=None, start_date=None, end_date=None):
     query = OrderItem.objects.filter(
         order__tenant=tenant,
         order__status__in=["paid","closed"],
-        order__created_at__date__gte=start_date if start_date else timezone.now().date(), order__created_at__date__lte=end_date if end_date else timezone.now().date(),
+        order__created_at__date__gte=start_date if start_date else timezone.localdate(), order__created_at__date__lte=end_date if end_date else timezone.localdate(),
         is_complimentary=False,
     )
 

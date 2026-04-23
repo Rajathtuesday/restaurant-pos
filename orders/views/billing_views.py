@@ -90,6 +90,10 @@ def create_order(request):
 
     cart = data.get("cart")
     table_id = data.get("table_id")
+    source = data.get("source", "dine_in")
+    aggregator_id = data.get("aggregator_id", "")
+    discount_type = data.get("discount_type", "")
+    discount_value = data.get("discount_value", 0)
 
     if not cart:
         return JsonResponse({"error": "Cart empty"}, status=400)
@@ -105,10 +109,39 @@ def create_order(request):
 
     try:
         with transaction.atomic():
-            order = get_or_create_open_order(request.user, table)
+            # For 3rd party or takeaway, we always create a fresh order to avoid merging
+            if source != "dine_in" or table is None:
+                order = Order.objects.create(
+                    tenant=request.user.tenant,
+                    outlet=request.user.outlet,
+                    table=table,
+                    created_by=request.user,
+                    status="open",
+                    source=source,
+                    aggregator_order_id=aggregator_id
+                )
+            else:
+                order = get_or_create_open_order(request.user, table)
+                order.source = source
+                if aggregator_id:
+                    order.aggregator_order_id = aggregator_id
+            
+            if discount_type in ["percentage", "amount"]:
+                try:
+                    val = Decimal(str(discount_value))
+                    if val > 0:
+                        order.discount_type = discount_type
+                        order.discount_value = val
+                except:
+                    pass
+
+            order.save()
             add_items_to_order(request.user, order, cart)
 
-            logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in'}")
+            # Important: recalculate after adding items so the discount applies to the total
+            order.recalculate_totals()
+
+            logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in/Online'} source {source}")
 
         return JsonResponse({"success": True, "order_id": order.id})
     except Exception as e:
@@ -163,15 +196,15 @@ def bill_view(request, order_id):
 @login_required
 @tenant_required
 @require_POST
-def generate_bill(request, table_id):
+def generate_bill(request, order_id):
     order = (
         Order.objects
         .filter(tenant=request.user.tenant, outlet=request.user.outlet,
-                table_id=table_id, status="open")
+                id=order_id, status="open")
         .first()
     )
     if not order:
-        return JsonResponse({"error": "No active order for this table"}, status=404)
+        return JsonResponse({"error": "No active order found"}, status=404)
 
     with transaction.atomic():
         order.status = "billing"

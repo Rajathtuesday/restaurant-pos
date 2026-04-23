@@ -12,8 +12,8 @@ def waiter_performance(tenant, outlet=None, start_date=None, end_date=None):
     - Supports multi-outlet (outlet=None)
     """
 
-    if not start_date: start_date = timezone.now().date()
-    if not end_date: end_date = timezone.now().date()
+    if not start_date: start_date = timezone.localdate()
+    if not end_date: end_date = timezone.localdate()
 
     # ----------------------------
     # BASE QUERY

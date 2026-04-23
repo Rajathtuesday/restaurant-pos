@@ -613,16 +613,16 @@
             <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
             <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i
                     class="bi bi-bell me-1"></i> Calls</a>
-            <a href="/reports/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
-            <a href="/login/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i
+            <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+            <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i
                     class="bi bi-box-arrow-right"></i></a>
 
             <!-- Mobile compact links -->
             <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
             <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
             <a href="/waiter-dashboard/" class="btn-icon d-sm-none" title="Calls"><i class="bi bi-bell"></i></a>
-            <a href="/reports/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
-            <a href="/login/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+            <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+            <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 
             <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
                 <i class="bi bi-moon" id="themeIcon"></i>
@@ -701,6 +701,27 @@
             </div>
 
             <div class="cart-summary" id="cartSummaryBlock">
+                <!-- Source and Discounts -->
+                <div class="mb-3">
+                    <select id="sourceSelectDesktop" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'desktop')">
+                        <option value="dine_in">Dine-in</option>
+                        <option value="takeaway">Takeaway</option>
+                        <option value="zomato">Zomato</option>
+                        <option value="swiggy">Swiggy</option>
+                        <option value="uber_eats">Uber Eats</option>
+                        <option value="web">Website</option>
+                    </select>
+                    <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <select id="discountTypeDesktop" class="form-select-luxury mb-0 w-50">
+                        <option value="">No Discount</option>
+                        <option value="percentage">% Off</option>
+                        <option value="amount">Flat Off</option>
+                    </select>
+                    <input type="number" id="discountValueDesktop" class="form-control-minimal mb-0 w-50" placeholder="Value">
+                </div>
+                <!-- Summary -->
                 <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
                 <div class="summary-row"><span>Taxes (5%)</span><span class="view-gst">₹0</span></div>
                 <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
@@ -756,6 +777,27 @@
 
             <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);"
                 id="cartSummaryBlockMobile">
+                <!-- Source and Discounts (Mobile) -->
+                <div class="mb-3">
+                    <select id="sourceSelectMobile" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'mobile')">
+                        <option value="dine_in">Dine-in</option>
+                        <option value="takeaway">Takeaway</option>
+                        <option value="zomato">Zomato</option>
+                        <option value="swiggy">Swiggy</option>
+                        <option value="uber_eats">Uber Eats</option>
+                        <option value="web">Website</option>
+                    </select>
+                    <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <select id="discountTypeMobile" class="form-select-luxury mb-0 w-50">
+                        <option value="">No Discount</option>
+                        <option value="percentage">% Off</option>
+                        <option value="amount">Flat Off</option>
+                    </select>
+                    <input type="number" id="discountValueMobile" class="form-control-minimal mb-0 w-50" placeholder="Value">
+                </div>
+                <!-- Summary -->
                 <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
                 <div class="summary-row"><span>Taxes (5%)</span><span class="view-gst">₹0</span></div>
                 <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
@@ -828,6 +870,20 @@
 
         function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
 
+        /* AGGREGATOR TOGGLE */
+        function toggleAggregator(val, view) {
+            let inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
+            let el = document.getElementById(inputId);
+            if(el) {
+                if(val === 'zomato' || val === 'swiggy' || val === 'uber_eats') {
+                    el.classList.remove('d-none');
+                } else {
+                    el.classList.add('d-none');
+                    el.value = '';
+                }
+            }
+        }
+
         /* TOAST */
         function showToast(msg) {
             let t = document.getElementById("toastBox");
@@ -839,6 +895,7 @@
         let cart = [];
         let selectedItem = null;
         let sending = false;
+        let currentOrderId = null;
 
         /* TABS DESKTOP */
         function switchTab(tab) {
@@ -1033,6 +1090,7 @@
             fetch("{% url 'running-order-items' %}?table=" + tableId)
                 .then(r => r.json())
                 .then(d => {
+                    currentOrderId = d.order_id || null;
                     let html = "";
                     if (!d.items || d.items.length === 0) {
                         html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>No active services</div>";
@@ -1065,10 +1123,24 @@
                 b.disabled = true; b.innerHTML = 'Dispatching...';
             });
 
+            // Read source and discounts from active view
+            let isMobile = window.innerWidth < 992;
+            let source = isMobile ? document.getElementById("sourceSelectMobile").value : document.getElementById("sourceSelectDesktop").value;
+            let aggId = isMobile ? document.getElementById("aggregatorIdMobile").value : document.getElementById("aggregatorIdDesktop").value;
+            let discountType = isMobile ? document.getElementById("discountTypeMobile").value : document.getElementById("discountTypeDesktop").value;
+            let discountValue = isMobile ? document.getElementById("discountValueMobile").value : document.getElementById("discountValueDesktop").value;
+
             fetch("{% url 'create-order' %}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-                body: JSON.stringify({ cart: cart, table_id: tableId })
+                body: JSON.stringify({ 
+                    cart: cart, 
+                    table_id: tableId,
+                    source: source,
+                    aggregator_id: aggId,
+                    discount_type: discountType,
+                    discount_value: discountValue
+                })
             })
                 .then(r => r.json())
                 .then(d => {
@@ -1078,7 +1150,14 @@
                             showToast("Order Sent");
                             clearCart();
                             resetSendBtn();
-                            loadRunningOrder();
+                            
+                            // If it's a takeaway or aggregator, immediately generate the bill
+                            if (source !== 'dine_in') {
+                                generateBill(d.order_id);
+                            } else {
+                                loadRunningOrder();
+                            }
+
                             // Optionally close offcanvas
                             let offcanvasEl = document.getElementById('mobileCartOffcanvas');
                             let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
@@ -1094,10 +1173,26 @@
             });
         }
 
-        function generateBill() {
-            let tableId = document.getElementById("tableSelectDesktop").value;
-            if (!tableId) { showToast("Select table."); return; }
-            window.location.href = "{% url 'generate-bill' 0 %}".replace('0', tableId);
+        function generateBill(orderId = null) {
+            // Use provided orderId, or fallback to the currently active table order
+            if (!orderId) {
+                if (!currentOrderId) { showToast("No active order to bill."); return; }
+                orderId = currentOrderId;
+            }
+            
+            fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
+                } else {
+                    showToast(data.error || "Failed to generate bill.");
+                }
+            })
+            .catch(() => showToast("Error generating bill."));
         }
 
         function cancelOrder(orderId) {

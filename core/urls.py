@@ -21,6 +21,7 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.views.defaults import page_not_found, server_error
 from django.views.generic import TemplateView
+from core import sse_views
 
 
 def custom_404(request, exception):
@@ -70,6 +71,9 @@ urlpatterns = [
 
     # agency module
     path('agency/', include('agency.urls')),
+
+    # SSE Real-time updates
+    path('sse/outlet/<int:outlet_id>/', sse_views.sse_outlet_stream, name='sse-outlet'),
 ]
 
 from django.conf import settings

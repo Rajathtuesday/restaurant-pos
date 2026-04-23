@@ -34,7 +34,7 @@ def owner_dashboard_metrics(user):
         payments = Payment.objects.filter(
             order__tenant=tenant,
             order__outlet=outlet,
-            order__created_at__date=today
+            paid_at__date=today
         )
 
         revenue = payments.aggregate(
