@@ -15,6 +15,18 @@ from dotenv import load_dotenv
 import logging
 load_dotenv()  # Load environment variables from .env file
 
+# -------------------------------------------------------
+# SENTRY — initialise as early as possible, before apps
+# -------------------------------------------------------
+import sentry_sdk
+_SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if _SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=_SENTRY_DSN,
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        send_default_pii=False,
+    )
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -48,6 +60,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    # Third-party
+    'axes',
+    # Internal apps
     'accounts',
     'menu',
     'orders',
@@ -65,9 +80,13 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    # Subdomain → tenant resolution (reads request.get_host())
+    'core.middleware.TenantMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # django-axes must come after AuthenticationMiddleware
+    'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -158,9 +177,67 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# -------------------------------------------------------
+# MEDIA STORAGE — S3 via django-storages
+# Set AWS_STORAGE_BUCKET_NAME in env to enable S3 storage.
+# Falls back to local disk for development.
+# -------------------------------------------------------
+_AWS_BUCKET = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
+if _AWS_BUCKET:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+    AWS_STORAGE_BUCKET_NAME = _AWS_BUCKET
+    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "ap-south-1")
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None  # Use bucket policy
+    AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/" if AWS_S3_CUSTOM_DOMAIN else f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
+# Security Headers
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+
 # Default primary key field type
 
 AUTH_USER_MODEL = 'accounts.User'
+
+# -------------------------------------------------------
+# AUTHENTICATION BACKENDS — axes must be last
+# -------------------------------------------------------
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'axes.backends.AxesStandaloneBackend',
+]
+
+# -------------------------------------------------------
+# DJANGO-AXES — brute-force login protection
+# -------------------------------------------------------
+AXES_FAILURE_LIMIT = int(os.getenv("AXES_FAILURE_LIMIT", "5"))  # lockout after 5 failures
+AXES_COOLOFF_TIME = 1  # hours before account is unlocked automatically
+AXES_LOCKOUT_CALLABLE = None  # use default 403 response
+AXES_RESET_ON_SUCCESS = True  # clear failure count on successful login
+AXES_USERNAME_FORM_FIELD = "username"
+AXES_ENABLE_ADMIN = False  # don't lock admin separately
 
 
 LOGGING = {

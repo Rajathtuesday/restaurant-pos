@@ -28,7 +28,7 @@ def process_payment(order, method, amount, user=None):
     # ----------------------------
     # EXISTING PAYMENTS
     # ----------------------------
-    paid_total = order.payments.aggregate(
+    paid_total = order.payments.exclude(method="refund").aggregate(
         total=Sum("amount")
     )["total"] or Decimal("0.00")
 

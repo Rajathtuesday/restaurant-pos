@@ -1,5 +1,6 @@
 # orders/views/kitchen_views.py
 import logging
+import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -125,7 +126,6 @@ def serve_item(request, item_id):
 @require_POST
 @tenant_required
 def send_kitchen_message(request, order_id):
-    import json
     try:
         data = json.loads(request.body)
         message_text = data.get("message")

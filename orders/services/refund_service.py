@@ -73,6 +73,16 @@ def approve_refund(refund_id, approver):
     refund.status = "approved"
     refund.save(update_fields=["status"])
 
+    # Create a negative Payment so revenue reports reflect net (gross - refunds).
+    # daily_sales() sums Payment.amount — the negative entry cancels out the refunded amount.
+    Payment.objects.create(
+        order=refund.order,
+        method="refund",
+        amount=-refund.amount,  # negative amount
+        reference=f"REFUND-{refund.id}",
+        created_by=approver,
+    )
+
     # Audit event
     OrderEvent.objects.create(
         tenant=refund.order.tenant,

@@ -115,7 +115,7 @@ def add_items_to_order(user, order, cart_items):
             price=menu_item.price,
             gst_percentage=menu_item.gst_percentage,
             total_price=Decimal((base_price)),
-            notes=item.get("note"),
+            notes=item.get("note", ""),
             is_takeaway=item.get("is_takeaway", False),
             status="pending"
         )
@@ -203,7 +203,7 @@ def update_table_state(order):
 
     elif items.exclude(status="served").count() == 0:
 
-        table.state = "served"
+        table.state = "ready"
 
     else:
 

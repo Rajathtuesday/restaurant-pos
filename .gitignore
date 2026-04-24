@@ -44,3 +44,9 @@ er_diagrams_pos/
 
 
 pem/
+
+
+.dockerignore
+Dockerfile
+docker-compose.yml
+POS_System_Architecture_and_Documentation.md

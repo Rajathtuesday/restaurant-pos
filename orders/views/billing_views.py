@@ -15,6 +15,7 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, role_required
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderEvent, OrderItem, Table, TableMerge, Payment
+from shifts.models import CashSession
 from orders.services.order_lock_service import lock_order
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
 from orders.services.payment_service import process_payment
@@ -51,7 +52,7 @@ def billing_view(request):
             Order.objects
             .filter(tenant=request.user.tenant, outlet=request.user.outlet,
                     table_id=table_id, status__in=["open", "billing"])
-            .select_related("table").first()
+            .select_related("table", "lock").first()
         )
 
     if order:
@@ -284,7 +285,6 @@ def pay_order(request, order_id):
                     return JsonResponse({"error": "Amount must be greater than 0 for non-complimentary orders"}, status=400)
 
                 # SECURITY: Ensure a Cash Session is open before accepting payment
-                from shifts.models import CashSession
                 active_session = CashSession.objects.filter(
                     tenant=request.user.tenant, 
                     outlet=request.user.outlet, 
@@ -604,3 +604,116 @@ def print_bill_action(request, order_id):
         logger.exception("Error initiating print")
         return JsonResponse({"error": str(e)}, status=500)
 
+
+# -------------------------------------------------
+# SPLIT BILL  — POST /orders/<id>/split-pay/
+# -------------------------------------------------
+
+@login_required
+@require_POST
+@tenant_required
+def split_pay(request, order_id):
+    """
+    Splits the order grand_total evenly across N people and records
+    a Payment for each share using process_payment().
+
+    Expected JSON body:
+        { "people": 3, "method": "cash" }
+
+    The last person absorbs any rounding remainder so the sum always
+    equals grand_total exactly.
+    """
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    try:
+        people = int(data.get("people", 0))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "Invalid value for 'people'"}, status=400)
+
+    if people < 2:
+        return JsonResponse({"error": "'people' must be 2 or more"}, status=400)
+
+    method = data.get("method")
+    VALID_METHODS = ["cash", "upi", "card"]
+    if method not in VALID_METHODS:
+        return JsonResponse({"error": "Invalid payment method"}, status=400)
+
+    try:
+        config = PaymentConfig.objects.get(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+        method_enabled = {
+            "cash": config.cash_enabled,
+            "upi":  config.upi_enabled,
+            "card": config.card_enabled,
+        }
+        if not method_enabled.get(method, False):
+            return JsonResponse(
+                {"error": f"Payment method '{method}' is not enabled for this outlet."},
+                status=400
+            )
+    except PaymentConfig.DoesNotExist:
+        return JsonResponse(
+            {"error": "Payment methods not configured for this outlet."},
+            status=400
+        )
+
+    from orders.services.split_service import split_bill
+
+    try:
+        with transaction.atomic():
+            order = (
+                Order.objects.select_for_update()
+                .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+            )
+
+            if order.status in ["paid", "closed", "cancelled"]:
+                return JsonResponse({"error": "Order is not payable"}, status=400)
+
+            if order.grand_total <= 0:
+                return JsonResponse({"error": "Order has no balance due"}, status=400)
+
+            shares = split_bill(order, people)
+
+            for share in shares:
+                process_payment(order, method, share, request.user)
+
+            order.refresh_from_db()
+
+            OrderEvent.objects.create(
+                tenant=order.tenant, outlet=order.outlet, order=order,
+                event_type="payment_added",
+                amount=order.grand_total,
+                metadata={"action": "split_bill", "people": people, "method": method},
+                created_by=request.user,
+            )
+
+            if order.status == "paid":
+                order.status = "closed"
+                order.closed_at = timezone.now()
+                order.save(update_fields=["status", "closed_at"])
+                if order.table:
+                    order.table.state = "cleaning"
+                    order.table.save(update_fields=["state"])
+
+        logger.info(
+            f"User {request.user.username} split order #{order_id} "
+            f"across {people} people via {method}"
+        )
+        return JsonResponse({
+            "success": True,
+            "people": people,
+            "shares": [float(s) for s in shares],
+            "order_status": order.status,
+        })
+
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception as e:
+        logger.exception(f"Split-pay error for order #{order_id}")
+        err_msg = e.messages[0] if hasattr(e, "messages") else str(e)
+        return JsonResponse({"error": err_msg}, status=400)

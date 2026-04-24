@@ -6,8 +6,9 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.utils import timezone
+import json
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderEvent, Table, TableMerge
 
 logger = logging.getLogger("pos.orders")
@@ -83,16 +84,18 @@ def tables_data(request):
                 elif order.status == "billing":
                     status = "billing"
                 else:
-                    items = order.items.all()
-                    if not items.exists():
+                    # Convert to list to use prefetch cache
+                    items_list = list(order.items.all())
+                    
+                    if not items_list:
                         status = "ordering"
-                    elif items.filter(status="pending").exists():
+                    elif any(i.status == "pending" for i in items_list):
                         status = "ordering"
-                    elif items.filter(status__in=["sent", "preparing"]).exists():
+                    elif any(i.status in ["sent", "preparing"] for i in items_list):
                         status = "preparing"
-                    elif items.filter(status="ready").exists():
+                    elif any(i.status == "ready" for i in items_list):
                         status = "ready"
-                    elif items.filter(status="served").exists():
+                    elif any(i.status == "served" for i in items_list):
                         status = "served"
                     else:
                         status = "ordering"
@@ -163,7 +166,6 @@ def available_tables(request):
 @tenant_required
 @require_POST
 def merge_tables_view(request):
-    import json
     data = json.loads(request.body)
     from orders.services.table_merge_service import merge_tables
     merge = merge_tables(request.user, data.get("primary_table"), data.get("tables"))
@@ -191,7 +193,6 @@ def unmerge_tables_view(request, primary_id):
 @tenant_required
 @require_POST
 def transfer_table_view(request):
-    import json
     try:
         data = json.loads(request.body)
         order_id = data.get("order_id")
@@ -237,7 +238,7 @@ def transfer_table_view(request):
             if old_table:
                 old_table.state = "free"
                 old_table.save(update_fields=["state"])
-            new_table.state = "occupied"
+            new_table.state = "ordering"
             new_table.save(update_fields=["state"])
 
             OrderEvent.objects.create(
@@ -256,9 +257,9 @@ def transfer_table_view(request):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 @require_POST
 def manage_table_view(request):
-    import json
     try:
         data = json.loads(request.body)
         table_id = data.get("table_id")
@@ -269,6 +270,8 @@ def manage_table_view(request):
         
         if action == "create":
             name = data.get("name")
+            if not name:
+                return JsonResponse({"error": "Table name is required"}, status=400)
             section = data.get("section", "Main Hall")
             Table.objects.create(name=name, section=section, tenant=tenant, outlet=outlet)
             return JsonResponse({"success": True})

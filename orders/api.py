@@ -1,12 +1,18 @@
-# orders/api.py
-
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.db.models import Prefetch
 from django.core.serializers.json import DjangoJSONEncoder
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+import json
+import hmac
+import hashlib
+import logging
 
 from core.decorators import tenant_required
 from orders.models import Table, Order, OrderItem
+
+logger = logging.getLogger("pos.api")
 
 @login_required
 @tenant_required
@@ -77,14 +83,7 @@ def api_active_orders(request):
 
     return JsonResponse({"success": True, "data": data}, encoder=DjangoJSONEncoder)
 
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
-import json
-import hmac
-import hashlib
-import logging
 
-logger = logging.getLogger("pos.api")
 
 @csrf_exempt
 @require_POST
@@ -146,7 +145,14 @@ def api_ingest_order(request):
             
             # Add Items
             for i in items:
-                menu_item = MenuItem.objects.get(id=i.get("menu_item_id"), tenant=tenant, outlet=outlet)
+                menu_item_id = i.get("menu_item_id")
+                try:
+                    menu_item = MenuItem.objects.get(id=menu_item_id, tenant=tenant, outlet=outlet)
+                except MenuItem.DoesNotExist:
+                    return JsonResponse(
+                        {"error": f"Menu item id={menu_item_id} not found or not available at this outlet"},
+                        status=422
+                    )
                 qty = i.get("quantity", 1)
                 
                 # Create item
@@ -155,7 +161,7 @@ def api_ingest_order(request):
                     menu_item=menu_item,
                     quantity=qty,
                     price=menu_item.price,
-                    gst_percentage=0, # Simplified for example
+                    gst_percentage=menu_item.gst_percentage,
                     total_price=menu_item.price * qty,
                     status="sent" # Send to kitchen automatically
                 )

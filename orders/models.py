@@ -5,7 +5,7 @@ import uuid
 
 
 from decimal import Decimal, ROUND_HALF_UP
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -156,16 +156,21 @@ class Order(models.Model):
 
     # -------------------------------------------------
     # SAFE ORDER NUMBER GENERATION
+    # order_number is set immediately after the INSERT in the same
+    # atomic block — no concurrent reader can see order_number=NULL.
     # -------------------------------------------------
-    from django.db import transaction
     @transaction.atomic
     def save(self, *args, **kwargs):
         creating = self._state.adding
         super().save(*args, **kwargs)
 
         if creating and not self.order_number:
-            self.order_number = f"ORD-{self.id:05d}"
-            super().save(update_fields=["order_number"])
+            # Single UPDATE in the same transaction — the INSERT and this
+            # UPDATE are committed together, so no reader ever sees NULL.
+            Order.objects.filter(pk=self.pk).update(
+                order_number=f"ORD-{self.pk:05d}"
+            )
+            self.order_number = f"ORD-{self.pk:05d}"  # keep in-memory object consistent
 
     # -------------------------------------------------
     # UTIL: normalize Decimal to 2 dp
@@ -428,6 +433,7 @@ class Payment(models.Model):
         ("cash", "Cash"),
         ("upi", "UPI"),
         ("card", "Card"),
+        ("refund", "Refund"),  # negative-amount entry created on refund approval
     )
 
     order = models.ForeignKey(
@@ -683,8 +689,8 @@ class OrderLock(models.Model):
 
 class DailyKOTCounter(models.Model):
 
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, null=True)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE, null=True)
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
     date = models.DateField()
 
     value = models.IntegerField(default=0)
@@ -728,6 +734,9 @@ class TableMerge(models.Model):
         indexes = [
             models.Index(fields=["tenant", "outlet", "is_active"]),
         ]
+
+    def __str__(self):
+        return f"Merge on {self.primary_table.name} ({self.tables.count()} tables)"
 
 
 # =====================================================

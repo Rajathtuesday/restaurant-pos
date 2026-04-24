@@ -4,7 +4,7 @@ from django.urls import path
 from orders.services.table_transfer_service import transfer_table
 
 from .views.order_actions import cancel_order, cancel_item
-from .views.billing_views import refund_payment, apply_item_discount, log_bypass
+from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay
 from .views.refund_views import approve_refund_view, reject_refund_view
 from .api import api_tables, api_active_orders, api_ingest_order
 
@@ -99,6 +99,7 @@ urlpatterns = [
     path("refund/reject/<int:refund_id>/", reject_refund_view, name="reject-refund"),
     path("item-discount/<int:item_id>/", apply_item_discount, name="item-discount"),
     path("log-bypass/<int:order_id>/", log_bypass, name="log-bypass"),
+    path("split-pay/<int:order_id>/", split_pay, name="split-pay"),
 
     # API Routes for Headless/Mobile Clients
     path("api/tables/", api_tables, name="api-tables"),

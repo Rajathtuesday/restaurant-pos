@@ -33,6 +33,13 @@ def tenant_required(view_func):
                 "Your account is not assigned to any restaurant."
             )
         
+        # 🔥 CRITICAL: Enforce subdomain isolation
+        # If the middleware found a tenant based on subdomain/IP, it MUST match the user's assigned tenant
+        if hasattr(request, 'tenant') and request.tenant and request.tenant != request.user.tenant:
+            raise PermissionDenied(
+                "Cross-tenant access detected. You are logged into a different restaurant."
+            )
+        
         if not request.user.outlet:
             raise PermissionDenied(
                 "Your account is not assigned to any outlet."

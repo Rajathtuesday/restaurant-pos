@@ -13,7 +13,11 @@ def void_order_item(user, item_id, reason):
         OrderItem.objects
         .select_for_update()
         .select_related("order")
-        .get(id=item_id)
+        .get(
+            id=item_id,
+            order__tenant=user.tenant,
+            order__outlet=user.outlet
+        )
     )
 
     if item.status == "voided":

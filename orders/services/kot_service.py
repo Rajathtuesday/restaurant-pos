@@ -1,6 +1,5 @@
 # orders/services/kot_service.py
 import logging
-import threading
 from collections import defaultdict
 from django.db import transaction
 from django.db.models import F
@@ -74,12 +73,13 @@ def create_kot(user, order):
     # CREATE KOT PER STATION
     # -----------------------------------------
 
+    print_jobs = []
+
     for station_id, group_items in station_groups.items():
 
         # increment safely
         counter.value += 1
         counter.save(update_fields=["value"])
-        counter.refresh_from_db()  # ensure we have the latest value after save
 
         kot_number = counter.value
         
@@ -111,17 +111,10 @@ def create_kot(user, order):
         created_kots.append(kot)
 
         # -----------------------------------------
-        # AUTOMATIC KOT PRINTING
+        # QUEUE KOT PRINTING (OUTSIDE TRANSACTION)
         # -----------------------------------------
         if station and station.printer_ip:
-            def _print_kot():
-                try:
-                    from orders.services.printing_service import PrintingService
-                    printer = PrintingService(printer_type="network", host=station.printer_ip, port=station.printer_port)
-                    printer.print_kot(order, kot)
-                except Exception as e:
-                    logger.error(f"Auto-printing KOT #{kot.kot_number} failed: {e}")
-            threading.Thread(target=_print_kot, daemon=True).start()
+            print_jobs.append((station, kot))
 
     # -----------------------------------------
     # UPDATE TABLE STATE
@@ -134,5 +127,20 @@ def create_kot(user, order):
         table.state = "preparing"
 
         table.save(update_fields=["state"])
+
+    # -----------------------------------------
+    # EXECUTE PRINTING (SAFE OUTSIDE TRANSACTION)
+    # -----------------------------------------
+    for station, kot in print_jobs:
+        try:
+            from orders.services.printing_service import PrintingService
+            printer = PrintingService(
+                printer_type="network", 
+                host=station.printer_ip, 
+                port=station.printer_port
+            )
+            printer.print_kot(order, kot)
+        except Exception as e:
+            logger.error(f"Auto-printing KOT #{kot.kot_number} failed: {e}")
 
     return created_kots

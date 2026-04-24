@@ -11,7 +11,7 @@ def get_kitchen_data(user, station_name=None):
     kots = KOTBatch.objects.filter(
         order__tenant=user.tenant,
         order__outlet=user.outlet,
-        order__status="open"
+        order__status__in=["open", "billing"]
     )
 
     if station_name:
@@ -52,14 +52,19 @@ def get_kitchen_data(user, station_name=None):
     return data
 
 
+@transaction.atomic
 def set_item_preparing(user, item_id):
     """
     Marks a kitchen item as 'preparing'.
     """
-    item = OrderItem.objects.get(
-        id=item_id,
-        order__tenant=user.tenant,
-        order__outlet=user.outlet
+    item = (
+        OrderItem.objects
+        .select_for_update()
+        .get(
+            id=item_id,
+            order__tenant=user.tenant,
+            order__outlet=user.outlet
+        )
     )
 
     if item.status != "sent":
@@ -105,14 +110,20 @@ def set_item_ready(user, item_id):
     return item
 
 
+@transaction.atomic
 def set_item_served(user, item_id):
     """
     Marks an item as 'served' and dynamically updates the table state.
     """
-    item = OrderItem.objects.get(
-        id=item_id,
-        order__tenant=user.tenant,
-        order__outlet=user.outlet
+    item = (
+        OrderItem.objects
+        .select_related("order")
+        .select_for_update()
+        .get(
+            id=item_id,
+            order__tenant=user.tenant,
+            order__outlet=user.outlet
+        )
     )
 
     if item.status != "ready":

@@ -43,13 +43,11 @@ def deduct_inventory(order_item):
     # PROCESS EACH RECIPE INGREDIENT
     # ------------------------------------------
 
-    for recipe in recipes:
+    try:
+        with transaction.atomic():
+            for recipe in recipes:
 
-        required_quantity = recipe.quantity_required * order_item.quantity
-
-        try:
-
-            with transaction.atomic():
+                required_quantity = recipe.quantity_required * order_item.quantity
 
                 inventory = (
                     InventoryItem.objects
@@ -79,19 +77,19 @@ def deduct_inventory(order_item):
 
                 inventory.save(update_fields=["stock"])
 
-        except ObjectDoesNotExist:
+    except ObjectDoesNotExist:
 
-            logger.error(
-                "[INVENTORY ERROR] Inventory item missing for recipe %s",
-                recipe.id
-            )
+        logger.error(
+            "[INVENTORY ERROR] Inventory item missing for a recipe in %s",
+            menu_item.name
+        )
 
-        except Exception as e:
+    except Exception as e:
 
-            logger.exception(
-                "[INVENTORY ERROR] deduction failed for order_item=%s: %s",
-                order_item.id, str(e)
-            )
+        logger.exception(
+            "[INVENTORY ERROR] deduction failed for order_item=%s: %s",
+            order_item.id, str(e)
+        )
 
 
 # -----------------------------------------------------

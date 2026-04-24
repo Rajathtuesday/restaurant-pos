@@ -30,7 +30,7 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
         payments = payments.filter(order__outlet=outlet)
 
     # ----------------------------
-    # TOTAL SALES
+    # TOTAL SALES (net of refunds — negative Payment rows from approve_refund cancel out)
     # ----------------------------
     total_sales = payments.aggregate(
         total=Sum("amount")
@@ -46,12 +46,20 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     total_orders = orders.count()
 
     # ----------------------------
-    # PAYMENT SPLIT
+    # PAYMENT SPLIT (exclude refund rows — they affect total_sales, not a payment method)
     # ----------------------------
+    from django.db.models import Sum as _Sum
     payment_split = (
         payments
+        .exclude(method="refund")
         .values("method")
         .annotate(total=Sum("amount"))
+    )
+
+    # Surface refunds as a separate line so the report is transparent
+    from django.db.models import Q as _Q
+    net_refunds = abs(
+        payments.filter(method="refund").aggregate(total=Sum("amount"))["total"] or 0
     )
 
     # ----------------------------
@@ -63,7 +71,8 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
         "total_sales": float(total_sales),
         "orders": total_orders,
         "avg_order_value": float(avg_order),
-        "payments": list(payment_split)
+        "payments": list(payment_split),
+        "net_refunds": float(net_refunds),
     }
 
 

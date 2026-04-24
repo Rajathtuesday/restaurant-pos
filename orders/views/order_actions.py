@@ -4,6 +4,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 
 from core.decorators import tenant_required
 from orders.models import Order, OrderItem, OrderEvent
@@ -40,7 +41,6 @@ def cancel_order(request, order_id):
                     item.status = "voided"
                     item.void_reason = "Order Cancelled"
                     item.voided_by = request.user
-                    from django.utils import timezone
                     item.voided_at = timezone.now()
                     items_to_update.append(item)
             
@@ -101,7 +101,6 @@ def cancel_item(request, item_id):
             item.status = "voided"
             item.void_reason = "Manual Item Cancellation"
             item.voided_by = request.user
-            from django.utils import timezone
             item.voided_at = timezone.now()
             item.save(update_fields=["status", "void_reason", "voided_by", "voided_at"])
             
