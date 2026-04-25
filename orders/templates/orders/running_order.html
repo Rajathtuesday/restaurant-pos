@@ -241,6 +241,7 @@
                     <div class="item-card">
                         <div>
                             <div class="item-name">${i.name}</div>
+                            ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.75rem; color:var(--accent-gold); font-style:italic; margin-bottom:4px;">+ ${i.modifiers.join(', ')}</div>` : ''}
                             <div class="item-meta">
                                 <span>Qty: ${i.quantity}</span>
                                 <span class="status-badge ${badgeClass}">${i.status}</span>

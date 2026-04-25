@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger("pos.menu")
 
 
-from .models import MenuItemModifierGroup
+from .models import MenuItemModifierGroup, ModifierGroup, Modifier
 
 from inventory.models import InventoryItem, Recipe
 from setup.models import KitchenStation
@@ -539,3 +539,152 @@ def digital_menu(request):
         "tenant": tenant,
         "outlet": outlet
     })
+
+
+@login_required
+def modifier_management(request):
+    if request.user.role not in ["owner", "manager"]:
+        return HttpResponseForbidden()
+
+    groups = ModifierGroup.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    ).prefetch_related("modifiers")
+
+    items = MenuItem.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+
+    # Get linked mappings
+    linked_mappings = MenuItemModifierGroup.objects.filter(
+        menu_item__tenant=request.user.tenant,
+        menu_item__outlet=request.user.outlet
+    ).select_related("menu_item", "modifier_group")
+
+    return render(
+        request,
+        "menu/modifiers_management.html",
+        {
+            "groups": groups,
+            "items": items,
+            "linked_mappings": linked_mappings
+        }
+    )
+
+
+@login_required
+@require_POST
+def create_modifier_group(request):
+    try:
+        data = json.loads(request.body)
+        name = data.get("name")
+        is_required = data.get("is_required", False)
+        max_select = int(data.get("max_select", 1))
+
+        if not name:
+            return JsonResponse({"error": "Group name required"}, status=400)
+
+        ModifierGroup.objects.create(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            name=name,
+            is_required=is_required,
+            max_select=max_select
+        )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def delete_modifier_group(request, group_id):
+    group = get_object_or_404(
+        ModifierGroup,
+        id=group_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+    group.delete()
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
+def add_modifier(request):
+    try:
+        data = json.loads(request.body)
+        group_id = data.get("group_id")
+        name = data.get("name")
+        price = data.get("price", 0)
+
+        group = get_object_or_404(
+            ModifierGroup,
+            id=group_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+
+        Modifier.objects.create(
+            group=group,
+            name=name,
+            price=price
+        )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def delete_modifier(request, modifier_id):
+    modifier = get_object_or_404(
+        Modifier,
+        id=modifier_id,
+        group__tenant=request.user.tenant,
+        group__outlet=request.user.outlet
+    )
+    modifier.delete()
+    return JsonResponse({"success": True})
+
+
+@login_required
+@require_POST
+def link_modifier_group(request):
+    try:
+        data = json.loads(request.body)
+        item_id = data.get("item_id")
+        group_id = data.get("group_id")
+
+        item = get_object_or_404(MenuItem, id=item_id, tenant=request.user.tenant, outlet=request.user.outlet)
+        group = get_object_or_404(ModifierGroup, id=group_id, tenant=request.user.tenant, outlet=request.user.outlet)
+
+        MenuItemModifierGroup.objects.get_or_create(
+            menu_item=item,
+            modifier_group=group
+        )
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def unlink_modifier_group(request):
+    try:
+        data = json.loads(request.body)
+        item_id = data.get("item_id")
+        group_id = data.get("group_id")
+
+        mapping = get_object_or_404(
+            MenuItemModifierGroup,
+            menu_item_id=item_id,
+            modifier_group_id=group_id,
+            menu_item__tenant=request.user.tenant,
+            menu_item__outlet=request.user.outlet
+        )
+        mapping.delete()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)

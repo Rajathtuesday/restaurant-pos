@@ -1001,11 +1001,14 @@
         /* ADD ITEM */
         function addItemWithModifiers() {
             let note = document.getElementById("itemNote").value.trim();
-            let addedPrice = 0;
             let modsSelected = [];
+            let modsSelectedIds = [];
+            let addedPrice = 0;
 
             document.querySelectorAll('.modifier-check:checked').forEach(cb => {
                 modsSelected.push(cb.value);
+                let modId = cb.id.replace('mod_', '');
+                modsSelectedIds.push(parseInt(modId));
                 addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
             });
 
@@ -1017,7 +1020,15 @@
             // Find existing with same name, mods AND takeaway status
             let existing = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
             if (existing) existing.quantity++;
-            else cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, note: finalNote, is_takeaway: isTakeaway });
+            else cart.push({ 
+                id: selectedItem.id, 
+                name: selectedItem.name, 
+                price: finalPrice, 
+                quantity: 1, 
+                note: finalNote, 
+                is_takeaway: isTakeaway,
+                modifiers: modsSelectedIds 
+            });
 
             renderCart();
             if (activeModal) activeModal.hide();
@@ -1098,9 +1109,12 @@
                         d.items.forEach(i => {
                             let statusClass = i.status === "ready" ? "status-ready" : (i.status === "preparing" ? "border-warning text-warning" : "");
                             html += `
-                    <div class="running-row">
-                        <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
-                        <span class="status-badge ${statusClass}">${i.status}</span>
+                    <div class="running-row d-flex flex-column align-items-start">
+                        <div class="d-flex justify-content-between w-100">
+                            <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
+                            <span class="status-badge ${statusClass}">${i.status}</span>
+                        </div>
+                        ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.7rem; color:var(--accent-gold); font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
                     </div>`;
                         });
                         if (d.order_id) {

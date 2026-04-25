@@ -1,4 +1,3 @@
-import pytest
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
@@ -6,21 +5,21 @@ from decimal import Decimal
 from accounts.models import User
 from tenants.models import Tenant, Outlet
 from orders.models import Order, OrderItem, KOTBatch, Table
-from menu.models import MenuItem, Category
+from menu.models import MenuItem, MenuCategory
 from reports.services.kitchen_reports import kitchen_performance, top_kitchen_items
 
 class KitchenReportsTestCase(TestCase):
     def setUp(self):
-        self.tenant = Tenant.objects.create(name="Test Tenant", domain="test_com")
+        self.tenant = Tenant.objects.create(name="Test Tenant")
         self.outlet_1 = Outlet.objects.create(tenant=self.tenant, name="Branch 1")
         self.outlet_2 = Outlet.objects.create(tenant=self.tenant, name="Branch 2")
         
         self.table_1 = Table.objects.create(tenant=self.tenant, outlet=self.outlet_1, name="T1")
         self.table_2 = Table.objects.create(tenant=self.tenant, outlet=self.outlet_2, name="T2")
 
-        self.category = Category.objects.create(tenant=self.tenant, name="Main Course")
-        self.menu_item_1 = MenuItem.objects.create(category=self.category, name="Burger", price=100)
-        self.menu_item_2 = MenuItem.objects.create(category=self.category, name="Pizza", price=200)
+        self.category = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet_1, name="Main Course")
+        self.menu_item_1 = MenuItem.objects.create(tenant=self.tenant, outlet=self.outlet_1, category=self.category, name="Burger", price=100)
+        self.menu_item_2 = MenuItem.objects.create(tenant=self.tenant, outlet=self.outlet_1, category=self.category, name="Pizza", price=200)
 
         # Order 1 in Outlet 1
         self.order_1 = Order.objects.create(tenant=self.tenant, outlet=self.outlet_1, table=self.table_1)

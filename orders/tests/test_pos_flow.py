@@ -7,6 +7,8 @@ from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Table, WaiterCall
 from tenants.models import Outlet, Tenant
+from shifts.models import CashSession
+from setup.models import PaymentConfig
 
 
 class POSTestCase(TestCase):
@@ -55,6 +57,18 @@ class POSTestCase(TestCase):
             category=self.category,
             name="Burger",
             price=100
+        )
+
+        # Open Cash Session
+        CashSession.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            opened_by=self.user, opening_balance=0,
+            status="open"
+        )
+        # Create PaymentConfig
+        PaymentConfig.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            cash_enabled=True, upi_enabled=True, card_enabled=True
         )
 
     # -----------------------------
@@ -145,8 +159,9 @@ class POSTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
         order.refresh_from_db()
-
-        self.assertEqual(order.status, "confirmed")
+        # Order status remains 'open' or becomes 'billing' depending on business logic. 
+        # In this system, it stays 'open' until generate-bill or payment.
+        self.assertEqual(order.status, "open")
 
     # -----------------------------
     # TEST 4
@@ -154,26 +169,30 @@ class POSTestCase(TestCase):
     # -----------------------------
 
     def test_kitchen_preparing(self):
-
         order = Order.objects.create(
             tenant=self.tenant,
             outlet=self.outlet,
             table=self.table,
             created_by=self.user,
-            status="confirmed"
+            status="open"
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            menu_item=self.item,
+            quantity=1,
+            price=100,
+            gst_percentage=5,
+            total_price=105,
+            status="sent"
         )
 
-        response = self.client.post(
-            f"/update-order-status/{order.id}/",
-            json.dumps({"status": "preparing"}),
-            content_type="application/json"
-        )
+        response = self.client.post(f"/item-start/{item.id}/")
 
         self.assertEqual(response.status_code, 200)
 
-        order.refresh_from_db()
+        item.refresh_from_db()
 
-        self.assertEqual(order.status, "preparing")
+        self.assertEqual(item.status, "preparing")
 
     # -----------------------------
     # TEST 5
@@ -181,24 +200,30 @@ class POSTestCase(TestCase):
     # -----------------------------
 
     def test_kitchen_ready(self):
-
         order = Order.objects.create(
             tenant=self.tenant,
             outlet=self.outlet,
             table=self.table,
             created_by=self.user,
+            status="open"
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            menu_item=self.item,
+            quantity=1,
+            price=100,
+            gst_percentage=5,
+            total_price=105,
             status="preparing"
         )
 
-        response = self.client.post(
-            f"/update-order-status/{order.id}/",
-            json.dumps({"status": "ready"}),
-            content_type="application/json"
-        )
+        response = self.client.post(f"/item-ready/{item.id}/")
 
-        order.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
 
-        self.assertEqual(order.status, "ready")
+        item.refresh_from_db()
+
+        self.assertEqual(item.status, "ready")
 
     # -----------------------------
     # TEST 6
@@ -221,21 +246,32 @@ class POSTestCase(TestCase):
     # -----------------------------
 
     def test_payment(self):
-
         order = Order.objects.create(
             tenant=self.tenant,
             outlet=self.outlet,
             table=self.table,
             created_by=self.user,
-            status="ready"
+            status="open"
         )
+        OrderItem.objects.create(
+            order=order,
+            menu_item=self.item,
+            quantity=1,
+            price=100,
+            gst_percentage=0,
+            total_price=100
+        )
+        order.recalculate_totals() # sets grand_total=100
 
         response = self.client.post(
-            f"/update-order-status/{order.id}/",
-            json.dumps({"status": "paid"}),
+            f"/pay/{order.id}/",
+            json.dumps({"method": "cash", "amount": 100}),
             content_type="application/json"
         )
 
+        self.assertEqual(response.status_code, 200)
+
         order.refresh_from_db()
 
-        self.assertEqual(order.status, "paid")
+        # In this system, full payment immediately closes the order
+        self.assertEqual(order.status, "closed")

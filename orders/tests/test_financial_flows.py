@@ -17,6 +17,7 @@ from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Payment, Table
 from shifts.models import CashSession
 from tenants.models import Tenant, Outlet
+from setup.models import PaymentConfig
 
 
 # ─────────────────────────────────────────────
@@ -310,6 +311,12 @@ class PayOrderTest(TestCase):
             tenant=self.t, outlet=self.o,
             opened_by=self.cashier, opening_balance=Decimal("0"),
             status="open"
+        )
+
+        # Create PaymentConfig (now required for payments)
+        PaymentConfig.objects.create(
+            tenant=self.t, outlet=self.o,
+            cash_enabled=True, upi_enabled=True, card_enabled=True
         )
 
     def _pay(self, method="cash", amount=500):

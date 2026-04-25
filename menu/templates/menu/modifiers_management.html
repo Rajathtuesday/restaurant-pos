@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modifier Management | Fine Dining</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-gold: #c5a059;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        body.dark {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, .serif-text { font-family: 'DM Serif Display', serif; }
+
+        .pos-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .brand-title {
+            font-size: 1.5rem; margin: 0; color: var(--text-main);
+            font-weight: 700; letter-spacing: 0.5px;
+        }
+        .brand-title i { color: var(--accent-gold); font-size: 1.2rem; }
+
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-main);
+            padding: 0.6rem 1.4rem; font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 2px; font-weight: 600; border-radius: 0;
+            transition: var(--transition-smooth); display: inline-flex; align-items: center;
+            text-decoration: none;
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main); color: var(--bg-color); background: var(--text-main);
+        }
+        .btn-gold {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
+        }
+        .btn-gold:hover {
+            background: #b59250; border-color: #b59250; color: #fff;
+        }
+
+        .modifier-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 2rem;
+            height: 100%;
+            transition: var(--transition-smooth);
+            box-shadow: var(--shadow-soft);
+        }
+        .modifier-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
+
+        .group-title {
+            font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px;
+            color: var(--text-main); margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modifier-row {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modifier-row:last-child { border-bottom: none; }
+
+        .modifier-name { font-weight: 500; }
+        .modifier-price { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
+
+        .form-input-luxury {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 0;
+            padding: 0.5rem 0;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        .form-input-luxury:focus { outline: none; border-bottom-color: var(--accent-gold); }
+
+        .luxury-badge {
+            font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px;
+            font-weight: 700; padding: 2px 6px; border: 1px solid var(--border-color);
+            margin-left: 5px;
+        }
+        .badge-required { color: #ef4444; border-color: #ef4444; }
+
+        .mapping-section {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .btn-icon { background: transparent; border: none; color: var(--text-muted); transition: 0.2s; }
+        .btn-icon:hover { color: #ef4444; }
+
+    </style>
+</head>
+<body>
+
+    <header class="pos-header">
+        <div class="d-flex flex-column">
+            <h4 class="brand-title mb-0"><i class="bi bi-diamond-half me-2"></i>Modifier Architecture</h4>
+            <p class="mb-0 text-muted small text-uppercase fw-bold" style="letter-spacing:1px;">Customize your menu selections</p>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn-luxury" onclick="openGroupModal()">Create Group</button>
+            <a href="{% url 'menu_management' %}" class="btn-luxury">Back to Menu</a>
+            <button class="btn-icon" style="font-size:1.25rem;" onclick="toggleDark()">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="container py-5">
+        <div class="row g-4">
+            {% for group in groups %}
+            <div class="col-md-6 col-lg-4">
+                <div class="modifier-card">
+                    <div class="group-title">
+                        <div>
+                            {{ group.name }}
+                            {% if group.is_required %}
+                            <span class="luxury-badge badge-required">Required</span>
+                            {% endif %}
+                        </div>
+                        <button class="btn-icon" onclick="deleteGroup('{{ group.id }}')"><i class="bi bi-trash3"></i></button>
+                    </div>
+                    
+                    <div class="modifiers-list mb-4">
+                        {% for mod in group.modifiers.all %}
+                        <div class="modifier-row">
+                            <span class="modifier-name">{{ mod.name }}</span>
+                            <div>
+                                <span class="modifier-price">₹{{ mod.price }}</span>
+                                <button class="btn-icon ms-2" onclick="deleteModifier('{{ mod.id }}')"><i class="bi bi-x-circle"></i></button>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted small italic">No modifiers added.</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="add-modifier-box pt-3 border-top">
+                        <input type="text" id="modName-{{group.id}}" class="form-input-luxury" placeholder="Modifier Name (e.g. Extra Cheese)">
+                        <input type="number" id="modPrice-{{group.id}}" class="form-input-luxury" placeholder="Price (0.00)">
+                        <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="addModifier('{{group.id}}')">Add Modifier</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mapping-section">
+            <h5 class="serif-text text-uppercase mb-4" style="letter-spacing: 2px;">Item-Group Assignments</h5>
+            
+            <div class="row">
+                <div class="col-md-5">
+                    <label class="small text-muted text-uppercase fw-bold">Select Menu Item</label>
+                    <select id="linkItem" class="form-control form-input-luxury">
+                        {% for item in items %}
+                        <option value="{{ item.id }}">{{ item.name }} ({{ item.category.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="small text-muted text-uppercase fw-bold">Select Modifier Group</label>
+                    <select id="linkGroup" class="form-control form-input-luxury">
+                        {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn-luxury btn-gold w-100 mb-2" onclick="linkGroup()">Assign</button>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <table class="table table-hover border">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase">
+                            <th>Menu Item</th>
+                            <th>Modifier Group</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mapping in linked_mappings %}
+                        <tr>
+                            <td class="fw-bold">{{ mapping.menu_item.name }}</td>
+                            <td>{{ mapping.modifier_group.name }}</td>
+                            <td class="text-end">
+                                <button class="btn-icon" onclick="unlinkGroup('{{ mapping.menu_item.id }}', '{{ mapping.modifier_group.id }}')">
+                                    <i class="bi bi-link-45deg"></i> Unlink
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No mappings established yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE GROUP MODAL -->
+    <div class="modal fade" id="groupModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 0; border: 1px solid var(--border-color);">
+                <div class="modal-header">
+                    <h5 class="modal-title serif-text text-uppercase">New Modifier Group</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="groupName" class="form-input-luxury" placeholder="Group Name (e.g. Toppings, Size)">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="groupRequired">
+                        <label class="form-check-label small text-uppercase fw-bold" for="groupRequired">Selection Required</label>
+                    </div>
+                    <input type="number" id="groupMax" class="form-input-luxury" value="1" placeholder="Max Selections">
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createGroup()">Establish Group</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        /* THEME */
+        let isDark = localStorage.getItem("dark") === "true";
+        function updateIcons() {
+            let icon = document.getElementById("themeIcon");
+            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
+            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+        }
+        updateIcons();
+        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+
+        function getCookie(name){
+            let cookieValue=null;
+            if(document.cookie){
+                let cookies=document.cookie.split(";");
+                for(let i=0;i<cookies.length;i++){
+                    let cookie=cookies[i].trim();
+                    if(cookie.substring(0,name.length+1)===(name+"=")){
+                        cookieValue=decodeURIComponent(cookie.substring(name.length+1));
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function openGroupModal() { new bootstrap.Modal(document.getElementById('groupModal')).show(); }
+
+        function createGroup() {
+            const name = document.getElementById('groupName').value;
+            const is_required = document.getElementById('groupRequired').checked;
+            const max_select = document.getElementById('groupMax').value;
+
+            fetch("{% url 'create_modifier_group' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ name, is_required, max_select })
+            }).then(() => location.reload());
+        }
+
+        function deleteGroup(id) {
+            if(!confirm("Erase this group and all its modifiers?")) return;
+            fetch("{% url 'delete_modifier_group' 0 %}".replace('0', id), {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function addModifier(groupId) {
+            const name = document.getElementById(`modName-${groupId}`).value;
+            const price = document.getElementById(`modPrice-${groupId}`).value;
+
+            fetch("{% url 'add_modifier' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ group_id: groupId, name, price })
+            }).then(() => location.reload());
+        }
+
+        function deleteModifier(id) {
+            fetch("{% url 'delete_modifier' 0 %}".replace('0', id), {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function linkGroup() {
+            const item_id = document.getElementById('linkItem').value;
+            const group_id = document.getElementById('linkGroup').value;
+
+            fetch("{% url 'link_modifier_group' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ item_id, group_id })
+            }).then(() => location.reload());
+        }
+
+        function unlinkGroup(itemId, groupId) {
+            fetch("{% url 'unlink_modifier_group' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ item_id: itemId, group_id: groupId })
+            }).then(() => location.reload());
+        }
+    </script>
+</body>
+</html>

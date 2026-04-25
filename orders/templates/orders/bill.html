@@ -122,6 +122,11 @@
                         {% if item.status == 'voided' %}
                         <span style="font-size:0.6rem; color:#ef4444!important; text-decoration:none; display:inline-block; font-weight:700; margin-left:4px">[VOIDED]</span>
                         {% endif %}
+                        <div style="font-size: 0.7rem; color: var(--muted); padding-left: 0.5rem;">
+                            {% for mod in item.modifiers.all %}
+                            + {{ mod.name }} {% if mod.price > 0 %}(₹{{ mod.price }}){% endif %}{% if not forloop.last %}, {% endif %}
+                            {% endfor %}
+                        </div>
                     </span>
                     <span class="item-val">{% if item.is_complimentary %}COMP{% else %}₹{{ item.total_price }}{% endif %}</span>
                 </div>

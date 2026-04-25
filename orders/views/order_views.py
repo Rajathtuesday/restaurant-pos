@@ -62,7 +62,7 @@ def running_order_items(request):
                 table_id=table_id,
                 status__in=["open", "billing"]
             )
-            .prefetch_related("items__menu_item")
+            .prefetch_related("items__menu_item", "items__modifiers")
             .order_by("-created_at")
             .first()
         )
@@ -77,7 +77,8 @@ def running_order_items(request):
                 "id": i.id,
                 "name": item_name,
                 "quantity": i.quantity,
-                "status": i.status
+                "status": i.status,
+                "modifiers": [m.name for m in i.modifiers.all()]
             })
 
         return JsonResponse({"items": items, "order_id": order.id})
@@ -93,7 +94,7 @@ def running_order_data(request, order_id):
     order = (
         Order.objects
         .select_related("table")
-        .prefetch_related("items__menu_item")
+        .prefetch_related("items__menu_item", "items__modifiers")
         .filter(
             id=order_id,
             tenant=request.user.tenant,
@@ -111,7 +112,8 @@ def running_order_data(request, order_id):
             "id": i.id,
             "name": i.menu_item.name,
             "quantity": i.quantity,
-            "status": i.status
+            "status": i.status,
+            "modifiers": [m.name for m in i.modifiers.all()]
         })
 
     return JsonResponse({

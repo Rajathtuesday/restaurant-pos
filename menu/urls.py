@@ -16,6 +16,13 @@ from .views import (
     ai_menu_importer,
     delete_category,
     digital_menu,
+    modifier_management,
+    create_modifier_group,
+    delete_modifier_group,
+    add_modifier,
+    delete_modifier,
+    link_modifier_group,
+    unlink_modifier_group,
 )
 from .api import api_categories, api_items
 
@@ -38,6 +45,15 @@ urlpatterns = [
     path("digital-menu/", digital_menu, name="digital_menu"),
     
     path("update-station/<int:item_id>/", update_station, name="update_station"),
+
+    # modifier management
+    path("modifiers/", modifier_management, name="modifier_management"),
+    path("modifiers/create-group/", create_modifier_group, name="create_modifier_group"),
+    path("modifiers/delete-group/<int:group_id>/", delete_modifier_group, name="delete_modifier_group"),
+    path("modifiers/add-modifier/", add_modifier, name="add_modifier"),
+    path("modifiers/delete-modifier/<int:modifier_id>/", delete_modifier, name="delete_modifier"),
+    path("modifiers/link/", link_modifier_group, name="link_modifier_group"),
+    path("modifiers/unlink/", unlink_modifier_group, name="unlink_modifier_group"),
 
     # modifier API
     path("item-modifiers/<int:item_id>/", menu_item_modifiers, name="menu_item_modifiers"),
