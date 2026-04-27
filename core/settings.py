@@ -89,6 +89,7 @@ MIDDLEWARE = [
     'axes.middleware.AxesMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.ContextLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -248,10 +249,16 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
 
+    "filters": {
+        "tenant_outlet_filter": {
+            "()": "core.log_filters.TenantOutletFilter",
+        }
+    },
+
     "formatters": {
 
         "pos_format": {
-            "format": "[{levelname}] {asctime} {name} {message}",
+            "format": "[{levelname}] {asctime} [T:{tenant_id}|O:{outlet_id}] {name} {message}",
             "style": "{",
         }
 
@@ -266,12 +273,14 @@ LOGGING = {
             "maxBytes": 5 * 1024 * 1024,
             "backupCount": 7,
             "formatter": "pos_format",
+            "filters": ["tenant_outlet_filter"],
         },
 
         "console": {
 
             "class": "logging.StreamHandler",
             "formatter": "pos_format",
+            "filters": ["tenant_outlet_filter"],
 
         },
 

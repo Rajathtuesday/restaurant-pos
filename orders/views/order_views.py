@@ -151,6 +151,15 @@ def approve_items(request, order_id):
             items.update(status="pending")
             
             order = Order.objects.get(id=order_id)
+            
+            # Trigger KOT creation for the newly approved items
+            try:
+                from orders.services.kot_service import create_kot
+                create_kot(request.user, order)
+            except Exception as kot_err:
+                logger.error(f"KOT Creation failed during approval: {kot_err}")
+                # We don't fail the whole request, but we log it
+            
             log_event(order, "status_changed", request.user, {"action": "items_approved", "count": count})
             
             logger.info(f"User {request.user.username} approved {count} items for order #{order_id}")

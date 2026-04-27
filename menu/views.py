@@ -497,7 +497,7 @@ def ai_menu_importer(request):
 
         return JsonResponse({
             "success": True, 
-            "message": f"Gemini AI successfully parsed and imported {imported_count} items."
+            "message": f"In-build AI successfully parsed and imported {imported_count} items."
         })
 
     except Exception as e:
