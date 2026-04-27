@@ -510,10 +510,14 @@ def digital_menu(request):
     from orders.models import Table
     from tenants.models import Tenant, Outlet
     
+    table_token = request.GET.get("table_token")
     table_id = request.GET.get("table")
     table = None
-    if table_id:
+    if table_token:
+        table = Table.objects.filter(qr_token=table_token).first()
+    elif table_id:
         table = Table.objects.filter(id=table_id).first()
+
         
     # Determine tenant/outlet context
     if table:
@@ -687,4 +691,4 @@ def unlink_modifier_group(request):
         mapping.delete()
         return JsonResponse({"success": True})
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"error": str(e)}, status=400)
