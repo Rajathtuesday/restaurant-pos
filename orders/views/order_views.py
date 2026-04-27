@@ -3,9 +3,12 @@ import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.http import require_POST
 
+from django.db import transaction
 from core.decorators import tenant_required
-from orders.models import Order, TableMerge
+from orders.models import Order, TableMerge, OrderItem
+from orders.services.event_service import log_event
 
 logger = logging.getLogger("pos.orders")
 
@@ -122,3 +125,37 @@ def running_order_data(request, order_id):
         "total": float(order.grand_total),
         "items": items
     })
+
+
+@login_required
+@tenant_required
+@require_POST
+def approve_items(request, order_id):
+    """Waiters approve items added via QR code."""
+    try:
+        tenant = request.user.tenant
+        outlet = request.user.outlet
+        
+        with transaction.atomic():
+            items = OrderItem.objects.filter(
+                order_id=order_id,
+                order__tenant=tenant,
+                order__outlet=outlet,
+                status="review"
+            ).select_for_update()
+            
+            if not items.exists():
+                return JsonResponse({"error": "No items found for approval"}, status=404)
+            
+            count = items.count()
+            items.update(status="pending")
+            
+            order = Order.objects.get(id=order_id)
+            log_event(order, "status_changed", request.user, {"action": "items_approved", "count": count})
+            
+            logger.info(f"User {request.user.username} approved {count} items for order #{order_id}")
+            
+        return JsonResponse({"success": True, "count": count})
+    except Exception as e:
+        logger.error(f"approve_items error: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=400)

@@ -17,6 +17,7 @@ staticfiles/
 # Environment — NEVER commit secrets
 .env
 .env.*
+*.pem/
 
 # IDE
 .vscode/

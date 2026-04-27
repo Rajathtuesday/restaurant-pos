@@ -48,7 +48,6 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     # ----------------------------
     # PAYMENT SPLIT (exclude refund rows — they affect total_sales, not a payment method)
     # ----------------------------
-    from django.db.models import Sum as _Sum
     payment_split = (
         payments
         .exclude(method="refund")
@@ -57,7 +56,6 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     )
 
     # Surface refunds as a separate line so the report is transparent
-    from django.db.models import Q as _Q
     net_refunds = abs(
         payments.filter(method="refund").aggregate(total=Sum("amount"))["total"] or 0
     )

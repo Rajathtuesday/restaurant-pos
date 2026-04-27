@@ -159,6 +159,13 @@
         .status-billing { color: #06b6d4; }         .bg-billing { background: #06b6d4; }
         .status-cleaning{ color: var(--c-clean); }  .bg-clean { background: var(--c-clean); }
         .status-merged  { color: #a855f7; }         .bg-merged { background: #a855f7; }
+        .status-approval{ color: #f43f5e; font-weight: bold; } .bg-approval { background: #f43f5e; }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
 
         .occupancy {
             font-size: 0.8rem; color: var(--text-muted); margin-top: 15px;
@@ -335,6 +342,7 @@
         <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#06b6d4; margin-right:6px;"></span> Billing</div>
         <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-clean); margin-right:6px;"></span> Cleaning</div>
         <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#a855f7; margin-right:6px;"></span> Linked</div>
+        <div class="d-flex align-items-center status-approval"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#f43f5e; margin-right:6px;"></span> Review</div>
     </div>
 
     <!-- TABLES GRID -->
@@ -540,6 +548,7 @@
                 else if (statusText === "billing") { statusClass = "status-billing"; bgClass = "bg-billing"; }
                 else if (statusText === "cleaning") { statusClass = "status-cleaning"; bgClass = "bg-clean"; }
                 else if (statusText === "merged") { statusClass = "status-merged"; bgClass = "bg-merged"; }
+                else if (statusText === "needs_approval") { statusClass = "status-approval"; bgClass = "bg-approval"; }
 
                 // Waiter UX logic
                 if (statusText === "free") {
@@ -564,6 +573,12 @@
                     actionsHtml = `
                         <button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-card-action btn-card-primary w-100" style="background:#06b6d4; border-color:#06b6d4;"><i class="bi bi-credit-card me-1"></i> Pay Bill</button>
                         <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
+                    `;
+                }
+                else if (statusText === "needs_approval") {
+                    timerHtml = `<div class="table-timer bg-approval text-white"><i class="bi bi-exclamation-triangle"></i> Review</div>`;
+                    actionsHtml = `
+                        <button onclick="handleTableClick(${t.id})" class="btn-card-action btn-card-primary w-100" style="background:#f43f5e; border-color:#f43f5e;"><i class="bi bi-check-circle me-1"></i> Approve QR</button>
                     `;
                 }
                 else {
@@ -749,6 +764,21 @@
             return;
         }
 
+        if(t.status === "needs_approval") {
+            document.getElementById("actionModalTitle").innerText = t.name;
+            document.getElementById("actionModalStatus").innerText = `Customer added items via QR`;
+            
+            let btns = document.getElementById("actionModalButtons");
+            btns.innerHTML = `
+                <button onclick="approveTableItems(${t.order_id})" class="btn-luxury w-100" style="color:#f43f5e; border-color:#f43f5e; background: rgba(244, 63, 94, 0.1);"><i class="bi bi-check-circle me-2"></i>Approve All Items</button>
+                <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Review Items Individually</button>
+            `;
+
+            if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
+            actionModal.show();
+            return;
+        }
+
         let unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444; border-color:#ef4444;">Unmerge Tables</button>` : '';
 
         btns.innerHTML = `
@@ -851,6 +881,25 @@
         .then(d => {
             if(d.success) { showToast("Table Transferred"); setTimeout(()=>location.reload(), 1000); }
             else showToast(d.error || "Transfer failed");
+        });
+    }
+
+    /* APPROVE QR ITEMS */
+    function approveTableItems(orderId) {
+        if(!confirm("Approve all items for this table?")) return;
+        fetch("{% url 'approve-items' 0 %}".replace('0', orderId), {
+            method: "POST",
+            headers: { "X-CSRFToken": getCookie("csrftoken") }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if(d.success) {
+                if(actionModal) actionModal.hide();
+                showToast("Items Approved & Sent to Kitchen Prep");
+                refreshLayout();
+            } else {
+                showToast(d.error || "Approval failed");
+            }
         });
     }
 

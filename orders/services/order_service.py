@@ -7,19 +7,22 @@ from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
 
 from orders.services.event_service import log_event
+from orders.services.inventory_service import check_inventory_availability
 
 
 # -------------------------------------------------
 # GET OR CREATE OPEN ORDER (SAFE FOR CONCURRENCY)
 # -------------------------------------------------
 
-def get_or_create_open_order(user, table):
+def get_or_create_open_order(user, table, tenant=None, outlet=None):
 
     try:
+        t = tenant or user.tenant
+        o = outlet or user.outlet
 
         return Order.objects.get(
-            tenant=user.tenant,
-            outlet=user.outlet,
+            tenant=t,
+            outlet=o,
             table=table,
             status="open"
         )
@@ -29,10 +32,12 @@ def get_or_create_open_order(user, table):
         try:
 
             with transaction.atomic():
+                t = tenant or user.tenant
+                o = outlet or user.outlet
 
                 order = Order.objects.create(
-                    tenant=user.tenant,
-                    outlet=user.outlet,
+                    tenant=t,
+                    outlet=o,
                     table=table,
                     created_by=user,
                     status="open"
@@ -56,9 +61,11 @@ def get_or_create_open_order(user, table):
         except IntegrityError:
 
             # Another terminal created it simultaneously
+            t = tenant or user.tenant
+            o = outlet or user.outlet
             return Order.objects.get(
-                tenant=user.tenant,
-                outlet=user.outlet,
+                tenant=t,
+                outlet=o,
                 table=table,
                 status="open"
             )
@@ -69,8 +76,10 @@ def get_or_create_open_order(user, table):
 # -------------------------------------------------
 
 @transaction.atomic
-def add_items_to_order(user, order, cart_items):
+def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
     
+    t = tenant or (user.tenant if user else order.tenant)
+    o = outlet or (user.outlet if user else order.outlet)
 
     # Lock order row to prevent simultaneous updates
     order = (
@@ -89,8 +98,8 @@ def add_items_to_order(user, order, cart_items):
 
         menu_item = MenuItem.objects.filter(
             id=item.get("id"),
-            tenant=user.tenant,
-            outlet=user.outlet
+            tenant=t,
+            outlet=o
         ).first()
 
         if not menu_item:
@@ -103,6 +112,12 @@ def add_items_to_order(user, order, cart_items):
 
         if quantity <= 0:
             raise Exception("Invalid quantity")
+
+        # -------------------------------------------------
+        # INVENTORY CHECK (HIGH-2)
+        # -------------------------------------------------
+        if not check_inventory_availability(menu_item, quantity):
+            raise Exception(f"Insufficient inventory for {menu_item.name}")
 
         base_price = Decimal((menu_item.price)) * Decimal((quantity))
         
@@ -117,7 +132,7 @@ def add_items_to_order(user, order, cart_items):
             total_price=Decimal((base_price)),
             notes=item.get("note", ""),
             is_takeaway=item.get("is_takeaway", False),
-            status="pending"
+            status="review" if user is None else "pending"
         )
 
         # -------------------------------------------------
@@ -147,8 +162,8 @@ def add_items_to_order(user, order, cart_items):
             # ⚠️ SECURITY: filter via ModifierGroup's tenant/outlet
             modifier = Modifier.objects.filter(
                 id=mod_id,
-                group__tenant=user.tenant,
-                group__outlet=user.outlet
+                group__tenant=t,
+                group__outlet=o
             ).first()
 
             if not modifier:

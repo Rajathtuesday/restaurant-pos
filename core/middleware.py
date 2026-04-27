@@ -1,4 +1,4 @@
-#core/middleware.py
+from django.conf import settings
 from tenants.models import Tenant
 
 
@@ -23,7 +23,7 @@ class TenantMiddleware:
                 tenant = None
 
         # --- Fallback: ?tenant=slug query param or session (dev / IP access) ---
-        if tenant is None:
+        if tenant is None and settings.DEBUG:
             slug = request.GET.get("tenant") or request.session.get("dev_tenant_slug")
             if slug:
                 try:

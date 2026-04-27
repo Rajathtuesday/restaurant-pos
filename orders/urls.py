@@ -39,7 +39,8 @@ from .views import (
     waiter_dashboard,
     resolve_waiter_call,
     resolve_kitchen_message,
-    print_bill_action
+    print_bill_action,
+    approve_items
 )
 
 urlpatterns = [
@@ -77,6 +78,7 @@ urlpatterns = [
     path("order-data/<int:order_id>/", running_order_data, name="running-order-data"),
 
     path("generate-bill/<int:order_id>/", generate_bill, name="generate-bill"),
+    path("approve-items/<int:order_id>/", approve_items, name="approve-items"),
 
     path("apply-discount/<int:order_id>/", apply_discount, name="apply-discount"),
     

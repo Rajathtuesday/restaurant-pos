@@ -89,6 +89,8 @@ def tables_data(request):
                     
                     if not items_list:
                         status = "ordering"
+                    elif any(i.status == "review" for i in items_list):
+                        status = "needs_approval"
                     elif any(i.status == "pending" for i in items_list):
                         status = "ordering"
                     elif any(i.status in ["sent", "preparing"] for i in items_list):

@@ -317,6 +317,7 @@ class KOTBatch(models.Model):
 class OrderItem(models.Model):
 
     STATUS = (
+        ("review", "Needs Approval"),
         ("pending", "Pending"),
         ("sent", "Sent"),
         ("preparing", "Preparing"),

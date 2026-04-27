@@ -80,9 +80,9 @@ def billing_view(request):
 # CREATE ORDER
 # -------------------------------------------------
 
-@login_required
+# @login_required -- Removed to allow QR guest ordering
 @require_POST
-@tenant_required
+# @tenant_required -- Removed to allow QR guest ordering
 def create_order(request):
     try:
         data = json.loads(request.body)
@@ -91,6 +91,7 @@ def create_order(request):
 
     cart = data.get("cart")
     table_id = data.get("table_id")
+    table_token = data.get("table_token")
     source = data.get("source", "dine_in")
     aggregator_id = data.get("aggregator_id", "")
     discount_type = data.get("discount_type", "")
@@ -99,30 +100,48 @@ def create_order(request):
     if not cart:
         return JsonResponse({"error": "Cart empty"}, status=400)
 
+    tenant = None
+    outlet = None
     table = None
-    if table_id:
-        table = Table.objects.filter(
-            id=table_id, tenant=request.user.tenant,
-            outlet=request.user.outlet, is_active=True
-        ).first()
-        if not table:
-            return JsonResponse({"error": "Invalid table"}, status=400)
+    user = None
+
+    if table_token:
+        # 1. QR Guest Case: Identify table and tenant via UUID token
+        from django.shortcuts import get_object_or_404
+        table = get_object_or_404(Table, qr_token=table_token)
+        tenant = table.tenant
+        outlet = table.outlet
+    elif request.user.is_authenticated:
+        # 2. Staff Case: Logged in user from POS
+        user = request.user
+        tenant = user.tenant
+        outlet = user.outlet
+        if table_id:
+            table = Table.objects.filter(
+                id=table_id, tenant=tenant,
+                outlet=outlet, is_active=True
+            ).first()
+            if not table:
+                return JsonResponse({"error": "Invalid table"}, status=400)
+    else:
+        # 3. Unauthorized: No token and no user
+        return JsonResponse({"error": "Unauthorized. Please scan a QR code."}, status=401)
 
     try:
         with transaction.atomic():
             # For 3rd party or takeaway, we always create a fresh order to avoid merging
             if source != "dine_in" or table is None:
                 order = Order.objects.create(
-                    tenant=request.user.tenant,
-                    outlet=request.user.outlet,
+                    tenant=tenant,
+                    outlet=outlet,
                     table=table,
-                    created_by=request.user,
+                    created_by=user,
                     status="open",
                     source=source,
                     aggregator_order_id=aggregator_id
                 )
             else:
-                order = get_or_create_open_order(request.user, table)
+                order = get_or_create_open_order(user, table, tenant=tenant, outlet=outlet)
                 order.source = source
                 if aggregator_id:
                     order.aggregator_order_id = aggregator_id
@@ -137,16 +156,17 @@ def create_order(request):
                     pass
 
             order.save()
-            add_items_to_order(request.user, order, cart)
+            add_items_to_order(user, order, cart, tenant=tenant, outlet=outlet)
 
             # Important: recalculate after adding items so the discount applies to the total
             order.recalculate_totals()
 
-            logger.info(f"User {request.user.username} created/updated order #{order.id} on table {table.name if table else 'Walk-in/Online'} source {source}")
+            u_name = user.username if user else "Guest (QR)"
+            logger.info(f"User {u_name} created/updated order #{order.id} on table {table.name if table else 'Walk-in/Online'} source {source}")
 
         return JsonResponse({"success": True, "order_id": order.id})
     except Exception as e:
-        logger.error(f"Order creation failed: {e}")
+        logger.exception(f"Order creation failed: {e}")
         return JsonResponse({"error": str(e)}, status=400)
 
 
@@ -174,7 +194,7 @@ def bill_view(request, order_id):
         )
         
         # Calculate remaining balance
-        total_paid = order.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        total_paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
         remaining = order.grand_total - total_paid
         
         return render(request, "orders/bill.html", {
@@ -322,7 +342,7 @@ def pay_order(request, order_id):
                     return JsonResponse({"success": True, "message": "Payment complete, order closed"})
 
                 remaining = order.grand_total - (
-                    order.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+                    order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
                 )
                 return JsonResponse({"success": True, "message": "Partial payment recorded", "remaining": remaining})
 

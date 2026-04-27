@@ -1,18 +1,44 @@
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.db.models import Prefetch
-from django.core.serializers.json import DjangoJSONEncoder
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 import json
 import hmac
 import hashlib
 import logging
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.db.models import Prefetch, Q
+from django.core.serializers.json import DjangoJSONEncoder
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from django.conf import settings
 
 from core.decorators import tenant_required
 from orders.models import Table, Order, OrderItem
+from tenants.models import Tenant, Outlet
+from setup.models import AggregatorConfig
+from menu.models import MenuItem
 
 logger = logging.getLogger("pos.api")
+
+def is_ip_allowed(request):
+    """
+    Validates if the incoming request is from an allowed aggregator IP.
+    HIGH-4: Implementation of IP allowlist.
+    """
+    if settings.DEBUG:
+        return True
+        
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+        
+    # Placeholder for Zomato/Swiggy CIDR ranges
+    # In production, these should be moved to settings.py
+    ALLOWED_IPS = getattr(settings, 'AGGREGATOR_IP_ALLOWLIST', ['127.0.0.1'])
+    
+    # Simple check for now, can be expanded to CIDR range check
+    return ip in ALLOWED_IPS
 
 @login_required
 @tenant_required
@@ -90,8 +116,12 @@ def api_active_orders(request):
 def api_ingest_order(request):
     """
     Simulates a Webhook ingestion endpoint for Zomato / Swiggy / Online Orders.
-    Validates HMAC signature.
+    Validates HMAC signature and IP Allowlist (HIGH-4).
     """
+    if not is_ip_allowed(request):
+        logger.warning(f"Rejected ingest attempt from unauthorized IP: {request.META.get('REMOTE_ADDR')}")
+        return JsonResponse({"error": "Unauthorized IP"}, status=403)
+
     try:
         data = json.loads(request.body)
         
@@ -100,9 +130,6 @@ def api_ingest_order(request):
         source = data.get("source", "web")
         aggregator_id = data.get("aggregator_order_id")
         items = data.get("items", [])
-        
-        from tenants.models import Tenant, Outlet
-        from setup.models import AggregatorConfig
         
         tenant = Tenant.objects.get(id=tenant_id)
         outlet = Outlet.objects.get(id=outlet_id, tenant=tenant)
@@ -126,9 +153,6 @@ def api_ingest_order(request):
         if not hmac.compare_digest(expected_sig, signature):
             return JsonResponse({"error": "Invalid signature"}, status=401)
         
-        from django.db import transaction
-        from menu.models import MenuItem
-
         with transaction.atomic():
             # Check if order already ingested
             if aggregator_id and Order.objects.filter(tenant=tenant, outlet=outlet, aggregator_order_id=aggregator_id).exists():

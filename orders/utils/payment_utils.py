@@ -9,11 +9,11 @@ def validate_order_payment(order):
     This is a financial integrity check.
     """
 
-    paid = order.payments.aggregate(
+    paid = order.payments.exclude(method="refund").aggregate(
         total=Sum("amount")
     )["total"] or Decimal("0.00")
 
-    TOLERANCE = Decimal("0.02")
+    TOLERANCE = Decimal("0.00")
 
     if abs(paid - order.grand_total) > TOLERANCE:
         raise ValidationError(

@@ -94,7 +94,12 @@
     <h1 class="serif-text">{{ tenant.name }}</h1>
     <p class="text-muted">{{ outlet.name }}</p>
     {% if table %}
-    <span class="badge bg-dark">Table: {{ table.name }}</span>
+    <div class="d-flex justify-content-center align-items-center gap-2">
+        <span class="badge bg-dark">Table: {{ table.name }}</span>
+        <button id="callWaiterBtn" class="btn btn-sm btn-outline-dark" onclick="callWaiter()">
+            🛎️ Call Waiter
+        </button>
+    </div>
     {% endif %}
 </div>
 
@@ -154,7 +159,9 @@
 
     function submitOrder() {
         const tableId = "{{ table.id|default:'' }}";
-        if(!tableId) {
+        const tableToken = "{{ table.qr_token|default:'' }}";
+        
+        if(!tableToken && !tableId) {
             alert("No table detected. Please scan a valid table QR.");
             return;
         }
@@ -167,7 +174,9 @@
             },
             body: JSON.stringify({
                 cart: cart,
-                table_id: tableId
+                table_id: tableId,
+                table_token: tableToken,
+                source: "web"
             })
         })
         .then(r => r.json())
@@ -176,10 +185,44 @@
                 alert("Order placed successfully!");
                 cart = [];
                 updateBar();
-                // Optionally redirect to a 'Status' page
             } else {
                 alert("Error: " + data.error);
             }
+        });
+    }
+
+    function callWaiter() {
+        const tableToken = "{{ table.qr_token|default:'' }}";
+        if(!tableToken) return;
+
+        const btn = document.getElementById("callWaiterBtn");
+        btn.disabled = true;
+        btn.innerText = "Calling...";
+
+        fetch(`/menu/call-waiter/${tableToken}/`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.success) {
+                alert("A waiter has been notified!");
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerText = "🛎️ Call Waiter";
+                }, 60000);
+            } else {
+                alert(data.error || "Could not call waiter.");
+                btn.disabled = false;
+                btn.innerText = "🛎️ Call Waiter";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.disabled = false;
+            btn.innerText = "🛎️ Call Waiter";
         });
     }
 </script>
