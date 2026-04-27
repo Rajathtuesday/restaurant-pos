@@ -1,10 +1,12 @@
-import os
 try:
     from google import genai
     from google.genai import types
     HAS_GENAI = True
 except ImportError:
     HAS_GENAI = False
+
+from PIL import Image
+import io
 
 from django.conf import settings
 import logging
@@ -13,6 +15,7 @@ logger = logging.getLogger("pos.ai")
 
 class AIService:
     def __init__(self):
+        import os
         self.api_key = os.getenv("GOOGLE_API_KEY")
         self.client = None
         if self.api_key and HAS_GENAI:
@@ -20,6 +23,23 @@ class AIService:
                 self.client = genai.Client(api_key=self.api_key)
             except Exception as e:
                 logger.error(f"Failed to initialize Gemini Client: {e}")
+
+    def _resize_image(self, image_bytes, max_size=(1600, 1600)):
+        """Resizes image to speed up upload and AI processing."""
+        try:
+            img = Image.open(io.BytesIO(image_bytes))
+            # Convert RGBA to RGB if necessary
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            output = io.BytesIO()
+            img.save(output, format="JPEG", quality=85, optimize=True)
+            return output.getvalue()
+        except Exception as e:
+            logger.warning(f"Image optimization failed: {e}")
+            return image_bytes
 
     def parse_menu(self, text=None, image_bytes=None, mime_type=None):
         """
@@ -58,16 +78,18 @@ class AIService:
             contents.append(f"Here is the menu text:\n{text}")
         
         if image_bytes:
+            # Optimize image size before sending to Google
+            optimized_bytes = self._resize_image(image_bytes)
             contents.append(
                 types.Part.from_bytes(
-                    data=image_bytes,
-                    mime_type=mime_type or "image/jpeg"
+                    data=optimized_bytes,
+                    mime_type="image/jpeg" # We convert to JPEG in _resize_image
                 )
             )
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-flash-latest',
                 contents=contents
             )
             import json
@@ -133,7 +155,7 @@ class AIService:
         prompt = f"Calculate the suggested menu price for '{dish_name}'. Ingredients and their total cost in this dish: {ingredients_with_costs}. Aim for a 30% food cost percentage. Add a summary of why."
         try:
             response = self.client.models.generate_content(
-                model='gemini-1.5-flash',
+                model='gemini-flash-latest',
                 contents=prompt
             )
             return response.text
