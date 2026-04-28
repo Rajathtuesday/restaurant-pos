@@ -23,6 +23,9 @@ from .views import (
     delete_modifier,
     link_modifier_group,
     unlink_modifier_group,
+    gst_management,
+    update_item_gst,
+    update_category_gst,
 )
 from .api import api_categories, api_items
 
@@ -54,6 +57,11 @@ urlpatterns = [
     path("modifiers/delete-modifier/<int:modifier_id>/", delete_modifier, name="delete_modifier"),
     path("modifiers/link/", link_modifier_group, name="link_modifier_group"),
     path("modifiers/unlink/", unlink_modifier_group, name="unlink_modifier_group"),
+
+    # GST management
+    path("gst/", gst_management, name="gst_management"),
+    path("gst/item/<int:item_id>/", update_item_gst, name="update_item_gst"),
+    path("gst/category/<int:category_id>/", update_category_gst, name="update_category_gst"),
 
     # modifier API
     path("item-modifiers/<int:item_id>/", menu_item_modifiers, name="menu_item_modifiers"),

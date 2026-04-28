@@ -103,6 +103,40 @@ class Outlet(models.Model):
         blank=True
     )
 
+    gst_no = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="Restaurant GSTIN (15 characters)"
+    )
+
+    phone = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="Outlet phone number for bills"
+    )
+
+    email = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Outlet email"
+    )
+
+    fssai_no = models.CharField(
+        max_length=14,
+        blank=True,
+        null=True,
+        help_text="FSSAI License Number"
+    )
+
+    whatsapp_no = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True,
+        help_text="WhatsApp number for sending digital bills"
+    )
+
     is_active = models.BooleanField(
         default=True
     )

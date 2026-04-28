@@ -8,6 +8,7 @@ from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 import json
+from decimal import Decimal
 from django.db import transaction
 import logging
 
@@ -691,4 +692,119 @@ def unlink_modifier_group(request):
         mapping.delete()
         return JsonResponse({"success": True})
     except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+def gst_management(request):
+    """
+    GST rate management page — shows all items grouped by category
+    with their current GST rates.
+    """
+    if request.user.role not in ["owner", "manager"]:
+        return HttpResponseForbidden()
+
+    categories = MenuCategory.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_active=True
+    ).prefetch_related("items").order_by("display_order") if hasattr(MenuCategory, 'display_order') else MenuCategory.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_active=True
+    ).prefetch_related("items")
+
+    GST_RATES = [
+        {"value": "0.00",  "label": "0% — Exempt"},
+        {"value": "5.00",  "label": "5% — Non-AC Restaurant"},
+        {"value": "12.00", "label": "12% — Packaged Food"},
+        {"value": "18.00", "label": "18% — AC / Liquor License"},
+    ]
+
+    return render(request, "menu/gst_management.html", {
+        "categories": categories,
+        "gst_rates": GST_RATES,
+    })
+
+
+@login_required
+@require_POST
+def update_item_gst(request, item_id):
+    """
+    AJAX endpoint — update GST rate for a single menu item.
+    """
+    if request.user.role not in ["owner", "manager"]:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    item = get_object_or_404(
+        MenuItem,
+        id=item_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+
+    try:
+        data = json.loads(request.body)
+        gst = Decimal(str(data.get("gst_percentage", "5.00")))
+
+        valid = [Decimal("0"), Decimal("5"), Decimal("12"), Decimal("18")]
+        if gst not in valid:
+            return JsonResponse({"error": "Invalid GST rate"}, status=400)
+
+        item.gst_percentage = gst
+        item.save(update_fields=["gst_percentage"])
+
+        logger.info(f"User {request.user.username} updated GST for item '{item.name}' to {gst}%")
+
+        return JsonResponse({
+            "success": True,
+            "item_id": item.id,
+            "gst_percentage": str(gst),
+            "message": f"{item.name} GST updated to {gst}%"
+        })
+
+    except (json.JSONDecodeError, Exception) as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@require_POST
+def update_category_gst(request, category_id):
+    """
+    AJAX endpoint — update GST rate for ALL items in a category.
+    """
+    if request.user.role not in ["owner", "manager"]:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    category = get_object_or_404(
+        MenuCategory,
+        id=category_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+
+    try:
+        data = json.loads(request.body)
+        gst = Decimal(str(data.get("gst_percentage", "5.00")))
+
+        valid = [Decimal("0"), Decimal("5"), Decimal("12"), Decimal("18")]
+        if gst not in valid:
+            return JsonResponse({"error": "Invalid GST rate"}, status=400)
+
+        updated = category.items.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        ).update(gst_percentage=gst)
+
+        logger.info(f"User {request.user.username} bulk-updated GST for category '{category.name}' to {gst}% ({updated} items)")
+
+        return JsonResponse({
+            "success": True,
+            "category_id": category.id,
+            "gst_percentage": str(gst),
+            "updated_count": updated,
+            "message": f"{updated} items in {category.name} updated to {gst}%"
+        })
+
+    except (json.JSONDecodeError, Exception) as e:
         return JsonResponse({"error": str(e)}, status=400)

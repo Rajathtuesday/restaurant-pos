@@ -30,7 +30,11 @@ def dashboard(request):
     if target_tenant_id and (request.user.role == "agent" or request.user.is_superuser):
         from tenants.models import Tenant
         if request.user.is_superuser:
-            tenant = Tenant.objects.get(id=target_tenant_id)
+            from django.http import Http404
+            try:
+                tenant = Tenant.objects.get(id=target_tenant_id)
+            except Tenant.DoesNotExist:
+                raise Http404("Tenant not found")
         else:
             # Agent can ONLY see tenants assigned to them
             tenant = Tenant.objects.filter(id=target_tenant_id, sales_agent=request.user).first()

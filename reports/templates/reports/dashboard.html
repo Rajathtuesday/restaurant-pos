@@ -256,6 +256,53 @@
             color: var(--text-main);
             font-weight: 600;
         }
+
+        /* ── MOBILE RESPONSIVE ── */
+        @media (max-width: 768px) {
+            /* Container */
+            div.container-fluid { padding: 0 1rem !important; }
+
+            /* Header: stack title above controls */
+            .pos-header {
+                padding: 1.25rem 0 1rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            /* Controls row: scrollable horizontal strip */
+            .pos-header > div:last-child {
+                width: 100%;
+                overflow-x: auto;
+                flex-wrap: nowrap !important;
+                gap: 0.5rem !important;
+                padding-bottom: 0.25rem;
+                scrollbar-width: none;
+            }
+            .pos-header > div:last-child::-webkit-scrollbar { display: none; }
+
+            /* Make filter controls smaller on mobile */
+            .form-select-luxury { font-size: 0.78rem; padding: 0.4rem 0.75rem 0.4rem 0; }
+            .btn-luxury { padding: 0.5rem 0.75rem; font-size: 0.7rem; white-space: nowrap; }
+
+            /* Hide the separator border on mobile */
+            .pos-header div[style*="border-left"] { border-left: none !important; padding-left: 0 !important; margin-left: 0 !important; }
+
+            /* Custom date inputs stack */
+            #customDates { flex-direction: column !important; }
+
+            /* Metrics: 2 cols on mobile */
+            .metric-value { font-size: 2rem; }
+            .card-elegant { padding: 1.5rem 1.25rem; }
+
+            /* Context info: smaller */
+            .context-info { font-size: 0.7rem; margin-bottom: 1.5rem; }
+        }
+
+        @media (max-width: 480px) {
+            .pos-header h4 { font-size: 1.3rem; }
+            .metric-value { font-size: 1.6rem; }
+        }
     </style>
 </head>
 
@@ -618,7 +665,10 @@
         function toggleDark() {
             isDark = !isDark;
             localStorage.setItem("dark", isDark);
-            window.location.reload(); 
+            updateIcons();
+            // Recreate charts with new colors instead of reloading the page
+            chartTextColor = isDark ? '#888888' : '#737373';
+            chartGridColor = isDark ? '#262626' : '#eaeaea';
         }
 
         /* Chart.js Configuration */

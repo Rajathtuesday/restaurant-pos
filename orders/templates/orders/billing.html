@@ -87,7 +87,8 @@
             justify-content: space-between;
             background: var(--bg-color);
             z-index: 100;
-            position: relative;
+            position: sticky;
+            top: 0;
         }
 
         .brand-title {
@@ -145,10 +146,10 @@
         }
 
         /* Workspace Grid */
+        :root { --header-h: 65px; }
         .workspace {
             display: flex;
-            height: calc(100vh - 65px);
-            /* Header offset */
+            height: calc(100vh - var(--header-h));
         }
 
         /* Desktop Sidebar */
@@ -528,22 +529,14 @@
 
         /* Responsive Breakpoints */
         @media (max-width: 991px) {
-            .category-sidebar {
-                display: none;
-            }
+            :root { --header-h: 60px; }
 
-            .mobile-category-nav {
-                display: block;
-            }
-
-            .context-sidebar {
-                display: none;
-            }
+            .category-sidebar { display: none; }
+            .mobile-category-nav { display: block; }
+            .context-sidebar { display: none; }
 
             /* Replaced by Offcanvas */
-            .fab-cart {
-                display: block;
-            }
+            .fab-cart { display: block; }
 
             .workspace {
                 flex-direction: column;
@@ -557,15 +550,21 @@
                 overflow-y: visible;
             }
 
-            .pos-header {
-                padding: 1rem;
-            }
+            .pos-header { padding: 0.85rem 1rem; }
 
             body {
+                overflow-x: hidden;
                 overflow-y: auto;
             }
+        }
 
-            /* Allow native scroll on mobile */
+        @media (max-width: 480px) {
+            .brand-title { font-size: 1.05rem; }
+            .brand-title p { display: none; }
+            .btn-icon { font-size: 1.1rem; padding: 0.35rem; }
+            .pos-header { gap: 0.25rem; }
+            /* Tighten the icon nav row on tiny phones */
+            .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
         }
 
         @media (min-width: 992px) {
@@ -723,7 +722,7 @@
                 </div>
                 <!-- Summary -->
                 <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-                <div class="summary-row"><span>Taxes (5%)</span><span class="view-gst">₹0</span></div>
+                <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
                 <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
                 <div class="d-flex flex-column gap-2 mt-3">
                     <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch
@@ -799,7 +798,7 @@
                 </div>
                 <!-- Summary -->
                 <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-                <div class="summary-row"><span>Taxes (5%)</span><span class="view-gst">₹0</span></div>
+                <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
                 <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
                 <div class="d-flex flex-column gap-2 mt-3">
                     <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch
@@ -844,8 +843,6 @@
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -951,7 +948,33 @@
         /* SYNC SELECT */
         function syncTableSelect(val) {
             document.querySelectorAll(".table-syncer").forEach(s => s.value = val);
+            
+            // Auto-select Takeaway if Walk-in (val="") is selected
+            let srcDesktop = document.getElementById("sourceSelectDesktop");
+            let srcMobile = document.getElementById("sourceSelectMobile");
+            if (!val) {
+                if(srcDesktop) srcDesktop.value = "takeaway";
+                if(srcMobile) srcMobile.value = "takeaway";
+            } else {
+                if(srcDesktop) srcDesktop.value = "dine_in";
+                if(srcMobile) srcMobile.value = "dine_in";
+            }
+            toggleAggregator(srcDesktop ? srcDesktop.value : 'dine_in', 'desktop');
+            toggleAggregator(srcMobile ? srcMobile.value : 'dine_in', 'mobile');
+
             loadRunningOrder();
+        }
+
+        /* AGGREGATOR TOGGLE */
+        function toggleAggregator(val, view) {
+            let idInput = document.getElementById(view === 'mobile' ? 'aggregatorIdMobile' : 'aggregatorIdDesktop');
+            if (!idInput) return;
+            if (['zomato', 'swiggy', 'uber_eats', 'web'].includes(val)) {
+                idInput.classList.remove('d-none');
+            } else {
+                idInput.classList.add('d-none');
+                idInput.value = '';
+            }
         }
 
         /* MODAL */
@@ -1160,13 +1183,19 @@
                 .then(d => {
                     if (!d.success) { showToast(d.error); resetSendBtn(); return; }
                     fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-                        .then(() => {
-                            showToast("Order Sent");
+                        .then(r => r.json())
+                        .then(k => {
+                            if (k.error && k.error !== "No items to send to kitchen") {
+                                showToast(k.error); 
+                            } else {
+                                showToast("Order Sent");
+                            }
+                            
                             clearCart();
                             resetSendBtn();
                             
-                            // If it's a takeaway or aggregator, immediately generate the bill
-                            if (source !== 'dine_in') {
+                            // If it's a takeaway/aggregator OR walk-in (no table), immediately generate the bill
+                            if (source !== 'dine_in' || !tableId) {
                                 generateBill(d.order_id);
                             } else {
                                 loadRunningOrder();
@@ -1174,9 +1203,11 @@
 
                             // Optionally close offcanvas
                             let offcanvasEl = document.getElementById('mobileCartOffcanvas');
-                            let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                            if (offcanvas) offcanvas.hide();
-                        });
+                            if (offcanvasEl) {
+                                let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                                if (offcanvas) offcanvas.hide();
+                            }
+                        }).catch(() => resetSendBtn());
                 }).catch(() => resetSendBtn());
         }
 

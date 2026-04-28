@@ -361,6 +361,61 @@ def rename_table(request, table_id):
         return JsonResponse({"success": False, "error": str(e)})
 
 # ==================================
+# OUTLET SETTINGS
+# ==================================
+
+@login_required
+def outlet_settings(request):
+    """
+    Outlet Settings page — owners can update all restaurant details
+    (name, address, GSTIN, FSSAI, phone, WhatsApp, email) without
+    touching Django admin.
+    """
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/setup/")
+
+    outlet = request.user.outlet
+    tenant = request.user.tenant
+
+    if request.method == "POST":
+        # ── Outlet fields ──
+        name = request.POST.get("outlet_name", "").strip()
+        address = request.POST.get("address", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        whatsapp_no = request.POST.get("whatsapp_no", "").strip()
+        email = request.POST.get("email", "").strip()
+        gst_no = request.POST.get("gst_no", "").strip().upper()
+        fssai_no = request.POST.get("fssai_no", "").strip()
+
+        if name:
+            outlet.name = name
+        outlet.address = address
+        outlet.phone = phone
+        outlet.email = email
+        outlet.gst_no = gst_no
+        outlet.fssai_no = fssai_no
+
+        # Store WhatsApp on the outlet (add field check)
+        if hasattr(outlet, "whatsapp_no"):
+            outlet.whatsapp_no = whatsapp_no
+
+        outlet.save()
+
+        # ── Logo on Tenant ──
+        if "logo" in request.FILES:
+            tenant.logo = request.FILES["logo"]
+            tenant.save(update_fields=["logo"])
+
+        messages.success(request, "Outlet details saved successfully.")
+        return redirect("outlet_settings")
+
+    return render(request, "setup/outlet_settings.html", {
+        "outlet": outlet,
+        "tenant": tenant,
+    })
+
+
+# ==================================
 # AGGREGATOR CONFIG
 # ==================================
 from core.decorators import tenant_required

@@ -243,11 +243,17 @@
         }
 
         @media (max-width: 576px) {
-            .pos-header { padding: 1rem; justify-content: space-between; }
-            .action-group { width: 100%; display: flex; justify-content: space-between; margin-top: 10px; }
-            .btn-luxury { padding: 0.5rem; font-size: 0.7rem; }
-            .table-name { font-size: 1.5rem; }
-            .table-card { padding: 1.5rem 0.5rem; }
+            body { overflow-x: hidden; }
+            .pos-header { padding: 0.85rem 1rem; justify-content: space-between; }
+            .action-group { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.4rem; margin-top: 10px; }
+            .btn-luxury { padding: 0.45rem 0.6rem; font-size: 0.68rem; }
+            .table-name { font-size: 1.3rem; }
+            .table-card { padding: 1rem 0.75rem; }
+            .metric-val { font-size: 1.8rem; }
+        }
+
+        @media (max-width: 400px) {
+            .btn-luxury { padding: 0.4rem 0.5rem; font-size: 0.65rem; letter-spacing: 0; }
         }
 
         /* TOAST */
@@ -303,7 +309,7 @@
     </div>
 </header>
 
-<div class="container-fluid mx-auto py-5" style="max-width: 1400px; padding: 0 2rem;">
+<div class="container-fluid mx-auto py-3 py-md-5" style="max-width: 1400px; padding-left: 1rem; padding-right: 1rem;">
     
     <!-- LIGHT INFOGRAPHICS -->
     <div class="row g-4 mb-5">

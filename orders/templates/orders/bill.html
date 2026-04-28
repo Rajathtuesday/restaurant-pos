@@ -101,7 +101,12 @@
                 {% endif %}
                 <div style="font-size: 0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; color:var(--text);">{{ request.user.outlet.name }}</div>
                 <div class="address">{{ request.user.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
-                <div class="gst">GSTIN: {{ request.user.outlet.gst_no|default:"27AABCU9603R1ZX" }}</div>
+                {% if request.user.outlet.gst_no %}
+                <div class="gst">GSTIN: {{ request.user.outlet.gst_no }}</div>
+                {% endif %}
+                {% if request.user.outlet.fssai_no %}
+                <div class="gst">FSSAI: {{ request.user.outlet.fssai_no }}</div>
+                {% endif %}
             </div>
 
             <div class="meta">
@@ -115,13 +120,11 @@
 
             <div class="item-list">
                 {% for item in order.items.all %}
-                <div class="item {% if item.status == 'voided' %}no-print{% endif %}" {% if item.status == 'voided' %}style="text-decoration: line-through; opacity: 0.5;"{% endif %}>
+                {% if item.status != 'voided' %}
+                <div class="item">
                     <span class="item-name">
-                        {{ item.menu_item.name }} 
+                        {{ item.menu_item.name }}
                         <span style="color:var(--muted)">× {{ item.quantity }}</span>
-                        {% if item.status == 'voided' %}
-                        <span style="font-size:0.6rem; color:#ef4444!important; text-decoration:none; display:inline-block; font-weight:700; margin-left:4px">[VOIDED]</span>
-                        {% endif %}
                         <div style="font-size: 0.7rem; color: var(--muted); padding-left: 0.5rem;">
                             {% for mod in item.modifiers.all %}
                             + {{ mod.name }} {% if mod.price > 0 %}(₹{{ mod.price }}){% endif %}{% if not forloop.last %}, {% endif %}
@@ -130,17 +133,18 @@
                     </span>
                     <span class="item-val">{% if item.is_complimentary %}COMP{% else %}₹{{ item.total_price }}{% endif %}</span>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
 
             <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
             {% if order.gst_total > 0 %}
             <div class="total-row">
-                <span>CGST (2.5%)</span>
+                <span>CGST</span>
                 <span>₹{{ order.cgst_total }}</span>
             </div>
             <div class="total-row">
-                <span>SGST (2.5%)</span>
+                <span>SGST</span>
                 <span>₹{{ order.sgst_total }}</span>
             </div>
             {% endif %}

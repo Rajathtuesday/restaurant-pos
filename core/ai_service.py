@@ -22,7 +22,7 @@ class AIService:
             try:
                 self.client = genai.Client(api_key=self.api_key)
             except Exception as e:
-                logger.error(f"Failed to initialize Gemini Client: {e}")
+                logger.error(f"Failed to initialize AI Client: {e}")
 
     def _resize_image(self, image_bytes, max_size=(1600, 1600)):
         """Resizes image to speed up upload and AI processing."""
@@ -44,7 +44,7 @@ class AIService:
     def parse_menu(self, text=None, image_bytes=None, mime_type=None):
         """
         Parses menu from text or image. 
-        Falls back to manual regex parsing if Gemini is not configured and only text is provided.
+        Falls back to manual regex parsing if AI is not configured and only text is provided.
         """
         # Improved check: only use manual fallback if we have actual text and NO image
         can_manual = bool(text and text.strip() and not image_bytes)
@@ -56,7 +56,7 @@ class AIService:
             
             # If they provided an image but we have no API key
             if image_bytes:
-                raise Exception("Vision/Image parsing requires a Google API Key. Please add GOOGLE_API_KEY to your .env file or use text-only import.")
+                raise Exception("Image parsing requires an AI activation key. Please add it to your configuration.")
             
             # If they provided neither or empty text
             raise Exception("No menu data provided to parse.")
@@ -100,7 +100,7 @@ class AIService:
             raw_json = res_text.strip().replace("```json", "").replace("```", "")
             return json.loads(raw_json)
         except Exception as e:
-            logger.error(f"Gemini API Error: {e}")
+            logger.error(f"In-build AI API Error: {e}")
             if text:
                 logger.info("Retrying with manual parser after API error.")
                 return self._manual_text_parse(text)
@@ -160,5 +160,5 @@ class AIService:
             )
             return response.text
         except Exception as e:
-            logger.error(f"Gemini pricing suggestion error: {e}")
+            logger.error(f"AI pricing suggestion error: {e}")
             return None
