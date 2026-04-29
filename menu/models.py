@@ -1,8 +1,14 @@
-# menu/models.py
 from django.db import models
 from django.db.models import UniqueConstraint, Index
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from setup.models import KitchenStation
+import logging
+from io import BytesIO
+from PIL import Image
+
+logger = logging.getLogger("pos.menu")
+
 
 
 
@@ -121,6 +127,43 @@ class MenuItem(models.Model):
         if self.price < 0:
             raise ValidationError("Price cannot be negative")
 
+    def save(self, *args, **kwargs):
+        # Image compression logic
+        if self.image:
+            # Check if this is a new image or a re-save of an existing compressed image
+            # A simple way to check is looking at the extension. If it's already webp, skip it.
+            if not self.image.name.lower().endswith('.webp'):
+                try:
+                    img = Image.open(self.image)
+                    
+                    # Convert to RGB to prevent transparency issues with JPEG/WebP
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGB")
+                        
+                    # Resize if it's too large (cap at 800x800 for menu items)
+                    max_size = (800, 800)
+                    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                    
+                    # Save into memory
+                    output = BytesIO()
+                    img.save(output, format='WebP', quality=85)
+                    output.seek(0)
+                    
+                    # Rename to .webp
+                    filename = self.image.name.rsplit('.', 1)[0] + '.webp'
+                    
+                    # Save to model field without triggering infinite loop
+                    self.image.save(filename, ContentFile(output.read()), save=False)
+                    
+                    # 🚀 S3/R2 Placeholder 🚀
+                    # Right now, this saves to `media/menu_items/` locally.
+                    # Once you configure `django-storages` and AWS settings in settings.py,
+                    # this exact code will automatically upload the compressed WebP to S3 or Cloudflare R2!
+                    # You won't need to change anything here.
+                except Exception as e:
+                    logger.error(f"Image compression failed for {self.name}: {e}")
+                    
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
