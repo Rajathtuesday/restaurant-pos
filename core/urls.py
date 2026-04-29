@@ -73,6 +73,9 @@ urlpatterns = [
 
     # agency module
     path('agency/', include('agency.urls')),
+
+    # notifications module
+    path('', include('notifications.urls')),
 ]
 
 from django.conf import settings

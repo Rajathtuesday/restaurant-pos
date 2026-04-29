@@ -274,6 +274,31 @@
         }
         .toast-minimal.show { opacity: 1; pointer-events: auto; }
 
+        /* WAITER BADGE */
+        .waiter-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 800;
+            border: 2px solid var(--panel-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            z-index: 5;
+            cursor: help;
+        }
+
+        .waiter-badge.qr-badge {
+            background: #f43f5e;
+        }
+
     </style>
 </head>
 
@@ -612,6 +637,12 @@
                     <div class="table-card w-100 shadow-sm">
                         <div class="table-status-line ${bgClass}"></div>
                         
+                        ${t.waiter_initials ? `
+                            <div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">
+                                ${t.waiter_initials}
+                            </div>
+                        ` : ''}
+
                         <div class="table-header">
                             <div class="d-flex align-items-center flex-wrap">
                                 <h3 class="table-name mb-0">${t.name}</h3>
@@ -909,10 +940,28 @@
         });
     }
 
+    /* NOTIFICATION POLLING */
+    let lastNotifyId = 0;
+    function pollNotifications() {
+        // Fetch unread notifications for the outlet
+        fetch("/api/notifications/unread/")
+        .then(r => r.json())
+        .then(d => {
+            if(d.notifications && d.notifications.length > 0) {
+                d.notifications.forEach(n => {
+                    showToast(`🔔 ${n.message}`);
+                    // Play a subtle sound?
+                });
+                // Update badge count if we had one
+            }
+        });
+    }
+
     /* INIT */
     document.addEventListener("DOMContentLoaded", () => {
         refreshLayout();
         setInterval(refreshLayout, 5000); // Polling for live status
+        setInterval(pollNotifications, 10000); // Polling for kitchen alerts
     });
 
 </script>

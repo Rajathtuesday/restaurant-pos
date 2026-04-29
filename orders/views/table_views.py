@@ -50,7 +50,7 @@ def tables_data(request):
         orders = (
             Order.objects
             .filter(tenant=tenant, outlet=outlet, status__in=["open", "billing"])
-            .select_related("table")
+            .select_related("table", "created_by")
             .prefetch_related("items")
         )
         orders_map = {o.table_id: o for o in orders}
@@ -115,7 +115,9 @@ def tables_data(request):
                     "is_primary": is_primary,
                     "merged_with_names": ", ".join(merged_with_names),
                     "primary_table": primary_table_id,
-                    "primary_table_name": primary_table_name
+                    "primary_table_name": primary_table_name,
+                    "waiter_name": (order.created_by.get_full_name() or order.created_by.username) if order and order.created_by else ("Guest (QR)" if order else ""),
+                    "waiter_initials": "".join([n[0] for n in (order.created_by.get_full_name() or order.created_by.username).split()])[:2].upper() if order and order.created_by else ("QR" if order else "")
                 })
             except Exception as e:
                 data.append({"id": table.id, "name": table.name, "section": table.section, "status": "error",
