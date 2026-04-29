@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /menu/digital-menu/
+Disallow: /admin/
+Disallow: /billing/
+Disallow: /kitchen/
+Disallow: /order/
+Disallow: /pay/
+Disallow: /crm/
+Disallow: /inventory/
+Disallow: /setup/
+
+# Sitemap: https://yourdomain.com/sitemap.xml

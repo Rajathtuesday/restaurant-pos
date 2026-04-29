@@ -2,8 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Digital Menu | {{ tenant.name }}</title>
+    <title>{{ tenant.name }} | Premium Digital Menu</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <meta name="description" content="Explore our curated selection of gourmet dishes. Order online from your table at {{ tenant.name }}.">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Social Media / AI Previews -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:title" content="{{ tenant.name }} Digital Menu">
+    <meta property="og:description" content="Experience bespoke dining. View our menu and order instantly.">
+    {% if tenant.logo %}
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tenant.logo.url }}">
+    {% endif %}
+
+    <!-- Structured Data (Schema.org) for AI Understanding -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "{{ tenant.name }}",
+      "image": "{% if tenant.logo %}{{ request.scheme }}://{{ request.get_host }}{{ tenant.logo.url }}{% endif %}",
+      "@id": "{{ request.build_absolute_uri }}",
+      "url": "{{ request.build_absolute_uri }}",
+      "telephone": "{{ outlet.phone|default:'' }}",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "{{ outlet.address|default:'' }}",
+        "addressLocality": "{{ outlet.city|default:'' }}",
+        "addressCountry": "IN"
+      },
+      "menu": "{{ request.build_absolute_uri }}",
+      "servesCuisine": "Multi-cuisine",
+      "priceRange": "₹₹"
+    }
+    </script>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
