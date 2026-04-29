@@ -179,12 +179,22 @@ def delete_category(request, category_id):
 def create_menu_item(request):
 
     try:
-
-        data = json.loads(request.body)
-
-        name = data.get("name")
-        price = data.get("price")
-        category_id = data.get("category")
+        # Check if request is JSON or Form Data
+        if request.content_type == "application/json":
+            data = json.loads(request.body)
+            name = data.get("name")
+            price = data.get("price")
+            category_id = data.get("category")
+            station_id = data.get("station")
+            description = data.get("description", "")
+            image = None
+        else:
+            name = request.POST.get("name")
+            price = request.POST.get("price")
+            category_id = request.POST.get("category")
+            station_id = request.POST.get("station")
+            description = request.POST.get("description", "")
+            image = request.FILES.get("image")
 
         if not name or not price:
             return JsonResponse({"error": "Missing fields"}, status=400)
@@ -195,8 +205,6 @@ def create_menu_item(request):
             tenant=request.user.tenant,
             outlet=request.user.outlet
         )
-
-        station_id = data.get("station")
 
         station = None
         if station_id:
@@ -211,6 +219,8 @@ def create_menu_item(request):
             outlet=request.user.outlet,
             name=name,
             price=price,
+            description=description,
+            image=image,
             category=category,
             station=station
         )

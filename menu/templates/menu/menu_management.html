@@ -457,6 +457,14 @@
                         <input id="itemPrice" class="form-control form-input-luxury" placeholder="0.00"/>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Description</label>
+                        <textarea id="itemDescription" class="form-control form-input-luxury" placeholder="Delicious and freshly prepared..." rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Item Image (Optional)</label>
+                        <input type="file" id="itemImage" class="form-control form-input-luxury" accept="image/*"/>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Classification</label>
                         <select id="itemCategory" class="form-select form-select-luxury">
                             {% for category in categories %}
@@ -637,15 +645,22 @@
         }
 
         function createItem(){
-            let name = document.getElementById("itemName").value;
-            let price = document.getElementById("itemPrice").value;
-            let category = document.getElementById("itemCategory").value;
-            let station = document.getElementById("itemStation").value;
+            let formData = new FormData();
+            formData.append("name", document.getElementById("itemName").value);
+            formData.append("price", document.getElementById("itemPrice").value);
+            formData.append("category", document.getElementById("itemCategory").value);
+            formData.append("station", document.getElementById("itemStation").value);
+            formData.append("description", document.getElementById("itemDescription").value);
+            
+            let imgInput = document.getElementById("itemImage");
+            if(imgInput.files[0]) {
+                formData.append("image", imgInput.files[0]);
+            }
 
             fetch("{% url 'create_menu_item' %}", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-                body: JSON.stringify({ name: name, price: price, category: category, station: station })
+                headers: { "X-CSRFToken": getCookie("csrftoken") },
+                body: formData
             }).then(() => location.reload());
         }
 
