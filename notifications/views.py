@@ -12,14 +12,18 @@ def unread_notifications(request):
     Returns unread notifications for the current outlet.
     Marks them as read once fetched to prevent duplicate alerts.
     """
-    notifications = Notification.objects.filter(
+    # Fetch unread notifications
+    notifications_qs = Notification.objects.filter(
         tenant=request.user.tenant,
         outlet=request.user.outlet,
         is_read=False
-    ).order_by("-created_at")[:10]
+    ).order_by("-created_at")
+
+    # Slice to get the latest 10
+    notifications_list = list(notifications_qs[:10])
 
     data = []
-    for n in notifications:
+    for n in notifications_list:
         data.append({
             "id": n.id,
             "type": n.type,
@@ -27,7 +31,9 @@ def unread_notifications(request):
             "created_at": n.created_at.isoformat()
         })
     
-    # Mark as read
-    notifications.update(is_read=True)
+    # Mark only the fetched notifications as read
+    if notifications_list:
+        notif_ids = [n.id for n in notifications_list]
+        Notification.objects.filter(id__in=notif_ids).update(is_read=True)
 
     return JsonResponse({"notifications": data})
