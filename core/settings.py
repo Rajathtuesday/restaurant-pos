@@ -314,6 +314,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "pos.reports": {
+            "handlers": ["file", "console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 
 }

@@ -73,11 +73,13 @@
 
         .nav-back { position: absolute; top: -50px; left: 0; color: var(--muted); text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; transition: color 0.2s; }
         .nav-back:hover { color: var(--gold); }
+        .print-only { display: none; }
 
         @media print {
             body { padding: 0; background: #fff; color: #000; }
             .receipt-container { box-shadow: none; border: none; max-width: 100%; padding: 0; }
             .no-print { display: none !important; }
+            .print-only { display: flex !important; }
             .logo, .address, .item, .total-row, .meta { color: #000 !important; }
             * { border-color: #000 !important; }
         }
@@ -103,13 +105,13 @@
                 {% else %}
                 <div class="logo serif">{{ request.user.tenant.name }}</div>
                 {% endif %}
-                <div style="font-size: 0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; color:var(--text);">{{ request.user.outlet.name }}</div>
-                <div class="address">{{ request.user.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
-                {% if request.user.outlet.gst_no %}
-                <div class="gst">GSTIN: {{ request.user.outlet.gst_no }}</div>
+                <div style="font-size: 0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; color:var(--text);">{{ order.outlet.name }}</div>
+                <div class="address">{{ order.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
+                {% if order.outlet.gst_no %}
+                <div class="gst">GSTIN: {{ order.outlet.gst_no }}</div>
                 {% endif %}
-                {% if request.user.outlet.fssai_no %}
-                <div class="gst">FSSAI: {{ request.user.outlet.fssai_no }}</div>
+                {% if order.outlet.fssai_no %}
+                <div class="gst">FSSAI: {{ order.outlet.fssai_no }}</div>
                 {% endif %}
             </div>
 
@@ -159,19 +161,41 @@
             </div>
 
             <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
-            {% for gst in order.gst_breakdown %}
-            <div class="total-row">
-                <span>CGST @ {{ gst.cgst_rate }}%</span>
-                <span>₹{{ gst.cgst_amount }}</span>
-            </div>
-            <div class="total-row">
-                <span>SGST @ {{ gst.sgst_rate }}%</span>
-                <span>₹{{ gst.sgst_amount }}</span>
-            </div>
-            {% endfor %}
+
             {% if order.discount_total > 0 %}
             <div class="total-row" style="color:#ef4444"><span>Discount</span><span>- ₹{{ order.discount_total }}</span></div>
             {% endif %}
+
+            <!-- GST SLAB BREAKDOWN — Detail for WhatsApp, Hidden for Print -->
+            {% if order.gst_breakdown %}
+            <div class="no-print" style="margin: 0.75rem 0; padding: 0.75rem; border: 1px dashed var(--border); border-radius: 2px; background: rgba(197,160,89,0.04);">
+                <div style="font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.6rem; font-weight: 600;">Tax Breakdown</div>
+                {% for gst in order.gst_breakdown %}
+                <div style="margin-bottom: 0.4rem;">
+                    <div style="font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-bottom: 0.2rem; letter-spacing: 0.5px;">GST Slab @ {{ gst.rate }}%</div>
+                    <div class="total-row" style="font-size: 0.8rem; padding: 0.1rem 0;">
+                        <span style="color:var(--muted);">CGST @ {{ gst.cgst_rate }}%</span>
+                        <span>₹{{ gst.cgst_amount }}</span>
+                    </div>
+                    <div class="total-row" style="font-size: 0.8rem; padding: 0.1rem 0;">
+                        <span style="color:var(--muted);">SGST @ {{ gst.sgst_rate }}%</span>
+                        <span>₹{{ gst.sgst_amount }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="total-row" style="font-size: 0.82rem; font-weight: 700; border-top: 1px solid var(--border); padding-top: 0.4rem; margin-top: 0.3rem;">
+                    <span>Total GST</span>
+                    <span>₹{{ order.gst_total }}</span>
+                </div>
+            </div>
+
+            <!-- COMPACT GST FOR PRINTING -->
+            <div class="total-row print-only">
+                <span>GST Total</span>
+                <span>₹{{ order.gst_total }}</span>
+            </div>
+            {% endif %}
+
             {% if order.round_off != 0 %}
             <div class="total-row" style="color:var(--muted)"><span>Round Off</span><span>{% if order.round_off > 0 %}+{% endif %} ₹{{ order.round_off }}</span></div>
             {% endif %}
@@ -182,7 +206,7 @@
             </div>
 
             {% if order.payments.exists %}
-            <div style="margin-top: 1.5rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+            <div class="no-print" style="margin-top: 1.5rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
                 <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.5rem;">Payment Splits</div>
                 {% for p in order.payments.all %}
                 <div class="total-row" style="font-size: 0.85rem;">
