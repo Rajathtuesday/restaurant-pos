@@ -537,23 +537,20 @@
 
     /* THEME MANAGEMENT */
     let isDark = localStorage.getItem("dark") === "true";
-
-    function updateIcons() {
+    function updateTheme() {
         let icon = document.getElementById("themeIcon");
-        if(isDark) { 
-            document.body.classList.add("dark"); 
-            icon.classList.replace("bi-moon", "bi-sun"); 
+        if (isDark) {
+            document.body.classList.add("dark");
+            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
             document.documentElement.style.setProperty('--invert-val', '1');
-        } 
-        else { 
-            document.body.classList.remove("dark"); 
-            icon.classList.replace("bi-sun", "bi-moon"); 
+        } else {
+            document.body.classList.remove("dark");
+            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
             document.documentElement.style.setProperty('--invert-val', '0');
         }
     }
-    updateIcons();
-
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+    updateTheme();
+    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateTheme(); }
 
     /* RENDER TABLES */
     let tableDataStore = [];
@@ -562,9 +559,16 @@
         fetch("/tables-data/")
         .then(r => r.json())
         .then(d => {
+            if (!d || !d.tables) {
+                console.error("Invalid table data:", d);
+                throw new Error(d.message || "Invalid data format from server");
+            }
+            
             tableDataStore = d.tables;
             let container = document.getElementById("tableGrid");
-            container.innerHTML = "";
+            if (!container) return;
+
+            let fullHtml = ""; 
             
             d.tables.forEach(t => {
                 let statusText = t.status || "free";
@@ -581,7 +585,6 @@
                 else if (statusText === "merged") { statusClass = "status-merged"; bgClass = "bg-merged"; }
                 else if (statusText === "needs_approval") { statusClass = "status-approval"; bgClass = "bg-approval"; }
 
-                // Waiter UX logic
                 if (statusText === "free") {
                     actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
                     if (t.is_primary) {
@@ -591,9 +594,7 @@
                 else if (statusText === "merged") {
                     let pName = t.primary_table_name || t.primary_table;
                     timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
-                    actionsHtml = `
-                        <button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>
-                    `;
+                    actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>`;
                 }
                 else if (statusText === "cleaning") {
                     timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
@@ -613,9 +614,7 @@
                     `;
                 }
                 else {
-                    // Active order (Ordering, Preparing, Served)
                     if(t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
-                    
                     actionsHtml = `
                         <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
                         <button onclick="generateBillForOrder(${t.order_id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
@@ -632,51 +631,46 @@
                 
                 let sectionBadge = t.section ? `<span class="badge bg-secondary ms-2 bg-opacity-25" style="color:var(--text-main);">${t.section}</span>` : '';
 
-                let html = `
+                fullHtml += `
                 <div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
                     <div class="table-card w-100 shadow-sm">
                         <div class="table-status-line ${bgClass}"></div>
-                        
-                        ${t.waiter_initials ? `
-                            <div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">
-                                ${t.waiter_initials}
-                            </div>
-                        ` : ''}
-
+                        ${t.waiter_initials ? `<div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">${t.waiter_initials}</div>` : ''}
                         <div class="table-header">
-                            <div class="d-flex align-items-center flex-wrap">
-                                <h3 class="table-name mb-0">${t.name}</h3>
-                                ${sectionBadge}
-                            </div>
+                            <div class="d-flex align-items-center flex-wrap"><h3 class="table-name mb-0">${t.name}</h3>${sectionBadge}</div>
                             ${timerHtml}
                         </div>
                         <div class="table-status ${statusClass}">${statusText}</div>
-
                         ${mergeBadge}
-                        
-                        <div class="mt-auto">
-                            <div class="card-actions">
-                                ${actionsHtml}
-                            </div>
-                        </div>
+                        <div class="mt-auto"><div class="card-actions">${actionsHtml}</div></div>
                     </div>
                 </div>`;
-                container.innerHTML += html;
             });
             
-            // Update live metrics widgets
+            container.innerHTML = fullHtml;
+            
+            // Update live metrics
             let statTotal = d.tables.length;
             let statFree = d.tables.filter(x => x.status === "free").length;
             let statBilling = d.tables.filter(x => x.status === "billing").length;
             let statActive = statTotal - statFree - d.tables.filter(x => x.status === "cleaning" || x.status === "merged").length;
             
-            document.getElementById("stat-total").innerText = statTotal;
-            document.getElementById("stat-free").innerText = statFree;
-            document.getElementById("stat-active").innerText = statActive;
-            document.getElementById("stat-billing").innerText = statBilling;
+            if (document.getElementById("stat-total")) document.getElementById("stat-total").innerText = statTotal;
+            if (document.getElementById("stat-free")) document.getElementById("stat-free").innerText = statFree;
+            if (document.getElementById("stat-active")) document.getElementById("stat-active").innerText = statActive;
+            if (document.getElementById("stat-billing")) document.getElementById("stat-billing").innerText = statBilling;
 
-            // Populate dropdowns once data is loaded
             populateModals();
+        })
+        .catch(err => {
+            console.error("Tables Load Error:", err);
+            let container = document.getElementById("tableGrid");
+            if (container) {
+                container.innerHTML = `<div class="col-12 text-center text-danger py-5">
+                    <i class="bi bi-exclamation-triangle fs-1 d-block mb-3"></i>
+                    Failed to load table floor plan. ${err.message || ''}
+                </div>`;
+            }
         });
     }
 
@@ -685,39 +679,48 @@
         let s = document.getElementById("mergeSecondary");
         let tf = document.getElementById("transferFrom");
         let tt = document.getElementById("transferTo");
+        let mList = document.getElementById("tblManageList");
         
+        if (!p || !s || !tf || !tt) return; // Guard against missing elements
+
         let pVal = p.value, sVal = s.value, tfVal = tf.value, ttVal = tt.value;
         
-        p.innerHTML = '<option value="" disabled selected>Select Primary Table...</option>';
-        s.innerHTML = '<option value="" disabled selected>Select a table to merge...</option>';
-        tf.innerHTML = '<option value="" disabled selected>Select source table...</option>';
-        tt.innerHTML = '<option value="" disabled selected>Select destination table...</option>';
+        let pOptions = '<option value="" disabled selected>Select Primary Table...</option>';
+        let sOptions = '<option value="" disabled selected>Select a table to merge...</option>';
+        let tfOptions = '<option value="" disabled selected>Select source table...</option>';
+        let ttOptions = '<option value="" disabled selected>Select destination table...</option>';
 
         tableDataStore.forEach(t => {
             let opt = `<option value="${t.id}">${t.name}</option>`;
-            p.innerHTML += opt;
-            if(t.status === "free") tt.innerHTML += opt; // only transfer TO free tables
-            if(t.status === "free") s.innerHTML += opt;  // mostly merge secondary should be free or easily overriden
-            tf.innerHTML += opt;
+            pOptions += opt;
+            if(t.status === "free") ttOptions += opt;
+            if(t.status === "free") sOptions += opt;
+            tfOptions += opt;
         });
+
+        p.innerHTML = pOptions;
+        s.innerHTML = sOptions;
+        tf.innerHTML = tfOptions;
+        tt.innerHTML = ttOptions;
         
-        // Retain selections if possible
         if(pVal) p.value = pVal;
         if(sVal) s.value = sVal;
         if(tfVal) tf.value = tfVal;
         if(ttVal) tt.value = ttVal;
         
-        let mList = document.getElementById("tblManageList");
-        mList.innerHTML = "";
-        tableDataStore.forEach(t => {
-            mList.innerHTML += `
-            <tr>
-                <td><input type="text" id="editName_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.name}"></td>
-                <td><input type="text" id="editSection_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.section || ''}"></td>
-                <td><button class="btn btn-sm btn-outline-secondary py-1" onclick="showQR('${t.name}', '${t.qr_token}')"><i class="bi bi-qr-code"></i></button></td>
-                <td><button class="btn btn-sm btn-dark py-1" onclick="saveTableEdit(${t.id})">Save</button></td>
-            </tr>`;
-        });
+        if (mList) {
+            let mHtml = "";
+            tableDataStore.forEach(t => {
+                mHtml += `
+                <tr>
+                    <td><input type="text" id="editName_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.name}"></td>
+                    <td><input type="text" id="editSection_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.section || ''}"></td>
+                    <td><button class="btn btn-sm btn-outline-secondary py-1" onclick="showQR('${t.name}', '${t.qr_token}')"><i class="bi bi-qr-code"></i></button></td>
+                    <td><button class="btn btn-sm btn-dark py-1" onclick="saveTableEdit(${t.id})">Save</button></td>
+                </tr>`;
+            });
+            mList.innerHTML = mHtml;
+        }
     }
 
     function showQR(name, token) {
@@ -966,5 +969,6 @@
 
 </script>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -285,13 +285,22 @@
     <script>
         /* THEME */
         let isDark = localStorage.getItem("dark") === "true";
-        function updateIcons() {
+        function updateTheme() {
             let icon = document.getElementById("themeIcon");
-            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
-            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+            if (isDark) {
+                document.body.classList.add("dark");
+                if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+            } else {
+                document.body.classList.remove("dark");
+                if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
+            }
         }
-        updateIcons();
-        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+        updateTheme();
+        function toggleDark() {
+            isDark = !isDark;
+            localStorage.setItem("dark", isDark);
+            updateTheme();
+        }
 
         function getCookie(name){
             let cookieValue=null;

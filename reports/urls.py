@@ -1,12 +1,13 @@
 # reports/urls.py
 
 from django.urls import path
-from .views import dashboard, kitchen_dashboard
+from .views import dashboard, kitchen_dashboard, export_reports
 from .api import api_dashboard, api_kitchen_dashboard
 
 urlpatterns = [
     path("dashboard/", dashboard, name="dashboard"),
     path("kitchen/", kitchen_dashboard, name="kitchen_dashboard"),
+    path("export/", export_reports, name="export_reports"),
     
     # API Routes for Headless/Mobile Clients
     path("api/dashboard/", api_dashboard, name="api_dashboard"),

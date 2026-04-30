@@ -34,6 +34,11 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @tenant_required
 def billing_view(request):
+    """
+    Renders the main POS billing interface for staff.
+    Handles table merging logic and enforces optimistic locking to prevent
+    concurrent edits by multiple staff members on the same order.
+    """
     table_id = request.GET.get("table")
     order = None
 
@@ -84,6 +89,12 @@ def billing_view(request):
 @require_POST
 # @tenant_required -- Removed to allow QR guest ordering
 def create_order(request):
+    """
+    API endpoint for creating new orders or updating existing ones.
+    Accepts JSON payloads from both the POS dashboard (Staff) and Digital Menu (Guest QR).
+    Automatically resolves the correct tenant and outlet via user session or QR token.
+    Applies optional discounts and triggers recalculation of all financial totals.
+    """
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -155,8 +166,16 @@ def create_order(request):
                 if cust_phone:
                     order.customer_phone = cust_phone
             
-            # REMOVED: Discount is applied at bill screen by staff only
-            # QR guests cannot apply discounts
+            # Allow discount application during creation for aggregators or staff
+            if (source != "dine_in" or (user and user.role in ["owner", "manager", "cashier"])):
+                d_type = data.get("discount_type")
+                d_val = data.get("discount_value")
+                if d_type in ["percentage", "amount"]:
+                    try:
+                        order.discount_type = d_type
+                        order.discount_value = Decimal(str(d_val or 0))
+                    except:
+                        pass
 
             order.save()
             add_items_to_order(user, order, cart, tenant=tenant, outlet=outlet)
@@ -180,6 +199,11 @@ def create_order(request):
 @login_required
 @tenant_required
 def bill_view(request, order_id):
+    """
+    Renders the billing detail page for a specific order.
+    Calculates remaining balance dynamically based on existing payments
+    and handles table state transitions.
+    """
     try:
         
         order = Order.objects.get(
@@ -218,6 +242,10 @@ def bill_view(request, order_id):
 @tenant_required
 @require_POST
 def generate_bill(request, order_id):
+    """
+    Transitions an active order from 'open' to 'billing' status.
+    Triggers a final recalculation of all totals before generating the physical/digital receipt.
+    """
     order = (
         Order.objects
         .filter(tenant=request.user.tenant, outlet=request.user.outlet,
@@ -244,6 +272,11 @@ def generate_bill(request, order_id):
 @require_POST
 @tenant_required
 def pay_order(request, order_id):
+    """
+    Processes a payment for an order and links it to the active cash session.
+    Enforces outlet-level payment method configurations (e.g., if UPI is disabled).
+    Supports partial payments and auto-closes the order if the remaining balance hits zero.
+    """
     try:
         data = json.loads(request.body)
         method = data.get("method")

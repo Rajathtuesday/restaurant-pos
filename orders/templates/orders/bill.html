@@ -11,8 +11,12 @@
     ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
     ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
         :root {
+            --bg: #fafafa; --panel: #ffffff; --text: #111111; --muted: #737373;
+            --border: #eaeaea; --gold: #c5a059; --success: #22c55e;
+        }
+        body.dark {
             --bg: #0f1115; --panel: #1a1d24; --text: #f9fafb; --muted: #9ca3af;
-            --border: #2d3139; --gold: #c5a059; --success: #22c55e;
+            --border: #2d3139; --gold: #d4af37;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
@@ -125,13 +129,30 @@
                     <span class="item-name">
                         {{ item.menu_item.name }}
                         <span style="color:var(--muted)">× {{ item.quantity }}</span>
+                        {% if request.user.role in "owner,manager,cashier" and order.status != 'paid' and order.status != 'closed' %}
+                        <button onclick="promptItemDiscount({{ item.id }}, '{{ item.menu_item.name }}', {{ item.item_discount_pct }})" 
+                                style="background:transparent; border:none; color:var(--gold); cursor:pointer; padding:0 5px; font-size:0.7rem;">
+                            <i class="bi bi-tag"></i>
+                        </button>
+                        {% endif %}
                         <div style="font-size: 0.7rem; color: var(--muted); padding-left: 0.5rem;">
                             {% for mod in item.modifiers.all %}
                             + {{ mod.name }} {% if mod.price > 0 %}(₹{{ mod.price }}){% endif %}{% if not forloop.last %}, {% endif %}
                             {% endfor %}
                         </div>
                     </span>
-                    <span class="item-val">{% if item.is_complimentary %}COMP{% else %}₹{{ item.total_price }}{% endif %}</span>
+                    <span class="item-val">
+                        {% if item.is_complimentary %}
+                            COMP
+                        {% else %}
+                            {% if item.item_discount_pct > 0 %}
+                                <div style="text-decoration: line-through; font-size: 0.7rem; color: var(--muted);">₹{{ item.total_price }}</div>
+                                <div>₹{{ item.discounted_price }}</div>
+                            {% else %}
+                                ₹{{ item.total_price }}
+                            {% endif %}
+                        {% endif %}
+                    </span>
                 </div>
                 {% endif %}
                 {% endfor %}
@@ -150,6 +171,9 @@
             {% endfor %}
             {% if order.discount_total > 0 %}
             <div class="total-row" style="color:#ef4444"><span>Discount</span><span>- ₹{{ order.discount_total }}</span></div>
+            {% endif %}
+            {% if order.round_off != 0 %}
+            <div class="total-row" style="color:var(--muted)"><span>Round Off</span><span>{% if order.round_off > 0 %}+{% endif %} ₹{{ order.round_off }}</span></div>
             {% endif %}
             
             <div class="grand-total serif">
@@ -265,7 +289,7 @@
                 alert('Enter a valid discount value');
                 return;
             }
-            fetch(`/orders/{{ order.id }}/apply-discount/`, {
+            fetch(`{% url 'apply-discount' order.id %}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
                 body: JSON.stringify({type: type, value: parseFloat(value)})
@@ -278,13 +302,33 @@
         }
 
         function removeDiscount() {
-            fetch(`/orders/{{ order.id }}/apply-discount/`, {
+            fetch(`{% url 'apply-discount' order.id %}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
                 body: JSON.stringify({type: 'percentage', value: 0})
             })
             .then(r => r.json())
             .then(d => { if (d.success) location.reload(); });
+        }
+
+        function promptItemDiscount(itemId, name, currentPct) {
+            let pct = prompt(`Apply discount % for ${name}:`, currentPct);
+            if (pct === null) return;
+            pct = parseFloat(pct);
+            if (isNaN(pct) || pct < 0 || pct > 100) {
+                alert("Please enter a valid percentage (0-100)");
+                return;
+            }
+            fetch(`/item-discount/${itemId}/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({percent: pct})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) location.reload();
+                else alert(d.error);
+            });
         }
 
         function setVal(v) { document.getElementById('payAmount').value = v; }
@@ -334,6 +378,17 @@
             } catch(e) { console.error('Failed to log bypass:', e); }
             window.location.href = "/tables/";
         }
+
+        function getCookie(name) {
+            let v = null;
+            if (document.cookie) {
+                document.cookie.split(";").forEach(c => {
+                    let trimmed = c.trim();
+                    if (trimmed.startsWith(name + "=")) v = decodeURIComponent(trimmed.split("=")[1]);
+                });
+            }
+            return v;
+        }
     </script>
 
     {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
@@ -353,7 +408,7 @@
     <!-- CRM GUEST LINK SECTION (no-print) -->
     <div class="no-print" style="margin-top:1.5rem;">
         <div id="crmSection" style="border:1px dashed var(--border); padding:1.2rem; border-radius:2px;">
-            <p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:0.8rem;">Link Guest &amp; Award Points</p>
+            <p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:0.8rem;">Link Guest & Award Points</p>
             <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
                 <input id="guestPhone" type="tel" placeholder="Guest phone number" class="input-pay" style="margin:0; flex:1; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Outfit',sans-serif;">
                 <button onclick="lookupGuest()" class="btn-set" style="flex:0 0 80px;">Lookup</button>
@@ -372,9 +427,8 @@
     </div>
 
     <script>
-        const ORDER_ID = '{{ order.id }}';
-        const csrf_match = document.cookie.split('; ').find(r => r.trim().startsWith('csrftoken='));
-        const CSRF = csrf_match ? csrf_match.split('=')[1] : '{{ csrf_token }}';
+        const ORDER_ID_CRM = '{{ order.id }}';
+        const CSRF_CRM = getCookie('csrftoken');
 
         async function lookupGuest() {
             const phone = document.getElementById('guestPhone').value.trim();
@@ -397,9 +451,9 @@
             const redeem = parseInt(document.getElementById('redeemPts').value) || 0;
             const msg = document.getElementById('crmMsg');
             if (!phone) { msg.style.display='block'; msg.style.color='#ef4444'; msg.textContent='Phone required.'; return; }
-            const r = await fetch(`/crm/link/${ORDER_ID}/`, {
+            const r = await fetch(`/crm/link/${ORDER_ID_CRM}/`, {
                 method: 'POST',
-                headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+                headers: {'X-CSRFToken': CSRF_CRM, 'Content-Type': 'application/json'},
                 body: JSON.stringify({ phone, name, redeem_points: redeem })
             });
             const d = await r.json();
@@ -412,6 +466,14 @@
                 msg.textContent = d.error;
             }
         }
+
+        /* THEME MANAGEMENT */
+        let isDark = localStorage.getItem("dark") === "true";
+        function updateTheme() {
+            if (isDark) document.body.classList.add("dark");
+            else document.body.classList.remove("dark");
+        }
+        updateTheme();
     </script>
 </body>
 </html>

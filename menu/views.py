@@ -23,6 +23,10 @@ from setup.models import KitchenStation
 
 
 def menu_view(request, qr_token):
+    """
+    Renders the Digital Menu for customers scanning a QR code.
+    Identifies the table, outlet, and tenant via the secure qr_token.
+    """
 
     table = get_object_or_404(Table, qr_token=qr_token)
 
@@ -50,6 +54,10 @@ def menu_view(request, qr_token):
 
 
 def call_waiter(request, qr_token):
+    """
+    Allows a customer to ping a waiter from the Digital Menu.
+    Implements a 60-second rate limit per table to prevent spam.
+    """
     from django.utils import timezone
     from datetime import timedelta
 
@@ -76,6 +84,10 @@ def call_waiter(request, qr_token):
 
 @login_required
 def menu_management(request):
+    """
+    Renders the Menu Management dashboard for Owners and Managers.
+    Provides full CRUD operations for categories, items, and inventory recipes.
+    """
 
     if request.user.role not in ["owner", "manager"]:
         return HttpResponseForbidden()
@@ -187,6 +199,7 @@ def create_menu_item(request):
             category_id = data.get("category")
             station_id = data.get("station")
             description = data.get("description", "")
+            prep_time = data.get("estimated_prep_time", 15)
             image = None
         else:
             name = request.POST.get("name")
@@ -194,10 +207,16 @@ def create_menu_item(request):
             category_id = request.POST.get("category")
             station_id = request.POST.get("station")
             description = request.POST.get("description", "")
+            prep_time = request.POST.get("estimated_prep_time", 15)
             image = request.FILES.get("image")
 
         if not name or not price:
             return JsonResponse({"error": "Missing fields"}, status=400)
+
+        try:
+            prep_time = max(1, int(prep_time))
+        except (ValueError, TypeError):
+            prep_time = 15
 
         category = get_object_or_404(
             MenuCategory,
@@ -222,15 +241,82 @@ def create_menu_item(request):
             description=description,
             image=image,
             category=category,
-            station=station
+            station=station,
+            estimated_prep_time=prep_time
         )
         
-        logger.info(f"User {request.user.username} created item '{name}' (₹{price}) in category '{category.name}'")
+        logger.info(f"User {request.user.username} created item '{name}' (₹{price}, prep: {prep_time}m) in category '{category.name}'")
 
         return JsonResponse({"success": True})
 
     except Exception as e:
         logger.error(f"Error creating menu item: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def update_menu_item(request, item_id):
+    """
+    Comprehensive update for a menu item.
+    """
+    try:
+        item = get_object_or_404(
+            MenuItem, 
+            id=item_id, 
+            tenant=request.user.tenant, 
+            outlet=request.user.outlet
+        )
+
+        name = request.POST.get("name")
+        price = request.POST.get("price")
+        category_id = request.POST.get("category")
+        station_id = request.POST.get("station")
+        description = request.POST.get("description", "")
+        image = request.FILES.get("image")
+
+        if not name or not price or not category_id:
+            return JsonResponse({"error": "Missing required fields"}, status=400)
+
+        category = get_object_or_404(
+            MenuCategory,
+            id=category_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+
+        station = None
+        if station_id:
+            station = KitchenStation.objects.get(
+                id=station_id,
+                tenant=request.user.tenant,
+                outlet=request.user.outlet
+            )
+
+        # Update fields
+        item.name = name
+        item.price = Decimal(price)
+        item.category = category
+        item.station = station
+        item.description = description
+
+        prep_time = request.POST.get("estimated_prep_time")
+        if prep_time:
+            try:
+                item.estimated_prep_time = max(1, int(prep_time))
+            except (ValueError, TypeError):
+                pass
+        
+        if image:
+            item.image = image
+            
+        item.save()
+
+        logger.info(f"User {request.user.username} updated item ID {item_id} - '{name}' (prep: {item.estimated_prep_time}m)")
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        logger.error(f"Error updating menu item: {str(e)}")
         return JsonResponse({"error": str(e)}, status=500)
 
 

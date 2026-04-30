@@ -101,29 +101,43 @@ def dashboard(request):
         response['Content-Disposition'] = f'attachment; filename="pos_report_{start_date}_{end_date}.csv"'
         writer = csv.writer(response)
         
-        writer.writerow(['SUMMARY'])
-        writer.writerow(['Revenue', f"Rs {sales.get('total_sales', 0)}"])
-        writer.writerow(['Orders', sales.get('orders', 0)])
+        writer.writerow(['SALES SUMMARY', f'Period: {start_date} to {end_date}'])
+        writer.writerow(['Gross Subtotal', f"Rs {sales.get('subtotal', 0)}"])
+        writer.writerow(['Total Discount', f"Rs {sales.get('discount', 0)}"])
+        writer.writerow(['GST Collected', f"Rs {sales.get('gst_total', 0)}"])
+        writer.writerow(['Round Off', f"Rs {sales.get('round_off', 0)}"])
+        writer.writerow(['Total Refunds', f"Rs {sales.get('net_refunds', 0)}"])
+        writer.writerow(['NET REVENUE', f"Rs {sales.get('total_sales', 0)}"])
+        writer.writerow(['Total Orders', sales.get('orders', 0)])
         writer.writerow([])
         
         writer.writerow(['PAYMENT METHODS'])
         writer.writerow(['Method', 'Total Amount'])
         for pm in sales.get('payments', []):
-            writer.writerow([pm.get('method', 'Unknown'), pm.get('total', 0)])
+            writer.writerow([pm.get('method', 'Unknown').upper(), pm.get('total', 0)])
         writer.writerow([])
         
         # Privacy check for CSV
         if not (request.user.role == 'agent' and not request.user.is_superuser):
-            writer.writerow(['TOP ITEMS'])
-            writer.writerow(['Item Name', 'Quantity Sold', 'Revenue generated'])
+            writer.writerow(['DETAILED ITEM SALES'])
+            writer.writerow(['Item Name', 'Quantity Sold', 'Gross Revenue', 'Avg Rate'])
             for item in items:
-                writer.writerow([item.get('menu_item__name', 'Item'), item.get('total', 0), item.get('total_rev', 0)])
+                qty = item.get('total', 0)
+                rev = item.get('total_rev', 0)
+                avg = rev / qty if qty > 0 else 0
+                writer.writerow([item.get('menu_item__name', 'Item'), qty, rev, round(avg, 2)])
             writer.writerow([])
             
-            writer.writerow(['CATEGORY SALES'])
+            writer.writerow(['CATEGORY WISE BREAKDOWN'])
             writer.writerow(['Category', 'Revenue'])
             for c in categories:
                 writer.writerow([c.get('menu_item__category__name', 'Misc'), c.get('revenue', 0)])
+            writer.writerow([])
+            
+            writer.writerow(['WAITER PERFORMANCE'])
+            writer.writerow(['Staff', 'Orders Handled', 'Revenue Handled'])
+            for w in waiters:
+                writer.writerow([w.get('created_by__username', 'Staff'), w.get('total_orders', 0), w.get('total_rev', 0)])
         
         return response
 
@@ -237,4 +251,86 @@ def kitchen_dashboard(request):
         "date_filter": date_filter,
         "start_date": start_date,
         "end_date": end_date
-    })
+    })
+
+@login_required
+def export_reports(request):
+    """
+    Handles CSV and Excel exports.
+    Types: 'orders', 'items', 'gstr1'
+    """
+    if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
+        return HttpResponseForbidden()
+
+    tenant = request.user.tenant
+    outlet_id = request.GET.get("outlet")
+    export_type = request.GET.get("type", "orders")
+    
+    date_filter = request.GET.get("date_filter", "today")
+    start_date = timezone.localdate()
+    end_date = timezone.localdate()
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+    outlet = None
+    if request.user.role == "owner":
+        if outlet_id:
+            outlet = Outlet.objects.filter(tenant=tenant, id=outlet_id).first()
+    else:
+        outlet = request.user.outlet
+
+    from .services.export_services import (
+        generate_orders_csv, 
+        generate_items_csv, 
+        generate_gstr1_excel,
+        generate_waiter_csv,
+        generate_category_csv
+    )
+    
+    if export_type == "orders":
+        csv_data = generate_orders_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="orders_{start_date}_to_{end_date}.csv"'
+        return response
+        
+    elif export_type == "items":
+        csv_data = generate_items_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="items_{start_date}_to_{end_date}.csv"'
+        return response
+        
+    elif export_type == "waiters":
+        csv_data = generate_waiter_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="waiter_performance_{start_date}_to_{end_date}.csv"'
+        return response
+        
+    elif export_type == "categories":
+        csv_data = generate_category_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="category_sales_{start_date}_to_{end_date}.csv"'
+        return response
+        
+    elif export_type == "gstr1":
+        excel_data = generate_gstr1_excel(tenant, outlet, start_date, end_date)
+        response = HttpResponse(excel_data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = f'attachment; filename="gstr1_b2cs_{start_date}_to_{end_date}.xlsx"'
+        return response
+        
+    return HttpResponseForbidden("Invalid export type")

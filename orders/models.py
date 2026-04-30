@@ -133,6 +133,7 @@ class Order(models.Model):
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    round_off = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -254,7 +255,8 @@ class Order(models.Model):
 
         self.discount_type = discount_type
         self.discount_value = self._quantize(discount_value)
-        # totals will be recomputed by recalculate_totals
+        # We MUST save these before recalculate_totals so it picks them up or they are persisted in the final save
+        self.save(update_fields=["discount_type", "discount_value"])
         self.recalculate_totals()
 
     def clear_discount(self):
@@ -318,18 +320,18 @@ class Order(models.Model):
         
         gst_total = self._quantize(gst_total)
         
-        # Guard against negative grand_total due to extreme edge case rounding
-        if taxable_amount + gst_total < 0:
-            grand_total = Decimal("0.00")
-        else:
-            grand_total = self._quantize(taxable_amount + gst_total)
+        # Rounding to nearest integer for grand_total
+        final_total = self._quantize(taxable_amount + gst_total)
+        rounded_total = final_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        round_off = rounded_total - final_total
 
         self.subtotal = subtotal
         self.gst_total = gst_total
         self.discount_total = discount_total    
-        self.grand_total = grand_total
+        self.grand_total = rounded_total
+        self.round_off = round_off
 
-        self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total"])
+        self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total", "round_off", "discount_type", "discount_value"])
 # =====================================================
 # KOT
 # =====================================================
@@ -440,6 +442,14 @@ class OrderItem(models.Model):
     is_complimentary = models.BooleanField(default=False)
 
     notes = models.TextField(blank=True)
+
+    @property
+    def discounted_price(self):
+        if self.is_complimentary:
+            return Decimal("0.00")
+        if self.item_discount_pct > 0:
+            return (self.total_price * (1 - self.item_discount_pct / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return self.total_price
 
     void_reason = models.CharField(max_length=255, null=True, blank=True)
 

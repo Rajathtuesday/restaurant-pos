@@ -87,6 +87,13 @@
         .btn-gold:hover {
             background: #b59250; border-color: #b59250; color: #fff;
         }
+        .btn-gold-solid {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #000;
+            font-weight: 700;
+        }
+        .btn-gold-solid:hover {
+            background: #b59250; border-color: #b59250; color: #000;
+        }
 
         /* CATEGORY CARD */
         .category-card {
@@ -394,7 +401,7 @@
                                 </div>
 
                                 <div class="btn-group-luxury">
-                                    <button class="btn-action-icon" title="Edit Price" onclick="editPrice('{{item.id}}','{{item.price}}')"><i class="bi bi-pencil-square"></i></button>
+                                    <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', description:'{{item.description|escapejs}}', category:'{{item.category.id}}', station:'{% if item.station %}{{item.station.id}}{% endif %}', prepTime:{{item.estimated_prep_time}}})"><i class="bi bi-pencil-square"></i></button>
                                     <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem('{{item.id}}')"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
                                     <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal('{{item.id}}')"><i class="bi bi-journal-text"></i></button>
                                     <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem('{{item.id}}')"><i class="bi bi-trash"></i></button>
@@ -444,10 +451,11 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">New Menu Selection</h5>
+                    <h5 class="modal-title" id="itemModalTitle">New Menu Selection</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <input type="hidden" id="editItemId" value="">
                     <div class="mb-3">
                         <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Dish Name</label>
                         <input id="itemName" class="form-control form-input-luxury" placeholder="Signature Dish Name"/>
@@ -481,9 +489,13 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="mb-0 mt-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Est. Prep Time (minutes)</label>
+                        <input id="itemPrepTime" type="number" min="1" max="120" class="form-control form-input-luxury" placeholder="e.g. 15"/>
+                    </div>
                 </div>
                 <div class="modal-footer pt-0 border-0">
-                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createItem()">Add to Collection</button>
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" id="saveItemBtn" onclick="saveItem()">Add to Collection</button>
                 </div>
             </div>
         </div>
@@ -552,13 +564,22 @@
 
         /* THEME MANAGEMENT */
         let isDark = localStorage.getItem("dark") === "true";
-        function updateIcons() {
+        function updateTheme() {
             let icon = document.getElementById("themeIcon");
-            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
-            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+            if (isDark) {
+                document.body.classList.add("dark");
+                if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+            } else {
+                document.body.classList.remove("dark");
+                if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
+            }
         }
-        updateIcons();
-        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+        updateTheme();
+        function toggleDark() {
+            isDark = !isDark;
+            localStorage.setItem("dark", isDark);
+            updateTheme();
+        }
 
         /* CORE API */
         function getCookie(name){
@@ -593,7 +614,37 @@
         /* MODAL TRIGGERS */
         function openAiImportModal(){ new bootstrap.Modal(document.getElementById("aiImportModal")).show(); }
         function openCategoryModal(){ new bootstrap.Modal(document.getElementById("categoryModal")).show(); }
-        function openItemModal(){ new bootstrap.Modal(document.getElementById("itemModal")).show(); }
+        
+        function openItemModal(item = null){ 
+            const title = document.getElementById("itemModalTitle");
+            const btn = document.getElementById("saveItemBtn");
+            const idInput = document.getElementById("editItemId");
+            
+            // Clear fields
+            document.getElementById("itemName").value = "";
+            document.getElementById("itemPrice").value = "";
+            document.getElementById("itemDescription").value = "";
+            document.getElementById("itemImage").value = "";
+            document.getElementById("itemPrepTime").value = "15";
+            idInput.value = "";
+
+            if(item) {
+                title.innerText = "Edit Menu Selection";
+                btn.innerText = "Refine Selection";
+                idInput.value = item.id;
+                document.getElementById("itemName").value = item.name;
+                document.getElementById("itemPrice").value = item.price;
+                document.getElementById("itemDescription").value = item.description;
+                document.getElementById("itemCategory").value = item.category;
+                document.getElementById("itemStation").value = item.station || "";
+                document.getElementById("itemPrepTime").value = item.prepTime || 15;
+            } else {
+                title.innerText = "New Menu Selection";
+                btn.innerText = "Add to Collection";
+            }
+
+            new bootstrap.Modal(document.getElementById("itemModal")).show(); 
+        }
         function openRecipeModal(itemId){ currentMenuItem = itemId; new bootstrap.Modal(document.getElementById("recipeModal")).show(); }
 
         /* OPERATIONS */
@@ -644,24 +695,31 @@
             }).then(() => location.reload());
         }
 
-        function createItem(){
+        function saveItem(){
+            const id = document.getElementById("editItemId").value;
             let formData = new FormData();
             formData.append("name", document.getElementById("itemName").value);
             formData.append("price", document.getElementById("itemPrice").value);
             formData.append("category", document.getElementById("itemCategory").value);
             formData.append("station", document.getElementById("itemStation").value);
             formData.append("description", document.getElementById("itemDescription").value);
+            formData.append("estimated_prep_time", document.getElementById("itemPrepTime").value || 15);
             
             let imgInput = document.getElementById("itemImage");
             if(imgInput.files[0]) {
                 formData.append("image", imgInput.files[0]);
             }
 
-            fetch("{% url 'create_menu_item' %}", {
+            const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";
+
+            fetch(url, {
                 method: "POST",
                 headers: { "X-CSRFToken": getCookie("csrftoken") },
                 body: formData
-            }).then(() => location.reload());
+            }).then(r => r.json()).then(d => {
+                if(d.success) location.reload();
+                else alert(d.error || "Failed to save item.");
+            }).catch(() => location.reload());
         }
 
         function updateStation(itemId, stationId){
@@ -705,15 +763,6 @@
             }).then(() => location.reload());
         }
 
-        function editPrice(id, current){
-            let price = prompt("Designate new standard price:", current);
-            if(!price) return;
-            fetch("{% url 'update_price' 0 %}".replace('0', id), {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-                body: JSON.stringify({ price: price })
-            }).then(() => location.reload());
-        }
 
         /* ── MOBILE BURGER DRAWER ── */
         function openMobileNav() {
@@ -733,5 +782,6 @@
             if (e.key === "Escape") closeMobileNav();
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

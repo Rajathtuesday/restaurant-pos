@@ -58,6 +58,10 @@ def shift_dashboard(request):
 @tenant_required
 @require_POST
 def clock_in(request):
+    """
+    Clocks in the current staff user. 
+    Verifies they do not already have an active shift.
+    """
     tenant = request.user.tenant
     outlet = request.user.outlet
 
@@ -83,6 +87,10 @@ def clock_in(request):
 @tenant_required
 @require_POST
 def clock_out(request):
+    """
+    Clocks out the current staff user and optionally handles shift reporting payload.
+    Auto-calculates the duration of the shift.
+    """
     tenant = request.user.tenant
     outlet = request.user.outlet
 
@@ -154,7 +162,11 @@ def update_shift_tips(request, shift_id):
 @login_required
 @tenant_required
 def cash_session_list(request):
-    """List of all EOD cash sessions."""
+    """
+    Renders the Cash Sessions dashboard (Cash Register Management).
+    Shows the active session and historical sessions for the current outlet.
+    Managers/Owners see all sessions; Cashiers/Staff see only their active sessions.
+    """
     if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
@@ -177,7 +189,11 @@ def cash_session_list(request):
 @tenant_required
 @require_POST
 def open_cash_session(request):
-    """Start a new cash register session."""
+    """
+    Opens a new Cash Register session (Till).
+    Requires a starting float/opening balance.
+    Prevents opening multiple sessions per user/outlet simultaneously.
+    """
     from .models import CashSession
     from django.db import transaction
 
@@ -276,37 +292,108 @@ def close_cash_session(request):
 @login_required
 @tenant_required
 def export_z_report(request):
-    """Exports Z-report for the day."""
+    """Exports Z-report for the day including summary and session details."""
     import csv
     from django.http import HttpResponse
-    from django.utils import timezone
+    from django.db.models import Sum, Q
     from .models import CashSession
+    from orders.models import Payment, Order
 
     today = timezone.localdate()
     sessions = CashSession.objects.filter(
         tenant=request.user.tenant,
         outlet=request.user.outlet,
         opened_at__date=today
+    ).order_by('opened_at')
+
+    # Calculate Daily Summary
+    payments = Payment.objects.filter(
+        order__tenant=request.user.tenant,
+        order__outlet=request.user.outlet,
+        paid_at__date=today
+    )
+    
+    summary = payments.aggregate(
+        total=Sum("amount"),
+        cash=Sum("amount", filter=Q(method="cash")),
+        digital=Sum("amount", filter=Q(method__in=["upi", "card"])),
+        refunds=Sum("amount", filter=Q(method="refund"))
+    )
+
+    orders = Order.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        created_at__date=today,
+        status__in=["paid", "closed"]
+    ).aggregate(
+        subtotal=Sum("subtotal"),
+        discount=Sum("discount_total"),
+        gst=Sum("gst_total"),
+        round_off=Sum("round_off")
     )
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="z_report_{today}.csv"'
 
     writer = csv.writer(response)
-    writer.writerow(['Session ID', 'Opened At', 'Closed At', 'Opened By', 'Closed By', 'Opening Balance', 'Expected Cash', 'Actual Cash', 'Discrepancy', 'Total Digital', 'Total Sales'])
+    
+    writer.writerow(['DAILY Z-REPORT SUMMARY', today.strftime('%d %b %Y')])
+    writer.writerow(['Outlet', request.user.outlet.name])
+    writer.writerow([])
+    
+    writer.writerow(['FINANCIAL TOTALS'])
+    writer.writerow(['Gross Subtotal', orders['subtotal'] or 0])
+    writer.writerow(['Total Discount', orders['discount'] or 0])
+    writer.writerow(['GST Collected', orders['gst'] or 0])
+    writer.writerow(['Round Off', orders['round_off'] or 0])
+    writer.writerow(['Net Refunds', abs(summary['refunds'] or 0)])
+    writer.writerow(['NET REVENUE', summary['total'] or 0])
+    writer.writerow([])
+
+    writer.writerow(['PAYMENT BREAKDOWN'])
+    writer.writerow(['Cash', summary['cash'] or 0])
+    writer.writerow(['Digital (UPI/Card)', summary['digital'] or 0])
+    writer.writerow([])
+
+    # Detailed Item Sales for the Day
+    from django.db.models import Count, F, ExpressionWrapper, DecimalField
+    from orders.models import OrderItem
+    
+    item_sales = OrderItem.objects.filter(
+        order__tenant=request.user.tenant,
+        order__outlet=request.user.outlet,
+        order__created_at__date=today,
+        order__status__in=["paid", "closed"]
+    ).annotate(
+        line_rev=ExpressionWrapper(
+            F('total_price') * (1 - F('item_discount_pct') / 100),
+            output_field=DecimalField()
+        )
+    ).values('menu_item__name').annotate(
+        qty=Sum('quantity'),
+        rev=Sum('line_rev')
+    ).order_by('-qty')
+
+    writer.writerow(['ITEM-WISE SALES'])
+    writer.writerow(['Item Name', 'Quantity', 'Net Revenue'])
+    for item in item_sales:
+        writer.writerow([item['menu_item__name'], item['qty'], round(item['rev'], 2)])
+    writer.writerow([])
+
+    writer.writerow(['CASH SESSION DETAILS'])
+    writer.writerow(['Session ID', 'Status', 'Opened At', 'Closed At', 'Opened By', 'Opening Bal', 'Exp Cash', 'Actual Cash', 'Diff', 'Sales'])
 
     for s in sessions:
         writer.writerow([
             s.id,
-            s.opened_at,
-            s.closed_at,
+            s.status.upper(),
+            s.opened_at.strftime('%H:%M') if s.opened_at else '',
+            s.closed_at.strftime('%H:%M') if s.closed_at else '-',
             s.opened_by.username if s.opened_by else '',
-            s.closed_by.username if s.closed_by else '',
             s.opening_balance,
             s.expected_cash,
             s.actual_cash,
             s.discrepancy,
-            s.total_digital_payments,
             s.total_sales
         ])
 

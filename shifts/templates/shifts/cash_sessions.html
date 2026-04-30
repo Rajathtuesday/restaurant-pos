@@ -36,13 +36,16 @@
     <header class="pos-header">
         <h4><i class="bi bi-safe2 me-2"></i>Cash <i>Sessions & EOD</i></h4>
         <div class="d-flex gap-2">
+            <a href="{% url 'export-z-report' %}" class="btn-luxury" style="border-color: var(--accent-gold); color: var(--accent-gold);"><i class="bi bi-file-earmark-spreadsheet me-1"></i> Z-Report</a>
             {% if not active_session %}
             <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#openSessionModal">Open Register</button>
             {% else %}
             <button class="btn-luxury" style="background:#dc3545; color:white; border:none;" data-bs-toggle="modal" data-bs-target="#closeSessionModal">Close Register</button>
             {% endif %}
-            <a href="{% url 'export-z-report' %}" class="btn-luxury" style="border-color: var(--accent-gold); color: var(--accent-gold);"><i class="bi bi-download me-1"></i> Z-Report</a>
             <a href="/dashboard/" class="btn-luxury">Exit</a>
+            <button class="btn-luxury" style="padding:0.65rem 0.8rem;" onclick="toggleDark()" title="Toggle Theme">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
         </div>
     </header>
 
@@ -145,6 +148,26 @@
             alert(data.error || "Operation failed");
         }
     }
+
+    /* THEME MANAGEMENT */
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateIcons() {
+        let icon = document.getElementById("themeIcon");
+        if (isDark) {
+            document.body.classList.add("dark");
+            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+        } else {
+            document.body.classList.remove("dark");
+            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
+        }
+    }
+    updateIcons();
+    function toggleDark() {
+        isDark = !isDark;
+        localStorage.setItem("dark", isDark);
+        updateIcons();
+    }
 </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

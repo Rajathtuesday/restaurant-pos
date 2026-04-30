@@ -1,10 +1,12 @@
 # reports/services/sales_reports.py
 
+import logging
 from django.utils import timezone
 from django.db.models import Sum
 from django.db.models.functions import ExtractHour
 from orders.models import Order, Payment
 
+logger = logging.getLogger("pos.reports")
 
 def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     """
@@ -17,6 +19,8 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
 
     if not start_date: start_date = timezone.localdate()
     if not end_date: end_date = timezone.localdate()
+
+    logger.debug(f"Fetching daily_sales for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
 
     # ----------------------------
     # PAYMENTS (SOURCE OF TRUTH)
@@ -61,16 +65,28 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     )
 
     # ----------------------------
-    # AVERAGE ORDER VALUE
+    # TAX & DISCOUNT TOTALS (FROM ORDERS)
     # ----------------------------
-    avg_order = total_sales / total_orders if total_orders > 0 else 0
+    order_totals = orders.aggregate(
+        subtotal=Sum("subtotal"),
+        discount=Sum("discount_total"),
+        gst=Sum("gst_total"),
+        round_off=Sum("round_off")
+    )
+
+    # Calculate average order value correctly
+    avg_order = float(total_sales) / total_orders if total_orders > 0 else 0
 
     return {
         "total_sales": float(total_sales),
         "orders": total_orders,
-        "avg_order_value": float(avg_order),
+        "avg_order_value": avg_order,
         "payments": list(payment_split),
         "net_refunds": float(net_refunds),
+        "subtotal": float(order_totals["subtotal"] or 0),
+        "discount": float(order_totals["discount"] or 0),
+        "gst_total": float(order_totals["gst"] or 0),
+        "round_off": float(order_totals["round_off"] or 0),
     }
 
 

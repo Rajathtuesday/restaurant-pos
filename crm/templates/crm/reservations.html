@@ -141,14 +141,24 @@
         else { alert("Error saving booking"); }
     }
 
+    /* THEME MANAGEMENT */
     let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() {
+    function updateTheme() {
         let icon = document.getElementById("themeIcon");
-        if (isDark) { document.body.classList.add("dark"); icon.className = "bi bi-sun"; }
-        else { document.body.classList.remove("dark"); icon.className = "bi bi-moon"; }
+        if (isDark) {
+            document.body.classList.add("dark");
+            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+        } else {
+            document.body.classList.remove("dark");
+            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
+        }
     }
-    updateIcons();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+    updateTheme();
+    function toggleDark() {
+        isDark = !isDark;
+        localStorage.setItem("dark", isDark);
+        updateTheme();
+    }
 </script>
 </body>
 </html>

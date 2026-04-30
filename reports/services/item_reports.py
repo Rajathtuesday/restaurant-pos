@@ -1,10 +1,15 @@
 # reports/services/item_reports.py
 
+import logging
 from django.db.models import Sum
 from orders.models import OrderItem
 from django.utils import timezone
 
+logger = logging.getLogger("pos.reports")
+
 def top_items(tenant, outlet=None, start_date=None, end_date=None):
+    logger.debug(f"Fetching top_items for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
+
 
     query = OrderItem.objects.filter(
         order__tenant=tenant,

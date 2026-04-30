@@ -232,48 +232,33 @@
 
 </div>
 
-<script>
-    /**
-     * DOM SETUP AND THEME
-     * Checks if the user previously turned on 'dark mode' by reading localStorage.
-     * If so, it appends the 'dark' class to the body element.
-     */
+    /* THEME MANAGEMENT */
     let isDark = localStorage.getItem("dark") === "true";
-
-    function updateIcons() {
+    function updateTheme() {
         let icon = document.getElementById("themeIcon");
-        if(isDark) { 
-            document.body.classList.add("dark"); 
-            icon.classList.replace("bi-moon", "bi-sun"); 
-        } else { 
-            document.body.classList.remove("dark"); 
-            icon.classList.replace("bi-sun", "bi-moon"); 
+        if (isDark) {
+            document.body.classList.add("dark");
+            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+        } else {
+            document.body.classList.remove("dark");
+            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
         }
     }
-    updateIcons();
+    updateTheme();
+    function toggleDark() {
+        isDark = !isDark;
+        localStorage.setItem("dark", isDark);
+        updateTheme();
+    }
 
-    /* Toggles turning dark mode on or off when you click the moon/sun icon */
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
-
-    /**
-     * API INTEGRATION: Resolve Call
-     * This function is triggered when the green "Mark Resolved" button is clicked.
-     * It sends an invisible POST request strictly to /resolve-waiter/<ID>/ to tell Django
-     * that the server has attended the table.
-     */
+    /* API INTEGRATION: Resolve Call */
     function resolveCall(callId){
         fetch("{% url 'resolve-waiter' 0 %}".replace('0', callId), {
             method: "POST",
-            headers: { 
-                /* CSRF Tokens are required by Django to prevent cross-site request forgery hacks */
-                "X-CSRFToken": getCookie("csrftoken") 
-            }
+            headers: { "X-CSRFToken": getCookie("csrftoken") }
         })
         .then(res => res.json())
-        .then(data => {
-            // Once Django successfully marks it as resolved, just reload the page to refresh the list
-            if(data.success) location.reload();
-        });
+        .then(data => { if(data.success) location.reload(); });
     }
 
     function resolveKitchenMsg(callId){
@@ -283,7 +268,6 @@
         }).then(res => res.json()).then(data => { if(data.success) location.reload(); });
     }
 
-    /* Helper function to securely extract the CSRF token from the browser cookies */
     function getCookie(name){
         let cookieValue = null;
         if(document.cookie && document.cookie !== ""){
@@ -299,14 +283,14 @@
         return cookieValue;
     }
 
-    /**
-     * LONG POLLING / LIVE RELOAD
-     * To ensure the waiters see new calls hitting the dashboard, this simple 
-     * interval automatically refreshes the page every 6 seconds!
-     */
-    setInterval(function(){ location.reload(); }, 6000);
+    /* LIVE RELOAD: Automatically refreshes the page every 10 seconds to show new calls */
+    setInterval(function(){ location.reload(); }, 10000);
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

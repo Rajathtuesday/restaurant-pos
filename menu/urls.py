@@ -13,6 +13,7 @@ from .views import (
     toggle_item,
     toggle_platform_availability,
     update_station,
+    update_menu_item,
     ai_menu_importer,
     delete_category,
     digital_menu,
@@ -48,6 +49,7 @@ urlpatterns = [
     path("digital-menu/", digital_menu, name="digital_menu"),
     
     path("update-station/<int:item_id>/", update_station, name="update_station"),
+    path("update-item/<int:item_id>/", update_menu_item, name="update_menu_item"),
 
     # modifier management
     path("modifiers/", modifier_management, name="modifier_management"),

@@ -8,34 +8,45 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <style>
         :root {
-            --bg: #0d0d0d;
-            --surface: #141414;
-            --card: #1a1a1a;
-            --border: #2a2a2a;
-            --text: #f0ece4;
-            --muted: #888;
-            --gold: #c5a059;
-            --gold-hover: #d4af70;
+            --bg-color: #fafafa;
+            --panel-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #737373;
+            --border-color: #eaeaea;
+            --accent-gold: #c5a059;
+            --accent-hover: #b59250;
             --success: #22c55e;
             --danger: #ef4444;
             --blue: #60a5fa;
             --orange: #f97316;
             --radius: 8px;
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        body.dark {
+            --bg-color: #0a0a0a;
+            --panel-bg: #111111;
+            --text-main: #f5f5f5;
+            --text-muted: #888888;
+            --border-color: #262626;
+            --accent-gold: #d4af37;
+            --accent-hover: #e5c45e;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            background: var(--bg);
-            color: var(--text);
+            background: var(--bg-color);
+            color: var(--text-main);
             font-family: 'DM Sans', sans-serif;
             min-height: 100vh;
+            transition: var(--transition-smooth);
         }
 
         /* ── HEADER ── */
         .header {
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
             padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
@@ -46,7 +57,7 @@
         }
 
         .header-back {
-            color: var(--muted);
+            color: var(--text-muted);
             text-decoration: none;
             font-size: 0.8rem;
             display: flex;
@@ -55,20 +66,23 @@
             transition: color 0.2s;
             white-space: nowrap;
         }
-        .header-back:hover { color: var(--gold); }
+        .header-back:hover { color: var(--accent-gold); }
 
         .header-title {
             font-family: 'DM Serif Display', serif;
             font-size: 1.15rem;
-            color: var(--gold);
+            color: var(--accent-gold);
             flex: 1;
         }
 
         .header-sub {
             font-size: 0.72rem;
-            color: var(--muted);
+            color: var(--text-muted);
             letter-spacing: 0.5px;
         }
+
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.2rem; cursor: pointer; padding: 0.4rem; transition: var(--transition-smooth); }
+        .btn-icon:hover { color: var(--accent-gold); }
 
         /* ── TOAST ── */
         .toast {
@@ -76,9 +90,9 @@
             bottom: 1.5rem;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: var(--card);
-            border: 1px solid var(--border);
-            color: var(--text);
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
             padding: 0.75rem 1.5rem;
             border-radius: 50px;
             font-size: 0.82rem;
@@ -103,17 +117,17 @@
 
         /* ── INFO BANNER ── */
         .info-banner {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-left: 3px solid var(--gold);
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-left: 3px solid var(--accent-gold);
             border-radius: var(--radius);
             padding: 1rem 1.2rem;
             margin-bottom: 1.5rem;
             font-size: 0.81rem;
-            color: var(--muted);
+            color: var(--text-muted);
             line-height: 1.7;
         }
-        .info-banner strong { color: var(--text); }
+        .info-banner strong { color: var(--text-main); }
 
         /* ── RATE LEGEND ── */
         .rate-legend {
@@ -133,21 +147,21 @@
             letter-spacing: 0.3px;
             border: 1px solid;
         }
-        .chip-0  { background:#1a1a1a; color:#888; border-color:#333; }
-        .chip-5  { background:#1a2e1a; color:var(--success); border-color:#22c55e44; }
-        .chip-12 { background:#1a1f2e; color:var(--blue); border-color:#60a5fa44; }
-        .chip-18 { background:#2e1a1a; color:var(--orange); border-color:#f9731644; }
+        .chip-0  { background: rgba(128,128,128,0.1); color: var(--text-muted); border-color: var(--border-color); }
+        .chip-5  { background: rgba(34,197,94,0.1); color: var(--success); border-color: var(--success); }
+        .chip-12 { background: rgba(96,165,250,0.1); color: var(--blue); border-color: var(--blue); }
+        .chip-18 { background: rgba(249,115,22,0.1); color: var(--orange); border-color: var(--orange); }
 
         /* ── CATEGORY CARD ── */
         .category-card {
-            background: var(--card);
-            border: 1px solid var(--border);
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
             border-radius: var(--radius);
             margin-bottom: 0.75rem;
             overflow: hidden;
             transition: border-color 0.2s;
         }
-        .category-card:hover { border-color: #3a3a3a; }
+        .category-card:hover { border-color: var(--accent-gold); }
 
         .category-header {
             padding: 0.9rem 1.2rem;
@@ -155,12 +169,13 @@
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-color);
             cursor: pointer;
             user-select: none;
         }
         .category-card.collapsed .category-header { border-bottom-color: transparent; }
-        .category-header:hover { background: #1f1f1f; }
+        .category-header:hover { background: rgba(0,0,0,0.02); }
+        body.dark .category-header:hover { background: rgba(255,255,255,0.02); }
 
         .cat-title-wrap {
             display: flex;
@@ -171,7 +186,7 @@
         }
 
         .collapse-icon {
-            color: var(--muted);
+            color: var(--text-muted);
             transition: transform 0.2s;
             font-size: 0.8rem;
             flex-shrink: 0;
@@ -181,7 +196,7 @@
         .category-name {
             font-size: 0.88rem;
             font-weight: 600;
-            color: var(--text);
+            color: var(--text-main);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -189,7 +204,7 @@
 
         .category-count {
             font-size: 0.7rem;
-            color: var(--muted);
+            color: var(--text-muted);
             font-weight: 400;
             flex-shrink: 0;
         }
@@ -203,7 +218,7 @@
 
         .bulk-label {
             font-size: 0.65rem;
-            color: var(--muted);
+            color: var(--text-muted);
             letter-spacing: 0.5px;
             text-transform: uppercase;
             white-space: nowrap;
@@ -211,9 +226,9 @@
 
         /* ── SELECT ── */
         select {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text);
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
             font-family: 'DM Sans', sans-serif;
             font-size: 0.78rem;
             padding: 0.35rem 0.55rem;
@@ -222,14 +237,14 @@
             outline: none;
             transition: border-color 0.2s;
         }
-        select:focus { border-color: var(--gold); }
-        select option { background: #1a1a1a; }
+        select:focus { border-color: var(--accent-gold); }
+        select option { background: var(--panel-bg); color: var(--text-main); }
 
         /* ── BULK APPLY BUTTON ── */
         .btn-bulk {
             background: transparent;
-            border: 1px solid var(--border);
-            color: var(--muted);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
             font-family: 'DM Sans', sans-serif;
             font-size: 0.7rem;
             padding: 0.35rem 0.7rem;
@@ -239,7 +254,7 @@
             white-space: nowrap;
             letter-spacing: 0.3px;
         }
-        .btn-bulk:hover { border-color: var(--gold); color: var(--gold); }
+        .btn-bulk:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
         .btn-bulk:active { transform: scale(0.97); }
 
         /* ── ITEMS LIST ── */
@@ -249,19 +264,20 @@
             display: flex;
             align-items: center;
             padding: 0.7rem 1.2rem;
-            border-bottom: 1px solid #1e1e1e;
+            border-bottom: 1px solid var(--border-color);
             gap: 1rem;
             transition: background 0.15s;
         }
         .item-row:last-child { border-bottom: none; }
-        .item-row:hover { background: #1c1c1c; }
+        .item-row:hover { background: rgba(0,0,0,0.01); }
+        body.dark .item-row:hover { background: rgba(255,255,255,0.01); }
 
         .item-info { flex: 1; min-width: 0; }
 
         .item-name {
             font-size: 0.86rem;
             font-weight: 500;
-            color: var(--text);
+            color: var(--text-main);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -269,7 +285,7 @@
 
         .item-price {
             font-size: 0.72rem;
-            color: var(--muted);
+            color: var(--text-muted);
             margin-top: 0.1rem;
         }
 
@@ -285,7 +301,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--gold);
+            background: var(--accent-gold);
             display: none;
             flex-shrink: 0;
             animation: pulse 0.9s infinite;
@@ -299,7 +315,7 @@
         .empty {
             padding: 2rem;
             text-align: center;
-            color: var(--muted);
+            color: var(--text-muted);
             font-size: 0.82rem;
             font-style: italic;
         }
@@ -332,10 +348,13 @@
     <a href="{% url 'menu_management' %}" class="header-back">
         <i class="bi bi-arrow-left"></i> Menu
     </a>
-    <div>
+    <div style="flex: 1;">
         <div class="header-title">GST Rates</div>
         <div class="header-sub">{{ request.user.outlet.name }}</div>
     </div>
+    <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
+        <i class="bi bi-moon" id="themeIcon"></i>
+    </button>
 </header>
 
 <main class="main">
@@ -417,6 +436,25 @@
 
 <script>
     const CSRF = "{{ csrf_token }}";
+
+    /* THEME MANAGEMENT */
+    let isDark = localStorage.getItem("dark") === "true";
+    function updateTheme() {
+        let icon = document.getElementById("themeIcon");
+        if (isDark) {
+            document.body.classList.add("dark");
+            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+        } else {
+            document.body.classList.remove("dark");
+            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
+        }
+    }
+    updateTheme();
+    function toggleDark() {
+        isDark = !isDark;
+        localStorage.setItem("dark", isDark);
+        updateTheme();
+    }
 
     // ── TOGGLE CATEGORY ──
     function toggleCategory(catId) {

@@ -1,10 +1,14 @@
 # reports/services/kitchen_reports.py
 
+import logging
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
 from orders.models import OrderItem, KOTBatch
 
+logger = logging.getLogger("pos.reports")
+
 def kitchen_performance(tenant, outlet=None, start_date=None, end_date=None):
+    logger.debug(f"Fetching kitchen_performance for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
     if not start_date:
         start_date = timezone.localdate()
     if not end_date:
@@ -42,6 +46,7 @@ def kitchen_performance(tenant, outlet=None, start_date=None, end_date=None):
     }
 
 def top_kitchen_items(tenant, outlet=None, start_date=None, end_date=None):
+    logger.debug(f"Fetching top_kitchen_items for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
     if not start_date: start_date = timezone.localdate()
     if not end_date: end_date = timezone.localdate()
 

@@ -847,22 +847,25 @@
 
         /* THEME MANAGEMENT */
         let isDark = localStorage.getItem("dark") === "true";
-
-        function updateIcons() {
+        function updateTheme() {
             let icon = document.getElementById("themeIcon");
-            if (isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); }
-            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+            if (isDark) {
+                document.body.classList.add("dark");
+                if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+            } else {
+                document.body.classList.remove("dark");
+                if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
+            }
         }
-        updateIcons();
-
-        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
+        updateTheme();
+        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateTheme(); }
 
         /* AGGREGATOR TOGGLE */
         function toggleAggregator(val, view) {
             let inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
             let el = document.getElementById(inputId);
             if(el) {
-                if(val === 'zomato' || val === 'swiggy' || val === 'uber_eats') {
+                if(['zomato', 'swiggy', 'uber_eats', 'web'].includes(val)) {
                     el.classList.remove('d-none');
                 } else {
                     el.classList.add('d-none');
@@ -883,6 +886,7 @@
         let selectedItem = null;
         let sending = false;
         let currentOrderId = null;
+        let activeModal = null;
 
         /* TABS DESKTOP */
         function switchTab(tab) {
@@ -955,30 +959,29 @@
             loadRunningOrder();
         }
 
-        /* AGGREGATOR TOGGLE */
-        function toggleAggregator(val, view) {
-            let idInput = document.getElementById(view === 'mobile' ? 'aggregatorIdMobile' : 'aggregatorIdDesktop');
-            if (!idInput) return;
-            if (['zomato', 'swiggy', 'uber_eats', 'web'].includes(val)) {
-                idInput.classList.remove('d-none');
-            } else {
-                idInput.classList.add('d-none');
-                idInput.value = '';
-            }
-        }
 
         /* MODAL */
-        let activeModal = null;
         function openItemModal(id, name, price, gst) {
+            console.log("Opening modal for item:", id, name);
             selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
-            document.getElementById("modalItemName").innerText = name;
-            document.getElementById("itemNote").value = "";
-            document.getElementById("itemTakeaway").checked = false;
+            
+            const modalEl = document.getElementById("itemModal");
+            const nameEl = document.getElementById("modalItemName");
+            const noteEl = document.getElementById("itemNote");
+            const takeawayEl = document.getElementById("itemTakeaway");
+            const modCont = document.getElementById("modifierContainer");
 
-            let modCont = document.getElementById("modifierContainer");
-            modCont.innerHTML = "<p class='text-center text-muted'>Loading modifiers...</p>";
+            if (!modalEl || !nameEl || !modCont) {
+                console.error("Modal elements missing!");
+                return;
+            }
 
-            // Fetch Modifiers dynamically
+            nameEl.innerText = name;
+            if (noteEl) noteEl.value = "";
+            if (takeawayEl) takeawayEl.checked = false;
+
+            modCont.innerHTML = "<p class='text-center text-muted py-3'>Checking for modifiers...</p>";
+
             fetch(`/menu/item-modifiers/${id}/`)
                 .then(r => r.json())
                 .then(data => {
@@ -991,23 +994,27 @@
                                 let inputType = g.max_select === 1 ? 'radio' : 'checkbox';
                                 let inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
                                 html += `
-                        <div class="form-check">
-                          <input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
-                          <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
-                            <span>${m.name}</span>
-                            <span class="text-muted">+₹${m.price}</span>
-                          </label>
-                        </div>`;
+                                <div class="form-check">
+                                  <input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
+                                  <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
+                                    <span>${m.name}</span>
+                                    <span class="text-muted">+₹${m.price}</span>
+                                  </label>
+                                </div>`;
                             });
                             html += `</div>`;
                         });
+                        modCont.innerHTML = html;
                     } else {
-                        html = "";
+                        modCont.innerHTML = "<p class='text-center text-muted py-2 small'>No modifiers available for this item.</p>";
                     }
-                    modCont.innerHTML = html;
-                }).catch(e => { modCont.innerHTML = ""; });
+                })
+                .catch(e => { 
+                    console.error("Modifiers fetch error:", e);
+                    modCont.innerHTML = ""; 
+                });
 
-            activeModal = new bootstrap.Modal(document.getElementById("itemModal"));
+            activeModal = new bootstrap.Modal(modalEl);
             activeModal.show();
         }
 

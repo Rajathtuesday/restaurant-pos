@@ -205,7 +205,7 @@
             document.getElementById("total").innerText = "₹" + data.total.toFixed(2);
 
             let container = document.getElementById("items");
-            container.innerHTML = "";
+            let fullHtml = "";
 
             if (data.items.length === 0) {
                 container.innerHTML = `<div class="text-center py-5" style="color: var(--text-muted); font-style: italic;">No items currently in this order.</div>`;
@@ -213,15 +213,12 @@
             }
 
             data.items.forEach(i => {
-                
-                // Style mapping
                 let badgeClass = "badge-pending";
                 if(i.status === "sent") badgeClass = "badge-ordering";
                 if(i.status === "preparing") badgeClass = "badge-preparing";
                 if(i.status === "ready") badgeClass = "badge-ready";
                 if(i.status === "served") badgeClass = "badge-served";
 
-                // Action buttons 
                 let actions = "";
                 if(i.status === "ready") {
                     actions += `<button class="btn-luxury btn-gold me-2" onclick="serveItem(${i.id})"><i class="bi bi-check2-circle"></i> Serve</button>`;
@@ -230,14 +227,12 @@
                     actions += `<button class="btn-luxury me-2 text-danger border-danger px-2" style="font-size:0.7rem;" onclick="cancelItem(${i.id})">CANCEL</button>`;
                 }
 
-                /* If user is manager or owner, they can Comp the item */
                 let userRole = "{{ request.user.role }}";
                 if (userRole === "manager" || userRole === "owner") {
                     actions += `<button class="btn-luxury px-2" style="font-size:0.7rem;" title="Make Complimentary" onclick="makeComplimentary(${i.id})">COMP</button>`;
                 }
 
-                // Render High-End Card
-                container.innerHTML += `
+                fullHtml += `
                     <div class="item-card">
                         <div>
                             <div class="item-name">${i.name}</div>
@@ -253,6 +248,7 @@
                     </div>
                 `;
             });
+            container.innerHTML = fullHtml;
         }).catch(err => console.error("Polling error:", err));
     }
 
@@ -270,6 +266,7 @@
         }
         return cookieValue;
     }
+
 
     // Initial fetch and polling loop
     refreshRunningOrder();

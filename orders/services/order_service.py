@@ -128,6 +128,7 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             menu_item=menu_item,
             quantity=quantity,
             price=menu_item.price,
+            item_discount_pct=Decimal(str(item.get("discount_pct", 0))),
             gst_percentage=menu_item.gst_percentage,
             total_price=Decimal((base_price)),
             notes=item.get("note", ""),

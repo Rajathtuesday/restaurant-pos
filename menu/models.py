@@ -98,6 +98,11 @@ class MenuItem(models.Model):
         default=5.00
     )
 
+    estimated_prep_time = models.IntegerField(
+        default=15,
+        help_text="Estimated preparation time in minutes"
+    )
+
     display_order = models.IntegerField(default=0)
 
     is_available = models.BooleanField(default=True)

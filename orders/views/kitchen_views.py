@@ -18,6 +18,11 @@ logger = logging.getLogger("pos.orders")
 @require_POST
 @tenant_required
 def send_to_kitchen(request, order_id):
+    """
+    Generates a Kitchen Order Ticket (KOT) for an active order.
+    Locks the order, creates the KOTBatch, and dispatches it to the Kitchen Display System (KDS).
+    Records an OrderEvent for auditing.
+    """
     try:
         with transaction.atomic():
             order = (
@@ -61,6 +66,10 @@ def send_to_kitchen(request, order_id):
 @login_required
 @tenant_required
 def kitchen_view(request):
+    """
+    Renders the Kitchen Display System (KDS) UI.
+    Provides station filtering for multi-station kitchens.
+    """
     stations = KitchenStation.objects.filter(
         tenant=request.user.tenant,
         outlet=request.user.outlet,
@@ -72,6 +81,10 @@ def kitchen_view(request):
 @login_required
 @tenant_required
 def kitchen_data(request):
+    """
+    AJAX Polling endpoint for the Kitchen Display System (KDS).
+    Returns real-time structured JSON of all active KOTs matching the requested station.
+    """
     from orders.services.kitchen_service import get_kitchen_data
     try:
         station_name = request.GET.get("station")
@@ -113,6 +126,10 @@ def mark_ready(request, item_id):
 @require_POST
 @tenant_required
 def serve_item(request, item_id):
+    """
+    Transitions an OrderItem status from 'ready' to 'served'.
+    Triggered by waiters when they deliver the food to the customer's table.
+    """
     from orders.services.kitchen_service import set_item_served
     try:
         set_item_served(request.user, item_id)
@@ -126,6 +143,10 @@ def serve_item(request, item_id):
 @require_POST
 @tenant_required
 def send_kitchen_message(request, order_id):
+    """
+    Allows waiters/staff to send urgent ad-hoc text messages to the kitchen KDS
+    attached to a specific order (e.g., "Customer allergic to peanuts").
+    """
     try:
         data = json.loads(request.body)
         message_text = data.get("message")
