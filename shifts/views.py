@@ -183,7 +183,8 @@ def open_cash_session(request):
 
     try:
         data = json.loads(request.body)
-        opening_balance = float(data.get("opening_balance", 0))
+        from decimal import Decimal
+        opening_balance = Decimal(str(data.get("opening_balance", "0")))
 
         with transaction.atomic():
             # Lock to prevent race condition between two managers
@@ -220,7 +221,8 @@ def close_cash_session(request):
 
     try:
         data = json.loads(request.body)
-        actual_cash = float(data.get("actual_cash", 0))
+        from decimal import Decimal
+        actual_cash = Decimal(str(data.get("actual_cash", "0")))
 
         session = CashSession.objects.filter(
             tenant=request.user.tenant,
@@ -242,7 +244,7 @@ def close_cash_session(request):
             paid_at__lte=close_time
         ).aggregate(total=Sum("amount"))["total"] or 0
 
-        expected_cash = float(session.opening_balance) + float(cash_payments)
+        expected_cash = Decimal(str(session.opening_balance)) + Decimal(str(cash_payments or 0))
 
         # 2. Calculate Digital Payments
         digital_payments = Payment.objects.filter(
@@ -254,13 +256,13 @@ def close_cash_session(request):
         ).aggregate(total=Sum("amount"))["total"] or 0
 
         # 3. Total Sales (Grand total of orders paid in this window)
-        total_sales = float(cash_payments) + float(digital_payments)
+        total_sales = Decimal(str(cash_payments or 0)) + Decimal(str(digital_payments or 0))
 
         session.closed_at = close_time
         session.closed_by = request.user
         session.expected_cash = expected_cash
         session.actual_cash = actual_cash
-        session.discrepancy = float(actual_cash) - float(expected_cash)
+        session.discrepancy = actual_cash - expected_cash
         session.total_digital_payments = digital_payments
         session.total_sales = total_sales
         session.status = "closed"

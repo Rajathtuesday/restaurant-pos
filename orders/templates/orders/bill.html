@@ -138,16 +138,16 @@
             </div>
 
             <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
-            {% if order.gst_total > 0 %}
+            {% for gst in order.gst_breakdown %}
             <div class="total-row">
-                <span>CGST</span>
-                <span>₹{{ order.cgst_total }}</span>
+                <span>CGST @ {{ gst.cgst_rate }}%</span>
+                <span>₹{{ gst.cgst_amount }}</span>
             </div>
             <div class="total-row">
-                <span>SGST</span>
-                <span>₹{{ order.sgst_total }}</span>
+                <span>SGST @ {{ gst.sgst_rate }}%</span>
+                <span>₹{{ gst.sgst_amount }}</span>
             </div>
-            {% endif %}
+            {% endfor %}
             {% if order.discount_total > 0 %}
             <div class="total-row" style="color:#ef4444"><span>Discount</span><span>- ₹{{ order.discount_total }}</span></div>
             {% endif %}

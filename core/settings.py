@@ -316,3 +316,12 @@ LOGGING = {
     },
 
 }
+
+# Aggregator webhook IP allowlist
+AGGREGATOR_IP_ALLOWLIST = os.getenv(
+    'AGGREGATOR_IP_ALLOWLIST', '127.0.0.1'
+).split(',')
+
+# Session expires after one full shift (8 hours)
+SESSION_COOKIE_AGE = 28800  # 8 hours in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # also logout when browser closes

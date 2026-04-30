@@ -189,6 +189,34 @@ class Order(models.Model):
     def sgst_total(self):
         return self.gst_total - self.cgst_total
 
+    @property
+    def gst_breakdown(self):
+        """Returns GST grouped by rate — required for GST-compliant bills."""
+        from collections import defaultdict
+        breakdown = defaultdict(Decimal)
+
+        for item in self.items.exclude(status="voided").filter(is_complimentary=False):
+            rate = item.gst_percentage
+            # Apply order-level discount factor
+            discount_factor = Decimal("1.0")
+            if self.discount_type == "percentage" and self.discount_value:
+                discount_factor = 1 - (self.discount_value / Decimal("100"))
+            
+            item_gst = (item.total_price * discount_factor * rate / Decimal("100")).quantize(Decimal("0.01"))
+            breakdown[rate] += item_gst
+
+        return [
+            {
+                "rate": rate,
+                "cgst_rate": (rate / 2).quantize(Decimal("0.01")),
+                "sgst_rate": (rate / 2).quantize(Decimal("0.01")),
+                "cgst_amount": (amount / 2).quantize(Decimal("0.01")),
+                "sgst_amount": (amount / 2).quantize(Decimal("0.01")),
+            }
+            for rate, amount in sorted(breakdown.items())
+            if amount > 0
+        ]
+
     # -------------------------------------------------
     # APPLY / CLEAR DISCOUNT (helpers for views / API)
     # -------------------------------------------------
