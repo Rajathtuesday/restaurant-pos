@@ -10,4 +10,5 @@ urlpatterns = [
     path("sessions/", views.cash_session_list, name="cash-session-list"),
     path("sessions/open/", views.open_cash_session, name="open-cash-session"),
     path("sessions/close/", views.close_cash_session, name="close-cash-session"),
+    path("sessions/export/", views.export_z_report, name="export-z-report"),
 ]

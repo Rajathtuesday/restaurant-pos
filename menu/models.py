@@ -84,7 +84,8 @@ class MenuItem(models.Model):
 
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="menu_items/", null=True, blank=True)
+    from core.validators import validate_image_size
+    image = models.ImageField(upload_to="menu_items/", null=True, blank=True, validators=[validate_image_size])
 
     price = models.DecimalField(
         max_digits=10,

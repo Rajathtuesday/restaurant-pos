@@ -753,3 +753,22 @@ def split_pay(request, order_id):
         logger.exception(f"Split-pay error for order #{order_id}")
         err_msg = e.messages[0] if hasattr(e, "messages") else str(e)
         return JsonResponse({"error": err_msg}, status=400)
+
+@login_required
+@tenant_required
+def download_pdf_bill(request, order_id):
+    import weasyprint
+    from django.template.loader import render_to_string
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    
+    order = get_object_or_404(Order, id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+    
+    remaining = order.grand_total - sum(p.amount for p in order.payments.all())
+    
+    html_string = render_to_string("orders/bill.html", {"order": order, "request": request, "remaining": remaining})
+    pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="bill_{order.id}.pdf"'
+    return response

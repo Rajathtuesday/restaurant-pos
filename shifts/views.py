@@ -271,3 +271,43 @@ def close_cash_session(request):
         return JsonResponse({"success": True, "discrepancy": float(session.discrepancy)})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+def export_z_report(request):
+    """Exports Z-report for the day."""
+    import csv
+    from django.http import HttpResponse
+    from django.utils import timezone
+    from .models import CashSession
+
+    today = timezone.localdate()
+    sessions = CashSession.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        opened_at__date=today
+    )
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="z_report_{today}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['Session ID', 'Opened At', 'Closed At', 'Opened By', 'Closed By', 'Opening Balance', 'Expected Cash', 'Actual Cash', 'Discrepancy', 'Total Digital', 'Total Sales'])
+
+    for s in sessions:
+        writer.writerow([
+            s.id,
+            s.opened_at,
+            s.closed_at,
+            s.opened_by.username if s.opened_by else '',
+            s.closed_by.username if s.closed_by else '',
+            s.opening_balance,
+            s.expected_cash,
+            s.actual_cash,
+            s.discrepancy,
+            s.total_digital_payments,
+            s.total_sales
+        ])
+
+    return response

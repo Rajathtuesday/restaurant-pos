@@ -4,6 +4,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+from core.validators import validate_image_size
 
 
 # --------------------------------------------------
@@ -40,7 +41,8 @@ class Tenant(models.Model):
         upload_to="tenant_logos/",
         null=True,
         blank=True,
-        help_text="Restaurant Logo for bills"
+        help_text="Restaurant Logo for bills",
+        validators=[validate_image_size]
     )
 
     sales_agent = models.ForeignKey(

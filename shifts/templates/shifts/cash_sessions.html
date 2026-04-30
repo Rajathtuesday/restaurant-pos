@@ -41,6 +41,7 @@
             {% else %}
             <button class="btn-luxury" style="background:#dc3545; color:white; border:none;" data-bs-toggle="modal" data-bs-target="#closeSessionModal">Close Register</button>
             {% endif %}
+            <a href="{% url 'export-z-report' %}" class="btn-luxury" style="border-color: var(--accent-gold); color: var(--accent-gold);"><i class="bi bi-download me-1"></i> Z-Report</a>
             <a href="/dashboard/" class="btn-luxury">Exit</a>
         </div>
     </header>
