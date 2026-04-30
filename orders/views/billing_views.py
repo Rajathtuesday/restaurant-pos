@@ -146,14 +146,8 @@ def create_order(request):
                 if aggregator_id:
                     order.aggregator_order_id = aggregator_id
             
-            if discount_type in ["percentage", "amount"]:
-                try:
-                    val = Decimal(str(discount_value))
-                    if val > 0:
-                        order.discount_type = discount_type
-                        order.discount_value = val
-                except:
-                    pass
+            # REMOVED: Discount is applied at bill screen by staff only
+            # QR guests cannot apply discounts
 
             order.save()
             add_items_to_order(user, order, cart, tenant=tenant, outlet=outlet)
@@ -547,13 +541,18 @@ def log_bypass(request, order_id):
 
             # Enforce daily bypass limit for non-owners
             if request.user.role != "owner":
-                today = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                import pytz
+                ist = pytz.timezone('Asia/Kolkata')
+                now_ist = timezone.now().astimezone(ist)
+                today_ist_start = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_utc_start = today_ist_start.astimezone(pytz.utc).replace(tzinfo=None)
+
                 bypass_count = OrderEvent.objects.filter(
                     tenant=request.user.tenant,
                     outlet=request.user.outlet,
                     created_by=request.user,
                     event_type="status_changed",
-                    created_at__gte=today
+                    created_at__gte=today_utc_start
                 ).filter(metadata__action="payment_gate_bypassed").count()
 
                 if bypass_count >= 3:
@@ -683,6 +682,18 @@ def split_pay(request, order_id):
         )
 
     from orders.services.split_service import split_bill
+
+    # SECURITY: Ensure a Cash Session is open before accepting split payment
+    active_session = CashSession.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        status="open"
+    ).exists()
+
+    if not active_session:
+        return JsonResponse({
+            "error": "No open cash session. Please open a session in Shift Management first."
+        }, status=400)
 
     try:
         with transaction.atomic():

@@ -178,6 +178,38 @@
                 <div class="balance-val" id="balanceVal">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
             </div>
 
+            {% if request.user.role in "owner,manager,cashier" and order.status != 'paid' and order.status != 'closed' %}
+            <div class="discount-section no-print" style="margin: 1.5rem 0; padding: 1.2rem; border: 1px solid var(--border); border-radius: 4px; background: var(--panel);">
+                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.8rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight:600;">Apply Discount</div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select id="discount-type" style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 0.6rem; border-radius: 4px; font-size: 0.85rem; outline:none;">
+                        <option value="percentage">% Off</option>
+                        <option value="amount" style="color:black">₹ Flat</option>
+                    </select>
+                    <input type="number" id="discount-value" placeholder="0"
+                           min="0" step="0.01"
+                           style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 0.6rem 0.8rem; border-radius: 4px; font-size: 0.85rem; width: 80px; outline:none;">
+                    <button onclick="applyDiscount()"
+                            style="background: var(--gold); color: #000; border: none; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform:uppercase; letter-spacing:1px;">
+                        Apply
+                    </button>
+                    {% if order.discount_value > 0 %}
+                    <button onclick="removeDiscount()"
+                            style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-transform:uppercase; letter-spacing:1px;">
+                        Remove
+                    </button>
+                    {% endif %}
+                </div>
+                {% if order.discount_value > 0 %}
+                <div style="margin-top: 0.8rem; font-size: 0.8rem; color: var(--gold);">
+                    Active: {{ order.discount_type }} — {{ order.discount_value }}
+                    {% if order.discount_type == "percentage" %}%{% else %}₹{% endif %}
+                    (−₹{{ order.discount_total }})
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="pay-area no-print">
                 <div id="toast" class="toast-msg"></div>
 
@@ -226,6 +258,35 @@
     </div>
 
     <script>
+        function applyDiscount() {
+            const type = document.getElementById('discount-type').value;
+            const value = document.getElementById('discount-value').value;
+            if (!value || parseFloat(value) <= 0) {
+                alert('Enter a valid discount value');
+                return;
+            }
+            fetch(`/orders/{{ order.id }}/apply-discount/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({type: type, value: parseFloat(value)})
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) location.reload();
+                else alert(d.error);
+            });
+        }
+
+        function removeDiscount() {
+            fetch(`/orders/{{ order.id }}/apply-discount/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                body: JSON.stringify({type: 'percentage', value: 0})
+            })
+            .then(r => r.json())
+            .then(d => { if (d.success) location.reload(); });
+        }
+
         function setVal(v) { document.getElementById('payAmount').value = v; }
         function splitVal(v) { 
             let p = prompt("Split into how many?"); 
