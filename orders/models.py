@@ -116,6 +116,9 @@ class Order(models.Model):
         blank=True
     )
 
+    customer_name = models.CharField(max_length=100, null=True, blank=True)
+    customer_phone = models.CharField(max_length=20, null=True, blank=True)
+
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     gst_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
@@ -195,14 +198,35 @@ class Order(models.Model):
         from collections import defaultdict
         breakdown = defaultdict(Decimal)
 
-        for item in self.items.exclude(status="voided").filter(is_complimentary=False):
-            rate = item.gst_percentage
-            # Apply order-level discount factor
-            discount_factor = Decimal("1.0")
-            if self.discount_type == "percentage" and self.discount_value:
-                discount_factor = 1 - (self.discount_value / Decimal("100"))
+        items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
+        
+        # Calculate subtotal after item discounts to determine order discount factor
+        subtotal_after_item_discounts = Decimal("0.00")
+        for item in items:
+            item_base = item.total_price
+            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
+            subtotal_after_item_discounts += item_base
             
-            item_gst = (item.total_price * discount_factor * rate / Decimal("100")).quantize(Decimal("0.01"))
+        order_discount_total = Decimal("0.00")
+        if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
+            order_discount_total = subtotal_after_item_discounts * (Decimal(self.discount_value) / Decimal("100"))
+        elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
+            order_discount_total = Decimal(str(self.discount_value))
+            
+        if subtotal_after_item_discounts > 0:
+            order_discount_factor = max(Decimal("0.0"), (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts)
+        else:
+            order_discount_factor = Decimal("1.0")
+
+        for item in items:
+            rate = item.gst_percentage
+            item_base = item.total_price
+            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
+            
+            item_taxable = item_base * order_discount_factor
+            item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
             breakdown[rate] += item_gst
 
         return [
@@ -251,28 +275,46 @@ class Order(models.Model):
         raw_subtotal = sum((item.total_price for item in items), Decimal("0.0"))
         subtotal = self._quantize(raw_subtotal)
 
-        # 2. Calculate Total Discount
-        discount_total = Decimal("0.00")
+        # 2. Item Discounts
+        item_discount_total = Decimal("0.00")
+        subtotal_after_item_discounts = Decimal("0.00")
+        for item in items:
+            item_base = item.total_price
+            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+                item_discount = item_base * (item.item_discount_pct / Decimal("100"))
+                item_discount_total += item_discount
+                item_base = item_base - item_discount
+            subtotal_after_item_discounts += item_base
+
+        # 3. Order Discounts
+        order_discount_total = Decimal("0.00")
         if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
-            discount_total = subtotal * (Decimal(self.discount_value) / Decimal("100"))
+            order_discount_total = subtotal_after_item_discounts * (Decimal(self.discount_value) / Decimal("100"))
         elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
-            discount_total = Decimal(str(self.discount_value))
+            order_discount_total = Decimal(str(self.discount_value))
         
+        discount_total = self._quantize(item_discount_total + order_discount_total)
         if discount_total > subtotal:
             discount_total = subtotal
-        discount_total = self._quantize(discount_total)
 
-        # 3. Calculate Taxable Amount (Post-Discount)
+        # 4. Taxable Amount (Post-Discount)
         taxable_amount = subtotal - discount_total
         
-        # 4. Calculate GST on the Taxable Amount
+        # 5. GST
         gst_total = Decimal("0.00")
-        if subtotal > 0:
-            discount_factor = taxable_amount / subtotal
-            for item in items:
-                item_discounted_price = item.total_price * discount_factor
-                item_gst = (item_discounted_price * item.gst_percentage) / Decimal("100.0")
-                gst_total += item_gst
+        if subtotal_after_item_discounts > 0:
+            order_discount_factor = max(Decimal("0.0"), (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts)
+        else:
+            order_discount_factor = Decimal("1.0")
+
+        for item in items:
+            item_base = item.total_price
+            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
+            
+            item_taxable = item_base * order_discount_factor
+            item_gst = (item_taxable * item.gst_percentage) / Decimal("100.0")
+            gst_total += item_gst
         
         gst_total = self._quantize(gst_total)
         
@@ -368,6 +410,13 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
 
     price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    item_discount_pct = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Per-item discount percentage applied at billing"
+    )
 
     gst_percentage = models.DecimalField(
         max_digits=5,

@@ -129,6 +129,9 @@ def create_order(request):
 
     try:
         with transaction.atomic():
+            cust_name = data.get("customer_name")
+            cust_phone = data.get("customer_phone")
+            
             # For 3rd party or takeaway, we always create a fresh order to avoid merging
             if source != "dine_in" or table is None:
                 order = Order.objects.create(
@@ -138,13 +141,19 @@ def create_order(request):
                     created_by=user,
                     status="open",
                     source=source,
-                    aggregator_order_id=aggregator_id
+                    aggregator_order_id=aggregator_id,
+                    customer_name=cust_name,
+                    customer_phone=cust_phone
                 )
             else:
                 order = get_or_create_open_order(user, table, tenant=tenant, outlet=outlet)
                 order.source = source
                 if aggregator_id:
                     order.aggregator_order_id = aggregator_id
+                if cust_name:
+                    order.customer_name = cust_name
+                if cust_phone:
+                    order.customer_phone = cust_phone
             
             # REMOVED: Discount is applied at bill screen by staff only
             # QR guests cannot apply discounts
@@ -495,12 +504,8 @@ def apply_item_discount(request, item_id):
             )
             validate_order_editable(item.order)
 
-            # Recalculate item total after per-line discount
-            base_total = item.price * item.quantity
-            discounted = base_total * (1 - discount_pct / 100)
-            item.total_price = discounted.quantize(Decimal("0.01"))
-            item.notes = (item.notes or "") + f" [Discount: {discount_pct}%]"
-            item.save(update_fields=["total_price", "notes"])
+            item.item_discount_pct = discount_pct
+            item.save(update_fields=["item_discount_pct"])
             item.order.recalculate_totals()
 
             OrderEvent.objects.create(

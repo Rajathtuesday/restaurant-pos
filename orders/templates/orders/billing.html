@@ -711,6 +711,8 @@
                         <option value="web">Website</option>
                     </select>
                     <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
+                    <input type="text" id="customerNameDesktop" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
+                    <input type="tel" id="customerPhoneDesktop" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
                 </div>
 
                 <!-- Summary -->
@@ -780,6 +782,8 @@
                         <option value="web">Website</option>
                     </select>
                     <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
+                    <input type="text" id="customerNameMobile" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
+                    <input type="tel" id="customerPhoneMobile" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
                 </div>
 
                 <!-- Summary -->
@@ -1153,6 +1157,8 @@
             let isMobile = window.innerWidth < 992;
             let source = isMobile ? document.getElementById("sourceSelectMobile").value : document.getElementById("sourceSelectDesktop").value;
             let aggId = isMobile ? document.getElementById("aggregatorIdMobile").value : document.getElementById("aggregatorIdDesktop").value;
+            let custName = isMobile ? document.getElementById("customerNameMobile").value : document.getElementById("customerNameDesktop").value;
+            let custPhone = isMobile ? document.getElementById("customerPhoneMobile").value : document.getElementById("customerPhoneDesktop").value;
 
             fetch("{% url 'create-order' %}", {
                 method: "POST",
@@ -1161,7 +1167,9 @@
                     cart: cart, 
                     table_id: tableId,
                     source: source,
-                    aggregator_id: aggId
+                    aggregator_id: aggId,
+                    customer_name: custName,
+                    customer_phone: custPhone
                 })
             })
                 .then(r => r.json())
