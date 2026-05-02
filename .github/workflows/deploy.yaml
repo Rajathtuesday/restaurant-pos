@@ -1,23 +1,38 @@
 name: Test and Deploy Rasova
 
-# When to run this robot:
+# FIXES IN THIS FILE
+# ==================
+# Fix 1 — Node.js 20 deprecation warning
+#   actions/checkout@v4 and actions/setup-python@v5 were running on Node 20.
+#   Added FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true at the workflow env level
+#   so all actions opt into Node 24 now, before it becomes forced on June 2 2026.
+#
+# Fix 2 — Deploy job always skipped (0s run time)
+#   The if: condition checked refs/heads/main but the workflow only triggers
+#   on the good-ui branch, so the condition could never be true.
+#   Changed to refs/heads/good-ui to match the trigger.
+
 on:
   push:
-    branches: [ good-ui ]   # Every time you push to main
+    branches: [ good-ui ]
   pull_request:
-    branches: [ good-ui ]   # Every time you make a pull request to main
+    branches: [ good-ui ]
+
+# Fix 1: opt into Node 24 now for all actions in this workflow
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
 
   # ============================
-  # ROBOT JOB 1: Run the Tests
+  # JOB 1: Run the Tests
   # ============================
   test:
     name: Run Tests
-    runs-on: ubuntu-latest   # Robot lives on a fresh Ubuntu computer
+    runs-on: ubuntu-latest
 
     services:
-      postgres:              # Give the robot its own temporary database
+      postgres:
         image: postgres:15
         env:
           POSTGRES_DB: rasova_test
@@ -26,7 +41,7 @@ jobs:
         ports:
           - 5432:5432
 
-    env:   # Environment variables for the test run
+    env:
       DEBUG: True
       SECRET_KEY: 5h^7agr$co1d!hha96blyp6k632_c6i5q52)i(y8n#fm9hjxj^
       DB_ENGINE: django.db.backends.postgresql
@@ -46,7 +61,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-          cache: 'pip'   # Remember packages between runs (faster)
+          cache: 'pip'
 
       - name: Install packages
         run: pip install -r requirements.txt
@@ -61,14 +76,16 @@ jobs:
             --verbosity=2 --failfast
 
   # ============================
-  # ROBOT JOB 2: Deploy
+  # JOB 2: Deploy
   # (Only runs if Job 1 passed)
   # ============================
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-    needs: test    # ← Wait for tests to pass first
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: test
+    # Fix 2: was refs/heads/main — workflow only triggers on good-ui so
+    # this condition was never true and deploy always showed 0s / skipped
+    if: github.ref == 'refs/heads/good-ui' && github.event_name == 'push'
 
     steps:
       - name: SSH into server and deploy
@@ -78,4 +95,4 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          script: /home/rasova/deploy.sh   # ← Run the deploy script
+          script: /home/rasova/deploy.sh
