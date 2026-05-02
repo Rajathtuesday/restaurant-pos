@@ -1,0 +1,80 @@
+name: Test and Deploy Rasova
+
+# When to run this robot:
+on:
+  push:
+    branches: [ good-ui ]   # Every time you push to main
+  pull_request:
+    branches: [ good-ui ]   # Every time you make a pull request to main
+
+jobs:
+
+  # ============================
+  # ROBOT JOB 1: Run the Tests
+  # ============================
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest   # Robot lives on a fresh Ubuntu computer
+
+    services:
+      postgres:              # Give the robot its own temporary database
+        image: postgres:15
+        env:
+          POSTGRES_DB: rasova_test
+          POSTGRES_USER: rasova_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+
+    env:   # Environment variables for the test run
+      DEBUG: True
+      SECRET_KEY: fake-key-for-testing-only-1234567890
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: rasova_test
+      DB_USER: rasova_user
+      DB_PASSWORD: test_password
+      DB_HOST: localhost
+      DB_PORT: 5432
+      ALLOWED_HOSTS: localhost
+
+    steps:
+      - name: Download your code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'   # Remember packages between runs (faster)
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Set up test database
+        run: python manage.py migrate --noinput
+
+      - name: Run all tests
+        run: |
+          python manage.py test accounts orders tenants \
+            inventory reports crm shifts \
+            --verbosity=2 --failfast
+
+  # ============================
+  # ROBOT JOB 2: Deploy
+  # (Only runs if Job 1 passed)
+  # ============================
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: test    # ← Wait for tests to pass first
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: SSH into server and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: /home/rasova/deploy.sh   # ← Run the deploy script
