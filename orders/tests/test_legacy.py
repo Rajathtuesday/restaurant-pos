@@ -115,7 +115,14 @@ class POSTestCase(TestCase):
         self.assertEqual(order.id, data["order_id"])
 
     # ------------------------------------------------------------------
-    # TEST 3 — send to kitchen  (unchanged)
+    # TEST 3 — send to kitchen
+    #
+    # Changed: assertion was order.status == "confirmed" which is wrong.
+    # send_to_kitchen → create_kot never changes order.status.
+    # What actually changes:
+    #   - KOTBatch is created with status="confirmed"
+    #   - OrderItem.status flips from "pending" → "sent"
+    #   - order.status stays "open"
     # ------------------------------------------------------------------
 
     def test_send_to_kitchen(self):
@@ -124,7 +131,7 @@ class POSTestCase(TestCase):
             tenant=self.tenant, outlet=self.outlet,
             table=self.table, created_by=self.user, status="open",
         )
-        OrderItem.objects.create(
+        order_item = OrderItem.objects.create(
             order=order, menu_item=self.item,
             quantity=1, price=100, gst_percentage=5, total_price=105,
         )
@@ -132,8 +139,13 @@ class POSTestCase(TestCase):
         response = self.client.post(f"/send-to-kitchen/{order.id}/")
         self.assertEqual(response.status_code, 200)
 
+        # Order status is unchanged — send_to_kitchen does not transition it
         order.refresh_from_db()
-        self.assertEqual(order.status, "confirmed")
+        self.assertEqual(order.status, "open")
+
+        # The item is now "sent" to the kitchen — that is the real effect
+        order_item.refresh_from_db()
+        self.assertEqual(order_item.status, "sent")
 
     # ------------------------------------------------------------------
     # TEST 4 — kitchen marks item as preparing
