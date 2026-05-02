@@ -28,7 +28,7 @@ jobs:
 
     env:   # Environment variables for the test run
       DEBUG: True
-      SECRET_KEY: fake-key-for-testing-only-1234567890
+      SECRET_KEY: 5h^7agr$co1d!hha96blyp6k632_c6i5q52)i(y8n#fm9hjxj^
       DB_ENGINE: django.db.backends.postgresql
       DB_NAME: rasova_test
       DB_USER: rasova_user
@@ -36,6 +36,7 @@ jobs:
       DB_HOST: localhost
       DB_PORT: 5432
       ALLOWED_HOSTS: localhost
+      CSRF_TRUSTED_ORIGINS: http://localhost
 
     steps:
       - name: Download your code
