@@ -1,4 +1,4 @@
-# Rasova — Restaurant Management Platform
+# Rasova - Restaurant Management Platform
 
 > Cloud-based POS and restaurant management system for Indian restaurants.  
 > Built with Django 6.0.3 · PostgreSQL · AWS · Multi-tenant SaaS architecture.
