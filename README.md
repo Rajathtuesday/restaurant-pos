@@ -91,24 +91,24 @@ Rasova is a full-stack restaurant management platform built for dine-in restaura
 
 ```
 rasova/
-|-- accounts/          # User auth, roles, login, dashboard
-|-- agency/            # Multi-client agency management
-|-- core/              # Settings, middleware, decorators, URLs
-|-- crm/               # Guest profiles, loyalty, reservations
-|-- inventory/         # Stock, recipes, deduction
-|-- menu/              # Categories, items, modifiers, GST, digital menu
-|-- notifications/     # In-app notification system
-|-- orders/            # Core POS — orders, KOT, billing, payments
-|   |-- management/    # 9 management commands (stress test, seed, audit)
-|   |-- services/      # 14 service modules (payment, refund, KOT, void...)
-|   |-- tests/         # Financial flow, critical path, pos flow tests
-|   |-- utils/         # Payment validation, order utilities
-|   └-- views/         # Billing, order, table, waiter, kitchen views
-|-- reports/           # 8 report services + dashboard metrics
-|-- setup/             # Payment config, kitchen stations, aggregator config
-|-- shifts/            # Cash sessions, shift management, reconciliation
-|--tenants/           # Tenant and outlet models
-└-- static/            # CSS, JS, images
+├── accounts/          # User auth, roles, login, dashboard
+├── agency/            # Multi-client agency management
+├── core/              # Settings, middleware, decorators, URLs
+├── crm/               # Guest profiles, loyalty, reservations
+├── inventory/         # Stock, recipes, deduction
+├── menu/              # Categories, items, modifiers, GST, digital menu
+├── notifications/     # In-app notification system
+├── orders/            # Core POS — orders, KOT, billing, payments
+│   ├── management/    # 9 management commands (stress test, seed, audit)
+│   ├── services/      # 14 service modules (payment, refund, KOT, void...)
+│   ├── tests/         # Financial flow, critical path, pos flow tests
+│   ├── utils/         # Payment validation, order utilities
+│   └── views/         # Billing, order, table, waiter, kitchen views
+├── reports/           # 8 report services + dashboard metrics
+├── setup/             # Payment config, kitchen stations, aggregator config
+├── shifts/            # Cash sessions, shift management, reconciliation
+├── tenants/           # Tenant and outlet models
+└── static/            # CSS, JS, images
 ```
 
 ---
