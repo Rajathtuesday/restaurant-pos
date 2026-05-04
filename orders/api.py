@@ -12,6 +12,52 @@ from django.db import transaction
 from django.conf import settings
 
 from core.decorators import tenant_required
+from notifications.models import Notification
+from orders.models import WaiterCall, KitchenMessage
+
+@login_required
+@tenant_required
+def notification_api(request):
+    """
+    Unified endpoint for real-time notifications (Waiter Calls + Kitchen Messages).
+    Used by the 8s global poller in base.html and standalone templates.
+    """
+    outlet = request.user.outlet
+    tenant = request.user.tenant
+
+    # 1. Active Waiter Calls (not resolved)
+    waiter_calls = WaiterCall.objects.filter(
+        tenant=tenant, outlet=outlet, is_resolved=False
+    ).select_related('table').order_by('-created_at')
+
+    # 2. Active Kitchen Messages (not acknowledged)
+    kitchen_msgs = KitchenMessage.objects.filter(
+        tenant=tenant, outlet=outlet, is_resolved=False
+    ).select_related('order', 'order__table').order_by('-created_at')
+
+    # 3. Unread System Notifications (the 'unread' specific path user mentioned)
+    unread_system = Notification.objects.filter(
+        tenant=tenant, outlet=outlet, is_read=False
+    ).order_by('-created_at')
+
+    return JsonResponse({
+        "waiter_calls": {
+            "count": waiter_calls.count(),
+            "items": [{"id": c.id, "table": c.table.name} for c in waiter_calls]
+        },
+        "kitchen_messages": {
+            "count": kitchen_msgs.count(),
+            "items": [{
+                "id": m.id, 
+                "table": m.order.table.name if m.order.table else "Takeaway",
+                "message": m.message
+            } for m in kitchen_msgs]
+        },
+        "notifications": [
+            {"id": n.id, "message": n.message} for n in unread_system
+        ]
+    })
+
 from orders.models import Table, Order, OrderItem
 from tenants.models import Tenant, Outlet
 from setup.models import AggregatorConfig

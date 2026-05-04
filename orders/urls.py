@@ -6,7 +6,7 @@ from orders.services.table_transfer_service import transfer_table
 from .views.order_actions import cancel_order, cancel_item
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.refund_views import approve_refund_view, reject_refund_view
-from .api import api_tables, api_active_orders, api_ingest_order
+from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 
 
 
@@ -98,6 +98,9 @@ urlpatterns = [
     path("resolve-kitchen-message/<int:message_id>/", resolve_kitchen_message, name="resolve-kitchen-message"),
 
     path("refund/<int:payment_id>/", refund_payment, name="refund-payment"),
+    
+    path("api/notifications/", notification_api, name="notification-api"),
+    path("api/notifications/unread/", notification_api, name="notification-api-unread"),
     path("refund/approve/<int:refund_id>/", approve_refund_view, name="approve-refund"),
     path("refund/reject/<int:refund_id>/", reject_refund_view, name="reject-refund"),
     path("item-discount/<int:item_id>/", apply_item_discount, name="item-discount"),

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="{{ request.user.tenant.primary_color|default:'#c5a059' }}">
+    <title>{% block title %}{{ request.user.tenant.name|default:"POS" }}{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family={{ request.user.tenant.font_family|default:'Outfit' }}:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- SweetAlert2 for beautiful, non-blocking alerts -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <!-- Dynamic Theming & Core CSS -->
+    <style>
+        :root {
+            /* Dynamic Tenant Colors */
+            --accent-gold: {{ request.user.tenant.primary_color|default:"#c5a059" }};
+            --font-main: '{{ request.user.tenant.font_family|default:"Outfit" }}', sans-serif;
+            
+            /* Light Theme Defaults (Fine Dining: White & Gold) */
+            --bg-color: #fafafa;
+            --panel-bg: #ffffff;
+            --text-main: #111111;
+            --text-muted: #737373;
+            --border-color: #eaeaea;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
+        [data-theme="dark"] {
+            /* Dark Theme Overrides (Fine Dining: True Black & Gold) */
+            --bg-color: #000000;
+            --panel-bg: #0a0a0a;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border-color: #262626;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3, h4, h5, .serif-text { font-family: 'DM Serif Display', serif; }
+        .mono-text { font-family: 'Space Mono', monospace; }
+
+        /* Global UI Elements */
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent; 
+            color: var(--text-main);
+            padding: 0.5rem 1.2rem; 
+            font-size: 0.85rem; 
+            text-transform: uppercase;
+            letter-spacing: 1px; 
+            font-weight: 500; 
+            border-radius: 0; /* Sharp edges for fine dining */
+            transition: var(--transition-smooth); 
+            display: inline-flex; 
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main); 
+            color: var(--panel-bg); 
+            background: var(--text-main);
+        }
+        .btn-accent {
+            background: var(--accent-gold); 
+            border-color: var(--accent-gold); 
+            color: #fff;
+        }
+        .btn-accent:hover {
+            opacity: 0.9;
+            color: #fff;
+        }
+
+        /* NOTIFICATION BADGE (WhatsApp-style) */
+        .notif-wrapper { position: relative; display: inline-flex; }
+        .notif-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 10;
+            animation: badgePop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        @keyframes badgePop {
+            0%   { transform: scale(0); opacity: 0; }
+            70%  { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .notif-badge.hidden { display: none; }
+
+        /* Offline Banner */
+        #offline-banner {
+            display: none;
+            background: var(--danger);
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            z-index: 9999;
+            position: sticky;
+            top: 0;
+        }
+
+        /* NProgress-style loader */
+        #global-loader {
+            position: fixed;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: var(--accent-gold);
+            transform: scaleX(0);
+            transform-origin: 0 50%;
+            transition: transform 0.2s ease;
+            z-index: 10000;
+        }
+        .loading #global-loader {
+            transform: scaleX(1);
+            transition: transform 2s cubic-bezier(0,1,0,1);
+        }
+
+        /* ---- Notification Badge (WhatsApp-style) ---- */
+        .notif-wrapper { position: relative; display: inline-flex; }
+        .notif-badge {
+            position: absolute;
+            top: -6px;
+            right: -8px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            pointer-events: none;
+            /* Pulse animation when new notification arrives */
+            animation: badgePop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        @keyframes badgePop {
+            0%   { transform: scale(0); opacity: 0; }
+            70%  { transform: scale(1.25); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .notif-badge.hidden { display: none; }
+
+        /* --- Global Header (Large/Premium) --- */
+        .pos-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            transition: var(--transition-smooth);
+            z-index: 1000;
+        }
+        @media (min-width: 992px) {
+            .pos-header { padding: 1.75rem 3rem; }
+        }
+
+        .brand-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.65rem;
+            margin: 0;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            line-height: 1.1;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .brand-title:hover { color: var(--accent-gold); }
+        .brand-subtitle {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin: 2px 0 0 0;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-smooth);
+        }
+        .btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div id="offline-banner"><i class="bi bi-wifi-off me-2"></i>You are currently offline. Actions may not be saved.</div>
+    <div id="global-loader"></div>
+
+    <header class="pos-header">
+        <div class="header-left">
+            {% block header_left %}
+            <a href="/" class="brand-title">
+                <i class="bi bi-diamond-half"></i>
+                <span>{{ request.user.tenant.name|default:"Rasova POS" }}</span>
+            </a>
+            <p class="brand-subtitle">{{ request.user.outlet.name|default:"Standard Outlet" }}</p>
+            {% endblock %}
+        </div>
+
+        <div class="header-right d-flex align-items-center gap-2">
+            {% block header_right %}
+            <!-- Default right side buttons -->
+            <span class="notif-wrapper">
+                <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
+                <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
+            </span>
+            <button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+            <a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+            {% endblock %}
+        </div>
+    </header>
+
+    <!-- Main Content Wrapper -->
+    <main class="flex-grow-1 d-flex flex-column">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.all.min.js"></script>
+
+    <script>
+        // --- 1. Theme Management ---
+        const themeManager = {
+            init() {
+                const isDark = localStorage.getItem("pos_dark_theme") === "true";
+                document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+            },
+            toggle() {
+                const current = document.documentElement.getAttribute("data-theme");
+                const next = current === "dark" ? "light" : "dark";
+                document.documentElement.setAttribute("data-theme", next);
+                localStorage.setItem("pos_dark_theme", next === "dark");
+                
+                // Dispatch event for components that need to know
+                window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: next } }));
+            }
+        };
+        themeManager.init(); // Run immediately to prevent flash
+
+        // --- 2. Network State Management (Edge Case: WiFi Drops) ---
+        window.addEventListener('online',  () => {
+            document.getElementById('offline-banner').style.display = 'none';
+            ui.toast('Connection restored', 'success');
+        });
+        window.addEventListener('offline', () => {
+            document.getElementById('offline-banner').style.display = 'block';
+            ui.toast('You are offline. Please check your connection.', 'error');
+        });
+
+        // --- 3. Global UI Helpers ---
+        const ui = {
+            toast(message, icon = 'info') {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: "bottom-end",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    background: document.documentElement.getAttribute("data-theme") === 'dark' ? 'var(--panel-bg)' : '#fff',
+                    color: 'var(--text-main)',
+                    didOpen: (toast) => {
+                        toast.onmouseenter = Swal.stopTimer;
+                        toast.onmouseleave = Swal.resumeTimer;
+                    }
+                });
+                Toast.fire({ icon, title: message });
+            },
+            showLoading() { document.body.classList.add('loading'); },
+            hideLoading() { document.body.classList.remove('loading'); },
+            confirm(title, text, confirmText = 'Yes, do it') {
+                return Swal.fire({
+                    title: title,
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: 'var(--accent-gold)',
+                    cancelButtonColor: 'var(--text-muted)',
+                    confirmButtonText: confirmText,
+                    background: document.documentElement.getAttribute("data-theme") === 'dark' ? 'var(--panel-bg)' : '#ffffff',
+                    color: 'var(--text-main)',
+                    customClass: {
+                        popup: 'rounded-0', // Sharp edges
+                        confirmButton: 'rounded-0 btn btn-accent',
+                        cancelButton: 'rounded-0 btn btn-luxury'
+                    }
+                });
+            }
+        };
+
+        // --- 4. API Client Wrapper (Error Handling & CSRF) ---
+        const apiClient = {
+            getCsrf() {
+                return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            },
+            
+            async request(endpoint, options = {}) {
+                if (!navigator.onLine) {
+                    ui.toast("Action prevented: You are offline.", "error");
+                    throw new Error("Offline");
+                }
+
+                ui.showLoading();
+                
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': this.getCsrf(),
+                    ...options.headers
+                };
+
+                try {
+                    const response = await fetch(endpoint, { ...options, headers });
+                    const data = await response.json();
+
+                    if (!response.ok || (data.success === false)) {
+                        const errorMsg = data.error || data.detail || `Server Error (${response.status})`;
+                        ui.toast(errorMsg, "error");
+                        throw new Error(errorMsg);
+                    }
+                    
+                    return data;
+                } catch (err) {
+                    // Only show generic toast if it wasn't already caught above
+                    if(err.message !== "Offline" && err.name === "TypeError") {
+                        ui.toast("Network failure or server is unreachable.", "error");
+                    }
+                    throw err; // Re-throw for specific component handling
+                } finally {
+                    ui.hideLoading();
+                }
+            },
+            
+            get(endpoint) { return this.request(endpoint, { method: 'GET' }); },
+            post(endpoint, body) { return this.request(endpoint, { method: 'POST', body: JSON.stringify(body) }); },
+            put(endpoint, body) { return this.request(endpoint, { method: 'PUT', body: JSON.stringify(body) }); },
+            delete(endpoint) { return this.request(endpoint, { method: 'DELETE' }); }
+        };
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+
+    <!-- ================================================
+         GLOBAL NOTIFICATION POLLER
+         Polls /api/notifications/ every 8s.
+         Shows WhatsApp-style badge on Calls & Kitchen nav links.
+         Fires SweetAlert toasts for NEW notifications.
+         ================================================ -->
+    <script>
+    (function() {
+        // Only run if the user is logged in (page has notifications endpoint)
+        const POLL_URL = '/waiter-dashboard/../api/notifications/';
+        const REAL_URL = '/api/notifications/';
+        
+        // Track previous counts to detect NEW vs existing
+        let prevWaiterCount = -1;
+        let prevKitchenCount = -1;
+        let pollInterval = null;
+
+        function updateBadge(baseId, count) {
+            // Update all badge elements with matching base ID (desktop + mobile)
+            const ids = [baseId, baseId + '-mobile'];
+            ids.forEach(id => {
+                const badge = document.getElementById(id);
+                if (!badge) return;
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            });
+        }
+
+        async function pollNotifications() {
+            // Silently fail — never crash the POS
+            try {
+                const res = await fetch(REAL_URL, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) return; // User not logged in or server error — skip silently
+
+                const data = await res.json();
+                const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
+
+                // ---- Update nav badges ----
+                updateBadge('notif-badge-waiter', totalCount);
+
+                // ---- Fire toast ONLY for NEW notifications (not on first load) ----
+                if (prevWaiterCount !== -1 && wCount > prevWaiterCount) {
+                    // New waiter call came in
+                    const newCalls = data.waiter_calls.items.slice(0, wCount - prevWaiterCount);
+                    newCalls.forEach(call => {
+                        ui.toast(`🔔 Waiter called from ${call.table}`, 'warning');
+                    });
+                    // Vibrate on tablets/phones for tactile feedback
+                    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+                    // Request browser-level notification if permitted
+                    sendBrowserNotif(`Waiter Call — ${newCalls[0]?.table || 'Table'}`,
+                        `Customer is calling for assistance.`);
+                }
+
+                prevWaiterCount = wCount;
+
+            } catch (e) {
+                // Network blip — ignore, next poll will recover
+            }
+        }
+
+        function sendBrowserNotif(title, body) {
+            // Only send if browser notifications are granted
+            if (!('Notification' in window)) return;
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body, icon: '/static/icons/icon-192.png' });
+            } else if (Notification.permission !== 'denied') {
+                // Ask once — don't spam
+                Notification.requestPermission();
+            }
+        }
+
+        function startPolling() {
+            // Run immediately then every 8 seconds
+            pollNotifications();
+            pollInterval = setInterval(pollNotifications, 8000);
+        }
+
+        // Only start polling if user appears to be logged in
+        // (check if csrf token meta exists as a proxy)
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            // Wait for DOM to settle before first poll
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', startPolling);
+            } else {
+                startPolling();
+            }
+        }
+
+        // Expose for manual refresh (e.g. after resolving a call)
+        window.refreshNotifications = pollNotifications;
+    })();
+    </script>
+</body>
+</html>

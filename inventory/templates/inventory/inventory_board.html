@@ -289,105 +289,100 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        /* THEME MANAGEMENT */
-        let isDark = localStorage.getItem("dark") === "true";
-        function updateIcons() {
-            let icon = document.getElementById("themeIcon");
-            if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
-            else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+    // THEME - only once
+    let isDark = localStorage.getItem("dark") === "true";
+    
+    function updateTheme() {
+        let icon = document.getElementById("themeIcon");
+        if (isDark) {
+            document.body.classList.add("dark");
+            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
+        } else {
+            document.body.classList.remove("dark");
+            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
         }
-        /* THEME MANAGEMENT */
-        let isDark = localStorage.getItem("dark") === "true";
-        function updateTheme() {
-            let icon = document.getElementById("themeIcon");
-            if (isDark) {
-                document.body.classList.add("dark");
-                if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-            } else {
-                document.body.classList.remove("dark");
-                if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-            }
-        }
+    }
+    updateTheme();
+
+    function toggleDark() {
+        isDark = !isDark;
+        localStorage.setItem("dark", isDark);
         updateTheme();
-        function toggleDark() {
-            isDark = !isDark;
-            localStorage.setItem("dark", isDark);
-            updateTheme();
-        }
+    }
 
-        /* API */
-        function getCookie(name){
-            let cookieValue=null;
-            if(document.cookie){
-                let cookies=document.cookie.split(";");
-                for(let i=0;i<cookies.length;i++){
-                    let cookie=cookies[i].trim();
-                    if(cookie.substring(0,name.length+1)===(name+"=")){
-                        cookieValue=decodeURIComponent(cookie.substring(name.length+1));
-                    }
+    // remove updateIcons() entirely - it's dead code
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie) {
+            let cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 }
             }
-            return cookieValue;
         }
+        return cookieValue;
+    }
 
-        function restock(id){
-            let qty = document.getElementById("add"+id).value;
-            if(!qty || qty <= 0){ alert("Please enter a valid quantity."); return; }
+    function restock(id) {
+        let qty = document.getElementById("add" + id).value;
+        if (!qty || qty <= 0) { alert("Please enter a valid quantity."); return; }
+        fetch(`/inventory/restock/${id}/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            body: JSON.stringify({ quantity: qty })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById("stock" + id).innerText = data.new_stock;
+                document.getElementById("add" + id).value = "";
+                location.reload();
+            } else {
+                alert("Restock failed");
+            }
+        })
+    }
 
-            fetch(`/inventory/restock/${id}/`,{
-                method:"POST",
-                headers:{ "Content-Type":"application/json", "X-CSRFToken":getCookie("csrftoken") },
-                body:JSON.stringify({ quantity:qty })
+    function openAddInventoryModal() {
+        new bootstrap.Modal(document.getElementById("inventoryModal")).show();
+    }
+
+    function createInventoryItem() {
+        let name = document.getElementById("invName").value;
+        let unit = document.getElementById("invUnit").value;
+        let stock = document.getElementById("invStock").value;
+        let threshold = document.getElementById("invThreshold").value;
+        let costPrice = document.getElementById("invCostPrice").value;
+
+        if (!name) { alert("Please enter an ingredient name."); return; }
+
+        fetch("/inventory/create/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            body: JSON.stringify({
+                name: name,
+                unit: unit,
+                stock: parseFloat(stock) || 0,
+                threshold: parseFloat(threshold) || 0,
+                cost_price: parseFloat(costPrice) || 0
             })
-            .then(res=>res.json())
-            .then(data=>{
-                if(data.success){
-                    document.getElementById("stock"+id).innerText=data.new_stock;
-                    document.getElementById("add"+id).value="";
-                    // Optionally, reload to refresh low-stock badges
-                    location.reload();
-                }else{
-                    alert("Restock failed");
-                }
-            })
-        }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || "Failed to create ingredient.");
+            }
+        })
+    }
+</script>
 
-        function openAddInventoryModal(){
-            new bootstrap.Modal(document.getElementById("inventoryModal")).show();
-        }
-
-        function createInventoryItem(){
-            let name = document.getElementById("invName").value;
-            let unit = document.getElementById("invUnit").value;
-            let stock = document.getElementById("invStock").value;
-            let threshold = document.getElementById("invThreshold").value;
-            let costPrice = document.getElementById("invCostPrice").value;
-
-            if(!name){ alert("Please enter an ingredient name."); return; }
-
-            fetch("/inventory/create/",{
-                method:"POST",
-                headers:{ "Content-Type":"application/json", "X-CSRFToken":getCookie("csrftoken") },
-                body:JSON.stringify({
-                    name:name,
-                    unit:unit,
-                    stock:parseFloat(stock) || 0,
-                    threshold:parseFloat(threshold) || 0,
-                    cost_price:parseFloat(costPrice) || 0
-                })
-            })
-            .then(res=>res.json())
-            .then(data=>{
-                if(data.success){
-                    location.reload();
-                }else{
-                    alert(data.error || "Failed to create ingredient.");
-                }
-            })
-        }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap only once, at the end -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

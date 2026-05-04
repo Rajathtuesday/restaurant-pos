@@ -44,6 +44,36 @@
             --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
+        /* NOTIFICATION BADGE (WhatsApp-style) */
+        .notif-wrapper { position: relative; display: inline-flex; }
+        .notif-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            pointer-events: none;
+            z-index: 10;
+            animation: badgePop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+        @keyframes badgePop {
+            0%   { transform: scale(0); opacity: 0; }
+            70%  { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .notif-badge.hidden { display: none; }
+
         body.dark {
             --bg-color: #0a0a0a;
             --panel-bg: #111111;
@@ -604,14 +634,18 @@
     <!-- HEADER -->
     <header class="pos-header">
         <div class="d-flex flex-column">
-            <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
+            <a href="/dashboard/" style="text-decoration: none; color: inherit;">
+                <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
+            </a>
             <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">POS Billing — {{ request.user.outlet.name }}</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
             <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
-            <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i
-                    class="bi bi-bell me-1"></i> Calls</a>
+            <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex position-relative">
+                <i class="bi bi-bell me-1"></i> Calls
+                <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
+            </a>
             <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
             <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i
                     class="bi bi-box-arrow-right"></i></a>
@@ -619,7 +653,10 @@
             <!-- Mobile compact links -->
             <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
             <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-            <a href="/waiter-dashboard/" class="btn-icon d-sm-none" title="Calls"><i class="bi bi-bell"></i></a>
+            <a href="/waiter-dashboard/" class="btn-icon d-sm-none position-relative" title="Calls">
+                <i class="bi bi-bell"></i>
+                <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
+            </a>
             <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
             <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 
@@ -1265,8 +1302,31 @@
             return v || '{{ csrf_token }}';
         }
 
+        async function pollNotifications() {
+            try {
+                const res = await fetch('/api/notifications/');
+                const data = await res.json();
+                
+                // Update badges
+                const waiterBadge = document.getElementById('notif-badge-waiter');
+                const waiterBadgeMobile = document.getElementById('notif-badge-waiter-mobile');
+            const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
+            if (totalCount > 0) {
+                if (waiterBadge) { waiterBadge.innerText = totalCount; waiterBadge.classList.remove('hidden'); }
+                if (waiterBadgeMobile) { waiterBadgeMobile.innerText = totalCount; waiterBadgeMobile.classList.remove('hidden'); }
+            } else {
+                if (waiterBadge) waiterBadge.classList.add('hidden');
+                if (waiterBadgeMobile) waiterBadgeMobile.classList.add('hidden');
+            }
+        } catch (e) { console.error("Poll failed", e); }
+    }
+
         document.addEventListener("DOMContentLoaded", () => {
-            renderCart(); loadRunningOrder(); setInterval(loadRunningOrder, 5000);
+            renderCart(); 
+            loadRunningOrder(); 
+            pollNotifications();
+            setInterval(loadRunningOrder, 5000);
+            setInterval(pollNotifications, 8000);
             // Default category select desktop & mobile
             const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
             const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");

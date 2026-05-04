@@ -99,6 +99,15 @@ def set_item_ready(user, item_id):
 
     update_table_state(item.order)
 
+    # Create KitchenMessage for the waiter dashboard
+    from orders.models import KitchenMessage
+    KitchenMessage.objects.create(
+        tenant=item.order.tenant,
+        outlet=item.order.outlet,
+        order=item.order,
+        message=f"{item.menu_item.name} is ready"
+    )
+
     table_name = item.order.table.name if item.order.table else "Takeaway"
     create_notification(
         item.order.tenant,
