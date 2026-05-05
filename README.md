@@ -137,7 +137,7 @@ pip install -r requirements.txt
 
 # Create environment file
 cp .env.example .env
-# Edit .env with your values — see Environment Variables section
+# Edit .env with your values - see Environment Variables section
 ```
 
 ### Database Setup
@@ -232,9 +232,9 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 ```
 
-Then set up Gunicorn as a systemd service and Nginx as reverse proxy — see the deployment guide in `/docs/deployment.md`.
+Then set up Gunicorn as a systemd service and Nginx as reverse proxy - see the deployment guide in `/docs/deployment.md`.
 
-### CI/CD — GitHub Actions
+### CI/CD - GitHub Actions
 
 Every push to `main` automatically:
 1. Runs the full test suite against a real PostgreSQL instance
@@ -298,7 +298,7 @@ Every database query is scoped by `tenant + outlet`. The `TenantMiddleware` reso
 
 ### Financial Integrity
 
-All payment operations use `select_for_update()` to prevent race conditions. Refund rows are excluded from payment validation using `.exclude(method="refund")`. The `validate_order_payment()` function uses `TOLERANCE = Decimal("0.00")` — no rounding buffer.
+All payment operations use `select_for_update()` to prevent race conditions. Refund rows are excluded from payment validation using `.exclude(method="refund")`. The `validate_order_payment()` function uses `TOLERANCE = Decimal("0.00")` - no rounding buffer.
 
 ### KOT Numbering
 
@@ -306,19 +306,19 @@ All payment operations use `select_for_update()` to prevent race conditions. Ref
 
 ### Concurrency
 
-Service layer (`orders/services/`) handles all business logic with proper `transaction.atomic()` scoping. Views are thin — they validate input and call services.
+Service layer (`orders/services/`) handles all business logic with proper `transaction.atomic()` scoping. Views are thin - they validate input and call services.
 
 ---
 
 ## Security
 
-- **Brute-force protection** — django-axes, 5 attempts before lockout, 1-hour cooldown
-- **Multi-tenant isolation** — every query scoped by tenant + outlet, cross-tenant access raises `PermissionDenied`
-- **Role-based access** — `@role_required` decorator on all sensitive endpoints
-- **HMAC webhook verification** — aggregator (Zomato/Swiggy) webhooks verified with `hmac.compare_digest`
-- **CSRF protection** — Django's built-in CSRF middleware, `CSRF_TRUSTED_ORIGINS` configured
-- **Error tracking** — Sentry configured for production exceptions
-- **Structured logging** — Thread-local tenant/outlet context injected into every log record
+- **Brute-force protection** - django-axes, 5 attempts before lockout, 1-hour cooldown
+- **Multi-tenant isolation** - every query scoped by tenant + outlet, cross-tenant access raises `PermissionDenied`
+- **Role-based access** - `@role_required` decorator on all sensitive endpoints
+- **HMAC webhook verification** - aggregator (Zomato/Swiggy) webhooks verified with `hmac.compare_digest`
+- **CSRF protection** - Django's built-in CSRF middleware, `CSRF_TRUSTED_ORIGINS` configured
+- **Error tracking** - Sentry configured for production exceptions
+- **Structured logging** - Thread-local tenant/outlet context injected into every log record
 
 ---
 
