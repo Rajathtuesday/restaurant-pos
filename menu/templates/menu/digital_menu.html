@@ -145,7 +145,7 @@
             background: var(--panel-bg);
             border-bottom: 1px solid var(--border-color);
             position: sticky;
-            top: 76px; /* below header */
+            top: 0; /* below header */
             z-index: 1010;
             -ms-overflow-style: none; scrollbar-width: none;
         }
@@ -861,6 +861,33 @@
             btn.innerHTML = '<i class="bi bi-bell"></i> Call Waiter';
         });
     }
+    function fixStickyNav() {
+    const header = document.querySelector('.pos-header') || document.querySelector('.menu-header');
+    const stickyNav = document.querySelector('.cat-nav-bar') || document.querySelector('.category-tabs');
+    
+    if (header && stickyNav) {
+        const headerHeight = header.getBoundingClientRect().height;
+        const navHeight = stickyNav.getBoundingClientRect().height;
+        const totalBlocked = headerHeight + navHeight;
+        
+        // Position nav just below header
+        stickyNav.style.top = headerHeight + 'px';
+        
+        // Push ALL content below both sticky bars
+        document.querySelectorAll('.category-section').forEach(section => {
+            section.style.scrollMarginTop = (totalBlocked + 16) + 'px';
+        });
+
+        // Push first visible content down
+        const firstContent = document.querySelector('.search-container') || 
+                            document.querySelector('.container-fluid:not(.pos-header)');
+        if (firstContent) {
+            firstContent.style.marginTop = (totalBlocked + 8) + 'px';
+        }
+    }
+}
+fixStickyNav();
+window.addEventListener('resize', fixStickyNav);
 </script>
 </body>
 </html>

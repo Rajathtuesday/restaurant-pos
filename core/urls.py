@@ -31,6 +31,34 @@ def custom_500(request):
     from django.shortcuts import render
     return render(request, "500.html", status=500)
 
+from django.http import HttpResponse
+
+def robots_txt(request):
+    content = """User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /billing/
+Disallow: /tables/
+Disallow: /inventory/
+Disallow: /menu/
+Disallow: /dashboard/
+Disallow: /reports/
+
+Sitemap: https://rasova.net/sitemap.xml"""
+    return HttpResponse(content, content_type='text/plain')
+
+def sitemap_xml(request):
+    content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://rasova.net/</loc>
+    <lastmod>2026-05-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>"""
+    return HttpResponse(content, content_type='application/xml')
+
 handler404 = "core.urls.custom_404"
 handler500 = "core.urls.custom_500"
 
@@ -39,11 +67,12 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # default redirect
-    path('', lambda request: redirect('login')),
+    path('', TemplateView.as_view(template_name='core/landing.html'), name='landing'),
 
     # Health check
     path('health/', views.health_check, name='health_check'),
-
+    path('robots.txt', robots_txt),
+    path('sitemap.xml', sitemap_xml),
     # PWA
     path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript')),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/manifest+json')),

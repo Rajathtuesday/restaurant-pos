@@ -190,7 +190,7 @@
             overflow-x: auto;
             white-space: nowrap;
             position: sticky;
-            top: 73px; /* Just below main header */
+            top: 0; /* Just below main header */
             z-index: 999;
             box-shadow: 0 4px 10px rgba(0,0,0,0.02);
             -ms-overflow-style: none; scrollbar-width: none;
@@ -272,7 +272,7 @@
         .mobile-nav-panel a:hover, .mobile-nav-panel button.drawer-btn:hover { color: var(--accent-gold); }
 
         /* Header overflow fix */
-        .pos-header { overflow: hidden; }
+        {% comment %} .pos-header { overflow: hidden; } {% endcomment %}
 
         @media (max-width: 991px) {
             .pos-header { padding: 0.85rem 1rem; }
@@ -786,7 +786,39 @@
         document.addEventListener("keydown", function(e) {
             if (e.key === "Escape") closeMobileNav();
         });
+
+
+        // Dynamically position sticky nav below header
+    function fixStickyNav() {
+    const header = document.querySelector('.pos-header') || document.querySelector('.menu-header');
+    const stickyNav = document.querySelector('.cat-nav-bar') || document.querySelector('.category-tabs');
+    
+    if (header && stickyNav) {
+        const headerHeight = header.getBoundingClientRect().height;
+        const navHeight = stickyNav.getBoundingClientRect().height;
+        const totalBlocked = headerHeight + navHeight;
+        
+        // Position nav just below header
+        stickyNav.style.top = headerHeight + 'px';
+        
+        // Push ALL content below both sticky bars
+        document.querySelectorAll('.category-section').forEach(section => {
+            section.style.scrollMarginTop = (totalBlocked + 16) + 'px';
+        });
+
+        // Push first visible content down
+        const firstContent = document.querySelector('.search-container') || 
+                            document.querySelector('.container-fluid:not(.pos-header)');
+        if (firstContent) {
+            firstContent.style.marginTop = (totalBlocked + 8) + 'px';
+        }
+    }
+}
+fixStickyNav();
+window.addEventListener('resize', fixStickyNav);
+    
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
 </body>
 </html>
