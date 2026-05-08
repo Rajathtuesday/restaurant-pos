@@ -426,7 +426,10 @@ def outlet_settings(request):
 # PROMO / DISCOUNT MANAGEMENT
 # ==================================
 
+from core.decorators import tenant_required
+
 @login_required
+@tenant_required
 def setup_promos(request):
     """
     Full-page promo management UI inside the Setup area.
@@ -455,6 +458,7 @@ def setup_promos(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def promo_create(request):
     """JSON endpoint — create a new promo."""
@@ -523,8 +527,10 @@ def promo_create(request):
             valid_from      = valid_from or None,
             valid_until     = valid_until or None,
         )
-    except IntegrityError:
-        return JsonResponse({"error": f"Promo code '{code}' already exists for this tenant"}, status=409)
+    except IntegrityError as e:
+        return JsonResponse({"error": f"Database error: {str(e)}"}, status=409)
+    except Exception as e:
+        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
 
     return JsonResponse({
         "success": True,

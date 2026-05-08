@@ -333,52 +333,13 @@
                 <span class="section-title">Promo Campaigns</span>
             </div>
             <div class="section-body">
-                <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:1.2rem; line-height:1.6;">
-                    Active promos appear as a quick-pick on the billing screen so cashiers can apply them in one tap.
+                <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6;">
+                    Manage your discounts, usage caps, and all-outlet broadcasting from the central campaign dashboard.
                 </p>
-                <div id="promo-list" style="margin-bottom:1.2rem;"></div>
-
-                <div style="border:1px solid var(--border-color); padding:1.2rem;">
-                    <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin-bottom:1rem;">New Promo</div>
-                    <div class="two-col" style="margin-bottom:0.8rem;">
-                        <div class="field-row" style="margin-bottom:0;">
-                            <label class="field-label">Name</label>
-                            <input type="text" id="p-name" placeholder="e.g. Happy Hours" class="field-input">
-                        </div>
-                        <div class="field-row" style="margin-bottom:0;">
-                            <label class="field-label">Code (optional)</label>
-                            <input type="text" id="p-code" placeholder="HH20" class="field-input field-mono" oninput="this.value=this.value.toUpperCase()">
-                        </div>
-                    </div>
-                    <div class="two-col" style="margin-bottom:0.8rem;">
-                        <div class="field-row" style="margin-bottom:0;">
-                            <label class="field-label">Type</label>
-                            <select id="p-type" class="field-input" style="padding:0;">
-                                <option value="percentage">% Off</option>
-                                <option value="amount">₹ Flat Off</option>
-                            </select>
-                        </div>
-                        <div class="field-row" style="margin-bottom:0;">
-                            <label class="field-label">Value</label>
-                            <input type="number" id="p-value" min="0.01" step="0.01" placeholder="20" class="field-input">
-                        </div>
-                    </div>
-                    <div class="two-col" style="margin-bottom:1rem;">
-                        <div class="field-row" style="margin-bottom:0;">
-                            <label class="field-label">Valid From (optional)</label>
-                            <input type="date" id="p-from" class="field-input">
-                        </div>
-                        <div class="field-row" style="margin-bottom:0;">
-                            <label class="field-label">Valid Until (optional)</label>
-                            <input type="date" id="p-until" class="field-input">
-                        </div>
-                    </div>
-                    <button onclick="createPromo()" type="button"
-                            style="background:var(--accent-gold); color:#fff; border:none; padding:0.7rem 1.5rem; font-size:0.75rem; text-transform:uppercase; letter-spacing:2px; font-weight:700; cursor:pointer;">
-                        <i class="bi bi-plus-circle me-1"></i> Add Promo
-                    </button>
-                    <div id="promo-msg" style="margin-top:0.6rem; font-size:0.78rem; display:none;"></div>
-                </div>
+                <a href="{% url 'setup_promos' %}" class="btn-out" 
+                   style="display:inline-flex; align-items:center; gap:8px; background:var(--accent-gold); color:#fff; border:none; padding:0.8rem 1.2rem; text-decoration:none; font-size:0.7rem; text-transform:uppercase; letter-spacing:2px; font-weight:700;">
+                    <i class="bi bi-gear-fill"></i> Go to Promo Dashboard
+                </a>
             </div>
         </div>
 
@@ -451,89 +412,12 @@
         btn.innerHTML = '<i class="bi bi-hourglass-split" style="margin-right:0.5rem;"></i> Saving...';
     });
 
-    /* ── PROMO MANAGEMENT ── */
-    function getCsrf() {
-        let v = null;
-        document.cookie.split(';').forEach(c => {
-            const t = c.trim();
-            if (t.startsWith('csrftoken=')) v = decodeURIComponent(t.split('=')[1]);
-        });
-        return v;
-    }
-
-    function renderPromos(promos) {
-        const list = document.getElementById('promo-list');
-        if (!promos.length) {
-            list.innerHTML = '<p style="font-size:0.78rem;color:var(--text-muted);">No promos yet.</p>';
-            return;
-        }
-        list.innerHTML = promos.map(p => {
-            const badge = p.discount_type === 'percentage' ? `${p.discount_value}% Off` : `\u20b9${p.discount_value} Flat`;
-            return `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.8rem;border:1px solid var(--border-color);margin-bottom:0.4rem;">
-                <div>
-                    <span style="font-weight:600;font-size:0.85rem;">${p.name}</span>
-                    ${p.code ? `<span style="margin-left:0.5rem;font-size:0.65rem;color:var(--text-muted);font-family:'Space Mono',monospace;">${p.code}</span>` : ''}
-                    <span style="margin-left:0.8rem;font-size:0.75rem;color:var(--accent-gold);">${badge}</span>
-                </div>
-                <button onclick="deletePromo(${p.id})" type="button"
-                        style="background:transparent;border:1px solid #ef4444;color:#ef4444;font-size:0.65rem;padding:0.3rem 0.6rem;cursor:pointer;">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>`;
-        }).join('');
-    }
-
-    function loadPromos() {
-        fetch('/orders/promos/')
-        .then(r => r.json())
-        .then(d => renderPromos(d.promos || []))
-        .catch(() => { document.getElementById('promo-list').innerHTML = '<p style="font-size:0.78rem;color:#ef4444;">Could not load promos.</p>'; });
-    }
-
-    async function createPromo() {
-        const msg = document.getElementById('promo-msg');
-        const name = document.getElementById('p-name').value.trim();
-        const code = document.getElementById('p-code').value.trim();
-        const type = document.getElementById('p-type').value;
-        const value = parseFloat(document.getElementById('p-value').value);
-        const from = document.getElementById('p-from').value || null;
-        const until = document.getElementById('p-until').value || null;
-
-        if (!name || isNaN(value) || value <= 0) {
-            msg.style.display = 'block'; msg.style.color = '#ef4444';
-            msg.textContent = 'Name and a valid positive value are required.';
-            return;
-        }
-        const res = await fetch('/orders/promos/create/', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCsrf()},
-            body: JSON.stringify({name, code, discount_type: type, discount_value: value, valid_from: from, valid_until: until})
-        });
-        const d = await res.json();
-        if (d.success) {
-            msg.style.display = 'block'; msg.style.color = 'var(--success)';
-            msg.textContent = `\u2713 Promo "${d.name}" created.`;
-            document.getElementById('p-name').value = '';
-            document.getElementById('p-code').value = '';
-            document.getElementById('p-value').value = '';
-            loadPromos();
-        } else {
-            msg.style.display = 'block'; msg.style.color = '#ef4444';
-            msg.textContent = d.error || 'Failed to create promo.';
-        }
-    }
-
-    async function deletePromo(id) {
-        if (!confirm('Delete this promo?')) return;
-        const res = await fetch(`/orders/promos/${id}/delete/`, {
-            method: 'POST', headers: {'X-CSRFToken': getCsrf()}
-        });
-        const d = await res.json();
-        if (d.success) loadPromos();
-    }
-
-    document.addEventListener('DOMContentLoaded', loadPromos);
+    /* ── SAVE FEEDBACK ── */
+    document.getElementById("settingsForm").addEventListener("submit", function() {
+        const btn = document.getElementById("saveBtn");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split" style="margin-right:0.5rem;"></i> Saving...';
+    });
 </script>
 
 </body>

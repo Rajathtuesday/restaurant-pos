@@ -16,30 +16,29 @@ def list_active_promos(request):
     """
     Returns currently-valid promos for the current outlet so bill.html
     can populate the promo picker dropdown via fetch().
+    Includes outlet-specific and tenant-wide (all-outlet) promos.
     """
-    today = localdate()
+    from django.db.models import Q
+    from decimal import Decimal
+
+    # Promos that are either for this outlet OR all outlets
     promos = Promo.objects.filter(
+        Q(outlet=request.user.outlet) | Q(outlet__isnull=True),
         tenant=request.user.tenant,
-        outlet=request.user.outlet,
-        is_active=True,
-    ).filter(
-        # valid_from null OR valid_from <= today
-        **{}
-    )
-    # We do the date filtering in Python to avoid complex Q objects
+        is_active=True
+    ).order_by("-created_at")
+
     result = []
     for p in promos:
-        if p.valid_from and p.valid_from > today:
-            continue
-        if p.valid_until and p.valid_until < today:
-            continue
-        result.append({
-            "id": p.id,
-            "name": p.name,
-            "code": p.code,
-            "discount_type": p.discount_type,
-            "discount_value": str(p.discount_value),
-        })
+        if p.is_currently_valid:
+            result.append({
+                "id": p.id,
+                "name": p.name,
+                "code": p.code,
+                "discount_type": p.discount_type,
+                "discount_value": str(p.discount_value),
+                "min_order": str(p.min_order_value),
+            })
     return JsonResponse({"promos": result})
 
 
