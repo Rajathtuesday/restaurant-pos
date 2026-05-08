@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Suppliers | POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bg:#fafafa; --panel:#fff; --text:#111; --muted:#737373; --border:#eaeaea; --gold:#c5a059; --red:#ef4444; --smooth:all 0.25s ease; }
+        body.dark { --bg:#0a0a0a; --panel:#111; --text:#f5f5f5; --muted:#888; --border:#262626; --gold:#d4af37; }
+        body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; min-height:100vh; }
+        .pos-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1.75rem 0 1.5rem; border-bottom:1px solid var(--border); margin-bottom:2rem; }
+        .pos-header h4 { font-family:'DM Serif Display',serif; font-size:1.6rem; margin:0; }
+        .pos-header h4 i.bi { color:var(--gold); }
+        .btn-lux { border:1px solid var(--border); background:transparent; color:var(--text); border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px; padding:0.6rem 1.3rem; transition:var(--smooth); cursor:pointer; text-decoration:none; display:inline-block; }
+        .btn-lux:hover { border-color:var(--gold); background:var(--gold); color:#fff; }
+        .btn-lux.danger { border-color:var(--red); color:var(--red); }
+        .btn-lux.danger:hover { background:var(--red); color:#fff; }
+        .btn-icon { border:none; background:transparent; color:var(--text); font-size:1rem; cursor:pointer; padding:0.3rem 0.5rem; transition:var(--smooth); }
+        .btn-icon:hover { color:var(--red); }
+        .section-title { font-family:'DM Serif Display',serif; font-size:1rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:1.5rem; }
+        .card-lux { background:var(--panel); border:1px solid var(--border); }
+        .form-field { margin-bottom:1rem; }
+        .form-field label { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); display:block; margin-bottom:0.4rem; }
+        .form-field input { width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); padding:0.4rem 0; font-size:0.88rem; font-family:'Outfit',sans-serif; outline:none; }
+        .form-field input:focus { border-color:var(--gold); }
+        .supplier-card { background:var(--panel); border:1px solid var(--border); padding:1.25rem 1.5rem; position:relative; transition:var(--smooth); }
+        .supplier-card:hover { border-color:var(--gold); }
+        .supplier-name { font-size:1.05rem; font-weight:600; margin-bottom:0.25rem; }
+        .supplier-meta { font-size:0.78rem; color:var(--muted); }
+        .supplier-meta i { margin-right:4px; }
+        .delete-btn { position:absolute; top:1rem; right:1rem; }
+        .gst-badge { font-size:0.68rem; letter-spacing:1px; padding:2px 7px; border:1px solid var(--border); color:var(--muted); text-transform:uppercase; margin-top:0.5rem; display:inline-block; }
+        .empty-state { text-align:center; padding:3rem; color:var(--muted); }
+        .toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
+        .toast-msg { background:#111; color:#fff; padding:0.75rem 1.25rem; margin-top:0.5rem; font-size:0.82rem; border-left:3px solid var(--gold); }
+        .toast-msg.err { border-left-color:var(--red); }
+        .search-bar { background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); font-family:'Outfit',sans-serif; font-size:0.88rem; padding:0.4rem 0; outline:none; width:200px; }
+        .search-bar::placeholder { color:var(--muted); opacity:0.7; }
+        .search-bar:focus { border-color:var(--gold); }
+    </style>
+</head>
+<body>
+<div class="container-fluid mx-auto" style="max-width:1200px; padding:0 1.5rem;">
+
+    <header class="pos-header">
+        <h4><i class="bi bi-truck me-2"></i>Supplier <i>Directory</i></h4>
+        <div class="d-flex gap-3 align-items-center">
+            <input class="search-bar" type="text" id="searchInput" placeholder="Search suppliers…" oninput="filterSuppliers()">
+            <a href="{% url 'purchase_order_list' %}" class="btn-lux">Purchase Orders</a>
+            <a href="{% url 'inventory_board' %}" class="btn-lux">Inventory</a>
+            <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <div class="row g-4">
+        <!-- Supplier Grid -->
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="section-title mb-0">Active Suppliers</h5>
+                <span style="font-size:0.78rem; color:var(--muted);" id="supplierCount">{{ suppliers.count }} suppliers</span>
+            </div>
+
+            {% if suppliers %}
+            <div class="row g-3" id="supplierGrid">
+                {% for s in suppliers %}
+                <div class="col-md-6 supplier-item" data-name="{{ s.name|lower }}" id="sc-{{ s.id }}">
+                    <div class="supplier-card">
+                        <button class="btn-icon delete-btn" title="Remove supplier" onclick="deleteSupplier({{ s.id }}, '{{ s.name|escapejs }}')">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                        <div class="supplier-name">{{ s.name }}</div>
+                        {% if s.contact_person %}
+                        <div class="supplier-meta"><i class="bi bi-person"></i>{{ s.contact_person }}</div>
+                        {% endif %}
+                        {% if s.phone %}
+                        <div class="supplier-meta"><i class="bi bi-telephone"></i>{{ s.phone }}</div>
+                        {% endif %}
+                        {% if s.email %}
+                        <div class="supplier-meta"><i class="bi bi-envelope"></i>{{ s.email }}</div>
+                        {% endif %}
+                        {% if s.address %}
+                        <div class="supplier-meta"><i class="bi bi-geo-alt"></i>{{ s.address|truncatechars:55 }}</div>
+                        {% endif %}
+                        {% if s.gst_no %}
+                        <div class="gst-badge">GST: {{ s.gst_no }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card-lux">
+                <div class="empty-state">
+                    <i class="bi bi-truck" style="font-size:2.5rem;"></i>
+                    <p class="mt-3">No suppliers added yet. Add your first supplier using the form.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Supplier Form -->
+        <div class="col-lg-4">
+            <h5 class="section-title">Add Supplier</h5>
+            <div class="card-lux p-3">
+                <div class="form-field">
+                    <label>Supplier Name <span style="color:var(--red);">*</span></label>
+                    <input type="text" id="s_name" placeholder="e.g. Fresh Farm Produce Co.">
+                </div>
+                <div class="form-field">
+                    <label>Contact Person</label>
+                    <input type="text" id="s_contact" placeholder="Primary contact name">
+                </div>
+                <div class="form-field">
+                    <label>Phone</label>
+                    <input type="tel" id="s_phone" placeholder="+91 98765 43210">
+                </div>
+                <div class="form-field">
+                    <label>Email</label>
+                    <input type="email" id="s_email" placeholder="orders@supplier.com">
+                </div>
+                <div class="form-field">
+                    <label>GST No.</label>
+                    <input type="text" id="s_gst" placeholder="15-character GSTIN" maxlength="15">
+                </div>
+                <div class="form-field">
+                    <label>Address</label>
+                    <input type="text" id="s_address" placeholder="Street, City">
+                </div>
+                <button class="btn-lux w-100 mt-2" onclick="createSupplier()">
+                    <i class="bi bi-plus-lg me-1"></i>Add Supplier
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken=')).split('=')[1];
+    let isDark = localStorage.getItem('dark') === 'true';
+    function updateTheme() { document.body.classList.toggle('dark', isDark); document.getElementById('themeIcon').className = isDark ? 'bi bi-sun' : 'bi bi-moon'; }
+    updateTheme();
+    function toggleDark() { isDark = !isDark; localStorage.setItem('dark', isDark); updateTheme(); }
+
+    function filterSuppliers() {
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        let visible = 0;
+        document.querySelectorAll('.supplier-item').forEach(el => {
+            const match = el.dataset.name.includes(q);
+            el.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        document.getElementById('supplierCount').textContent = `${visible} suppliers`;
+    }
+
+    async function createSupplier() {
+        const name = document.getElementById('s_name').value.trim();
+        if (!name) { toast('Supplier name is required.', true); return; }
+
+        const body = {
+            name,
+            contact_person: document.getElementById('s_contact').value.trim(),
+            phone: document.getElementById('s_phone').value.trim(),
+            email: document.getElementById('s_email').value.trim(),
+            gst_no: document.getElementById('s_gst').value.trim(),
+            address: document.getElementById('s_address').value.trim(),
+        };
+
+        const res = await fetch('/inventory/suppliers/create/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast(`${data.name} added.`);
+            // Clear form
+            ['s_name','s_contact','s_phone','s_email','s_gst','s_address'].forEach(id => document.getElementById(id).value = '');
+            setTimeout(() => location.reload(), 700);
+        } else {
+            toast(data.error, true);
+        }
+    }
+
+    async function deleteSupplier(id, name) {
+        if (!confirm(`Remove "${name}"? They will no longer appear in new POs. Existing POs are kept.`)) return;
+        const res = await fetch(`/inventory/suppliers/${id}/delete/`, {
+            method: 'POST', headers: { 'X-CSRFToken': CSRF }
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById(`sc-${id}`)?.remove();
+            toast(`${name} removed.`);
+        } else {
+            toast(data.error, true);
+        }
+    }
+
+    function toast(msg, isErr = false) {
+        const div = document.createElement('div');
+        div.className = 'toast-msg' + (isErr ? ' err' : '');
+        div.textContent = msg;
+        document.getElementById('toastContainer').appendChild(div);
+        setTimeout(() => div.remove(), 3500);
+    }
+</script>
+</body>
+</html>

@@ -6,11 +6,14 @@ from .views import (
     setup_menu,
     setup_kitchen_stations,
     setup_payment_methods,
-    setup_payment_methods,
     setup_staff,
     rename_table,
     aggregator_setup,
     outlet_settings,
+    setup_promos,
+    promo_create,
+    promo_toggle,
+    promo_delete,
 )
 
 urlpatterns = [
@@ -24,4 +27,10 @@ urlpatterns = [
     path('tables/<int:table_id>/rename/', rename_table, name='rename_table'),
     path("aggregators/", aggregator_setup, name="setup_aggregators"),
     path("outlet/", outlet_settings, name="outlet_settings"),
+
+    # Promo management
+    path("promos/", setup_promos, name="setup_promos"),
+    path("promos/create/", promo_create, name="promo_create"),
+    path("promos/<int:promo_id>/toggle/", promo_toggle, name="promo_toggle"),
+    path("promos/<int:promo_id>/delete/", promo_delete, name="promo_delete"),
 ]

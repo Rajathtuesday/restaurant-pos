@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Order {{ po.po_number|default:po.id }} — {{ po.tenant.name }}</title>
+    <style>
+        /* ── Reset & Base ─────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #1a1a2e;
+            background: #f4f6fb;
+            min-height: 100vh;
+            padding: 32px 16px 60px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        /* ── Page wrapper ─────────────────────────────────────────── */
+        .page {
+            max-width: 860px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0,0,0,.12);
+            overflow: hidden;
+        }
+
+        /* ── Top colour band ──────────────────────────────────────── */
+        .band {
+            background: linear-gradient(135deg, #0f3460 0%, #16213e 60%, #1a1a2e 100%);
+            padding: 36px 44px 30px;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            margin-bottom: 4px;
+        }
+        .brand .outlet { font-size: 13px; opacity: .75; margin-bottom: 2px; }
+        .brand .meta   { font-size: 11px; opacity: .55; }
+
+        .po-badge {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .po-badge .label {
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: .6;
+            margin-bottom: 4px;
+        }
+        .po-badge .number {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #e2b96f;
+        }
+        .po-badge .date-line {
+            font-size: 11px;
+            opacity: .65;
+            margin-top: 4px;
+        }
+
+        /* ── Status pill ──────────────────────────────────────────── */
+        .status-strip {
+            background: #f9fafc;
+            border-bottom: 1px solid #e8eaf0;
+            padding: 14px 44px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+        }
+        .pill.draft      { background: #fff3cd; color: #856404; }
+        .pill.ordered    { background: #cce5ff; color: #004085; }
+        .pill.received   { background: #d4edda; color: #155724; }
+        .pill.cancelled  { background: #f8d7da; color: #721c24; }
+        .pill::before    { content: "●"; font-size: 8px; }
+
+        /* ── Timeline ─────────────────────────────────────────────── */
+        .timeline {
+            display: flex;
+            gap: 0;
+            flex: 1;
+        }
+        .tl-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #aaa;
+        }
+        .tl-step.done { color: #28a745; font-weight: 600; }
+        .tl-step .dot {
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8px; flex-shrink: 0;
+        }
+        .tl-step.done .dot { background: currentColor; color: #fff; }
+        .tl-arrow { margin: 0 6px; color: #ccc; font-size: 10px; }
+
+        /* ── Body content ─────────────────────────────────────────── */
+        .body { padding: 36px 44px; }
+
+        /* ── Parties ──────────────────────────────────────────────── */
+        .parties {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 36px;
+        }
+        .party {
+            background: #f9fafc;
+            border: 1px solid #e8eaf0;
+            border-radius: 8px;
+            padding: 18px 20px;
+        }
+        .party-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #0f3460;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e3ea;
+        }
+        .party p { font-size: 13px; margin-bottom: 2px; color: #333; }
+        .party p strong { color: #111; font-weight: 700; }
+        .party .gst-tag {
+            display: inline-block;
+            margin-top: 6px;
+            background: #e8f0fe;
+            color: #174ea6;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        /* ── Key Dates Strip ──────────────────────────────────────── */
+        .dates-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            background: #f0f4ff;
+            border: 1px solid #d6e0ff;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 32px;
+        }
+        .date-cell { text-align: center; }
+        .date-cell .dc-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: #5a6acf;
+            margin-bottom: 4px;
+        }
+        .date-cell .dc-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .date-cell .dc-value.muted { color: #aaa; font-weight: 400; font-style: italic; }
+
+        /* ── Items Table ──────────────────────────────────────────── */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0;
+            font-size: 13px;
+        }
+        .items-table thead th {
+            background: #0f3460;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            padding: 12px 14px;
+            text-align: left;
+        }
+        .items-table thead th:first-child { border-radius: 6px 0 0 0; }
+        .items-table thead th:last-child  { border-radius: 0 6px 0 0; text-align: right; }
+        .items-table thead th.r { text-align: right; }
+
+        .items-table tbody tr { transition: background .15s; }
+        .items-table tbody tr:nth-child(even) { background: #f7f9fc; }
+        .items-table tbody tr:hover { background: #eef2ff; }
+
+        .items-table tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #edf0f7;
+            color: #333;
+            vertical-align: middle;
+        }
+        .items-table tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
+        .item-name  { font-weight: 600; color: #1a1a2e; }
+        .item-unit  {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 10px;
+            background: #eef2ff;
+            color: #4a5da0;
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-weight: 600;
+        }
+        .items-table tfoot td {
+            padding: 10px 14px;
+            font-size: 13px;
+            text-align: right;
+            border-top: 1px solid #e0e4ef;
+            color: #555;
+        }
+        .items-table tfoot tr.grand-total td {
+            font-size: 15px;
+            font-weight: 800;
+            color: #0f3460;
+            border-top: 2px solid #0f3460;
+            padding-top: 14px;
+        }
+        .items-table tfoot .label-cell { text-align: right; }
+
+        /* ── Notes ────────────────────────────────────────────────── */
+        .notes-box {
+            margin-top: 32px;
+            border-left: 3px solid #e2b96f;
+            background: #fffdf5;
+            padding: 14px 18px;
+            border-radius: 0 6px 6px 0;
+        }
+        .notes-box .notes-title {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #856404;
+            margin-bottom: 6px;
+        }
+        .notes-box p { font-size: 13px; color: #555; }
+
+        /* ── Signatures ───────────────────────────────────────────── */
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px dashed #ccc;
+        }
+        .sig-block { text-align: center; }
+        .sig-line {
+            border-bottom: 1px solid #333;
+            margin: 0 20px 8px;
+            height: 40px;
+        }
+        .sig-label { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: .8px; }
+
+        /* ── Footer ───────────────────────────────────────────────── */
+        .footer {
+            background: #f9fafc;
+            border-top: 1px solid #e8eaf0;
+            padding: 16px 44px;
+            text-align: center;
+            font-size: 11px;
+            color: #aaa;
+        }
+        .footer strong { color: #777; }
+
+        /* ── Action buttons (screen only) ─────────────────────────── */
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+        }
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: opacity .15s;
+        }
+        .btn:hover { opacity: .85; }
+        .btn-print  { background: #0f3460; color: #fff; }
+        .btn-close  { background: #e8eaf0; color: #555; }
+
+        /* ── Print overrides ──────────────────────────────────────── */
+        @media print {
+            body { background: #fff; padding: 0; font-size: 12px; }
+            .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+            .actions { display: none; }
+            .band { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .items-table thead { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .party { break-inside: avoid; }
+            .signatures { break-inside: avoid; }
+            @page { margin: 15mm 12mm; size: A4; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── Screen action bar ──────────────────────────────────── -->
+    <div class="actions">
+        <button class="btn btn-print" onclick="window.print()">🖨️ Print / Save PDF</button>
+        <button class="btn btn-close" onclick="window.history.back()">← Back</button>
+    </div>
+
+    <div class="page">
+
+        <!-- ── Letterhead band ─────────────────────────────────── -->
+        <div class="band">
+            <div class="brand">
+                <h1>{{ po.tenant.name }}</h1>
+                <div class="outlet">{{ po.outlet.name }}</div>
+                {% if po.outlet.gst_no %}
+                <div class="meta">GST: {{ po.outlet.gst_no }}</div>
+                {% endif %}
+                {% if po.outlet.fssai_no %}
+                <div class="meta">FSSAI: {{ po.outlet.fssai_no }}</div>
+                {% endif %}
+                {% if po.outlet.phone %}
+                <div class="meta">📞 {{ po.outlet.phone }}</div>
+                {% endif %}
+            </div>
+            <div class="po-badge">
+                <div class="label">Purchase Order</div>
+                <div class="number">{{ po.po_number|default:po.id }}</div>
+                <div class="date-line">Dated {{ po.created_at|date:"d F Y" }}</div>
+            </div>
+        </div>
+
+        <!-- ── Status + Timeline strip ────────────────────────── -->
+        <div class="status-strip">
+            {% if po.status == "draft" %}
+                <span class="pill draft">Draft</span>
+            {% elif po.status == "ordered" %}
+                <span class="pill ordered">Ordered</span>
+            {% elif po.status == "received" %}
+                <span class="pill received">Received</span>
+            {% else %}
+                <span class="pill cancelled">Cancelled</span>
+            {% endif %}
+
+            <div class="timeline">
+                <div class="tl-step done">
+                    <div class="dot">✓</div> Created
+                </div>
+                <span class="tl-arrow">›</span>
+                <div class="tl-step {% if po.status in 'ordered,received' %}done{% endif %}">
+                    <div class="dot">{% if po.status in 'ordered,received' %}✓{% endif %}</div> Ordered
+                </div>
+                <span class="tl-arrow">›</span>
+                <div class="tl-step {% if po.status == 'received' %}done{% endif %}">
+                    <div class="dot">{% if po.status == 'received' %}✓{% endif %}</div> Received
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Body ───────────────────────────────────────────── -->
+        <div class="body">
+
+            <!-- Vendor + Ship To -->
+            <div class="parties">
+                <div class="party">
+                    <div class="party-label">Vendor / Supplier</div>
+                    <p><strong>{{ po.supplier.name }}</strong></p>
+                    {% if po.supplier.contact_person %}<p>Attn: {{ po.supplier.contact_person }}</p>{% endif %}
+                    {% if po.supplier.phone %}<p>📞 {{ po.supplier.phone }}</p>{% endif %}
+                    {% if po.supplier.email %}<p>✉ {{ po.supplier.email }}</p>{% endif %}
+                    {% if po.supplier.address %}<p>{{ po.supplier.address }}</p>{% endif %}
+                    {% if po.supplier.gst_no %}<span class="gst-tag">GST: {{ po.supplier.gst_no }}</span>{% endif %}
+                </div>
+                <div class="party">
+                    <div class="party-label">Bill To / Ship To</div>
+                    <p><strong>{{ po.tenant.name }}</strong></p>
+                    <p>{{ po.outlet.name }}</p>
+                    {% if po.outlet.address %}<p>{{ po.outlet.address }}</p>{% endif %}
+                    {% if po.outlet.phone %}<p>📞 {{ po.outlet.phone }}</p>{% endif %}
+                    {% if po.outlet.gst_no %}<span class="gst-tag">GST: {{ po.outlet.gst_no }}</span>{% endif %}
+                </div>
+            </div>
+
+            <!-- Key Dates -->
+            <div class="dates-strip">
+                <div class="date-cell">
+                    <div class="dc-label">PO Number</div>
+                    <div class="dc-value">{{ po.po_number|default:po.id }}</div>
+                </div>
+                <div class="date-cell">
+                    <div class="dc-label">Created On</div>
+                    <div class="dc-value">{{ po.created_at|date:"d M Y" }}</div>
+                </div>
+                <div class="date-cell">
+                    <div class="dc-label">Ordered On</div>
+                    {% if po.ordered_at %}
+                        <div class="dc-value">{{ po.ordered_at|date:"d M Y" }}</div>
+                    {% else %}
+                        <div class="dc-value muted">—</div>
+                    {% endif %}
+                </div>
+                <div class="date-cell">
+                    <div class="dc-label">Received On</div>
+                    {% if po.received_at %}
+                        <div class="dc-value">{{ po.received_at|date:"d M Y" }}</div>
+                    {% else %}
+                        <div class="dc-value muted">—</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th style="width:38px">#</th>
+                        <th>Item Description</th>
+                        <th class="r">Qty</th>
+                        <th class="r">Unit Price (₹)</th>
+                        <th class="r">Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for line in po.items.all %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <span class="item-name">{{ line.item.name }}</span>
+                            <span class="item-unit">{{ line.item.unit }}</span>
+                        </td>
+                        <td class="r">{{ line.quantity }}</td>
+                        <td class="r">{{ line.unit_price }}</td>
+                        <td class="r">{{ line.line_total }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align:center;padding:30px;color:#aaa;">No items on this purchase order.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="label-cell" style="font-size:12px;">Sub-Total</td>
+                        <td>₹ {{ po.total_amount }}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="label-cell" style="font-size:12px;color:#aaa;">Tax / GST</td>
+                        <td style="color:#aaa;">As applicable</td>
+                    </tr>
+                    <tr class="grand-total">
+                        <td colspan="4" class="label-cell">Grand Total</td>
+                        <td>₹ {{ po.total_amount }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            <!-- Notes -->
+            {% if po.notes %}
+            <div class="notes-box">
+                <div class="notes-title">📋 Notes / Special Instructions</div>
+                <p>{{ po.notes }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Signatures -->
+            <div class="signatures">
+                <div class="sig-block">
+                    <div class="sig-line"></div>
+                    <div class="sig-label">Authorised Signatory — {{ po.tenant.name }}</div>
+                </div>
+                <div class="sig-block">
+                    <div class="sig-line"></div>
+                    <div class="sig-label">Received By — {{ po.supplier.name }}</div>
+                </div>
+            </div>
+
+        </div><!-- /.body -->
+
+        <!-- ── Footer ─────────────────────────────────────────── -->
+        <div class="footer">
+            <strong>{{ po.po_number|default:po.id }}</strong> &nbsp;·&nbsp;
+            Generated on {{ po.created_at|date:"d M Y, h:i A" }} &nbsp;·&nbsp;
+            This is a computer-generated purchase order. No physical signature required.
+        </div>
+
+    </div><!-- /.page -->
+
+</body>
+</html>

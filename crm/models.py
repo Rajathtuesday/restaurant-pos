@@ -88,6 +88,13 @@ class Reservation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "outlet", "table", "reservation_time"],
+                condition=models.Q(status__in=["pending", "confirmed"]),
+                name="unique_active_reservation_per_table_time"
+            )
+        ]
         indexes = [
             models.Index(fields=["tenant", "outlet", "reservation_time", "status"]),
         ]

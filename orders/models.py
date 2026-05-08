@@ -1,9 +1,9 @@
-
 # ============================v2==============================
 # orders/models.py
 import uuid
 
 
+from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
 from django.db.models import Q
@@ -169,12 +169,28 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
         if creating and not self.order_number:
-            # Single UPDATE in the same transaction — the INSERT and this
-            # UPDATE are committed together, so no reader ever sees NULL.
-            Order.objects.filter(pk=self.pk).update(
-                order_number=f"ORD-{self.pk:05d}"
+            # Generate a per-tenant, per-outlet, per-day sequential invoice number.
+            # Format: INV-YYYYMMDD-NNNN (e.g. INV-20250507-0012)
+            
+            from core.utils import get_business_date
+            
+            # Use the business date based on when the order was opened
+            business_date = get_business_date(self.created_at, self.outlet)
+
+            # 2. Get or create the counter for this business date
+            counter, _ = DailyOrderCounter.objects.select_for_update().get_or_create(
+                tenant=self.tenant,
+                outlet=self.outlet,
+                date=business_date,
+                defaults={"value": 0}
             )
-            self.order_number = f"ORD-{self.pk:05d}"  # keep in-memory object consistent
+            counter.value += 1
+            counter.save(update_fields=["value"])
+
+            # 3. Format and update the order number
+            order_number = f"INV-{business_date.strftime('%Y%m%d')}-{counter.value:04d}"
+            Order.objects.filter(pk=self.pk).update(order_number=order_number)
+            self.order_number = order_number  # keep in-memory object consistent
 
     # -------------------------------------------------
     # UTIL: normalize Decimal to 2 dp
@@ -732,6 +748,11 @@ class OrderEvent(models.Model):
             models.Index(fields=["order"]),
             models.Index(fields=["event_type"]),
             models.Index(fields=["created_at"]),
+            # Composite index for the bypass daily-limit counter query which filters
+            # on (tenant, outlet, created_by, event_type, created_at__gte).
+            # Without this, the query does a full table scan at high event volumes.
+            models.Index(fields=["tenant", "outlet", "event_type", "created_at"],
+                         name="orderevent_tenant_type_idx"),
         ]
         ordering = ["-created_at"]
 
@@ -788,6 +809,34 @@ class DailyKOTCounter(models.Model):
 
     def __str__(self):
         return f"{self.date} -> {self.value}"
+
+
+# =====================================================
+# DAILY ORDER COUNTER
+# =====================================================
+
+class DailyOrderCounter(models.Model):
+    """
+    Per-tenant, per-outlet, per-day sequential counter for invoice numbers.
+
+    Mirrors DailyKOTCounter. Using a dedicated counter row (vs. relying on the
+    global Order PK) means:
+      - Order numbers are sequential within each outlet's day, matching
+        what accountants expect (INV-20250507-0001 ... INV-20250507-0042).
+      - No cross-tenant PK gaps leak onto customer bills.
+      - Zero-padding never overflows (4 digits -> 9999 orders/outlet/day).
+    """
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    date = models.DateField()
+    value = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("tenant", "outlet", "date")
+
+    def __str__(self):
+        return f"{self.tenant} | {self.outlet} | {self.date} -> {self.value}"
     
 
 # =====================================================
@@ -856,4 +905,120 @@ class KitchenMessage(models.Model):
     def __str__(self):
         return f"Message for {self.order.table.name if self.order.table else 'Walk-in'}: {self.message}"
 
+
+# ---------------------------------------------------------------------------
+# PROMO — outlet-level promotional discounts pickable from the bill screen
+# ---------------------------------------------------------------------------
+
+class Promo(models.Model):
+    """
+    Tenant/outlet-scoped promotional discount applied to any order.
+    - outlet=NULL  → promo runs across ALL outlets of this tenant
+    - outlet set   → outlet-specific only
+    Supports usage caps, min-order validation, and date-range gating.
+    """
+
+    DISCOUNT_TYPE_CHOICES = [
+        ("percentage", "% Off"),
+        ("amount",     "₹ Flat Off"),
+    ]
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+
+    # NULL → applies to every outlet of this tenant
+    outlet = models.ForeignKey(
+        "tenants.Outlet",
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        help_text="Leave blank to broadcast across all outlets of this tenant.",
+    )
+
+    name        = models.CharField(max_length=120, help_text="e.g. 'Happy Hours 20%'")
+    code        = models.CharField(
+        max_length=30, blank=True,
+        help_text="Short code printed on bill (e.g. HH20). Unique per tenant.",
+    )
+    description = models.TextField(blank=True, help_text="T&C / internal notes visible to staff")
+
+    discount_type  = models.CharField(max_length=12, choices=DISCOUNT_TYPE_CHOICES, default="percentage")
+    discount_value = models.DecimalField(max_digits=8, decimal_places=2)
+
+    min_order_value = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"),
+        help_text="Minimum order subtotal to apply this promo (0 = no minimum)",
+    )
+
+    max_uses    = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Leave blank for unlimited uses",
+    )
+    usage_count = models.PositiveIntegerField(default=0)
+
+    valid_from  = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+
+    is_active  = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        indexes  = [
+            models.Index(fields=["tenant", "outlet", "is_active"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "code"],
+                condition=Q(code__gt=""),
+                name="unique_promo_code_per_tenant",
+            )
+        ]
+
+    def __str__(self):
+        scope  = self.outlet.name if self.outlet_id else "All Outlets"
+        symbol = "%" if self.discount_type == "percentage" else "₹"
+        return f"{self.name} [{scope}] ({symbol}{self.discount_value})"
+
+    # ── Validity helpers ──────────────────────────────────────────
+
+    @property
+    def is_expired(self) -> bool:
+        from django.utils.timezone import localdate
+        return bool(self.valid_until and localdate() > self.valid_until)
+
+    @property
+    def is_not_started(self) -> bool:
+        from django.utils.timezone import localdate
+        return bool(self.valid_from and localdate() < self.valid_from)
+
+    @property
+    def is_exhausted(self) -> bool:
+        return bool(self.max_uses and self.usage_count >= self.max_uses)
+
+    @property
+    def is_currently_valid(self) -> bool:
+        return self.is_active and not self.is_expired and not self.is_not_started and not self.is_exhausted
+
+    def applies_to_outlet(self, outlet) -> bool:
+        """True if this promo covers the given outlet (or is tenant-wide)."""
+        return self.outlet_id is None or self.outlet_id == outlet.id
+
+    def validate(self, outlet, order_subtotal: Decimal) -> tuple:
+        """(ok: bool, error: str) — call before applying the discount."""
+        if not self.is_active:
+            return False, "Promo is not active."
+        if not self.applies_to_outlet(outlet):
+            return False, "Promo is not valid for this outlet."
+        if self.is_not_started:
+            return False, f"Promo starts on {self.valid_from.strftime('%d %b %Y')}."
+        if self.is_expired:
+            return False, f"Promo expired on {self.valid_until.strftime('%d %b %Y')}."
+        if self.is_exhausted:
+            return False, "Promo usage limit has been reached."
+        if order_subtotal < self.min_order_value:
+            return False, f"Minimum order value ₹{self.min_order_value} required."
+        return True, ""
+
+    def record_use(self):
+        """Atomically increments usage_count."""
+        Promo.objects.filter(pk=self.pk).update(usage_count=models.F("usage_count") + 1)
 

@@ -125,12 +125,21 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
             })
         return result
     else:
-        payments = payments.annotate(hour=ExtractHour("order__created_at"))
+        # BUG FIX: ExtractHour on a UTC DateTimeField extracts UTC hours.
+        # We use the tenant's configured timezone to convert to local time first.
+        import pytz
+        from pytz.exceptions import UnknownTimeZoneError
+        try:
+            tz = pytz.timezone(tenant.timezone or "UTC")
+        except UnknownTimeZoneError:
+            logger.warning(f"Unknown timezone {tenant.timezone} for tenant {tenant.id}, falling back to UTC")
+            tz = pytz.timezone("UTC")
+        payments = payments.annotate(hour=ExtractHour("order__created_at", tzinfo=tz))
         data = payments.values("hour").annotate(total=Sum("amount"))
-        
+
         hours = {h: 0 for h in range(24)}
         for row in data:
             if row["hour"] is not None:
                 hours[row["hour"]] = float(row["total"])
-                
+
         return [{"label": f"{h:02d}:00", "total": hours[h]} for h in range(24)]

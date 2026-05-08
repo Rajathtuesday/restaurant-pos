@@ -139,12 +139,29 @@ class Outlet(models.Model):
         help_text="WhatsApp number for sending digital bills"
     )
 
+    opening_time = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Outlet opening time (e.g. 11:00)"
+    )
+
+    closing_time = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Outlet closing time (e.g. 23:30). Set after midnight for late-night outlets."
+    )
+
     is_active = models.BooleanField(
         default=True
     )
 
     created_at = models.DateTimeField(
         auto_now_add=True
+    )
+
+    business_day_start_hour = models.IntegerField(
+        default=6,
+        help_text="Hour (0-23) at which a new business day starts. If it's before this hour, the order belongs to the previous calendar day."
     )
 
     class Meta:

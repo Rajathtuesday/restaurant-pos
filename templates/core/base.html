@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -41,7 +41,7 @@
             --success: #10b981;
         }
 
-        [data-theme="dark"] {
+        body.dark {
             /* Dark Theme Overrides (Fine Dining: True Black & Gold) */
             --bg-color: #000000;
             --panel-bg: #0a0a0a;
@@ -285,17 +285,21 @@
         // --- 1. Theme Management ---
         const themeManager = {
             init() {
-                const isDark = localStorage.getItem("pos_dark_theme") === "true";
-                document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+                const isDark = localStorage.getItem("dark") === "true";
+                if (isDark) document.body.classList.add("dark");
+                else document.body.classList.remove("dark");
             },
             toggle() {
-                const current = document.documentElement.getAttribute("data-theme");
-                const next = current === "dark" ? "light" : "dark";
-                document.documentElement.setAttribute("data-theme", next);
-                localStorage.setItem("pos_dark_theme", next === "dark");
+                const isDark = document.body.classList.toggle("dark");
+                localStorage.setItem("dark", isDark);
+                
+                let icon = document.getElementById("themeIcon");
+                if (icon) {
+                    icon.className = isDark ? "bi bi-sun" : "bi bi-moon";
+                }
                 
                 // Dispatch event for components that need to know
-                window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: next } }));
+                window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: isDark ? "dark" : "light" } }));
             }
         };
         themeManager.init(); // Run immediately to prevent flash
@@ -319,7 +323,7 @@
                     showConfirmButton: false,
                     timer: 3000,
                     timerProgressBar: true,
-                    background: document.documentElement.getAttribute("data-theme") === 'dark' ? 'var(--panel-bg)' : '#fff',
+                    background: document.body.classList.contains("dark") ? 'var(--panel-bg)' : '#fff',
                     color: 'var(--text-main)',
                     didOpen: (toast) => {
                         toast.onmouseenter = Swal.stopTimer;
@@ -339,7 +343,7 @@
                     confirmButtonColor: 'var(--accent-gold)',
                     cancelButtonColor: 'var(--text-muted)',
                     confirmButtonText: confirmText,
-                    background: document.documentElement.getAttribute("data-theme") === 'dark' ? 'var(--panel-bg)' : '#ffffff',
+                    background: document.body.classList.contains("dark") ? 'var(--panel-bg)' : '#ffffff',
                     color: 'var(--text-main)',
                     customClass: {
                         popup: 'rounded-0', // Sharp edges

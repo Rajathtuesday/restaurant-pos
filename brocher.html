@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rasova Brochure</title>
+<style>
+@page {
+  size: A4;
+  margin: 0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: white;
+  width: 210mm;
+  color: #111;
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  background: white;
+  page-break-after: always;
+  overflow: hidden;
+}
+
+.hero {
+  background: #0a0a0a;
+  padding: 40pt 45pt 36pt;
+  height: 148mm;
+}
+
+.logo-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 36pt;
+}
+
+.logo-outer {
+  width: 26pt;
+  height: 26pt;
+  background: #c5a059;
+  transform: rotate(45deg);
+  margin-right: 16pt;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-inner {
+  width: 12pt;
+  height: 12pt;
+  background: #0a0a0a;
+}
+
+.logo-name {
+  font-family: Georgia, serif;
+  font-size: 22pt;
+  color: white;
+  letter-spacing: 1pt;
+  font-weight: bold;
+}
+
+.hero-eyebrow {
+  font-size: 7pt;
+  letter-spacing: 3pt;
+  text-transform: uppercase;
+  color: #c5a059;
+  font-weight: bold;
+  margin-bottom: 10pt;
+}
+
+.hero-h1 {
+  font-family: Georgia, serif;
+  font-size: 28pt;
+  line-height: 1.1;
+  color: white;
+  margin-bottom: 14pt;
+  font-style: italic;
+}
+
+.hero-h1 span {
+  color: #c5a059;
+  font-style: italic;
+}
+
+.hero-sub {
+  font-size: 9pt;
+  color: #888888;
+  line-height: 1.6;
+  max-width: 400pt;
+  font-weight: normal;
+  margin-bottom: 28pt;
+}
+
+.stats-row {
+  border-top: 0.5pt solid #222222;
+  padding-top: 18pt;
+  display: flex;
+}
+
+.stat-item {
+  flex: 1;
+  padding-right: 20pt;
+  border-right: 0.5pt solid #222222;
+  margin-right: 20pt;
+}
+
+.stat-item:last-child {
+  border-right: none;
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.stat-num {
+  font-family: Georgia, serif;
+  font-size: 20pt;
+  color: #c5a059;
+  font-weight: bold;
+  margin-bottom: 3pt;
+}
+
+.stat-lbl {
+  font-size: 6.5pt;
+  letter-spacing: 1.5pt;
+  text-transform: uppercase;
+  color: #444444;
+}
+
+.features-section {
+  padding: 28pt 45pt;
+  height: 149mm;
+}
+
+.section-eyebrow {
+  font-size: 6.5pt;
+  letter-spacing: 3pt;
+  text-transform: uppercase;
+  color: #c5a059;
+  font-weight: bold;
+  margin-bottom: 5pt;
+}
+
+.section-h2 {
+  font-family: Georgia, serif;
+  font-size: 16pt;
+  color: #111;
+  margin-bottom: 18pt;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1pt;
+  background: #e5e7eb;
+  border: 1pt solid #e5e7eb;
+}
+
+.feature-cell {
+  background: white;
+  padding: 14pt 12pt;
+}
+
+.feat-num {
+  font-size: 6.5pt;
+  letter-spacing: 2pt;
+  color: #c5a059;
+  font-weight: bold;
+  margin-bottom: 5pt;
+}
+
+.feat-title {
+  font-size: 8.5pt;
+  font-weight: bold;
+  color: #111;
+  margin-bottom: 3pt;
+}
+
+.feat-desc {
+  font-size: 7.5pt;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.ai-section {
+  background: #0a0a0a;
+  padding: 32pt 45pt;
+  height: 72mm;
+}
+
+.ai-eyebrow {
+  font-size: 6.5pt;
+  letter-spacing: 3pt;
+  text-transform: uppercase;
+  color: #c5a059;
+  font-weight: bold;
+  margin-bottom: 8pt;
+}
+
+.ai-h2 {
+  font-family: Georgia, serif;
+  font-size: 20pt;
+  color: white;
+  margin-bottom: 8pt;
+  font-style: italic;
+}
+
+.ai-h2 span { color: #c5a059; }
+
+.ai-desc {
+  font-size: 8.5pt;
+  color: #666666;
+  line-height: 1.6;
+  max-width: 460pt;
+  margin-bottom: 18pt;
+}
+
+.ai-steps {
+  display: flex;
+}
+
+.ai-step {
+  display: flex;
+  align-items: center;
+  gap: 8pt;
+  flex: 1;
+  padding-right: 18pt;
+  border-right: 0.5pt solid #1a1a1a;
+  margin-right: 18pt;
+}
+
+.ai-step:last-child {
+  border-right: none;
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.step-n {
+  width: 18pt;
+  height: 18pt;
+  background: #c5a059;
+  color: #0a0a0a;
+  font-weight: bold;
+  font-size: 7.5pt;
+  text-align: center;
+  line-height: 18pt;
+  flex-shrink: 0;
+}
+
+.step-t {
+  font-size: 8pt;
+  color: #666666;
+}
+
+.pricing-section {
+  padding: 24pt 45pt;
+  height: 100mm;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14pt;
+  margin-top: 16pt;
+}
+
+.plan-card {
+  border: 0.75pt solid #e5e7eb;
+  padding: 20pt 18pt;
+  position: relative;
+}
+
+.plan-card.featured {
+  border-color: #c5a059;
+  background: #0a0a0a;
+}
+
+.plan-badge {
+  position: absolute;
+  top: -8pt;
+  left: 18pt;
+  background: #c5a059;
+  color: #0a0a0a;
+  font-size: 6pt;
+  font-weight: bold;
+  letter-spacing: 1.5pt;
+  text-transform: uppercase;
+  padding: 2pt 8pt;
+}
+
+.plan-lbl {
+  font-size: 6.5pt;
+  letter-spacing: 2.5pt;
+  text-transform: uppercase;
+  color: #c5a059;
+  font-weight: bold;
+  margin-bottom: 6pt;
+}
+
+.plan-price {
+  font-family: Georgia, serif;
+  font-size: 26pt;
+  color: #111;
+  line-height: 1;
+  margin-bottom: 2pt;
+}
+
+.plan-card.featured .plan-price { color: white; }
+
+.plan-per {
+  font-size: 7.5pt;
+  color: #9ca3af;
+  margin-bottom: 12pt;
+}
+
+.plan-div {
+  height: 0.5pt;
+  background: #e5e7eb;
+  margin-bottom: 10pt;
+}
+
+.plan-card.featured .plan-div { background: #1a1a1a; }
+
+.plan-feat {
+  font-size: 7.5pt;
+  color: #4b5563;
+  margin-bottom: 5pt;
+  padding-left: 12pt;
+  position: relative;
+}
+
+.plan-feat::before {
+  content: 'v';
+  position: absolute;
+  left: 0;
+  color: #c5a059;
+  font-weight: bold;
+  font-size: 7pt;
+}
+
+.plan-card.featured .plan-feat { color: #aaaaaa; }
+
+.compare-section {
+  padding: 0 45pt 20pt;
+  height: 80mm;
+}
+
+.vs-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 14pt;
+}
+
+.vs-table th {
+  padding: 7pt 10pt;
+  font-size: 6.5pt;
+  letter-spacing: 2pt;
+  text-transform: uppercase;
+  font-weight: bold;
+  text-align: left;
+  border-bottom: 0.75pt solid #e5e7eb;
+}
+
+.vs-table th.gold { color: #c5a059; }
+.vs-table th.grey { color: #9ca3af; text-align: center; }
+
+.vs-table td {
+  padding: 7pt 10pt;
+  font-size: 8pt;
+  border-bottom: 0.5pt solid #f3f4f6;
+}
+
+.vs-table td.feat { color: #4b5563; }
+.vs-table td.rasova { color: #9a7a3a; font-weight: bold; }
+.vs-table td.others { color: #9ca3af; text-align: center; }
+
+.footer {
+  background: #0a0a0a;
+  padding: 18pt 45pt;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 25mm;
+}
+
+.footer-logo {
+  font-family: Georgia, serif;
+  font-size: 16pt;
+  color: white;
+  font-weight: bold;
+}
+
+.footer-logo span { color: #c5a059; }
+
+.footer-mid {
+  text-align: center;
+}
+
+.footer-mid-lbl {
+  font-size: 6pt;
+  letter-spacing: 2pt;
+  text-transform: uppercase;
+  color: #333333;
+  margin-bottom: 3pt;
+}
+
+.footer-mid-val {
+  font-size: 8pt;
+  color: #666666;
+}
+
+.footer-right { text-align: right; }
+
+.footer-domain {
+  font-size: 11pt;
+  color: #c5a059;
+  font-weight: bold;
+  letter-spacing: 0.5pt;
+}
+
+.footer-city {
+  font-size: 6.5pt;
+  color: #333333;
+  margin-top: 2pt;
+  letter-spacing: 1pt;
+  text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="hero">
+    <div class="logo-row">
+      <div class="logo-outer">
+        <div class="logo-inner"></div>
+      </div>
+      <span class="logo-name">Rasova</span>
+    </div>
+
+    <div class="hero-eyebrow">Restaurant POS - Built for India</div>
+    <div class="hero-h1">
+      The modern POS Indian<br>
+      restaurants <span>actually need.</span>
+    </div>
+    <div class="hero-sub">
+      GST-compliant billing, AI menu import, live floor plan, and kitchen order tickets - all in one system. No annual contract. Direct founder support on WhatsApp.
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-num">60s</div>
+        <div class="stat-lbl">AI Menu Import</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">&#x20B9;999</div>
+        <div class="stat-lbl">Per Month</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">0</div>
+        <div class="stat-lbl">Annual Contracts</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">GST</div>
+        <div class="stat-lbl">Fully Compliant</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="features-section">
+    <div class="section-eyebrow">What's Inside</div>
+    <div class="section-h2">Everything your restaurant needs</div>
+
+    <div class="features-grid">
+      <div class="feature-cell">
+        <div class="feat-num">01</div>
+        <div class="feat-title">GST-Compliant Billing</div>
+        <div class="feat-desc">CGST/SGST per item. GSTIN and FSSAI on every bill. PDF download. WhatsApp delivery.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">02</div>
+        <div class="feat-title">AI Menu Import</div>
+        <div class="feat-desc">Photo of your menu - handwritten or printed - imported in 60 seconds. No manual entry.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">03</div>
+        <div class="feat-title">Live Floor Plan</div>
+        <div class="feat-desc">Color-coded table states. Green is free. Red is occupied. Every staff member sees it.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">04</div>
+        <div class="feat-title">Kitchen Order Tickets</div>
+        <div class="feat-desc">Orders reach the kitchen instantly. No duplicates even during peak dinner rush.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">05</div>
+        <div class="feat-title">Inventory Tracking</div>
+        <div class="feat-desc">Stock deducted on every order. Low-stock alerts. Recipe-level ingredient mapping.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">06</div>
+        <div class="feat-title">QR Digital Menu</div>
+        <div class="feat-desc">Customer scans, browses, adds to cart. Like Zomato - but owned by your restaurant.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">07</div>
+        <div class="feat-title">Reports &amp; Z-Report</div>
+        <div class="feat-desc">Daily Z-report with GST collected, payment split, item-wise sales. CSV for your CA.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">08</div>
+        <div class="feat-title">Split Bills &amp; Refunds</div>
+        <div class="feat-desc">Split by item, split equally, partial payments, voids, refunds. Every edge case handled.</div>
+      </div>
+      <div class="feature-cell">
+        <div class="feat-num">09</div>
+        <div class="feat-title">Multi-Outlet Support</div>
+        <div class="feat-desc">Multiple outlets under one account. Each isolated. One dashboard for everything.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="ai-section">
+    <div class="ai-eyebrow">Powered by Gemini AI</div>
+    <div class="ai-h2">Your entire menu. <span>In 60 seconds.</span></div>
+    <div class="ai-desc">
+      Take a photo of your existing menu - handwritten, printed, or a WhatsApp image. Upload it to Rasova. Every item created automatically. No spreadsheets. No data entry. Just a photo.
+    </div>
+    <div class="ai-steps">
+      <div class="ai-step">
+        <div class="step-n">1</div>
+        <div class="step-t">Take a photo of your menu</div>
+      </div>
+      <div class="ai-step">
+        <div class="step-n">2</div>
+        <div class="step-t">Upload to Rasova</div>
+      </div>
+      <div class="ai-step">
+        <div class="step-n">3</div>
+        <div class="step-t">All items created automatically</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pricing-section">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-h2">Simple. Transparent. No surprises.</div>
+
+    <div class="pricing-grid">
+      <div class="plan-card">
+        <div class="plan-lbl">Solo Plan</div>
+        <div class="plan-price">&#x20B9;999</div>
+        <div class="plan-per">per month - cancel anytime</div>
+        <div class="plan-div"></div>
+        <div class="plan-feat">1 Outlet</div>
+        <div class="plan-feat">Unlimited Orders</div>
+        <div class="plan-feat">All Core Features</div>
+        <div class="plan-feat">GST-Compliant Bills</div>
+        <div class="plan-feat">AI Menu Import</div>
+        <div class="plan-feat">WhatsApp Support</div>
+      </div>
+
+      <div class="plan-card featured">
+        <div class="plan-badge">Most Popular</div>
+        <div class="plan-lbl">Growth Plan</div>
+        <div class="plan-price">&#x20B9;2,499</div>
+        <div class="plan-per">per month - cancel anytime</div>
+        <div class="plan-div"></div>
+        <div class="plan-feat">Up to 3 Outlets</div>
+        <div class="plan-feat">Everything in Solo</div>
+        <div class="plan-feat">Multi-Outlet Dashboard</div>
+        <div class="plan-feat">Zomato &amp; Swiggy Integration</div>
+        <div class="plan-feat">CRM &amp; Guest Loyalty</div>
+        <div class="plan-feat">Priority Founder Support</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="compare-section">
+    <div class="section-eyebrow">Why Rasova</div>
+    <div class="section-h2">Not just another POS.</div>
+
+    <table class="vs-table">
+      <thead>
+        <tr>
+          <th style="width:40%;">Feature</th>
+          <th class="gold" style="width:30%;">Rasova</th>
+          <th class="grey" style="width:30%;">Others</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat">Contract</td>
+          <td class="rasova">Month-to-month</td>
+          <td class="others">Annual lock-in</td>
+        </tr>
+        <tr>
+          <td class="feat">Support</td>
+          <td class="rasova">Founder on WhatsApp</td>
+          <td class="others">Ticket queue</td>
+        </tr>
+        <tr>
+          <td class="feat">Menu Onboarding</td>
+          <td class="rasova">AI import, 60 seconds</td>
+          <td class="others">Manual entry, hours</td>
+        </tr>
+        <tr>
+          <td class="feat">GST Reports</td>
+          <td class="rasova">CSV, GSTR-1 ready</td>
+          <td class="others">Limited or paid add-on</td>
+        </tr>
+        <tr>
+          <td class="feat">QR Digital Menu</td>
+          <td class="rasova">Built-in, Zomato-like</td>
+          <td class="others">Separate subscription</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <div class="footer-logo">Ras<span>ova</span></div>
+    <div class="footer-mid">
+      <div class="footer-mid-lbl">Free Trial</div>
+      <div class="footer-mid-val">30 days - No credit card required</div>
+    </div>
+    <div class="footer-right">
+      <div class="footer-domain">rasova.net</div>
+      <div class="footer-city">Bengaluru - India</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

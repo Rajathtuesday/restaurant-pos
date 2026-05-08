@@ -55,27 +55,18 @@ def deduct_inventory(order_item):
                     .get(id=recipe.inventory_item_id)
                 )
 
-                # -------------------------------
-                # NORMAL STOCK DEDUCTION
-                # -------------------------------
-
                 if inventory.stock >= required_quantity:
-
-                    inventory.stock -= required_quantity
-
+                    qty_to_reduce = required_quantity
                 else:
-
+                    qty_to_reduce = inventory.stock
                     shortage = required_quantity - inventory.stock
-
                     logger.warning(
                         "[STOCK WARNING] %s shortage: %s units",
                         inventory.name, shortage
                     )
 
-                    # consume remaining stock
-                    inventory.stock = 0
-
-                inventory.save(update_fields=["stock"])
+                if qty_to_reduce > 0:
+                    inventory.reduce_stock(qty_to_reduce, reference=f"Order #{order_item.order.id}")
 
     except ObjectDoesNotExist:
 

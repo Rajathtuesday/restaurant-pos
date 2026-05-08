@@ -171,8 +171,9 @@
             <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">{{ request.user.outlet.name }} · Inventory Management</p>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn-luxury d-none d-sm-inline-flex" style="border-color:#10b981; color:#10b981;" onclick="window.open('/inventory/purchase-order/', '_blank')"><i class="bi bi-file-earmark-pdf me-1"></i> Auto-PO (PDF)</button>
             <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+            <a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
+            <a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
             <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
             <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
             <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
@@ -200,6 +201,7 @@
                             <th>Value</th>
                             <th>Status</th>
                             <th>Refill Stock</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -227,6 +229,11 @@
                                     <button class="btn-luxury px-3" onclick="restock('{{item.id}}')">Add</button>
                                 </div>
                             </td>
+                            <td>
+                                <button class="btn-icon" onclick="openEditModal('{{item.id}}', '{{item.name|escapejs}}', '{{item.cost_price}}', '{{item.low_stock_threshold}}', '{{item.reorder_quantity}}', '{{item.preferred_supplier.id|default:""}}')">
+                                    <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
+                                </button>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -240,7 +247,6 @@
 
     </div>
 
-    <!-- ADD INVENTORY MODAL -->
     <div class="modal fade" id="inventoryModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -284,6 +290,55 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="createInventoryItem()">Create Ingredient</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT INVENTORY MODAL -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title m-0">Edit Ingredient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+                    <div class="mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
+                        <input id="editName" class="form-control">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
+                            <input id="editCostPrice" type="number" step="0.01" class="form-control">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
+                            <input id="editThreshold" type="number" step="0.01" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Auto-Reorder Qty</label>
+                            <input id="editReorderQty" type="number" step="0.01" class="form-control" placeholder="Qty to order">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Preferred Supplier</label>
+                            <select id="editSupplier" class="form-select">
+                                <option value="">-- None --</option>
+                                {% for s in suppliers %}
+                                <option value="{{ s.id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="updateInventoryItem()">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -379,6 +434,47 @@
                 alert(data.error || "Failed to create ingredient.");
             }
         })
+    }
+
+    function openEditModal(id, name, costPrice, threshold, reorderQty, supplierId) {
+        document.getElementById('editId').value = id;
+        document.getElementById('editName').value = name;
+        document.getElementById('editCostPrice').value = costPrice;
+        document.getElementById('editThreshold').value = threshold;
+        document.getElementById('editReorderQty').value = reorderQty;
+        document.getElementById('editSupplier').value = supplierId || "";
+        new bootstrap.Modal(document.getElementById("editModal")).show();
+    }
+
+    function updateInventoryItem() {
+        let id = document.getElementById('editId').value;
+        let name = document.getElementById('editName').value;
+        let costPrice = document.getElementById('editCostPrice').value;
+        let threshold = document.getElementById('editThreshold').value;
+        let reorderQty = document.getElementById('editReorderQty').value;
+        let supplierId = document.getElementById('editSupplier').value;
+
+        if (!name) { alert("Please enter an ingredient name."); return; }
+
+        fetch(`/inventory/update/${id}/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            body: JSON.stringify({
+                name: name,
+                cost_price: parseFloat(costPrice) || 0,
+                threshold: parseFloat(threshold) || 0,
+                reorder_quantity: parseFloat(reorderQty) || 0,
+                supplier_id: supplierId || null
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error || "Failed to update ingredient.");
+            }
+        });
     }
 </script>
 

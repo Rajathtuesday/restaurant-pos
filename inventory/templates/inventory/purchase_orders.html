@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Purchase Orders | POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root { --bg:#fafafa; --panel:#fff; --text:#111; --muted:#737373; --border:#eaeaea; --gold:#c5a059; --green:#10b981; --red:#ef4444; --amber:#f59e0b; --smooth:all 0.25s ease; }
+        body.dark { --bg:#0a0a0a; --panel:#111; --text:#f5f5f5; --muted:#888; --border:#262626; --gold:#d4af37; }
+        body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; min-height:100vh; }
+        .pos-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; padding:1.75rem 0 1.5rem; border-bottom:1px solid var(--border); margin-bottom:2rem; }
+        .pos-header h4 { font-family:'DM Serif Display',serif; font-size:1.6rem; margin:0; }
+        .pos-header h4 i.bi { color:var(--gold); }
+        .btn-lux { border:1px solid var(--border); background:transparent; color:var(--text); border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px; padding:0.6rem 1.3rem; transition:var(--smooth); cursor:pointer; text-decoration:none; display:inline-block; }
+        .btn-lux:hover, .btn-lux.active { border-color:var(--gold); background:var(--gold); color:#fff; }
+        .btn-lux.danger { border-color:var(--red); color:var(--red); }
+        .btn-lux.danger:hover { background:var(--red); color:#fff; }
+        .btn-icon { border:none; background:transparent; color:var(--text); font-size:1rem; cursor:pointer; padding:0.3rem 0.5rem; transition:var(--smooth); }
+        .btn-icon:hover { color:var(--gold); }
+        .section-title { font-family:'DM Serif Display',serif; font-size:1rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:1.25rem; }
+        .card-lux { background:var(--panel); border:1px solid var(--border); }
+
+        /* Status pills */
+        .pill { font-size:0.65rem; letter-spacing:1px; padding:3px 9px; border-radius:2px; text-transform:uppercase; font-weight:500; }
+        .pill-draft    { background:rgba(100,100,100,0.1); color:var(--muted); }
+        .pill-ordered  { background:rgba(59,130,246,0.12); color:#3b82f6; }
+        .pill-received { background:rgba(16,185,129,0.12); color:var(--green); }
+        .pill-cancelled{ background:rgba(239,68,68,0.1); color:var(--red); }
+
+        /* PO table */
+        .po-table { width:100%; border-collapse:collapse; }
+        .po-table th { font-size:0.67rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); padding:0.8rem 1rem; border-bottom:1px solid var(--border); text-align:left; }
+        .po-table td { padding:0.9rem 1rem; border-bottom:1px dashed var(--border); font-size:0.88rem; vertical-align:middle; }
+        .po-table tr:hover td { background:rgba(197,160,89,0.04); }
+
+        /* Item sub-rows */
+        .item-list { list-style:none; margin:0; padding:0; }
+        .item-list li { font-size:0.78rem; color:var(--muted); padding:1px 0; }
+
+        /* New PO drawer */
+        .drawer-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:400; }
+        .drawer { position:fixed; top:0; right:0; bottom:0; width:460px; max-width:100%; background:var(--panel); border-left:1px solid var(--border); z-index:500; overflow-y:auto; transform:translateX(100%); transition:transform 0.3s ease; padding:2rem; }
+        .drawer.open { transform:translateX(0); }
+        .drawer-title { font-family:'DM Serif Display',serif; font-size:1.3rem; margin-bottom:1.5rem; }
+        .form-field { margin-bottom:1.2rem; }
+        .form-field label { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); display:block; margin-bottom:0.4rem; }
+        .form-field select, .form-field input { width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); padding:0.4rem 0; font-size:0.88rem; font-family:'Outfit',sans-serif; outline:none; appearance:none; }
+        .form-field select:focus, .form-field input:focus { border-color:var(--gold); }
+        .form-field select option { background:var(--panel); color:var(--text); }
+
+        /* Line items in PO form */
+        .line-item-row { display:grid; grid-template-columns:1fr 90px 90px 28px; gap:0.5rem; align-items:end; margin-bottom:0.75rem; }
+        .line-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+        .line-item-row input, .line-item-row select { border:none; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font-family:'Outfit',sans-serif; font-size:0.85rem; padding:0.3rem 0; outline:none; width:100%; }
+        .line-total { font-size:0.75rem; color:var(--muted); text-align:right; padding:0.3rem 0; border-bottom:1px dashed var(--border); }
+
+        /* Filter tabs */
+        .filter-tabs { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+        .filter-tab { font-size:0.7rem; text-transform:uppercase; letter-spacing:1.5px; padding:0.4rem 0.9rem; border:1px solid var(--border); cursor:pointer; text-decoration:none; color:var(--text); transition:var(--smooth); }
+        .filter-tab:hover, .filter-tab.active { border-color:var(--gold); color:var(--gold); }
+
+        /* Toast */
+        .toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
+        .toast-msg { background:#111; color:#fff; padding:0.75rem 1.25rem; margin-top:0.5rem; font-size:0.82rem; border-left:3px solid var(--gold); }
+        .toast-msg.err { border-left-color:var(--red); }
+
+        .empty-state { text-align:center; padding:4rem; color:var(--muted); }
+    </style>
+</head>
+<body>
+<div class="container-fluid mx-auto" style="max-width:1300px; padding:0 1.5rem;">
+
+    <header class="pos-header">
+        <h4><i class="bi bi-box-seam me-2"></i>Purchase <i>Orders</i></h4>
+        <div class="d-flex gap-3 align-items-center">
+            <button class="btn-lux" onclick="openDrawer()">
+                <i class="bi bi-plus-lg me-1"></i>New PO
+            </button>
+            <a href="{% url 'supplier_list' %}" class="btn-lux">Suppliers</a>
+            <a href="{% url 'inventory_board' %}" class="btn-lux">Inventory</a>
+            <a href="/dashboard/" class="btn-lux">Dashboard</a>
+            <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
+        </div>
+    </header>
+
+    <!-- Filter tabs -->
+    <div class="filter-tabs">
+        <a href="?" class="filter-tab {% if not status_filter %}active{% endif %}">All</a>
+        <a href="?status=draft" class="filter-tab {% if status_filter == 'draft' %}active{% endif %}">Draft</a>
+        <a href="?status=ordered" class="filter-tab {% if status_filter == 'ordered' %}active{% endif %}">Ordered</a>
+        <a href="?status=received" class="filter-tab {% if status_filter == 'received' %}active{% endif %}">Received</a>
+        <a href="?status=cancelled" class="filter-tab {% if status_filter == 'cancelled' %}active{% endif %}">Cancelled</a>
+    </div>
+
+    <!-- PO Table -->
+    <div class="card-lux">
+        {% if purchase_orders %}
+        <div class="table-responsive">
+        <table class="po-table">
+            <thead>
+                <tr>
+                    <th>PO #</th>
+                    <th>Supplier</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for po in purchase_orders %}
+            <tr id="po-row-{{ po.id }}">
+                <td>
+                    <span style="font-family:'Space Mono',monospace; font-size:0.82rem;">{{ po.po_number }}</span>
+                    {% if po.notes %}
+                    <div style="font-size:0.72rem; color:var(--muted);">{{ po.notes|truncatechars:40 }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <div style="font-weight:500;">{{ po.supplier.name }}</div>
+                    {% if po.supplier.phone %}
+                    <div style="font-size:0.75rem; color:var(--muted);">{{ po.supplier.phone }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <ul class="item-list">
+                    {% for line in po.items.all %}
+                        <li>{{ line.item.name }} — {{ line.quantity }} {{ line.item.unit }} @ ₹{{ line.unit_price }}</li>
+                    {% endfor %}
+                    </ul>
+                </td>
+                <td style="font-weight:600;">₹{{ po.total_amount }}</td>
+                <td>
+                    <span class="pill pill-{{ po.status }}">{{ po.status }}</span>
+                </td>
+                <td style="font-size:0.8rem; color:var(--muted);">
+                    {{ po.created_at|date:"d M Y" }}
+                    {% if po.ordered_at %}<br>Sent: {{ po.ordered_at|date:"d M" }}{% endif %}
+                    {% if po.received_at %}<br>Rcvd: {{ po.received_at|date:"d M" }}{% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                    {% if po.status == "draft" %}
+                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem;"
+                            onclick="markOrdered({{ po.id }})">
+                            <i class="bi bi-send me-1"></i>Order
+                        </button>
+                        <button class="btn-lux danger" style="font-size:0.65rem; padding:0.3rem 0.7rem;"
+                            onclick="cancelPO({{ po.id }})">Cancel</button>
+                    {% elif po.status == "ordered" %}
+                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem; border-color:var(--green); color:var(--green);"
+                            onclick="receivePO({{ po.id }})">
+                            <i class="bi bi-box-arrow-in-down me-1"></i>Receive
+                        </button>
+                        <button class="btn-lux danger" style="font-size:0.65rem; padding:0.3rem 0.7rem;"
+                            onclick="cancelPO({{ po.id }})">Cancel</button>
+                    {% elif po.status == "received" %}
+                        <span style="font-size:0.75rem; color:var(--green);"><i class="bi bi-check-circle-fill me-1"></i>Stock Updated</span>
+                    {% else %}
+                        <span style="font-size:0.75rem; color:var(--muted);">—</span>
+                    {% endif %}
+                        <a href="{% url 'po_print' po.id %}" target="_blank" class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem; text-decoration:none;">
+                            <i class="bi bi-printer"></i> Print
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-box-seam" style="font-size:2.5rem;"></i>
+            <p class="mt-3">No purchase orders found.
+                {% if status_filter %}<a href="?">View all</a>{% else %}Create one with the button above.{% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create PO Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="poDrawer">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="drawer-title">New Purchase Order</div>
+        <button class="btn-icon" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="form-field">
+        <label>Supplier</label>
+        <select id="po_supplier">
+            <option value="">— select supplier —</option>
+            {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-field">
+        <label>Notes (optional)</label>
+        <input type="text" id="po_notes" placeholder="Auto-generated, low stock, etc.">
+    </div>
+
+    <div style="margin-bottom:0.75rem;">
+        <div style="display:grid; grid-template-columns:1fr 90px 90px 28px; gap:0.5rem; margin-bottom:0.3rem;">
+            <span class="line-label">Item</span>
+            <span class="line-label">Qty</span>
+            <span class="line-label">Unit ₹</span>
+            <span></span>
+        </div>
+        <div id="lineItems"></div>
+    </div>
+
+    <button class="btn-lux mb-3" style="font-size:0.68rem;" onclick="addLineItem()">
+        <i class="bi bi-plus-lg me-1"></i>Add Item
+    </button>
+
+    <div style="font-size:0.78rem; color:var(--muted); margin-bottom:1rem;">
+        Total: ₹<span id="poTotal">0.00</span>
+    </div>
+
+    <button class="btn-lux w-100" onclick="submitPO()">
+        <i class="bi bi-check-lg me-1"></i>Create Draft PO
+    </button>
+
+    <div style="font-size:0.72rem; color:var(--muted); margin-top:1rem;">
+        <i class="bi bi-info-circle me-1"></i>
+        Draft POs are not sent to suppliers. Use "Order" to mark as sent.
+        Stock only updates when you click "Receive."
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken=')).split('=')[1];
+    const ITEMS = [{% for item in inventory_items %}{ id:{{ item.id }}, name:"{{ item.name|escapejs }}", unit:"{{ item.unit }}", cost:{{ item.cost_price }} }{% if not forloop.last %},{% endif %}{% endfor %}];
+    let lineCount = 0;
+
+    let isDark = localStorage.getItem('dark') === 'true';
+    function updateTheme() { document.body.classList.toggle('dark', isDark); document.getElementById('themeIcon').className = isDark ? 'bi bi-sun' : 'bi bi-moon'; }
+    updateTheme();
+    function toggleDark() { isDark = !isDark; localStorage.setItem('dark', isDark); updateTheme(); }
+
+    function openDrawer() {
+        document.getElementById('poDrawer').classList.add('open');
+        document.getElementById('drawerOverlay').style.display = 'block';
+        if (lineCount === 0) addLineItem();
+    }
+    function closeDrawer() {
+        document.getElementById('poDrawer').classList.remove('open');
+        document.getElementById('drawerOverlay').style.display = 'none';
+    }
+
+    function addLineItem() {
+        lineCount++;
+        const id = `line-${lineCount}`;
+        const options = ITEMS.map(i => `<option value="${i.id}" data-cost="${i.cost}" data-unit="${i.unit}">${i.name} (${i.unit})</option>`).join('');
+        const row = document.createElement('div');
+        row.className = 'line-item-row';
+        row.id = id;
+        row.innerHTML = `
+            <select class="item-sel" onchange="autofillPrice(this)"><option value="">— item —</option>${options}</select>
+            <input type="number" class="line-qty" placeholder="Qty" min="0.001" step="0.001" oninput="recalcTotal()">
+            <input type="number" class="line-price" placeholder="₹" min="0" step="0.01" oninput="recalcTotal()">
+            <button class="btn-icon" style="padding:0;" onclick="document.getElementById('${id}').remove(); recalcTotal();">
+                <i class="bi bi-x" style="font-size:1rem;"></i>
+            </button>`;
+        document.getElementById('lineItems').appendChild(row);
+    }
+
+    function autofillPrice(sel) {
+        const opt = sel.options[sel.selectedIndex];
+        const priceInput = sel.closest('.line-item-row').querySelector('.line-price');
+        if (opt && opt.dataset.cost) priceInput.value = parseFloat(opt.dataset.cost).toFixed(2);
+        recalcTotal();
+    }
+
+    function recalcTotal() {
+        let total = 0;
+        document.querySelectorAll('.line-item-row').forEach(row => {
+            const qty = parseFloat(row.querySelector('.line-qty')?.value) || 0;
+            const price = parseFloat(row.querySelector('.line-price')?.value) || 0;
+            total += qty * price;
+        });
+        document.getElementById('poTotal').textContent = total.toFixed(2);
+    }
+
+    async function submitPO() {
+        const supplier_id = document.getElementById('po_supplier').value;
+        const notes = document.getElementById('po_notes').value;
+        if (!supplier_id) { toast('Please select a supplier.', true); return; }
+
+        const items = [];
+        let valid = true;
+        document.querySelectorAll('.line-item-row').forEach(row => {
+            const item_id = row.querySelector('.item-sel')?.value;
+            const quantity = row.querySelector('.line-qty')?.value;
+            const unit_price = row.querySelector('.line-price')?.value;
+            if (item_id && quantity && unit_price) {
+                items.push({ item_id: parseInt(item_id), quantity: parseFloat(quantity), unit_price: parseFloat(unit_price) });
+            } else if (item_id || quantity || unit_price) {
+                toast('Please fill all fields for each item row.', true);
+                valid = false;
+            }
+        });
+        if (!valid) return;
+        if (!items.length) { toast('Add at least one item.', true); return; }
+
+        const res = await fetch('/inventory/purchase-orders/create/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ supplier_id, notes, items })
+        });
+        const data = await res.json();
+        if (data.success) {
+            toast(`PO ${data.po_number} created.`);
+            setTimeout(() => location.reload(), 700);
+        } else {
+            toast(data.error, true);
+        }
+    }
+
+    async function markOrdered(poId) {
+        if (!confirm('Mark this PO as sent to supplier?')) return;
+        const res = await fetch(`/inventory/purchase-orders/${poId}/order/`, {
+            method: 'POST', headers: { 'X-CSRFToken': CSRF }
+        });
+        const data = await res.json();
+        if (data.success) { toast('PO marked as ordered.'); setTimeout(() => location.reload(), 600); }
+        else toast(data.error, true);
+    }
+
+    async function receivePO(poId) {
+        if (!confirm('Receive this PO? Inventory stock will be updated immediately and cannot be undone.')) return;
+        const res = await fetch(`/inventory/purchase-orders/${poId}/receive/`, {
+            method: 'POST', headers: { 'X-CSRFToken': CSRF }
+        });
+        const data = await res.json();
+        if (data.success) { toast('PO received. Stock updated.'); setTimeout(() => location.reload(), 700); }
+        else toast(data.error, true);
+    }
+
+    async function cancelPO(poId) {
+        if (!confirm('Cancel this purchase order?')) return;
+        const res = await fetch(`/inventory/purchase-orders/${poId}/cancel/`, {
+            method: 'POST', headers: { 'X-CSRFToken': CSRF }
+        });
+        const data = await res.json();
+        if (data.success) { toast('PO cancelled.'); setTimeout(() => location.reload(), 600); }
+        else toast(data.error, true);
+    }
+
+    function toast(msg, isErr = false) {
+        const div = document.createElement('div');
+        div.className = 'toast-msg' + (isErr ? ' err' : '');
+        div.textContent = msg;
+        document.getElementById('toastContainer').appendChild(div);
+        setTimeout(() => div.remove(), 4000);
+    }
+</script>
+</body>
+</html>

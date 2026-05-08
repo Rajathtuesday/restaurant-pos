@@ -58,13 +58,13 @@ def create_kot(user, order):
     # -----------------------------------------
     # DAILY KOT COUNTER LOCK
     # -----------------------------------------
-
-    today = timezone.now().date()
+    from core.utils import get_business_date
+    business_date = get_business_date(timezone.now(), order.outlet)
 
     counter, _ = (
         DailyKOTCounter.objects
         .select_for_update()
-        .get_or_create(date=today, tenant=user.tenant, outlet=user.outlet)
+        .get_or_create(date=business_date, tenant=user.tenant, outlet=user.outlet)
     )
 
     created_kots = []

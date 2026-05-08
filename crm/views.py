@@ -72,6 +72,9 @@ def link_guest_to_order(request, order_id):
     Creates guest if new. Awards loyalty points based on grand_total.
     """
     from orders.models import Order
+    from django.db import transaction
+    from django.db.models import F
+
     try:
         data = json.loads(request.body)
         phone = data.get("phone", "").strip()
@@ -81,56 +84,67 @@ def link_guest_to_order(request, order_id):
         if not phone:
             return JsonResponse({"error": "Phone required"}, status=400)
 
-        order = Order.objects.get(
-            id=order_id, tenant=request.user.tenant, outlet=request.user.outlet
-        )
-
-        guest, created = Guest.objects.get_or_create(
-            tenant=request.user.tenant,
-            phone=phone,
-            defaults={"name": name}
-        )
-        if name and not guest.name:
-            guest.name = name
-            guest.save(update_fields=["name"])
-
-        # Points earned = 1 per ₹10
-        earned = int(float(order.grand_total) * POINTS_PER_RUPEE)
-
-        # Redeem validation
-        if redeem_points > guest.total_points:
-            return JsonResponse({"error": "Not enough points"}, status=400)
-
-        # Record transactions
-        if earned > 0:
-            LoyaltyTransaction.objects.create(
-                guest=guest, order=order,
-                transaction_type="earn",
-                points=earned,
-                description=f"Order #{order.order_number}"
+        with transaction.atomic():
+            order = Order.objects.get(
+                id=order_id, tenant=request.user.tenant, outlet=request.user.outlet
             )
-            guest.total_points += earned
 
-        if redeem_points > 0:
-            LoyaltyTransaction.objects.create(
-                guest=guest, order=order,
-                transaction_type="redeem",
-                points=-redeem_points,
-                description=f"Redeemed on Order #{order.order_number}"
+            guest, created = Guest.objects.select_for_update().get_or_create(
+                tenant=request.user.tenant,
+                phone=phone,
+                defaults={"name": name}
             )
-            guest.total_points -= redeem_points
+            
+            if name and not guest.name:
+                guest.name = name
+                guest.save(update_fields=["name"])
 
-        guest.total_spent += order.grand_total
-        guest.visit_count += 1
-        guest.save(update_fields=["total_points", "total_spent", "visit_count"])
+            # Guard: don't award points twice
+            if order.loyalty_transactions.filter(transaction_type="earn").exists():
+                return JsonResponse(
+                    {"error": "Points already awarded for this order"}, 
+                    status=400
+                )
 
-        return JsonResponse({
-            "success": True,
-            "guest_id": guest.id,
-            "points_earned": earned,
-            "points_redeemed": redeem_points,
-            "total_points": guest.total_points,
-        })
+            # Points earned = 1 per ₹10
+            earned = int(float(order.grand_total) * POINTS_PER_RUPEE)
+
+            # Redeem validation
+            if redeem_points > guest.total_points:
+                return JsonResponse({"error": "Not enough points"}, status=400)
+
+            # Record transactions
+            if earned > 0:
+                LoyaltyTransaction.objects.create(
+                    guest=guest, order=order,
+                    transaction_type="earn",
+                    points=earned,
+                    description=f"Order #{order.order_number}"
+                )
+
+            if redeem_points > 0:
+                LoyaltyTransaction.objects.create(
+                    guest=guest, order=order,
+                    transaction_type="redeem",
+                    points=-redeem_points,
+                    description=f"Redeemed on Order #{order.order_number}"
+                )
+
+            # Atomic update
+            Guest.objects.filter(pk=guest.pk).update(
+                total_points=F("total_points") + earned - redeem_points,
+                total_spent=F("total_spent") + order.grand_total,
+                visit_count=F("visit_count") + 1
+            )
+            guest.refresh_from_db()
+
+            return JsonResponse({
+                "success": True,
+                "guest_id": guest.id,
+                "points_earned": earned,
+                "points_redeemed": redeem_points,
+                "total_points": guest.total_points,
+            })
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
@@ -202,6 +216,24 @@ def create_reservation(request):
         )
 
         res_time = timezone.make_aware(datetime.strptime(res_time_str, "%Y-%m-%dT%H:%M"))
+        from datetime import timedelta
+        
+        if table_id:
+            conflict = Reservation.objects.filter(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                table_id=table_id,
+                status__in=["pending", "confirmed"],
+                reservation_time__range=(
+                    res_time - timedelta(hours=1),
+                    res_time + timedelta(hours=1)
+                )
+            ).exists()
+            if conflict:
+                return JsonResponse(
+                    {"error": "Table already booked around this time"}, 
+                    status=409
+                )
 
         reservation = Reservation.objects.create(
             tenant=request.user.tenant,

@@ -1,12 +1,17 @@
 from django.db import models
 
+from django.core.validators import MinValueValidator, MaxValueValidator
+
 class GuestFeedback(models.Model):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
     order = models.ForeignKey("orders.Order", on_delete=models.SET_NULL, null=True, blank=True)
     
     guest_name = models.CharField(max_length=100, blank=True)
-    rating = models.PositiveSmallIntegerField(help_text="1 to 5 stars")
+    rating = models.PositiveSmallIntegerField(
+        help_text="1 to 5 stars",
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
     comment = models.TextField(blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)

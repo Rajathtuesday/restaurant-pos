@@ -1,71 +1,76 @@
 # reports/services/dashboard_metrics.py
+from django.core.cache import cache
 from django.db.models import Sum, Count, F
 from django.utils.timezone import localdate
 
-from orders.models import Order
+from orders.models import Order, Payment, Table
 from inventory.models import InventoryItem
 from tenants.models import Outlet
-from orders.models import Table
-from orders.models import Payment
+
 
 def owner_dashboard_metrics(user):
-
     tenant = user.tenant
     today = localdate()
 
+    cache_key = f"dashboard_metrics_{tenant.id}_{user.outlet_id}_{today}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
     if user.role == "owner":
-        outlets = Outlet.objects.filter(tenant=tenant)
+        outlets = list(Outlet.objects.filter(tenant=tenant))
     else:
-        outlets = Outlet.objects.filter(id=user.outlet.id)
+        outlets = list(Outlet.objects.filter(id=user.outlet.id))
 
+    # --- Single aggregated query per metric using outlet__in ----------------
+    outlet_ids = [o.id for o in outlets]
+
+    revenue_qs = (
+        Payment.objects
+        .filter(order__tenant=tenant, order__outlet_id__in=outlet_ids, paid_at__date=today)
+        .exclude(method="refund")
+        .values("order__outlet_id")
+        .annotate(total=Sum("amount"))
+    )
+    revenue_map = {r["order__outlet_id"]: r["total"] or 0 for r in revenue_qs}
+
+    orders_qs = (
+        Order.objects
+        .filter(tenant=tenant, outlet_id__in=outlet_ids, created_at__date=today, status__in=["closed", "paid"])
+        .values("outlet_id")
+        .annotate(count=Count("id"))
+    )
+    orders_map = {o["outlet_id"]: o["count"] for o in orders_qs}
+
+    active_tables_qs = (
+        Table.objects
+        .filter(tenant=tenant, outlet_id__in=outlet_ids, state__in=["ordering", "preparing", "ready"])
+        .values("outlet_id")
+        .annotate(count=Count("id"))
+    )
+    tables_map = {t["outlet_id"]: t["count"] for t in active_tables_qs}
+
+    low_stock_qs = (
+        InventoryItem.objects
+        .filter(tenant=tenant, outlet_id__in=outlet_ids, stock__lte=F("low_stock_threshold"))
+        .values("outlet_id")
+        .annotate(count=Count("id"))
+    )
+    stock_map = {s["outlet_id"]: s["count"] for s in low_stock_qs}
+
+    # --- Assemble results ---------------------------------------------------
     results = []
-
     for outlet in outlets:
-
-        orders_today = Order.objects.filter(
-            tenant=tenant,
-            outlet=outlet,
-            created_at__date=today,
-            status__in=["closed", "paid"]
-        )
-
-
-
-        payments = Payment.objects.filter(
-            order__tenant=tenant,
-            order__outlet=outlet,
-            paid_at__date=today
-        )
-
-        revenue = payments.aggregate(
-            total=Sum("amount")
-        )["total"] or 0
-
-        total_orders = orders_today.count()
-
-        avg_order_value = 0
-        if total_orders:
-            avg_order_value = revenue / total_orders
-
-        active_tables = Table.objects.filter(
-            tenant=tenant,
-            outlet=outlet,
-            state__in=["ordering", "preparing", "ready"]
-        ).count()
-
-        low_stock = InventoryItem.objects.filter(
-            tenant=tenant,
-            outlet=outlet,
-            stock__lte=F("low_stock_threshold")
-        ).count()
-
+        rev = revenue_map.get(outlet.id, 0)
+        orders = orders_map.get(outlet.id, 0)
         results.append({
             "outlet": outlet.name,
-            "revenue": revenue,
-            "orders": total_orders,
-            "avg_order_value": avg_order_value,
-            "active_tables": active_tables,
-            "low_stock": low_stock
+            "revenue": rev,
+            "orders": orders,
+            "avg_order_value": (rev / orders) if orders else 0,
+            "active_tables": tables_map.get(outlet.id, 0),
+            "low_stock": stock_map.get(outlet.id, 0),
         })
 
-    return results
+    cache.set(cache_key, results, 60)  # 60-second TTL
+    return results

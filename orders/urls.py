@@ -6,6 +6,7 @@ from orders.services.table_transfer_service import transfer_table
 from .views.order_actions import cancel_order, cancel_item
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.refund_views import approve_refund_view, reject_refund_view
+from .views.promo_views import list_active_promos, create_promo, toggle_promo, delete_promo
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 
 
@@ -111,4 +112,10 @@ urlpatterns = [
     path("api/tables/", api_tables, name="api-tables"),
     path("api/active/", api_active_orders, name="api-active-orders"),
     path("api/aggregator/webhook/", api_ingest_order, name="api-ingest-order"),
+
+    # Promo routes
+    path("promos/", list_active_promos, name="list-promos"),
+    path("promos/create/", create_promo, name="create-promo"),
+    path("promos/<int:promo_id>/toggle/", toggle_promo, name="toggle-promo"),
+    path("promos/<int:promo_id>/delete/", delete_promo, name="delete-promo"),
 ]

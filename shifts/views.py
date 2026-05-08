@@ -398,3 +398,329 @@ def export_z_report(request):
         ])
 
     return response
+
+
+# ==========================================================
+#  SCHEDULE BUILDER
+# ==========================================================
+
+from .models import ShiftTemplate, StaffSchedule
+
+
+@login_required
+@tenant_required
+def schedule_builder(request):
+    """
+    Weekly schedule grid — managers only.
+    Shows each staff member vs each day of the week.
+    Supports ?week=YYYY-MM-DD to navigate to any Monday.
+    """
+    from core.decorators import role_required as _role_check
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    from datetime import timedelta, datetime
+    from accounts.models import User
+
+    # Resolve the Monday of the requested week
+    week_str = request.GET.get("week")
+    try:
+        week_start = datetime.strptime(week_str, "%Y-%m-%d").date()
+        # snap to Monday regardless of what date is passed
+        week_start = week_start - timedelta(days=week_start.weekday())
+    except (TypeError, ValueError):
+        today = timezone.localdate()
+        week_start = today - timedelta(days=today.weekday())
+
+    week_days = [week_start + timedelta(days=i) for i in range(7)]
+    week_end = week_days[-1]
+    prev_week = week_start - timedelta(days=7)
+    next_week = week_start + timedelta(days=7)
+
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+
+    staff_list = User.objects.filter(
+        tenant=tenant, outlet=outlet, is_active=True
+    ).exclude(role__in=["owner"]).order_by("first_name", "username")
+
+    templates = ShiftTemplate.objects.filter(tenant=tenant, outlet=outlet).order_by("name")
+
+    # Load all schedules for this week in one query
+    schedules_qs = StaffSchedule.objects.filter(
+        tenant=tenant,
+        outlet=outlet,
+        date__gte=week_start,
+        date__lte=week_end,
+        is_active=True
+    ).select_related("staff", "template")
+
+    # Build a lookup: {(staff_id, date): schedule}
+    schedule_map = {}
+    for sc in schedules_qs:
+        schedule_map[(sc.staff_id, sc.date)] = sc
+
+    # Also load actual shifts (clock-in records) for the week for the overtime badge
+    actual_shifts = Shift.objects.filter(
+        tenant=tenant, outlet=outlet,
+        clocked_in_at__date__gte=week_start,
+        clocked_in_at__date__lte=week_end
+    ).select_related("staff")
+
+    shift_map = {}
+    for sh in actual_shifts:
+        shift_map[(sh.staff_id, sh.clocked_in_at.date())] = sh
+
+    # Build grid rows
+    grid = []
+    for staff in staff_list:
+        row = {"staff": staff, "cells": []}
+        for day in week_days:
+            sched = schedule_map.get((staff.id, day))
+            actual = shift_map.get((staff.id, day))
+            overtime = None
+            if actual and sched:
+                overtime = actual.overtime_hours
+            row["cells"].append({
+                "day": day,
+                "schedule": sched,
+                "actual_shift": actual,
+                "overtime": overtime,
+            })
+        grid.append(row)
+
+    return render(request, "shifts/schedule_builder.html", {
+        "grid": grid,
+        "week_days": week_days,
+        "week_start": week_start,
+        "prev_week": prev_week,
+        "next_week": next_week,
+        "templates": templates,
+        "staff_list": staff_list,
+    })
+
+
+@login_required
+@tenant_required
+@require_POST
+def create_schedule_entry(request):
+    """
+    Assigns a staff member to a shift on a date.
+
+    Edge cases:
+    - Duplicate: if a schedule already exists for staff+date, update it in-place.
+    - Missing times: if no template and no start/end times supplied, reject.
+    - Date in past: allowed (managers can back-fill missed schedules).
+    """
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    from accounts.models import User
+    from datetime import date as date_type, datetime
+
+    staff_id = data.get("staff_id")
+    date_str = data.get("date")
+    template_id = data.get("template_id")
+    start_time_str = data.get("start_time")
+    end_time_str = data.get("end_time")
+    notes = data.get("notes", "")
+
+    # --- Validation ---
+    if not staff_id or not date_str:
+        return JsonResponse({"error": "staff_id and date are required"}, status=400)
+
+    try:
+        sched_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({"error": "Invalid date format (YYYY-MM-DD expected)"}, status=400)
+
+    try:
+        staff = User.objects.get(
+            id=staff_id, tenant=request.user.tenant, outlet=request.user.outlet
+        )
+    except User.DoesNotExist:
+        return JsonResponse({"error": "Staff member not found"}, status=404)
+
+    template = None
+    if template_id:
+        try:
+            template = ShiftTemplate.objects.get(
+                id=template_id, tenant=request.user.tenant
+            )
+        except ShiftTemplate.DoesNotExist:
+            return JsonResponse({"error": "Shift template not found"}, status=404)
+
+    # If no template, require explicit times
+    if not template and (not start_time_str or not end_time_str):
+        return JsonResponse(
+            {"error": "Either a template or both start_time and end_time are required"},
+            status=400
+        )
+
+    from datetime import time
+    start_time = end_time = None
+    if not template:
+        try:
+            start_time = datetime.strptime(start_time_str, "%H:%M").time()
+            end_time = datetime.strptime(end_time_str, "%H:%M").time()
+        except ValueError:
+            return JsonResponse({"error": "Invalid time format (HH:MM expected)"}, status=400)
+
+    # --- Upsert (update if exists, create if not) ---
+    schedule, created = StaffSchedule.objects.update_or_create(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        staff=staff,
+        date=sched_date,
+        defaults={
+            "template": template,
+            "start_time": start_time,
+            "end_time": end_time,
+            "notes": notes,
+            "is_active": True,
+        }
+    )
+
+    return JsonResponse({
+        "success": True,
+        "created": created,
+        "schedule_id": schedule.id,
+        "staff_name": staff.get_full_name() or staff.username,
+        "date": sched_date.strftime("%Y-%m-%d"),
+        "shift_label": str(template) if template else f"{start_time_str} – {end_time_str}",
+        "duration_hours": schedule.duration_hours,
+    })
+
+
+@login_required
+@tenant_required
+@require_POST
+def delete_schedule_entry(request, schedule_id):
+    """
+    Soft-deletes (deactivates) a schedule entry.
+    Hard-delete is not used so historical records remain intact.
+    """
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        schedule = StaffSchedule.objects.get(
+            id=schedule_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+    except StaffSchedule.DoesNotExist:
+        return JsonResponse({"error": "Schedule not found"}, status=404)
+
+    schedule.is_active = False
+    schedule.save(update_fields=["is_active"])
+    return JsonResponse({"success": True})
+
+
+# ==========================================================
+#  SHIFT TEMPLATES (CRUD)
+# ==========================================================
+
+@login_required
+@tenant_required
+def shift_template_list(request):
+    """Lists all shift templates for the outlet."""
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    templates = ShiftTemplate.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    ).order_by("start_time")
+
+    return render(request, "shifts/shift_templates.html", {"templates": templates})
+
+
+@login_required
+@tenant_required
+@require_POST
+def create_shift_template(request):
+    """
+    Creates a shift template.
+
+    Edge cases:
+    - Duplicate name per outlet → reject.
+    - end_time < start_time → overnight shift, allowed, validated by duration > 0.
+    """
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    name = data.get("name", "").strip()
+    start_str = data.get("start_time")
+    end_str = data.get("end_time")
+    base_pay = data.get("base_pay", 0)
+
+    if not name or not start_str or not end_str:
+        return JsonResponse({"error": "name, start_time, and end_time are required"}, status=400)
+
+    from datetime import datetime
+    try:
+        start_time = datetime.strptime(start_str, "%H:%M").time()
+        end_time = datetime.strptime(end_str, "%H:%M").time()
+    except ValueError:
+        return JsonResponse({"error": "Invalid time format (HH:MM)"}, status=400)
+
+    from decimal import Decimal, InvalidOperation
+    try:
+        base_pay = Decimal(str(base_pay))
+    except InvalidOperation:
+        return JsonResponse({"error": "Invalid base_pay value"}, status=400)
+
+    if ShiftTemplate.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet, name__iexact=name
+    ).exists():
+        return JsonResponse({"error": f"Template '{name}' already exists"}, status=409)
+
+    template = ShiftTemplate.objects.create(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        name=name,
+        start_time=start_time,
+        end_time=end_time,
+        base_pay=base_pay,
+    )
+    return JsonResponse({
+        "success": True,
+        "id": template.id,
+        "name": template.name,
+        "label": str(template),
+    })
+
+
+@login_required
+@tenant_required
+@require_POST
+def delete_shift_template(request, template_id):
+    """
+    Deletes a shift template.
+    If schedules are using it, schedules are set to template=NULL (SET_NULL FK).
+    """
+    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        template = ShiftTemplate.objects.get(
+            id=template_id, tenant=request.user.tenant, outlet=request.user.outlet
+        )
+    except ShiftTemplate.DoesNotExist:
+        return JsonResponse({"error": "Template not found"}, status=404)
+
+    template.delete()
+    return JsonResponse({"success": True})

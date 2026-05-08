@@ -11,10 +11,11 @@ whitenoise==6.12.0
 gunicorn==21.2.0
 
 # Monitoring
-sentry-sdk==2.0.0
+sentry-sdk==2.20.0
 
 # Rate Limiting
 django-axes==6.4.0
+django-ratelimit==4.1.0
 
 # Media Storage
 django-storages==1.14.2

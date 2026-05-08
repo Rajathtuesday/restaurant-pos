@@ -245,7 +245,7 @@ def create_menu_item(request):
             estimated_prep_time=prep_time
         )
         
-        logger.info(f"User {request.user.username} created item '{name}' (₹{price}, prep: {prep_time}m) in category '{category.name}'")
+        logger.info(f"User {request.user.username} created item '{name}' (Rs.{price}, prep: {prep_time}m) in category '{category.name}')")
 
         return JsonResponse({"success": True})
 
@@ -415,9 +415,6 @@ def update_price(request, item_id):
     except Exception as e:
 
         return JsonResponse({"error": str(e)}, status=500)
-    
-
-    return JsonResponse({"success": True})
 
 
 @login_required
@@ -604,8 +601,8 @@ def ai_menu_importer(request):
 
 def digital_menu(request):
     """Customer-facing menu for self-ordering via QR."""
+    from django.http import Http404
     from orders.models import Table
-    from tenants.models import Tenant, Outlet
     
     table_token = request.GET.get("table_token")
     table_id = request.GET.get("table")
@@ -615,7 +612,6 @@ def digital_menu(request):
     elif table_id:
         table = Table.objects.filter(id=table_id).first()
 
-        
     # Determine tenant/outlet context
     if table:
         tenant = table.tenant
@@ -624,9 +620,8 @@ def digital_menu(request):
         tenant = request.user.tenant
         outlet = request.user.outlet
     else:
-        # Fallback for public browsing (take the first tenant for demo)
-        tenant = Tenant.objects.first()
-        outlet = Outlet.objects.first()
+        # No table token and not logged in — refuse to serve random tenant data
+        raise Http404("No valid table token provided.")
 
     categories = MenuCategory.objects.filter(
         tenant=tenant,

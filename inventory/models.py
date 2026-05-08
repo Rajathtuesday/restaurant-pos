@@ -57,12 +57,34 @@ class InventoryItem(models.Model):
         decimal_places=3,
         default=0
     )
+    
+    reorder_quantity = models.DecimalField(
+        max_digits=12,
+        decimal_places=3,
+        default=0,
+        help_text="Standard quantity to order when stock is low"
+    )
 
     cost_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         default=0.00,
-        help_text="Cost price per unit"
+        help_text="Current cost price per unit"
+    )
+
+    last_purchase_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Price from the last purchase order"
+    )
+    
+    preferred_supplier = models.ForeignKey(
+        "Supplier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -128,6 +150,46 @@ class InventoryItem(models.Model):
                     "low_stock",
                     f"{item.name} low stock ({item.stock} {item.unit})"
                 )
+                
+                # Auto-generate draft PO if supplier and reorder quantity exist
+                if item.preferred_supplier and item.reorder_quantity > 0:
+                    item.trigger_reorder()
+
+
+    def trigger_reorder(self):
+        """
+        Creates a draft Purchase Order for the preferred supplier.
+        """
+        from django.utils import timezone
+        
+        with transaction.atomic():
+            po, created = PurchaseOrder.objects.select_for_update().get_or_create(
+                tenant=self.tenant,
+                outlet=self.outlet,
+                supplier=self.preferred_supplier,
+                status="draft",
+                defaults={"notes": f"Auto-generated due to low stock on {timezone.now().date()}"}
+            )
+            
+            if not po.po_number:
+                counter, _ = TenantPOCounter.objects.select_for_update().get_or_create(
+                    tenant=self.tenant, outlet=self.outlet
+                )
+                counter.value += 1
+                counter.save(update_fields=["value"])
+                po.po_number = f"PO-{timezone.now().year}-{counter.value:04d}"
+                po.save(update_fields=["po_number"])
+                
+            # Add item to PO if not already there
+            PurchaseOrderItem.objects.get_or_create(
+                purchase_order=po,
+                item=self,
+                defaults={"quantity": self.reorder_quantity, "unit_price": self.cost_price}
+            )
+
+            # Recalculate total
+            total = sum(i.quantity * i.unit_price for i in po.items.all())
+            PurchaseOrder.objects.filter(pk=po.pk).update(total_amount=total)
 
 
     # -------------------------------------------------------
@@ -202,6 +264,147 @@ class InventoryItem(models.Model):
     def __str__(self):
 
         return f"{self.name} ({self.stock} {self.unit})"
+
+
+
+# -------------------------------------------------------
+# SUPPLIER
+# -------------------------------------------------------
+
+class Supplier(models.Model):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    
+    name = models.CharField(max_length=255)
+    contact_person = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    address = models.TextField(blank=True)
+    gst_no = models.CharField(max_length=15, blank=True)
+    
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+# -------------------------------------------------------
+# PURCHASE ORDER
+# -------------------------------------------------------
+
+class TenantPOCounter(models.Model):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    value = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("tenant", "outlet")
+
+class PurchaseOrder(models.Model):
+    STATUS_CHOICES = (
+        ("draft", "Draft"),
+        ("ordered", "Ordered"),
+        ("received", "Received"),
+        ("cancelled", "Cancelled"),
+    )
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="purchase_orders")
+    
+    po_number = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    
+    ordered_at = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "outlet", "supplier"],
+                condition=Q(status="draft"),
+                name="unique_draft_po_per_supplier"
+            )
+        ]
+
+    def __str__(self):
+        return f"PO-{self.id} | {self.supplier.name} | {self.status}"
+
+    @transaction.atomic
+    def receive_order(self):
+        """
+        Marks PO as received and updates inventory stock atomically.
+
+        Deliberately avoids calling add_stock() to prevent nested
+        transaction.atomic + select_for_update deadlocks: we already hold
+        row-locks on PurchaseOrder (from the view) and PurchaseOrderItem
+        (via select_for_update below), so we write stock directly using
+        F() expressions and create the ledger entries inline.
+        """
+        if self.status == "received":
+            return
+
+        from django.utils import timezone
+
+        # Lock all inventory items referenced by this PO in a single query
+        # to prevent deadlocks (consistent lock-ordering).
+        item_ids = list(self.items.values_list("item_id", flat=True))
+        locked_items = {
+            item.id: item
+            for item in InventoryItem.objects.select_for_update().filter(id__in=item_ids)
+        }
+
+        reference = f"PO #{self.po_number or self.id}"
+        transactions_to_create = []
+
+        for item_link in self.items.select_related("item"):
+            inv_item = locked_items[item_link.item_id]
+            qty = Decimal(item_link.quantity)
+
+            # Update stock with F() to avoid stale-read races
+            InventoryItem.objects.filter(pk=inv_item.pk).update(
+                stock=F("stock") + qty,
+                last_purchase_price=item_link.unit_price,
+            )
+
+            transactions_to_create.append(
+                InventoryTransaction(
+                    item=inv_item,
+                    tenant=inv_item.tenant,
+                    outlet=inv_item.outlet,
+                    quantity=qty,
+                    transaction_type="restock",
+                    reference=reference,
+                )
+            )
+
+        InventoryTransaction.objects.bulk_create(transactions_to_create)
+
+        self.status = "received"
+        self.received_at = timezone.now()
+        self.save(update_fields=["status", "received_at"])
+
+
+class PurchaseOrderItem(models.Model):
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="items")
+    item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
+    
+    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    @property
+    def line_total(self):
+        return self.quantity * self.unit_price
+
+    def __str__(self):
+        return f"{self.item.name} x {self.quantity}"
 
 
 

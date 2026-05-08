@@ -11,6 +11,7 @@ from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
 
 from core.decorators import tenant_required, role_required
 from menu.models import MenuCategory, MenuItem
@@ -86,6 +87,10 @@ def billing_view(request):
 # -------------------------------------------------
 
 # @login_required -- Removed to allow QR guest ordering
+# Rate-limit BEFORE require_POST so the check runs before any body parsing.
+# 20 requests/minute per IP. Guests hit this via QR; staff calls are authenticated
+# and go through the same endpoint — 20/min is more than enough for either.
+@ratelimit(key="ip", rate="20/m", method="POST", block=True)
 @require_POST
 # @tenant_required -- Removed to allow QR guest ordering
 def create_order(request):
@@ -94,7 +99,17 @@ def create_order(request):
     Accepts JSON payloads from both the POS dashboard (Staff) and Digital Menu (Guest QR).
     Automatically resolves the correct tenant and outlet via user session or QR token.
     Applies optional discounts and triggers recalculation of all financial totals.
+
+    Rate-limited to 20 POST requests per minute per IP address to prevent
+    malformed-cart spam from exhausting inventory and DB write capacity.
     """
+    # django-ratelimit sets request.limited=True and raises Ratelimited when block=True,
+    # but we still return a JSON 429 for API clients that expect JSON.
+    if getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Too many requests. Please slow down."},
+            status=429
+        )
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -354,7 +369,7 @@ def pay_order(request, order_id):
 
                 process_payment(order, method, amount, request.user)
 
-                logger.info(f"User {request.user.username} recorded {method} payment of ₹{amount} for order #{order.id}")
+                logger.info(f"User {request.user.username} recorded {method} payment of Rs.{amount} for order #{order.id}")
 
                 OrderEvent.objects.create(
                     tenant=order.tenant, outlet=order.outlet, order=order,
@@ -504,7 +519,7 @@ def refund_payment(request, payment_id):
         with transaction.atomic():
             refund = process_refund(payment.order, payment_id, amount, request.user)
 
-        logger.warning(f"User {request.user.username} issued refund of ₹{amount} for payment #{payment_id}")
+        logger.warning(f"User {request.user.username} issued refund of Rs.{amount} for payment #{payment_id}")
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
     except Exception as e:
@@ -582,15 +597,16 @@ def log_bypass(request, order_id):
                 import pytz
                 ist = pytz.timezone('Asia/Kolkata')
                 now_ist = timezone.now().astimezone(ist)
+                # Keep the datetime timezone-aware; stripping tzinfo causes Django ORM
+                # to compare a naive dt against a tz-aware field, giving wrong results.
                 today_ist_start = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
-                today_utc_start = today_ist_start.astimezone(pytz.utc).replace(tzinfo=None)
 
                 bypass_count = OrderEvent.objects.filter(
                     tenant=request.user.tenant,
                     outlet=request.user.outlet,
                     created_by=request.user,
                     event_type="status_changed",
-                    created_at__gte=today_utc_start
+                    created_at__gte=today_ist_start
                 ).filter(metadata__action="payment_gate_bypassed").count()
 
                 if bypass_count >= 3:
@@ -797,7 +813,9 @@ def download_pdf_bill(request, order_id):
     
     order = get_object_or_404(Order, id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
     
-    remaining = order.grand_total - sum(p.amount for p in order.payments.all())
+    # Exclude refund rows (negative amounts) — including them inflates 'remaining'.
+    # This mirrors the correct calculation already used in bill_view and pay_order.
+    remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
     
     html_string = render_to_string("orders/bill.html", {"order": order, "request": request, "remaining": remaining})
     pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
