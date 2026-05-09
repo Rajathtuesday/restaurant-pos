@@ -54,12 +54,48 @@ class Tenant(models.Model):
         help_text="Superuser/Agent who brought this client"
     )
 
+    class TenantType(models.TextChoices):
+        FINE_DINING = 'fine_dining', 'Fine Dining'
+        FRANCHISE = 'franchise', 'Franchise / QSR'
+        CAFE = 'cafe', 'Cafe / Coffee Shop'
+
+    tenant_type = models.CharField(
+        max_length=20,
+        choices=TenantType.choices,
+        default=TenantType.FINE_DINING,
+        help_text="Controls which features are visible to the tenant"
+    )
+
+    # --------------------------------------------------
+    # INTERNAL BILLING & SUBSCRIPTION (Only visible to Admin)
+    # --------------------------------------------------
+    subscription_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        help_text="Monthly subscription fee charged to this tenant"
+    )
+    
+    subscription_status = models.CharField(
+        max_length=20,
+        choices=[
+            ('trial', 'Trial'),
+            ('active', 'Active'),
+            ('suspended', 'Suspended')
+        ],
+        default='trial'
+    )
+    
+    subscription_start_date = models.DateField(null=True, blank=True)
+    subscription_end_date = models.DateField(null=True, blank=True)
+
     class Meta:
 
         ordering = ["name"]
 
         indexes = [
             models.Index(fields=["slug"]),
+            models.Index(fields=["tenant_type"]),
         ]
 
     def __str__(self):

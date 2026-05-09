@@ -67,12 +67,13 @@ class Order(models.Model):
     )
 
     SOURCE_CHOICES = (
-        ("dine_in", "Dine In"),
-        ("takeaway", "Takeaway"),
-        ("zomato", "Zomato"),
-        ("swiggy", "Swiggy"),
+        ("dine_in",   "Dine In"),
+        ("takeaway",  "Takeaway"),
+        ("counter",   "Counter / QSR"),   # franchise / cafe token orders
+        ("zomato",    "Zomato"),
+        ("swiggy",    "Swiggy"),
         ("uber_eats", "Uber Eats"),
-        ("web", "Website"),
+        ("web",       "Website"),
     )
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
@@ -139,6 +140,8 @@ class Order(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
+
+
     class Meta:
         indexes = [
             models.Index(fields=["tenant"]),
@@ -152,6 +155,11 @@ class Order(models.Model):
                 fields=["tenant", "outlet", "table"],
                 condition=Q(status="open"),
                 name="unique_open_order_per_table"
+            ),
+            models.UniqueConstraint(
+                fields=["outlet", "aggregator_order_id"],
+                condition=~Q(aggregator_order_id="") & Q(aggregator_order_id__isnull=False),
+                name="unique_aggregator_order_per_outlet"
             )
         ]
 
@@ -348,6 +356,30 @@ class Order(models.Model):
         self.round_off = round_off
 
         self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total", "round_off", "discount_type", "discount_value"])
+# =====================================================
+# TOKEN ORDER
+# =====================================================
+
+class TokenOrder(models.Model):
+    """
+    Used for Franchise and Cafe tenants. Instead of assigning an order to a table,
+    they get a daily sequential token number.
+    """
+    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE)
+    outlet = models.ForeignKey('tenants.Outlet', on_delete=models.CASCADE)
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="token")
+    token_number = models.PositiveIntegerField()
+    date = models.DateField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['outlet', 'token_number', 'date']
+        indexes = [
+            models.Index(fields=["outlet", "date"]),
+        ]
+
+    def __str__(self):
+        return f"Token {self.token_number} - {self.date}"
+
 # =====================================================
 # KOT
 # =====================================================
@@ -1021,4 +1053,72 @@ class Promo(models.Model):
     def record_use(self):
         """Atomically increments usage_count."""
         Promo.objects.filter(pk=self.pk).update(usage_count=models.F("usage_count") + 1)
+
+
+# =====================================================
+# DAILY TOKEN COUNTER
+# =====================================================
+
+class DailyTokenCounter(models.Model):
+    """
+    Per-outlet, per-day sequential counter for token numbers.
+
+    WHY this exists instead of MAX(token_number)+1:
+      select_for_update() cannot lock aggregate results in Django.
+      Two concurrent requests both read MAX=5, both try to create
+      token 6, the second crashes on unique_together — order is lost.
+      A counter ROW can be locked with select_for_update(), so only
+      one request increments at a time.
+
+    Usage (inside transaction.atomic + select_for_update):
+        counter, _ = DailyTokenCounter.objects.select_for_update().get_or_create(
+            outlet=outlet, tenant=tenant, date=today, defaults={"value": 0}
+        )
+        counter.value += 1
+        counter.save(update_fields=["value"])
+        next_token = counter.value
+    """
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    date   = models.DateField()
+    value  = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("outlet", "date")
+        indexes = [
+            models.Index(fields=["outlet", "date"]),
+        ]
+
+    def __str__(self):
+        return f"Token counter | {self.outlet} | {self.date} = {self.value}"
+
+
+# =====================================================
+# TOKEN ORDER
+# =====================================================
+
+class TokenOrder(models.Model):
+    """
+    Attaches a daily sequential token number to an Order for
+    Franchise / Cafe (QSR) tenants.
+
+    One token per order — enforced by OneToOneField.
+    Token numbers reset to 1 every business day per outlet.
+    """
+    tenant       = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet       = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    order        = models.OneToOneField(
+        Order, on_delete=models.CASCADE, related_name="token"
+    )
+    token_number = models.PositiveIntegerField()
+    date         = models.DateField()
+
+    class Meta:
+        unique_together = ("outlet", "token_number", "date")
+        indexes = [
+            models.Index(fields=["outlet", "date"]),
+        ]
+
+    def __str__(self):
+        return f"Token #{self.token_number} | {self.date} | Outlet {self.outlet_id}"
 

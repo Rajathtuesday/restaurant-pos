@@ -9,14 +9,16 @@ class TenantAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "slug",
-        "timezone",
+        "tenant_type",
+        "subscription_status",
+        "subscription_fee",
         "is_active",
         "created_at"
     )
 
     search_fields = ("name", "slug")
 
-    list_filter = ("is_active",)
+    list_filter = ("tenant_type", "subscription_status", "is_active")
 
 
 @admin.register(Outlet)

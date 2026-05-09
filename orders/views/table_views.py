@@ -17,6 +17,9 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @tenant_required
 def table_dashboard(request):
+    if request.user.tenant.tenant_type != 'fine_dining':
+        from django.shortcuts import redirect
+        return redirect('token-dashboard')
     return render(request, "orders/tables.html")
 
 

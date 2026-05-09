@@ -157,9 +157,22 @@ def create_order(request):
         with transaction.atomic():
             cust_name = data.get("customer_name")
             cust_phone = data.get("customer_phone")
+            order_id = data.get("order_id")
+            
+            if order_id:
+                order = Order.objects.filter(
+                    id=order_id, tenant=tenant, outlet=outlet
+                ).first()
+                if not order:
+                    return JsonResponse({"error": "Order not found"}, status=404)
+                
+                order.source = source
+                if aggregator_id: order.aggregator_order_id = aggregator_id
+                if cust_name: order.customer_name = cust_name
+                if cust_phone: order.customer_phone = cust_phone
             
             # For 3rd party or takeaway, we always create a fresh order to avoid merging
-            if source != "dine_in" or table is None:
+            elif source != "dine_in" or table is None:
                 order = Order.objects.create(
                     tenant=tenant,
                     outlet=outlet,
@@ -180,6 +193,24 @@ def create_order(request):
                     order.customer_name = cust_name
                 if cust_phone:
                     order.customer_phone = cust_phone
+            
+            # Franchise / Cafe Token Generation
+            if tenant and tenant.tenant_type in ['franchise', 'cafe'] and table is None:
+                from orders.models import TokenOrder
+                from django.utils import timezone
+                from django.db.models import Max
+                if not hasattr(order, 'token'):
+                    today = timezone.localdate()
+                    max_token = TokenOrder.objects.filter(
+                        outlet=outlet, date=today
+                    ).aggregate(Max('token_number'))['token_number__max'] or 0
+                    TokenOrder.objects.create(
+                        tenant=tenant,
+                        outlet=outlet,
+                        order=order,
+                        token_number=max_token + 1,
+                        date=today
+                    )
             
             # Allow discount application during creation for aggregators or staff
             if (source != "dine_in" or (user and user.role in ["owner", "manager", "cashier"])):
@@ -421,6 +452,7 @@ def apply_discount(request, order_id):
         data = json.loads(request.body)
         discount_type = data.get("type", "percentage")
         value = Decimal(str(data.get("value", 0)))
+        promo_id = data.get("promo_id")
 
         if discount_type not in ["percentage", "amount"]:
             return JsonResponse({"error": "Invalid discount type"}, status=400)
@@ -438,6 +470,17 @@ def apply_discount(request, order_id):
             )
             if order.status in ["paid", "closed"]:
                 raise Exception("Order is already fully paid or closed")
+
+            if promo_id:
+                from orders.models import Promo
+                try:
+                    promo = Promo.objects.select_for_update().get(id=promo_id, tenant=request.user.tenant)
+                    ok, err = promo.validate(order.outlet, order.subtotal)
+                    if not ok:
+                        return JsonResponse({"error": err}, status=400)
+                    promo.record_use()
+                except Promo.DoesNotExist:
+                    pass # Silently proceed with manual discount if promo doesn't exist
 
             order.discount_type = discount_type
             order.discount_value = value

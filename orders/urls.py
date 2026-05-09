@@ -44,7 +44,18 @@ from .views import (
     approve_items
 )
 
+from .views.token_views import (
+    token_dashboard,
+    create_token_order,
+    token_billing,
+)
+
 urlpatterns = [
+
+    # Token System - Franchise and Cafe
+    path("token/", token_dashboard, name="token-dashboard"),
+    path("token/new/", create_token_order, name="create-token-order"),
+    path("token/<int:order_id>/bill/", token_billing, name="token-bill"),
 
     path("billing/", billing_view ,name="billing-view"),
 

@@ -500,3 +500,68 @@ class Recipe(models.Model):
     def __str__(self):
 
         return f"{self.menu_item.name} → {self.quantity_required} {self.unit}"
+
+# -------------------------------------------------------
+# CENTRAL KITCHEN PRODUCTION (FRANCHISE MODE)
+# -------------------------------------------------------
+
+class ProductionBatch(models.Model):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    batch_number = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True)
+    source_outlet = models.ForeignKey(
+        "tenants.Outlet", 
+        on_delete=models.CASCADE,
+        related_name='batches_sent'
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('tenant', 'batch_number')
+        indexes = [
+            models.Index(fields=["tenant", "source_outlet"]),
+        ]
+
+    def __str__(self):
+        return f"Batch {self.batch_number}"
+
+
+class BatchItem(models.Model):
+    batch = models.ForeignKey(ProductionBatch, on_delete=models.CASCADE, related_name='items')
+    inventory_item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=20, choices=UNIT_CHOICES)
+    barcode = models.CharField(max_length=100, unique=True)
+    
+    def __str__(self):
+        return f"{self.inventory_item.name} ({self.barcode})"
+
+
+class BatchTransfer(models.Model):
+    STATUS = (
+        ('pending', 'Pending'),
+        ('in_transit', 'In Transit'),
+        ('received', 'Received'),
+        ('partial', 'Partially Received')
+    )
+    
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    batch = models.ForeignKey(ProductionBatch, on_delete=models.CASCADE, related_name='transfers')
+    destination_outlet = models.ForeignKey(
+        "tenants.Outlet",
+        on_delete=models.CASCADE,
+        related_name='transfers_received'
+    )
+    status = models.CharField(max_length=20, choices=STATUS, default='pending')
+    dispatched_at = models.DateTimeField(null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
+    received_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="received_transfers")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "destination_outlet", "status"]),
+        ]
+
+    def __str__(self):
+        return f"Transfer {self.batch.batch_number} to {self.destination_outlet.name}"

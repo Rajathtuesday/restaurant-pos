@@ -34,7 +34,11 @@ class PrintingService:
             p.set(align='center', text_type='B', width=2, height=2)
             p.text(f"KOT #{kot_batch.kot_number}\n")
             p.set(align='center', text_type='B', width=1, height=1)
-            p.text(f"Table: {order.table.name if order.table else 'Walk-in'}\n")
+            
+            if hasattr(order, 'token') and order.token:
+                p.text(f"Token: {order.token.token_number}\n")
+            else:
+                p.text(f"Table: {order.table.name if order.table else 'Walk-in'}\n")
             p.text("-" * 32 + "\n")
             
             p.set(align='left')
@@ -69,6 +73,10 @@ class PrintingService:
             
             p.set(align='left')
             p.text(f"Bill: {order.order_number}\n")
+            if hasattr(order, 'token') and order.token:
+                p.text(f"Token: {order.token.token_number}\n")
+            else:
+                p.text(f"Table: {order.table.name if order.table else 'Walk-in'}\n")
             p.text(f"Date: {order.created_at.strftime('%d/%m/%Y %H:%M')}\n")
             p.text("-" * 32 + "\n")
             

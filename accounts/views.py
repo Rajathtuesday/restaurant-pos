@@ -21,6 +21,8 @@ def login_view(request):
             login(request, user)
 
             # ROLE BASED REDIRECT
+            tenant_type = user.tenant.tenant_type if user.tenant else 'fine_dining'
+
             if user.role in ["owner", "manager"]:
                 return redirect("/dashboard/")
 
@@ -28,15 +30,21 @@ def login_view(request):
                 return redirect("/sales/")
 
             elif user.role == "waiter":
+                if tenant_type != 'fine_dining':
+                    return redirect("token-dashboard")
                 return redirect("/tables/")
 
             elif user.role == "chef":
                 return redirect("/kitchen/")
 
             elif user.role == "cashier":
+                if tenant_type != 'fine_dining':
+                    return redirect("token-dashboard")
                 return redirect("/billing/")
 
             else:
+                if tenant_type != 'fine_dining':
+                    return redirect("token-dashboard")
                 return redirect("/tables/")
         else:
             messages.error(request, "Invalid username or password.")
