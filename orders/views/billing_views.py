@@ -270,7 +270,11 @@ def bill_view(request, order_id):
         total_paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
         remaining = order.grand_total - total_paid
         
-        return render(request, "orders/bill.html", {
+        template_name = "orders/bill.html"
+        if hasattr(order, 'token'):
+            template_name = "orders/qsr_bill.html"
+        
+        return render(request, template_name, {
             "order": order,
             "config": config,
             "remaining": remaining,

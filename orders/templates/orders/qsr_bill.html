@@ -90,12 +90,12 @@
     <div style="position: relative; width: 100%; max-width: 440px;">
         {% if remaining > 0 %}
             {% if request.user.role == 'owner' or request.user.role == 'manager' %}
-            <a href="#" onclick="logBypassAndRedirect('{{ order.id }}'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard (Bypass)</a>
+            <a href="/token/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens (Bypass)</a>
             {% else %}
-            <a href="#" onclick="alert('Please complete the payment to exit billing screen.'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
+            <a href="#" onclick="alert('Please complete the payment to exit billing screen.'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens</a>
             {% endif %}
         {% else %}
-        <a href="/tables/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
+        <a href="/token/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens</a>
         {% endif %}
 
         <div class="receipt-container">
@@ -120,8 +120,8 @@
                 <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
             </div>
             <div class="meta" style="margin-top:-8px">
-                <div><span class="label">Table</span><span>{{ order.table.name|default:"Takeaway" }}</span></div>
-                <div style="text-align:right"><span class="label">Staff</span><span>{{ request.user.username|title }}</span></div>
+                <div><span class="label">Token</span><span style="font-size:1.1rem; color:var(--gold); font-weight:700;">#{{ order.token.token_number }}</span></div>
+                <div style="text-align:right"><span class="label">Cashier</span><span>{{ request.user.username|title }}</span></div>
             </div>
 
             <div class="item-list">
@@ -226,47 +226,7 @@
                 <div class="balance-val" id="balanceVal">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
             </div>
 
-            {% if request.user.role in "owner,manager,cashier" and order.status != 'paid' and order.status != 'closed' %}
-            <div class="discount-section no-print" style="margin: 1.5rem 0; padding: 1.2rem; border: 1px solid var(--border); border-radius: 4px; background: var(--panel);">
-                <div style="font-size: 0.75rem; color: var(--muted); margin-bottom: 0.8rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight:600;">Apply Discount</div>
 
-                <!-- PROMO QUICK-PICK -->
-                <div style="margin-bottom: 0.8rem;">
-                    <select id="promo-select" onchange="applyPromo(this)"
-                            style="width:100%; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 0.6rem; border-radius: 4px; font-size: 0.82rem; outline:none;">
-                        <option value="">⚡ Quick-pick a promo campaign…</option>
-                    </select>
-                </div>
-
-                <!-- MANUAL DISCOUNT -->
-                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                    <select id="discount-type" style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 0.6rem; border-radius: 4px; font-size: 0.85rem; outline:none; flex: 1; min-width: 80px;">
-                        <option value="percentage">% Off</option>
-                        <option value="amount">₹ Flat Off</option>
-                    </select>
-                    <input type="number" id="discount-value" placeholder="0"
-                           min="0" step="0.01"
-                           style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 0.6rem 0.8rem; border-radius: 4px; font-size: 0.85rem; width: 80px; outline:none; flex: 1; min-width: 60px;">
-                    <button onclick="applyDiscount()"
-                            style="background: var(--gold); color: #000; border: none; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-transform:uppercase; letter-spacing:1px; flex: 1.5; white-space: nowrap;">
-                        Apply
-                    </button>
-                    {% if order.discount_value > 0 %}
-                    <button onclick="removeDiscount()"
-                            style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.6rem 1rem; border-radius: 4px; font-size: 0.8rem; cursor: pointer; text-transform:uppercase; letter-spacing:1px; flex: 1.5; white-space: nowrap;">
-                        Remove
-                    </button>
-                    {% endif %}
-                </div>
-
-                {% if order.discount_value > 0 %}
-                <div style="margin-top: 0.8rem; font-size: 0.8rem; color: var(--gold);">
-                    Active: {% if order.discount_type == 'percentage' %}{{ order.discount_value }}% Off{% else %}₹{{ order.discount_value }} Flat Off{% endif %}
-                    &nbsp;(−₹{{ order.discount_total }})
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
 
             <div class="pay-area no-print">
                 <div id="toast" class="toast-msg"></div>
@@ -275,8 +235,7 @@
                     <input type="number" id="payAmount" class="input-pay" placeholder="Enter amount..." value="{{ remaining }}">
                     
                     <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem">
-                        <button class="btn-set" onclick="setVal('{{ remaining }}')">Pay All</button>
-                        <button class="btn-set" onclick="splitVal('{{ remaining }}')">Split</button>
+                        <button class="btn-set" onclick="setVal('{{ remaining }}')">Pay All (Cash/Card/UPI)</button>
                     </div>
 
                     <div class="pay-grid">
@@ -304,7 +263,7 @@
                     {% endif %}
                     <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;" class="no-print">
                         <button class="btn-action" style="margin-top:0; border-color:var(--gold); color:var(--gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Receipt</button>
-                        <a href="/tables/" class="btn-action" style="margin-top:0; text-align:center; text-decoration:none;"><i class="bi bi-grid me-2"></i> Tables</a>
+                        <a href="/token/" class="btn-action" style="margin-top:0; text-align:center; text-decoration:none;"><i class="bi bi-grid me-2"></i> Tokens</a>
                     </div>
                 {% endif %}
 
@@ -316,73 +275,7 @@
     </div>
 
     <script>
-        function applyDiscount(promoId = null) {
-            const type = document.getElementById('discount-type').value;
-            const value = document.getElementById('discount-value').value;
-            if (!value || parseFloat(value) <= 0) {
-                alert('Enter a valid discount value');
-                return;
-            }
-            fetch(`{% url 'apply-discount' order.id %}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                body: JSON.stringify({type: type, value: parseFloat(value), promo_id: promoId})
-            })
-            .then(r => r.json())
-            .then(d => {
-                if (d.success) location.reload();
-                else alert(d.error);
-            });
-        }
 
-        function removeDiscount() {
-            fetch(`{% url 'apply-discount' order.id %}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                body: JSON.stringify({type: 'percentage', value: 0})
-            })
-            .then(r => r.json())
-            .then(d => { if (d.success) location.reload(); });
-        }
-
-        /* Auto-populate promo picker */
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('{% url "list-promos" %}')
-            .then(r => r.json())
-            .then(data => {
-                const sel = document.getElementById('promo-select');
-                if (!sel) return;
-                data.promos.forEach(p => {
-                    const label = p.discount_type === 'percentage'
-                        ? `${p.name} — ${p.discount_value}% Off`
-                        : `${p.name} — ₹${p.discount_value} Flat`;
-                    const opt = new Option(label, JSON.stringify(p));
-                    sel.appendChild(opt);
-                });
-            })
-            .catch(() => {}); // silently ignore if endpoint unreachable
-        });
-
-        function applyPromo(select) {
-            if (!select.value) return;
-            let promo;
-            try { promo = JSON.parse(select.value); } catch(e) { return; }
-            
-            const subtotal = parseFloat('{{ order.subtotal|default:0 }}');
-            if (promo.min_order && subtotal < parseFloat(promo.min_order)) {
-                alert(`Minimum order value of ₹${promo.min_order} required for this promo.`);
-                select.selectedIndex = 0;
-                return;
-            }
-
-            // Pre-fill manual discount fields then call applyDiscount()
-            document.getElementById('discount-type').value = promo.discount_type;
-            document.getElementById('discount-value').value = promo.discount_value;
-            applyDiscount(promo.id);
-            select.selectedIndex = 0; // reset picker
-        }
-
-        function promptItemDiscount(itemId, name, currentPct) {
             let pct = prompt(`Apply discount % for ${name}:`, currentPct);
             if (pct === null) return;
             pct = parseFloat(pct);
@@ -442,12 +335,12 @@
 
         async function logBypassAndRedirect(orderId) {
             try {
-                await fetch(`/orders/log-bypass/${orderId}/`, {
+                await fetch(`/log-bypass/${orderId}/`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
                 });
             } catch(e) { console.error('Failed to log bypass:', e); }
-            window.location.href = "/tables/";
+            window.location.href = "/token/";
         }
 
         function getCookie(name) {
@@ -476,67 +369,7 @@
     </script>
     {% endif %}
 
-    <!-- CRM GUEST LINK SECTION (no-print) -->
-    <div class="no-print" style="margin-top:1.5rem;">
-        <div id="crmSection" style="border:1px dashed var(--border); padding:1.2rem; border-radius:2px;">
-            <p style="font-size:0.65rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:0.8rem;">Link Guest & Award Points</p>
-            <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
-                <input id="guestPhone" type="tel" placeholder="Guest phone number" class="input-pay" style="margin:0; flex:1; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Outfit',sans-serif;">
-                <button onclick="lookupGuest()" class="btn-set" style="flex:0 0 80px;">Lookup</button>
-            </div>
-            <div id="guestInfo" style="display:none; font-size:0.8rem; color:var(--muted); margin-bottom:0.5rem; padding:0.5rem; border:1px solid var(--border);"></div>
-            <input id="guestName" type="text" placeholder="Guest name (optional)" class="input-pay" style="margin-bottom:0.5rem; padding:0.6rem 0.8rem; font-size:0.85rem; font-family:'Outfit',sans-serif;">
-            <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.8rem;">
-                <label style="font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); white-space:nowrap;">Redeem pts:</label>
-                <input id="redeemPts" type="number" min="0" value="0" class="input-pay" style="margin:0; flex:1; padding:0.5rem; font-size:0.85rem;">
-            </div>
-            <button onclick="linkGuest()" class="btn-pay" style="width:100%; padding:0.8rem;">
-                <i class="bi bi-stars"></i> Award Points
-            </button>
-            <div id="crmMsg" style="display:none; margin-top:0.7rem; font-size:0.75rem; text-align:center; letter-spacing:1px;"></div>
-        </div>
-    </div>
 
-    <script>
-        const ORDER_ID_CRM = '{{ order.id }}';
-        const CSRF_CRM = getCookie('csrftoken');
-
-        async function lookupGuest() {
-            const phone = document.getElementById('guestPhone').value.trim();
-            if (!phone) return;
-            const r = await fetch(`/crm/lookup/?phone=${encodeURIComponent(phone)}`);
-            const d = await r.json();
-            const info = document.getElementById('guestInfo');
-            info.style.display = 'block';
-            if (d.found) {
-                info.innerHTML = `<strong>${d.name || 'Guest'}</strong> &nbsp;·&nbsp; ${d.visits} visits &nbsp;·&nbsp; <span style="color:var(--gold)">${d.points} pts</span>`;
-                document.getElementById('guestName').value = d.name || '';
-            } else {
-                info.innerHTML = 'New guest — will be registered automatically.';
-            }
-        }
-
-        async function linkGuest() {
-            const phone = document.getElementById('guestPhone').value.trim();
-            const name = document.getElementById('guestName').value.trim();
-            const redeem = parseInt(document.getElementById('redeemPts').value) || 0;
-            const msg = document.getElementById('crmMsg');
-            if (!phone) { msg.style.display='block'; msg.style.color='#ef4444'; msg.textContent='Phone required.'; return; }
-            const r = await fetch(`/crm/link/${ORDER_ID_CRM}/`, {
-                method: 'POST',
-                headers: {'X-CSRFToken': CSRF_CRM, 'Content-Type': 'application/json'},
-                body: JSON.stringify({ phone, name, redeem_points: redeem })
-            });
-            const d = await r.json();
-            msg.style.display = 'block';
-            if (d.success) {
-                msg.style.color = '#22c55e';
-                msg.textContent = `✓ +${d.points_earned} pts earned! Balance: ${d.total_points} pts`;
-            } else {
-                msg.style.color = '#ef4444';
-                msg.textContent = d.error;
-            }
-        }
 
         /* THEME MANAGEMENT */
         let isDark = localStorage.getItem("dark") === "true";
