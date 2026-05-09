@@ -127,13 +127,12 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     else:
         # BUG FIX: ExtractHour on a UTC DateTimeField extracts UTC hours.
         # We use the tenant's configured timezone to convert to local time first.
-        import pytz
-        from pytz.exceptions import UnknownTimeZoneError
+        import zoneinfo
         try:
-            tz = pytz.timezone(tenant.timezone or "UTC")
-        except UnknownTimeZoneError:
+            tz = zoneinfo.ZoneInfo(tenant.timezone or "UTC")
+        except zoneinfo.ZoneInfoNotFoundError:
             logger.warning(f"Unknown timezone {tenant.timezone} for tenant {tenant.id}, falling back to UTC")
-            tz = pytz.timezone("UTC")
+            tz = zoneinfo.ZoneInfo("UTC")
         payments = payments.annotate(hour=ExtractHour("order__created_at", tzinfo=tz))
         data = payments.values("hour").annotate(total=Sum("amount"))
 

@@ -8,7 +8,7 @@ from django.utils import timezone
 logger = logging.getLogger("pos.orders")
 
 from orders.models import KOTBatch, OrderItem, DailyKOTCounter
-from orders.services.inventory_service import deduct_inventory
+from orders.services.inventory_service import deduct_inventory_for_items
 from setup.services.station_service import get_default_station
 
 
@@ -98,14 +98,14 @@ def create_kot(user, order):
             status="confirmed"
         )
 
+        # -----------------------------------------
+        # BULK DEDUCT INVENTORY
+        # -----------------------------------------
+        deduct_inventory_for_items(group_items)
+
         for item in group_items:
-
-            # deduct inventory
-            deduct_inventory(item)
-
             item.kot = kot
             item.status = "sent"
-
             item.save(update_fields=["kot", "status"])
 
         created_kots.append(kot)
@@ -129,18 +129,14 @@ def create_kot(user, order):
         table.save(update_fields=["state"])
 
     # -----------------------------------------
-    # EXECUTE PRINTING (SAFE OUTSIDE TRANSACTION)
+    # EXECUTE PRINTING (ASYNC CELERY TASK)
     # -----------------------------------------
     for station, kot in print_jobs:
         try:
-            from orders.services.printing_service import PrintingService
-            printer = PrintingService(
-                printer_type="network", 
-                host=station.printer_ip, 
-                port=station.printer_port
-            )
-            printer.print_kot(order, kot)
+            # We defer the import to avoid circular dependencies if any
+            from orders.tasks import print_kot_task
+            print_kot_task.delay(station.id, order.id, kot.id)
         except Exception as e:
-            logger.error(f"Auto-printing KOT #{kot.kot_number} failed: {e}")
+            logger.error(f"Failed to queue print task for KOT #{kot.kot_number}: {e}")
 
     return created_kots

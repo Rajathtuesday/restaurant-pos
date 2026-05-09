@@ -316,7 +316,7 @@
     </div>
 
     <script>
-        function applyDiscount() {
+        function applyDiscount(promoId = null) {
             const type = document.getElementById('discount-type').value;
             const value = document.getElementById('discount-value').value;
             if (!value || parseFloat(value) <= 0) {
@@ -326,7 +326,7 @@
             fetch(`{% url 'apply-discount' order.id %}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                body: JSON.stringify({type: type, value: parseFloat(value)})
+                body: JSON.stringify({type: type, value: parseFloat(value), promo_id: promoId})
             })
             .then(r => r.json())
             .then(d => {
@@ -367,10 +367,18 @@
             if (!select.value) return;
             let promo;
             try { promo = JSON.parse(select.value); } catch(e) { return; }
+            
+            const subtotal = parseFloat('{{ order.subtotal|default:0 }}');
+            if (promo.min_order && subtotal < parseFloat(promo.min_order)) {
+                alert(`Minimum order value of ₹${promo.min_order} required for this promo.`);
+                select.selectedIndex = 0;
+                return;
+            }
+
             // Pre-fill manual discount fields then call applyDiscount()
             document.getElementById('discount-type').value = promo.discount_type;
             document.getElementById('discount-value').value = promo.discount_value;
-            applyDiscount();
+            applyDiscount(promo.id);
             select.selectedIndex = 0; // reset picker
         }
 

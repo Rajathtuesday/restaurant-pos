@@ -66,6 +66,10 @@ def token_dashboard(request):
         .aggregate(total=Sum("grand_total"))["total"] or Decimal("0")
     )
 
+    closed_tokens = TokenOrder.objects.filter(
+        outlet=outlet, date=today, order__status__in=["closed", "paid"]
+    ).count()
+
     # Peek at counter for display only (no lock needed — approximate is fine)
     try:
         counter   = DailyTokenCounter.objects.get(outlet=outlet, date=today)
@@ -77,6 +81,7 @@ def token_dashboard(request):
         "active_tokens": active_tokens,
         "next_token":    next_token,
         "today_revenue": today_revenue,
+        "closed_tokens": closed_tokens,
         "today":         today,
     })
 
