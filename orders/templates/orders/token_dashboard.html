@@ -250,7 +250,7 @@
             .then(r => r.json())
             .then(data => {
                 if(data.success) {
-                    window.location.href = `/orders/token/${data.order_id}/bill/`;
+                    window.location.href = `/token/${data.order_id}/bill/`;
                 } else {
                     alert('Error: ' + data.error);
                 }
