@@ -75,7 +75,11 @@ def token_dashboard(request):
         counter   = DailyTokenCounter.objects.get(outlet=outlet, date=today)
         next_token = counter.value + 1
     except DailyTokenCounter.DoesNotExist:
-        next_token = 1
+        from django.db.models import Max
+        max_existing = TokenOrder.objects.filter(
+            outlet=outlet, date=today
+        ).aggregate(max_val=Max("token_number"))["max_val"]
+        next_token = (max_existing or 0) + 1
 
     return render(request, "orders/token_dashboard.html", {
         "active_tokens": active_tokens,
@@ -124,7 +128,7 @@ def create_token_order(request):
             #     get_or_create inside select_for_update is safe here
             #     because of the atomic block wrapping it.
             # -------------------------------------------------------
-            counter, _ = (
+            counter, created = (
                 DailyTokenCounter.objects
                 .select_for_update()
                 .get_or_create(
@@ -134,6 +138,17 @@ def create_token_order(request):
                     defaults={"value": 0},
                 )
             )
+            
+            # SELF-HEAL: If the counter row was missing (e.g. manually deleted in Admin)
+            # but token orders already exist for today, sync the counter to the max token.
+            if created:
+                from django.db.models import Max
+                max_existing = TokenOrder.objects.filter(
+                    outlet=outlet, date=business_date
+                ).aggregate(max_val=Max("token_number"))["max_val"]
+                if max_existing:
+                    counter.value = max_existing
+                    
             counter.value += 1
             counter.save(update_fields=["value"])
             next_token = counter.value
