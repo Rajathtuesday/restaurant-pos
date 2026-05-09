@@ -134,7 +134,7 @@ def dashboard(request):
                 writer.writerow([c.get('menu_item__category__name', 'Misc'), c.get('revenue', 0)])
             writer.writerow([])
             
-            writer.writerow(['WAITER PERFORMANCE'])
+            writer.writerow(['STAFF PERFORMANCE'])
             writer.writerow(['Staff', 'Orders Handled', 'Revenue Handled'])
             for w in waiters:
                 writer.writerow([w.get('created_by__username', 'Staff'), w.get('total_orders', 0), w.get('total_rev', 0)])
@@ -318,7 +318,7 @@ def export_reports(request):
     elif export_type == "waiters":
         csv_data = generate_waiter_csv(tenant, outlet, start_date, end_date)
         response = HttpResponse(csv_data, content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="waiter_performance_{start_date}_to_{end_date}.csv"'
+        response['Content-Disposition'] = f'attachment; filename="staff_performance_{start_date}_to_{end_date}.csv"'
         return response
         
     elif export_type == "categories":

@@ -347,7 +347,7 @@
                         <li><a class="dropdown-item" href="#" onclick="triggerExport('orders')">Orders Details</a></li>
                         <li><a class="dropdown-item" href="#" onclick="triggerExport('items')">Items Sales</a></li>
                         <li><a class="dropdown-item" href="#" onclick="triggerExport('categories')">Category Breakdown</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="triggerExport('waiters')">Waiter Performance</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="triggerExport('waiters')">Staff Performance</a></li>
                         <li><a class="dropdown-item" href="/shifts/sessions/export/" target="_blank">Daily Z-Report</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><h6 class="dropdown-header text-uppercase" style="letter-spacing:1px; font-size:0.7rem;">Compliance</h6></li>
@@ -420,8 +420,13 @@
                     <i class="bi bi-grid me-1"></i> Operations
                 </button>
                 {% endif %}
+                {% if 'floor_plan' in tenant_features %}
                 <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
                 <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+                {% endif %}
+                {% if 'token_system' in tenant_features %}
+                <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Token Counter</a>
+                {% endif %}
 
                 <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
                     <i class="bi bi-moon" id="themeIcon"></i>
@@ -566,7 +571,8 @@
                 </div>
             </div>
 
-            <!-- TABLE TURNOVER -->
+            <!-- TABLE TURNOVER (ONLY FOR FINE DINING / CAFE) -->
+            {% if 'floor_plan' in tenant_features %}
             <div class="col-12 col-lg-4">
                 <div class="card-elegant">
                     <h5 class="section-title">Table Turnover</h5>
@@ -595,6 +601,7 @@
                     </table>
                 </div>
             </div>
+            {% endif %}
         </div>
         {% else %}
         <!-- AGENT VIEW: PRIVACY NOTICE -->

@@ -278,11 +278,11 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
 
 
 def generate_waiter_csv(tenant, outlet, start_date, end_date):
-    """Generates Waiter Performance CSV."""
+    """Generates Staff Performance CSV."""
     output = io.StringIO()
     writer = csv.writer(output)
     
-    writer.writerow(['Waiter Name', 'Total Orders Handled', 'Total Revenue Handled', 'Average Order Value'])
+    writer.writerow(['Staff Name', 'Total Orders Handled', 'Total Revenue Handled', 'Average Order Value'])
     
     orders = Order.objects.filter(
         tenant=tenant,
