@@ -732,34 +732,17 @@
             </div>
 
             <div class="cart-summary" id="cartSummaryBlock">
-                <!-- Source and Discounts -->
-                <div class="mb-3">
-                    <select id="sourceSelectDesktop" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'desktop')">
-                        <option value="dine_in">Dine-in</option>
-                        <option value="takeaway">Takeaway</option>
-                        <option value="zomato">Zomato</option>
-                        <option value="swiggy">Swiggy</option>
-                        <option value="uber_eats">Uber Eats</option>
-                        <option value="web">Website</option>
-                    </select>
-                    <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
-                    <input type="text" id="customerNameDesktop" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
-                    <input type="tel" id="customerPhoneDesktop" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
-                </div>
-
                 <!-- Summary -->
                 <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
                 <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
                 <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-                <div class="d-flex flex-column gap-2 mt-3">
-                    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch
-                        <i class="bi bi-arrow-right ms-2"></i></button>
-                    <div class="d-flex gap-2">
-                        <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-                        <button class="btn-luxury w-50"
-                            style="color:var(--text-muted); border-color:var(--border-color);"
-                            onclick="clearCart()">Clear</button>
-                    </div>
+                <div class="d-flex flex-column gap-2 mt-4">
+                    <button class="btn-luxury btn-luxury-primary w-100 py-4 send-btn" style="font-size: 1.1rem; font-weight: 700; border-radius: 4px;" onclick="submitOrder()">
+                        CHECKOUT <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                    <button class="btn-luxury w-100 py-2"
+                        style="color:var(--text-muted); border: none;"
+                        onclick="clearCart()">Clear Order</button>
                 </div>
             </div>
         </aside>
@@ -797,34 +780,17 @@
 
             <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);"
                 id="cartSummaryBlockMobile">
-                <!-- Source and Discounts (Mobile) -->
-                <div class="mb-3">
-                    <select id="sourceSelectMobile" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'mobile')">
-                        <option value="dine_in">Dine-in</option>
-                        <option value="takeaway">Takeaway</option>
-                        <option value="zomato">Zomato</option>
-                        <option value="swiggy">Swiggy</option>
-                        <option value="uber_eats">Uber Eats</option>
-                        <option value="web">Website</option>
-                    </select>
-                    <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
-                    <input type="text" id="customerNameMobile" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
-                    <input type="tel" id="customerPhoneMobile" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
-                </div>
-
                 <!-- Summary -->
                 <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
                 <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
                 <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-                <div class="d-flex flex-column gap-2 mt-3">
-                    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch
-                        Order <i class="bi bi-arrow-right ms-2"></i></button>
-                    <div class="d-flex gap-2">
-                        <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-                        <button class="btn-luxury w-50"
-                            style="color:var(--text-muted); border-color:var(--border-color);"
-                            onclick="clearCart()">Clear</button>
-                    </div>
+                <div class="d-flex flex-column gap-2 mt-4 mb-2 px-2">
+                    <button class="btn-luxury btn-luxury-primary w-100 py-4 send-btn" style="font-size: 1.1rem; font-weight: 700; border-radius: 4px;" onclick="submitOrder()">
+                        CHECKOUT <i class="bi bi-arrow-right ms-2"></i>
+                    </button>
+                    <button class="btn-luxury w-100 py-2"
+                        style="color:var(--text-muted); border: none;"
+                        onclick="clearCart()">Clear Order</button>
                 </div>
             </div>
         </div>
@@ -1185,11 +1151,10 @@
                 b.disabled = true; b.innerHTML = 'Dispatching...';
             });
 
-            let isMobile = window.innerWidth < 992;
-            let source = isMobile ? document.getElementById("sourceSelectMobile").value : document.getElementById("sourceSelectDesktop").value;
-            let aggId = isMobile ? document.getElementById("aggregatorIdMobile").value : document.getElementById("aggregatorIdDesktop").value;
-            let custName = isMobile ? document.getElementById("customerNameMobile").value : document.getElementById("customerNameDesktop").value;
-            let custPhone = isMobile ? document.getElementById("customerPhoneMobile").value : document.getElementById("customerPhoneDesktop").value;
+            let source = "takeaway"; // Default for minimalistic QSR
+            let aggId = "";
+            let custName = "";
+            let custPhone = "";
 
             fetch("{% url 'create-order' %}", {
                 method: "POST",
