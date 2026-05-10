@@ -1,9 +1,12 @@
 # reports/services/sales_reports.py
 
 import logging
+import zoneinfo
+from datetime import timedelta
+
 from django.utils import timezone
 from django.db.models import Sum
-from django.db.models.functions import ExtractHour
+from django.db.models.functions import ExtractHour, TruncDate
 from orders.models import Order, Payment
 
 logger = logging.getLogger("pos.reports")
@@ -17,8 +20,8 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     - Orders count is based on orders that actually have payments
     """
 
-    if not start_date: start_date = timezone.localdate()
-    if not end_date: end_date = timezone.localdate()
+    if start_date is None: start_date = timezone.localdate()
+    if end_date is None:   end_date   = timezone.localdate()
 
     logger.debug(f"Fetching daily_sales for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
 
@@ -93,27 +96,30 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
 def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     """
     Shows revenue distribution over time:
-    - If 1 day: Groups by Hour
+    - If 1 day: Groups by Hour (using tenant's local timezone)
     - If multi-day: Groups by Date
+
+    FIX: Uses paid_at (payment date) consistently — same field as daily_sales().
+    Previously used order__created_at which caused daily totals and the hourly
+    chart to disagree on split-midnight orders.
     """
-    from django.db.models.functions import TruncDate
-    from datetime import timedelta
+    if start_date is None: start_date = timezone.localdate()
+    if end_date is None:   end_date   = timezone.localdate()
 
-    if not start_date: start_date = timezone.localdate()
-    if not end_date: end_date = timezone.localdate()
-
+    # Always filter by paid_at — consistent with daily_sales()
     payments = Payment.objects.filter(
         order__tenant=tenant,
-        order__created_at__date__gte=start_date, order__created_at__date__lte=end_date
+        paid_at__date__gte=start_date,
+        paid_at__date__lte=end_date
     )
 
     if outlet:
         payments = payments.filter(order__outlet=outlet)
 
     if start_date != end_date:
-        payments = payments.annotate(date=TruncDate('order__created_at'))
+        payments = payments.annotate(date=TruncDate('paid_at'))
         data = payments.values("date").annotate(total=Sum("amount")).order_by("date")
-        
+
         days_diff = (end_date - start_date).days
         data_dict = {row["date"]: float(row["total"]) for row in data if row["date"]}
         result = []
@@ -125,15 +131,15 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
             })
         return result
     else:
-        # BUG FIX: ExtractHour on a UTC DateTimeField extracts UTC hours.
+        # ExtractHour on a UTC DateTimeField extracts UTC hours.
         # We use the tenant's configured timezone to convert to local time first.
-        import zoneinfo
         try:
             tz = zoneinfo.ZoneInfo(tenant.timezone or "UTC")
         except zoneinfo.ZoneInfoNotFoundError:
             logger.warning(f"Unknown timezone {tenant.timezone} for tenant {tenant.id}, falling back to UTC")
             tz = zoneinfo.ZoneInfo("UTC")
-        payments = payments.annotate(hour=ExtractHour("order__created_at", tzinfo=tz))
+
+        payments = payments.annotate(hour=ExtractHour("paid_at", tzinfo=tz))
         data = payments.values("hour").annotate(total=Sum("amount"))
 
         hours = {h: 0 for h in range(24)}

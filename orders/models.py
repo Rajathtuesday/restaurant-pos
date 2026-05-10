@@ -544,10 +544,15 @@ class OrderItemModifier(models.Model):
 class Payment(models.Model):
 
     METHOD_CHOICES = (
-        ("cash", "Cash"),
-        ("upi", "UPI"),
-        ("card", "Card"),
-        ("refund", "Refund"),  # negative-amount entry created on refund approval
+        ("cash",      "Cash"),
+        ("upi",       "UPI"),
+        ("card",      "Card"),
+        # Aggregator methods — written by api_ingest_order for pre-paid webhook orders
+        ("zomato",    "Zomato"),
+        ("swiggy",    "Swiggy"),
+        ("uber_eats", "Uber Eats"),
+        ("web",       "Website"),
+        ("refund",    "Refund"),   # negative-amount entry created on refund approval
     )
 
     order = models.ForeignKey(

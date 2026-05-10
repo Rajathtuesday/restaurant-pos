@@ -238,12 +238,25 @@ def api_ingest_order(request):
                 
             # Re-calculate
             order.recalculate_totals()
-            
+
+            # FIX: Create a Payment row so revenue appears in daily_sales reports.
+            # Aggregator orders arrive pre-paid — the platform has already collected
+            # the money. We record it as a single payment at the order's grand_total
+            # using a method name that matches the aggregator source.
+            payment_method = source if source in ("zomato", "swiggy", "uber_eats", "web") else "cash"
+            Payment.objects.create(
+                order=order,
+                method=payment_method,
+                amount=order.grand_total,
+                reference=aggregator_id or "",
+                created_by=None,
+            )
+
             # Auto KOT Gen
             if config.auto_accept_orders:
                 from orders.services.kitchen_service import send_order_to_kitchen
                 send_order_to_kitchen(order, user=None)
-            
+
         return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number})
         
     except Exception as e:

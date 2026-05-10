@@ -331,6 +331,7 @@ def generate_bill(request, order_id):
 @login_required
 @require_POST
 @tenant_required
+@ratelimit(key="user", rate="15/m", method="POST", block=True)
 def pay_order(request, order_id):
     """
     Processes a payment for an order and links it to the active cash session.
@@ -568,6 +569,7 @@ def make_item_complimentary(request, item_id):
 @tenant_required
 @require_POST
 @role_required("manager", "owner")
+@ratelimit(key="user", rate="5/m", method="POST", block=True)
 def refund_payment(request, payment_id):
     try:
 

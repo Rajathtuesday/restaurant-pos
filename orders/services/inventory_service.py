@@ -67,12 +67,17 @@ def deduct_inventory_for_items(order_items):
             logger.error(f"[STOCK CRITICAL] {inv_item.name} shortage: {shortage} units. Draining to 0.")
 
         if qty_to_reduce > 0:
-            # Update with F() to avoid stale reads
+            # FIX: Calculate new_stock BEFORE the F() update.
+            # After update(stock=F(...)), inv_item.stock is still the OLD value
+            # on the in-memory object — using it post-update gives wrong threshold comparisons.
+            new_stock = inv_item.stock - qty_to_reduce
+
+            # Update with F() to avoid race conditions on concurrent requests
             InventoryItem.objects.filter(pk=inv_id).update(stock=F("stock") - qty_to_reduce)
-            
+
             # Combine references
             refs = ", ".join(list(set(item_references[inv_id])))
-            
+
             transactions_to_create.append(
                 InventoryTransaction(
                     item=inv_item,
@@ -83,9 +88,8 @@ def deduct_inventory_for_items(order_items):
                     reference=refs
                 )
             )
-            
-            # Check for low stock threshold manually after deducting
-            new_stock = inv_item.stock - qty_to_reduce
+
+            # Check for low stock threshold using the correctly computed new_stock
             if new_stock <= inv_item.low_stock_threshold:
                 low_stock_items.append(inv_item)
 
