@@ -70,6 +70,10 @@ def token_dashboard(request):
         outlet=outlet, date=today, order__status__in=["closed", "paid"]
     ).count()
 
+    cancelled_tokens = TokenOrder.objects.filter(
+        outlet=outlet, date=today, order__status="cancelled"
+    ).count()
+
     # Peek at counter for display only (no lock needed — approximate is fine)
     try:
         counter   = DailyTokenCounter.objects.get(outlet=outlet, date=today)
@@ -81,12 +85,20 @@ def token_dashboard(request):
         ).aggregate(max_val=Max("token_number"))["max_val"]
         next_token = (max_existing or 0) + 1
 
+    from setup.models import AggregatorConfig
+    aggregator_config, _ = AggregatorConfig.objects.get_or_create(
+        tenant=outlet.tenant,
+        outlet=outlet
+    )
+
     return render(request, "orders/token_dashboard.html", {
-        "active_tokens": active_tokens,
-        "next_token":    next_token,
-        "today_revenue": today_revenue,
-        "closed_tokens": closed_tokens,
-        "today":         today,
+        "active_tokens":    active_tokens,
+        "next_token":       next_token,
+        "today_revenue":    today_revenue,
+        "closed_tokens":    closed_tokens,
+        "cancelled_tokens": cancelled_tokens,
+        "today":            today,
+        "aggregator":       aggregator_config,
     })
 
 

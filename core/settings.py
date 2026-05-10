@@ -329,6 +329,22 @@ AGGREGATOR_IP_ALLOWLIST = os.getenv(
     'AGGREGATOR_IP_ALLOWLIST', '127.0.0.1'
 ).split(',')
 
-# Session expires after one full shift (8 hours)
-SESSION_COOKIE_AGE = 28800  # 8 hours in seconds
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # also logout when browser closes
+# -------------------------------------------------------
+# AUTH REDIRECT
+# Django's @login_required defaults to /accounts/login/ which 404s.
+# Set LOGIN_URL to the actual login view.
+# -------------------------------------------------------
+LOGIN_URL = '/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+
+# -------------------------------------------------------
+# SESSION — long enough for a full 12-hour QSR shift.
+# SESSION_EXPIRE_AT_BROWSER_CLOSE removed:
+#   Tablets used as POS terminals rarely close the browser tab.
+#   With it set to True, sessions expired silently when the browser
+#   process briefly restarted (e.g. tablet sleep → wake). Staff would
+#   hit /token/X/bill/ and see "Order not found" because @login_required
+#   was redirecting to /accounts/login/ (404) instead of /login/.
+# -------------------------------------------------------
+SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
+SESSION_SAVE_EVERY_REQUEST = True  # slide the expiry on every request

@@ -73,12 +73,19 @@ def owner_dashboard(request):
         is_read=False
     ).order_by("-created_at")[:10]
 
+    from setup.models import AggregatorConfig
+    aggregator_config, _ = AggregatorConfig.objects.get_or_create(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet
+    )
+
     return render(
         request,
         "accounts/owner_dashboard.html",
         {
             "metrics": metrics,
-            "notifications": notifications
+            "notifications": notifications,
+            "aggregator": aggregator_config,
         }
     )
 

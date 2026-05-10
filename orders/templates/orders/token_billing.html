@@ -277,15 +277,14 @@
         }
 
         .search-box {
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--border-color);
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
             color: var(--text-main);
-            border-radius: 0;
-            padding: 0.75rem 0;
-            font-size: 1rem;
+            border-radius: 4px;
+            padding: 0.8rem 1.2rem;
+            font-size: 0.9rem;
             box-shadow: none !important;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .search-box:focus {
@@ -293,36 +292,37 @@
         }
 
         .menu-section-title {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--text-main);
-            padding-top: 1rem;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--accent-gold);
+            padding-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         .menu-card {
-            background: transparent;
+            background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 0;
-            padding: 1.25rem;
+            padding: 0.75rem 1rem;
             cursor: pointer;
             transition: var(--transition-smooth);
-            height: 100%;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             justify-content: space-between;
+            gap: 10px;
         }
 
         .menu-card:hover {
             border-color: var(--accent-gold);
-            background: var(--panel-bg);
-            transform: translateY(-2px);
+            background: var(--bg-color);
         }
 
         .item-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.05rem;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
             color: var(--text-main);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0;
             line-height: 1.2;
         }
 
@@ -692,14 +692,12 @@
             <div id="menuCardsContainer">
                 {% for category in categories %}
                 <h3 id="cat{{category.id}}" class="menu-section-title">{{category.name}}</h3>
-                <div class="row g-3 g-md-4 mb-5">
+                <div class="row g-2 mb-4">
                     {% for item in category.items.all %}
-                    <div class="col-6 col-lg-6 menu-item-searchable">
+                    <div class="col-12 col-md-6 menu-item-searchable">
                         <div class="menu-card"
                             onclick="openItemModal('{{item.id}}' , '{{item.name|escapejs}}', '{{item.price}}', '{{item.gst_percentage|default:5}}')">
-                            <div>
-                                <div class="item-name">{{item.name}}</div>
-                            </div>
+                            <div class="item-name">{{item.name}}</div>
                             <div class="item-price">₹{{item.price|floatformat:0}}</div>
                         </div>
                     </div>
@@ -711,8 +709,8 @@
 
         <!-- DESKTOP CONTEXT SIDEBAR -->
         <aside class="context-sidebar">
-            <div class="context-tabs">
-                <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">Order</div>
+            <div class="context-tabs" style="justify-content: flex-start; padding-left: 1.5rem;">
+                <div class="context-tab active" id="tabCart" style="flex: none; border-bottom-width: 3px;">CURRENT ORDER</div>
             </div>
 
             <div class="context-body" id="cartView">
@@ -761,8 +759,8 @@
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
 
-        <div class="context-tabs">
-            <div class="context-tab active" id="tabCartMobile" onclick="switchTabMobile('cart')">Order</div>
+        <div class="context-tabs" style="justify-content: flex-start; padding-left: 1.5rem;">
+            <div class="context-tab active" id="tabCartMobile" style="flex: none; border-bottom-width: 3px;">CURRENT ORDER</div>
         </div>
 
         <div class="offcanvas-body d-flex flex-column p-0">
@@ -1148,10 +1146,10 @@
 
             sending = true;
             document.querySelectorAll(".send-btn").forEach(b => {
-                b.disabled = true; b.innerHTML = 'Dispatching...';
+                b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking out...';
             });
 
-            let source = "takeaway"; // Default for minimalistic QSR
+            let source = "counter";
             let aggId = "";
             let custName = "";
             let custPhone = "";
@@ -1198,7 +1196,7 @@
         function resetSendBtn() {
             sending = false;
             document.querySelectorAll(".send-btn").forEach(b => {
-                b.disabled = false; b.innerHTML = 'Dispatch <i class="bi bi-arrow-right ms-2"></i>';
+                b.disabled = false; b.innerHTML = 'CHECKOUT <i class="bi bi-arrow-right ms-2"></i>';
             });
         }
 

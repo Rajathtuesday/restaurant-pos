@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.db.models import Prefetch, Sum
+from django.db.models import Prefetch, Sum, Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -270,15 +270,25 @@ def bill_view(request, order_id):
         total_paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
         remaining = order.grand_total - total_paid
         
+        # Available promos
+        from orders.models import Promo
+        promos = Promo.objects.filter(
+            tenant=request.user.tenant,
+            is_active=True
+        ).filter(Q(outlet=request.user.outlet) | Q(outlet__isnull=True))
+
+        valid_promos = [p for p in promos if p.is_currently_valid]
+        
         template_name = "orders/bill.html"
-        if hasattr(order, 'token'):
+        if request.user.tenant.tenant_type in ['franchise', 'cafe']:
             template_name = "orders/qsr_bill.html"
         
         return render(request, template_name, {
             "order": order,
             "config": config,
             "remaining": remaining,
-            "total_paid": total_paid
+            "total_paid": total_paid,
+            "promos": valid_promos
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
@@ -402,7 +412,8 @@ def pay_order(request, order_id):
                         "error": "No open cash session. Please open a session in Shift Management first."
                     }, status=400)
 
-                process_payment(order, method, amount, request.user)
+                payment_result = process_payment(order, method, amount, request.user)
+                change_due = payment_result.get("change_due", Decimal("0.00"))
 
                 logger.info(f"User {request.user.username} recorded {method} payment of Rs.{amount} for order #{order.id}")
 
@@ -410,27 +421,32 @@ def pay_order(request, order_id):
                     tenant=order.tenant, outlet=order.outlet, order=order,
                     event_type="payment_added",
                     amount=amount,
-                    metadata={"method": method, "amount": str(amount)},
+                    metadata={"method": method, "amount": str(amount), "change_due": str(change_due)},
                     created_by=request.user
                 )
 
                 order.refresh_from_db()
 
-                if order.status == "paid":
-                    validate_order_payment(order)
-                    order.status = "closed"
-                    order.closed_at = timezone.now()
-                    order.save(update_fields=["status", "closed_at"])
+                if payment_result["order_closed"]:
+                    # payment_service already set status=closed and closed_at.
+                    # Set table to cleaning here — service doesn't know about tables.
                     if order.table:
                         order.table.state = "cleaning"
                         order.table.save(update_fields=["state"])
                     logger.info(f"Order #{order.id} fully paid and closed")
-                    return JsonResponse({"success": True, "message": "Payment complete, order closed"})
+                    return JsonResponse({
+                        "success": True,
+                        "message": "Payment complete, order closed",
+                        "change_due": float(change_due)
+                    })
 
-                remaining = order.grand_total - (
-                    order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
-                )
-                return JsonResponse({"success": True, "message": "Partial payment recorded", "remaining": remaining})
+                remaining = payment_result["remaining"]
+                return JsonResponse({
+                    "success": True,
+                    "message": "Partial payment recorded",
+                    "remaining": float(remaining),
+                    "change_due": float(change_due)
+                })
 
         except Exception as e:
             logger.error(f"Payment error for order #{order_id}: {e}")
@@ -482,9 +498,14 @@ def apply_discount(request, order_id):
                     ok, err = promo.validate(order.outlet, order.subtotal)
                     if not ok:
                         return JsonResponse({"error": err}, status=400)
+                    
+                    # Apply values from the promo
+                    discount_type = promo.discount_type
+                    value = promo.discount_value
+                    
                     promo.record_use()
                 except Promo.DoesNotExist:
-                    pass # Silently proceed with manual discount if promo doesn't exist
+                    return JsonResponse({"error": "Promo code not found"}, status=404)
 
             order.discount_type = discount_type
             order.discount_value = value
@@ -824,10 +845,8 @@ def split_pay(request, order_id):
                 created_by=request.user,
             )
 
-            if order.status == "paid":
-                order.status = "closed"
-                order.closed_at = timezone.now()
-                order.save(update_fields=["status", "closed_at"])
+            # payment_service already closed the order — set table state here.
+            if order.status == "closed":
                 if order.table:
                     order.table.state = "cleaning"
                     order.table.save(update_fields=["state"])
@@ -864,7 +883,11 @@ def download_pdf_bill(request, order_id):
     # This mirrors the correct calculation already used in bill_view and pay_order.
     remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
     
-    html_string = render_to_string("orders/bill.html", {"order": order, "request": request, "remaining": remaining})
+    template_name = "orders/bill.html"
+    if request.user.tenant.tenant_type in ['franchise', 'cafe']:
+        template_name = "orders/qsr_bill.html"
+        
+    html_string = render_to_string(template_name, {"order": order, "request": request, "remaining": remaining})
     pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
     
     response = HttpResponse(pdf_file, content_type='application/pdf')

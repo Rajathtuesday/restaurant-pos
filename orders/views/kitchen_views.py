@@ -35,8 +35,8 @@ def send_to_kitchen(request, order_id):
                 )
             )
 
-            if order.status != "open":
-                return JsonResponse({"error": "Order is locked"}, status=400)
+            if order.status not in ["open", "billing"]:
+                return JsonResponse({"error": f"Order is {order.status} and cannot be sent to kitchen"}, status=400)
 
             from orders.services.kot_service import create_kot
             kots = create_kot(request.user, order)

@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Management | QSR</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <style>
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+        :root {
+            --bg-color: #f3f4f6;
+            --panel-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --accent-gold: #c5a059;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
+            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        body.dark {
+            --bg-color: #0f1115;
+            --panel-bg: #1a1d24;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #2d3139;
+            --accent-gold: #d4af37;
+            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            transition: var(--transition-smooth);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, h4, h5, .serif-text { font-family: 'DM Serif Display', serif; }
+
+        /* HEADER */
+        .pos-header {
+            padding: 2.5rem 0 1.5rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            padding: 1.5rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .brand-title {
+            font-size: 1.5rem; margin: 0; color: var(--text-main);
+            font-weight: 700; letter-spacing: 0.5px;
+        }
+        .brand-title i { color: var(--accent-gold); font-size: 1.2rem; }
+
+        /* BUTTONS */
+        .btn-luxury {
+            border: 1px solid var(--border-color);
+            background: transparent; color: var(--text-main);
+            padding: 0.6rem 1.4rem; font-size: 0.75rem; text-transform: uppercase;
+            letter-spacing: 2px; font-weight: 600; border-radius: 0;
+            transition: var(--transition-smooth); display: inline-flex; align-items: center;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-luxury:hover {
+            border-color: var(--text-main); color: var(--bg-color); background: var(--text-main);
+        }
+        .btn-gold {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
+        }
+        .btn-gold:hover {
+            background: #b59250; border-color: #b59250; color: #fff;
+        }
+        .btn-gold-solid {
+            background: var(--accent-gold); border-color: var(--accent-gold); color: #000;
+            font-weight: 700;
+        }
+        .btn-gold-solid:hover {
+            background: #b59250; border-color: #b59250; color: #000;
+        }
+
+        /* CATEGORY CARD */
+        .category-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0;
+            padding: 2.5rem 2rem;
+            height: 100%;
+            transition: var(--transition-smooth);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-soft);
+        }
+        .category-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
+
+        .category-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-main);
+            text-align: left;
+            margin-bottom: 0;
+        }
+        .category-title::after {
+            content: ''; display: block; width: 40px; height: 1px;
+            background: var(--accent-gold); margin: 15px 0 0;
+        }
+
+        /* MENU ITEMS */
+        .menu-item-row {
+            padding: 1.25rem 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition-smooth);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .menu-item-row:last-child { border-bottom: none; }
+        
+        .item-identity { display: flex; flex-direction: column; }
+        .item-name { font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 2px; cursor: pointer; border-bottom: 1px dashed var(--border-color); display: inline-block; width: max-content;}
+        .item-name:hover { color: var(--accent-gold); }
+        .item-price { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--accent-gold); font-size: 1.2rem; font-style: italic; cursor: pointer;}
+        .item-price:hover { opacity: 0.8; }
+
+        /* BADGES */
+        .luxury-badge {
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+            font-weight: 600; padding: 2px 8px; border-radius: 0; margin-left: 8px;
+        }
+        .badge-disabled { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
+
+        /* TOGGLE SWITCH */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #22c55e; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* MODALS */
+        .modal-content { background: var(--panel-bg); border-radius: 0; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
+        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.2rem; }
+        .modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+
+        .form-select-luxury, .form-input-luxury {
+            background-color: transparent !important;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main) !important;
+            border-radius: 0;
+            padding: 0.5rem 0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .form-select-luxury:focus, .form-input-luxury:focus { box-shadow: none; border-bottom-color: var(--accent-gold); }
+
+        .btn-delete:hover { color: #ef4444; }
+
+        /* MULTI-CATEGORY NAVIGATION BAR */
+        .cat-nav-bar {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 2rem;
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .cat-nav-bar::-webkit-scrollbar { display: none; }
+        .cat-nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+            transition: var(--transition-smooth);
+        }
+        .cat-nav-link:hover { color: var(--accent-gold); }
+
+        .category-section { scroll-margin-top: 150px; }
+
+        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
+
+        .dropdown-item { color: var(--text-main); transition: var(--transition-smooth); }
+        .dropdown-item:hover { background-color: rgba(197, 160, 89, 0.1); color: var(--accent-gold); }
+        .dropdown-item.text-danger:hover { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        /* TOAST */
+        #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--text-main); color: var(--bg-color); padding: 0.75rem 1.5rem; font-size: 0.85rem; letter-spacing: 0.5px; z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        #toast.error { background: #ef4444; color: #fff; }
+        #toast.success { background: #22c55e; color: #fff; }
+
+    </style>
+</head>
+<body>
+
+    <!-- MAIN HEADER -->
+    <header class="pos-header">
+        <div class="d-flex flex-column">
+            <h4 class="brand-title mb-0" style="font-family:'DM Serif Display', serif;"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h4>
+            <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">QSR Menu Management — {{ request.user.outlet.name }}</p>
+        </div>
+        
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn-luxury" onclick="openCategoryModal()"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
+            <button class="btn-luxury btn-gold-solid" onclick="openItemModal()"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
+
+            <!-- Feature A Button Placeholder (Only for owners) -->
+            {% if request.user.role == 'owner' %}
+            <button class="btn-luxury" onclick="syncMenu()"><i class="bi bi-cloud-arrow-up me-1"></i> Sync to Branches</button>
+            {% endif %}
+
+            <div class="desktop-nav-links d-flex align-items-center gap-2 ms-2">
+                <a href="/dashboard/" class="btn-luxury"><i class="bi bi-house me-1"></i> Dashboard</a>
+            </div>
+
+            <!-- Theme toggle -->
+            <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
+                <i class="bi bi-moon" id="themeIcon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- STICKY CATEGORY NAV -->
+    <div class="cat-nav-bar">
+        {% for category in categories %}
+        <a href="#cat-{{category.id}}" class="cat-nav-link">{{category.name}}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Search Input -->
+    <div class="container-fluid mx-auto mt-4 px-4" style="max-width: 1400px; padding: 0 2rem;">
+        <input type="text" id="menuManagementSearch" class="form-control form-input-luxury" placeholder="Search menu items by name..." style="max-width: 400px; font-size:1.1rem;">
+    </div>
+
+    <div class="container-fluid mx-auto py-4" style="max-width: 1400px; padding: 0 2rem;">
+        
+        <div class="row g-4 overflow-hidden">
+            {% for category in categories %}
+            <div class="col-12 col-md-6 col-xl-4 mb-4 category-section" id="cat-{{category.id}}">
+                <div class="category-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h5 class="category-title mb-0">{{category.name}}</h5>
+                        <button class="btn-icon btn-delete" style="font-size: 1rem; padding: 0;" title="Delete Category" onclick="deleteCategory('{{category.id}}', '{{category.name|escapejs}}')">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </div>
+
+                    <div class="item-list">
+                        {% for item in category.items.all %}
+                        <div class="d-flex flex-column border-bottom" style="border-color: var(--border-color) !important;">
+                            <div class="menu-item-row" style="border-bottom: none;">
+                                <div class="item-identity">
+                                    <span class="item-name" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', category:'{{item.category.id}}', isVeg:'{{item.is_veg|lower}}'})">
+                                        {% if item.is_veg %}
+                                        <i class="bi bi-circle-fill text-success" style="font-size: 0.6rem; vertical-align: middle;"></i>
+                                        {% else %}
+                                        <i class="bi bi-caret-up-square text-danger" style="font-size: 0.7rem; vertical-align: middle;"></i>
+                                        {% endif %}
+                                        {{item.name}}
+                                        {% if not item.is_available %}
+                                        <span class="luxury-badge badge-disabled ms-2" id="badge-{{item.id}}">Offline</span>
+                                        {% else %}
+                                        <span class="luxury-badge badge-disabled ms-2" id="badge-{{item.id}}" style="display:none;">Offline</span>
+                                        {% endif %}
+                                    </span>
+                                    <span class="item-price mt-1" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', category:'{{item.category.id}}', isVeg:'{{item.is_veg|lower}}'})">₹{{item.price}}</span>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <!-- Big one-tap availability toggle -->
+                                    <label class="switch mb-0" title="Toggle Availability">
+                                        <input type="checkbox" id="toggle-{{item.id}}" {% if item.is_available %}checked{% endif %} onchange="toggleItem('{{item.id}}')">
+                                        <span class="slider"></span>
+                                    </label>
+                                    
+                                    <!-- Options Dropdown -->
+                                    <div class="dropdown ms-2">
+                                        <button class="btn-icon" style="font-size: 1.2rem; padding: 0.2rem 0.5rem;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="background: var(--panel-bg); font-size: 0.85rem; min-width: 180px;">
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0);" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', category:'{{item.category.id}}', isVeg:'{{item.is_veg|lower}}'})"><i class="bi bi-pencil me-2 text-muted"></i>Edit Details</a></li>
+                                            <li><a class="dropdown-item py-2" href="javascript:void(0);" onclick="toggleRecipeBlock('{{item.id}}')"><i class="bi bi-journal-text me-2 text-muted"></i>Recipe / Ingredients</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item py-2 text-danger" href="javascript:void(0);" onclick="deleteItem('{{item.id}}')"><i class="bi bi-trash me-2"></i>Delete Item</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Recipe Block (Hidden by default) -->
+                            <div class="recipe-block p-3 mb-3 mx-2 rounded" id="recipe-block-{{item.id}}" style="display: none; background: rgba(197, 160, 89, 0.05); border-left: 2px solid var(--accent-gold);">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: bold; color: var(--accent-gold);">Linked Inventory Recipe</span>
+                                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.7rem; border-color: var(--border-color); color: var(--text-main);" onclick="openRecipeModal('{{item.id}}')">+ Add Ingredient</button>
+                                </div>
+                                <div class="mt-2">
+                                    {% for r in item.recipes.all %}
+                                    <div class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size: 0.85rem; border-color: rgba(0,0,0,0.05) !important;">
+                                        <span><i class="bi bi-box-seam me-2 text-muted" style="font-size: 0.75rem;"></i>{{r.inventory_item.name}}</span>
+                                        <span class="text-muted" style="font-family: 'Space Mono', monospace;">{{r.quantity_required}} {{r.unit}}</span>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-muted py-2" style="font-size: 0.8rem; font-style: italic;">No ingredients linked. Inventory will not be deducted for this item.</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-4 text-muted" style="font-size: 0.8rem; letter-spacing: 1px;">Category Empty</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- CATEGORY MODAL -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">New Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input id="categoryName" class="form-control form-input-luxury" placeholder="e.g. Burgers, Beverages"/>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createCategory()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ITEM MODAL -->
+    <div class="modal fade" id="itemModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemModalTitle">New Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editItemId" value="">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Item Name</label>
+                        <input id="itemName" class="form-control form-input-luxury" placeholder="Classic Burger"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Price (₹)</label>
+                        <input id="itemPrice" class="form-control form-input-luxury" placeholder="0.00"/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Category</label>
+                        <select id="itemCategory" class="form-select form-select-luxury">
+                            {% for category in categories %}
+                            <option value="{{category.id}}">{{category.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Dietary</label>
+                        <select id="itemIsVeg" class="form-select form-select-luxury">
+                            <option value="true">Vegetarian (Veg)</option>
+                            <option value="false">Non-Vegetarian (Non-Veg)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" id="saveItemBtn" onclick="saveItem()">Save Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RECIPE MODAL -->
+    <div class="modal fade" id="recipeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Link Ingredient</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Inventory Item</label>
+                        <select id="inventorySelect" class="form-select form-select-luxury">
+                            {% for item in inventory %}
+                            <option value="{{item.id}}">{{item.name}} ({{item.unit}})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing: 1px;">Quantity to Deduct</label>
+                        <input id="recipeQty" class="form-control form-input-luxury" placeholder="e.g. 0.50, 1.0"/>
+                    </div>
+                </div>
+                <div class="modal-footer pt-0 border-0">
+                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createRecipe()">Save Recipe</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        /* THEME MANAGEMENT */
+        let isDark = localStorage.getItem("dark") === "true";
+        function updateTheme() {
+            let icon = document.getElementById("themeIcon");
+            if (isDark) {
+                document.body.classList.add("dark");
+                if (icon) { icon.classList.replace("bi-moon", "bi-sun"); }
+            } else {
+                document.body.classList.remove("dark");
+                if (icon) { icon.classList.replace("bi-sun", "bi-moon"); }
+            }
+        }
+        updateTheme();
+        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateTheme(); }
+
+        /* TOAST */
+        function showToast(msg, type = '', duration = 2500) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = type;
+            el.style.display = 'block';
+            clearTimeout(el._timer);
+            el._timer = setTimeout(() => { el.style.display = 'none'; }, duration);
+        }
+
+        /* CORE API */
+        function getCookie(name){
+            let cookieValue=null;
+            if(document.cookie){
+                let cookies=document.cookie.split(";");
+                for(let i=0;i<cookies.length;i++){
+                    let cookie=cookies[i].trim();
+                    if(cookie.substring(0,name.length+1)===(name+"=")){
+                        cookieValue=decodeURIComponent(cookie.substring(name.length+1));
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        /* SEARCH BEHAVIOR */
+        document.getElementById("menuManagementSearch")?.addEventListener("input", function() {
+            let t = this.value.toLowerCase().trim();
+            document.querySelectorAll(".menu-item-row").forEach(c => {
+                let name = c.querySelector(".item-name").textContent.toLowerCase();
+                c.style.display = name.includes(t) ? "flex" : "none";
+                c.style.setProperty("display", name.includes(t) ? "flex" : "none", "important");
+            });
+            document.querySelectorAll(".category-card").forEach(card => {
+                let hasVisibleItems = Array.from(card.querySelectorAll(".menu-item-row")).some(r => r.style.display !== "none");
+                card.parentElement.style.display = (!t || hasVisibleItems) ? "block" : "none";
+            });
+        });
+
+        /* MODAL TRIGGERS */
+        let currentMenuItem = null;
+        function openCategoryModal(){ new bootstrap.Modal(document.getElementById("categoryModal")).show(); }
+        
+        function openItemModal(item = null){ 
+            const title = document.getElementById("itemModalTitle");
+            const btn = document.getElementById("saveItemBtn");
+            const idInput = document.getElementById("editItemId");
+            
+            document.getElementById("itemName").value = "";
+            document.getElementById("itemPrice").value = "";
+            idInput.value = "";
+
+            if(item) {
+                title.innerText = "Edit Item";
+                idInput.value = item.id;
+                document.getElementById("itemName").value = item.name;
+                document.getElementById("itemPrice").value = item.price;
+                document.getElementById("itemCategory").value = item.category;
+                document.getElementById("itemIsVeg").value = item.isVeg !== undefined ? item.isVeg : "true";
+            } else {
+                title.innerText = "New Item";
+                document.getElementById("itemIsVeg").value = "true";
+            }
+
+            new bootstrap.Modal(document.getElementById("itemModal")).show(); 
+        }
+
+        function toggleRecipeBlock(itemId) {
+            const block = document.getElementById(`recipe-block-${itemId}`);
+            if(block.style.display === "none") {
+                block.style.display = "block";
+            } else {
+                block.style.display = "none";
+            }
+        }
+
+        function openRecipeModal(itemId) {
+            currentMenuItem = itemId;
+            new bootstrap.Modal(document.getElementById("recipeModal")).show();
+        }
+
+        /* OPERATIONS */
+        function createCategory(){
+            let name = document.getElementById("categoryName").value;
+            fetch("{% url 'create_category' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ name: name })
+            }).then(() => location.reload());
+        }
+
+        function saveItem(){
+            const id = document.getElementById("editItemId").value;
+            let formData = new FormData();
+            formData.append("name", document.getElementById("itemName").value);
+            formData.append("price", document.getElementById("itemPrice").value);
+            formData.append("category", document.getElementById("itemCategory").value);
+            formData.append("is_veg", document.getElementById("itemIsVeg").value);
+            // QSR defaults
+            formData.append("estimated_prep_time", 10);
+            
+            const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";
+
+            fetch(url, {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") },
+                body: formData
+            }).then(r => r.json()).then(d => {
+                if(d.success) location.reload();
+                else showToast(d.error || "Failed to save item.", 'error');
+            }).catch(() => location.reload());
+        }
+
+        function deleteItem(id){
+            if(!confirm("Erase this menu item permanently?")) return;
+            fetch("{% url 'delete_menu_item' 0 %}".replace('0', id), {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function deleteCategory(id, name){
+            if(!confirm(`DANGER: This will permanently delete the category "${name}" and ALL its menu items. Continue?`)) return;
+            fetch("{% url 'delete_category' 0 %}".replace('0', id), {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(() => location.reload());
+        }
+
+        function toggleItem(id){
+            const checkbox = document.getElementById(`toggle-${id}`);
+            const badge = document.getElementById(`badge-${id}`);
+            const isAvailable = checkbox.checked;
+
+            fetch("{% url 'toggle_item' 0 %}".replace('0', id), {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(res => res.json()).then(data => {
+                if(data.success) {
+                    if (isAvailable) {
+                        badge.style.display = 'none';
+                        showToast('Item set to Available', 'success');
+                    } else {
+                        badge.style.display = 'inline-block';
+                        showToast('Item set to Offline', 'error');
+                    }
+                } else {
+                    checkbox.checked = !isAvailable; // revert
+                    showToast('Failed to toggle', 'error');
+                }
+            }).catch(() => {
+                checkbox.checked = !isAvailable; // revert
+                showToast('Network error', 'error');
+            });
+        }
+
+        function createRecipe(){
+            let inventory = document.getElementById("inventorySelect").value;
+            let qty = document.getElementById("recipeQty").value;
+            
+            if(!inventory || !qty) {
+                showToast("Please select an ingredient and enter a quantity.", "error");
+                return;
+            }
+
+            fetch("{% url 'add_recipe' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+                body: JSON.stringify({ menu_item: currentMenuItem, inventory_item: inventory, quantity: qty })
+            }).then(r => r.json()).then(data => {
+                if(data.success) {
+                    showToast("Ingredient added to recipe.", "success");
+                    location.reload();
+                } else {
+                    showToast(data.error || "Failed to add ingredient.", "error");
+                }
+            }).catch(() => showToast("Network error", "error"));
+        }
+
+        /* FEATURE A: SYNC MENU */
+        function syncMenu() {
+            if(!confirm("Push this menu to all branches? This will instantly sync all categories, items, prices, and recipe ingredients.")) return;
+            
+            showToast("Syncing across branches...", "");
+            
+            fetch("{% url 'sync_menu_to_outlets' %}", {
+                method: "POST",
+                headers: { "X-CSRFToken": getCookie("csrftoken") }
+            }).then(res => res.json()).then(data => {
+                if(data.success) {
+                    alert(`Sync Complete!\nCreated: ${data.stats.categories_created} categories, ${data.stats.items_created} items, ${data.stats.recipes_created} recipes across ${data.stats.outlets_updated} branches.`);
+                } else {
+                    showToast(data.error || "Sync failed", "error");
+                }
+            }).catch(e => showToast("Network error", "error"));
+        }
+    </script>
+</body>
+</html>

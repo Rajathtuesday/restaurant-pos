@@ -356,29 +356,7 @@ class Order(models.Model):
         self.round_off = round_off
 
         self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total", "round_off", "discount_type", "discount_value"])
-# =====================================================
-# TOKEN ORDER
-# =====================================================
 
-class TokenOrder(models.Model):
-    """
-    Used for Franchise and Cafe tenants. Instead of assigning an order to a table,
-    they get a daily sequential token number.
-    """
-    tenant = models.ForeignKey('tenants.Tenant', on_delete=models.CASCADE)
-    outlet = models.ForeignKey('tenants.Outlet', on_delete=models.CASCADE)
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="token")
-    token_number = models.PositiveIntegerField()
-    date = models.DateField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ['outlet', 'token_number', 'date']
-        indexes = [
-            models.Index(fields=["outlet", "date"]),
-        ]
-
-    def __str__(self):
-        return f"Token {self.token_number} - {self.date}"
 
 # =====================================================
 # KOT

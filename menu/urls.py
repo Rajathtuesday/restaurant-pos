@@ -27,6 +27,7 @@ from .views import (
     gst_management,
     update_item_gst,
     update_category_gst,
+    sync_menu_to_outlets,
 )
 from .api import api_categories, api_items
 
@@ -47,6 +48,7 @@ urlpatterns = [
     path("toggle-item/<int:item_id>/", toggle_item, name="toggle_item"),
     path("toggle-platform/<int:item_id>/", toggle_platform_availability, name="toggle_platform"),
     path("digital-menu/", digital_menu, name="digital_menu"),
+    path("sync-outlets/", sync_menu_to_outlets, name="sync_menu_to_outlets"),
     
     path("update-station/<int:item_id>/", update_station, name="update_station"),
     path("update-item/<int:item_id>/", update_menu_item, name="update_menu_item"),

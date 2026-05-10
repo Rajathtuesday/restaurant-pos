@@ -22,7 +22,6 @@ TENANT_FEATURES = {
         'barcode_transfer',
         'reports',
         'simple_billing',
-        'kitchen_display',
     ],
     'cafe': [
         'token_system',
@@ -30,7 +29,6 @@ TENANT_FEATURES = {
         'qr_menu',
         'inventory',
         'reports',
-        'kitchen_display',
     ],
 }
 

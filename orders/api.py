@@ -171,9 +171,9 @@ def api_ingest_order(request):
     try:
         data = json.loads(request.body)
         
-        tenant_id = data.get("tenant_id")
-        outlet_id = data.get("outlet_id")
-        source = data.get("source", "web")
+        tenant_id = request.GET.get("tenant_id") or data.get("tenant_id")
+        outlet_id = request.GET.get("outlet_id") or data.get("outlet_id")
+        source = request.GET.get("source") or data.get("source", "web")
         aggregator_id = data.get("aggregator_order_id")
         items = data.get("items", [])
         

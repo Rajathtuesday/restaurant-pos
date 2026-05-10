@@ -115,9 +115,64 @@ def process_payment(order, method, amount, user=None):
         order_closed = True
         logger.info("Order #%s fully paid and closed.", order.id)
 
+        # ---------------------------------------------------------------
+        # QSR Inventory Deduction (counter orders only).
+        #
+        # Fine dining deducts at the KOT/serve stage (kitchen flow).
+        # QSR has no KOT serve step — the cashier takes the order and
+        # hands it over immediately, so we deduct at payment close.
+        #
+        # Failures are LOGGED but never block payment — the transaction
+        # is already recorded and the customer's change is due.
+        # ---------------------------------------------------------------
+        if order.source == "counter":
+            _deduct_inventory_for_order(order)
+
     return {
         "payment":      payment,
         "remaining":    max(Decimal("0.00"), order.grand_total - new_paid_total),
         "change_due":   change_due,
         "order_closed": order_closed,
     }
+
+
+def _deduct_inventory_for_order(order):
+    """
+    Deducts inventory for every non-voided item in a QSR counter order.
+    Called once, after the order transitions to 'closed'.
+
+    Deliberately outside the atomic block above so that an inventory
+    deduction failure doesn't roll back the payment record.
+    """
+    from django.core.exceptions import ValidationError as DjangoValidationError
+
+    items = order.items.exclude(status="voided").select_related("menu_item")
+
+    for order_item in items:
+        if not order_item.menu_item:
+            continue
+        recipes = order_item.menu_item.recipes.select_related("inventory_item").all()
+        for recipe in recipes:
+            qty_to_deduct = recipe.quantity_required * Decimal(str(order_item.quantity))
+            try:
+                recipe.inventory_item.reduce_stock(
+                    qty_to_deduct,
+                    reference=f"Order #{order.id} — Token #{getattr(getattr(order, 'token', None), 'token_number', '?')}"
+                )
+                logger.info(
+                    "Inventory | deducted %.3f %s of '%s' for Order #%s",
+                    float(qty_to_deduct),
+                    recipe.inventory_item.unit,
+                    recipe.inventory_item.name,
+                    order.id,
+                )
+            except DjangoValidationError as e:
+                logger.warning(
+                    "Inventory | insufficient stock for '%s' on Order #%s: %s",
+                    recipe.inventory_item.name, order.id, e
+                )
+            except Exception as e:
+                logger.error(
+                    "Inventory | unexpected error deducting '%s' on Order #%s: %s",
+                    recipe.inventory_item.name, order.id, e
+                )

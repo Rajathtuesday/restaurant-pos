@@ -200,6 +200,7 @@ def create_menu_item(request):
             station_id = data.get("station")
             description = data.get("description", "")
             prep_time = data.get("estimated_prep_time", 15)
+            is_veg = str(data.get("is_veg", "true")).lower() == "true"
             image = None
         else:
             name = request.POST.get("name")
@@ -208,6 +209,7 @@ def create_menu_item(request):
             station_id = request.POST.get("station")
             description = request.POST.get("description", "")
             prep_time = request.POST.get("estimated_prep_time", 15)
+            is_veg = str(request.POST.get("is_veg", "true")).lower() == "true"
             image = request.FILES.get("image")
 
         if not name or not price:
@@ -242,7 +244,8 @@ def create_menu_item(request):
             image=image,
             category=category,
             station=station,
-            estimated_prep_time=prep_time
+            estimated_prep_time=prep_time,
+            is_veg=is_veg
         )
         
         logger.info(f"User {request.user.username} created item '{name}' (Rs.{price}, prep: {prep_time}m) in category '{category.name}')")
@@ -273,6 +276,7 @@ def update_menu_item(request, item_id):
         category_id = request.POST.get("category")
         station_id = request.POST.get("station")
         description = request.POST.get("description", "")
+        is_veg = str(request.POST.get("is_veg", "true")).lower() == "true"
         image = request.FILES.get("image")
 
         if not name or not price or not category_id:
@@ -298,6 +302,8 @@ def update_menu_item(request, item_id):
         item.price = Decimal(price)
         item.category = category
         item.station = station
+        item.description = description
+        item.is_veg = is_veg
         item.description = description
 
         prep_time = request.POST.get("estimated_prep_time")
@@ -899,3 +905,85 @@ def update_category_gst(request, category_id):
 
     except (json.JSONDecodeError, Exception) as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+@login_required
+@require_POST
+def sync_menu_to_outlets(request):
+    """
+    Pushes all categories, items, and recipe mappings from the current source outlet
+    to all other QSR outlets in the same tenant.
+    Updates the price if the item already exists.
+    """
+    from tenants.models import Outlet
+    from inventory.models import InventoryItem
+    
+    if request.user.role != "owner":
+        return JsonResponse({"error": "Only owners can sync menus"}, status=403)
+
+    tenant = request.user.tenant
+    source_outlet = request.user.outlet
+
+    target_outlets = Outlet.objects.filter(
+        tenant=tenant
+    ).exclude(id=source_outlet.id)
+
+    if not target_outlets.exists():
+        return JsonResponse({"error": "No other QSR branches found to sync to."}, status=400)
+
+    source_categories = MenuCategory.objects.filter(tenant=tenant, outlet=source_outlet)
+    
+    stats = {"categories_created": 0, "items_created": 0, "recipes_created": 0, "outlets_updated": target_outlets.count()}
+
+    with transaction.atomic():
+        for target_outlet in target_outlets:
+            for src_cat in source_categories:
+                target_cat, cat_created = MenuCategory.objects.update_or_create(
+                    tenant=tenant,
+                    outlet=target_outlet,
+                    name=src_cat.name,
+                    defaults={
+                        "display_order": src_cat.display_order,
+                        "is_active": src_cat.is_active
+                    }
+                )
+                if cat_created: stats["categories_created"] += 1
+
+                for src_item in src_cat.items.all():
+                    target_item, item_created = MenuItem.objects.update_or_create(
+                        tenant=tenant,
+                        outlet=target_outlet,
+                        name=src_item.name,
+                        defaults={
+                            "category": target_cat,
+                            "price": src_item.price,
+                            "description": src_item.description,
+                            "estimated_prep_time": src_item.estimated_prep_time,
+                            "gst_percentage": src_item.gst_percentage,
+                            "is_available": src_item.is_available,
+                            "available_takeaway": src_item.available_takeaway,
+                            "available_zomato": src_item.available_zomato,
+                            "available_swiggy": src_item.available_swiggy,
+                            "is_veg": src_item.is_veg
+                        }
+                    )
+                    if item_created: stats["items_created"] += 1
+
+                    for src_recipe in src_item.recipes.all():
+                        target_inv = InventoryItem.objects.filter(
+                            tenant=tenant,
+                            outlet=target_outlet,
+                            name__iexact=src_recipe.inventory_item.name
+                        ).first()
+
+                        if target_inv:
+                            from menu.models import Recipe
+                            _, recipe_created = Recipe.objects.get_or_create(
+                                menu_item=target_item,
+                                inventory_item=target_inv,
+                                defaults={
+                                    "quantity_required": src_recipe.quantity_required
+                                }
+                            )
+                            if recipe_created: stats["recipes_created"] += 1
+
+    return JsonResponse({"success": True, "stats": stats})

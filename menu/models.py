@@ -112,6 +112,8 @@ class MenuItem(models.Model):
     available_zomato = models.BooleanField(default=True)
     available_swiggy = models.BooleanField(default=True)
 
+    is_veg = models.BooleanField(default=True)
+
 
     created_at = models.DateTimeField(auto_now_add=True)
     

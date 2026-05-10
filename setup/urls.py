@@ -14,6 +14,7 @@ from .views import (
     promo_create,
     promo_toggle,
     promo_delete,
+    toggle_aggregator,
 )
 
 urlpatterns = [
@@ -33,4 +34,7 @@ urlpatterns = [
     path("promos/create/", promo_create, name="promo_create"),
     path("promos/<int:promo_id>/toggle/", promo_toggle, name="promo_toggle"),
     path("promos/<int:promo_id>/delete/", promo_delete, name="promo_delete"),
+    
+    # Aggregator quick toggle
+    path("aggregators/toggle/", toggle_aggregator, name="toggle_aggregator"),
 ]

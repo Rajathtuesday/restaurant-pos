@@ -1,7 +1,6 @@
 # orders/services/order_service.py
 from decimal import Decimal
 from django.db import transaction, IntegrityError
-from core.decorators import tenant_required
 
 from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
@@ -89,7 +88,7 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
     )
 
     if order.status not in ["open", "billing"]:
-        raise Exception("Order is not editable")
+        raise Exception(f"Order #{order.id} is already {order.status} and cannot be edited.")
 
     if not cart_items:
         raise Exception("Cart is empty")

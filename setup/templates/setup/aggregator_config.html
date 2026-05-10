@@ -117,16 +117,15 @@
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Enable incoming Zomato webhooks</div>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" name="zomato_enabled" {% if config.zomato_enabled %}checked{% endif %}>
+                    <input type="checkbox" name="zomato_enabled" id="zomato_toggle" {% if config.zomato_enabled %}checked{% endif %} onchange="document.getElementById('zomato_secret_div').style.display = this.checked ? 'block' : 'none'">
                     <span class="slider"></span>
                 </label>
             </div>
-            {% if config.zomato_enabled %}
-            <div style="padding: 1rem 0 1rem 0; margin-bottom:1rem; border-bottom: 1px solid var(--border-color);">
+            
+            <div id="zomato_secret_div" style="display: {% if config.zomato_enabled %}block{% else %}none{% endif %}; padding: 1rem 0 1rem 0; margin-bottom:1rem; border-bottom: 1px solid var(--border-color);">
                 <label class="form-label">Zomato Secret Key</label>
                 <input type="text" class="form-control" name="zomato_webhook_secret" value="{{ config.zomato_webhook_secret|default:'' }}" placeholder="ZOM-SECRET-1234">
             </div>
-            {% endif %}
 
             <div class="switch-wrapper">
                 <div>
@@ -134,16 +133,15 @@
                     <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Enable incoming Swiggy webhooks</div>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" name="swiggy_enabled" {% if config.swiggy_enabled %}checked{% endif %}>
+                    <input type="checkbox" name="swiggy_enabled" id="swiggy_toggle" {% if config.swiggy_enabled %}checked{% endif %} onchange="document.getElementById('swiggy_secret_div').style.display = this.checked ? 'block' : 'none'">
                     <span class="slider"></span>
                 </label>
             </div>
-            {% if config.swiggy_enabled %}
-            <div style="padding: 1rem 0 1rem 0; margin-bottom:1rem; border-bottom: 1px solid var(--border-color);">
+            
+            <div id="swiggy_secret_div" style="display: {% if config.swiggy_enabled %}block{% else %}none{% endif %}; padding: 1rem 0 1rem 0; margin-bottom:1rem; border-bottom: 1px solid var(--border-color);">
                 <label class="form-label">Swiggy App ID</label>
                 <input type="text" class="form-control" name="swiggy_webhook_secret" value="{{ config.swiggy_webhook_secret|default:'' }}" placeholder="SWG-APP-ID">
             </div>
-            {% endif %}
 
             <div class="switch-wrapper">
                 <div>

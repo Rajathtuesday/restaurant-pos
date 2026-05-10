@@ -8,8 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
         :root {
             --bg: #fafafa; --panel: #ffffff; --text: #111111; --muted: #737373;
             --border: #eaeaea; --gold: #c5a059; --success: #22c55e;
@@ -19,52 +17,42 @@
             --border: #2d3139; --gold: #d4af37;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; }
+        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; transition: background 0.3s; }
+        body.dark { background: var(--bg); }
         h1, h2, h3, .serif { font-family: 'DM Serif Display', serif; }
         
         .receipt-container { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border); padding: 3rem 2.5rem; border-radius: 4px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); position: relative; }
         
-        /* HEADER */
         .header { text-align: center; margin-bottom: 2rem; border-bottom: 1px dashed var(--border); padding-bottom: 1.5rem; }
         .logo { font-size: 2rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem; }
         .address { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
-        .gst { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 10px; font-weight: 600; }
         
-        /* INFO */
         .meta { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 1.2rem; }
-        .meta div { display: flex; flex-direction: column; }
         .label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 2px; }
         
-        /* ITEMS */
         .item-list { border-bottom: 1px dashed var(--border); margin-bottom: 1.5rem; padding-bottom: 1rem; }
         .item { display: flex; justify-content: space-between; padding: 0.4rem 0; font-size: 0.85rem; }
         .item-name { flex: 1; padding-right: 1rem; }
         .item-val { font-family: 'Space Mono', monospace; font-weight: 600; }
         
-        /* TOTALS */
         .total-row { display: flex; justify-content: space-between; padding: 0.25rem 0; font-size: 0.85rem; }
         .grand-total { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; font-size: 1.5rem; font-weight: 700; color: var(--gold); }
         
-        /* STATUS */
         .balance-card { background: rgba(197,160,89,0.08); border: 1px solid var(--border); padding: 1.2rem; text-align: center; margin: 1.5rem 0; border-radius: 2px; }
         .balance-card.fully-paid { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); }
         .balance-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; }
         .balance-val { font-size: 1.2rem; font-weight: 700; font-family: 'Space Mono', monospace; }
         
-        /* PAYMENT AREA */
         .pay-area { margin-top: 2rem; }
         .input-pay { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--text); padding: 1rem; font-size: 1.1rem; font-family: 'Space Mono', monospace; text-align: center; outline: none; margin-bottom: 1rem; }
         .input-pay:focus { border-color: var(--gold); }
-        
-        .btn-set { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.6rem; flex: 1; cursor: pointer; transition: 0.2s; }
-        .btn-set:hover { border-color: var(--gold); color: var(--text); }
         
         .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; margin-top: 1.5rem; }
         .btn-pay { background: var(--panel); border: 1px solid var(--gold); color: var(--gold); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; font-weight: 700; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .btn-pay:hover { background: var(--gold); color: #000; }
         .btn-pay i { font-size: 1.2rem; }
         
-        .btn-action { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; cursor: pointer; margin-top: 2rem; }
+        .btn-action { width: 100%; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; cursor: pointer; margin-top: 1rem; }
         .btn-action:hover { border-color: var(--text); color: var(--text); }
 
         .toast-msg { display: none; padding: 0.8rem; border-radius: 2px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 1rem; border: 1px solid transparent; }
@@ -73,30 +61,18 @@
 
         .nav-back { position: absolute; top: -50px; left: 0; color: var(--muted); text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; transition: color 0.2s; }
         .nav-back:hover { color: var(--gold); }
-        .print-only { display: none; }
 
         @media print {
             body { padding: 0; background: #fff; color: #000; }
             .receipt-container { box-shadow: none; border: none; max-width: 100%; padding: 0; }
             .no-print { display: none !important; }
-            .print-only { display: flex !important; }
-            .logo, .address, .item, .total-row, .meta { color: #000 !important; }
-            * { border-color: #000 !important; }
         }
     </style>
 </head>
 <body>
 
     <div style="position: relative; width: 100%; max-width: 440px;">
-        {% if remaining > 0 %}
-            {% if request.user.role == 'owner' or request.user.role == 'manager' %}
-            <a href="/token/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens (Bypass)</a>
-            {% else %}
-            <a href="#" onclick="alert('Please complete the payment to exit billing screen.'); return false;" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens</a>
-            {% endif %}
-        {% else %}
-        <a href="/token/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens</a>
-        {% endif %}
+        <a href="/token/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens Dashboard</a>
 
         <div class="receipt-container">
             <div class="header">
@@ -106,13 +82,7 @@
                 <div class="logo serif">{{ request.user.tenant.name }}</div>
                 {% endif %}
                 <div style="font-size: 0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; color:var(--text);">{{ order.outlet.name }}</div>
-                <div class="address">{{ order.outlet.address|default:"123 Fine Dining Avenue<br>Culinary District, City Center"|safe }}</div>
-                {% if order.outlet.gst_no %}
-                <div class="gst">GSTIN: {{ order.outlet.gst_no }}</div>
-                {% endif %}
-                {% if order.outlet.fssai_no %}
-                <div class="gst">FSSAI: {{ order.outlet.fssai_no }}</div>
-                {% endif %}
+                <div class="address">{{ order.outlet.address|safe }}</div>
             </div>
 
             <div class="meta">
@@ -120,7 +90,7 @@
                 <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
             </div>
             <div class="meta" style="margin-top:-8px">
-                <div><span class="label">Token</span><span style="font-size:1.1rem; color:var(--gold); font-weight:700;">#{{ order.token.token_number }}</span></div>
+                <div><span class="label">Token</span><span style="font-size:1.1rem; color:var(--gold); font-weight:700;">#{{ order.token.token_number|default:"-" }}</span></div>
                 <div style="text-align:right"><span class="label">Cashier</span><span>{{ request.user.username|title }}</span></div>
             </div>
 
@@ -131,113 +101,54 @@
                     <span class="item-name">
                         {{ item.menu_item.name }}
                         <span style="color:var(--muted)">× {{ item.quantity }}</span>
-                        {% if request.user.role in "owner,manager,cashier" and order.status != 'paid' and order.status != 'closed' %}
-                        <button onclick="promptItemDiscount({{ item.id }}, '{{ item.menu_item.name }}', {{ item.item_discount_pct }})" 
-                                style="background:transparent; border:none; color:var(--gold); cursor:pointer; padding:0 5px; font-size:0.7rem;">
-                            <i class="bi bi-tag"></i>
-                        </button>
-                        {% endif %}
-                        <div style="font-size: 0.7rem; color: var(--muted); padding-left: 0.5rem;">
-                            {% for mod in item.modifiers.all %}
-                            + {{ mod.name }} {% if mod.price > 0 %}(₹{{ mod.price }}){% endif %}{% if not forloop.last %}, {% endif %}
-                            {% endfor %}
-                        </div>
                     </span>
-                    <span class="item-val">
-                        {% if item.is_complimentary %}
-                            COMP
-                        {% else %}
-                            {% if item.item_discount_pct > 0 %}
-                                <div style="text-decoration: line-through; font-size: 0.7rem; color: var(--muted);">₹{{ item.total_price }}</div>
-                                <div>₹{{ item.discounted_price }}</div>
-                            {% else %}
-                                ₹{{ item.total_price }}
-                            {% endif %}
-                        {% endif %}
-                    </span>
+                    <span class="item-val">₹{{ item.discounted_price|default:item.total_price }}</span>
                 </div>
                 {% endif %}
                 {% endfor %}
             </div>
 
             <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
-
             {% if order.discount_total > 0 %}
             <div class="total-row" style="color:#ef4444"><span>Discount</span><span>- ₹{{ order.discount_total }}</span></div>
             {% endif %}
-
-            <!-- GST SLAB BREAKDOWN — Detail for WhatsApp, Hidden for Print -->
-            {% if order.gst_breakdown %}
-            <div class="no-print" style="margin: 0.75rem 0; padding: 0.75rem; border: 1px dashed var(--border); border-radius: 2px; background: rgba(197,160,89,0.04);">
-                <div style="font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.6rem; font-weight: 600;">Tax Breakdown</div>
-                {% for gst in order.gst_breakdown %}
-                <div style="margin-bottom: 0.4rem;">
-                    <div style="font-size: 0.72rem; color: var(--muted); font-weight: 600; margin-bottom: 0.2rem; letter-spacing: 0.5px;">GST Slab @ {{ gst.rate }}%</div>
-                    <div class="total-row" style="font-size: 0.8rem; padding: 0.1rem 0;">
-                        <span style="color:var(--muted);">CGST @ {{ gst.cgst_rate }}%</span>
-                        <span>₹{{ gst.cgst_amount }}</span>
-                    </div>
-                    <div class="total-row" style="font-size: 0.8rem; padding: 0.1rem 0;">
-                        <span style="color:var(--muted);">SGST @ {{ gst.sgst_rate }}%</span>
-                        <span>₹{{ gst.sgst_amount }}</span>
-                    </div>
-                </div>
-                {% endfor %}
-                <div class="total-row" style="font-size: 0.82rem; font-weight: 700; border-top: 1px solid var(--border); padding-top: 0.4rem; margin-top: 0.3rem;">
-                    <span>Total GST</span>
-                    <span>₹{{ order.gst_total }}</span>
-                </div>
-            </div>
-
-            <!-- COMPACT GST FOR PRINTING -->
-            <div class="total-row print-only">
-                <span>GST Total</span>
-                <span>₹{{ order.gst_total }}</span>
-            </div>
-            {% endif %}
-
-            {% if order.round_off != 0 %}
-            <div class="total-row" style="color:var(--muted)"><span>Round Off</span><span>{% if order.round_off > 0 %}+{% endif %} ₹{{ order.round_off }}</span></div>
+            {% if order.gst_total > 0 %}
+            <div class="total-row"><span>GST</span><span>₹{{ order.gst_total }}</span></div>
             {% endif %}
             
             <div class="grand-total serif">
                 <span>TOTAL</span>
-                <span id="grandTotalLabel">₹{{ order.grand_total }}</span>
+                <span>₹{{ order.grand_total }}</span>
             </div>
 
-            {% if order.payments.exists %}
-            <div class="no-print" style="margin-top: 1.5rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
-                <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.5rem;">Payment Splits</div>
-                {% for p in order.payments.all %}
-                <div class="total-row" style="font-size: 0.85rem;">
-                    <span>{{ p.method|title }} <small class="text-muted">({{ p.created_at|date:"H:i" }})</small></span>
-                    <span>- ₹{{ p.amount }}</span>
-                </div>
-                {% endfor %}
-                <div class="total-row" style="margin-top: 0.5rem; font-weight: bold;">
-                    <span>BALANCE DUE</span>
-                    <span>₹{{ remaining }}</span>
+            {% if remaining > 0 %}
+            <div class="no-print" style="margin-top:1.5rem; border:1px dashed var(--border); padding:1rem;">
+                <p class="label" style="margin-bottom:0.8rem;">Promos & Discounts</p>
+                {% if promos %}
+                <select id="promoSelect" class="input-pay" style="font-size:0.85rem; padding:0.5rem; margin-bottom:0.5rem;" onchange="applyPromo(this.value)">
+                    <option value="">-- Apply Promo --</option>
+                    {% for p in promos %}
+                    <option value="{{ p.id }}">{{ p.name }} ({{ p.get_discount_type_display }})</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+                <div style="display:flex; gap:0.5rem;">
+                    <input type="number" id="manualDiscount" placeholder="Manual %" class="input-pay" style="margin:0; flex:1; padding:0.5rem; font-size:0.85rem;">
+                    <button onclick="applyManualDiscount()" class="btn-pay" style="padding:0.5rem 1rem; flex:0 0 auto;">Apply</button>
                 </div>
             </div>
             {% endif %}
 
             <div class="balance-card {% if remaining <= 0 %}fully-paid{% endif %} no-print">
                 <div class="balance-label">{% if remaining <= 0 %}Status{% else %}Balance Due{% endif %}</div>
-                <div class="balance-val" id="balanceVal">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
+                <div class="balance-val">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
             </div>
-
-
 
             <div class="pay-area no-print">
                 <div id="toast" class="toast-msg"></div>
 
                 {% if remaining > 0 %}
-                    <input type="number" id="payAmount" class="input-pay" placeholder="Enter amount..." value="{{ remaining }}">
-                    
-                    <div style="display:flex; gap:0.5rem; margin-bottom:1.5rem">
-                        <button class="btn-set" onclick="setVal('{{ remaining }}')">Pay All (Cash/Card/UPI)</button>
-                    </div>
-
+                    <input type="number" id="payAmount" class="input-pay" value="{{ remaining }}">
                     <div class="pay-grid">
                         {% if config.cash_enabled %}
                         <button class="btn-pay" onclick="recordPay('cash')"><i class="bi bi-cash"></i> {{ config.cash_label }}</button>
@@ -249,135 +160,151 @@
                         <button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i> {{ config.card_label }}</button>
                         {% endif %}
                     </div>
+                    <button class="btn-pay" style="margin-top: 1rem; width: 100%; background: transparent; border: 1px dashed #ef4444; color: #ef4444;" onclick="cancelOrder()">
+                        <i class="bi bi-trash me-2"></i> Cancel Order
+                    </button>
                 {% else %}
-                    {% if order.status != 'closed' and order.status != 'paid' %}
-                    <div style="text-align:center; margin-bottom:1rem;">
-                        <button class="btn-pay" style="width:100%" onclick="recordPay('cash', 0)">
-                            <i class="bi bi-check-circle"></i> Close Zero-Total Order
-                        </button>
-                    </div>
-                    {% else %}
                     <div style="text-align:center; padding:1rem; color:var(--success); font-weight:700; letter-spacing:2px; font-size:0.75rem;">
                         <i class="bi bi-patch-check-fill me-2"></i> PAYMENT COMPLETE
                     </div>
-                    {% endif %}
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;" class="no-print">
-                        <button class="btn-action" style="margin-top:0; border-color:var(--gold); color:var(--gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Receipt</button>
-                        <a href="/token/" class="btn-action" style="margin-top:0; text-align:center; text-decoration:none;"><i class="bi bi-grid me-2"></i> Tokens</a>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                        <button class="btn-action" style="border-color:var(--gold); color:var(--gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print</button>
+                        <a href="/token/" class="btn-action" style="text-align:center; text-decoration:none;"><i class="bi bi-plus-circle me-2"></i> New Order</a>
                     </div>
-                {% endif %}
-
-                {% if remaining > 0 %}
-                <button class="btn-action" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print thermal Receipt</button>
                 {% endif %}
             </div>
         </div>
     </div>
 
     <script>
+        const CSRF = '{{ csrf_token }}';
 
-            let pct = prompt(`Apply discount % for ${name}:`, currentPct);
-            if (pct === null) return;
-            pct = parseFloat(pct);
-            if (isNaN(pct) || pct < 0 || pct > 100) {
-                alert("Please enter a valid percentage (0-100)");
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast-msg ' + (type || '');
+            t.style.display = 'block';
+        }
+
+        async function applyPromo(promoId) {
+            if (!promoId) return;
+            const res = await fetch("{% url 'apply-discount' order.id %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ promo_id: promoId })
+            });
+            const data = await res.json();
+            if (data.success) window.location.reload();
+            else showToast(data.error || 'Failed to apply promo', 'error');
+        }
+
+        async function applyManualDiscount() {
+            const val = document.getElementById('manualDiscount').value;
+            if (!val) return;
+            const res = await fetch("{% url 'apply-discount' order.id %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ type: 'percentage', value: val })
+            });
+            const data = await res.json();
+            if (data.success) window.location.reload();
+            else showToast(data.error || 'Failed to apply discount', 'error');
+        }
+
+        async function recordPay(method) {
+            const amountInput = document.getElementById('payAmount');
+            const amount = amountInput ? amountInput.value : '{{ remaining }}';
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showToast('Enter a valid amount', 'error');
                 return;
             }
-            fetch(`/item-discount/${itemId}/`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                body: JSON.stringify({percent: pct})
-            })
-            .then(r => r.json())
-            .then(d => {
-                if (d.success) location.reload();
-                else alert(d.error);
-            });
-        }
 
-        function setVal(v) { document.getElementById('payAmount').value = v; }
-        function splitVal(v) { 
-            let p = prompt("Split into how many?"); 
-            if(p > 0) document.getElementById('payAmount').value = (v / p).toFixed(2); 
-        }
-
-        async function recordPay(method, amountOverride = null) {
-            const amount = amountOverride !== null ? amountOverride : document.getElementById('payAmount').value;
-            const toast = document.getElementById('toast');
-            
-            toast.style.display = "block";
-            toast.innerText = "Processing...";
-            toast.className = "toast-msg";
+            showToast('Processing...', '');
 
             try {
                 const res = await fetch("{% url 'pay-order' order.id %}", {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
                     body: JSON.stringify({ method, amount })
                 });
+
+                if (!res.ok) throw new Error('Server error ' + res.status);
                 const data = await res.json();
-                
-                if(data.success) {
-                    toast.innerText = data.message;
-                    toast.classList.add("success");
-                    // Important for payment requirement logic
-                    window.onbeforeunload = null;
-                    setTimeout(() => window.location.reload(), 1000);
+
+                if (data.success) {
+                    if (data.change_due && data.change_due > 0) {
+                        document.getElementById('toast').style.display = 'none';
+                        document.getElementById('changeDueAmount').innerText = '₹ ' + parseFloat(data.change_due).toFixed(2);
+                        document.getElementById('changeModal').style.display = 'flex';
+                        document.body.style.overflow = 'hidden';
+                    } else {
+                        showToast('Payment Successful!', 'success');
+                        setTimeout(() => window.location.reload(), 800);
+                    }
                 } else {
-                    toast.innerText = data.error;
-                    toast.classList.add("error");
+                    showToast(data.error || 'Payment Failed', 'error');
                 }
             } catch(e) {
-                toast.innerText = "Connection error";
-                toast.classList.add("error");
+                showToast('Network Error — check connection', 'error');
             }
         }
 
-        async function logBypassAndRedirect(orderId) {
+        // ── Cancel order ─────────────────────────────────────────────
+        async function cancelOrder() {
+            if (!confirm('Cancel this order completely? This cannot be undone.')) return;
+
+            showToast('Cancelling...', '');
+
             try {
-                await fetch(`/log-bypass/${orderId}/`, {
+                const res = await fetch("{% url 'cancel-order' order.id %}", {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') }
+                    headers: { 'X-CSRFToken': CSRF }
                 });
-            } catch(e) { console.error('Failed to log bypass:', e); }
-            window.location.href = "/token/";
-        }
 
-        function getCookie(name) {
-            let v = null;
-            if (document.cookie) {
-                document.cookie.split(";").forEach(c => {
-                    let trimmed = c.trim();
-                    if (trimmed.startsWith(name + "=")) v = decodeURIComponent(trimmed.split("=")[1]);
-                });
+                if (!res.ok) throw new Error('Server error ' + res.status);
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast('Order Cancelled', 'success');
+                    setTimeout(() => {
+                        window.location.href = "{% url 'token-dashboard' %}";
+                    }, 1000);
+                } else {
+                    showToast(data.error || 'Failed to cancel', 'error');
+                }
+            } catch(e) {
+                showToast('Network Error — check connection', 'error');
             }
-            return v;
+        }
+
+        function closeChangeModal() {
+            window.location.reload();
         }
     </script>
 
-    {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
-    <script>
-        // Prevent users from going back using the browser back button
-        history.pushState(null, null, location.href);
-        window.onpopstate = function () {
-            history.go(1);
-            const toast = document.getElementById('toast');
-            toast.style.display = "block";
-            toast.innerText = "Please complete payment first.";
-            toast.className = "toast-msg error";
-        };
-    </script>
-    {% endif %}
+    <!-- Change Due Modal -->
+    <div id="changeModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(4px);">
+        <div style="background:var(--panel); border:1px solid var(--border); width:400px; max-width:90%; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+            
+            <div style="border-bottom:1px solid var(--border); padding:1.5rem;">
+                <h5 style="font-family:'DM Serif Display', serif; font-size:1.3rem; margin:0; color:var(--text);">Payment Complete</h5>
+            </div>
 
+            <div style="padding:2.5rem 1.5rem; text-align:center;">
+                <i class="bi bi-cash-coin" style="font-size:3rem; color:var(--gold); display:block; margin-bottom:1rem;"></i>
+                <h2 style="font-family:'Outfit', sans-serif; color:var(--muted); text-transform:uppercase; letter-spacing:2px; font-size:1rem; margin-bottom:0.5rem; font-weight:500;">Change Due</h2>
+                <div id="changeDueAmount" style="font-size:3.5rem; font-weight:700; color:var(--success); font-family:'DM Serif Display', serif; margin:1rem 0; line-height:1;">₹ 0.00</div>
+                <p style="color:var(--muted); font-size:0.9rem; margin-bottom:0;">Please hand this exact amount back to the customer.</p>
+            </div>
 
-
-        /* THEME MANAGEMENT */
-        let isDark = localStorage.getItem("dark") === "true";
-        function updateTheme() {
-            if (isDark) document.body.classList.add("dark");
-            else document.body.classList.remove("dark");
-        }
-        updateTheme();
-    </script>
+            <div style="border-top:1px solid var(--border); padding:1.5rem;">
+                <button onclick="closeChangeModal()" style="width:100%; padding:1rem; background:transparent; border:1px solid var(--gold); color:var(--gold); font-family:'Outfit', sans-serif; font-size:0.95rem; font-weight:600; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='var(--gold)'; this.style.color='var(--bg)';" onmouseout="this.style.background='transparent'; this.style.color='var(--gold)';">
+                    DONE & CLOSE ORDER
+                </button>
+            </div>
+            
+        </div>
+    </div>
 </body>
 </html>

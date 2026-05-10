@@ -1,42 +1,60 @@
+# orders/tasks.py
+# ============================================================
+# Celery removed (BUG-002):
+#   There is no celery.py, no broker, and no worker process.
+#   @shared_task queues silently — nothing fires — KOTs never print.
+#   Changed to a plain function. Add Celery back after first live day.
+#
+# Station → KitchenStation (BUG-001):
+#   setup.models has KitchenStation, not Station.
+#   The old import would crash with ImportError the first time
+#   any KOT print was attempted.
+# ============================================================
+
 import logging
-from celery import shared_task
+from setup.models import KitchenStation
+from orders.services.printing_service import PrintingService
 
 logger = logging.getLogger("pos.printing")
 
-@shared_task(bind=True, max_retries=3)
-def print_kot_task(self, station_id, order_id, kot_id):
+
+def print_kot_task(station_id, order_id, kot_id):
     """
-    Background task to print a KOT to a network thermal printer.
-    Retries up to 3 times on failure.
+    Synchronously prints a KOT to a network thermal printer.
+    Called directly from kot_service after transaction commit.
+    Returns True on success, False on failure — never raises.
     """
     from orders.models import Order, KOTBatch
-    from setup.models import Station
-    from orders.services.printing_service import PrintingService
 
     try:
-        station = Station.objects.get(id=station_id)
-        order = Order.objects.get(id=order_id)
-        kot = KOTBatch.objects.get(id=kot_id)
+        station = KitchenStation.objects.get(id=station_id)
+        order   = Order.objects.get(id=order_id)
+        kot     = KOTBatch.objects.get(id=kot_id)
 
         if not station.printer_ip:
-            logger.warning(f"Station {station.name} has no printer IP. Skipping print task.")
+            logger.warning(
+                "Station '%s' has no printer IP configured. KOT #%s skipped.",
+                station.name, kot.kot_number
+            )
             return False
 
         printer = PrintingService(
-            printer_type="network", 
-            host=station.printer_ip, 
-            port=station.printer_port
+            printer_type="network",
+            host=station.printer_ip,
+            port=getattr(station, "printer_port", 9100),
         )
         printer.print_kot(order, kot)
-        
-        logger.info(f"Successfully printed KOT #{kot.kot_number} for Order #{order.id} at {station.name}")
+
+        logger.info(
+            "KOT #%s for Order #%s printed at station '%s'.",
+            kot.kot_number, order.id, station.name
+        )
         return True
 
-    except (Station.DoesNotExist, Order.DoesNotExist, KOTBatch.DoesNotExist) as e:
-        logger.error(f"Failed to find required records for printing KOT: {e}")
+    except (KitchenStation.DoesNotExist, Order.DoesNotExist, KOTBatch.DoesNotExist) as e:
+        logger.error("KOT print failed — record not found: %s", e)
         return False
-        
+
     except Exception as e:
-        logger.error(f"Auto-printing KOT #{kot_id} failed: {e}")
-        # Retry with exponential backoff
-        raise self.retry(exc=e, countdown=2 ** self.request.retries)
+        logger.error("KOT #%s print failed: %s", kot_id, e)
+        return False
