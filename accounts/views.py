@@ -39,6 +39,9 @@ def login_view(request):
 
             elif user.role == "cashier":
                 if tenant_type != 'fine_dining':
+                    from core.features import has_feature
+                    if has_feature(user.tenant, "direct_billing_mode"):
+                        return redirect("/dashboard/")
                     return redirect("token-dashboard")
                 return redirect("/billing/")
 
@@ -62,7 +65,7 @@ def logout_view(request):
 @tenant_required
 def owner_dashboard(request):
 
-    if request.user.role not in ["owner", "manager"]:
+    if request.user.role not in ["owner", "manager", "cashier"]:
         return HttpResponseForbidden()
 
     metrics = owner_dashboard_metrics(request.user)
@@ -103,6 +106,11 @@ def owner_dashboard(request):
 
     # ── Role-aware card visibility ────────────────────────────────────
     is_manager = request.user.role == "manager"
+    is_cashier = request.user.role == "cashier"
+
+    # Cashiers are only allowed on this dashboard if direct_billing_mode is active
+    if is_cashier and not direct_billing_mode:
+        return redirect("token-dashboard")
 
     return render(
         request,
@@ -115,6 +123,7 @@ def owner_dashboard(request):
             "direct_billing_mode":  direct_billing_mode,
             "active_token_count":   active_token_count,
             "is_manager":           is_manager,
+            "is_cashier":           is_cashier,
         }
     )
 

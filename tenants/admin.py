@@ -1,6 +1,6 @@
 # tenants/admin.py
 from django.contrib import admin
-from .models import Tenant, Outlet
+from .models import Tenant, Outlet, TenantFeatureOverride
 
 
 @admin.register(Tenant)
@@ -34,3 +34,9 @@ class OutletAdmin(admin.ModelAdmin):
     list_filter = ("tenant", "is_active")
 
     search_fields = ("name",)
+
+@admin.register(TenantFeatureOverride)
+class TenantFeatureOverrideAdmin(admin.ModelAdmin):
+    list_display = ("tenant", "feature", "enabled")
+    list_filter = ("feature", "enabled")
+    search_fields = ("tenant__name", "feature")

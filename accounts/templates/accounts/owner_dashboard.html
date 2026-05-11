@@ -164,6 +164,7 @@
 </div>
 
 <!-- ADMINISTRATIVE -->
+{% if not is_cashier %}
 <h5 class="section-title">Administrative Tasks <small>Back of House</small></h5>
 <div class="row g-3">
     <div class="col-6 col-md-3">
@@ -247,9 +248,11 @@
     {% endif %}
     {% endif %}
 </div>
+{% endif %}
 
 
 <!-- METRICS -->
+{% if not is_cashier %}
 <h5 class="section-title">Today's Performance <small>{{ request.user.outlet.name }}</small></h5>
 
 <div class="row g-3">
@@ -268,6 +271,7 @@
 <div class="col-12 text-center py-5 text-muted">No operational data for today yet.</div>
 {% endfor %}
 </div>
+{% endif %}
 
 </div>
 

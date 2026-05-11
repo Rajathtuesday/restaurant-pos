@@ -960,36 +960,41 @@
 
         /* ── TAB SWITCHING (Current Order ↔ Active Orders) ──────────────── */
         function switchTab(tab) {
-            // Desktop elements
-            const cartView    = document.getElementById('cartView');
-            const runningView = document.getElementById('runningView');
-            const activeView  = document.getElementById('activeOrdersView');
-            const tabCart     = document.getElementById('tabCart');
-            const tabActive   = document.getElementById('tabActive');
-            // Mobile elements
-            const cartViewM    = document.getElementById('cartViewMobile');
-            const runningViewM = document.getElementById('runningViewMobile');
-            const activeViewM  = document.getElementById('activeOrdersViewMobile');
-            const tabCartM     = document.getElementById('tabCartMobile');
-            const tabActiveM   = document.getElementById('tabActiveMobile');
-            // Cart summary (only visible on cart tab)
-            const summaryD = document.getElementById('cartSummaryBlock');
-            const summaryM = document.getElementById('cartSummaryBlockMobile');
+            const toggleIfFound = (id, cls, add) => {
+                const el = document.getElementById(id);
+                if (el) { add ? el.classList.add(cls) : el.classList.remove(cls); }
+            };
 
             if (tab === 'cart') {
-                [cartView, cartViewM].forEach(el => el && el.classList.remove('d-none'));
-                [activeView, activeViewM].forEach(el => el && el.classList.add('d-none'));
-                [runningView, runningViewM].forEach(el => el && el.classList.add('d-none'));
-                [tabCart, tabCartM].forEach(el => el && el.classList.add('active'));
-                [tabActive, tabActiveM].forEach(el => el && el.classList.remove('active'));
-                [summaryD, summaryM].forEach(el => el && el.classList.remove('d-none'));
+                toggleIfFound('cartView', 'd-none', false);
+                toggleIfFound('cartViewMobile', 'd-none', false);
+                toggleIfFound('activeOrdersView', 'd-none', true);
+                toggleIfFound('activeOrdersViewMobile', 'd-none', true);
+                toggleIfFound('runningView', 'd-none', true);
+                toggleIfFound('runningViewMobile', 'd-none', true);
+                
+                toggleIfFound('tabCart', 'active', true);
+                toggleIfFound('tabCartMobile', 'active', true);
+                toggleIfFound('tabActive', 'active', false);
+                toggleIfFound('tabActiveMobile', 'active', false);
+                
+                toggleIfFound('cartSummaryBlock', 'd-none', false);
+                toggleIfFound('cartSummaryBlockMobile', 'd-none', false);
             } else if (tab === 'active') {
-                [activeView, activeViewM].forEach(el => el && el.classList.remove('d-none'));
-                [cartView, cartViewM].forEach(el => el && el.classList.add('d-none'));
-                [runningView, runningViewM].forEach(el => el && el.classList.add('d-none'));
-                [tabActive, tabActiveM].forEach(el => el && el.classList.add('active'));
-                [tabCart, tabCartM].forEach(el => el && el.classList.remove('active'));
-                [summaryD, summaryM].forEach(el => el && el.classList.add('d-none'));
+                toggleIfFound('activeOrdersView', 'd-none', false);
+                toggleIfFound('activeOrdersViewMobile', 'd-none', false);
+                toggleIfFound('cartView', 'd-none', true);
+                toggleIfFound('cartViewMobile', 'd-none', true);
+                toggleIfFound('runningView', 'd-none', true);
+                toggleIfFound('runningViewMobile', 'd-none', true);
+                
+                toggleIfFound('tabActive', 'active', true);
+                toggleIfFound('tabActiveMobile', 'active', true);
+                toggleIfFound('tabCart', 'active', false);
+                toggleIfFound('tabCartMobile', 'active', false);
+                
+                toggleIfFound('cartSummaryBlock', 'd-none', true);
+                toggleIfFound('cartSummaryBlockMobile', 'd-none', true);
             }
         }
 
@@ -1035,25 +1040,6 @@
         let sending = false;
         let currentOrderId = null;
         let activeModal = null;
-
-        /* TABS DESKTOP */
-        function switchTab(tab) {
-            document.getElementById("tabCart").classList.toggle("active", tab === 'cart');
-            document.getElementById("tabRunning").classList.toggle("active", tab === 'running');
-            document.getElementById("cartView").classList.toggle("d-none", tab !== 'cart');
-            document.getElementById("runningView").classList.toggle("d-none", tab !== 'running');
-            document.getElementById("cartSummaryBlock").classList.toggle("d-none", tab !== 'cart');
-        }
-
-        /* TABS MOBILE */
-        function switchTabMobile(tab) {
-            document.getElementById("tabCartMobile").classList.toggle("active", tab === 'cart');
-            document.getElementById("tabRunningMobile").classList.toggle("active", tab === 'running');
-            document.getElementById("cartViewMobile").classList.toggle("d-none", tab !== 'cart');
-            document.getElementById("runningViewMobile").classList.toggle("d-none", tab !== 'running');
-            document.getElementById("cartSummaryBlockMobile").classList.toggle("d-none", tab !== 'cart');
-        }
-
         /* SEARCH */
         document.getElementById("menuSearch").addEventListener("input", function () {
             let t = this.value.toLowerCase();
