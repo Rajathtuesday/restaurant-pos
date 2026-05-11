@@ -147,7 +147,7 @@
         </a>
     </div>
     {% endif %}
-    {% if not is_cashier %}
+    {% if not is_cashier or request.user.tenant.tenant_type == 'fine_dining' %}
     <div class="col-6 col-md-3">
         <a href="{% if request.user.tenant.tenant_type == 'fine_dining' %}/billing/{% else %}{% url 'token-dashboard' %}{% endif %}" class="quick-card">
             <div class="icon"><i class="bi bi-receipt-cutoff"></i></div>
