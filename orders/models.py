@@ -1034,8 +1034,9 @@ class Promo(models.Model):
         return True, ""
 
     def record_use(self):
-        """Atomically increments usage_count."""
-        Promo.objects.filter(pk=self.pk).update(usage_count=models.F("usage_count") + 1)
+        """Increments usage_count. Must be called within a select_for_update() transaction block."""
+        self.usage_count += 1
+        self.save(update_fields=["usage_count"])
 
 
 # =====================================================

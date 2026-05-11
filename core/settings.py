@@ -347,4 +347,4 @@ LOGIN_REDIRECT_URL = '/dashboard/'
 #   was redirecting to /accounts/login/ (404) instead of /login/.
 # -------------------------------------------------------
 SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
-SESSION_SAVE_EVERY_REQUEST = True  # slide the expiry on every request
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
