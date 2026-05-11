@@ -282,13 +282,17 @@ def bill_view(request, order_id):
         template_name = "orders/bill.html"
         if request.user.tenant.tenant_type in ['franchise', 'cafe']:
             template_name = "orders/qsr_bill.html"
+            
+        from core.features import has_feature
+        direct_billing_mode = has_feature(request.user.tenant, "direct_billing_mode")
         
         return render(request, template_name, {
             "order": order,
             "config": config,
             "remaining": remaining,
             "total_paid": total_paid,
-            "promos": valid_promos
+            "promos": valid_promos,
+            "direct_billing_mode": direct_billing_mode
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

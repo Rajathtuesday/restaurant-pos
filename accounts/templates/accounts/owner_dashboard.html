@@ -128,6 +128,7 @@
             <p>{% if direct_billing_mode %}Tap to start billing{% else %}QSR Billing{% endif %}</p>
         {% if direct_billing_mode %}</button>{% else %}</a>{% endif %}
     </div>
+    {% if not is_cashier %}
     <div class="col-6 col-md-3">
         <a href="{% url 'token-dashboard' %}" class="quick-card">
             <div class="icon"><i class="bi bi-grid-3x3-gap"></i></div>
@@ -135,6 +136,7 @@
             <p>All Active Tokens</p>
         </a>
     </div>
+    {% endif %}
     {% endif %}
     {% if 'kitchen_display' in tenant_features %}
     <div class="col-6 col-md-3">
@@ -145,6 +147,7 @@
         </a>
     </div>
     {% endif %}
+    {% if not is_cashier %}
     <div class="col-6 col-md-3">
         <a href="{% if request.user.tenant.tenant_type == 'fine_dining' %}/billing/{% else %}{% url 'token-dashboard' %}{% endif %}" class="quick-card">
             <div class="icon"><i class="bi bi-receipt-cutoff"></i></div>
@@ -152,6 +155,7 @@
             <p>POS Terminal</p>
         </a>
     </div>
+    {% endif %}
     {% if request.user.tenant.tenant_type == 'fine_dining' %}
     <div class="col-6 col-md-3">
         <a href="/waiter-dashboard/" class="quick-card">

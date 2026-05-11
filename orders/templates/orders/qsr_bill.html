@@ -72,7 +72,11 @@
 <body>
 
     <div style="position: relative; width: 100%; max-width: 440px;">
+        {% if direct_billing_mode %}
+        <a href="/dashboard/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Dashboard</a>
+        {% else %}
         <a href="/token/" class="nav-back no-print"><i class="bi bi-arrow-left me-2"></i> Tokens Dashboard</a>
+        {% endif %}
 
         <div class="receipt-container">
             <div class="header">
@@ -169,7 +173,11 @@
                     </div>
                     <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                         <button class="btn-action" style="border-color:var(--gold); color:var(--gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print</button>
+                        {% if direct_billing_mode %}
+                        <button class="btn-action" style="text-align:center; cursor:pointer;" onclick="createNextOrder()"><i class="bi bi-plus-circle me-2"></i> Next Order</button>
+                        {% else %}
                         <a href="/token/" class="btn-action" style="text-align:center; text-decoration:none;"><i class="bi bi-plus-circle me-2"></i> New Order</a>
+                        {% endif %}
                     </div>
                 {% endif %}
             </div>
@@ -268,7 +276,7 @@
                 if (data.success) {
                     showToast('Order Cancelled', 'success');
                     setTimeout(() => {
-                        window.location.href = "{% url 'token-dashboard' %}";
+                        window.location.href = "{% if direct_billing_mode %}/dashboard/{% else %}{% url 'token-dashboard' %}{% endif %}";
                     }, 1000);
                 } else {
                     showToast(data.error || 'Failed to cancel', 'error');
@@ -279,8 +287,32 @@
         }
 
         function closeChangeModal() {
-            window.location.reload();
+            {% if direct_billing_mode %}
+            createNextOrder();
+            {% else %}
+            window.location.href = "{% url 'token-dashboard' %}";
+            {% endif %}
         }
+        
+        {% if direct_billing_mode %}
+        async function createNextOrder() {
+            showToast('Starting next order...', '');
+            try {
+                const res = await fetch("{% url 'create-and-go' %}", {
+                    method: "POST",
+                    headers: { "X-CSRFToken": CSRF, "Content-Type": "application/json" }
+                });
+                const data = await res.json();
+                if(data.success && data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    showToast(data.error || "Failed to create next order", "error");
+                }
+            } catch(e) {
+                showToast("Network Error", "error");
+            }
+        }
+        {% endif %}
     </script>
 
     <!-- Change Due Modal -->
