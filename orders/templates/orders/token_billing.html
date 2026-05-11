@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>POS | Point of Sale</title>
+    <title>POS | Token Billing — {% if token %}{{ token.display_number }}{% endif %} | {{ request.user.tenant.name }}</title>
     <!-- Explicit Mobile Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <!-- Premium Fonts: DM Serif Display (Serif) & Inter (Sans-serif) -->
@@ -624,7 +624,47 @@
             opacity: 1;
             pointer-events: auto;
         }
-    </style>
+</style>
+
+<!-- Active orders sidebar extra styles -->
+<style>
+    /* ── Active Orders sidebar tab styles ───────────────────────── */
+    .active-orders-list { padding: 0; }
+    .active-order-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        text-decoration: none;
+        color: var(--text-main);
+        transition: background 0.2s;
+    }
+    .active-order-item:hover { background: var(--bg-color); color: var(--text-main); }
+    .active-order-item.current {
+        background: linear-gradient(90deg, rgba(197,160,89,0.08) 0%, transparent 100%);
+        border-left: 3px solid var(--accent-gold);
+    }
+    .aoi-token {
+        font-family: 'DM Serif Display', serif;
+        font-size: 1.2rem;
+        min-width: 44px;
+        text-align: center;
+        line-height: 1;
+    }
+    .aoi-details { flex: 1; min-width: 0; }
+    .aoi-customer { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .aoi-amount { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+    .aoi-badge {
+        font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px;
+        padding: 0.15rem 0.45rem; border-radius: 2px;
+    }
+    .aoi-badge.online { background: #fc8019; color: #fff; }
+    .aoi-badge.billing { background: #f59e0b; color: #fff; }
+    .aoi-badge.open { background: var(--border-color); color: var(--text-muted); }
+    .aoi-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+</style>
 </head>
 
 <body>
@@ -709,13 +749,20 @@
 
         <!-- DESKTOP CONTEXT SIDEBAR -->
         <aside class="context-sidebar">
-            <div class="context-tabs" style="justify-content: flex-start; padding-left: 1.5rem;">
-                <div class="context-tab active" id="tabCart" style="flex: none; border-bottom-width: 3px;">CURRENT ORDER</div>
+            <div class="context-tabs">
+                <div class="context-tab active" id="tabCart" onclick="switchTab('cart')" style="border-bottom-width: 3px;">CURRENT ORDER</div>
+                <div class="context-tab" id="tabActive" onclick="switchTab('active')" style="border-bottom-width: 3px;">ACTIVE
+                    {% with cnt=all_active|length %}{% if cnt %}<span style="font-size:0.65rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}{% endwith %}
+                </div>
             </div>
 
+            <!-- Current Order body -->
             <div class="context-body" id="cartView">
                 <div class="text-center mb-3">
-                    <h4 class="serif-text m-0" style="color:var(--accent-gold);">Token #{{ token.token_number }}</h4>
+                    <h4 class="serif-text m-0" style="color:var(--accent-gold);">
+                        {% if token %}{{ token.display_number }}{% else %}—{% endif %}
+                    </h4>
+                    <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ order.get_status_display }}</div>
                 </div>
                 <script>
                     window.addEventListener('DOMContentLoaded', () => {
@@ -727,6 +774,50 @@
 
             <div class="context-body d-none" id="runningView">
                 <div id="runningItemsDesktop"></div>
+            </div>
+
+            <!-- Active Orders body -->
+            <div class="context-body d-none" id="activeOrdersView" style="padding:0; overflow-y:auto;">
+                <div class="active-orders-list">
+                    {% for t in counter_tokens %}
+                    <a href="{% url 'token-bill' t.order.id %}"
+                       class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
+                       id="aoi-{{ t.order.id }}">
+                        <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
+                        <div class="aoi-details">
+                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
+                            <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
+                        </div>
+                        <div>
+                            <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
+                            <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
+                        </div>
+                    </a>
+                    {% endfor %}
+
+                    {% if online_tokens %}
+                    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);padding:0.75rem 1rem 0.25rem;">Online Orders</div>
+                    {% for t in online_tokens %}
+                    <a href="{% url 'token-bill' t.order.id %}"
+                       class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
+                       id="aoi-{{ t.order.id }}">
+                        <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
+                        <div class="aoi-details">
+                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
+                            <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }} • {{ t.order.aggregator_order_id|default:"-" }}</div>
+                        </div>
+                        <div>
+                            <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
+                            <div class="aoi-badge online">Online</div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                    {% endif %}
+
+                    {% if not counter_tokens and not online_tokens %}
+                    <div class="aoi-empty"><i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem;"></i>No active orders</div>
+                    {% endif %}
+                </div>
             </div>
 
             <div class="cart-summary" id="cartSummaryBlock">
@@ -755,25 +846,57 @@
     <!-- MOBILE OFFCANVAS CART -->
     <div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
         <div class="offcanvas-header">
-            <h5 class="custom-title m-0" style="font-family:'DM Serif Display', serif;">Current Order</h5>
+            <h5 class="custom-title m-0" style="font-family:'DM Serif Display', serif;">Token {% if token %}{{ token.display_number }}{% endif %}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
 
-        <div class="context-tabs" style="justify-content: flex-start; padding-left: 1.5rem;">
-            <div class="context-tab active" id="tabCartMobile" style="flex: none; border-bottom-width: 3px;">CURRENT ORDER</div>
+        <div class="context-tabs">
+            <div class="context-tab active" id="tabCartMobile" onclick="switchTab('cart')" style="border-bottom-width: 3px;">CURRENT ORDER</div>
+            <div class="context-tab" id="tabActiveMobile" onclick="switchTab('active')" style="border-bottom-width: 3px;">ACTIVE
+                {% with cnt=all_active|length %}{% if cnt %}<span style="font-size:0.65rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}{% endwith %}
+            </div>
         </div>
 
         <div class="offcanvas-body d-flex flex-column p-0">
 
             <div class="context-body flex-grow-1" id="cartViewMobile">
                 <div class="text-center mb-3">
-                    <h4 class="serif-text m-0" style="color:var(--accent-gold);">Token #{{ token.token_number }}</h4>
+                    <h4 class="serif-text m-0" style="color:var(--accent-gold);">{% if token %}{{ token.display_number }}{% endif %}</h4>
                 </div>
                 <div id="cartItemsContainerMobile"></div>
             </div>
 
             <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
                 <div id="runningItemsMobile"></div>
+            </div>
+
+            <!-- Active orders mobile -->
+            <div class="context-body flex-grow-1 d-none" id="activeOrdersViewMobile" style="padding:0;overflow-y:auto;">
+                <div class="active-orders-list">
+                    {% for t in counter_tokens %}
+                    <a href="{% url 'token-bill' t.order.id %}" class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
+                        <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
+                        <div class="aoi-details">
+                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
+                            <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
+                        </div>
+                        <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
+                    </a>
+                    {% endfor %}
+                    {% for t in online_tokens %}
+                    <a href="{% url 'token-bill' t.order.id %}" class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
+                        <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
+                        <div class="aoi-details">
+                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
+                            <div class="aoi-customer">{{ t.order.aggregator_order_id|default:"-" }}</div>
+                        </div>
+                        <div class="aoi-badge online">Online</div>
+                    </a>
+                    {% endfor %}
+                    {% if not counter_tokens and not online_tokens %}
+                    <div class="aoi-empty">No active orders</div>
+                    {% endif %}
+                </div>
             </div>
 
             <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);"
@@ -833,6 +956,41 @@
                     console.log('SW registration failed: ', err);
                 });
             });
+        }
+
+        /* ── TAB SWITCHING (Current Order ↔ Active Orders) ──────────────── */
+        function switchTab(tab) {
+            // Desktop elements
+            const cartView    = document.getElementById('cartView');
+            const runningView = document.getElementById('runningView');
+            const activeView  = document.getElementById('activeOrdersView');
+            const tabCart     = document.getElementById('tabCart');
+            const tabActive   = document.getElementById('tabActive');
+            // Mobile elements
+            const cartViewM    = document.getElementById('cartViewMobile');
+            const runningViewM = document.getElementById('runningViewMobile');
+            const activeViewM  = document.getElementById('activeOrdersViewMobile');
+            const tabCartM     = document.getElementById('tabCartMobile');
+            const tabActiveM   = document.getElementById('tabActiveMobile');
+            // Cart summary (only visible on cart tab)
+            const summaryD = document.getElementById('cartSummaryBlock');
+            const summaryM = document.getElementById('cartSummaryBlockMobile');
+
+            if (tab === 'cart') {
+                [cartView, cartViewM].forEach(el => el && el.classList.remove('d-none'));
+                [activeView, activeViewM].forEach(el => el && el.classList.add('d-none'));
+                [runningView, runningViewM].forEach(el => el && el.classList.add('d-none'));
+                [tabCart, tabCartM].forEach(el => el && el.classList.add('active'));
+                [tabActive, tabActiveM].forEach(el => el && el.classList.remove('active'));
+                [summaryD, summaryM].forEach(el => el && el.classList.remove('d-none'));
+            } else if (tab === 'active') {
+                [activeView, activeViewM].forEach(el => el && el.classList.remove('d-none'));
+                [cartView, cartViewM].forEach(el => el && el.classList.add('d-none'));
+                [runningView, runningViewM].forEach(el => el && el.classList.add('d-none'));
+                [tabActive, tabActiveM].forEach(el => el && el.classList.add('active'));
+                [tabCart, tabCartM].forEach(el => el && el.classList.remove('active'));
+                [summaryD, summaryM].forEach(el => el && el.classList.add('d-none'));
+            }
         }
 
         /* THEME MANAGEMENT */

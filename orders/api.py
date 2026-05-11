@@ -58,7 +58,7 @@ def notification_api(request):
         ]
     })
 
-from orders.models import Table, Order, OrderItem
+from orders.models import Table, Order, OrderItem, Payment
 from tenants.models import Tenant, Outlet
 from setup.models import AggregatorConfig
 from menu.models import MenuItem
@@ -256,6 +256,18 @@ def api_ingest_order(request):
             if config.auto_accept_orders:
                 from orders.services.kitchen_service import send_order_to_kitchen
                 send_order_to_kitchen(order, user=None)
+
+            # Assign online token if tenant uses token_system
+            from core.features import has_feature
+            if has_feature(tenant, "token_system"):
+                from orders.views.token_views import assign_online_token
+                from core.utils import get_business_date
+                business_date = get_business_date(timezone.now(), outlet)
+                tok = assign_online_token(order, outlet, tenant, business_date)
+                logger.info(
+                    "Online token %s assigned to order %s (source=%s)",
+                    tok.display_number, order.id, source,
+                )
 
         return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number})
         

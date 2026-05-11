@@ -27,6 +27,7 @@ from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import (
     DailyTokenCounter,
+    DailyOnlineTokenCounter,
     Order,
     OrderItem,
     Payment,

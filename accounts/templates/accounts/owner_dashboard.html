@@ -111,11 +111,28 @@
         </a>
     </div>
     {% else %}
+    <!-- QSR: Core Ops card links to token dashboard (or direct billing) -->
     <div class="col-6 col-md-3">
-        <a href="{% url 'token-dashboard' %}" class="quick-card" style="border-color: var(--accent-gold);">
+        {% if direct_billing_mode %}
+        <button onclick="createAndBill()" class="quick-card w-100" style="border-color:var(--accent-gold);text-align:center;cursor:pointer;" id="directBillBtn">
+        {% else %}
+        <a href="{% url 'token-dashboard' %}" class="quick-card" style="border-color:var(--accent-gold);">
+        {% endif %}
+            <div class="icon" style="position:relative;display:inline-block;">
+                <i class="bi bi-receipt-cutoff"></i>
+                {% if active_token_count > 0 %}
+                <span style="position:absolute;top:-6px;right:-10px;background:var(--accent-gold);color:#fff;border-radius:9px;font-size:0.6rem;padding:1px 5px;font-family:'Outfit',sans-serif;font-weight:700;">{{ active_token_count }}</span>
+                {% endif %}
+            </div>
+            <h5>{% if direct_billing_mode %}New Order{% else %}Token Board{% endif %}</h5>
+            <p>{% if direct_billing_mode %}Tap to start billing{% else %}QSR Billing{% endif %}</p>
+        {% if direct_billing_mode %}</button>{% else %}</a>{% endif %}
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="{% url 'token-dashboard' %}" class="quick-card">
             <div class="icon"><i class="bi bi-grid-3x3-gap"></i></div>
             <h5>Token Board</h5>
-            <p>QSR Billing</p>
+            <p>All Active Tokens</p>
         </a>
     </div>
     {% endif %}
@@ -148,7 +165,6 @@
 
 <!-- ADMINISTRATIVE -->
 <h5 class="section-title">Administrative Tasks <small>Back of House</small></h5>
-
 <div class="row g-3">
     <div class="col-6 col-md-3">
         <a href="/inventory/board/" class="quick-card">
@@ -161,7 +177,7 @@
         <a href="/menu/" class="quick-card">
             <div class="icon"><i class="bi bi-journal-text"></i></div>
             <h5>Menu Management</h5>
-            <p>Items & Pricing</p>
+            <p>Items &amp; Pricing</p>
         </a>
     </div>
     {% if 'qr_menu' in tenant_features %}
@@ -173,7 +189,7 @@
         </a>
     </div>
     {% endif %}
-     <div class="col-6 col-md-3">
+    <div class="col-6 col-md-3">
         <a href="/shifts/sessions/" class="quick-card">
             <div class="icon"><i class="bi bi-cash-stack"></i></div>
             <h5>Cashier Shifts</h5>
@@ -192,24 +208,18 @@
     <div class="col-6 col-md-3">
         <a href="/crm/" class="quick-card">
             <div class="icon"><i class="bi bi-people"></i></div>
-            <h5>CRM & Loyalty</h5>
+            <h5>CRM &amp; Loyalty</h5>
             <p>Guest History</p>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="/setup/" class="quick-card">
-            <div class="icon"><i class="bi bi-sliders"></i></div>
-            <h5>System Setup</h5>
-            <p>Master Config</p>
         </a>
     </div>
     <div class="col-6 col-md-3">
         <a href="/reports/dashboard/" class="quick-card" style="border-color: var(--accent-gold);">
             <div class="icon"><i class="bi bi-graph-up-arrow"></i></div>
-            <h5>Reports & Analytics</h5>
-            <p>Sales & Data</p>
+            <h5>Reports &amp; Analytics</h5>
+            <p>Sales &amp; Data</p>
         </a>
     </div>
+    {% if not is_manager %}
     {% if request.user.is_superuser or request.user.role == "agent" %}
     <div class="col-6 col-md-3">
         <a href="/sales/" class="quick-card" style="border-color: var(--accent-gold);">
@@ -219,6 +229,13 @@
         </a>
     </div>
     {% endif %}
+    <div class="col-6 col-md-3">
+        <a href="/setup/" class="quick-card">
+            <div class="icon"><i class="bi bi-sliders"></i></div>
+            <h5>System Setup</h5>
+            <p>Master Config</p>
+        </a>
+    </div>
     {% if request.user.is_superuser %}
     <div class="col-6 col-md-3">
         <a href="/admin/" class="quick-card" style="border-style: dashed;">
@@ -228,7 +245,9 @@
         </a>
     </div>
     {% endif %}
+    {% endif %}
 </div>
+
 
 <!-- METRICS -->
 <h5 class="section-title">Today's Performance <small>{{ request.user.outlet.name }}</small></h5>
@@ -293,6 +312,29 @@
             }
         } catch (e) {
             showToast('Network error', 'error');
+        }
+    }
+
+    // ── Direct Billing Mode (QSR) ────────────────────────────────────
+    async function createAndBill() {
+        const btn = document.getElementById('directBillBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
+        try {
+            const res = await fetch('{% url "create-and-bill" %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' }
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            if (data.success && data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                showToast(data.error || 'Failed to create order', 'error');
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-receipt-cutoff"></i> New Order'; }
+            }
+        } catch (e) {
+            showToast('Network error — check connection', 'error');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-receipt-cutoff"></i> New Order'; }
         }
     }
 </script>

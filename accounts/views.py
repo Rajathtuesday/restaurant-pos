@@ -62,7 +62,7 @@ def logout_view(request):
 @tenant_required
 def owner_dashboard(request):
 
-    if request.user.role not in ["owner","manager"]:
+    if request.user.role not in ["owner", "manager"]:
         return HttpResponseForbidden()
 
     metrics = owner_dashboard_metrics(request.user)
@@ -79,13 +79,42 @@ def owner_dashboard(request):
         outlet=request.user.outlet
     )
 
+    # ── QSR routing context ───────────────────────────────────────────
+    tenant = request.user.tenant
+    is_qsr = tenant.tenant_type in ["franchise", "cafe"]
+
+    # direct_billing_mode: if enabled the Core Ops card skips the token
+    # dashboard and goes straight to billing (creates a token & redirects).
+    from core.features import has_feature
+    direct_billing_mode = is_qsr and has_feature(tenant, "direct_billing_mode")
+
+    # Live badge: how many open tokens are there right now?
+    active_token_count = 0
+    if is_qsr:
+        from orders.models import TokenOrder
+        from core.utils import get_business_date
+        from django.utils import timezone
+        today = get_business_date(timezone.now(), request.user.outlet)
+        active_token_count = TokenOrder.objects.filter(
+            outlet=request.user.outlet,
+            date=today,
+            order__status__in=["open", "billing"],
+        ).count()
+
+    # ── Role-aware card visibility ────────────────────────────────────
+    is_manager = request.user.role == "manager"
+
     return render(
         request,
         "accounts/owner_dashboard.html",
         {
-            "metrics": metrics,
-            "notifications": notifications,
-            "aggregator": aggregator_config,
+            "metrics":              metrics,
+            "notifications":        notifications,
+            "aggregator":           aggregator_config,
+            "is_qsr":               is_qsr,
+            "direct_billing_mode":  direct_billing_mode,
+            "active_token_count":   active_token_count,
+            "is_manager":           is_manager,
         }
     )
 
