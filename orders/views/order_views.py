@@ -33,42 +33,56 @@ def running_order_view(request, order_id):
 def running_order_items(request):
     try:
         table_id = request.GET.get("table")
-
-        if not table_id:
-            return JsonResponse({"items": [], "order_id": None})
-
-        try:
-            table_id = int(table_id)
-        except (ValueError, TypeError):
-            return JsonResponse({"items": [], "order_id": None})
+        order_id = request.GET.get("order")
 
         tenant = request.user.tenant
         outlet = request.user.outlet
+        
+        order = None
 
-        # Resolve table merge
-        merge = (
-            TableMerge.objects
-            .filter(
-                tenant=tenant, outlet=outlet,
-                is_active=True, tables__id=table_id
-            )
-            .select_related("primary_table")
-            .first()
-        )
-        if merge:
-            table_id = merge.primary_table.id
+        if order_id:
+            try:
+                order_id = int(order_id)
+                order = (
+                    Order.objects
+                    .filter(
+                        id=order_id, tenant=tenant, outlet=outlet,
+                        status__in=["open", "billing"]
+                    )
+                    .prefetch_related("items__menu_item", "items__modifiers")
+                    .first()
+                )
+            except (ValueError, TypeError):
+                pass
+        elif table_id:
+            try:
+                table_id = int(table_id)
+                # Resolve table merge
+                merge = (
+                    TableMerge.objects
+                    .filter(
+                        tenant=tenant, outlet=outlet,
+                        is_active=True, tables__id=table_id
+                    )
+                    .select_related("primary_table")
+                    .first()
+                )
+                if merge:
+                    table_id = merge.primary_table.id
 
-        order = (
-            Order.objects
-            .filter(
-                tenant=tenant, outlet=outlet,
-                table_id=table_id,
-                status__in=["open", "billing"]
-            )
-            .prefetch_related("items__menu_item", "items__modifiers")
-            .order_by("-created_at")
-            .first()
-        )
+                order = (
+                    Order.objects
+                    .filter(
+                        tenant=tenant, outlet=outlet,
+                        table_id=table_id,
+                        status__in=["open", "billing"]
+                    )
+                    .prefetch_related("items__menu_item", "items__modifiers")
+                    .order_by("-created_at")
+                    .first()
+                )
+            except (ValueError, TypeError):
+                pass
 
         if not order:
             return JsonResponse({"items": [], "order_id": None})

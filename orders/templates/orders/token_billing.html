@@ -769,11 +769,9 @@
                         currentOrderId = {{ order.id }};
                     });
                 </script>
+                
+                <div id="runningItemsDesktop" class="mb-3"></div>
                 <div id="cartItemsContainerDesktop" style="min-height: 200px;"></div>
-            </div>
-
-            <div class="context-body d-none" id="runningView">
-                <div id="runningItemsDesktop"></div>
             </div>
 
             <!-- Active Orders body -->
@@ -863,11 +861,8 @@
                 <div class="text-center mb-3">
                     <h4 class="serif-text m-0" style="color:var(--accent-gold);">{% if token %}{{ token.display_number }}{% endif %}</h4>
                 </div>
+                <div id="runningItemsMobile" class="mb-3"></div>
                 <div id="cartItemsContainerMobile"></div>
-            </div>
-
-            <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
-                <div id="runningItemsMobile"></div>
             </div>
 
             <!-- Active orders mobile -->
@@ -1244,18 +1239,12 @@
 
         /* RUNNING ORDER */
         function loadRunningOrder() {
-            let tableId = document.getElementById("tableSelectDesktop").value;
+            if (!currentOrderId) return;
+            
             let rd = document.getElementById("runningItemsDesktop");
             let rm = document.getElementById("runningItemsMobile");
 
-            if (!tableId) {
-                let msg = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>Select table</div>";
-                if (rd) rd.innerHTML = msg;
-                if (rm) rm.innerHTML = msg;
-                return;
-            }
-
-            fetch("{% url 'running-order-items' %}?table=" + tableId)
+            fetch("{% url 'running-order-items' %}?order=" + currentOrderId)
                 .then(r => r.json())
                 .then(d => {
                     currentOrderId = d.order_id || null;
