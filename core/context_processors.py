@@ -12,10 +12,20 @@ def tenant_features(request):
     if not tenant:
         return {'tenant_features': [], 'tenant_type': 'fine_dining'}
     
-    from core.features import TENANT_FEATURES
-    features = TENANT_FEATURES.get(tenant.tenant_type, TENANT_FEATURES['fine_dining'])
+    from core.features import TENANT_FEATURES, has_feature
+    from tenants.models import TenantFeatureOverride
+    
+    all_features = set()
+    for f_list in TENANT_FEATURES.values():
+        all_features.update(f_list)
+        
+    overrides = TenantFeatureOverride.objects.filter(tenant=tenant).values_list('feature', flat=True)
+    all_features.update(overrides)
+
+    resolved_features = [f for f in all_features if has_feature(tenant, f)]
     
     return {
-        'tenant_features': features,
+        'tenant_features': resolved_features,
         'tenant_type': tenant.tenant_type,
     }
+

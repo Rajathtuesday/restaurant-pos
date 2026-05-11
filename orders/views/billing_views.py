@@ -329,8 +329,8 @@ def generate_bill(request, order_id):
 # -------------------------------------------------
 
 @login_required
-@require_POST
 @tenant_required
+@require_POST
 @ratelimit(key="user", rate="15/m", method="POST", block=True)
 def pay_order(request, order_id):
     """

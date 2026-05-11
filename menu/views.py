@@ -1,3 +1,4 @@
+from core.decorators import tenant_required
 # menu/views.py
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
@@ -83,6 +84,7 @@ def call_waiter(request, qr_token):
 
 
 @login_required
+@tenant_required
 def menu_management(request):
     """
     Renders the Menu Management dashboard for Owners and Managers.
@@ -96,7 +98,8 @@ def menu_management(request):
         MenuCategory.objects
         .filter(
             tenant=request.user.tenant,
-            outlet=request.user.outlet
+            outlet=request.user.outlet,
+            is_active=True
         )
         .prefetch_related(
             "items",
@@ -117,11 +120,13 @@ def menu_management(request):
         is_active=True
     )
     
-    
+    template_name = "menu/menu_management.html"
+    if request.user.tenant.tenant_type in ['franchise', 'cafe']:
+        template_name = "menu/qsr_menu_management.html"
 
     return render(
         request,
-        "menu/menu_management.html",
+        template_name,
         {
             "categories": categories,
             "inventory": inventory,
@@ -132,6 +137,7 @@ def menu_management(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def create_category(request):
 
@@ -160,6 +166,7 @@ def create_category(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def delete_category(request, category_id):
     """
@@ -187,6 +194,7 @@ def delete_category(request, category_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def create_menu_item(request):
 
@@ -258,6 +266,7 @@ def create_menu_item(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def update_menu_item(request, item_id):
     """
@@ -328,6 +337,7 @@ def update_menu_item(request, item_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def add_recipe(request):
 
@@ -375,6 +385,7 @@ def add_recipe(request):
     
 
 @login_required
+@tenant_required
 @require_POST
 def delete_menu_item(request, item_id):
 
@@ -394,6 +405,7 @@ def delete_menu_item(request, item_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def update_price(request, item_id):
 
@@ -401,9 +413,12 @@ def update_price(request, item_id):
 
         data = json.loads(request.body)
 
-        price = float(data.get("price"))
-
-        if price < 0:
+        from decimal import Decimal, InvalidOperation
+        try:
+            price = Decimal(str(data.get("price")))
+            if price < 0:
+                return JsonResponse({"error": "Invalid price"}, status=400)
+        except InvalidOperation:
             return JsonResponse({"error": "Invalid price"}, status=400)
 
         item = get_object_or_404(
@@ -424,6 +439,7 @@ def update_price(request, item_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def toggle_item(request, item_id):
     """Toggle global visibility of an item."""
@@ -439,6 +455,7 @@ def toggle_item(request, item_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def toggle_platform_availability(request, item_id):
     """Toggle item availability on specific platforms (takeaway, zomato, swiggy)."""
@@ -469,6 +486,7 @@ def toggle_platform_availability(request, item_id):
 
 
 @login_required
+@tenant_required
 def menu_item_modifiers(request, item_id):
 
     item = get_object_or_404(
@@ -512,6 +530,7 @@ def menu_item_modifiers(request, item_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def update_station(request, item_id):
 
@@ -544,6 +563,7 @@ def update_station(request, item_id):
 
 
 @login_required
+@tenant_required
 def ai_menu_importer(request):
     """
     Upgraded AI Parser: Uses Gemini to 'see' images or parse text into menu items.
@@ -644,6 +664,7 @@ def digital_menu(request):
 
 
 @login_required
+@tenant_required
 def modifier_management(request):
     if request.user.role not in ["owner", "manager"]:
         return HttpResponseForbidden()
@@ -676,6 +697,7 @@ def modifier_management(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def create_modifier_group(request):
     try:
@@ -700,6 +722,7 @@ def create_modifier_group(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def delete_modifier_group(request, group_id):
     group = get_object_or_404(
@@ -713,6 +736,7 @@ def delete_modifier_group(request, group_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def add_modifier(request):
     try:
@@ -739,6 +763,7 @@ def add_modifier(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def delete_modifier(request, modifier_id):
     modifier = get_object_or_404(
@@ -752,6 +777,7 @@ def delete_modifier(request, modifier_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def link_modifier_group(request):
     try:
@@ -772,6 +798,7 @@ def link_modifier_group(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def unlink_modifier_group(request):
     try:
@@ -793,6 +820,7 @@ def unlink_modifier_group(request):
 
 
 @login_required
+@tenant_required
 def gst_management(request):
     """
     GST rate management page — shows all items grouped by category
@@ -825,6 +853,7 @@ def gst_management(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def update_item_gst(request, item_id):
     """
@@ -865,6 +894,7 @@ def update_item_gst(request, item_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def update_category_gst(request, category_id):
     """
@@ -907,6 +937,7 @@ def update_category_gst(request, category_id):
         return JsonResponse({"error": str(e)}, status=400)
 
 @login_required
+@tenant_required
 @require_POST
 def sync_menu_to_outlets(request):
     """
@@ -987,3 +1018,5 @@ def sync_menu_to_outlets(request):
                             if recipe_created: stats["recipes_created"] += 1
 
     return JsonResponse({"success": True, "stats": stats})
+
+

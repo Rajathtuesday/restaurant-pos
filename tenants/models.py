@@ -219,3 +219,17 @@ class Outlet(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"
+class TenantFeatureOverride(models.Model):
+    """
+    Overrides the default features provided by the tenant_type.
+    """
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="feature_overrides")
+    feature = models.CharField(max_length=50, help_text="Feature name (e.g. barcode_transfer, split_bill)")
+    enabled = models.BooleanField(default=True, help_text="True to enable, False to explicitly disable")
+    notes = models.TextField(blank=True, help_text="Reason for override (e.g. 'Central kitchen needed')")
+
+    class Meta:
+        unique_together = ('tenant', 'feature')
+
+    def __str__(self):
+        return f"{self.tenant.name} - {self.feature} - {'Enabled' if self.enabled else 'Disabled'}"

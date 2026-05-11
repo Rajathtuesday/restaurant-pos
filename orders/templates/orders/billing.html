@@ -640,24 +640,40 @@
             <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">POS Billing — {{ request.user.outlet.name }}</p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            {% if 'floor_plan' in tenant_features %}
             <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
+            {% endif %}
+            {% if 'kitchen_display' in tenant_features %}
             <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
+            {% endif %}
+            {% if 'waiter_call' in tenant_features %}
             <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex position-relative">
                 <i class="bi bi-bell me-1"></i> Calls
                 <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
             </a>
+            {% endif %}
+            {% if 'reports' in tenant_features %}
             <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+            {% endif %}
             <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i
                     class="bi bi-box-arrow-right"></i></a>
 
             <!-- Mobile compact links -->
+            {% if 'floor_plan' in tenant_features %}
             <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
+            {% endif %}
+            {% if 'kitchen_display' in tenant_features %}
             <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
+            {% endif %}
+            {% if 'waiter_call' in tenant_features %}
             <a href="/waiter-dashboard/" class="btn-icon d-sm-none position-relative" title="Calls">
                 <i class="bi bi-bell"></i>
                 <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
             </a>
+            {% endif %}
+            {% if 'reports' in tenant_features %}
             <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+            {% endif %}
             <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 
             <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">

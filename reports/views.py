@@ -1,3 +1,4 @@
+from core.decorators import tenant_required
 # reports/views.py
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -17,6 +18,7 @@ from django.http import HttpResponse, JsonResponse
 from reports.services.kitchen_reports import kitchen_performance, top_kitchen_items
 
 @login_required
+@tenant_required
 def dashboard(request):
     # Allow Owners, Managers, Agents, and Superusers
     if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
@@ -181,6 +183,7 @@ def dashboard(request):
     })
 
 @login_required
+@tenant_required
 def kitchen_dashboard(request):
     if request.user.role not in ["owner", "manager"]:
         return HttpResponseForbidden()
@@ -254,6 +257,7 @@ def kitchen_dashboard(request):
     })
 
 @login_required
+@tenant_required
 def export_reports(request):
     """
     Handles CSV and Excel exports.
@@ -334,3 +338,5 @@ def export_reports(request):
         return response
         
     return HttpResponseForbidden("Invalid export type")
+
+

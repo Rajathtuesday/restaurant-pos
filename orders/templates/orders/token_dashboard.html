@@ -324,9 +324,11 @@
         </div>
 
         {% if 'kitchen_display' in tenant_features %}
-        <a href="/kitchen/" class="btn-lux" style="display:none;" id="kitchenLink">Kitchen</a>
+        <a href="/kitchen/" class="btn-lux d-none d-sm-inline-flex" id="kitchenLink">Kitchen</a>
         {% endif %}
+        {% if 'reports' in tenant_features %}
         <a href="/reports/dashboard/" class="btn-lux d-none d-sm-inline-flex">Reports</a>
+        {% endif %}
         <button class="theme-toggle" onclick="toggleDark()" title="Toggle dark mode"><i class="bi bi-moon-stars-fill" id="themeIcon"></i></button>
         <a href="/logout/" class="btn-lux" style="border:none; padding:0.55rem;"><i class="bi bi-box-arrow-right"></i></a>
     </div>
