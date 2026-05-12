@@ -6,7 +6,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from django.db import transaction
-from core.decorators import tenant_required
+from core.decorators import tenant_required, feature_required
 from orders.models import Order, TableMerge, OrderItem
 from orders.services.event_service import log_event
 
@@ -15,6 +15,7 @@ logger = logging.getLogger("pos.orders")
 
 @login_required
 @tenant_required
+@feature_required("running_order")
 def running_order_view(request, order_id):
     order = Order.objects.filter(
         id=order_id,
@@ -30,6 +31,7 @@ def running_order_view(request, order_id):
 
 @login_required
 @tenant_required
+@feature_required("running_order")
 def running_order_items(request):
     try:
         table_id = request.GET.get("table")
@@ -107,6 +109,7 @@ def running_order_items(request):
 
 @login_required
 @tenant_required
+@feature_required("running_order")
 def running_order_data(request, order_id):
     order = (
         Order.objects
@@ -143,6 +146,7 @@ def running_order_data(request, order_id):
 
 @login_required
 @tenant_required
+@feature_required("qr_menu")
 @require_POST
 def approve_items(request, order_id):
     """Waiters approve items added via QR code."""

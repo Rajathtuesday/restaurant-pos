@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, feature_required
 from orders.models import WaiterCall, KitchenMessage
 
 logger = logging.getLogger("pos.orders")
@@ -13,6 +13,7 @@ logger = logging.getLogger("pos.orders")
 
 @login_required
 @tenant_required
+@feature_required("waiter_call")
 def waiter_dashboard(request):
     calls = WaiterCall.objects.filter(
         tenant=request.user.tenant,
@@ -34,6 +35,7 @@ def waiter_dashboard(request):
 
 @login_required
 @tenant_required
+@feature_required("waiter_call")
 @require_POST
 def resolve_waiter_call(request, call_id):
     try:
@@ -54,6 +56,7 @@ def resolve_waiter_call(request, call_id):
 
 @login_required
 @tenant_required
+@feature_required("kitchen_display")
 @require_POST
 def resolve_kitchen_message(request, message_id):
     try:

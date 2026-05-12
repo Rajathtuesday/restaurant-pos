@@ -44,7 +44,8 @@ class QSRFixtureMixin:
     def _build(self):
         self.tenant = Tenant.objects.create(name="QSR Test Co", tenant_type="franchise")
         self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Outlet")
-        self.today  = date.today()
+        from core.utils import get_business_date
+        self.today  = get_business_date(timezone.now(), self.outlet)
 
         self.owner = User.objects.create_user(
             username="owner1", password="pass",
@@ -271,7 +272,8 @@ class TestAssignOnlineToken(TestCase, QSRFixtureMixin):
     def test_online_counter_increments(self):
         self._assign()
         self._assign()
-        counter = DailyOnlineTokenCounter.objects.get(outlet=self.outlet, date=date.today())
+        from core.utils import get_business_date
+        counter = DailyOnlineTokenCounter.objects.get(outlet=self.outlet, date=get_business_date(timezone.now(), self.outlet))
         self.assertEqual(counter.value, 2)
 
     def test_online_does_not_affect_counter_tokens(self):
@@ -290,7 +292,7 @@ class TestAssignOnlineToken(TestCase, QSRFixtureMixin):
         existing_order = self._make_order(source="zomato")
         TokenOrder.objects.create(
             tenant=self.tenant, outlet=self.outlet,
-            order=existing_order, token_number=5, date=date.today(), is_online=True,
+            order=existing_order, token_number=5, date=self.today, is_online=True,
         )
         # No DailyOnlineTokenCounter row exists — next assign should pick up from 6
         new_order = self._make_order(source="swiggy")
@@ -394,7 +396,8 @@ class TestTokenBillingSidebar(TestCase, QSRFixtureMixin):
         self._build()
         self.client = Client()
         self.client.login(username="cashier1", password="pass")
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def _make_token(self, is_online=False, status="open"):
         source = "zomato" if is_online else "counter"
@@ -485,7 +488,8 @@ class TestTokenDashboardUpgrade(TestCase, QSRFixtureMixin):
 
     def setUp(self):
         self._build()
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def _login_as(self, user):
         c = Client()
@@ -564,7 +568,8 @@ class TestOnlineTokenConcurrency(TransactionTestCase):
             tenant=self.tenant, outlet=self.outlet,
             opened_by=self.user, opening_balance=0, status="open",
         )
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def _create_online_token(self, results, idx):
         from django.db import connection, transaction

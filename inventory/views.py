@@ -1,4 +1,4 @@
-from core.decorators import tenant_required
+from core.decorators import tenant_required, feature_required
 # inventory/views.py
 import json
 import logging
@@ -26,6 +26,7 @@ def _manager_required(user):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 def inventory_board(request):
     if not _manager_required(request.user):
         return HttpResponseForbidden("Access denied")
@@ -49,6 +50,7 @@ def inventory_board(request):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 @require_POST
 def restock_item(request, item_id):
     if not _manager_required(request.user):
@@ -84,6 +86,7 @@ def restock_item(request, item_id):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 @require_POST
 def create_inventory_item(request):
     if not _manager_required(request.user):
@@ -139,6 +142,7 @@ def create_inventory_item(request):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 @require_POST
 def update_inventory_item(request, item_id):
     if not _manager_required(request.user):
@@ -195,6 +199,7 @@ def update_inventory_item(request, item_id):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 def supplier_list(request):
     if not _manager_required(request.user):
         return HttpResponseForbidden()
@@ -209,6 +214,7 @@ def supplier_list(request):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 @require_POST
 def create_supplier(request):
     if not _manager_required(request.user):
@@ -248,6 +254,7 @@ def create_supplier(request):
 
 @login_required
 @tenant_required
+@feature_required("inventory")
 @require_POST
 def delete_supplier(request, supplier_id):
     if not _manager_required(request.user):
@@ -272,6 +279,7 @@ def delete_supplier(request, supplier_id):
 
 @login_required
 @tenant_required
+@feature_required("purchase_orders")
 def purchase_order_list(request):
     """
     Lists all POs for this outlet.
@@ -310,6 +318,7 @@ def purchase_order_list(request):
 
 @login_required
 @tenant_required
+@feature_required("purchase_orders")
 @require_POST
 def create_purchase_order(request):
     """
@@ -421,6 +430,7 @@ def create_purchase_order(request):
 
 @login_required
 @tenant_required
+@feature_required("purchase_orders")
 @require_POST
 def mark_po_ordered(request, po_id):
     """Marks a draft PO as 'ordered' (sent to supplier). Sets ordered_at timestamp."""
@@ -445,6 +455,7 @@ def mark_po_ordered(request, po_id):
 
 @login_required
 @tenant_required
+@feature_required("purchase_orders")
 @require_POST
 def receive_purchase_order(request, po_id):
     """
@@ -484,6 +495,7 @@ def receive_purchase_order(request, po_id):
 
 @login_required
 @tenant_required
+@feature_required("purchase_orders")
 @require_POST
 def cancel_purchase_order(request, po_id):
     """
@@ -514,6 +526,7 @@ def cancel_purchase_order(request, po_id):
 
 @login_required
 @tenant_required
+@feature_required("purchase_orders")
 def purchase_order_print(request, po_id):
     """Renders a print-friendly view of a purchase order."""
     if not _manager_required(request.user):

@@ -337,7 +337,7 @@ class ExportServicesTest(TestCase):
         reader = csv.reader(io.StringIO(result))
         headers = next(reader)
 
-        self.assertIn("Waiter Name", headers)
+        self.assertIn("Staff Name", headers)
         self.assertIn("Total Revenue Handled", headers)
         self.assertIn("Average Order Value", headers)
 

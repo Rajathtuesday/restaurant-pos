@@ -3,7 +3,7 @@
 <html>
 <head>
 
-<title>Owner Dashboard | {% if request.user.tenant.tenant_type == 'fine_dining' %}Fine Dining{% else %}QSR POS{% endif %}</title>
+<title>Dashboard | {{ request.user.tenant.name }}</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -14,8 +14,6 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="{% static 'css/luxury.css' %}" rel="stylesheet">
 <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
     :root {
         --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
         --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -29,40 +27,32 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg-color); color: var(--text-main); font-family: 'Outfit', sans-serif; min-height: 100vh; transition: var(--transition-smooth); -webkit-font-smoothing: antialiased; }
 
-    /* TOAST */
     #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--text-main); color: var(--bg-color); padding: 0.75rem 1.5rem; font-size: 0.85rem; letter-spacing: 0.5px; z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
     #toast.error { background: #ef4444; color: #fff; }
     #toast.success { background: #22c55e; color: #fff; }
 
-    /* HEADER */
-    .pos-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); margin-bottom: 2rem;}
+    .pos-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); margin-bottom: 2rem; }
     .brand-title { font-size: 1.5rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'DM Serif Display', serif; font-weight: 700; }
     .brand-title i { color: var(--accent-gold); }
     .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition-smooth); text-decoration: none; display: inline-flex; align-items: center; }
     .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
     .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
 
-    .section-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;}
+    .section-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
     .section-title small { font-size: 0.75rem; font-family: 'Outfit', sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
 
-    /* CARDS */
     .quick-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0; padding: 1.5rem; text-align: center; cursor: pointer; transition: var(--transition-smooth); box-shadow: var(--shadow); height: 100%; text-decoration: none; display: block; color: var(--text-main); }
     .quick-card:hover { transform: translateY(-4px); border-color: var(--accent-gold); color: inherit; }
     .icon { font-size: 2rem; margin-bottom: 0.8rem; }
     .quick-card h5 { margin: 0; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; }
     .quick-card p { font-size: 0.75rem; color: var(--text-muted); margin: 0.5rem 0 0; }
 
-    /* METRICS */
     .outlet-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0; padding: 1.5rem; box-shadow: var(--shadow); }
-    .outlet-card h6 { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--accent-gold); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem;}
+    .outlet-card h6 { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--accent-gold); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
     .metric { display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px dashed var(--border-color); font-size: 0.85rem; font-weight: 500; }
     .metric:last-child { border: none; }
     .revenue { color: var(--accent-gold); font-weight: 700; font-size: 1rem; }
     .low-stock { color: #ef4444; font-weight: 700; }
-
-    .context-info { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 3rem; text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;}
-    .context-info strong { color: var(--text-main); font-weight: 600; }
-
 </style>
 </head>
 
@@ -72,37 +62,41 @@
         <h1 class="brand-title"><i class="bi bi-diamond-half"></i> {{ request.user.tenant.name }}</h1>
         <p class="mb-0 text-muted" style="font-size:0.8rem; letter-spacing:1px; text-transform:uppercase;">Admin Dashboard — {{ request.user.outlet.name }}</p>
     </div>
-    
+
     <div class="d-flex align-items-center gap-2">
-        {% if request.user.tenant.tenant_type != 'fine_dining' %}
-        <!-- Aggregator Quick Toggles (QSR Only) -->
+
+        {# Aggregator quick toggles — only if platform_sync feature is on #}
+        {% if 'platform_sync' in tenant_features %}
         <div class="d-none d-md-flex align-items-center me-2" style="background: var(--panel-bg); border: 1px solid var(--border-color); padding: 0.25rem; border-radius: 4px;">
             <span style="font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin: 0 0.5rem;">Online:</span>
-            
             <button id="toggle-zomato" class="btn-luxury" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: 3px; border: none; {% if aggregator.zomato_enabled %}background: #e23744; color: white;{% else %}background: transparent; color: var(--text-muted);{% endif %}" onclick="toggleAggregator('zomato', {% if aggregator.zomato_enabled %}false{% else %}true{% endif %})">
                 Zomato
             </button>
-            
             <button id="toggle-swiggy" class="btn-luxury" style="padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: 3px; border: none; {% if aggregator.swiggy_enabled %}background: #fc8019; color: white;{% else %}background: transparent; color: var(--text-muted);{% endif %}" onclick="toggleAggregator('swiggy', {% if aggregator.swiggy_enabled %}false{% else %}true{% endif %})">
                 Swiggy
             </button>
         </div>
         {% endif %}
-        
+
+        {% if 'reports' in tenant_features %}
         <a href="/reports/dashboard/" class="btn-luxury"><i class="bi bi-bar-chart me-2"></i> Reports</a>
+        {% endif %}
         <a href="/logout/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
         <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
             <i class="bi bi-moon" id="themeIcon"></i>
         </button>
     </div>
 </header>
+
 <div class="container py-3">
 
-<!-- CORE OPS -->
+<!-- ══ CORE OPERATIONS ══════════════════════════════════════════════ -->
 <h5 class="section-title">Core Operations <small>Front of House</small></h5>
 
 <div class="row g-3">
-    {% if request.user.tenant.tenant_type == 'fine_dining' %}
+
+    {# Floor plan — fine dining / any tenant with floor_plan enabled #}
+    {% if 'floor_plan' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/tables/" class="quick-card">
             <div class="icon"><i class="bi bi-grid-3x3-gap"></i></div>
@@ -110,8 +104,10 @@
             <p>Live Floor Plan</p>
         </a>
     </div>
-    {% else %}
-    <!-- QSR: Core Ops card links to token dashboard (or direct billing) -->
+    {% endif %}
+
+    {# Token board — QSR / any tenant with token_system enabled #}
+    {% if 'token_system' in tenant_features %}
     <div class="col-6 col-md-3">
         {% if direct_billing_mode %}
         <button onclick="createAndBill()" class="quick-card w-100" style="border-color:var(--accent-gold);text-align:center;cursor:pointer;" id="directBillBtn">
@@ -128,6 +124,7 @@
             <p>{% if direct_billing_mode %}Tap to start billing{% else %}QSR Billing{% endif %}</p>
         {% if direct_billing_mode %}</button>{% else %}</a>{% endif %}
     </div>
+    {# Non-cashier managers also get a plain Token Board card for oversight #}
     {% if not is_cashier %}
     <div class="col-6 col-md-3">
         <a href="{% url 'token-dashboard' %}" class="quick-card">
@@ -138,6 +135,8 @@
     </div>
     {% endif %}
     {% endif %}
+
+    {# Kitchen display #}
     {% if 'kitchen_display' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/kitchen/" class="quick-card">
@@ -147,16 +146,20 @@
         </a>
     </div>
     {% endif %}
-    {% if not is_cashier or request.user.tenant.tenant_type == 'fine_dining' %}
+
+    {# Billing — shown if not cashier, or if cashier with floor_plan (fine dining) #}
+    {% if not is_cashier or 'floor_plan' in tenant_features %}
     <div class="col-6 col-md-3">
-        <a href="{% if request.user.tenant.tenant_type == 'fine_dining' %}/billing/{% else %}{% url 'token-dashboard' %}{% endif %}" class="quick-card">
+        <a href="{% if 'floor_plan' in tenant_features %}/billing/{% else %}{% url 'token-dashboard' %}{% endif %}" class="quick-card">
             <div class="icon"><i class="bi bi-receipt-cutoff"></i></div>
             <h5>Billing</h5>
             <p>POS Terminal</p>
         </a>
     </div>
     {% endif %}
-    {% if request.user.tenant.tenant_type == 'fine_dining' %}
+
+    {# Waiter calls — only if waiter_call feature is on #}
+    {% if 'waiter_call' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/waiter-dashboard/" class="quick-card">
             <div class="icon"><i class="bi bi-bell"></i></div>
@@ -165,12 +168,17 @@
         </a>
     </div>
     {% endif %}
+
 </div>
 
-<!-- ADMINISTRATIVE -->
+
+<!-- ══ ADMINISTRATIVE ════════════════════════════════════════════════ -->
 {% if not is_cashier %}
 <h5 class="section-title">Administrative Tasks <small>Back of House</small></h5>
 <div class="row g-3">
+
+    {# Inventory — gated on feature #}
+    {% if 'inventory' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/inventory/board/" class="quick-card">
             <div class="icon"><i class="bi bi-box-seam"></i></div>
@@ -178,6 +186,9 @@
             <p>Stock Levels</p>
         </a>
     </div>
+    {% endif %}
+
+    {# Menu management — always visible (all tenant types manage their menu) #}
     <div class="col-6 col-md-3">
         <a href="/menu/" class="quick-card">
             <div class="icon"><i class="bi bi-journal-text"></i></div>
@@ -185,6 +196,8 @@
             <p>Items &amp; Pricing</p>
         </a>
     </div>
+
+    {# QR Menu — only if qr_menu feature is on #}
     {% if 'qr_menu' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/menu/qr/" class="quick-card">
@@ -194,6 +207,9 @@
         </a>
     </div>
     {% endif %}
+
+    {# Cashier shifts — gated on shift_management feature #}
+    {% if 'shift_management' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/shifts/sessions/" class="quick-card">
             <div class="icon"><i class="bi bi-cash-stack"></i></div>
@@ -201,7 +217,10 @@
             <p>Reconciliation</p>
         </a>
     </div>
-    {% if request.user.tenant.tenant_type == 'fine_dining' %}
+    {% endif %}
+
+    {# Reservations — gated on feature (fine dining by default, custom override possible) #}
+    {% if 'reservations' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/crm/reservations/" class="quick-card">
             <div class="icon"><i class="bi bi-calendar-check"></i></div>
@@ -210,6 +229,9 @@
         </a>
     </div>
     {% endif %}
+
+    {# CRM — gated on feature (fine dining by default) #}
+    {% if 'crm' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/crm/" class="quick-card">
             <div class="icon"><i class="bi bi-people"></i></div>
@@ -217,6 +239,10 @@
             <p>Guest History</p>
         </a>
     </div>
+    {% endif %}
+
+    {# Reports — gated on feature #}
+    {% if 'reports' in tenant_features %}
     <div class="col-6 col-md-3">
         <a href="/reports/dashboard/" class="quick-card" style="border-color: var(--accent-gold);">
             <div class="icon"><i class="bi bi-graph-up-arrow"></i></div>
@@ -224,7 +250,11 @@
             <p>Sales &amp; Data</p>
         </a>
     </div>
+    {% endif %}
+
     {% if not is_manager %}
+
+    {# Partner portal — role / agent based, not feature based #}
     {% if request.user.is_superuser or request.user.role == "agent" %}
     <div class="col-6 col-md-3">
         <a href="/sales/" class="quick-card" style="border-color: var(--accent-gold);">
@@ -234,6 +264,8 @@
         </a>
     </div>
     {% endif %}
+
+    {# System setup — always for owner / superuser #}
     <div class="col-6 col-md-3">
         <a href="/setup/" class="quick-card">
             <div class="icon"><i class="bi bi-sliders"></i></div>
@@ -241,6 +273,19 @@
             <p>Master Config</p>
         </a>
     </div>
+
+    {# Feature settings — SUPERUSER ONLY. Owners cannot enable features they haven't paid for. #}
+    {% if request.user.is_superuser %}
+    <div class="col-6 col-md-3">
+        <a href="{% url 'feature_flags' %}" class="quick-card" style="border-color: var(--accent-gold);">
+            <div class="icon"><i class="bi bi-toggles" style="color: var(--accent-gold);"></i></div>
+            <h5>Feature Settings</h5>
+            <p>Toggle Platform Features</p>
+        </a>
+    </div>
+    {% endif %}
+
+    {# Django admin — superuser only #}
     {% if request.user.is_superuser %}
     <div class="col-6 col-md-3">
         <a href="/admin/" class="quick-card" style="border-style: dashed;">
@@ -250,25 +295,25 @@
         </a>
     </div>
     {% endif %}
-    {% endif %}
+
+    {% endif %}{# /not is_manager #}
 </div>
-{% endif %}
+{% endif %}{# /not is_cashier #}
 
 
-<!-- METRICS -->
+<!-- ══ TODAY'S PERFORMANCE ══════════════════════════════════════════ -->
 {% if not is_cashier %}
 <h5 class="section-title">Today's Performance <small>{{ request.user.outlet.name }}</small></h5>
-
 <div class="row g-3">
 {% for m in metrics %}
 <div class="col-12 col-md-6 col-lg-4">
 <div class="outlet-card">
-<h6>{{m.outlet}}</h6>
-<div class="metric"><span>Revenue</span><span class="revenue">₹ {{m.revenue}}</span></div>
-<div class="metric"><span>Orders</span><span><strong>{{m.orders}}</strong></span></div>
-<div class="metric"><span>Active Tables</span><span><strong>{{m.active_tables}}</strong></span></div>
-<div class="metric"><span>Kitchen Queue</span><span><strong>{{m.kitchen_orders}}</strong></span></div>
-<div class="metric"><span>Low Stock Items</span><span class="low-stock">{{m.low_stock}}</span></div>
+<h6>{{ m.outlet }}</h6>
+<div class="metric"><span>Revenue</span><span class="revenue">₹ {{ m.revenue }}</span></div>
+<div class="metric"><span>Orders</span><span><strong>{{ m.orders }}</strong></span></div>
+<div class="metric"><span>Active Tables</span><span><strong>{{ m.active_tables }}</strong></span></div>
+<div class="metric"><span>Kitchen Queue</span><span><strong>{{ m.kitchen_orders }}</strong></span></div>
+<div class="metric"><span>Low Stock Items</span><span class="low-stock">{{ m.low_stock }}</span></div>
 </div>
 </div>
 {% empty %}
@@ -277,17 +322,18 @@
 </div>
 {% endif %}
 
-</div>
-
-</div>
-
+</div>{# /container #}
 <div id="toast"></div>
 
 <script>
     const CSRF = '{{ csrf_token }}';
 
     let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
+    function updateIcons() {
+        const icon = document.getElementById("themeIcon");
+        if (isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); }
+        else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
+    }
     updateIcons();
     function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
 
@@ -300,7 +346,6 @@
         el._timer = setTimeout(() => { el.style.display = 'none'; }, duration);
     }
 
-    // ── Aggregator Quick Toggle ──────────────────────────────────────
     async function toggleAggregator(platform, enable) {
         try {
             const res = await fetch('/setup/aggregators/toggle/', {
@@ -308,10 +353,8 @@
                 headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ platform: platform, enabled: enable })
             });
-
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-
             if (data.success) {
                 showToast(`${platform.toUpperCase()} ${enable ? 'ON' : 'OFF'}`, 'success');
                 setTimeout(() => window.location.reload(), 500);
@@ -323,7 +366,6 @@
         }
     }
 
-    // ── Direct Billing Mode (QSR) ────────────────────────────────────
     async function createAndBill() {
         const btn = document.getElementById('directBillBtn');
         if (btn) { btn.disabled = true; btn.textContent = 'Creating…'; }
@@ -349,4 +391,3 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

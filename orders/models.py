@@ -99,7 +99,7 @@ class Order(models.Model):
     )
 
     order_number = models.CharField(
-        max_length=20,
+        max_length=30,
         unique=True,
         null=True,
         blank=True
@@ -196,7 +196,7 @@ class Order(models.Model):
             counter.save(update_fields=["value"])
 
             # 3. Format and update the order number
-            order_number = f"INV-{business_date.strftime('%Y%m%d')}-{counter.value:04d}"
+            order_number = f"INV-{self.outlet.id}-{business_date.strftime('%Y%m%d')}-{counter.value:04d}"
             Order.objects.filter(pk=self.pk).update(order_number=order_number)
             self.order_number = order_number  # keep in-memory object consistent
 

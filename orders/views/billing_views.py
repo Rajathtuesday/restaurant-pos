@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
-from core.decorators import tenant_required, role_required
+from core.decorators import tenant_required, role_required, feature_required
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderEvent, OrderItem, Table, TableMerge, Payment
 from shifts.models import CashSession
@@ -217,10 +217,11 @@ def create_order(request):
                 d_type = data.get("discount_type")
                 d_val = data.get("discount_value")
                 if d_type in ["percentage", "amount"]:
+                    from decimal import InvalidOperation
                     try:
                         order.discount_type = d_type
                         order.discount_value = Decimal(str(d_val or 0))
-                    except:
+                    except (ValueError, TypeError, InvalidOperation):
                         pass
 
             order.save()
@@ -759,6 +760,7 @@ def print_bill_action(request, order_id):
 @login_required
 @require_POST
 @tenant_required
+@feature_required("split_bill")
 def split_pay(request, order_id):
     """
     Splits the order grand_total evenly across N people and records

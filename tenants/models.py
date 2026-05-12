@@ -111,14 +111,28 @@ class Tenant(models.Model):
             slug = base_slug
             counter = 1
 
-            # ensure slug uniqueness
             while Tenant.objects.filter(slug=slug).exclude(id=self.id).exists():
                 slug = f"{base_slug}-{counter}"
                 counter += 1
 
             self.slug = slug
 
-        super().save(*args, **kwargs)
+        from django.db import IntegrityError as _IntegrityError
+        try:
+            super().save(*args, **kwargs)
+        except _IntegrityError:
+            # Two tenants created simultaneously with the same name can race
+            # through the uniqueness loop and both attempt the same slug.
+            # Retry with a numeric suffix to resolve the collision.
+            base_slug = slugify(self.name)
+            counter = 1
+            while True:
+                candidate = f"{base_slug}-{counter}"
+                if not Tenant.objects.filter(slug=candidate).exists():
+                    self.slug = candidate
+                    break
+                counter += 1
+            super().save(*args, **kwargs)
 
 
 # --------------------------------------------------

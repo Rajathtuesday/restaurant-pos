@@ -96,20 +96,25 @@ def deduct_inventory_for_items(order_items):
     if transactions_to_create:
         InventoryTransaction.objects.bulk_create(transactions_to_create)
 
-    # Defer notifications and PO generation outside the DB transaction if possible,
-    # or handle them lightly.
-    # We use a post-commit hook to prevent holding locks during I/O
+    # Defer notifications and PO generation to after the transaction commits
+    # so that side-effects never fire for rolled-back stock changes.
+    # new_stock_map holds the pre-computed post-deduction stock per item id.
     if low_stock_items:
-        from django.db import connection
-        
+        new_stock_map = {
+            inv_id: inv.stock - required_qty_map[inv_id]
+            for inv_id, inv in locked_items.items()
+            if inv_id in required_qty_map
+        }
+
         def trigger_low_stock_alerts():
             from notifications.services.notification_service import create_notification
             for item in low_stock_items:
+                computed_new_stock = new_stock_map.get(item.id, item.stock)
                 create_notification(
                     item.tenant,
                     item.outlet,
                     "low_stock",
-                    f"{item.name} low stock ({item.stock} {item.unit})"
+                    f"{item.name} low stock ({computed_new_stock} {item.unit})"
                 )
                 if getattr(item, 'preferred_supplier', None) and item.reorder_quantity > 0:
                     try:

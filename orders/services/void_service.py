@@ -2,7 +2,8 @@
 from django.utils import timezone
 from django.db import transaction
 
-from orders.models import OrderItem
+from orders.models import Order, OrderItem
+from orders.exceptions import OrderError
 from orders.services.event_service import log_event
 
 
@@ -21,9 +22,9 @@ def void_order_item(user, item_id, reason):
     )
 
     if item.status == "voided":
-        raise Exception("Item is already voided")
+        raise OrderError("Item is already voided")
     if item.status == "served" and user.role not in ["manager", "owner"]:
-        raise Exception("Item is already served. Manager override required.")
+        raise OrderError("Item is already served. Manager override required.")
 
     item.status = "voided"
     item.void_reason = reason
@@ -37,7 +38,9 @@ def void_order_item(user, item_id, reason):
         "voided_at"
     ])
 
-    order = item.order
+    # Lock the Order row before recalculating so concurrent voids on the same
+    # order cannot read a stale item set and overwrite each other's totals.
+    order = Order.objects.select_for_update().get(id=item.order_id)
 
     order.recalculate_totals()
 

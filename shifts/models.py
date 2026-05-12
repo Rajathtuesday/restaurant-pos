@@ -1,5 +1,6 @@
 # shifts/models.py
 from django.db import models
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 
@@ -119,18 +120,19 @@ class StaffSchedule(models.Model):
     def duration_hours(self):
         start = self.template.start_time if self.template else self.start_time
         end = self.template.end_time if self.template else self.end_time
-        
+
         if not start or not end:
             return 0
-            
-        from datetime import datetime, date
-        # Handle overnight shifts
-        d1 = datetime.combine(date.today(), start)
-        d2 = datetime.combine(date.today(), end)
+
+        from datetime import datetime, date, timedelta
+        # Use a fixed sentinel date for pure time arithmetic so that the
+        # result never accidentally inherits today's date in display/logging.
+        _sentinel = date(2000, 1, 1)
+        d1 = datetime.combine(_sentinel, start)
+        d2 = datetime.combine(_sentinel, end)
         if d2 < d1:
-            from datetime import timedelta
             d2 += timedelta(days=1)
-            
+
         return round((d2 - d1).total_seconds() / 3600, 2)
 
     class Meta:
@@ -179,6 +181,13 @@ class CashSession(models.Model):
         indexes = [
             models.Index(fields=["tenant", "outlet", "status"]),
             models.Index(fields=["opened_at"]),
+        ]
+        constraints = [
+            UniqueConstraint(
+                fields=["outlet"],
+                condition=Q(status="open"),
+                name="one_open_session_per_outlet"
+            )
         ]
         ordering = ["-opened_at"]
 

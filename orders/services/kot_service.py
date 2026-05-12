@@ -16,29 +16,18 @@ from setup.services.station_service import get_default_station
 def create_kot(user, order):
 
     # -----------------------------------------
-    # LOCK ONLY ORDER ITEMS
+    # LOCK ORDER ITEMS + LOAD RELATIONS IN ONE QUERY
     # -----------------------------------------
 
-    items = (
+    items = list(
         OrderItem.objects
         .select_for_update(of=("self",))
-        .filter(
-            order=order,
-            status="pending"
-        )
+        .filter(order=order, status="pending")
+        .select_related("menu_item", "menu_item__station")
     )
 
-    if not items.exists():
+    if not items:
         raise Exception("No items to send to kitchen")
-
-    # -----------------------------------------
-    # LOAD RELATIONS AFTER LOCK
-    # -----------------------------------------
-
-    items = items.select_related(
-        "menu_item",
-        "menu_item__station"
-    )
 
     # -----------------------------------------
     # GROUP ITEMS BY STATION
@@ -129,14 +118,22 @@ def create_kot(user, order):
         table.save(update_fields=["state"])
 
     # -----------------------------------------
-    # EXECUTE PRINTING (ASYNC CELERY TASK)
+    # EXECUTE PRINTING (ASYNC THREAD ON COMMIT)
     # -----------------------------------------
-    for station, kot in print_jobs:
-        try:
-            # We defer the import to avoid circular dependencies if any
-            from orders.tasks import print_kot_task
-            print_kot_task.delay(station.id, order.id, kot.id)
-        except Exception as e:
-            logger.error(f"Failed to queue print task for KOT #{kot.kot_number}: {e}")
+    def dispatch_prints():
+        import threading
+        from orders.tasks import print_kot_task
+        for station, kot in print_jobs:
+            try:
+                # Run the print task in a background thread to prevent blocking
+                threading.Thread(
+                    target=print_kot_task, 
+                    args=(station.id, order.id, kot.id),
+                    daemon=True
+                ).start()
+            except Exception as e:
+                logger.error(f"Failed to spawn print thread for KOT #{kot.kot_number}: {e}")
+
+    transaction.on_commit(dispatch_prints)
 
     return created_kots

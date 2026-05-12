@@ -101,7 +101,10 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
         if not menu_item.is_available:
             raise MenuItemError(f"'{menu_item.name}' is currently unavailable.")
 
-        quantity = int(item.get("quantity", 1))
+        try:
+            quantity = int(item.get("quantity", 1))
+        except (TypeError, ValueError):
+            raise CartError("Quantity must be a valid integer.")
 
         if quantity <= 0:
             raise CartError("Quantity must be greater than zero.")

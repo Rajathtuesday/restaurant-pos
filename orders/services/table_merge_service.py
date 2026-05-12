@@ -6,18 +6,23 @@ from orders.models import Order, Table, TableMerge
 @transaction.atomic
 def merge_tables(user, primary_table_id, table_ids):
 
-    primary_table = Table.objects.get(
-        id=primary_table_id,
-        tenant=user.tenant,
-        outlet=user.outlet
-    )
+    # Lock all involved tables in consistent ID order to prevent deadlocks
+    # from concurrent merge requests that overlap the same tables.
+    all_ids = sorted(set([primary_table_id] + list(table_ids)))
+    locked = {
+        t.id: t
+        for t in Table.objects.select_for_update().filter(
+            id__in=all_ids,
+            tenant=user.tenant,
+            outlet=user.outlet
+        )
+    }
 
-    # remove primary from list
-    tables = Table.objects.filter(
-        id__in=table_ids,
-        tenant=user.tenant,
-        outlet=user.outlet
-    ).exclude(id=primary_table_id)
+    primary_table = locked.get(primary_table_id)
+    if not primary_table:
+        raise Exception("Primary table not found")
+
+    tables = [t for t in locked.values() if t.id != primary_table_id]
 
     merge = TableMerge.objects.create(
         tenant=user.tenant,

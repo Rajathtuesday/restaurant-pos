@@ -7,23 +7,18 @@ def base_url(request):
 def tenant_features(request):
     if not request.user.is_authenticated:
         return {'tenant_features': [], 'tenant_type': 'fine_dining'}
-    
+
     tenant = getattr(request.user, 'tenant', None)
     if not tenant:
         return {'tenant_features': [], 'tenant_type': 'fine_dining'}
-    
-    from core.features import TENANT_FEATURES, has_feature
-    from tenants.models import TenantFeatureOverride
-    
-    all_features = set()
-    for f_list in TENANT_FEATURES.values():
-        all_features.update(f_list)
-        
-    overrides = TenantFeatureOverride.objects.filter(tenant=tenant).values_list('feature', flat=True)
-    all_features.update(overrides)
 
-    resolved_features = [f for f in all_features if has_feature(tenant, f)]
-    
+    from core.features import has_feature, get_all_known_features
+
+    # Use the canonical feature list from FEATURE_GROUPS so custom-only features
+    # (multi_kitchen, loyalty_points, etc.) are evaluated for tenants that have
+    # overrides enabling them — not just the TENANT_FEATURES defaults.
+    resolved_features = [f for f in get_all_known_features() if has_feature(tenant, f)]
+
     return {
         'tenant_features': resolved_features,
         'tenant_type': tenant.tenant_type,

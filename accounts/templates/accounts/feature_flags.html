@@ -1,0 +1,264 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+<title>Feature Management{% if tenant %} — {{ tenant.name }}{% endif %} | Rasova</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+:root {
+    --bg: #f8f8f8; --panel: #ffffff; --text: #111111; --muted: #737373;
+    --border: #e5e5e5; --gold: #c5a059; --gold-dim: rgba(197,160,89,0.12);
+    --red: #ef4444; --green: #22c55e;
+    --ease: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+body.dark {
+    --bg: #0a0a0a; --panel: #111111; --text: #f0f0f0; --muted: #888;
+    --border: #262626; --gold: #d4af37; --gold-dim: rgba(212,175,55,0.1);
+    --shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+/* HEADER */
+.hdr { padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--panel); }
+.hdr-brand { font-family: 'DM Serif Display', serif; font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+.hdr-brand i { color: var(--gold); }
+.hdr-right { display: flex; align-items: center; gap: 8px; }
+.btn-ghost { border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 0.75rem; letter-spacing: 0.8px; text-transform: uppercase; padding: 0.5rem 0.9rem; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: var(--ease); }
+.btn-ghost:hover { border-color: var(--text); background: var(--text); color: var(--bg); }
+.btn-icon { border: 1px solid var(--border); background: transparent; color: var(--text); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--ease); }
+.btn-icon:hover { border-color: var(--gold); color: var(--gold); }
+
+/* WRAPPER */
+.wrap { max-width: 1140px; margin: 0 auto; padding: 2.5rem 2rem 5rem; }
+
+/* STAFF BANNER */
+.staff-banner { background: var(--gold-dim); border: 1px solid var(--gold); padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--gold); margin-bottom: 2rem; }
+
+/* TENANT SELECTOR (no tenant chosen yet) */
+.tenant-picker { background: var(--panel); border: 1px solid var(--border); padding: 2.5rem; text-align: center; max-width: 560px; margin: 4rem auto; }
+.tenant-picker h2 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; font-weight: 400; margin-bottom: 0.5rem; }
+.tenant-picker p { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+.tenant-picker select { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.95rem; font-family: 'Outfit', sans-serif; margin-bottom: 1rem; }
+.btn-primary-luxury { background: var(--text); color: var(--bg); border: none; padding: 0.75rem 2rem; font-size: 0.85rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: var(--ease); font-family: 'Outfit', sans-serif; width: 100%; }
+.btn-primary-luxury:hover { background: var(--gold); }
+
+/* PAGE HEADER */
+.page-hdr { margin-bottom: 2.5rem; }
+.page-hdr h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 400; }
+.page-hdr p { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
+.tenant-chip { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); padding: 0.35rem 0.9rem; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+.tenant-chip i { color: var(--gold); }
+.tenant-chip a { color: var(--gold); text-decoration: none; font-size: 0.7rem; margin-left: 6px; }
+.tenant-chip a:hover { text-decoration: underline; }
+
+/* LEGEND */
+.legend { display: flex; gap: 1.5rem; margin-bottom: 2rem; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--muted); }
+.ldot { width: 10px; height: 10px; border: 1px solid; }
+.ldot.default { border-color: var(--border); }
+.ldot.override { border-color: var(--gold); background: var(--gold-dim); }
+
+/* GROUP SECTION */
+.group-section { margin-bottom: 2.5rem; }
+.group-title { font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); font-weight: 600; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+
+/* FEATURE CARD */
+.features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 0.75rem; }
+.feature-card {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 1.25rem 1.25rem; display: flex; align-items: center;
+    justify-content: space-between; gap: 1rem;
+    transition: var(--ease); position: relative;
+}
+.feature-card:hover { border-color: var(--gold); box-shadow: var(--shadow); }
+.feature-card.is-off { opacity: 0.5; }
+.feature-card.is-off:hover { opacity: 1; }
+.feature-card.saving::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--gold); animation: border-pulse 0.8s infinite; }
+@keyframes border-pulse { 50% { opacity: 0.3; } }
+
+.f-left { display: flex; align-items: flex-start; gap: 0.9rem; flex: 1; min-width: 0; }
+.f-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--bg); border: 1px solid var(--border); flex-shrink: 0; font-size: 1.1rem; color: var(--gold); }
+.f-info { flex: 1; min-width: 0; }
+.f-label { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.f-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+.src-badge { font-size: 0.6rem; letter-spacing: 0.8px; text-transform: uppercase; padding: 0.15rem 0.45rem; border: 1px solid; white-space: nowrap; }
+.src-badge.default { color: var(--muted); border-color: var(--border); }
+.src-badge.override { color: var(--gold); border-color: var(--gold); background: var(--gold-dim); }
+
+/* TOGGLE */
+.toggle-wrap { position: relative; flex-shrink: 0; }
+.toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-label { display: inline-block; width: 50px; height: 26px; background: var(--border); border-radius: 0; cursor: pointer; transition: var(--ease); position: relative; }
+.toggle-label::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: var(--muted); transition: var(--ease); }
+.toggle-wrap input:checked + .toggle-label { background: var(--gold); }
+.toggle-wrap input:checked + .toggle-label::after { transform: translateX(24px); background: #fff; }
+.toggle-wrap input:disabled + .toggle-label { cursor: not-allowed; opacity: 0.5; }
+
+/* TOAST */
+#toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 0.65rem 1.4rem; font-size: 0.82rem; letter-spacing: 0.4px; z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+#toast.error { background: var(--red); color: #fff; }
+#toast.success { background: var(--green); color: #fff; }
+</style>
+</head>
+<body id="body-el">
+
+<header class="hdr">
+    <div class="hdr-brand"><i class="bi bi-toggles"></i> Feature Management</div>
+    <div class="hdr-right">
+        <a href="{% url 'dashboard' %}" class="btn-ghost"><i class="bi bi-arrow-left"></i> Dashboard</a>
+        <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon-stars" id="theme-icon"></i></button>
+    </div>
+</header>
+
+<div class="wrap">
+
+    <div class="staff-banner">
+        <i class="bi bi-shield-lock-fill"></i>
+        Rasova Staff Only — changes here affect what restaurant owners can see and do.
+    </div>
+
+    {% if not tenant %}
+    <!-- ── TENANT PICKER ── -->
+    <div class="tenant-picker">
+        <h2>Select a Restaurant</h2>
+        <p>Choose a tenant to view and manage their feature overrides.</p>
+        <form method="get">
+            <select name="tenant_id" id="tenant-select" required>
+                <option value="">— pick a restaurant —</option>
+                {% for t in all_tenants %}
+                <option value="{{ t.id }}">{{ t.name }} · {{ t.get_tenant_type_display }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn-primary-luxury">Open Feature Settings</button>
+        </form>
+    </div>
+
+    {% else %}
+    <!-- ── FEATURE GRID ── -->
+    <div class="page-hdr">
+        <div class="tenant-chip">
+            <i class="bi bi-building"></i>
+            {{ tenant.name }} &nbsp;·&nbsp; {{ tenant_type_display }}
+            <a href="{% url 'feature_flags' %}">↩ change</a>
+        </div>
+        <h1>Platform Features</h1>
+        <p>Overrides take effect immediately. Toggles marked <span style="color:var(--gold)">Override</span> differ from the plan default.</p>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="ldot default"></div> Plan Default</div>
+        <div class="legend-item"><div class="ldot override"></div> Override</div>
+    </div>
+
+    {% for group_name, group_features in grouped_features.items %}
+    <div class="group-section">
+        <div class="group-title"><i class="bi bi-grip-vertical"></i> &nbsp;{{ group_name }}</div>
+        <div class="features-grid">
+            {% for feature in group_features %}
+            <div class="feature-card {% if feature.state == 'off' %}is-off{% endif %}" id="card-{{ feature.key }}">
+                <div class="f-left">
+                    <div class="f-icon"><i class="bi {{ feature.icon }}"></i></div>
+                    <div class="f-info">
+                        <div class="f-label">
+                            {{ feature.label }}
+                            <span class="src-badge {{ feature.source }}" id="badge-{{ feature.key }}">
+                                {% if feature.source == 'override' %}Override{% else %}Default{% endif %}
+                            </span>
+                        </div>
+                        <div class="f-desc">{{ feature.desc }}</div>
+                    </div>
+                </div>
+                <div class="toggle-wrap">
+                    <input type="checkbox" id="toggle-{{ feature.key }}"
+                        {% if feature.state == 'on' %}checked{% endif %}
+                        onchange="toggleFeature('{{ feature.key }}', this.checked)">
+                    <label class="toggle-label" for="toggle-{{ feature.key }}"></label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    {% endif %}
+</div><!-- /wrap -->
+
+<div id="toast"></div>
+
+<script>
+const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+const TENANT_ID = {{ tenant.id|default:"null" }};
+
+function toggleFeature(feature, enabled) {
+    if (!TENANT_ID) return;
+    const card = document.getElementById('card-' + feature);
+    const checkbox = document.getElementById('toggle-' + feature);
+    card.classList.add('saving');
+    checkbox.disabled = true;
+
+    fetch('{% url "toggle_feature_flag" %}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+        body: JSON.stringify({ tenant_id: TENANT_ID, feature: feature, enabled: enabled }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        card.classList.remove('saving');
+        checkbox.disabled = false;
+
+        if (data.error) {
+            checkbox.checked = !enabled;
+            showToast('Error: ' + data.error, 'error');
+            return;
+        }
+
+        if (enabled) {
+            card.classList.remove('is-off');
+        } else {
+            card.classList.add('is-off');
+        }
+
+        const badge = document.getElementById('badge-' + feature);
+        badge.className = 'src-badge ' + data.source;
+        badge.textContent = data.source === 'override' ? 'Override' : 'Default';
+
+        showToast((enabled ? '✓ Enabled' : '✗ Disabled') + ': ' + feature.replace(/_/g, ' '), 'success');
+    })
+    .catch(() => {
+        card.classList.remove('saving');
+        checkbox.disabled = false;
+        checkbox.checked = !enabled;
+        showToast('Network error — try again.', 'error');
+    });
+}
+
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type || '';
+    t.style.display = 'block';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function toggleDark() {
+    const body = document.getElementById('body-el');
+    body.classList.toggle('dark');
+    const icon = document.getElementById('theme-icon');
+    const isDark = body.classList.contains('dark');
+    icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars';
+    localStorage.setItem('rasova-theme', isDark ? 'dark' : 'light');
+}
+if (localStorage.getItem('rasova-theme') === 'dark') {
+    document.getElementById('body-el').classList.add('dark');
+    document.getElementById('theme-icon').className = 'bi bi-sun';
+}
+</script>
+</body>
+</html>

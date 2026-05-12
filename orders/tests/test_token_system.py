@@ -135,7 +135,8 @@ class TestDailyTokenCounter(TestCase, TokenFixtureMixin):
 
     def setUp(self):
         self._build_franchise_fixtures()
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def test_counter_starts_at_zero(self):
         counter, created = DailyTokenCounter.objects.get_or_create(
@@ -187,7 +188,8 @@ class TestTokenOrderModel(TestCase, TokenFixtureMixin):
 
     def setUp(self):
         self._build_franchise_fixtures()
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def _make_order(self):
         return Order.objects.create(
@@ -283,7 +285,8 @@ class TestCreateTokenOrderView(TestCase, TokenFixtureMixin):
     def test_counter_value_matches_token(self):
         self._post()
         self._post()
-        counter = DailyTokenCounter.objects.get(outlet=self.outlet, date=date.today())
+        from core.utils import get_business_date
+        counter = DailyTokenCounter.objects.get(outlet=self.outlet, date=get_business_date(timezone.now(), self.outlet))
         self.assertEqual(counter.value, 2)
 
     def test_customer_details_saved(self):
@@ -329,7 +332,8 @@ class TestTokenDashboardView(TestCase, TokenFixtureMixin):
         self._build_fine_dining_fixtures()
         self.client = Client()
         self.client.login(username="cashier1", password="pass")
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def test_dashboard_loads(self):
         resp = self.client.get(reverse("token-dashboard"))
@@ -392,9 +396,10 @@ class TestTokenBillingView(TestCase, TokenFixtureMixin):
             tenant=self.tenant, outlet=self.outlet,
             created_by=self.user, status="open", source="counter",
         )
+        from core.utils import get_business_date
         self.token = TokenOrder.objects.create(
             tenant=self.tenant, outlet=self.outlet,
-            order=self.order, token_number=1, date=date.today(),
+            order=self.order, token_number=1, date=get_business_date(timezone.now(), self.outlet),
         )
 
     def test_billing_page_loads(self):
@@ -582,7 +587,8 @@ class TestTokenConcurrency(TransactionTestCase):
             tenant=self.tenant, outlet=self.outlet,
             opened_by=self.user, opening_balance=0, status="open",
         )
-        self.today = date.today()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
 
     def _create_one_token(self, results, idx):
         from django.db import connection, transaction

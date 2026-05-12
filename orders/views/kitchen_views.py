@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.db import transaction
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, feature_required
 from orders.models import Order, OrderItem, OrderEvent, KitchenMessage
 from setup.models import KitchenStation
 
@@ -17,6 +17,7 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @require_POST
 @tenant_required
+@feature_required("kot_system")
 def send_to_kitchen(request, order_id):
     """
     Generates a Kitchen Order Ticket (KOT) for an active order.
@@ -65,6 +66,7 @@ def send_to_kitchen(request, order_id):
 
 @login_required
 @tenant_required
+@feature_required("kitchen_display")
 def kitchen_view(request):
     """
     Renders the Kitchen Display System (KDS) UI.
@@ -80,6 +82,7 @@ def kitchen_view(request):
 
 @login_required
 @tenant_required
+@feature_required("kitchen_display")
 def kitchen_data(request):
     """
     AJAX Polling endpoint for the Kitchen Display System (KDS).
@@ -97,6 +100,7 @@ def kitchen_data(request):
 @login_required
 @require_POST
 @tenant_required
+@feature_required("kitchen_display")
 def start_preparing(request, item_id):
     from orders.services.kitchen_service import set_item_preparing
     try:
@@ -111,6 +115,7 @@ def start_preparing(request, item_id):
 @login_required
 @require_POST
 @tenant_required
+@feature_required("kitchen_display")
 def mark_ready(request, item_id):
     from orders.services.kitchen_service import set_item_ready
     try:
@@ -125,6 +130,7 @@ def mark_ready(request, item_id):
 @login_required
 @require_POST
 @tenant_required
+@feature_required("kitchen_display")
 def serve_item(request, item_id):
     """
     Transitions an OrderItem status from 'ready' to 'served'.
@@ -142,6 +148,7 @@ def serve_item(request, item_id):
 @login_required
 @require_POST
 @tenant_required
+@feature_required("kitchen_display")
 def send_kitchen_message(request, order_id):
     """
     Allows waiters/staff to send urgent ad-hoc text messages to the kitchen KDS

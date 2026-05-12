@@ -12,7 +12,7 @@ class User(AbstractUser):
     )
     outlet = models.ForeignKey(
         'tenants.Outlet',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
@@ -27,6 +27,11 @@ class User(AbstractUser):
     )
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='cashier')
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "role"]),
+        ]
 
     def __str__(self):
         return self.username

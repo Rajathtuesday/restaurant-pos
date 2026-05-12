@@ -8,7 +8,7 @@ from django.db import transaction
 from django.utils import timezone
 import json
 
-from core.decorators import tenant_required, role_required
+from core.decorators import tenant_required, role_required, feature_required
 from orders.models import Order, OrderEvent, Table, TableMerge
 
 logger = logging.getLogger("pos.orders")
@@ -16,15 +16,14 @@ logger = logging.getLogger("pos.orders")
 
 @login_required
 @tenant_required
+@feature_required("floor_plan")
 def table_dashboard(request):
-    if request.user.tenant.tenant_type != 'fine_dining':
-        from django.shortcuts import redirect
-        return redirect('token-dashboard')
     return render(request, "orders/tables.html")
 
 
 @login_required
 @tenant_required
+@feature_required("floor_plan")
 def tables_data(request):
     try:
         tenant = request.user.tenant
@@ -136,6 +135,7 @@ def tables_data(request):
 @login_required
 @require_POST
 @tenant_required
+@feature_required("floor_plan")
 def mark_table_cleaned(request, table_id):
     try:
         table = Table.objects.get(id=table_id, tenant=request.user.tenant, outlet=request.user.outlet)
@@ -149,6 +149,7 @@ def mark_table_cleaned(request, table_id):
 
 @login_required
 @tenant_required
+@feature_required("floor_plan")
 def available_tables(request):
     tenant = request.user.tenant
     outlet = request.user.outlet
@@ -171,6 +172,7 @@ def available_tables(request):
 
 @login_required
 @tenant_required
+@feature_required("merge_tables")
 @require_POST
 def merge_tables_view(request):
     data = json.loads(request.body)
@@ -182,6 +184,7 @@ def merge_tables_view(request):
 
 @login_required
 @tenant_required
+@feature_required("merge_tables")
 @require_POST
 def unmerge_tables_view(request, primary_id):
     from orders.services.table_merge_service import unmerge_tables
@@ -198,6 +201,7 @@ def unmerge_tables_view(request, primary_id):
 
 @login_required
 @tenant_required
+@feature_required("floor_plan")
 @require_POST
 def transfer_table_view(request):
     try:
@@ -264,6 +268,7 @@ def transfer_table_view(request):
 
 @login_required
 @tenant_required
+@feature_required("floor_plan")
 @role_required("manager", "owner")
 @require_POST
 def manage_table_view(request):

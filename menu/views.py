@@ -1,11 +1,11 @@
-from core.decorators import tenant_required
+from core.decorators import tenant_required, feature_required
 # menu/views.py
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 
 from .models import MenuCategory,MenuItem
 from orders.models import Table, WaiterCall
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, Http404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 import json
@@ -27,9 +27,16 @@ def menu_view(request, qr_token):
     """
     Renders the Digital Menu for customers scanning a QR code.
     Identifies the table, outlet, and tenant via the secure qr_token.
+
+    Edge case: if the tenant has qr_menu disabled we return 404 rather than
+    exposing that the table/token exists but the feature is off.
     """
+    from core.features import has_feature
 
     table = get_object_or_404(Table, qr_token=qr_token)
+
+    if not has_feature(table.tenant, "qr_menu"):
+        raise Http404
 
     categories = (
         MenuCategory.objects
@@ -58,11 +65,19 @@ def call_waiter(request, qr_token):
     """
     Allows a customer to ping a waiter from the Digital Menu.
     Implements a 60-second rate limit per table to prevent spam.
+
+    Edge cases:
+    - waiter_call feature disabled → 403 (tenant chose to turn it off)
+    - qr_menu disabled → 404 (table token shouldn't be exposed at all)
     """
     from django.utils import timezone
     from datetime import timedelta
+    from core.features import has_feature
 
     table = get_object_or_404(Table, qr_token=qr_token)
+
+    if not has_feature(table.tenant, "waiter_call"):
+        return JsonResponse({"error": "Waiter call is not available."}, status=403)
 
     # ✅ Rate limit: one call per table every 60 seconds
     recent = WaiterCall.objects.filter(
@@ -456,6 +471,7 @@ def toggle_item(request, item_id):
 
 @login_required
 @tenant_required
+@feature_required("platform_sync")
 @require_POST
 def toggle_platform_availability(request, item_id):
     """Toggle item availability on specific platforms (takeaway, zomato, swiggy)."""
@@ -487,6 +503,7 @@ def toggle_platform_availability(request, item_id):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 def menu_item_modifiers(request, item_id):
 
     item = get_object_or_404(
@@ -564,6 +581,7 @@ def update_station(request, item_id):
 
 @login_required
 @tenant_required
+@feature_required("ai_menu_import")
 def ai_menu_importer(request):
     """
     Upgraded AI Parser: Uses Gemini to 'see' images or parse text into menu items.
@@ -627,9 +645,8 @@ def ai_menu_importer(request):
 
 def digital_menu(request):
     """Customer-facing menu for self-ordering via QR."""
-    from django.http import Http404
-    from orders.models import Table
-    
+    from core.features import has_feature
+
     table_token = request.GET.get("table_token")
     table_id = request.GET.get("table")
     table = None
@@ -646,8 +663,10 @@ def digital_menu(request):
         tenant = request.user.tenant
         outlet = request.user.outlet
     else:
-        # No table token and not logged in — refuse to serve random tenant data
         raise Http404("No valid table token provided.")
+
+    if not has_feature(tenant, "qr_menu"):
+        raise Http404
 
     categories = MenuCategory.objects.filter(
         tenant=tenant,
@@ -665,6 +684,7 @@ def digital_menu(request):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 def modifier_management(request):
     if request.user.role not in ["owner", "manager"]:
         return HttpResponseForbidden()
@@ -698,6 +718,7 @@ def modifier_management(request):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 @require_POST
 def create_modifier_group(request):
     try:
@@ -723,6 +744,7 @@ def create_modifier_group(request):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 @require_POST
 def delete_modifier_group(request, group_id):
     group = get_object_or_404(
@@ -737,6 +759,7 @@ def delete_modifier_group(request, group_id):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 @require_POST
 def add_modifier(request):
     try:
@@ -764,6 +787,7 @@ def add_modifier(request):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 @require_POST
 def delete_modifier(request, modifier_id):
     modifier = get_object_or_404(
@@ -778,6 +802,7 @@ def delete_modifier(request, modifier_id):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 @require_POST
 def link_modifier_group(request):
     try:
@@ -799,6 +824,7 @@ def link_modifier_group(request):
 
 @login_required
 @tenant_required
+@feature_required("modifiers")
 @require_POST
 def unlink_modifier_group(request):
     try:
@@ -938,6 +964,7 @@ def update_category_gst(request, category_id):
 
 @login_required
 @tenant_required
+@feature_required("multi_outlet")
 @require_POST
 def sync_menu_to_outlets(request):
     """

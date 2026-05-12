@@ -3,6 +3,7 @@ from django.db.models import UniqueConstraint, Index
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from setup.models import KitchenStation
+from core.validators import validate_image_size
 import logging
 from io import BytesIO
 from PIL import Image
@@ -84,7 +85,6 @@ class MenuItem(models.Model):
 
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    from core.validators import validate_image_size
     image = models.ImageField(upload_to="menu_items/", null=True, blank=True, validators=[validate_image_size])
 
     price = models.DecimalField(
@@ -128,7 +128,12 @@ class MenuItem(models.Model):
             Index(fields=["category"])
         ]
 
-    
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price__gte=0),
+                name="menu_item_price_non_negative"
+            )
+        ]
 
     def clean(self):
 
@@ -136,41 +141,29 @@ class MenuItem(models.Model):
             raise ValidationError("Price cannot be negative")
 
     def save(self, *args, **kwargs):
-        # Image compression logic
-        if self.image:
-            # Check if this is a new image or a re-save of an existing compressed image
-            # A simple way to check is looking at the extension. If it's already webp, skip it.
-            if not self.image.name.lower().endswith('.webp'):
-                try:
-                    img = Image.open(self.image)
-                    
-                    # Convert to RGB to prevent transparency issues with JPEG/WebP
-                    if img.mode in ("RGBA", "P"):
-                        img = img.convert("RGB")
-                        
-                    # Resize if it's too large (cap at 800x800 for menu items)
-                    max_size = (800, 800)
-                    img.thumbnail(max_size, Image.Resampling.LANCZOS)
-                    
-                    # Save into memory
-                    output = BytesIO()
-                    img.save(output, format='WebP', quality=85)
-                    output.seek(0)
-                    
-                    # Rename to .webp
-                    filename = self.image.name.rsplit('.', 1)[0] + '.webp'
-                    
-                    # Save to model field without triggering infinite loop
-                    self.image.save(filename, ContentFile(output.read()), save=False)
-                    
-                    # 🚀 S3/R2 Placeholder 🚀
-                    # Right now, this saves to `media/menu_items/` locally.
-                    # Once you configure `django-storages` and AWS settings in settings.py,
-                    # this exact code will automatically upload the compressed WebP to S3 or Cloudflare R2!
-                    # You won't need to change anything here.
-                except Exception as e:
-                    logger.error(f"Image compression failed for {self.name}: {e}")
-                    
+        # Only compress when a genuinely new image file is being uploaded.
+        # Checking hasattr(self.image, 'file') is True only when Django has a
+        # fresh in-memory upload; it is False when the field holds an existing
+        # storage path (re-saves for price/availability changes, etc.).
+        # This prevents redundant S3/disk reads on every non-image save.
+        if self.image and hasattr(self.image, 'file') and not self.image.name.lower().endswith('.webp'):
+            try:
+                img = Image.open(self.image)
+
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGB")
+
+                img.thumbnail((800, 800), Image.Resampling.LANCZOS)
+
+                output = BytesIO()
+                img.save(output, format='WebP', quality=85)
+                output.seek(0)
+
+                filename = self.image.name.rsplit('.', 1)[0] + '.webp'
+                self.image.save(filename, ContentFile(output.read()), save=False)
+            except Exception as e:
+                logger.error(f"Image compression failed for {self.name}: {e}")
+
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -235,6 +228,13 @@ class Modifier(models.Model):
 
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price__gte=0),
+                name="modifier_price_non_negative"
+            )
+        ]
 
     def clean(self):
 

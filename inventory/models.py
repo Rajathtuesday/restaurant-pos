@@ -128,6 +128,8 @@ class InventoryItem(models.Model):
                     f"Insufficient stock for {item.name}"
                 )
 
+            new_stock = item.stock - quantity
+
             item.stock = F("stock") - quantity
             item.save(update_fields=["stock"])
 
@@ -140,20 +142,33 @@ class InventoryItem(models.Model):
                 reference=reference
             )
 
-            item.refresh_from_db()
-
-            if item.stock <= item.low_stock_threshold:
-
-                create_notification(
-                    item.tenant,
-                    item.outlet,
-                    "low_stock",
-                    f"{item.name} low stock ({item.stock} {item.unit})"
-                )
-                
-                # Auto-generate draft PO if supplier and reorder quantity exist
+            if new_stock <= item.low_stock_threshold:
+                # trigger_reorder is a DB write — keep it in-transaction so
+                # TestCase tests and rollbacks behave correctly.
                 if item.preferred_supplier and item.reorder_quantity > 0:
-                    item.trigger_reorder()
+                    try:
+                        item.trigger_reorder()
+                    except Exception as e:
+                        import logging
+                        logging.getLogger("pos.inventory").error(
+                            "Auto-reorder failed for %s: %s", item.name, e
+                        )
+
+                # Notification is a side-effect; defer to after commit so it
+                # doesn't fire for transactions that are later rolled back.
+                _tenant = item.tenant
+                _outlet = item.outlet
+                _name = item.name
+                _unit = item.unit
+                _new_stock = new_stock
+
+                def _notify():
+                    create_notification(
+                        _tenant, _outlet, "low_stock",
+                        f"{_name} low stock ({_new_stock} {_unit})"
+                    )
+
+                transaction.on_commit(_notify)
 
 
     def trigger_reorder(self):
@@ -364,7 +379,7 @@ class PurchaseOrder(models.Model):
         reference = f"PO #{self.po_number or self.id}"
         transactions_to_create = []
 
-        for item_link in self.items.select_related("item"):
+        for item_link in self.items.select_for_update().select_related("item"):
             inv_item = locked_items[item_link.item_id]
             qty = Decimal(item_link.quantity)
 
