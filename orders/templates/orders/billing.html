@@ -1,1354 +1,650 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <title>POS | Point of Sale</title>
-    <!-- Explicit Mobile Viewport -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <!-- Premium Fonts: DM Serif Display (Serif) & Inter (Sans-serif) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap"
-        rel="stylesheet">
-
-    <!-- PWA -->
-    <link rel="manifest" href="/manifest.json">
-
-    <!-- Bootstrap Modern -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-
-    <style>
-        ::placeholder {
-            color: var(--text-muted) !important;
-            opacity: 0.7 !important;
-        }
-
-        ::-webkit-input-placeholder {
-            color: var(--text-muted) !important;
-            opacity: 0.7 !important;
-        }
-
-        :root {
-            /* Fine Dining Monochrome Palette */
-            --bg-color: #fafafa;
-            --panel-bg: #ffffff;
-            --text-main: #111111;
-            --text-muted: #737373;
-            --border-color: #eaeaea;
-            --accent-gold: #c5a059;
-            --accent-hover: #b59250;
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        /* NOTIFICATION BADGE (WhatsApp-style) */
-        .notif-wrapper { position: relative; display: inline-flex; }
-        .notif-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            min-width: 18px;
-            height: 18px;
-            padding: 0 4px;
-            background: #ef4444;
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            pointer-events: none;
-            z-index: 10;
-            animation: badgePop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-        @keyframes badgePop {
-            0%   { transform: scale(0); opacity: 0; }
-            70%  { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .notif-badge.hidden { display: none; }
-
-        body.dark {
-            --bg-color: #0a0a0a;
-            --panel-bg: #111111;
-            --text-main: #f5f5f5;
-            --text-muted: #888888;
-            --border-color: #262626;
-            --accent-gold: #d4af37;
-            --accent-hover: #e5c45e;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            transition: var(--transition-smooth);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            overflow: hidden;
-            /* App like */
-        }
-
-        /* Typography */
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6,
-        .serif-text {
-            font-family: 'DM Serif Display', serif;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        /* Top Header */
-        .pos-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--bg-color);
-            z-index: 100;
-            position: sticky;
-            top: 0;
-        }
-
-        .brand-title {
-            font-size: 1.3rem;
-            margin: 0;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .brand-title i {
-            color: var(--accent-gold);
-        }
-
-        /* Buttons & Controls */
-        .btn-luxury {
-            border: 1px solid var(--border-color);
-            background: transparent;
-            color: var(--text-main);
-            border-radius: 0;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            font-weight: 500;
-            padding: 0.6rem 1rem;
-            transition: var(--transition-smooth);
-        }
-
-        .btn-luxury:hover {
-            border-color: var(--text-main);
-            color: var(--bg-color);
-            background: var(--text-main);
-        }
-
-        .btn-luxury-primary {
-            background: var(--accent-gold);
-            border-color: var(--accent-gold);
-            color: #fff;
-        }
-
-        .btn-luxury-primary:hover {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
-            color: #fff;
-        }
-
-        .btn-icon {
-            border: none;
-            background: transparent;
-            color: var(--text-main);
-            font-size: 1.25rem;
-            padding: 0.5rem;
-            cursor: pointer;
-        }
-
-        /* Workspace Grid */
-        :root { --header-h: 65px; }
-        .workspace {
-            display: flex;
-            height: calc(100vh - var(--header-h));
-        }
-
-        /* Desktop Sidebar */
-        .category-sidebar {
-            width: 260px;
-            border-right: 1px solid var(--border-color);
-            padding: 1.5rem;
-            overflow-y: auto;
-            background: var(--panel-bg);
-            flex-shrink: 0;
-        }
-
-        /* Mobile Horizontal Nav */
-        .mobile-category-nav {
-            display: none;
-            overflow-x: auto;
-            white-space: nowrap;
-            padding: 1rem;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            scrollbar-width: none;
-            /* Hide scrollbar Firefox */
-        }
-
-        .mobile-category-nav::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* Hide Chrome */
-
-        .category-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-        }
-
-        .category-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .category-item {
-            padding: 0.8rem 0;
-            cursor: pointer;
-            font-size: 1.1rem;
-            color: var(--text-muted);
-            transition: var(--transition-smooth);
-            font-family: 'DM Serif Display', serif;
-            position: relative;
-        }
-
-        .category-item:hover {
-            color: var(--text-main);
-        }
-
-        .category-item.active {
-            color: var(--accent-gold);
-            font-weight: 700;
-            font-style: italic;
-        }
-
-        /* Desktop active line */
-        .category-sidebar .category-item.active::before {
-            content: '';
-            position: absolute;
-            left: -1.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 50%;
-            background: var(--accent-gold);
-        }
-
-        /* Mobile category pill style active */
-        .mobile-category-nav .category-item {
-            display: inline-block;
-            margin-right: 1.5rem;
-            padding: 0.5rem 0;
-        }
-
-        .mobile-category-nav .category-item.active {
-            border-bottom: 2px solid var(--accent-gold);
-        }
-
-        /* Menu Area */
-        .menu-area {
-            flex-grow: 1;
-            padding: 2rem;
-            overflow-y: auto;
-            background: var(--bg-color);
-        }
-
-        .search-box {
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 0;
-            padding: 0.75rem 0;
-            font-size: 1rem;
-            box-shadow: none !important;
-            margin-bottom: 2rem;
-        }
-
-        .search-box:focus {
-            border-color: var(--accent-gold);
-        }
-
-        .menu-section-title {
-            font-size: 1.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--text-main);
-            padding-top: 1rem;
-        }
-
-        .menu-card {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: 0;
-            padding: 1.25rem;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .menu-card:hover {
-            border-color: var(--accent-gold);
-            background: var(--panel-bg);
-            transform: translateY(-2px);
-        }
-
-        .item-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.05rem;
-            color: var(--text-main);
-            margin-bottom: 0.5rem;
-            line-height: 1.2;
-        }
-
-        .item-price {
-            font-size: 0.9rem;
-            color: var(--accent-gold);
-            font-weight: 500;
-            letter-spacing: 1px;
-        }
-
-        /* Context Area (Cart/Running) - Desktop */
-        .context-sidebar {
-            width: 380px;
-            border-left: 1px solid var(--border-color);
-            background: var(--panel-bg);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-
-        .context-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .context-tab {
-            flex: 1;
-            text-align: center;
-            padding: 1rem 0;
-            cursor: pointer;
-            font-family: 'DM Serif Display', serif;
-            font-size: 1rem;
-            color: var(--text-muted);
-            border-bottom: 2px solid transparent;
-        }
-
-        .context-tab.active {
-            color: var(--text-main);
-            border-bottom-color: var(--accent-gold);
-        }
-
-        .context-body {
-            flex-grow: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
-
-        /* Cart Rows Minimal */
-        .cart-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 1rem 0;
-            border-bottom: 1px dashed var(--border-color);
-        }
-
-        .cart-item-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 0.95rem;
-            color: var(--text-main);
-            margin-bottom: 0.25rem;
-        }
-
-        .cart-item-note {
-            font-size: 0.75rem;
-            color: var(--accent-gold);
-            font-style: italic;
-        }
-
-        .cart-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .qty-controls {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--border-color);
-        }
-
-        .qty-btn {
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: transparent;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .qty-value {
-            font-size: 0.85rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        .cart-item-price {
-            font-weight: 500;
-            font-size: 0.85rem;
-            width: 55px;
-            text-align: right;
-            color: var(--text-main);
-        }
-
-        /* Desktop Cart Summary Fixed Footer */
-        .cart-summary {
-            border-top: 1px solid var(--border-color);
-            padding: 1.5rem;
-            background: var(--panel-bg);
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .summary-total {
-            display: flex;
-            justify-content: space-between;
-            margin: 1rem 0 1.5rem;
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.3rem;
-            color: var(--text-main);
-        }
-
-        /* Form Controls Minimal */
-        .form-select-luxury,
-        .form-control-minimal {
-            background-color: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 0;
-            padding: 0.75rem 1rem;
-            font-size: 0.9rem;
-            width: 100%;
-        }
-
-        .form-select-luxury {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-select-luxury:focus,
-        .form-control-minimal:focus {
-            box-shadow: none;
-            border-color: var(--accent-gold);
-        }
-
-        /* Running Item Rows */
-        .running-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            color: var(--text-main);
-        }
-
-        .status-badge {
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            padding: 0.3rem 0.5rem;
-            border: 1px solid var(--border-color);
-        }
-
-        /* Modal */
-        .modal-content {
-            background: var(--bg-color);
-            border-radius: 0;
-            border: 1px solid var(--border-color);
-        }
-
-        .modal-header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-        }
-
-        .modal-title {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.3rem;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            border-top: 1px solid var(--border-color);
-            padding: 1.5rem;
-        }
-
-        /* MOBILE FLOATING FAB & OFFCANVAS CART */
-        .fab-cart {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 40px);
-            background: var(--accent-gold);
-            color: #fff;
-            padding: 1rem;
-            border-radius: 0;
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            z-index: 1020;
-            text-align: center;
-            border: none;
-            transition: var(--transition-smooth);
-        }
-
-        .offcanvas-luxury {
-            background: var(--panel-bg);
-            color: var(--text-main);
-            border-left: 1px solid var(--border-color);
-        }
-
-        .offcanvas-header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-        }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 991px) {
-            :root { --header-h: 60px; }
-
-            .category-sidebar { display: none; }
-            .mobile-category-nav { display: block; }
-            .context-sidebar { display: none; }
-
-            /* Replaced by Offcanvas */
-            .fab-cart { display: block; }
-
-            .workspace {
-                flex-direction: column;
-                overflow-y: auto;
-                height: 100vh;
-                padding-bottom: 80px;
-            }
-
-            .menu-area {
-                padding: 1.5rem 1rem;
-                overflow-y: visible;
-            }
-
-            .pos-header { padding: 0.85rem 1rem; }
-
-            body {
-                overflow-x: hidden;
-                overflow-y: auto;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .brand-title { font-size: 1.05rem; }
-            .brand-title p { display: none; }
-            .btn-icon { font-size: 1.1rem; padding: 0.35rem; }
-            .pos-header { gap: 0.25rem; }
-            /* Tighten the icon nav row on tiny phones */
-            .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
-        }
-
-        @media (min-width: 992px) {
-            .offcanvas-luxury {
-                display: none !important;
-            }
-        }
-
-        /* Toast Minimal */
-        .toast-minimal {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--text-main);
-            color: var(--bg-color);
-            padding: 1rem 1.5rem;
-            z-index: 1060;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.8rem;
-        }
-
-        .toast-minimal.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-    </style>
-</head>
-
-<body>
-
-    <div id="toastBox" class="toast-minimal">Message</div>
-
-    <!-- HEADER -->
-    <header class="pos-header">
-        <div class="d-flex flex-column">
-            <a href="/dashboard/" style="text-decoration: none; color: inherit;">
-                <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
-            </a>
-            <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">POS Billing — {{ request.user.outlet.name }}</p>
+{% extends 'core/base.html' %}
+{% block title %}POS | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="manifest" href="/manifest.json">
+<style>
+  ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+  ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+
+  /* Override base header for sticky app mode */
+  .pos-header {
+    padding: 1rem 1.5rem;
+    background: var(--bg-color);
+    z-index: 100;
+    position: sticky;
+    top: 0;
+  }
+  .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+  .brand-title i { color: var(--accent-gold); }
+
+  .btn-luxury-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-luxury-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+
+  :root { --header-h: 65px; }
+  .workspace { display: flex; height: calc(100vh - var(--header-h)); }
+
+  .category-sidebar {
+    width: 260px; border-right: 1px solid var(--border-color);
+    padding: 1.5rem; overflow-y: auto; background: var(--panel-bg); flex-shrink: 0;
+  }
+  .mobile-category-nav {
+    display: none; overflow-x: auto; white-space: nowrap; padding: 1rem;
+    background: var(--panel-bg); border-bottom: 1px solid var(--border-color); scrollbar-width: none;
+  }
+  .mobile-category-nav::-webkit-scrollbar { display: none; }
+  .category-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 1.5rem; font-weight: 600; }
+  .category-list { list-style: none; padding: 0; margin: 0; }
+  .category-item { padding: 0.8rem 0; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: var(--transition-smooth); font-family: 'DM Serif Display', serif; position: relative; }
+  .category-item:hover { color: var(--text-main); }
+  .category-item.active { color: var(--accent-gold); font-weight: 700; font-style: italic; }
+  .category-sidebar .category-item.active::before { content: ''; position: absolute; left: -1.5rem; top: 50%; transform: translateY(-50%); width: 3px; height: 50%; background: var(--accent-gold); }
+  .mobile-category-nav .category-item { display: inline-block; margin-right: 1.5rem; padding: 0.5rem 0; }
+  .mobile-category-nav .category-item.active { border-bottom: 2px solid var(--accent-gold); }
+
+  .menu-area { flex-grow: 1; padding: 2rem; overflow-y: auto; background: var(--bg-color); }
+  .search-box { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 0; font-size: 1rem; box-shadow: none !important; margin-bottom: 2rem; }
+  .search-box:focus { border-color: var(--accent-gold); }
+  .menu-section-title { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); padding-top: 1rem; }
+
+  .menu-card { background: transparent; border: 1px solid var(--border-color); border-radius: 0; padding: 1.25rem; cursor: pointer; transition: var(--transition-smooth); height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+  .menu-card:hover { border-color: var(--accent-gold); background: var(--panel-bg); transform: translateY(-2px); }
+  .item-name { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.2; }
+  .item-price { font-size: 0.9rem; color: var(--accent-gold); font-weight: 500; letter-spacing: 1px; }
+
+  .context-sidebar { width: 380px; border-left: 1px solid var(--border-color); background: var(--panel-bg); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; }
+  .context-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+  .context-tab { flex: 1; text-align: center; padding: 1rem 0; cursor: pointer; font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--text-muted); border-bottom: 2px solid transparent; }
+  .context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
+  .context-body { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+
+  .cart-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px dashed var(--border-color); }
+  .cart-item-name { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem; }
+  .cart-item-note { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
+  .cart-controls { display: flex; align-items: center; gap: 10px; }
+  .qty-controls { display: flex; align-items: center; border: 1px solid var(--border-color); }
+  .qty-btn { width: 24px; height: 24px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .qty-value { font-size: 0.85rem; width: 20px; text-align: center; }
+  .cart-item-price { font-weight: 500; font-size: 0.85rem; width: 55px; text-align: right; color: var(--text-main); }
+
+  .cart-summary { border-top: 1px solid var(--border-color); padding: 1.5rem; background: var(--panel-bg); }
+  .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+  .summary-total { display: flex; justify-content: space-between; margin: 1rem 0 1.5rem; font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
+
+  .form-select-luxury, .form-control-minimal { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; }
+  .form-select-luxury { margin-bottom: 1.5rem; }
+  .form-select-luxury:focus, .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); }
+
+  .running-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-main); }
+  .status-badge { font-size: 0.6rem; text-transform: uppercase; padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); }
+
+  .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
+  .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+
+  .fab-cart {
+    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    width: calc(100% - 40px); background: var(--accent-gold); color: #fff; padding: 1rem;
+    border-radius: 0; font-size: 0.9rem; font-weight: 500; text-transform: uppercase; letter-spacing: 2px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 1020; text-align: center; border: none;
+    transition: var(--transition-smooth);
+  }
+  .offcanvas-luxury { background: var(--panel-bg); color: var(--text-main); border-left: 1px solid var(--border-color); }
+  .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+
+  .toast-minimal {
+    position: fixed; top: 20px; right: 20px; background: var(--text-main); color: var(--bg-color);
+    padding: 1rem 1.5rem; z-index: 1060; opacity: 0; transition: opacity 0.3s ease;
+    pointer-events: none; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+  }
+  .toast-minimal.show { opacity: 1; pointer-events: auto; }
+
+  @media (max-width: 991px) {
+    :root { --header-h: 60px; }
+    .category-sidebar { display: none; }
+    .mobile-category-nav { display: block; }
+    .context-sidebar { display: none; }
+    .fab-cart { display: block; }
+    .workspace { flex-direction: column; overflow-y: auto; height: 100vh; padding-bottom: 80px; }
+    .menu-area { padding: 1.5rem 1rem; overflow-y: visible; }
+    .pos-header { padding: 0.85rem 1rem; }
+    body { overflow-x: hidden; overflow-y: auto; }
+  }
+  @media (max-width: 480px) {
+    .brand-title { font-size: 1.05rem; }
+    .btn-icon { font-size: 1.1rem; padding: 0.35rem; }
+    .pos-header { gap: 0.25rem; }
+    .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
+  }
+  @media (min-width: 992px) {
+    .offcanvas-luxury { display: none !important; }
+  }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div class="d-flex flex-column">
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h1>
+  </a>
+  <p class="mb-0 text-muted" style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;">POS Billing — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<div class="d-flex align-items-center gap-2">
+  {% if 'floor_plan' in tenant_features %}
+  <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
+  {% endif %}
+  {% if 'kitchen_display' in tenant_features %}
+  <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
+  {% endif %}
+  {% if 'waiter_call' in tenant_features %}
+  <span class="notif-wrapper d-none d-sm-inline-flex">
+    <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none"><i class="bi bi-bell me-1"></i> Calls</a>
+    <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
+  </span>
+  {% endif %}
+  {% if 'reports' in tenant_features %}
+  <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+  {% endif %}
+  <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+
+  {% if 'floor_plan' in tenant_features %}
+  <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
+  {% endif %}
+  {% if 'kitchen_display' in tenant_features %}
+  <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
+  {% endif %}
+  {% if 'waiter_call' in tenant_features %}
+  <span class="notif-wrapper d-sm-none">
+    <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
+    <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
+  </span>
+  {% endif %}
+  {% if 'reports' in tenant_features %}
+  <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+  {% endif %}
+  <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+
+  <button class="btn-icon ms-1" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+  </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="toastBox" class="toast-minimal">Message</div>
+
+<div class="workspace">
+
+  <!-- DESKTOP CATEGORIES -->
+  <aside class="category-sidebar">
+    <div class="category-title">Menu</div>
+    <ul class="category-list">
+      {% for category in categories %}
+      <li class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">{{ category.name }}</li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  <!-- MOBILE CATEGORIES -->
+  <div class="mobile-category-nav">
+    {% for category in categories %}
+    <div class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">{{ category.name }}</div>
+    {% endfor %}
+  </div>
+
+  <!-- MAIN MENU AREA -->
+  <main class="menu-area">
+    <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu...">
+    <div id="menuCardsContainer">
+      {% for category in categories %}
+      <h3 id="cat{{ category.id }}" class="menu-section-title">{{ category.name }}</h3>
+      <div class="row g-3 g-md-4 mb-5">
+        {% for item in category.items.all %}
+        <div class="col-6 col-lg-6 menu-item-searchable">
+          <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage|default:5 }}')">
+            <div><div class="item-name">{{ item.name }}</div></div>
+            <div class="item-price">₹{{ item.price|floatformat:0 }}</div>
+          </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            {% if 'floor_plan' in tenant_features %}
-            <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
-            {% endif %}
-            {% if 'kitchen_display' in tenant_features %}
-            <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
-            {% endif %}
-            {% if 'waiter_call' in tenant_features %}
-            <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex position-relative">
-                <i class="bi bi-bell me-1"></i> Calls
-                <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
-            </a>
-            {% endif %}
-            {% if 'reports' in tenant_features %}
-            <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
-            {% endif %}
-            <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i
-                    class="bi bi-box-arrow-right"></i></a>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </main>
 
-            <!-- Mobile compact links -->
-            {% if 'floor_plan' in tenant_features %}
-            <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
-            {% endif %}
-            {% if 'kitchen_display' in tenant_features %}
-            <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-            {% endif %}
-            {% if 'waiter_call' in tenant_features %}
-            <a href="/waiter-dashboard/" class="btn-icon d-sm-none position-relative" title="Calls">
-                <i class="bi bi-bell"></i>
-                <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
-            </a>
-            {% endif %}
-            {% if 'reports' in tenant_features %}
-            <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
-            {% endif %}
-            <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-
-            <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
-                <i class="bi bi-moon" id="themeIcon"></i>
-            </button>
-        </div>
-    </header>
-
-    <div class="workspace">
-
-        <!-- DESKTOP CATEGORIES -->
-        <aside class="category-sidebar">
-            <div class="category-title">Menu</div>
-            <ul class="category-list">
-                {% for category in categories %}
-                <li class="category-item" onclick="scrollToCategory('cat{{category.id}}', this)">
-                    {{category.name}}
-                </li>
-                {% endfor %}
-            </ul>
-        </aside>
-
-        <!-- MOBILE CATEGORIES (Horizontal Strip) -->
-        <div class="mobile-category-nav">
-            {% for category in categories %}
-            <div class="category-item" onclick="scrollToCategory('cat{{category.id}}', this)">
-                {{category.name}}
-            </div>
-            {% endfor %}
-        </div>
-
-        <!-- MAIN MENU AREA -->
-        <main class="menu-area">
-            <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu...">
-
-            <div id="menuCardsContainer">
-                {% for category in categories %}
-                <h3 id="cat{{category.id}}" class="menu-section-title">{{category.name}}</h3>
-                <div class="row g-3 g-md-4 mb-5">
-                    {% for item in category.items.all %}
-                    <div class="col-6 col-lg-6 menu-item-searchable">
-                        <div class="menu-card"
-                            onclick="openItemModal('{{item.id}}' , '{{item.name|escapejs}}', '{{item.price}}', '{{item.gst_percentage|default:5}}')">
-                            <div>
-                                <div class="item-name">{{item.name}}</div>
-                            </div>
-                            <div class="item-price">₹{{item.price|floatformat:0}}</div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endfor %}
-            </div>
-        </main>
-
-        <!-- DESKTOP CONTEXT SIDEBAR -->
-        <aside class="context-sidebar">
-            <div class="context-tabs">
-                <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">Order</div>
-                <div class="context-tab" id="tabRunning" onclick="switchTab('running')">Active</div>
-            </div>
-
-            <div class="context-body" id="cartView">
-                <select id="tableSelectDesktop" class="form-select-luxury table-syncer"
-                    onchange="syncTableSelect(this.value)">
-                    <option value="">Walk-in</option>
-                    {% for table in tables %}
-                    <option value="{{table.id}}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>
-                        {{table.name}}</option>
-                    {% endfor %}
-                </select>
-                <div id="cartItemsContainerDesktop" style="min-height: 200px;"></div>
-            </div>
-
-            <div class="context-body d-none" id="runningView">
-                <div id="runningItemsDesktop"></div>
-            </div>
-
-            <div class="cart-summary" id="cartSummaryBlock">
-                <!-- Source and Discounts -->
-                <div class="mb-3">
-                    <select id="sourceSelectDesktop" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'desktop')">
-                        <option value="dine_in">Dine-in</option>
-                        <option value="takeaway">Takeaway</option>
-                        <option value="zomato">Zomato</option>
-                        <option value="swiggy">Swiggy</option>
-                        <option value="uber_eats">Uber Eats</option>
-                        <option value="web">Website</option>
-                    </select>
-                    <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
-                    <input type="text" id="customerNameDesktop" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
-                    <input type="tel" id="customerPhoneDesktop" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
-                </div>
-
-                <!-- Summary -->
-                <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-                <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-                <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-                <div class="d-flex flex-column gap-2 mt-3">
-                    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch
-                        <i class="bi bi-arrow-right ms-2"></i></button>
-                    <div class="d-flex gap-2">
-                        <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-                        <button class="btn-luxury w-50"
-                            style="color:var(--text-muted); border-color:var(--border-color);"
-                            onclick="clearCart()">Clear</button>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
+  <!-- DESKTOP CONTEXT SIDEBAR -->
+  <aside class="context-sidebar">
+    <div class="context-tabs">
+      <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">Order</div>
+      <div class="context-tab" id="tabRunning" onclick="switchTab('running')">Active</div>
     </div>
 
-    <!-- MOBILE FLOATING ACTION BUTTON -->
-    <button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas">
-        View Order (<span class="view-total">₹0</span>)
-    </button>
-
-    <!-- MOBILE OFFCANVAS CART -->
-    <div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
-        <div class="offcanvas-header">
-            <h5 class="custom-title m-0" style="font-family:'DM Serif Display', serif;">Current Order</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-
-        <div class="context-tabs">
-            <div class="context-tab active" id="tabCartMobile" onclick="switchTabMobile('cart')">Order</div>
-            <div class="context-tab" id="tabRunningMobile" onclick="switchTabMobile('running')">Active</div>
-        </div>
-
-        <div class="offcanvas-body d-flex flex-column p-0">
-
-            <div class="context-body flex-grow-1" id="cartViewMobile">
-                <select id="tableSelectMobile" class="form-select-luxury table-syncer" style="margin-bottom:1rem;"
-                    onchange="syncTableSelect(this.value)">
-                    <option value="">Walk-in</option>
-                    {% for table in tables %}
-                    <option value="{{table.id}}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>
-                        {{table.name}}</option>
-                    {% endfor %}
-                </select>
-                <div id="cartItemsContainerMobile"></div>
-            </div>
-
-            <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
-                <div id="runningItemsMobile"></div>
-            </div>
-
-            <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);"
-                id="cartSummaryBlockMobile">
-                <!-- Source and Discounts (Mobile) -->
-                <div class="mb-3">
-                    <select id="sourceSelectMobile" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'mobile')">
-                        <option value="dine_in">Dine-in</option>
-                        <option value="takeaway">Takeaway</option>
-                        <option value="zomato">Zomato</option>
-                        <option value="swiggy">Swiggy</option>
-                        <option value="uber_eats">Uber Eats</option>
-                        <option value="web">Website</option>
-                    </select>
-                    <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
-                    <input type="text" id="customerNameMobile" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
-                    <input type="tel" id="customerPhoneMobile" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
-                </div>
-
-                <!-- Summary -->
-                <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-                <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-                <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-                <div class="d-flex flex-column gap-2 mt-3">
-                    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch
-                        Order <i class="bi bi-arrow-right ms-2"></i></button>
-                    <div class="d-flex gap-2">
-                        <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-                        <button class="btn-luxury w-50"
-                            style="color:var(--text-muted); border-color:var(--border-color);"
-                            onclick="clearCart()">Clear</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="context-body" id="cartView">
+      <select id="tableSelectDesktop" class="form-select-luxury table-syncer" onchange="syncTableSelect(this.value)">
+        <option value="">Walk-in</option>
+        {% for table in tables %}
+        <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
+        {% endfor %}
+      </select>
+      <div id="cartItemsContainerDesktop" style="min-height:200px;"></div>
     </div>
 
-
-    <!-- ITEM MODAL -->
-    <div class="modal fade" id="itemModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="modalItemName">Item Name</h5>
-                </div>
-                <div class="modal-body">
-                    <div id="modifierContainer"></div>
-                    <p class="text-muted text-uppercase mt-3" style="font-size: 0.75rem; letter-spacing: 1px;">Special
-                        Instructions</p>
-                    <textarea id="itemNote" class="form-control form-control-minimal" rows="2"
-                        placeholder="Dietary requirements or prep notes..."></textarea>
-                    <div class="form-check mt-3">
-                        <input class="form-check-input" type="checkbox" id="itemTakeaway">
-                        <label class="form-check-label text-uppercase" style="font-size:0.75rem; letter-spacing:1px;"
-                            for="itemTakeaway">
-                            Pack as Takeaway
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn-luxury btn-luxury-primary" onclick="addItemWithModifiers()">Add to Order</button>
-                </div>
-            </div>
-        </div>
+    <div class="context-body d-none" id="runningView">
+      <div id="runningItemsDesktop"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="cart-summary" id="cartSummaryBlock">
+      <div class="mb-3">
+        <select id="sourceSelectDesktop" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'desktop')">
+          <option value="dine_in">Dine-in</option>
+          <option value="takeaway">Takeaway</option>
+          <option value="zomato">Zomato</option>
+          <option value="swiggy">Swiggy</option>
+          <option value="uber_eats">Uber Eats</option>
+          <option value="web">Website</option>
+        </select>
+        <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
+        <input type="text" id="customerNameDesktop" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
+        <input type="tel" id="customerPhoneDesktop" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
+      </div>
+      <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+      <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+      <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+      <div class="d-flex flex-column gap-2 mt-3">
+        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch <i class="bi bi-arrow-right ms-2"></i></button>
+        <div class="d-flex gap-2">
+          <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
+          <button class="btn-luxury w-50" style="color:var(--text-muted);border-color:var(--border-color);" onclick="clearCart()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </aside>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => {
-                    console.log('SW registration failed: ', err);
-                });
-            });
-        }
+</div>
 
-        /* THEME MANAGEMENT */
-        let isDark = localStorage.getItem("dark") === "true";
-        function updateTheme() {
-            let icon = document.getElementById("themeIcon");
-            if (isDark) {
-                document.body.classList.add("dark");
-                if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-            } else {
-                document.body.classList.remove("dark");
-                if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-            }
-        }
-        updateTheme();
-        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateTheme(); }
+<!-- MOBILE FAB -->
+<button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas">
+  View Order (<span class="view-total">₹0</span>)
+</button>
 
-        /* AGGREGATOR TOGGLE */
-        function toggleAggregator(val, view) {
-            let inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
-            let el = document.getElementById(inputId);
-            if(el) {
-                if(['zomato', 'swiggy', 'uber_eats', 'web'].includes(val)) {
-                    el.classList.remove('d-none');
-                } else {
-                    el.classList.add('d-none');
-                    el.value = '';
-                }
-            }
-        }
+<!-- MOBILE OFFCANVAS CART -->
+<div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
+  <div class="offcanvas-header">
+    <h5 class="m-0" style="font-family:'DM Serif Display',serif;">Current Order</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="context-tabs">
+    <div class="context-tab active" id="tabCartMobile" onclick="switchTabMobile('cart')">Order</div>
+    <div class="context-tab" id="tabRunningMobile" onclick="switchTabMobile('running')">Active</div>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <div class="context-body flex-grow-1" id="cartViewMobile">
+      <select id="tableSelectMobile" class="form-select-luxury table-syncer" style="margin-bottom:1rem;" onchange="syncTableSelect(this.value)">
+        <option value="">Walk-in</option>
+        {% for table in tables %}
+        <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
+        {% endfor %}
+      </select>
+      <div id="cartItemsContainerMobile"></div>
+    </div>
+    <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
+      <div id="runningItemsMobile"></div>
+    </div>
+    <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
+      <div class="mb-3">
+        <select id="sourceSelectMobile" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'mobile')">
+          <option value="dine_in">Dine-in</option>
+          <option value="takeaway">Takeaway</option>
+          <option value="zomato">Zomato</option>
+          <option value="swiggy">Swiggy</option>
+          <option value="uber_eats">Uber Eats</option>
+          <option value="web">Website</option>
+        </select>
+        <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
+        <input type="text" id="customerNameMobile" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
+        <input type="tel" id="customerPhoneMobile" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
+      </div>
+      <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+      <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+      <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+      <div class="d-flex flex-column gap-2 mt-3">
+        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
+        <div class="d-flex gap-2">
+          <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
+          <button class="btn-luxury w-50" style="color:var(--text-muted);border-color:var(--border-color);" onclick="clearCart()">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-        /* TOAST */
-        function showToast(msg) {
-            let t = document.getElementById("toastBox");
-            t.innerText = msg; t.classList.add("show");
-            setTimeout(() => t.classList.remove("show"), 3000);
-        }
+<!-- ITEM MODAL -->
+<div class="modal fade" id="itemModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title" id="modalItemName">Item Name</h5>
+      </div>
+      <div class="modal-body">
+        <div id="modifierContainer"></div>
+        <p class="text-muted text-uppercase mt-3" style="font-size:0.75rem;letter-spacing:1px;">Special Instructions</p>
+        <textarea id="itemNote" class="form-control form-control-minimal" rows="2" placeholder="Dietary requirements or prep notes..."></textarea>
+        <div class="form-check mt-3">
+          <input class="form-check-input" type="checkbox" id="itemTakeaway">
+          <label class="form-check-label text-uppercase" style="font-size:0.75rem;letter-spacing:1px;" for="itemTakeaway">Pack as Takeaway</label>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn-luxury btn-luxury-primary" onclick="addItemWithModifiers()">Add to Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
 
-        /* STATE */
-        let cart = [];
-        let selectedItem = null;
-        let sending = false;
-        let currentOrderId = null;
-        let activeModal = null;
+{% block extra_js %}
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    });
+  }
 
-        /* TABS DESKTOP */
-        function switchTab(tab) {
-            document.getElementById("tabCart").classList.toggle("active", tab === 'cart');
-            document.getElementById("tabRunning").classList.toggle("active", tab === 'running');
-            document.getElementById("cartView").classList.toggle("d-none", tab !== 'cart');
-            document.getElementById("runningView").classList.toggle("d-none", tab !== 'running');
-            document.getElementById("cartSummaryBlock").classList.toggle("d-none", tab !== 'cart');
-        }
-
-        /* TABS MOBILE */
-        function switchTabMobile(tab) {
-            document.getElementById("tabCartMobile").classList.toggle("active", tab === 'cart');
-            document.getElementById("tabRunningMobile").classList.toggle("active", tab === 'running');
-            document.getElementById("cartViewMobile").classList.toggle("d-none", tab !== 'cart');
-            document.getElementById("runningViewMobile").classList.toggle("d-none", tab !== 'running');
-            document.getElementById("cartSummaryBlockMobile").classList.toggle("d-none", tab !== 'cart');
-        }
-
-        /* SEARCH */
-        document.getElementById("menuSearch").addEventListener("input", function () {
-            let t = this.value.toLowerCase();
-            document.querySelectorAll(".menu-item-searchable").forEach(c => {
-                c.style.display = c.querySelector(".item-name").innerText.toLowerCase().includes(t) ? "block" : "none";
-            });
-        });
-
-        /* SCROLL CATEGORIES */
-        function scrollToCategory(id, el) {
-            document.querySelectorAll(".category-item").forEach(i => i.classList.remove("active"));
-            if (el) el.classList.add("active");
-
-            // Also sync the other nav (desktop vs mobile)
-            let idx = Array.from(el.parentNode.children).indexOf(el);
-            if (document.querySelectorAll('.category-sidebar .category-item')[idx]) {
-                document.querySelectorAll('.category-sidebar .category-item')[idx].classList.add("active");
-            }
-            if (document.querySelectorAll('.mobile-category-nav .category-item')[idx]) {
-                document.querySelectorAll('.mobile-category-nav .category-item')[idx].classList.add("active");
-            }
-
-            const target = document.getElementById(id);
-            if (target) {
-                // Check if mobile or desktop view for scrolling context
-                if (window.innerWidth < 992) {
-                    window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-                } else {
-                    document.querySelector(".menu-area").scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-                }
-            }
-        }
-
-        /* SYNC SELECT */
-        function syncTableSelect(val) {
-            document.querySelectorAll(".table-syncer").forEach(s => s.value = val);
-            
-            // Auto-select Takeaway if Walk-in (val="") is selected
-            let srcDesktop = document.getElementById("sourceSelectDesktop");
-            let srcMobile = document.getElementById("sourceSelectMobile");
-            if (!val) {
-                if(srcDesktop) srcDesktop.value = "takeaway";
-                if(srcMobile) srcMobile.value = "takeaway";
-            } else {
-                if(srcDesktop) srcDesktop.value = "dine_in";
-                if(srcMobile) srcMobile.value = "dine_in";
-            }
-            toggleAggregator(srcDesktop ? srcDesktop.value : 'dine_in', 'desktop');
-            toggleAggregator(srcMobile ? srcMobile.value : 'dine_in', 'mobile');
-
-            loadRunningOrder();
-        }
-
-
-        /* MODAL */
-        function openItemModal(id, name, price, gst) {
-            console.log("Opening modal for item:", id, name);
-            selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
-            
-            const modalEl = document.getElementById("itemModal");
-            const nameEl = document.getElementById("modalItemName");
-            const noteEl = document.getElementById("itemNote");
-            const takeawayEl = document.getElementById("itemTakeaway");
-            const modCont = document.getElementById("modifierContainer");
-
-            if (!modalEl || !nameEl || !modCont) {
-                console.error("Modal elements missing!");
-                return;
-            }
-
-            nameEl.innerText = name;
-            if (noteEl) noteEl.value = "";
-            if (takeawayEl) takeawayEl.checked = false;
-
-            modCont.innerHTML = "<p class='text-center text-muted py-3'>Checking for modifiers...</p>";
-
-            fetch(`/menu/item-modifiers/${id}/`)
-                .then(r => r.json())
-                .then(data => {
-                    let html = "";
-                    if (data.groups && data.groups.length > 0) {
-                        data.groups.forEach(g => {
-                            html += `<div class="mb-3">
-                                <label class="form-label fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px;">${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}</label>`;
-                            g.modifiers.forEach(m => {
-                                let inputType = g.max_select === 1 ? 'radio' : 'checkbox';
-                                let inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
-                                html += `
-                                <div class="form-check">
-                                  <input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
-                                  <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
-                                    <span>${m.name}</span>
-                                    <span class="text-muted">+₹${m.price}</span>
-                                  </label>
-                                </div>`;
-                            });
-                            html += `</div>`;
-                        });
-                        modCont.innerHTML = html;
-                    } else {
-                        modCont.innerHTML = "<p class='text-center text-muted py-2 small'>No modifiers available for this item.</p>";
-                    }
-                })
-                .catch(e => { 
-                    console.error("Modifiers fetch error:", e);
-                    modCont.innerHTML = ""; 
-                });
-
-            activeModal = new bootstrap.Modal(modalEl);
-            activeModal.show();
-        }
-
-        /* ADD ITEM */
-        function addItemWithModifiers() {
-            let note = document.getElementById("itemNote").value.trim();
-            let modsSelected = [];
-            let modsSelectedIds = [];
-            let addedPrice = 0;
-
-            document.querySelectorAll('.modifier-check:checked').forEach(cb => {
-                modsSelected.push(cb.value);
-                let modId = cb.id.replace('mod_', '');
-                modsSelectedIds.push(parseInt(modId));
-                addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
-            });
-
-            let finalNote = modsSelected.join(", ");
-            if (note) finalNote += (finalNote ? " | " : "") + note;
-            let finalPrice = parseFloat(selectedItem.price) + addedPrice;
-            let isTakeaway = document.getElementById("itemTakeaway").checked;
-
-            // Find existing with same name, mods AND takeaway status
-            let existing = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
-            if (existing) existing.quantity++;
-            else cart.push({ 
-                id: selectedItem.id, 
-                name: selectedItem.name, 
-                price: finalPrice, 
-                quantity: 1, 
-                note: finalNote, 
-                is_takeaway: isTakeaway,
-                modifiers: modsSelectedIds,
-                gst_percentage: selectedItem.gst_percentage
-            });
-
-            renderCart();
-            if (activeModal) activeModal.hide();
-        }
-
-        /* RENDER CART */
-        function renderCart() {
-            let dc = document.getElementById("cartItemsContainerDesktop");
-            let mc = document.getElementById("cartItemsContainerMobile");
-            dc.innerHTML = ""; mc.innerHTML = "";
-
-            let subtotal = 0;
-            let gst = 0;
-
-            if (cart.length === 0) {
-                let emptyMsg = `<div class="text-center text-muted" style="margin-top:20px; text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;">Empty Order</div>`;
-                dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
-            }
-
-            cart.forEach((i, idx) => {
-                let total = i.price * i.quantity;
-                subtotal += total;
-                gst += total * ((i.gst_percentage || 5) / 100);
-
-                let html = `
-            <div class="cart-row">
-                <div style="flex-grow:1; padding-right:10px;">
-                    <div class="cart-item-name">
-                        ${i.name}
-                        ${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem; vertical-align:middle;">Takeaway</span>' : ''}
-                    </div>
-                    ${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}
-                </div>
-                <div class="cart-controls">
-                    <div class="qty-controls">
-                        <button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button>
-                        <span class="qty-value">${i.quantity}</span>
-                        <button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button>
-                    </div>
-                    <div class="cart-item-price">₹${total}</div>
-                </div>
-            </div>`;
-                dc.innerHTML += html;
-                mc.innerHTML += html;
-            });
-
-            gst = Math.round(gst);
-            let grandTotal = subtotal + gst;
-
-            document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + subtotal);
-            document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + gst);
-            document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + grandTotal);
-        }
-
-        function inc(i) { cart[i].quantity++; renderCart(); }
-        function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
-        function clearCart() { cart = []; renderCart(); }
-
-        /* RUNNING ORDER */
-        function loadRunningOrder() {
-            let tableId = document.getElementById("tableSelectDesktop").value;
-            let rd = document.getElementById("runningItemsDesktop");
-            let rm = document.getElementById("runningItemsMobile");
-
-            if (!tableId) {
-                let msg = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>Select table</div>";
-                if (rd) rd.innerHTML = msg;
-                if (rm) rm.innerHTML = msg;
-                return;
-            }
-
-            fetch("{% url 'running-order-items' %}?table=" + tableId)
-                .then(r => r.json())
-                .then(d => {
-                    currentOrderId = d.order_id || null;
-                    let html = "";
-                    if (!d.items || d.items.length === 0) {
-                        html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>No active services</div>";
-                    } else {
-                        d.items.forEach(i => {
-                            let statusClass = i.status === "ready" ? "status-ready" : (i.status === "preparing" ? "border-warning text-warning" : "");
-                            html += `
-                    <div class="running-row d-flex flex-column align-items-start">
-                        <div class="d-flex justify-content-between w-100">
-                            <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
-                            <span class="status-badge ${statusClass}">${i.status}</span>
-                        </div>
-                        ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.7rem; color:var(--accent-gold); font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
-                    </div>`;
-                        });
-                        if (d.order_id) {
-                            html += `<div class="mt-4"><button class="btn-luxury w-100 border-danger text-danger" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Entire Order</button></div>`;
-                        }
-                    }
-                    if (rd) rd.innerHTML = html;
-                    if (rm) rm.innerHTML = html;
-                }).catch(err => console.error(err));
-        }
-
-        /* SUBMIT ORDER */
-        function submitOrder() {
-            if (sending) return;
-            if (cart.length === 0) { showToast("Empty order."); return; }
-
-            let tableId = document.getElementById("tableSelectDesktop").value;
-            sending = true;
-            document.querySelectorAll(".send-btn").forEach(b => {
-                b.disabled = true; b.innerHTML = 'Dispatching...';
-            });
-
-            // Read source and discounts from active view
-            let isMobile = window.innerWidth < 992;
-            let source = isMobile ? document.getElementById("sourceSelectMobile").value : document.getElementById("sourceSelectDesktop").value;
-            let aggId = isMobile ? document.getElementById("aggregatorIdMobile").value : document.getElementById("aggregatorIdDesktop").value;
-            let custName = isMobile ? document.getElementById("customerNameMobile").value : document.getElementById("customerNameDesktop").value;
-            let custPhone = isMobile ? document.getElementById("customerPhoneMobile").value : document.getElementById("customerPhoneDesktop").value;
-
-            fetch("{% url 'create-order' %}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-                body: JSON.stringify({ 
-                    cart: cart, 
-                    table_id: tableId,
-                    source: source,
-                    aggregator_id: aggId,
-                    customer_name: custName,
-                    customer_phone: custPhone
-                })
-            })
-                .then(r => r.json())
-                .then(d => {
-                    if (!d.success) { showToast(d.error); resetSendBtn(); return; }
-                    fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-                        .then(r => r.json())
-                        .then(k => {
-                            if (k.error && k.error !== "No items to send to kitchen") {
-                                showToast(k.error); 
-                            } else {
-                                showToast("Order Sent");
-                            }
-                            
-                            clearCart();
-                            resetSendBtn();
-                            
-                            // If it's a takeaway/aggregator OR walk-in (no table), immediately generate the bill
-                            if (source !== 'dine_in' || !tableId) {
-                                generateBill(d.order_id);
-                            } else {
-                                loadRunningOrder();
-                            }
-
-                            // Optionally close offcanvas
-                            let offcanvasEl = document.getElementById('mobileCartOffcanvas');
-                            if (offcanvasEl) {
-                                let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                                if (offcanvas) offcanvas.hide();
-                            }
-                        }).catch(() => resetSendBtn());
-                }).catch(() => resetSendBtn());
-        }
-
-        function resetSendBtn() {
-            sending = false;
-            document.querySelectorAll(".send-btn").forEach(b => {
-                b.disabled = false; b.innerHTML = 'Dispatch <i class="bi bi-arrow-right ms-2"></i>';
-            });
-        }
-
-        function generateBill(orderId = null) {
-            // Use provided orderId, or fallback to the currently active table order
-            if (!orderId) {
-                if (!currentOrderId) { showToast("No active order to bill."); return; }
-                orderId = currentOrderId;
-            }
-            
-            fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), {
-                method: "POST",
-                headers: { "X-CSRFToken": getCookie("csrftoken") }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
-                } else {
-                    showToast(data.error || "Failed to generate bill.");
-                }
-            })
-            .catch(() => showToast("Error generating bill."));
-        }
-
-        function cancelOrder(orderId) {
-            if (!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
-            fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast("Order Cancelled!");
-                        loadRunningOrder();
-                    } else {
-                        showToast(data.error || "Failed to cancel order.");
-                    }
-                });
-        }
-
-        function getCookie(name) {
-            let v = null;
-            if (document.cookie) {
-                document.cookie.split(";").forEach(c => {
-                    let trimmed = c.trim();
-                    if (trimmed.startsWith(name + "=")) v = decodeURIComponent(trimmed.split("=")[1]);
-                });
-            }
-            return v || '{{ csrf_token }}';
-        }
-
-        async function pollNotifications() {
-            try {
-                const res = await fetch('/api/notifications/');
-                const data = await res.json();
-                
-                // Update badges
-                const waiterBadge = document.getElementById('notif-badge-waiter');
-                const waiterBadgeMobile = document.getElementById('notif-badge-waiter-mobile');
-            const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
-            if (totalCount > 0) {
-                if (waiterBadge) { waiterBadge.innerText = totalCount; waiterBadge.classList.remove('hidden'); }
-                if (waiterBadgeMobile) { waiterBadgeMobile.innerText = totalCount; waiterBadgeMobile.classList.remove('hidden'); }
-            } else {
-                if (waiterBadge) waiterBadge.classList.add('hidden');
-                if (waiterBadgeMobile) waiterBadgeMobile.classList.add('hidden');
-            }
-        } catch (e) { console.error("Poll failed", e); }
+  function toggleAggregator(val, view) {
+    const inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
+    const el = document.getElementById(inputId);
+    if (el) {
+      const isAggregator = ['zomato', 'swiggy', 'uber_eats', 'web'].includes(val);
+      el.classList.toggle('d-none', !isAggregator);
+      if (!isAggregator) el.value = '';
     }
+  }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            renderCart(); 
-            loadRunningOrder(); 
-            pollNotifications();
-            setInterval(loadRunningOrder, 5000);
-            setInterval(pollNotifications, 8000);
-            // Default category select desktop & mobile
-            const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
-            const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");
-        });
+  function showToast(msg) {
+    const t = document.getElementById("toastBox");
+    t.innerText = msg; t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+  }
 
-    </script>
-</body>
+  let cart = [];
+  let selectedItem = null;
+  let sending = false;
+  let currentOrderId = null;
+  let activeModal = null;
 
-</html>
+  function switchTab(tab) {
+    document.getElementById("tabCart").classList.toggle("active", tab === 'cart');
+    document.getElementById("tabRunning").classList.toggle("active", tab === 'running');
+    document.getElementById("cartView").classList.toggle("d-none", tab !== 'cart');
+    document.getElementById("runningView").classList.toggle("d-none", tab !== 'running');
+    document.getElementById("cartSummaryBlock").classList.toggle("d-none", tab !== 'cart');
+  }
+
+  function switchTabMobile(tab) {
+    document.getElementById("tabCartMobile").classList.toggle("active", tab === 'cart');
+    document.getElementById("tabRunningMobile").classList.toggle("active", tab === 'running');
+    document.getElementById("cartViewMobile").classList.toggle("d-none", tab !== 'cart');
+    document.getElementById("runningViewMobile").classList.toggle("d-none", tab !== 'running');
+    document.getElementById("cartSummaryBlockMobile").classList.toggle("d-none", tab !== 'cart');
+  }
+
+  document.getElementById("menuSearch").addEventListener("input", function () {
+    const t = this.value.toLowerCase();
+    document.querySelectorAll(".menu-item-searchable").forEach(c => {
+      c.style.display = c.querySelector(".item-name").innerText.toLowerCase().includes(t) ? "block" : "none";
+    });
+  });
+
+  function scrollToCategory(id, el) {
+    document.querySelectorAll(".category-item").forEach(i => i.classList.remove("active"));
+    if (el) el.classList.add("active");
+    const idx = Array.from(el.parentNode.children).indexOf(el);
+    const sidebarItems = document.querySelectorAll('.category-sidebar .category-item');
+    const mobileItems  = document.querySelectorAll('.mobile-category-nav .category-item');
+    if (sidebarItems[idx]) sidebarItems[idx].classList.add("active");
+    if (mobileItems[idx])  mobileItems[idx].classList.add("active");
+    const target = document.getElementById(id);
+    if (target) {
+      if (window.innerWidth < 992) {
+        window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+      } else {
+        document.querySelector(".menu-area").scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+      }
+    }
+  }
+
+  function syncTableSelect(val) {
+    document.querySelectorAll(".table-syncer").forEach(s => s.value = val);
+    const srcDesktop = document.getElementById("sourceSelectDesktop");
+    const srcMobile  = document.getElementById("sourceSelectMobile");
+    const src = val ? "dine_in" : "takeaway";
+    if (srcDesktop) srcDesktop.value = src;
+    if (srcMobile)  srcMobile.value  = src;
+    toggleAggregator(src, 'desktop');
+    toggleAggregator(src, 'mobile');
+    loadRunningOrder();
+  }
+
+  function openItemModal(id, name, price, gst) {
+    selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
+    const modalEl = document.getElementById("itemModal");
+    const nameEl  = document.getElementById("modalItemName");
+    const noteEl  = document.getElementById("itemNote");
+    const takeawayEl = document.getElementById("itemTakeaway");
+    const modCont = document.getElementById("modifierContainer");
+    if (!modalEl || !nameEl || !modCont) return;
+    nameEl.innerText = name;
+    if (noteEl) noteEl.value = "";
+    if (takeawayEl) takeawayEl.checked = false;
+    modCont.innerHTML = "<p class='text-center text-muted py-3'>Checking for modifiers...</p>";
+    fetch(`/menu/item-modifiers/${id}/`)
+      .then(r => r.json())
+      .then(data => {
+        let html = "";
+        if (data.groups && data.groups.length > 0) {
+          data.groups.forEach(g => {
+            html += `<div class="mb-3"><label class="form-label fw-bold text-uppercase" style="font-size:0.8rem;letter-spacing:1px;">${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}</label>`;
+            g.modifiers.forEach(m => {
+              const inputType = g.max_select === 1 ? 'radio' : 'checkbox';
+              const inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
+              html += `<div class="form-check"><input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}"><label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}"><span>${m.name}</span><span class="text-muted">+₹${m.price}</span></label></div>`;
+            });
+            html += `</div>`;
+          });
+          modCont.innerHTML = html;
+        } else {
+          modCont.innerHTML = "<p class='text-center text-muted py-2 small'>No modifiers available.</p>";
+        }
+      })
+      .catch(() => { modCont.innerHTML = ""; });
+    activeModal = new bootstrap.Modal(modalEl);
+    activeModal.show();
+  }
+
+  function addItemWithModifiers() {
+    const note = document.getElementById("itemNote").value.trim();
+    let modsSelected = [], modsSelectedIds = [], addedPrice = 0;
+    document.querySelectorAll('.modifier-check:checked').forEach(cb => {
+      modsSelected.push(cb.value);
+      modsSelectedIds.push(parseInt(cb.id.replace('mod_', '')));
+      addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
+    });
+    let finalNote = modsSelected.join(", ");
+    if (note) finalNote += (finalNote ? " | " : "") + note;
+    const finalPrice = parseFloat(selectedItem.price) + addedPrice;
+    const isTakeaway = document.getElementById("itemTakeaway").checked;
+    const existing = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
+    if (existing) {
+      existing.quantity++;
+    } else {
+      cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, note: finalNote, is_takeaway: isTakeaway, modifiers: modsSelectedIds, gst_percentage: selectedItem.gst_percentage });
+    }
+    renderCart();
+    if (activeModal) activeModal.hide();
+  }
+
+  function renderCart() {
+    const dc = document.getElementById("cartItemsContainerDesktop");
+    const mc = document.getElementById("cartItemsContainerMobile");
+    dc.innerHTML = ""; mc.innerHTML = "";
+    let subtotal = 0, gst = 0;
+    if (cart.length === 0) {
+      const emptyMsg = `<div class="text-center text-muted" style="margin-top:20px;text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
+      dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
+    }
+    cart.forEach((i, idx) => {
+      const total = i.price * i.quantity;
+      subtotal += total;
+      gst += total * ((i.gst_percentage || 5) / 100);
+      const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
+      dc.innerHTML += html;
+      mc.innerHTML += html;
+    });
+    gst = Math.round(gst);
+    const grandTotal = subtotal + gst;
+    document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + subtotal);
+    document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + gst);
+    document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + grandTotal);
+  }
+
+  function inc(i) { cart[i].quantity++; renderCart(); }
+  function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
+  function clearCart() { cart = []; renderCart(); }
+
+  function loadRunningOrder() {
+    const tableId = document.getElementById("tableSelectDesktop").value;
+    const rd = document.getElementById("runningItemsDesktop");
+    const rm = document.getElementById("runningItemsMobile");
+    if (!tableId) {
+      const msg = "<div class='text-center text-muted mt-4' style='text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;'>Select table</div>";
+      if (rd) rd.innerHTML = msg;
+      if (rm) rm.innerHTML = msg;
+      return;
+    }
+    fetch("{% url 'running-order-items' %}?table=" + tableId)
+      .then(r => r.json())
+      .then(d => {
+        currentOrderId = d.order_id || null;
+        let html = "";
+        if (!d.items || d.items.length === 0) {
+          html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;'>No active services</div>";
+        } else {
+          d.items.forEach(i => {
+            const statusClass = i.status === "ready" ? "status-ready" : (i.status === "preparing" ? "border-warning text-warning" : "");
+            html += `<div class="running-row d-flex flex-column align-items-start"><div class="d-flex justify-content-between w-100"><span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span><span class="status-badge ${statusClass}">${i.status}</span></div>${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.7rem;color:var(--accent-gold);font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}</div>`;
+          });
+          if (d.order_id) {
+            html += `<div class="mt-4"><button class="btn-luxury w-100 border-danger text-danger" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Entire Order</button></div>`;
+          }
+        }
+        if (rd) rd.innerHTML = html;
+        if (rm) rm.innerHTML = html;
+      }).catch(err => console.error(err));
+  }
+
+  function submitOrder() {
+    if (sending) return;
+    if (cart.length === 0) { showToast("Empty order."); return; }
+    const tableId = document.getElementById("tableSelectDesktop").value;
+    sending = true;
+    document.querySelectorAll(".send-btn").forEach(b => { b.disabled = true; b.innerHTML = 'Dispatching...'; });
+    const isMobile = window.innerWidth < 992;
+    const source   = document.getElementById(isMobile ? "sourceSelectMobile"  : "sourceSelectDesktop").value;
+    const aggId    = document.getElementById(isMobile ? "aggregatorIdMobile"   : "aggregatorIdDesktop").value;
+    const custName = document.getElementById(isMobile ? "customerNameMobile"   : "customerNameDesktop").value;
+    const custPhone= document.getElementById(isMobile ? "customerPhoneMobile"  : "customerPhoneDesktop").value;
+
+    fetch("{% url 'create-order' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
+      body: JSON.stringify({ cart, table_id: tableId, source, aggregator_id: aggId, customer_name: custName, customer_phone: custPhone })
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (!d.success) { showToast(d.error); resetSendBtn(); return; }
+        fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
+          .then(r => r.json())
+          .then(k => {
+            showToast(k.error && k.error !== "No items to send to kitchen" ? k.error : "Order Sent");
+            clearCart();
+            resetSendBtn();
+            if (source !== 'dine_in' || !tableId) {
+              generateBill(d.order_id);
+            } else {
+              loadRunningOrder();
+            }
+            const offcanvasEl = document.getElementById('mobileCartOffcanvas');
+            if (offcanvasEl) {
+              const oc = bootstrap.Offcanvas.getInstance(offcanvasEl);
+              if (oc) oc.hide();
+            }
+          }).catch(() => resetSendBtn());
+      }).catch(() => resetSendBtn());
+  }
+
+  function resetSendBtn() {
+    sending = false;
+    document.querySelectorAll(".send-btn").forEach(b => { b.disabled = false; b.innerHTML = 'Dispatch <i class="bi bi-arrow-right ms-2"></i>'; });
+  }
+
+  function generateBill(orderId = null) {
+    if (!orderId) {
+      if (!currentOrderId) { showToast("No active order to bill."); return; }
+      orderId = currentOrderId;
+    }
+    fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
+        } else {
+          showToast(data.error || "Failed to generate bill.");
+        }
+      })
+      .catch(() => showToast("Error generating bill."));
+  }
+
+  function cancelOrder(orderId) {
+    if (!confirm("Cancel this entire order? This cannot be undone.")) return;
+    fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) { showToast("Order Cancelled!"); loadRunningOrder(); }
+        else showToast(data.error || "Failed to cancel order.");
+      });
+  }
+
+  async function pollNotifications() {
+    try {
+      const res  = await fetch('/api/notifications/');
+      const data = await res.json();
+      const waiterBadge       = document.getElementById('notif-badge-waiter');
+      const waiterBadgeMobile = document.getElementById('notif-badge-waiter-mobile');
+      const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
+      if (totalCount > 0) {
+        if (waiterBadge)       { waiterBadge.innerText = totalCount;       waiterBadge.classList.remove('hidden'); }
+        if (waiterBadgeMobile) { waiterBadgeMobile.innerText = totalCount; waiterBadgeMobile.classList.remove('hidden'); }
+      } else {
+        if (waiterBadge)       waiterBadge.classList.add('hidden');
+        if (waiterBadgeMobile) waiterBadgeMobile.classList.add('hidden');
+      }
+    } catch (e) { console.error("Poll failed", e); }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderCart();
+    loadRunningOrder();
+    pollNotifications();
+    setInterval(loadRunningOrder, 5000);
+    setInterval(pollNotifications, 8000);
+    const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
+    const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");
+  });
+</script>
+{% endblock %}

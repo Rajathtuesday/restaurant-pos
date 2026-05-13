@@ -1,534 +1,394 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Kitchen Display</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    
-    <!-- Premium Fonts: DM Serif Display (Serif) & Inter (Sans-serif) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap Modern -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+{% extends 'core/base.html' %}
 
-    <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            --bg-color: #050505;
-            --panel-bg: #111111;
-            --card-bg: #1a1a1a;
-            --text-main: #f5f5f5;
-            --text-muted: #888888;
-            --border-color: #262626;
-            
-            --c-fresh: #d4af37; /* Gold */
-            --c-warn: #f59e0b; /* Orange/Amber */
-            --c-urgent: #ef4444; /* Ruby Red */
-            
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
+{% block title %}Kitchen Display — {{ request.user.tenant.name }}{% endblock %}
 
-        body.light {
-            --bg-color: #fafafa;
-            --panel-bg: #ffffff;
-            --card-bg: #ffffff;
-            --text-main: #111111;
-            --text-muted: #737373;
-            --border-color: #eaeaea;
-        }
+{% block extra_css %}
+<style>
+    /* Kitchen is ALWAYS dark — readable under bright/hot kitchen conditions */
+    :root {
+        --bg-color:    #050505;
+        --panel-bg:    #111111;
+        --card-bg:     #1a1a1a;
+        --text-main:   #f5f5f5;
+        --text-muted:  #888888;
+        --border-color: #262626;
+        --c-fresh:  #d4af37;
+        --c-warn:   #f59e0b;
+        --c-urgent: #ef4444;
+    }
+    /* Staff can toggle to light if they prefer */
+    html.kitchen-light {
+        --bg-color:    #fafafa;
+        --panel-bg:    #ffffff;
+        --card-bg:     #ffffff;
+        --text-main:   #111111;
+        --text-muted:  #737373;
+        --border-color: #eaeaea;
+    }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
-            transition: var(--transition-smooth);
-        }
+    body { overflow-x: hidden; }
 
-        h1, h2, h3, h4, h5, h6, .serif-text {
-            font-family: 'DM Serif Display', serif;
-            font-weight: 600;
-        }
+    /* ── Station tabs ─────────────────────────────────── */
+    .station-tabs {
+        display: flex;
+        gap: 1.5rem;
+        padding: 0.75rem 1.5rem;
+        background: var(--panel-bg);
+        border-bottom: 1px solid var(--border-color);
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .station-tabs::-webkit-scrollbar { display: none; }
+    .station-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-family: 'DM Serif Display', serif;
+        font-size: 1.05rem;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+        white-space: nowrap;
+        padding: 0.5rem 0;
+        border-bottom: 2px solid transparent;
+        min-height: 44px;
+    }
+    .station-btn:hover { color: var(--text-main); }
+    .station-btn.active { color: var(--c-fresh); border-bottom-color: var(--c-fresh); font-style: italic; }
 
-        /* HEADER */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 2rem;
-            background: var(--bg-color);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            flex-wrap: wrap; /* MOBILE WRAP */
-            gap: 1rem;
-        }
+    /* ── Orders grid ─────────────────────────────────── */
+    .orders-grid { padding: 1.5rem; }
 
-        .brand-title {
-            font-size: 1.5rem; margin: 0; color: var(--text-main);
-            font-family: 'DM Serif Display', serif;
-        }
+    /* ── KOT cards ───────────────────────────────────── */
+    .order-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        transition: var(--transition-smooth);
+    }
+    .order-card:hover { border-color: var(--text-muted); }
+    .card-fresh  { border-top: 4px solid var(--c-fresh); }
+    .card-warn   { border-top: 4px solid var(--c-warn); }
+    .card-urgent { border-top: 4px solid var(--c-urgent); animation: pulse-border 2s infinite; }
 
-        .btn-luxury {
-            border: 1px solid var(--border-color);
-            background: transparent; color: var(--text-main);
-            border-radius: 0; text-transform: uppercase;
-            font-size: 0.75rem; letter-spacing: 1px; font-weight: 500;
-            padding: 0.6rem 1rem; display: inline-flex; align-items: center;
-            transition: var(--transition-smooth); white-space: nowrap;
-            text-decoration: none;
-        }
-        .btn-luxury:hover {
-            border-color: var(--text-main); color: var(--bg-color); background: var(--text-main);
-        }
+    @keyframes pulse-border {
+        0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.25); }
+        70%  { box-shadow: 0 0 0 12px rgba(239,68,68,0); }
+        100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
 
-        /* STATION TABS */
-        .station-tabs {
-            display: flex;
-            gap: 1.5rem;
-            padding: 1rem 2rem;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
-        .station-tabs::-webkit-scrollbar { display: none; }
+    .order-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px dashed var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    .table-name {
+        font-family: 'DM Serif Display', serif;
+        font-size: 1.5rem;
+        color: var(--text-main);
+        line-height: 1;
+        margin-bottom: 0.2rem;
+    }
+    .kot-num {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    .timer { font-size: 1.2rem; font-family: 'DM Serif Display', serif; }
+    .card-fresh  .timer { color: var(--c-fresh); }
+    .card-warn   .timer { color: var(--c-warn); }
+    .card-urgent .timer { color: var(--c-urgent); }
 
-        .station-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            white-space: nowrap;
-            padding: 0.5rem 0;
-            border-bottom: 2px solid transparent;
-        }
-        .station-btn:hover { color: var(--text-main); }
-        .station-btn.active {
-            color: var(--c-fresh);
-            border-bottom-color: var(--c-fresh);
-            font-style: italic;
-        }
+    /* ── Item rows ───────────────────────────────────── */
+    .items-container { padding: 1.25rem 1.5rem; flex-grow: 1; }
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.9rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .item-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .item-qty {
+        font-family: 'DM Serif Display', serif;
+        color: var(--c-fresh);
+        font-size: 1.25rem;
+        margin-right: 12px;
+        min-width: 24px;
+        text-align: right;
+    }
+    .item-name { font-size: 1rem; color: var(--text-main); font-weight: 400; }
+    .item-note { display: block; margin-top: 0.3rem; font-size: 0.75rem; color: var(--c-warn); font-style: italic; }
+    .action-cell { margin-left: 0.75rem; min-width: 100px; display: flex; justify-content: flex-end; }
 
-        /* GRID */
-        .orders-grid { padding: 2rem; }
+    /* ── Action buttons — BIG for kitchen gloves ─────── */
+    .btn-status {
+        background: transparent;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0.6rem 1rem;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        transition: var(--transition-smooth);
+        width: 100%;
+        min-height: 44px;
+        cursor: pointer;
+    }
+    .btn-start:hover { border-color: var(--c-warn); color: var(--c-warn); }
+    .btn-ready:hover { border-color: var(--c-fresh); color: var(--c-fresh); }
+    .badge-done {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0.6rem 1rem;
+        border: 1px dashed var(--border-color);
+        text-align: center;
+        width: 100%;
+        display: inline-block;
+    }
 
-        /* CARDS */
-        .order-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            transition: var(--transition-smooth);
-        }
-        .order-card:hover { border-color: var(--text-muted); }
+    /* ── States ──────────────────────────────────────── */
+    .empty-state, .loading-state {
+        text-align: center; padding: 5rem 2rem; width: 100%; color: var(--text-muted);
+    }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; }
+    .empty-state h3 { font-family: 'DM Serif Display', serif; }
 
-        /* URGENCY COLORS */
-        .card-fresh { border-top: 3px solid var(--c-fresh); }
-        .card-warn { border-top: 3px solid var(--c-warn); }
-        .card-urgent { 
-            border-top: 3px solid var(--c-urgent); 
-            animation: pulse-border 2s infinite;
-        }
-        
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.2); }
-            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
+    /* ── Mobile ──────────────────────────────────────── */
+    @media (max-width: 576px) {
+        .orders-grid { padding: 0.75rem; }
+        .item-row { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+        .action-cell { margin-left: 0; width: 100%; }
+        .btn-status, .badge-done { padding: 0.9rem; font-size: 0.9rem; }
+    }
 
-        /* CARD HEADER */
-        .order-header {
-            padding: 1.5rem;
-            border-bottom: 1px dashed var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
+    /* ── Waiter message modal dark ───────────────────── */
+    .modal-content {
+        background: var(--panel-bg) !important;
+        color: var(--text-main) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 0 !important;
+    }
+</style>
+{% endblock %}
 
-        .table-info { display: flex; flex-direction: column; }
-        .table-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.5rem;
-            color: var(--text-main);
-            margin-bottom: 0.2rem;
-            line-height: 1;
-        }
-        .kot-num {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
+{% block header_left %}
+<a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0">
+        <i class="bi bi-diamond-half" style="color:var(--c-fresh);"></i>
+        {{ request.user.tenant.name }}
+    </h1>
+</a>
+<p class="brand-subtitle">Kitchen Display — {{ request.user.outlet.name }}</p>
+{% endblock %}
 
-        .timer {
-            font-size: 1.25rem;
-            font-family: 'DM Serif Display', serif;
-            padding: 0.2rem 0;
-        }
-        .card-fresh .timer { color: var(--c-fresh); }
-        .card-warn .timer { color: var(--c-warn); }
-        .card-urgent .timer { color: var(--c-urgent); }
+{% block header_right %}
+<a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
+<a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+<a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
+<a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
+<button class="btn-icon" onclick="kitchenToggleTheme()" title="Toggle Light/Dark" id="kitchenThemeBtn">
+    <i class="bi bi-sun" id="themeIcon"></i>
+</button>
+{% endblock %}
 
-        /* ITEMS LIST */
-        .items-container {
-            padding: 1.5rem;
-            flex-grow: 1;
-        }
-
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .item-row:last-child { border-bottom: none; padding-bottom: 0; }
-
-        .item-qty {
-            font-family: 'DM Serif Display', serif;
-            color: var(--c-fresh);
-            font-size: 1.2rem;
-            margin-right: 15px;
-            width: 20px;
-            text-align: right;
-            display: inline-block;
-        }
-
-        .item-name {
-            font-size: 1rem;
-            color: var(--text-main);
-            font-weight: 400;
-        }
-        .item-note {
-            display: block;
-            margin-top: 0.4rem;
-            font-size: 0.75rem;
-            color: var(--c-warn);
-            font-style: italic;
-        }
-
-        /* ACTION BUTTONS */
-        .action-cell {
-            margin-left: 1rem;
-            min-width: 90px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        .btn-status {
-            background: transparent;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0.5rem 1rem;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            transition: var(--transition-smooth);
-            width: 100%;
-        }
-
-        .btn-start:hover { border-color: var(--c-warn); color: var(--c-warn); }
-        .btn-ready:hover { border-color: var(--c-fresh); color: var(--c-fresh); }
-
-        .badge-done {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            padding: 0.5rem 1rem;
-            border: 1px dashed var(--border-color);
-            text-align: center;
-            width: 100%;
-            display: inline-block;
-        }
-
-        /* STATES */
-        .empty-state, .loading-state {
-            text-align: center; padding: 5rem 2rem; width: 100%; color: var(--text-muted);
-        }
-        .empty-state i { font-size: 3rem; margin-bottom: 1rem; display: block; color: var(--border-color); }
-        .empty-state h3 { font-family: 'DM Serif Display', serif; }
-
-        /* MOBILE OPTIMIZATIONS */
-        @media (max-width: 576px) {
-            .header { padding: 1rem; }
-            .orders-grid { padding: 1rem; }
-            .btn-luxury { padding: 0.5rem; font-size: 0.7rem; }
-            
-            .station-tabs { padding: 0.5rem 1rem; gap: 1rem; }
-            .station-btn { font-size: 1rem; }
-            
-            .item-row { flex-direction: column; align-items: flex-start; gap: 1rem; }
-            .action-cell { margin-left: 0; width: 100%; }
-            .btn-status, .badge-done { padding: 0.8rem; font-size: 0.85rem; } /* Taller for touch */
-        }
-
-    </style>
-</head>
-
-<body>
-
-<!-- HEADER -->
-<div class="header">
-    <div class="d-flex flex-column">
-        <h1 class="brand-title mb-0" style="font-family:'DM Serif Display', serif;"><i class="bi bi-diamond-half me-2" style="color:var(--c-fresh);"></i>{{ request.user.tenant.name }}</h1>
-        <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">Kitchen Display — {{ request.user.outlet.name }}</p>
-    </div>
-    <div class="header-actions">
-        <a href="/tables/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-grid-3x3 me-2"></i>Tables</a>
-        <a href="/billing/" class="btn-luxury d-none d-sm-inline-flex ms-2"><i class="bi bi-receipt me-2"></i>Billing</a>
-        <a href="/reports/dashboard" class="btn-luxury d-none d-sm-inline-flex ms-2"><i class="bi bi-bar-chart me-2"></i>Reports</a>
-        
-        <!-- Mobile Icons -->
-        <a href="/tables/" class="btn-luxury d-sm-none px-2"><i class="bi bi-grid-3x3"></i></a>
-        <a href="/billing/" class="btn-luxury d-sm-none px-2 ms-1"><i class="bi bi-receipt"></i></a>
-        <a href="/reports/dashboard" class="btn-luxury d-sm-none px-2 ms-1"><i class="bi bi-bar-chart"></i></a>
-
-        <button class="btn-icon ms-2" onclick="toggleTheme()" title="Toggle Theme" style="border:none; background:transparent; color:var(--text-main); font-size:1.25rem; vertical-align:middle;">
-            <i class="bi bi-sun" id="themeIcon"></i>
-        </button>
-    </div>
-</div>
-
-<!-- STATIONS FILTER -->
+{% block content %}
+<!-- Station filter tabs -->
 <div class="station-tabs" id="stationTabs">
     <button class="station-btn active" onclick="changeStation('', this)">All Stations</button>
     {% for s in stations %}
-    <button class="station-btn" onclick="changeStation('{{s.name}}', this)">{{s.name}}</button>
+    <button class="station-btn" onclick="changeStation('{{ s.name }}', this)">{{ s.name }}</button>
     {% endfor %}
 </div>
 
-<!-- ORDERS GRID -->
+<!-- KOT grid -->
 <div class="orders-grid">
     <div class="row g-4" id="orders">
         <div class="loading-state">
-            <div class="spinner-border text-light mb-3" style="width: 2rem; height: 2rem; border-width: 1px;" role="status"></div>
-            <p style="text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem;">Syncing Service...</p>
+            <div class="spinner-border mb-3" style="width:2rem;height:2rem;border-width:1px;color:var(--c-fresh);" role="status"></div>
+            <p style="text-transform:uppercase;letter-spacing:2px;font-size:0.8rem;">Syncing Kitchen…</p>
         </div>
     </div>
 </div>
 
-<!-- MESSAGE WAITER MODAL -->
+<!-- Waiter message modal -->
 <div class="modal fade" id="msgModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color);">
+        <div class="modal-content">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title" id="msgModalTitle">Message Waiter</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="d-flex flex-wrap gap-2 mb-3">
-                    <button class="btn btn-outline-warning btn-sm" onclick="sendQuickMessage('Delayed by 5 mins')">Delayed 5m</button>
-                    <button class="btn btn-outline-warning btn-sm" onclick="sendQuickMessage('Delayed by 15 mins')">Delayed 15m</button>
-                    <button class="btn btn-outline-danger btn-sm" onclick="sendQuickMessage('Ingredient out of stock')">Out of stock</button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="quickMsg('Delayed by 5 mins')">Delayed 5m</button>
+                    <button class="btn btn-outline-warning btn-sm" onclick="quickMsg('Delayed by 15 mins')">Delayed 15m</button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="quickMsg('Ingredient out of stock')">Out of stock</button>
                 </div>
-                <textarea id="customMsgText" class="form-control" style="background: var(--bg-color); color: white; border: 1px solid var(--border-color);" rows="3" placeholder="Custom message..."></textarea>
+                <textarea id="customMsgText" class="form-control" rows="3"
+                    style="background:var(--bg-color);color:var(--text-main);border:1px solid var(--border-color);border-radius:0;"
+                    placeholder="Custom message…"></textarea>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-warning" onclick="submitKitchenMessage()"><i class="bi bi-send"></i> Send</button>
+                <button class="btn btn-warning" onclick="submitKitchenMessage()"><i class="bi bi-send me-1"></i>Send</button>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
+    /* Kitchen always starts dark — force it regardless of global theme pref */
+    document.documentElement.classList.add('dark');
 
     let loading = false;
     let currentStation = "";
-
-    function getCookie(name) {
-        let value = null;
-        if (document.cookie) {
-            let cookies = document.cookie.split(";");
-            for (let i = 0; i < cookies.length; i++) {
-                let c = cookies[i].trim();
-                if (c.startsWith(name + "=")) value = decodeURIComponent(c.substring(name.length + 1));
-            }
-        }
-        return value;
+    let activeOrderId = null;
+    /* Kitchen-specific light toggle (not global themeManager) */
+    let kitchenLight = localStorage.getItem('kitchen_light') === 'true';
+    function kitchenToggleTheme() {
+        kitchenLight = !kitchenLight;
+        localStorage.setItem('kitchen_light', kitchenLight);
+        document.documentElement.classList.toggle('kitchen-light', kitchenLight);
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = kitchenLight ? 'bi bi-moon' : 'bi bi-sun';
     }
+    /* Apply saved kitchen light pref on load */
+    document.documentElement.classList.toggle('kitchen-light', kitchenLight);
+    document.addEventListener('DOMContentLoaded', () => {
+        const icon = document.getElementById('themeIcon');
+        if (icon) icon.className = kitchenLight ? 'bi bi-moon' : 'bi bi-sun';
+    });
 
     function changeStation(station, el) {
         currentStation = station;
-        document.querySelectorAll(".station-btn").forEach(btn => btn.classList.remove("active"));
-        el.classList.add("active");
+        document.querySelectorAll('.station-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
         loadKitchen();
     }
 
-    function getColorClass(minutes) {
-        if(minutes < 15) return "card-fresh";
-        if(minutes < 25) return "card-warn";
-        return "card-urgent";
+    function colorClass(minutes) {
+        if (minutes < 15) return 'card-fresh';
+        if (minutes < 25) return 'card-warn';
+        return 'card-urgent';
     }
 
     function loadKitchen() {
-        if(loading) return;
+        if (loading) return;
         loading = true;
-
-        let url = "/kitchen-data/";
-        if (currentStation) url += `?station=${encodeURIComponent(currentStation)}`;
-
+        const url = '/kitchen-data/' + (currentStation ? `?station=${encodeURIComponent(currentStation)}` : '');
         fetch(url)
-            .then(res => res.json())
+            .then(r => r.json())
             .then(data => {
-                let container = document.getElementById("orders");
-                container.innerHTML = "";
-
-                if (!data.kots || data.kots.length === 0) {
+                const container = document.getElementById('orders');
+                if (!data.kots || !data.kots.length) {
                     container.innerHTML = `
                         <div class="empty-state">
-                            <i class="bi bi-check2-all"></i>
+                            <i class="bi bi-check2-all" style="color:var(--c-fresh);"></i>
                             <h3>All Caught Up</h3>
-                            <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">No active orders for this station.</p>
+                            <p style="text-transform:uppercase;letter-spacing:1px;font-size:0.75rem;">No active orders.</p>
                         </div>`;
-                    loading = false;
-                    return;
+                    loading = false; return;
                 }
-
-                let fullHTML = ""; // Build full string first
-                data.kots.forEach(kot => {
-                    let created = new Date(kot.created_at);
-                    let minutes = 0;
-                    if(!isNaN(created)){
-                        minutes = Math.floor((Date.now() - created) / 60000);
-                        if(minutes < 0) minutes = 0;
-                    }
-                    
-                    let colorClass = getColorClass(minutes);
-                    let itemsHTML = "";
-
-                    kot.items.forEach(i => {
-                        let action = "";
-                        if (i.status === "sent") {
-                            action = `<button class="btn-status btn-start" onclick="startPreparing(${i.id})">Start Prep</button>`;
-                        } else if (i.status === "preparing") {
-                            action = `<button class="btn-status btn-ready" onclick="markReady(${i.id})">Ready</button>`;
-                        } else {
-                            action = `<span class="badge-done">Done</span>`;
-                        }
-
-                        itemsHTML += `
-                        <div class="item-row">
+                container.innerHTML = data.kots.map(kot => {
+                    const created = new Date(kot.created_at);
+                    const minutes = isNaN(created) ? 0 : Math.max(0, Math.floor((Date.now() - created) / 60000));
+                    const cc = colorClass(minutes);
+                    const items = kot.items.map(i => {
+                        let action = '';
+                        if (i.status === 'sent') action = `<button class="btn-status btn-start" onclick="startPreparing(${i.id})">Start Prep</button>`;
+                        else if (i.status === 'preparing') action = `<button class="btn-status btn-ready" onclick="markReady(${i.id})">Ready ✓</button>`;
+                        else action = `<span class="badge-done">Done</span>`;
+                        return `<div class="item-row">
                             <div class="d-flex w-100 align-items-center">
                                 <span class="item-qty">${i.quantity}</span>
                                 <div style="flex-grow:1;">
                                     <span class="item-name">${i.name}</span>
-                                    ${i.notes ? `<span class="item-note">${i.notes}</span>` : ""}
+                                    ${i.notes ? `<span class="item-note">${i.notes}</span>` : ''}
                                 </div>
                             </div>
                             <div class="action-cell">${action}</div>
                         </div>`;
-                    });
-
-                    fullHTML += `
-                    <div class="col-12 col-md-6 col-xl-4 col-xxl-3">
-                        <div class="order-card w-100 ${colorClass}">
+                    }).join('');
+                    return `<div class="col-12 col-md-6 col-xl-4 col-xxl-3">
+                        <div class="order-card ${cc}">
                             <div class="order-header">
-                                <div class="table-info">
-                                    <span class="table-name">${kot.table}</span>
+                                <div>
+                                    <div class="table-name">${kot.table}</div>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="kot-num">KOT #${kot.kot_number}</span>
-                                        <button class="btn btn-outline-warning" style="padding: 2px 6px; font-size: 0.7rem; border-radius: 4px;" onclick="openMessageModal(${kot.order_id}, '${kot.table}')"><i class="bi bi-chat-text"></i> Message</button>
+                                        <button class="btn btn-outline-warning" style="padding:2px 8px;font-size:0.7rem;border-radius:0;" onclick="openMsg(${kot.order_id}, '${kot.table}')">
+                                            <i class="bi bi-chat-text"></i>
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="timer">${minutes}m</div>
                             </div>
-                            <div class="items-container">
-                                ${itemsHTML}
-                            </div>
+                            <div class="items-container">${items}</div>
                         </div>
                     </div>`;
-                });
-                container.innerHTML = fullHTML;
+                }).join('');
                 loading = false;
             })
             .catch(() => {
-                document.getElementById("orders").innerHTML = `
+                document.getElementById('orders').innerHTML = `
                     <div class="empty-state">
                         <i class="bi bi-wifi-off text-danger"></i>
                         <h3 class="text-danger">Sync Failed</h3>
-                        <p style="text-transform: uppercase; letter-spacing: 1px; font-size: 0.75rem;">Retrying automatically...</p>
+                        <p style="text-transform:uppercase;letter-spacing:1px;font-size:0.75rem;">Retrying…</p>
                     </div>`;
                 loading = false;
             });
     }
 
     function startPreparing(id) {
-        fetch("{% url 'item-start' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } }).then(loadKitchen).catch(console.error);
+        fetch("{% url 'item-start' 0 %}".replace('0', id), {
+            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+        }).then(loadKitchen).catch(console.error);
     }
 
     function markReady(id) {
-        fetch("{% url 'mark-ready' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } }).then(loadKitchen).catch(console.error);
+        fetch("{% url 'mark-ready' 0 %}".replace('0', id), {
+            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+        }).then(loadKitchen).catch(console.error);
     }
 
-    let activeOrderId = null;
-    function openMessageModal(orderId, tableName) {
+    function openMsg(orderId, tableName) {
         activeOrderId = orderId;
-        document.getElementById('msgModalTitle').innerText = 'Message Waiter for ' + tableName;
+        document.getElementById('msgModalTitle').textContent = 'Message Waiter — ' + tableName;
         new bootstrap.Modal(document.getElementById('msgModal')).show();
     }
 
-    function sendQuickMessage(text) {
-        document.getElementById('customMsgText').value = text;
-    }
+    function quickMsg(text) { document.getElementById('customMsgText').value = text; }
 
     function submitKitchenMessage() {
-        let text = document.getElementById('customMsgText').value;
-        if(!text || !activeOrderId) return;
-        let url = "{% url 'send-kitchen-message' 0 %}".replace('0', activeOrderId);
-        fetch(url, {
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+        const text = document.getElementById('customMsgText').value.trim();
+        if (!text || !activeOrderId) return;
+        fetch("{% url 'send-kitchen-message' 0 %}".replace('0', activeOrderId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
             body: JSON.stringify({ message: text })
         }).then(r => r.json()).then(d => {
-            if(d.success) {
+            if (d.success) {
                 bootstrap.Modal.getInstance(document.getElementById('msgModal')).hide();
-                document.getElementById('customMsgText').value = "";
-                alert("Message Sent!");
-            } else alert(d.error);
+                document.getElementById('customMsgText').value = '';
+                ui.toast('Message sent to waiter', 'success');
+            } else {
+                ui.toast(d.error || 'Failed to send', 'error');
+            }
         });
-    }
-
-    /* THEME MANAGEMENT */
-    // Note: KDS is dark by default. 'true' means LIGHT mode in this specific logic for consistency with global 'dark' toggle.
-    // However, to keep it simple, we'll use the same 'dark' key but invert the logic if needed, 
-    // OR just use 'light' key. Let's stick to global 'dark' key.
-    let isDark = localStorage.getItem("dark") !== "false"; // Default to dark (true) if null
-    
-    function updateTheme() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) {
-            document.body.classList.remove("light");
-            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-        } else {
-            document.body.classList.add("light");
-            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-        }
-    }
-    updateTheme();
-    function toggleTheme() {
-        isDark = !isDark;
-        localStorage.setItem("dark", isDark);
-        updateTheme();
     }
 
     loadKitchen();
     setInterval(loadKitchen, 5000);
 </script>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

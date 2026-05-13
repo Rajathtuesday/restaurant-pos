@@ -1,193 +1,90 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outlet Settings | {{ tenant.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
-            --border-color: #eaeaea; --accent-gold: #c5a059;
-            --success: #22c55e; --danger: #ef4444;
-            --transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        body.dark {
-            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5;
-            --text-muted: #888888; --border-color: #262626; --accent-gold: #d4af37;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg-color); color: var(--text-main); font-family: 'Outfit', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; transition: var(--transition); }
+{% extends 'core/base.html' %}
+{% load static %}
 
-        /* ── HEADER ── */
-        .pos-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--panel-bg); position: sticky; top: 0; z-index: 100; }
-        .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'DM Serif Display', serif; font-weight: 700; }
-        .brand-title i { color: var(--accent-gold); }
-        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition); text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem; }
-        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
+{% block title %}Outlet Settings | {{ tenant.name }}{% endblock %}
 
-        /* ── PAGE LAYOUT ── */
-        .page-body { max-width: 700px; margin: 3rem auto 5rem; padding: 0 1.5rem; }
-        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-        .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0 2rem; }
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+    .page-body { max-width: 700px; margin: 3rem auto 5rem; padding: 0 1.5rem; }
+    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0 2rem; }
 
-        /* ── ALERTS ── */
-        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
-        .alert-success { border-left-color: var(--success); background: rgba(34,197,94,0.07); color: var(--success); }
-        .alert-error   { border-left-color: var(--danger);  background: rgba(239,68,68,0.07);  color: var(--danger); }
+    .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+    .alert-success { border-left-color: #22c55e; background: rgba(34,197,94,0.07); color: #22c55e; }
+    .alert-error   { border-left-color: #ef4444; background: rgba(239,68,68,0.07);  color: #ef4444; }
 
-        /* ── SECTION CARDS ── */
-        .settings-section {
-            border: 1px solid var(--border-color);
-            background: var(--panel-bg);
-            margin-bottom: 1.5rem;
-            overflow: hidden;
-        }
-        .section-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-        .section-icon { color: var(--accent-gold); font-size: 1rem; }
-        .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; color: var(--text-main); }
-        .section-body { padding: 1.5rem; }
+    .settings-section { border: 1px solid var(--border-color); background: var(--panel-bg); margin-bottom: 1.5rem; overflow: hidden; }
+    .section-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.6rem; }
+    .section-icon { color: var(--accent-gold); font-size: 1rem; }
+    .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+    .section-body { padding: 1.5rem; }
 
-        /* ── FIELD ROWS ── */
-        .field-row { margin-bottom: 1.6rem; }
-        .field-row:last-child { margin-bottom: 0; }
-        .field-label {
-            display: block;
-            font-size: 0.62rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 0.4rem;
-        }
-        .field-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .field-row { margin-bottom: 1.6rem; }
+    .field-row:last-child { margin-bottom: 0; }
+    .field-label { display: block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.4rem; }
+    .field-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .field-input, .field-textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 0; font-size: 1rem; font-weight: 500; outline: none; font-family: 'Outfit', sans-serif; transition: border-color 0.2s; }
+    .field-input:focus, .field-textarea:focus { border-bottom-color: var(--accent-gold); }
+    .field-textarea { resize: vertical; min-height: 70px; font-size: 0.9rem; }
+    .field-mono { font-family: 'Space Mono', monospace; font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
 
-        .field-input, .field-textarea {
-            width: 100%;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 0.5rem 0;
-            font-size: 1rem;
-            font-weight: 500;
-            outline: none;
-            font-family: 'Outfit', sans-serif;
-            transition: border-color 0.2s;
-        }
-        .field-input:focus, .field-textarea:focus { border-bottom-color: var(--accent-gold); }
-        .field-textarea { resize: vertical; min-height: 70px; font-size: 0.9rem; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; gap: 0; } }
 
-        .field-mono {
-            font-family: 'Space Mono', monospace;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
+    .logo-preview { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem; }
+    .logo-img { width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--border-color); padding: 6px; background: var(--panel-bg); }
+    .logo-placeholder { width: 72px; height: 72px; border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.6rem; }
+    .logo-info { font-size: 0.75rem; color: var(--text-muted); line-height: 1.6; }
 
-        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; gap: 0; } }
+    .compliance-note { background: rgba(197,160,89,0.06); border: 1px solid rgba(197,160,89,0.25); padding: 0.75rem 1rem; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; }
+    .compliance-note strong { color: var(--text-main); }
 
-        /* ── LOGO PREVIEW ── */
-        .logo-preview {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        .logo-img {
-            width: 72px;
-            height: 72px;
-            object-fit: contain;
-            border: 1px solid var(--border-color);
-            padding: 6px;
-            background: var(--panel-bg);
-        }
-        .logo-placeholder {
-            width: 72px;
-            height: 72px;
-            border: 1px dashed var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            font-size: 1.6rem;
-        }
-        .logo-info { font-size: 0.75rem; color: var(--text-muted); line-height: 1.6; }
+    .btn-save { width: 100%; padding: 1.1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: background 0.2s, transform 0.1s; font-family: 'Outfit', sans-serif; }
+    .btn-save:hover { background: var(--accent-hover); }
+    .btn-save:active { transform: scale(0.99); }
+</style>
+{% endblock %}
 
-        /* ── COMPLIANCE TAG ── */
-        .compliance-note {
-            background: rgba(197,160,89,0.06);
-            border: 1px solid rgba(197,160,89,0.25);
-            border-radius: 2px;
-            padding: 0.75rem 1rem;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            line-height: 1.6;
-        }
-        .compliance-note strong { color: var(--text-main); }
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Setup — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
 
-        /* ── SAVE BUTTON ── */
-        .btn-save {
-            width: 100%;
-            padding: 1.1rem;
-            background: var(--accent-gold);
-            border: none;
-            color: #fff;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 1.5rem;
-            transition: background 0.2s, transform 0.1s;
-            font-family: 'Outfit', sans-serif;
-        }
-        .btn-save:hover { background: #b59250; }
-        .btn-save:active { transform: scale(0.99); }
-    </style>
-</head>
-<body>
+{% block header_right %}
+<a href="/setup/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Setup Area</a>
+<a href="/logout/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Logout</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
 
-<header class="pos-header">
-    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS Setup</h1>
-    <div style="display:flex; align-items:center; gap:0.5rem;">
-        <a href="/setup/" class="btn-luxury"><i class="bi bi-grid-3x3-gap"></i> Setup Area</a>
-        <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
-            <i class="bi bi-moon" id="themeIcon"></i>
-        </button>
-    </div>
-</header>
-
+{% block content %}
 <div class="page-body">
-
     <p class="page-eyebrow">Configuration</p>
     <h1 class="page-title">Outlet Settings</h1>
     <div class="divider"></div>
 
     {% if messages %}
-        {% for message in messages %}
-        <div class="alert {% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-error{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
+    {% for message in messages %}
+    <div class="alert {% if 'success' in message.tags %}alert-success{% elif 'error' in message.tags %}alert-error{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
     {% endif %}
 
     <form method="post" enctype="multipart/form-data" id="settingsForm">
         {% csrf_token %}
 
-        <!-- ── IDENTITY ── -->
+        <!-- Identity -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-shop section-icon"></i>
@@ -201,7 +98,7 @@
                     <div class="logo-placeholder" id="logoPreview"><i class="bi bi-image"></i></div>
                     {% endif %}
                     <div class="logo-info">
-                        <strong style="color:var(--text-main); font-size:0.8rem;">Restaurant Logo</strong><br>
+                        <strong style="color:var(--text-main);font-size:0.8rem;">Restaurant Logo</strong><br>
                         Appears on printed bills and digital receipts.<br>
                         PNG or JPG, max 2 MB recommended.
                     </div>
@@ -210,31 +107,26 @@
                     <label class="field-label">Upload New Logo</label>
                     <input type="file" name="logo" accept="image/*" class="field-input" style="font-size:0.82rem;" onchange="previewLogo(this)">
                 </div>
-
                 <div class="two-col">
                     <div class="field-row">
                         <label class="field-label" for="outlet_name">Outlet / Branch Name</label>
-                        <input type="text" id="outlet_name" name="outlet_name" class="field-input"
-                               value="{{ outlet.name }}" placeholder="e.g. Main Branch">
+                        <input type="text" id="outlet_name" name="outlet_name" class="field-input" value="{{ outlet.name }}" placeholder="e.g. Main Branch">
                     </div>
                     <div class="field-row">
-                        <label class="field-label" for="tenant_name">Restaurant Brand Name</label>
-                        <input type="text" class="field-input" value="{{ tenant.name }}" disabled
-                               title="Change from Django admin" style="opacity:0.5; cursor:not-allowed;">
+                        <label class="field-label">Restaurant Brand Name</label>
+                        <input type="text" class="field-input" value="{{ tenant.name }}" disabled title="Change from Django admin" style="opacity:0.5;cursor:not-allowed;">
                         <div class="field-hint">Contact support to change brand name</div>
                     </div>
                 </div>
-
                 <div class="field-row">
                     <label class="field-label" for="address">Full Address</label>
-                    <textarea id="address" name="address" class="field-textarea"
-                              placeholder="Street, Area, City, PIN">{{ outlet.address }}</textarea>
+                    <textarea id="address" name="address" class="field-textarea" placeholder="Street, Area, City, PIN">{{ outlet.address }}</textarea>
                     <div class="field-hint">Printed on every bill. Keep it complete.</div>
                 </div>
             </div>
         </div>
 
-        <!-- ── CONTACT ── -->
+        <!-- Contact -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-telephone section-icon"></i>
@@ -244,29 +136,23 @@
                 <div class="two-col">
                     <div class="field-row">
                         <label class="field-label" for="phone">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" class="field-input"
-                               value="{{ outlet.phone|default:'' }}"
-                               placeholder="+91 98765 43210">
+                        <input type="tel" id="phone" name="phone" class="field-input" value="{{ outlet.phone|default:'' }}" placeholder="+91 98765 43210">
                     </div>
                     <div class="field-row">
                         <label class="field-label" for="whatsapp_no">WhatsApp Number</label>
-                        <input type="tel" id="whatsapp_no" name="whatsapp_no" class="field-input"
-                               value="{{ outlet.whatsapp_no|default:outlet.phone|default:'' }}"
-                               placeholder="+91 98765 43210">
+                        <input type="tel" id="whatsapp_no" name="whatsapp_no" class="field-input" value="{{ outlet.whatsapp_no|default:outlet.phone|default:'' }}" placeholder="+91 98765 43210">
                         <div class="field-hint">Used to send digital bills via WhatsApp</div>
                     </div>
                 </div>
                 <div class="field-row">
                     <label class="field-label" for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="field-input"
-                           value="{{ outlet.email|default:'' }}"
-                           placeholder="restaurant@example.com">
+                    <input type="email" id="email" name="email" class="field-input" value="{{ outlet.email|default:'' }}" placeholder="restaurant@example.com">
                     <div class="field-hint">For bill emails and system notifications</div>
                 </div>
             </div>
         </div>
 
-        <!-- ── COMPLIANCE ── -->
+        <!-- Compliance -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-shield-check section-icon"></i>
@@ -277,28 +163,22 @@
                     <strong>Required for GST-compliant bills.</strong> These numbers are printed on every invoice.
                     A missing GSTIN means every printed bill is technically non-compliant under Indian tax law.
                 </div>
-
                 <div class="two-col">
                     <div class="field-row">
                         <label class="field-label" for="gst_no">GSTIN</label>
-                        <input type="text" id="gst_no" name="gst_no" class="field-input field-mono"
-                               value="{{ outlet.gst_no|default:'' }}"
-                               maxlength="15" placeholder="27AABCU9603R1ZX"
-                               oninput="this.value = this.value.toUpperCase()">
+                        <input type="text" id="gst_no" name="gst_no" class="field-input field-mono" value="{{ outlet.gst_no|default:'' }}" maxlength="15" placeholder="27AABCU9603R1ZX" oninput="this.value = this.value.toUpperCase()">
                         <div class="field-hint">15-character GST Identification Number</div>
                     </div>
                     <div class="field-row">
                         <label class="field-label" for="fssai_no">FSSAI License No.</label>
-                        <input type="text" id="fssai_no" name="fssai_no" class="field-input field-mono"
-                               value="{{ outlet.fssai_no|default:'' }}"
-                               maxlength="14" placeholder="12345678901234">
+                        <input type="text" id="fssai_no" name="fssai_no" class="field-input field-mono" value="{{ outlet.fssai_no|default:'' }}" maxlength="14" placeholder="12345678901234">
                         <div class="field-hint">14-digit FSSAI license number</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ── OPERATING HOURS ── -->
+        <!-- Operating Hours -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-clock section-icon"></i>
@@ -306,62 +186,48 @@
             </div>
             <div class="section-body">
                 <div class="compliance-note">
-                    <strong>Used for overtime matching.</strong> Staff shifts are compared against these hours
-                    to detect early clock-ins or late finishes. Also shown to guests on the digital menu.
+                    <strong>Used for overtime matching.</strong> Staff shifts are compared against these hours to detect early clock-ins or late finishes. Also shown to guests on the digital menu.
                 </div>
                 <div class="two-col">
                     <div class="field-row">
                         <label class="field-label" for="opening_time">Opening Time</label>
-                        <input type="time" id="opening_time" name="opening_time" class="field-input"
-                               value="{{ outlet.opening_time|default:'' }}">
+                        <input type="time" id="opening_time" name="opening_time" class="field-input" value="{{ outlet.opening_time|default:'' }}">
                         <div class="field-hint">e.g. 11:00 AM</div>
                     </div>
                     <div class="field-row">
                         <label class="field-label" for="closing_time">Closing Time</label>
-                        <input type="time" id="closing_time" name="closing_time" class="field-input"
-                               value="{{ outlet.closing_time|default:'' }}">
+                        <input type="time" id="closing_time" name="closing_time" class="field-input" value="{{ outlet.closing_time|default:'' }}">
                         <div class="field-hint">For late-night outlets, set past midnight (e.g. 01:00)</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ── PROMO CAMPAIGNS ── -->
+        <!-- Promo Campaigns -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-lightning-charge section-icon"></i>
                 <span class="section-title">Promo Campaigns</span>
             </div>
             <div class="section-body">
-                <p style="font-size:0.78rem; color:var(--text-muted); margin-bottom:1.5rem; line-height:1.6;">
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.5rem;line-height:1.6;">
                     Manage your discounts, usage caps, and all-outlet broadcasting from the central campaign dashboard.
                 </p>
-                <a href="{% url 'setup_promos' %}" class="btn-out" 
-                   style="display:inline-flex; align-items:center; gap:8px; background:var(--accent-gold); color:#fff; border:none; padding:0.8rem 1.2rem; text-decoration:none; font-size:0.7rem; text-transform:uppercase; letter-spacing:2px; font-weight:700;">
-                    <i class="bi bi-gear-fill"></i> Go to Promo Dashboard
+                <a href="{% url 'setup_promos' %}" class="btn-luxury text-decoration-none" style="background:var(--accent-gold);color:#fff;border-color:var(--accent-gold);padding:0.8rem 1.2rem;">
+                    <i class="bi bi-gear-fill me-1"></i> Go to Promo Dashboard
                 </a>
             </div>
         </div>
 
         <button type="submit" class="btn-save" id="saveBtn">
-            <i class="bi bi-check2-circle" style="margin-right:0.5rem;"></i>
-            Save Outlet Details
+            <i class="bi bi-check2-circle me-2"></i>Save Outlet Details
         </button>
     </form>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    /* ── THEME ── */
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() {
-        const icon = document.getElementById("themeIcon");
-        if (isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon","bi-sun"); }
-        else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun","bi-moon"); }
-    }
-    updateIcons();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
-
-    /* ── LOGO PREVIEW ── */
     function previewLogo(input) {
         if (!input.files || !input.files[0]) return;
         const reader = new FileReader();
@@ -381,44 +247,23 @@
         reader.readAsDataURL(input.files[0]);
     }
 
-    /* ── GSTIN VALIDATION ── */
     document.getElementById("gst_no").addEventListener("blur", function() {
         const v = this.value.trim();
-        if (v && v.length !== 15) {
-            this.style.borderBottomColor = "#ef4444";
-            this.title = "GSTIN must be exactly 15 characters";
-        } else {
-            this.style.borderBottomColor = "";
-            this.title = "";
-        }
+        this.style.borderBottomColor = (v && v.length !== 15) ? "#ef4444" : "";
+        this.title = (v && v.length !== 15) ? "GSTIN must be exactly 15 characters" : "";
     });
 
-    /* ── FSSAI VALIDATION ── */
     document.getElementById("fssai_no").addEventListener("blur", function() {
         const v = this.value.trim();
-        if (v && (v.length !== 14 || !/^\d+$/.test(v))) {
-            this.style.borderBottomColor = "#ef4444";
-            this.title = "FSSAI must be exactly 14 digits";
-        } else {
-            this.style.borderBottomColor = "";
-            this.title = "";
-        }
+        const invalid = v && (v.length !== 14 || !/^\d+$/.test(v));
+        this.style.borderBottomColor = invalid ? "#ef4444" : "";
+        this.title = invalid ? "FSSAI must be exactly 14 digits" : "";
     });
 
-    /* ── SAVE FEEDBACK ── */
     document.getElementById("settingsForm").addEventListener("submit", function() {
         const btn = document.getElementById("saveBtn");
         btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-hourglass-split" style="margin-right:0.5rem;"></i> Saving...';
-    });
-
-    /* ── SAVE FEEDBACK ── */
-    document.getElementById("settingsForm").addEventListener("submit", function() {
-        const btn = document.getElementById("saveBtn");
-        btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-hourglass-split" style="margin-right:0.5rem;"></i> Saving...';
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
     });
 </script>
-
-</body>
-</html>
+{% endblock %}

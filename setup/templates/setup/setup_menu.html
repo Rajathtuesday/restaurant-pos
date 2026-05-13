@@ -1,85 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Setup | Fine Dining POS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
-            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        body.dark {
-            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888888;
-            --border-color: #262626; --accent-gold: #d4af37;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg-color); color: var(--text-main); font-family: 'Outfit', sans-serif; min-height: 100vh; transition: var(--transition-smooth); -webkit-font-smoothing: antialiased; }
-        
-        /* HEADER */
-        .pos-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); }
-        .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'DM Serif Display', serif; font-weight: 700; }
-        .brand-title i { color: var(--accent-gold); }
-        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition-smooth); text-decoration: none; }
-        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
+{% extends 'core/base.html' %}
+{% load static %}
 
-        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-        .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
-        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
-        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+{% block title %}Menu Setup | {{ request.user.tenant.name }}{% endblock %}
 
-        .form-label, .section-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
-        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 1.2rem; font-weight: 600; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
-        .form-control:focus { border-bottom-color: var(--accent-gold); box-shadow: none; background: transparent; color: var(--text-main); }
-        .form-hint, .empty-state { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-        .btn-add:hover { opacity: 0.9; }
+{% block extra_css %}
+<style>
+    .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    @media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
 
-        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
-        .alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
+    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
+    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+    .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
 
+    .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+    .setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+    .setup-input:focus { border-bottom-color: var(--accent-gold); }
 
-        .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
-        @media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
+    .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+    .btn-add:hover { background: var(--accent-hover); }
 
-        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-        .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
-        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
-        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+    .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
 
-        .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
-        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
-        .form-control:focus { border-bottom-color: var(--accent-gold); }
-        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-        .btn-add:hover { background: #b59250; }
+    .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; display: block; }
+    .category-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.2rem 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; }
+    .category-icon { color: var(--accent-gold); margin-right: 0.75rem; }
+    .category-name { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+    .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
+</style>
+{% endblock %}
 
-        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Setup — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
 
-        /* Categories list */
-        .category-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.2rem 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
-        .category-name { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
-        .category-icon { color: var(--accent-gold); margin-right: 0.75rem; }
-        .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
-        .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
-    </style>
-</head>
-<body>
-<header class="pos-header">
-    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS Setup</h1>
-    <div class="d-flex align-items-center gap-2">
-        <a href="/setup/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-gear me-1"></i> Setup Area</a>
-        <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
-            <i class="bi bi-moon" id="themeIcon"></i>
-        </button>
-    </div>
-</header>
+{% block header_right %}
+<a href="/setup/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Setup Area</a>
+<a href="/logout/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Logout</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
 
+{% block content %}
 <div class="page-body">
     <!-- LEFT: ADD CATEGORY -->
     <div>
@@ -97,34 +68,22 @@
         <form method="post">
             {% csrf_token %}
             <label class="form-label">Category Name</label>
-            <input type="text" name="category_name" class="form-control" placeholder="e.g. Starters, Main Course, Drinks" required>
+            <input type="text" name="category_name" class="setup-input" placeholder="e.g. Starters, Main Course, Drinks" required>
             <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Create Category</button>
         </form>
     </div>
 
     <!-- RIGHT: EXISTING CATEGORIES -->
     <div>
-        <p class="section-label">Defined Categories</p>
-
+        <span class="section-label">Defined Categories</span>
         {% for category in categories %}
         <div class="category-card">
-            <div style="display:flex; align-items:center;">
-                <i class="bi bi-tag category-icon"></i>
-                <div class="category-name">{{ category.name }}</div>
-            </div>
+            <i class="bi bi-tag category-icon"></i>
+            <div class="category-name">{{ category.name }}</div>
         </div>
         {% empty %}
         <p class="empty-state">No categories defined yet. Start by defining your high-level menu sections.</p>
         {% endfor %}
     </div>
 </div>
-
-<script>
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
-    updateIcons();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
-</script>
-</body>
-
-</html>
+{% endblock %}

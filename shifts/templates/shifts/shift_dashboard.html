@@ -1,59 +1,47 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Shift Management | POS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111; --text-muted: #737373;
-            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s ease;
-        }
-        body.dark {
-            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888;
-            --border-color: #262626; --accent-gold: #d4af37;
-        }
-        body { background: var(--bg-color); color: var(--text-main); font-family: 'Outfit', sans-serif; min-height: 100vh; }
-        .pos-header { padding: 2rem 0 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
-        .pos-header h4 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; margin: 0; }
-        .pos-header h4 i { color: var(--accent-gold); }
-        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 2px; padding: 0.65rem 1.4rem; transition: var(--transition-smooth); cursor: pointer; }
-        .btn-luxury:hover, .btn-luxury.active { border-color: var(--accent-gold); background: var(--accent-gold); color: #fff; }
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.2rem; cursor: pointer; padding: 0.4rem; }
-        .btn-icon:hover { color: var(--accent-gold); }
-        .dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); }
-        .section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
-        .shift-table { width: 100%; border-collapse: collapse; }
-        .shift-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
-        .shift-table td { padding: 0.9rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
-        .badge-active { background: rgba(16,185,129,0.12); color: #10b981; font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
-        .badge-done { background: rgba(100,100,100,0.1); color: var(--text-muted); font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
-        .clock-card { background: var(--panel-bg); border: 1px solid var(--accent-gold); padding: 2rem; text-align: center; max-width: 400px; margin: 0 auto 2.5rem; }
-        .clock-time { font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--accent-gold); }
-        .form-control-shift { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.4rem 0; font-size: 0.85rem; width: 100%; outline: none; }
-        .form-control-shift:focus { border-color: var(--accent-gold); }
-    </style>
-</head>
-<body>
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Shift Management | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); }
+    .section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
+    .shift-table { width: 100%; border-collapse: collapse; }
+    .shift-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+    .shift-table td { padding: 0.9rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
+    .badge-active { background: rgba(16,185,129,0.12); color: #10b981; font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
+    .badge-done { background: rgba(100,100,100,0.1); color: var(--text-muted); font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
+    .clock-card { background: var(--panel-bg); border: 1px solid var(--accent-gold); padding: 2rem; text-align: center; max-width: 400px; margin: 0 auto 2.5rem; }
+    .clock-time { font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--accent-gold); }
+    .form-control-shift { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.4rem 0; font-size: 0.85rem; width: 100%; outline: none; }
+    .form-control-shift:focus { border-color: var(--accent-gold); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <h1 class="brand-title mb-0">
+        <i class="bi bi-clock-history" style="color:var(--accent-gold);"></i>
+        Shift Management
+    </h1>
+    <p class="brand-subtitle">{{ request.user.tenant.name }} — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<form method="GET" class="d-flex align-items-center">
+    <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control-shift" style="max-width:160px;" onchange="this.form.submit()">
+</form>
+<a href="/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Dashboard</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
 <div class="container-fluid mx-auto" style="max-width:1200px; padding:0 1.5rem;">
 
-    <header class="pos-header">
-        <h4><i class="bi bi-clock-history me-2"></i>Shift <i>Management</i></h4>
-        <div class="d-flex gap-3 align-items-center">
-            <form method="GET" class="d-flex gap-2 align-items-center">
-                <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control-shift" style="max-width:160px;" onchange="this.form.submit()">
-            </form>
-            <a href="/dashboard/" class="btn-luxury text-decoration-none">Dashboard</a>
-            <button class="btn-icon" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
-        </div>
-    </header>
-
-    <!-- CLOCK IN/OUT CARD -->
     <div class="clock-card">
         <div class="clock-time" id="liveClock">--:--:--</div>
         <p style="font-size:0.7rem; text-transform:uppercase; letter-spacing:2px; color:var(--text-muted); margin: 0.5rem 0 1.5rem;">{{ request.user.get_full_name|default:request.user.username }}</p>
@@ -74,7 +62,6 @@
         {% endif %}
     </div>
 
-    <!-- SHIFT TABLE -->
     {% if request.user.role in "manager,owner" or request.user.is_superuser %}
     <div class="dashboard-card p-0 mb-5">
         <div class="p-3 pb-0">
@@ -107,7 +94,7 @@
                         <td>
                             <div class="d-flex gap-1 align-items-center">
                                 <input type="number" id="tips-{{ s.id }}" value="{{ s.tips }}" style="width:70px;" class="form-control-shift" step="0.50" min="0">
-                                <button class="btn-icon" onclick="updateTips('{{ s.id }}')" title="Save tips"><i class="bi bi-check-lg"></i></button>
+                                <button class="btn-icon" onclick="updateTips('{{ s.id }}', this)" title="Save tips"><i class="bi bi-check-lg"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -119,60 +106,40 @@
         </div>
     </div>
     {% endif %}
-
 </div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}
 <script>
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) { document.body.classList.add("dark"); icon.className = "bi bi-sun"; }
-        else { document.body.classList.remove("dark"); icon.className = "bi bi-moon"; }
-    }
-    updateIcons();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
-
-    // Live clock
     function updateClock() {
-        const now = new Date();
-        document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-IN');
+        document.getElementById('liveClock').textContent = new Date().toLocaleTimeString('en-IN');
     }
     updateClock(); setInterval(updateClock, 1000);
 
-    function getCsrf() { return document.cookie.split('; ').find(r => r.startsWith('csrftoken=')).split('=')[1]; }
-
     async function clockIn() {
-        const r = await fetch('/shifts/clock-in/', { method: 'POST', headers: {'X-CSRFToken': getCsrf()} });
-        const d = await r.json();
-        if (d.success) location.reload();
-        else alert(d.error);
+        try {
+            const data = await apiClient.post('/shifts/clock-in/', {});
+            if (data.success) location.reload();
+            else ui.toast(data.error || 'Clock in failed', 'error');
+        } catch (e) {}
     }
 
     async function clockOut() {
         const tips = document.getElementById('tipsInput')?.value || 0;
-        const r = await fetch('/shifts/clock-out/', {
-            method: 'POST',
-            headers: {'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json'},
-            body: JSON.stringify({ tips })
-        });
-        const d = await r.json();
-        if (d.success) location.reload();
-        else alert(d.error);
+        try {
+            const data = await apiClient.post('/shifts/clock-out/', { tips });
+            if (data.success) location.reload();
+            else ui.toast(data.error || 'Clock out failed', 'error');
+        } catch (e) {}
     }
 
-    async function updateTips(shiftId) {
+    async function updateTips(shiftId, btn) {
         const tips = document.getElementById('tips-' + shiftId).value;
-        const r = await fetch(`/shifts/${shiftId}/tips/`, {
-            method: 'POST',
-            headers: {'X-CSRFToken': getCsrf(), 'Content-Type': 'application/json'},
-            body: JSON.stringify({ tips })
-        });
-        const d = await r.json();
-        if (d.success) { const btn = event.currentTarget; btn.innerHTML = '<i class="bi bi-check2-all"></i>'; }
-        else alert(d.error);
+        try {
+            const data = await apiClient.post(`/shifts/${shiftId}/tips/`, { tips });
+            if (data.success) btn.innerHTML = '<i class="bi bi-check2-all"></i>';
+            else ui.toast(data.error || 'Failed to save tips', 'error');
+        } catch (e) {}
     }
 </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

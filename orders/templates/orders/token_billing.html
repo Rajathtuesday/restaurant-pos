@@ -1,635 +1,370 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'core/base.html' %}
 
-<head>
-    <meta charset="UTF-8">
-    <title>POS | Token Billing — {% if token %}{{ token.display_number }}{% endif %} | {{ request.user.tenant.name }}</title>
-    <!-- Explicit Mobile Viewport -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <!-- Premium Fonts: DM Serif Display (Serif) & Inter (Sans-serif) -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap"
-        rel="stylesheet">
+{% block title %}Token Billing {% if token %}— {{ token.display_number }}{% endif %} | {{ request.user.tenant.name }}{% endblock %}
 
-    <!-- PWA -->
-    <link rel="manifest" href="/manifest.json">
-
-    <!-- Bootstrap Modern -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-
-    <style>
-        ::placeholder {
-            color: var(--text-muted) !important;
-            opacity: 0.7 !important;
-        }
-
-        ::-webkit-input-placeholder {
-            color: var(--text-muted) !important;
-            opacity: 0.7 !important;
-        }
-
-        :root {
-            /* Fine Dining Monochrome Palette */
-            --bg-color: #fafafa;
-            --panel-bg: #ffffff;
-            --text-main: #111111;
-            --text-muted: #737373;
-            --border-color: #eaeaea;
-            --accent-gold: #c5a059;
-            --accent-hover: #b59250;
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-
-        /* NOTIFICATION BADGE (WhatsApp-style) */
-        .notif-wrapper { position: relative; display: inline-flex; }
-        .notif-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            min-width: 18px;
-            height: 18px;
-            padding: 0 4px;
-            background: #ef4444;
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            pointer-events: none;
-            z-index: 10;
-            animation: badgePop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-        @keyframes badgePop {
-            0%   { transform: scale(0); opacity: 0; }
-            70%  { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .notif-badge.hidden { display: none; }
-
-        body.dark {
-            --bg-color: #0a0a0a;
-            --panel-bg: #111111;
-            --text-main: #f5f5f5;
-            --text-muted: #888888;
-            --border-color: #262626;
-            --accent-gold: #d4af37;
-            --accent-hover: #e5c45e;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            transition: var(--transition-smooth);
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-            overflow: hidden;
-            /* App like */
-        }
-
-        /* Typography */
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6,
-        .serif-text {
-            font-family: 'DM Serif Display', serif;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        /* Top Header */
-        .pos-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--bg-color);
-            z-index: 100;
-            position: sticky;
-            top: 0;
-        }
-
-        .brand-title {
-            font-size: 1.3rem;
-            margin: 0;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .brand-title i {
-            color: var(--accent-gold);
-        }
-
-        /* Buttons & Controls */
-        .btn-luxury {
-            border: 1px solid var(--border-color);
-            background: transparent;
-            color: var(--text-main);
-            border-radius: 0;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            font-weight: 500;
-            padding: 0.6rem 1rem;
-            transition: var(--transition-smooth);
-        }
-
-        .btn-luxury:hover {
-            border-color: var(--text-main);
-            color: var(--bg-color);
-            background: var(--text-main);
-        }
-
-        .btn-luxury-primary {
-            background: var(--accent-gold);
-            border-color: var(--accent-gold);
-            color: #fff;
-        }
-
-        .btn-luxury-primary:hover {
-            background: var(--accent-hover);
-            border-color: var(--accent-hover);
-            color: #fff;
-        }
-
-        .btn-icon {
-            border: none;
-            background: transparent;
-            color: var(--text-main);
-            font-size: 1.25rem;
-            padding: 0.5rem;
-            cursor: pointer;
-        }
-
-        /* Workspace Grid */
-        :root { --header-h: 65px; }
-        .workspace {
-            display: flex;
-            height: calc(100vh - var(--header-h));
-        }
-
-        /* Desktop Sidebar */
-        .category-sidebar {
-            width: 260px;
-            border-right: 1px solid var(--border-color);
-            padding: 1.5rem;
-            overflow-y: auto;
-            background: var(--panel-bg);
-            flex-shrink: 0;
-        }
-
-        /* Mobile Horizontal Nav */
-        .mobile-category-nav {
-            display: none;
-            overflow-x: auto;
-            white-space: nowrap;
-            padding: 1rem;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            scrollbar-width: none;
-            /* Hide scrollbar Firefox */
-        }
-
-        .mobile-category-nav::-webkit-scrollbar {
-            display: none;
-        }
-
-        /* Hide Chrome */
-
-        .category-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            font-weight: 600;
-        }
-
-        .category-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .category-item {
-            padding: 0.8rem 0;
-            cursor: pointer;
-            font-size: 1.1rem;
-            color: var(--text-muted);
-            transition: var(--transition-smooth);
-            font-family: 'DM Serif Display', serif;
-            position: relative;
-        }
-
-        .category-item:hover {
-            color: var(--text-main);
-        }
-
-        .category-item.active {
-            color: var(--accent-gold);
-            font-weight: 700;
-            font-style: italic;
-        }
-
-        /* Desktop active line */
-        .category-sidebar .category-item.active::before {
-            content: '';
-            position: absolute;
-            left: -1.5rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 50%;
-            background: var(--accent-gold);
-        }
-
-        /* Mobile category pill style active */
-        .mobile-category-nav .category-item {
-            display: inline-block;
-            margin-right: 1.5rem;
-            padding: 0.5rem 0;
-        }
-
-        .mobile-category-nav .category-item.active {
-            border-bottom: 2px solid var(--accent-gold);
-        }
-
-        /* Menu Area */
-        .menu-area {
-            flex-grow: 1;
-            padding: 2rem;
-            overflow-y: auto;
-            background: var(--bg-color);
-        }
-
-        .search-box {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 4px;
-            padding: 0.8rem 1.2rem;
-            font-size: 0.9rem;
-            box-shadow: none !important;
-            margin-bottom: 1.5rem;
-        }
-
-        .search-box:focus {
-            border-color: var(--accent-gold);
-        }
-
-        .menu-section-title {
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-            color: var(--accent-gold);
-            padding-top: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .menu-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .menu-card:hover {
-            border-color: var(--accent-gold);
-            background: var(--bg-color);
-        }
-
-        .item-name {
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: var(--text-main);
-            margin-bottom: 0;
-            line-height: 1.2;
-        }
-
-        .item-price {
-            font-size: 0.9rem;
-            color: var(--accent-gold);
-            font-weight: 500;
-            letter-spacing: 1px;
-        }
-
-        /* Context Area (Cart/Running) - Desktop */
-        .context-sidebar {
-            width: 380px;
-            border-left: 1px solid var(--border-color);
-            background: var(--panel-bg);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-
-        .context-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .context-tab {
-            flex: 1;
-            text-align: center;
-            padding: 1rem 0;
-            cursor: pointer;
-            font-family: 'DM Serif Display', serif;
-            font-size: 1rem;
-            color: var(--text-muted);
-            border-bottom: 2px solid transparent;
-        }
-
-        .context-tab.active {
-            color: var(--text-main);
-            border-bottom-color: var(--accent-gold);
-        }
-
-        .context-body {
-            flex-grow: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
-
-        /* Cart Rows Minimal */
-        .cart-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            padding: 1rem 0;
-            border-bottom: 1px dashed var(--border-color);
-        }
-
-        .cart-item-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 0.95rem;
-            color: var(--text-main);
-            margin-bottom: 0.25rem;
-        }
-
-        .cart-item-note {
-            font-size: 0.75rem;
-            color: var(--accent-gold);
-            font-style: italic;
-        }
-
-        .cart-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .qty-controls {
-            display: flex;
-            align-items: center;
-            border: 1px solid var(--border-color);
-        }
-
-        .qty-btn {
-            width: 24px;
-            height: 24px;
-            border: none;
-            background: transparent;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-
-        .qty-value {
-            font-size: 0.85rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        .cart-item-price {
-            font-weight: 500;
-            font-size: 0.85rem;
-            width: 55px;
-            text-align: right;
-            color: var(--text-main);
-        }
-
-        /* Desktop Cart Summary Fixed Footer */
-        .cart-summary {
-            border-top: 1px solid var(--border-color);
-            padding: 1.5rem;
-            background: var(--panel-bg);
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .summary-total {
-            display: flex;
-            justify-content: space-between;
-            margin: 1rem 0 1.5rem;
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.3rem;
-            color: var(--text-main);
-        }
-
-        /* Form Controls Minimal */
-        .form-select-luxury,
-        .form-control-minimal {
-            background-color: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            border-radius: 0;
-            padding: 0.75rem 1rem;
-            font-size: 0.9rem;
-            width: 100%;
-        }
-
-        .form-select-luxury {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-select-luxury:focus,
-        .form-control-minimal:focus {
-            box-shadow: none;
-            border-color: var(--accent-gold);
-        }
-
-        /* Running Item Rows */
-        .running-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            color: var(--text-main);
-        }
-
-        .status-badge {
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            padding: 0.3rem 0.5rem;
-            border: 1px solid var(--border-color);
-        }
-
-        /* Modal */
-        .modal-content {
-            background: var(--bg-color);
-            border-radius: 0;
-            border: 1px solid var(--border-color);
-        }
-
-        .modal-header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-        }
-
-        .modal-title {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.3rem;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            border-top: 1px solid var(--border-color);
-            padding: 1.5rem;
-        }
-
-        /* MOBILE FLOATING FAB & OFFCANVAS CART */
-        .fab-cart {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 40px);
-            background: var(--accent-gold);
-            color: #fff;
-            padding: 1rem;
-            border-radius: 0;
-            font-size: 0.9rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            z-index: 1020;
-            text-align: center;
-            border: none;
-            transition: var(--transition-smooth);
-        }
-
-        .offcanvas-luxury {
-            background: var(--panel-bg);
-            color: var(--text-main);
-            border-left: 1px solid var(--border-color);
-        }
-
-        .offcanvas-header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-        }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 991px) {
-            :root { --header-h: 60px; }
-
-            .category-sidebar { display: none; }
-            .mobile-category-nav { display: block; }
-            .context-sidebar { display: none; }
-
-            /* Replaced by Offcanvas */
-            .fab-cart { display: block; }
-
-            .workspace {
-                flex-direction: column;
-                overflow-y: auto;
-                height: 100vh;
-                padding-bottom: 80px;
-            }
-
-            .menu-area {
-                padding: 1.5rem 1rem;
-                overflow-y: visible;
-            }
-
-            .pos-header { padding: 0.85rem 1rem; }
-
-            body {
-                overflow-x: hidden;
-                overflow-y: auto;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .brand-title { font-size: 1.05rem; }
-            .brand-title p { display: none; }
-            .btn-icon { font-size: 1.1rem; padding: 0.35rem; }
-            .pos-header { gap: 0.25rem; }
-            /* Tighten the icon nav row on tiny phones */
-            .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
-        }
-
-        @media (min-width: 992px) {
-            .offcanvas-luxury {
-                display: none !important;
-            }
-        }
-
-        /* Toast Minimal */
-        .toast-minimal {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--text-main);
-            color: var(--bg-color);
-            padding: 1rem 1.5rem;
-            z-index: 1060;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.8rem;
-        }
-
-        .toast-minimal.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-</style>
-
-<!-- Active orders sidebar extra styles -->
+{% block extra_css %}
 <style>
-    /* ── Active Orders sidebar tab styles ───────────────────────── */
-    .active-orders-list { padding: 0; }
+    /* ── Desktop: locked viewport, internal scroll ─────────────────── */
+    :root { --header-h: 65px; }
+
+    @media (min-width: 992px) {
+        body { overflow: hidden; }
+        :root { --header-h: 65px; }
+    }
+    @media (max-width: 991px) {
+        /* Mobile: let the page scroll naturally; no overflow tricks */
+        html, body { overflow-x: hidden; overflow-y: auto !important; }
+        :root { --header-h: 56px; }
+    }
+
+    /* ── Workspace ────────────────────────────────────────────────── */
+    .workspace {
+        display: flex;
+        height: calc(100vh - var(--header-h));
+    }
+    @media (max-width: 991px) {
+        .workspace {
+            flex-direction: column;
+            height: auto;
+            padding-bottom: 76px; /* space for FAB */
+        }
+    }
+
+    /* ── Category sidebar (desktop left panel) ────────────────────── */
+    .category-sidebar {
+        width: 210px;
+        border-right: 1px solid var(--border-color);
+        padding: 1.5rem;
+        overflow-y: auto;
+        background: var(--panel-bg);
+        flex-shrink: 0;
+    }
+    @media (max-width: 991px) { .category-sidebar { display: none !important; } }
+
+    .category-title {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+    .category-list { list-style: none; padding: 0; margin: 0; }
+    .category-item {
+        padding: 0.8rem 0;
+        cursor: pointer;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        transition: var(--transition-smooth);
+        font-family: 'DM Serif Display', serif;
+        position: relative;
+    }
+    .category-item:hover { color: var(--text-main); }
+    .category-item.active { color: var(--accent-gold); font-weight: 700; font-style: italic; }
+    .category-sidebar .category-item.active::before {
+        content: '';
+        position: absolute;
+        left: -1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 50%;
+        background: var(--accent-gold);
+    }
+
+    /* ── Mobile horizontal category chips ─────────────────────────── */
+    .mobile-category-nav {
+        display: none;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding: 0 1rem;
+        background: var(--panel-bg);
+        border-bottom: 1px solid var(--border-color);
+        scrollbar-width: none;
+        /* sticky so it stays visible while scrolling menu */
+        position: sticky;
+        top: var(--header-h);
+        z-index: 10;
+    }
+    .mobile-category-nav::-webkit-scrollbar { display: none; }
+    @media (max-width: 991px) { .mobile-category-nav { display: block; } }
+    .mobile-category-nav .category-item {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 0.25rem;
+        padding: 0 0.75rem;
+        height: 48px;          /* full tap target height */
+        font-size: 0.9rem;
+        border-bottom: 3px solid transparent;
+    }
+    .mobile-category-nav .category-item.active {
+        color: var(--accent-gold);
+        border-bottom-color: var(--accent-gold);
+    }
+
+    /* ── Main menu area ───────────────────────────────────────────── */
+    .menu-area {
+        flex-grow: 1;
+        padding: 1.5rem;
+        overflow-y: auto;
+        background: var(--bg-color);
+    }
+    @media (max-width: 991px) {
+        .menu-area { padding: 0.75rem; overflow-y: visible; }
+    }
+
+    .search-box {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        padding: 0.8rem 1.2rem;
+        font-size: 0.95rem;
+        box-shadow: none !important;
+        margin-bottom: 1rem;
+        width: 100%;
+        min-height: 48px;
+        outline: none;
+    }
+    .search-box:focus { border-color: var(--accent-gold); }
+    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+
+    .menu-section-title {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        margin-bottom: 0.5rem;
+        margin-top: 1rem;
+        color: var(--accent-gold);
+    }
+
+    /* ── Menu item card ───────────────────────────────────────────── */
+    .menu-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        padding: 0.85rem 0.9rem;
+        cursor: pointer;
+        transition: border-color 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-height: 64px;
+        height: 100%;
+    }
+    .menu-card:active { border-color: var(--accent-gold); background: var(--bg-color); }
+    @media (hover: hover) {
+        .menu-card:hover { border-color: var(--accent-gold); background: var(--bg-color); }
+    }
+    .item-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+        line-height: 1.3;
+    }
+    @media (max-width: 991px) { .item-name { font-size: 0.85rem; } }
+    .item-price {
+        font-size: 0.88rem;
+        color: var(--accent-gold);
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* ── Context sidebar (desktop right panel) ────────────────────── */
+    .context-sidebar {
+        width: 350px;
+        border-left: 1px solid var(--border-color);
+        background: var(--panel-bg);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+    @media (max-width: 991px) { .context-sidebar { display: none !important; } }
+
+    .context-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .context-tab {
+        flex: 1;
+        text-align: center;
+        padding: 1rem 0.5rem;
+        cursor: pointer;
+        font-family: 'DM Serif Display', serif;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        border-bottom: 3px solid transparent;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        transition: var(--transition-smooth);
+    }
+    .context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
+
+    .context-body { flex-grow: 1; padding: 1.25rem; overflow-y: auto; }
+
+    /* ── Cart row ─────────────────────────────────────────────────── */
+    .cart-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0.9rem 0;
+        border-bottom: 1px dashed var(--border-color);
+    }
+    .cart-item-name {
+        font-family: 'DM Serif Display', serif;
+        font-size: 0.9rem;
+        color: var(--text-main);
+        margin-bottom: 0.2rem;
+    }
+    .cart-item-note { font-size: 0.7rem; color: var(--accent-gold); font-style: italic; }
+    .cart-controls { display: flex; align-items: center; gap: 8px; }
+    .qty-controls {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--border-color);
+    }
+    .qty-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    .qty-btn:active { background: var(--border-color); }
+    .qty-value { font-size: 0.85rem; min-width: 24px; text-align: center; }
+    .cart-item-price { font-weight: 600; font-size: 0.85rem; min-width: 55px; text-align: right; }
+
+    /* ── Cart summary footer ──────────────────────────────────────── */
+    .cart-summary {
+        border-top: 1px solid var(--border-color);
+        padding: 1.25rem;
+        background: var(--panel-bg);
+    }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.4rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .summary-total {
+        display: flex;
+        justify-content: space-between;
+        margin: 0.9rem 0 1.25rem;
+        font-family: 'DM Serif Display', serif;
+        font-size: 1.4rem;
+        color: var(--text-main);
+    }
+
+    /* ── Checkout button — BIG, obvious, works on all devices ─────── */
+    .btn-checkout {
+        background: var(--accent-gold);
+        border: none;
+        color: #fff;
+        width: 100%;
+        padding: 1rem;
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        cursor: pointer;
+        min-height: 56px;
+        transition: var(--transition-smooth);
+    }
+    .btn-checkout:hover { opacity: 0.9; }
+    .btn-checkout:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-clear {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        width: 100%;
+        padding: 0.6rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        min-height: 40px;
+    }
+
+    /* ── Running order rows ───────────────────────────────────────── */
+    .running-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.9rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.85rem;
+    }
+    .status-badge {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid var(--border-color);
+    }
+    .status-ready { border-color: #10b981; color: #10b981; }
+
+    /* ── Modal ────────────────────────────────────────────────────── */
+    .modal-content {
+        background: var(--panel-bg);
+        border-radius: 0;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+    }
+    .modal-header, .modal-footer { border-color: var(--border-color); padding: 1.25rem; }
+    .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; }
+    .modal-body { padding: 1.25rem; }
+    .form-control-minimal {
+        background-color: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        border-radius: 0;
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        width: 100%;
+        min-height: 48px;
+    }
+    .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); outline: none; }
+
+    /* ── Mobile FAB (floating action button for cart) ─────────────── */
+    .fab-cart {
+        display: none;
+        position: fixed;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        background: var(--accent-gold);
+        color: #fff;
+        padding: 1rem 1.5rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        z-index: 1020;
+        text-align: center;
+        border: none;
+        min-height: 56px;
+        cursor: pointer;
+    }
+    @media (max-width: 991px) { .fab-cart { display: flex; align-items: center; justify-content: center; gap: 8px; } }
+    @media (min-width: 992px) { .offcanvas-luxury { display: none !important; } }
+
+    .offcanvas-luxury {
+        background: var(--panel-bg);
+        color: var(--text-main);
+        border-left: 1px solid var(--border-color);
+    }
+    .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.25rem; }
+
+    /* ── Active orders list ───────────────────────────────────────── */
     .active-order-item {
         display: flex;
         align-items: center;
@@ -640,105 +375,99 @@
         text-decoration: none;
         color: var(--text-main);
         transition: background 0.2s;
+        min-height: 56px;
     }
     .active-order-item:hover { background: var(--bg-color); color: var(--text-main); }
     .active-order-item.current {
-        background: linear-gradient(90deg, rgba(197,160,89,0.08) 0%, transparent 100%);
+        background: linear-gradient(90deg, rgba(197,160,89,0.1) 0%, transparent 100%);
         border-left: 3px solid var(--accent-gold);
     }
-    .aoi-token {
-        font-family: 'DM Serif Display', serif;
-        font-size: 1.2rem;
-        min-width: 44px;
-        text-align: center;
-        line-height: 1;
-    }
+    .aoi-token { font-family: 'DM Serif Display', serif; font-size: 1.2rem; min-width: 44px; text-align: center; }
     .aoi-details { flex: 1; min-width: 0; }
-    .aoi-customer { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .aoi-customer { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .aoi-amount { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
-    .aoi-badge {
-        font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px;
-        padding: 0.15rem 0.45rem; border-radius: 2px;
-    }
+    .aoi-badge { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; }
     .aoi-badge.online { background: #fc8019; color: #fff; }
     .aoi-badge.billing { background: #f59e0b; color: #fff; }
     .aoi-badge.open { background: var(--border-color); color: var(--text-muted); }
-    .aoi-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+    .aoi-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── Small phone tweaks ───────────────────────────────────────── */
+    @media (max-width: 480px) {
+        .menu-card { padding: 0.75rem; }
+        .item-name { font-size: 0.9rem; }
+    }
 </style>
-</head>
+{% endblock %}
 
-<body>
+{% block header_left %}
+<a href="/dashboard/" style="text-decoration:none; color:inherit;">
+    <h1 class="brand-title mb-0">
+        <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+        {{ request.user.tenant.name }}
+    </h1>
+</a>
+<p class="brand-subtitle">POS Billing — {{ request.user.outlet.name }}</p>
+{% endblock %}
 
-    <div id="toastBox" class="toast-minimal">Message</div>
+{% block header_right %}
+<a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Tokens</a>
+<a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Kitchen</a>
+<a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Reports</a>
 
-    <!-- HEADER -->
-    <header class="pos-header">
-        <div class="d-flex flex-column">
-            <a href="/dashboard/" style="text-decoration: none; color: inherit;">
-                <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
-            </a>
-            <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">POS Billing — {{ request.user.outlet.name }}</p>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tokens</a>
-            <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
-            <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
-            <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i
-                    class="bi bi-box-arrow-right"></i></a>
+<!-- Mobile icon nav -->
+<a href="{% url 'token-dashboard' %}" class="btn-icon d-md-none" title="Tokens"><i class="bi bi-grid-3x3"></i></a>
+<a href="/kitchen/" class="btn-icon d-md-none" title="Kitchen"><i class="bi bi-fire"></i></a>
+<span class="notif-wrapper">
+    <a href="/waiter-dashboard/" class="btn-icon d-md-none" title="Calls"><i class="bi bi-bell"></i></a>
+    <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
+</span>
+<a href="/reports/dashboard/" class="btn-icon d-md-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+<a href="/logout/" class="btn-icon d-none d-md-inline-flex" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
 
-            <!-- Mobile compact links -->
-            <a href="{% url 'token-dashboard' %}" class="btn-icon d-sm-none" title="Tokens"><i class="bi bi-grid-3x3"></i></a>
-            <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-            <a href="/waiter-dashboard/" class="btn-icon d-sm-none position-relative" title="Calls">
-                <i class="bi bi-bell"></i>
-                <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
-            </a>
-            <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
-            <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+{% block content %}
+<div class="workspace">
 
-            <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
-                <i class="bi bi-moon" id="themeIcon"></i>
-            </button>
-        </div>
-    </header>
+    <!-- DESKTOP: Category sidebar -->
+    <aside class="category-sidebar">
+        <div class="category-title">Menu</div>
+        <ul class="category-list">
+            {% for category in categories %}
+            <li class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">
+                {{ category.name }}
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
 
-    <div class="workspace">
-
-        <!-- DESKTOP CATEGORIES -->
-        <aside class="category-sidebar">
-            <div class="category-title">Menu</div>
-            <ul class="category-list">
-                {% for category in categories %}
-                <li class="category-item" onclick="scrollToCategory('cat{{category.id}}', this)">
-                    {{category.name}}
-                </li>
-                {% endfor %}
-            </ul>
-        </aside>
-
-        <!-- MOBILE CATEGORIES (Horizontal Strip) -->
+    <!-- MOBILE: Horizontal category strip + menu -->
+    <div class="d-flex flex-column flex-grow-1" style="min-width:0; overflow:hidden;">
         <div class="mobile-category-nav">
             {% for category in categories %}
-            <div class="category-item" onclick="scrollToCategory('cat{{category.id}}', this)">
-                {{category.name}}
+            <div class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">
+                {{ category.name }}
             </div>
             {% endfor %}
         </div>
 
-        <!-- MAIN MENU AREA -->
+        <!-- Menu items -->
         <main class="menu-area">
-            <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu...">
+            <input type="text" id="menuSearch" class="search-box" placeholder="Search the menu...">
 
             <div id="menuCardsContainer">
                 {% for category in categories %}
-                <h3 id="cat{{category.id}}" class="menu-section-title">{{category.name}}</h3>
-                <div class="row g-2 mb-4">
+                <h3 id="cat{{ category.id }}" class="menu-section-title">{{ category.name }}</h3>
+                <div class="row g-2 mb-3">
                     {% for item in category.items.all %}
-                    <div class="col-12 col-md-6 menu-item-searchable">
+                    <div class="col-6 col-md-4 col-xl-3 menu-item-searchable">
                         <div class="menu-card"
-                            onclick="openItemModal('{{item.id}}' , '{{item.name|escapejs}}', '{{item.price}}', '{{item.gst_percentage|default:5}}')">
-                            <div class="item-name">{{item.name}}</div>
-                            <div class="item-price">₹{{item.price|floatformat:0}}</div>
+                            onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage|default:5 }}')">
+                            <div class="item-name">{{ item.name }}</div>
+                            <div class="item-price">₹{{ item.price|floatformat:0 }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -746,671 +475,495 @@
                 {% endfor %}
             </div>
         </main>
-
-        <!-- DESKTOP CONTEXT SIDEBAR -->
-        <aside class="context-sidebar">
-            <div class="context-tabs">
-                <div class="context-tab active" id="tabCart" onclick="switchTab('cart')" style="border-bottom-width: 3px;">CURRENT ORDER</div>
-                <div class="context-tab" id="tabActive" onclick="switchTab('active')" style="border-bottom-width: 3px;">ACTIVE
-                    {% with cnt=all_active|length %}{% if cnt %}<span style="font-size:0.65rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}{% endwith %}
-                </div>
-            </div>
-
-            <!-- Current Order body -->
-            <div class="context-body" id="cartView">
-                <div class="text-center mb-3">
-                    <h4 class="serif-text m-0" style="color:var(--accent-gold);">
-                        {% if token %}{{ token.display_number }}{% else %}—{% endif %}
-                    </h4>
-                    <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">{{ order.get_status_display }}</div>
-                </div>
-                <script>
-                    window.addEventListener('DOMContentLoaded', () => {
-                        currentOrderId = {{ order.id }};
-                    });
-                </script>
-                
-                <div id="runningItemsDesktop" class="mb-3"></div>
-                <div id="cartItemsContainerDesktop" style="min-height: 200px;"></div>
-            </div>
-
-            <!-- Active Orders body -->
-            <div class="context-body d-none" id="activeOrdersView" style="padding:0; overflow-y:auto;">
-                <div class="active-orders-list">
-                    {% for t in counter_tokens %}
-                    <a href="{% url 'token-bill' t.order.id %}"
-                       class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
-                       id="aoi-{{ t.order.id }}">
-                        <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
-                        <div class="aoi-details">
-                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
-                            <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
-                        </div>
-                        <div>
-                            <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
-                            <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
-                        </div>
-                    </a>
-                    {% endfor %}
-
-                    {% if online_tokens %}
-                    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);padding:0.75rem 1rem 0.25rem;">Online Orders</div>
-                    {% for t in online_tokens %}
-                    <a href="{% url 'token-bill' t.order.id %}"
-                       class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
-                       id="aoi-{{ t.order.id }}">
-                        <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
-                        <div class="aoi-details">
-                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
-                            <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }} • {{ t.order.aggregator_order_id|default:"-" }}</div>
-                        </div>
-                        <div>
-                            <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
-                            <div class="aoi-badge online">Online</div>
-                        </div>
-                    </a>
-                    {% endfor %}
-                    {% endif %}
-
-                    {% if not counter_tokens and not online_tokens %}
-                    <div class="aoi-empty"><i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem;"></i>No active orders</div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="cart-summary" id="cartSummaryBlock">
-                <!-- Summary -->
-                <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-                <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-                <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-                <div class="d-flex flex-column gap-2 mt-4">
-                    <button class="btn-luxury btn-luxury-primary w-100 py-4 send-btn" style="font-size: 1.1rem; font-weight: 700; border-radius: 4px;" onclick="submitOrder()">
-                        CHECKOUT <i class="bi bi-arrow-right ms-2"></i>
-                    </button>
-                    <button class="btn-luxury w-100 py-2"
-                        style="color:var(--text-muted); border: none;"
-                        onclick="clearCart()">Clear Order</button>
-                </div>
-            </div>
-        </aside>
-
     </div>
 
-    <!-- MOBILE FLOATING ACTION BUTTON -->
-    <button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas">
-        View Order (<span class="view-total">₹0</span>)
-    </button>
-
-    <!-- MOBILE OFFCANVAS CART -->
-    <div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
-        <div class="offcanvas-header">
-            <h5 class="custom-title m-0" style="font-family:'DM Serif Display', serif;">Token {% if token %}{{ token.display_number }}{% endif %}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-
+    <!-- DESKTOP: Current Order / Active Orders sidebar -->
+    <aside class="context-sidebar">
         <div class="context-tabs">
-            <div class="context-tab active" id="tabCartMobile" onclick="switchTab('cart')" style="border-bottom-width: 3px;">CURRENT ORDER</div>
-            <div class="context-tab" id="tabActiveMobile" onclick="switchTab('active')" style="border-bottom-width: 3px;">ACTIVE
-                {% with cnt=all_active|length %}{% if cnt %}<span style="font-size:0.65rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}{% endwith %}
+            <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">
+                Current Order
+            </div>
+            <div class="context-tab" id="tabActive" onclick="switchTab('active')">
+                Active
+                {% with cnt=all_active|length %}
+                {% if cnt %}<span style="font-size:0.6rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}
+                {% endwith %}
             </div>
         </div>
 
-        <div class="offcanvas-body d-flex flex-column p-0">
-
-            <div class="context-body flex-grow-1" id="cartViewMobile">
-                <div class="text-center mb-3">
-                    <h4 class="serif-text m-0" style="color:var(--accent-gold);">{% if token %}{{ token.display_number }}{% endif %}</h4>
+        <!-- Current Order view -->
+        <div class="context-body" id="cartView">
+            <div class="text-center mb-3">
+                <div style="font-family:'DM Serif Display',serif; font-size:1.8rem; color:var(--accent-gold); line-height:1;">
+                    {% if token %}{{ token.display_number }}{% else %}—{% endif %}
                 </div>
-                <div id="runningItemsMobile" class="mb-3"></div>
-                <div id="cartItemsContainerMobile"></div>
+                <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">
+                    {{ order.get_status_display }}
+                </div>
             </div>
+            <script>window.addEventListener('DOMContentLoaded', () => { currentOrderId = {{ order.id }}; });</script>
+            <div id="runningItemsDesktop" class="mb-3"></div>
+            <div id="cartItemsContainerDesktop" style="min-height:160px;"></div>
+        </div>
 
-            <!-- Active orders mobile -->
-            <div class="context-body flex-grow-1 d-none" id="activeOrdersViewMobile" style="padding:0;overflow-y:auto;">
-                <div class="active-orders-list">
-                    {% for t in counter_tokens %}
-                    <a href="{% url 'token-bill' t.order.id %}" class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
-                        <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
-                        <div class="aoi-details">
-                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
-                            <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
-                        </div>
+        <!-- Active Orders view -->
+        <div class="context-body d-none" id="activeOrdersView" style="padding:0; overflow-y:auto;">
+            <div class="active-orders-list">
+                {% for t in counter_tokens %}
+                <a href="{% url 'token-bill' t.order.id %}"
+                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
+                   id="aoi-{{ t.order.id }}">
+                    <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
+                    <div class="aoi-details">
+                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
+                        <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
+                    </div>
+                    <div>
+                        <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
                         <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
-                    </a>
-                    {% endfor %}
-                    {% for t in online_tokens %}
-                    <a href="{% url 'token-bill' t.order.id %}" class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
-                        <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
-                        <div class="aoi-details">
-                            <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
-                            <div class="aoi-customer">{{ t.order.aggregator_order_id|default:"-" }}</div>
-                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+
+                {% if online_tokens %}
+                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);padding:0.75rem 1rem 0.25rem;">
+                    Online Orders
+                </div>
+                {% for t in online_tokens %}
+                <a href="{% url 'token-bill' t.order.id %}"
+                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
+                   id="aoi-{{ t.order.id }}">
+                    <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
+                    <div class="aoi-details">
+                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
+                        <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }} · {{ t.order.aggregator_order_id|default:"-" }}</div>
+                    </div>
+                    <div>
+                        <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
                         <div class="aoi-badge online">Online</div>
-                    </a>
-                    {% endfor %}
-                    {% if not counter_tokens and not online_tokens %}
-                    <div class="aoi-empty">No active orders</div>
-                    {% endif %}
-                </div>
-            </div>
+                    </div>
+                </a>
+                {% endfor %}
+                {% endif %}
 
-            <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);"
-                id="cartSummaryBlockMobile">
-                <!-- Summary -->
-                <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-                <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-                <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-                <div class="d-flex flex-column gap-2 mt-4 mb-2 px-2">
-                    <button class="btn-luxury btn-luxury-primary w-100 py-4 send-btn" style="font-size: 1.1rem; font-weight: 700; border-radius: 4px;" onclick="submitOrder()">
-                        CHECKOUT <i class="bi bi-arrow-right ms-2"></i>
-                    </button>
-                    <button class="btn-luxury w-100 py-2"
-                        style="color:var(--text-muted); border: none;"
-                        onclick="clearCart()">Clear Order</button>
+                {% if not counter_tokens and not online_tokens %}
+                <div class="aoi-empty">
+                    <i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem;"></i>No active orders
                 </div>
+                {% endif %}
             </div>
+        </div>
+
+        <!-- Cart summary + actions -->
+        <div class="cart-summary" id="cartSummaryBlock">
+            {% if 'loyalty_points' in tenant_features %}
+            <div style="margin-bottom:0.9rem;">
+                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
+                <input type="tel" id="loyaltyPhone" placeholder="10-digit number"
+                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:0.9rem;outline:none;font-family:inherit;"
+                    maxlength="10" inputmode="numeric">
+            </div>
+            {% endif %}
+            <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+            <button class="btn-checkout send-btn" onclick="submitOrder()">
+                Checkout <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
+        </div>
+    </aside>
+
+</div>
+
+<!-- MOBILE: Floating cart button -->
+<button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas" id="fabCart">
+    <span id="fabBadge" style="display:none;background:#fff;color:var(--accent-gold);font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">0</span>
+    <span style="flex:1;text-align:center;">
+        <i class="bi bi-bag me-1"></i>
+        View Order &nbsp;·&nbsp; <span class="view-total">₹0</span>
+    </span>
+</button>
+
+<!-- MOBILE: Offcanvas cart -->
+<div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas"
+     style="width: min(380px, 100vw);">
+    <div class="offcanvas-header">
+        <h5 class="modal-title">
+            Order {% if token %}{{ token.display_number }}{% endif %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+
+    <div class="context-tabs">
+        <div class="context-tab active" id="tabCartMobile" onclick="switchTab('cart')">Current Order</div>
+        <div class="context-tab" id="tabActiveMobile" onclick="switchTab('active')">
+            Active
+            {% with cnt=all_active|length %}
+            {% if cnt %}<span style="font-size:0.6rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}
+            {% endwith %}
         </div>
     </div>
 
+    <div class="offcanvas-body d-flex flex-column p-0">
+        <div class="context-body flex-grow-1" id="cartViewMobile">
+            <div class="text-center mb-3">
+                <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent-gold);">
+                    {% if token %}{{ token.display_number }}{% endif %}
+                </div>
+            </div>
+            <div id="runningItemsMobile" class="mb-3"></div>
+            <div id="cartItemsContainerMobile"></div>
+        </div>
 
-    <!-- ITEM MODAL -->
-    <div class="modal fade" id="itemModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title" id="modalItemName">Item Name</h5>
-                </div>
-                <div class="modal-body">
-                    <div id="modifierContainer"></div>
-                    <p class="text-muted text-uppercase mt-3" style="font-size: 0.75rem; letter-spacing: 1px;">Special
-                        Instructions</p>
-                    <textarea id="itemNote" class="form-control form-control-minimal" rows="2"
-                        placeholder="Dietary requirements or prep notes..."></textarea>
-                    <div class="form-check mt-3">
-                        <input class="form-check-input" type="checkbox" id="itemTakeaway">
-                        <label class="form-check-label text-uppercase" style="font-size:0.75rem; letter-spacing:1px;"
-                            for="itemTakeaway">
-                            Pack as Takeaway
-                        </label>
+        <div class="context-body flex-grow-1 d-none" id="activeOrdersViewMobile" style="padding:0;overflow-y:auto;">
+            <div class="active-orders-list">
+                {% for t in counter_tokens %}
+                <a href="{% url 'token-bill' t.order.id %}"
+                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
+                    <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
+                    <div class="aoi-details">
+                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
+                        <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
                     </div>
+                    <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
+                </a>
+                {% endfor %}
+                {% for t in online_tokens %}
+                <a href="{% url 'token-bill' t.order.id %}"
+                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
+                    <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
+                    <div class="aoi-details">
+                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
+                        <div class="aoi-customer">{{ t.order.aggregator_order_id|default:"-" }}</div>
+                    </div>
+                    <div class="aoi-badge online">Online</div>
+                </a>
+                {% endfor %}
+                {% if not counter_tokens and not online_tokens %}
+                <div class="aoi-empty">No active orders</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="cart-summary" id="cartSummaryBlockMobile">
+            {% if 'loyalty_points' in tenant_features %}
+            <div style="margin-bottom:0.9rem;">
+                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
+                <input type="tel" id="loyaltyPhoneMobile" placeholder="10-digit number"
+                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:0.9rem;outline:none;font-family:inherit;"
+                    maxlength="10" inputmode="numeric">
+            </div>
+            {% endif %}
+            <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+            <button class="btn-checkout send-btn mb-2" onclick="submitOrder()">
+                Checkout <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
+        </div>
+    </div>
+</div>
+
+<!-- Item detail modal -->
+<div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="modalItemName">Item</h5>
+            </div>
+            <div class="modal-body">
+                <div id="modifierContainer"></div>
+                <p class="text-muted text-uppercase mt-3" style="font-size:0.75rem;letter-spacing:1px;">Special Instructions</p>
+                <textarea id="itemNote" class="form-control-minimal" rows="2" placeholder="Dietary requirements or prep notes..."></textarea>
+                <div class="form-check mt-3">
+                    <input class="form-check-input" type="checkbox" id="itemTakeaway">
+                    <label class="form-check-label text-uppercase" style="font-size:0.75rem;letter-spacing:1px;" for="itemTakeaway">
+                        Pack as Takeaway
+                    </label>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn-luxury btn-luxury-primary" onclick="addItemWithModifiers()">Add to Order</button>
-                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn-luxury btn-accent" onclick="addItemWithModifiers()">Add to Order</button>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => {
-                    console.log('SW registration failed: ', err);
-                });
-            });
-        }
-
-        /* ── TAB SWITCHING (Current Order ↔ Active Orders) ──────────────── */
-        function switchTab(tab) {
-            const toggleIfFound = (id, cls, add) => {
-                const el = document.getElementById(id);
-                if (el) { add ? el.classList.add(cls) : el.classList.remove(cls); }
-            };
-
-            if (tab === 'cart') {
-                toggleIfFound('cartView', 'd-none', false);
-                toggleIfFound('cartViewMobile', 'd-none', false);
-                toggleIfFound('activeOrdersView', 'd-none', true);
-                toggleIfFound('activeOrdersViewMobile', 'd-none', true);
-                toggleIfFound('runningView', 'd-none', true);
-                toggleIfFound('runningViewMobile', 'd-none', true);
-                
-                toggleIfFound('tabCart', 'active', true);
-                toggleIfFound('tabCartMobile', 'active', true);
-                toggleIfFound('tabActive', 'active', false);
-                toggleIfFound('tabActiveMobile', 'active', false);
-                
-                toggleIfFound('cartSummaryBlock', 'd-none', false);
-                toggleIfFound('cartSummaryBlockMobile', 'd-none', false);
-            } else if (tab === 'active') {
-                toggleIfFound('activeOrdersView', 'd-none', false);
-                toggleIfFound('activeOrdersViewMobile', 'd-none', false);
-                toggleIfFound('cartView', 'd-none', true);
-                toggleIfFound('cartViewMobile', 'd-none', true);
-                toggleIfFound('runningView', 'd-none', true);
-                toggleIfFound('runningViewMobile', 'd-none', true);
-                
-                toggleIfFound('tabActive', 'active', true);
-                toggleIfFound('tabActiveMobile', 'active', true);
-                toggleIfFound('tabCart', 'active', false);
-                toggleIfFound('tabCartMobile', 'active', false);
-                
-                toggleIfFound('cartSummaryBlock', 'd-none', true);
-                toggleIfFound('cartSummaryBlockMobile', 'd-none', true);
-            }
-        }
-
-        /* THEME MANAGEMENT */
-        let isDark = localStorage.getItem("dark") === "true";
-        function updateTheme() {
-            let icon = document.getElementById("themeIcon");
-            if (isDark) {
-                document.body.classList.add("dark");
-                if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-            } else {
-                document.body.classList.remove("dark");
-                if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-            }
-        }
-        updateTheme();
-        function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateTheme(); }
-
-        /* AGGREGATOR TOGGLE */
-        function toggleAggregator(val, view) {
-            let inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
-            let el = document.getElementById(inputId);
-            if(el) {
-                if(['zomato', 'swiggy', 'uber_eats', 'web'].includes(val)) {
-                    el.classList.remove('d-none');
-                } else {
-                    el.classList.add('d-none');
-                    el.value = '';
-                }
-            }
-        }
-
-        /* TOAST */
-        function showToast(msg) {
-            let t = document.getElementById("toastBox");
-            t.innerText = msg; t.classList.add("show");
-            setTimeout(() => t.classList.remove("show"), 3000);
-        }
-
-        /* STATE */
-        let cart = [];
-        let selectedItem = null;
-        let sending = false;
-        let currentOrderId = null;
-        let activeModal = null;
-        /* SEARCH */
-        document.getElementById("menuSearch").addEventListener("input", function () {
-            let t = this.value.toLowerCase();
-            document.querySelectorAll(".menu-item-searchable").forEach(c => {
-                c.style.display = c.querySelector(".item-name").innerText.toLowerCase().includes(t) ? "block" : "none";
-            });
-        });
-
-        /* SCROLL CATEGORIES */
-        function scrollToCategory(id, el) {
-            document.querySelectorAll(".category-item").forEach(i => i.classList.remove("active"));
-            if (el) el.classList.add("active");
-
-            // Also sync the other nav (desktop vs mobile)
-            let idx = Array.from(el.parentNode.children).indexOf(el);
-            if (document.querySelectorAll('.category-sidebar .category-item')[idx]) {
-                document.querySelectorAll('.category-sidebar .category-item')[idx].classList.add("active");
-            }
-            if (document.querySelectorAll('.mobile-category-nav .category-item')[idx]) {
-                document.querySelectorAll('.mobile-category-nav .category-item')[idx].classList.add("active");
-            }
-
-            const target = document.getElementById(id);
-            if (target) {
-                // Check if mobile or desktop view for scrolling context
-                if (window.innerWidth < 992) {
-                    window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-                } else {
-                    document.querySelector(".menu-area").scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-                }
-            }
-        }
-
-        /* SYNC SELECT */
-        function syncTableSelect(val) {
-            document.querySelectorAll(".table-syncer").forEach(s => s.value = val);
-            
-            // Auto-select Takeaway if Walk-in (val="") is selected
-            let srcDesktop = document.getElementById("sourceSelectDesktop");
-            let srcMobile = document.getElementById("sourceSelectMobile");
-            if (!val) {
-                if(srcDesktop) srcDesktop.value = "takeaway";
-                if(srcMobile) srcMobile.value = "takeaway";
-            } else {
-                if(srcDesktop) srcDesktop.value = "dine_in";
-                if(srcMobile) srcMobile.value = "dine_in";
-            }
-            toggleAggregator(srcDesktop ? srcDesktop.value : 'dine_in', 'desktop');
-            toggleAggregator(srcMobile ? srcMobile.value : 'dine_in', 'mobile');
-
-            loadRunningOrder();
-        }
-
-
-        /* MODAL */
-        function openItemModal(id, name, price, gst) {
-            console.log("Opening modal for item:", id, name);
-            selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
-            
-            const modalEl = document.getElementById("itemModal");
-            const nameEl = document.getElementById("modalItemName");
-            const noteEl = document.getElementById("itemNote");
-            const takeawayEl = document.getElementById("itemTakeaway");
-            const modCont = document.getElementById("modifierContainer");
-
-            if (!modalEl || !nameEl || !modCont) {
-                console.error("Modal elements missing!");
-                return;
-            }
-
-            nameEl.innerText = name;
-            if (noteEl) noteEl.value = "";
-            if (takeawayEl) takeawayEl.checked = false;
-
-            modCont.innerHTML = "<p class='text-center text-muted py-3'>Checking for modifiers...</p>";
-
-            fetch(`/menu/item-modifiers/${id}/`)
-                .then(r => r.json())
-                .then(data => {
-                    let html = "";
-                    if (data.groups && data.groups.length > 0) {
-                        data.groups.forEach(g => {
-                            html += `<div class="mb-3">
-                                <label class="form-label fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 1px;">${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}</label>`;
-                            g.modifiers.forEach(m => {
-                                let inputType = g.max_select === 1 ? 'radio' : 'checkbox';
-                                let inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
-                                html += `
-                                <div class="form-check">
-                                  <input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
-                                  <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
-                                    <span>${m.name}</span>
-                                    <span class="text-muted">+₹${m.price}</span>
-                                  </label>
-                                </div>`;
-                            });
-                            html += `</div>`;
-                        });
-                        modCont.innerHTML = html;
-                    } else {
-                        modCont.innerHTML = "<p class='text-center text-muted py-2 small'>No modifiers available for this item.</p>";
-                    }
-                })
-                .catch(e => { 
-                    console.error("Modifiers fetch error:", e);
-                    modCont.innerHTML = ""; 
-                });
-
-            activeModal = new bootstrap.Modal(modalEl);
-            activeModal.show();
-        }
-
-        /* ADD ITEM */
-        function addItemWithModifiers() {
-            let note = document.getElementById("itemNote").value.trim();
-            let modsSelected = [];
-            let modsSelectedIds = [];
-            let addedPrice = 0;
-
-            document.querySelectorAll('.modifier-check:checked').forEach(cb => {
-                modsSelected.push(cb.value);
-                let modId = cb.id.replace('mod_', '');
-                modsSelectedIds.push(parseInt(modId));
-                addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
-            });
-
-            let finalNote = modsSelected.join(", ");
-            if (note) finalNote += (finalNote ? " | " : "") + note;
-            let finalPrice = parseFloat(selectedItem.price) + addedPrice;
-            let isTakeaway = document.getElementById("itemTakeaway").checked;
-
-            // Find existing with same name, mods AND takeaway status
-            let existing = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
-            if (existing) existing.quantity++;
-            else cart.push({ 
-                id: selectedItem.id, 
-                name: selectedItem.name, 
-                price: finalPrice, 
-                quantity: 1, 
-                note: finalNote, 
-                is_takeaway: isTakeaway,
-                modifiers: modsSelectedIds,
-                gst_percentage: selectedItem.gst_percentage
-            });
-
-            renderCart();
-            if (activeModal) activeModal.hide();
-        }
-
-        /* RENDER CART */
-        function renderCart() {
-            let dc = document.getElementById("cartItemsContainerDesktop");
-            let mc = document.getElementById("cartItemsContainerMobile");
-            dc.innerHTML = ""; mc.innerHTML = "";
-
-            let subtotal = 0;
-            let gst = 0;
-
-            if (cart.length === 0) {
-                let emptyMsg = `<div class="text-center text-muted" style="margin-top:20px; text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;">Empty Order</div>`;
-                dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
-            }
-
-            cart.forEach((i, idx) => {
-                let total = i.price * i.quantity;
-                subtotal += total;
-                gst += total * ((i.gst_percentage || 5) / 100);
-
-                let html = `
-            <div class="cart-row">
-                <div style="flex-grow:1; padding-right:10px;">
-                    <div class="cart-item-name">
-                        ${i.name}
-                        ${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem; vertical-align:middle;">Takeaway</span>' : ''}
-                    </div>
-                    ${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}
-                </div>
-                <div class="cart-controls">
-                    <div class="qty-controls">
-                        <button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button>
-                        <span class="qty-value">${i.quantity}</span>
-                        <button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button>
-                    </div>
-                    <div class="cart-item-price">₹${total}</div>
-                </div>
-            </div>`;
-                dc.innerHTML += html;
-                mc.innerHTML += html;
-            });
-
-            gst = Math.round(gst);
-            let grandTotal = subtotal + gst;
-
-            document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + subtotal);
-            document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + gst);
-            document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + grandTotal);
-        }
-
-        function inc(i) { cart[i].quantity++; renderCart(); }
-        function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
-        function clearCart() { cart = []; renderCart(); }
-
-        /* RUNNING ORDER */
-        function loadRunningOrder() {
-            if (!currentOrderId) return;
-            
-            let rd = document.getElementById("runningItemsDesktop");
-            let rm = document.getElementById("runningItemsMobile");
-
-            fetch("{% url 'running-order-items' %}?order=" + currentOrderId)
-                .then(r => r.json())
-                .then(d => {
-                    currentOrderId = d.order_id || null;
-                    let html = "";
-                    if (!d.items || d.items.length === 0) {
-                        html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase; letter-spacing:2px; font-size:0.75rem;'>No active services</div>";
-                    } else {
-                        d.items.forEach(i => {
-                            let statusClass = i.status === "ready" ? "status-ready" : (i.status === "preparing" ? "border-warning text-warning" : "");
-                            html += `
-                    <div class="running-row d-flex flex-column align-items-start">
-                        <div class="d-flex justify-content-between w-100">
-                            <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span>
-                            <span class="status-badge ${statusClass}">${i.status}</span>
-                        </div>
-                        ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.7rem; color:var(--accent-gold); font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
-                    </div>`;
-                        });
-                        if (d.order_id) {
-                            html += `<div class="mt-4"><button class="btn-luxury w-100 border-danger text-danger" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Entire Order</button></div>`;
-                        }
-                    }
-                    if (rd) rd.innerHTML = html;
-                    if (rm) rm.innerHTML = html;
-                }).catch(err => console.error(err));
-        }
-
-        /* SUBMIT ORDER */
-        function submitOrder() {
-            if (sending) return;
-            if (cart.length === 0) { showToast("Empty order."); return; }
-
-            sending = true;
-            document.querySelectorAll(".send-btn").forEach(b => {
-                b.disabled = true; b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Checking out...';
-            });
-
-            let source = "counter";
-            let aggId = "";
-            let custName = "";
-            let custPhone = "";
-
-            fetch("{% url 'create-order' %}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-                body: JSON.stringify({ 
-                    cart: cart, 
-                    order_id: currentOrderId,
-                    source: source,
-                    aggregator_id: aggId,
-                    customer_name: custName,
-                    customer_phone: custPhone
-                })
-            })
-                .then(r => r.json())
-                .then(d => {
-                    if (!d.success) { showToast(d.error); resetSendBtn(); return; }
-                    fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-                        .then(r => r.json())
-                        .then(k => {
-                            if (k.error && k.error !== "No items to send to kitchen") {
-                                showToast(k.error); 
-                            } else {
-                                showToast("Order Sent");
-                            }
-                            
-                            clearCart();
-                            resetSendBtn();
-                            
-                            // For tokens, immediately generate the bill
-                            generateBill(d.order_id);
-
-                            let offcanvasEl = document.getElementById('mobileCartOffcanvas');
-                            if (offcanvasEl) {
-                                let offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                                if (offcanvas) offcanvas.hide();
-                            }
-                        }).catch(() => resetSendBtn());
-                }).catch(() => resetSendBtn());
-        }
-
-        function resetSendBtn() {
-            sending = false;
-            document.querySelectorAll(".send-btn").forEach(b => {
-                b.disabled = false; b.innerHTML = 'CHECKOUT <i class="bi bi-arrow-right ms-2"></i>';
-            });
-        }
-
-        function generateBill(orderId = null) {
-            // Use provided orderId, or fallback to the currently active table order
-            if (!orderId) {
-                if (!currentOrderId) { showToast("No active order to bill."); return; }
-                orderId = currentOrderId;
-            }
-            
-            fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), {
-                method: "POST",
-                headers: { "X-CSRFToken": getCookie("csrftoken") }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
-                } else {
-                    showToast(data.error || "Failed to generate bill.");
-                }
-            })
-            .catch(() => showToast("Error generating bill."));
-        }
-
-        function cancelOrder(orderId) {
-            if (!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
-            fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        showToast("Order Cancelled!");
-                        loadRunningOrder();
-                    } else {
-                        showToast(data.error || "Failed to cancel order.");
-                    }
-                });
-        }
-
-        function getCookie(name) {
-            let v = null;
-            if (document.cookie) {
-                document.cookie.split(";").forEach(c => {
-                    let trimmed = c.trim();
-                    if (trimmed.startsWith(name + "=")) v = decodeURIComponent(trimmed.split("=")[1]);
-                });
-            }
-            return v || '{{ csrf_token }}';
-        }
-
-        async function pollNotifications() {
-            try {
-                const res = await fetch('/api/notifications/');
-                const data = await res.json();
-                
-                // Update badges
-                const waiterBadge = document.getElementById('notif-badge-waiter');
-                const waiterBadgeMobile = document.getElementById('notif-badge-waiter-mobile');
-            const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
-            if (totalCount > 0) {
-                if (waiterBadge) { waiterBadge.innerText = totalCount; waiterBadge.classList.remove('hidden'); }
-                if (waiterBadgeMobile) { waiterBadgeMobile.innerText = totalCount; waiterBadgeMobile.classList.remove('hidden'); }
-            } else {
-                if (waiterBadge) waiterBadge.classList.add('hidden');
-                if (waiterBadgeMobile) waiterBadgeMobile.classList.add('hidden');
-            }
-        } catch (e) { console.error("Poll failed", e); }
+{% block extra_js %}
+<script>
+    /* ── Tab switching (Current Order ↔ Active Orders) ──────────────── */
+    function switchTab(tab) {
+        const toggle = (id, cls, add) => { const el = document.getElementById(id); if (el) el.classList[add ? 'add' : 'remove'](cls); };
+        const isCart = tab === 'cart';
+        toggle('cartView',           'd-none', !isCart);
+        toggle('cartViewMobile',     'd-none', !isCart);
+        toggle('activeOrdersView',   'd-none',  isCart);
+        toggle('activeOrdersViewMobile', 'd-none', isCart);
+        toggle('tabCart',   'active',  isCart); toggle('tabCartMobile',   'active',  isCart);
+        toggle('tabActive', 'active', !isCart); toggle('tabActiveMobile', 'active', !isCart);
+        toggle('cartSummaryBlock',       'd-none', !isCart);
+        toggle('cartSummaryBlockMobile', 'd-none', !isCart);
     }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            renderCart(); 
-            loadRunningOrder(); 
-            pollNotifications();
-            setInterval(loadRunningOrder, 5000);
-            setInterval(pollNotifications, 8000);
-            // Default category select desktop & mobile
-            const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
-            const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");
+    /* ── State ───────────────────────────────────────────────────────── */
+    let cart = [];
+    let selectedItem = null;
+    let sending = false;
+    let currentOrderId = null;
+    let activeModal = null;
+
+    /* ── Menu search ─────────────────────────────────────────────────── */
+    document.getElementById('menuSearch').addEventListener('input', function () {
+        const t = this.value.toLowerCase();
+        document.querySelectorAll('.menu-item-searchable').forEach(c => {
+            c.style.display = c.querySelector('.item-name').textContent.toLowerCase().includes(t) ? '' : 'none';
+        });
+    });
+
+    /* ── Category scroll ─────────────────────────────────────────────── */
+    function scrollToCategory(id, el) {
+        document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
+        const idx = Array.from(el.parentNode.children).indexOf(el);
+        ['.category-sidebar .category-item', '.mobile-category-nav .category-item'].forEach(sel => {
+            const items = document.querySelectorAll(sel);
+            if (items[idx]) items[idx].classList.add('active');
+        });
+        const target = document.getElementById(id);
+        if (!target) return;
+        if (window.innerWidth < 992) {
+            window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+        } else {
+            document.querySelector('.menu-area').scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
+        }
+    }
+
+    /* ── Item modal ──────────────────────────────────────────────────── */
+    function openItemModal(id, name, price, gst) {
+        selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
+        document.getElementById('modalItemName').textContent = name;
+        document.getElementById('itemNote').value = '';
+        document.getElementById('itemTakeaway').checked = false;
+        const modCont = document.getElementById('modifierContainer');
+        modCont.innerHTML = "<p class='text-center text-muted py-3 small'>Checking modifiers…</p>";
+
+        fetch(`/menu/item-modifiers/${id}/`)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.groups || !data.groups.length) { modCont.innerHTML = ''; return; }
+                modCont.innerHTML = data.groups.map(g => `
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-uppercase" style="font-size:0.8rem;letter-spacing:1px;">
+                            ${g.group_name}${g.is_required ? ' <span class="text-danger">*</span>' : ''}
+                        </label>
+                        ${g.modifiers.map(m => {
+                            const type = g.max_select === 1 ? 'radio' : 'checkbox';
+                            const nm   = `mod_${g.group_name.replace(/\s+/g, '')}`;
+                            return `<div class="form-check">
+                                <input class="form-check-input modifier-check" type="${type}" name="${nm}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
+                                <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
+                                    <span>${m.name}</span><span class="text-muted">+₹${m.price}</span>
+                                </label>
+                            </div>`;
+                        }).join('')}
+                    </div>`).join('');
+            })
+            .catch(() => { modCont.innerHTML = ''; });
+
+        activeModal = new bootstrap.Modal(document.getElementById('itemModal'));
+        activeModal.show();
+    }
+
+    /* ── Add to cart ─────────────────────────────────────────────────── */
+    function addItemWithModifiers() {
+        const note = document.getElementById('itemNote').value.trim();
+        let modsSelected = [], modsSelectedIds = [], addedPrice = 0;
+        document.querySelectorAll('.modifier-check:checked').forEach(cb => {
+            modsSelected.push(cb.value);
+            modsSelectedIds.push(parseInt(cb.id.replace('mod_', '')));
+            addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
+        });
+        const finalNote  = [modsSelected.join(', '), note].filter(Boolean).join(' | ');
+        const finalPrice = parseFloat(selectedItem.price) + addedPrice;
+        const isTakeaway = document.getElementById('itemTakeaway').checked;
+        const existing   = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
+        if (existing) existing.quantity++;
+        else cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1,
+                         note: finalNote, is_takeaway: isTakeaway, modifiers: modsSelectedIds,
+                         gst_percentage: selectedItem.gst_percentage });
+        renderCart();
+        if (activeModal) activeModal.hide();
+    }
+
+    /* ── Render cart ─────────────────────────────────────────────────── */
+    function renderCart() {
+        const dc = document.getElementById('cartItemsContainerDesktop');
+        const mc = document.getElementById('cartItemsContainerMobile');
+        let subtotal = 0, gst = 0;
+
+        if (!cart.length) {
+            const empty = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
+            dc.innerHTML = empty; mc.innerHTML = empty;
+        } else {
+            const rows = cart.map((i, idx) => {
+                const total = i.price * i.quantity;
+                subtotal += total;
+                gst      += total * ((i.gst_percentage || 5) / 100);
+                return `<div class="cart-row">
+                    <div style="flex-grow:1;padding-right:8px;">
+                        <div class="cart-item-name">${i.name}${i.is_takeaway ? ' <span style="font-size:0.55rem;background:var(--accent-gold);color:#fff;padding:1px 5px;vertical-align:middle;">TKW</span>' : ''}</div>
+                        ${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}
+                    </div>
+                    <div class="cart-controls">
+                        <div class="qty-controls">
+                            <button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button>
+                            <span class="qty-value">${i.quantity}</span>
+                            <button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button>
+                        </div>
+                        <div class="cart-item-price">₹${total}</div>
+                    </div>
+                </div>`;
+            }).join('');
+            dc.innerHTML = rows; mc.innerHTML = rows;
+        }
+
+        gst = Math.round(gst);
+        const grandTotal = subtotal + gst;
+        document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + subtotal);
+        document.querySelectorAll('.view-gst').forEach(e => e.textContent = '₹' + gst);
+        document.querySelectorAll('.view-total').forEach(e => e.textContent = '₹' + grandTotal);
+
+        // FAB badge — total item count
+        const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
+        const badge = document.getElementById('fabBadge');
+        if (badge) { badge.textContent = totalQty; badge.style.display = totalQty ? 'flex' : 'none'; }
+    }
+
+    function inc(i) { cart[i].quantity++; renderCart(); }
+    function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
+    function clearCart() { cart = []; renderCart(); }
+
+    /* ── Running order ───────────────────────────────────────────────── */
+    function loadRunningOrder() {
+        if (!currentOrderId) return;
+        fetch("{% url 'running-order-items' %}?order=" + currentOrderId)
+            .then(r => r.json())
+            .then(d => {
+                currentOrderId = d.order_id || null;
+                let html = '';
+                if (!d.items || !d.items.length) {
+                    html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">No active items</div>`;
+                } else {
+                    html = d.items.map(i => {
+                        const sc = i.status === 'ready' ? 'status-ready' : (i.status === 'preparing' ? 'border-warning text-warning' : '');
+                        return `<div class="running-row d-flex flex-column">
+                            <div class="d-flex justify-content-between w-100">
+                                <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name}</span>
+                                <span class="status-badge ${sc}">${i.status}</span>
+                            </div>
+                            ${i.modifiers && i.modifiers.length ? `<div style="font-size:0.7rem;color:var(--accent-gold);font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
+                        </div>`;
+                    }).join('');
+                    if (d.order_id) {
+                        html += `<div class="mt-3"><button class="btn-luxury w-100" style="border-color:#ef4444;color:#ef4444;" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Order</button></div>`;
+                    }
+                }
+                ['runningItemsDesktop', 'runningItemsMobile'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.innerHTML = html;
+                });
+            }).catch(() => {});
+    }
+
+    /* ── Submit order ────────────────────────────────────────────────── */
+    function submitOrder() {
+        if (sending) return;
+        if (!cart.length) { ui.toast('Cart is empty', 'warning'); return; }
+        sending = true;
+        document.querySelectorAll('.send-btn').forEach(b => {
+            b.disabled = true;
+            b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing…';
         });
 
-    </script>
-</body>
+        // Pick up loyalty phone if feature is enabled
+        const loyaltyPhone = (
+            document.getElementById('loyaltyPhone')?.value ||
+            document.getElementById('loyaltyPhoneMobile')?.value || ''
+        ).trim();
 
-</html>
+        fetch("{% url 'create-order' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+            body: JSON.stringify({ cart, order_id: currentOrderId, source: 'counter', aggregator_id: '', customer_name: '', customer_phone: loyaltyPhone })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (!d.success) { ui.toast(d.error, 'error'); resetSendBtn(); return; }
+            return fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), {
+                method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+            })
+            .then(r => r.json())
+            .then(() => {
+                ui.toast('Order sent to kitchen', 'success');
+                clearCart();
+                resetSendBtn();
+                generateBill(d.order_id);
+                const oc = bootstrap.Offcanvas.getInstance(document.getElementById('mobileCartOffcanvas'));
+                if (oc) oc.hide();
+            });
+        })
+        .catch(() => { ui.toast('Network error', 'error'); resetSendBtn(); });
+    }
+
+    function resetSendBtn() {
+        sending = false;
+        document.querySelectorAll('.send-btn').forEach(b => {
+            b.disabled = false;
+            b.innerHTML = 'Checkout <i class="bi bi-arrow-right ms-1"></i>';
+        });
+    }
+
+    function generateBill(orderId) {
+        const id = orderId || currentOrderId;
+        if (!id) { ui.toast('No active order', 'warning'); return; }
+        fetch("{% url 'generate-bill' 0 %}".replace('0', id), {
+            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
+            else ui.toast(data.error || 'Failed to generate bill', 'error');
+        })
+        .catch(() => ui.toast('Error generating bill', 'error'));
+    }
+
+    function cancelOrder(orderId) {
+        ui.confirm('Cancel entire order?', 'This cannot be undone.', 'Yes, cancel it')
+            .then(result => {
+                if (!result.isConfirmed) return;
+                fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), {
+                    method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) { ui.toast('Order cancelled', 'success'); loadRunningOrder(); }
+                    else ui.toast(data.error || 'Failed', 'error');
+                });
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        renderCart();
+        loadRunningOrder();
+        setInterval(loadRunningOrder, 5000);
+        const f1 = document.querySelector('.category-sidebar .category-item'); if (f1) f1.classList.add('active');
+        const f2 = document.querySelector('.mobile-category-nav .category-item'); if (f2) f2.classList.add('active');
+    });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+    }
+</script>
+{% endblock %}

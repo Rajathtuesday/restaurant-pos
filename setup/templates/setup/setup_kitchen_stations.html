@@ -1,141 +1,267 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kitchen Stations | Setup</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
-            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        body.dark {
-            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888888;
-            --border-color: #262626; --accent-gold: #d4af37;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg-color); color: var(--text-main); font-family: 'Outfit', sans-serif; min-height: 100vh; transition: var(--transition-smooth); -webkit-font-smoothing: antialiased; }
-        
-        /* HEADER */
-        .pos-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); }
-        .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; font-family: 'DM Serif Display', serif; font-weight: 700; }
-        .brand-title i { color: var(--accent-gold); }
-        .btn-luxury { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); border-radius: 0; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px; font-weight: 500; padding: 0.6rem 1rem; transition: var(--transition-smooth); text-decoration: none; }
-        .btn-luxury:hover { border-color: var(--text-main); color: var(--bg-color); background: var(--text-main); }
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
+{% extends 'core/base.html' %}
+{% block title %}Kitchen Stations | Setup{% endblock %}
 
-        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-        .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
-        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
-        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+{% block extra_css %}
+<style>
+  .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+  .page-title   { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
+  .divider      { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+  .page-sub     { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+  .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
 
-        .form-label, .section-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
-        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 1.2rem; font-weight: 600; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
-        .form-control:focus { border-bottom-color: var(--accent-gold); box-shadow: none; background: transparent; color: var(--text-main); }
-        .form-hint, .empty-state { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1.5rem; }
-        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-        .btn-add:hover { opacity: 0.9; }
+  .page-body { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem; display: grid; grid-template-columns: 1fr 1.6fr; gap: 3rem; align-items: start; }
+  @media(max-width: 700px) { .page-body { grid-template-columns: 1fr; } }
 
-        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
-        .alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
+  /* Add-station form */
+  .field-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.4rem; }
+  .field-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.55rem 0; font-size: 1rem; outline: none; margin-bottom: 1.4rem; font-family: inherit; transition: border-color 0.2s; }
+  .field-input:focus { border-bottom-color: var(--accent-gold); }
+  .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  .btn-add:hover { opacity: 0.88; }
 
+  /* Station cards */
+  .station-card { background: var(--panel-bg); border: 1px solid var(--border-color); margin-bottom: 0.75rem; transition: border-color 0.2s; }
+  .station-card.is-default { border-color: var(--accent-gold); }
+  .station-header { padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+  .station-name { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+  .badge-default { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 2px 8px; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 10px; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
+  .btn-ghost:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
 
-        .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
-        @media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
+  /* Printer config panel — collapsible */
+  .printer-panel { border-top: 1px solid var(--border-color); padding: 1.25rem; display: none; }
+  .printer-panel.open { display: block; }
 
-        .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-        .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
-        .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
-        .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+  .printer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
+  @media(max-width: 500px) { .printer-grid { grid-template-columns: 1fr; } }
 
-        .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
-        .form-control { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
-        .form-control:focus { border-bottom-color: var(--accent-gold); }
-        .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
-        .btn-add:hover { background: #b59250; }
+  .field-select { width: 100%; background: var(--panel-bg); border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.55rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.4rem; font-family: inherit; cursor: pointer; appearance: none; }
+  .field-select:focus { border-bottom-color: var(--accent-gold); }
 
-        .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+  .printer-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); }
+  .dot.green  { background: #10b981; }
+  .dot.red    { background: #ef4444; }
+  .dot.orange { background: #f59e0b; }
 
-        /* Stations list */
-        .station-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.2rem 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; }
-        .station-card.is-default { border-color: var(--accent-gold); }
-        .station-name { font-size: 0.85rem; font-weight: 600; }
-        .station-icon { color: var(--accent-gold); margin-right: 0.75rem; }
-        .badge-default { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 2px 8px; }
-        .btn-set-default { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 10px; cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-block; }
-        .btn-set-default:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-        .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
-        .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
-    </style>
-</head>
-<body>
-<header class="pos-header">
-    <h1 class="brand-title"><i class="bi bi-asterisk"></i> POS Setup</h1>
-    <div class="d-flex align-items-center gap-2">
-        <a href="/setup/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-gear me-1"></i> Setup Area</a>
-        <button class="btn-icon ms-1" onclick="toggleDark()" title="Toggle Theme">
-            <i class="bi bi-moon" id="themeIcon"></i>
-        </button>
-    </div>
-</header>
+  .btn-row { display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
+  .btn-save { padding: 0.6rem 1.4rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; cursor: pointer; }
+  .btn-test { padding: 0.6rem 1.4rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; }
+  .btn-test:hover { border-color: var(--text-main); }
+  .btn-test:disabled { opacity: 0.4; cursor: not-allowed; }
 
+  .hint { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.5; }
+  .printer-callout { background: rgba(197,160,89,0.07); border-left: 3px solid var(--accent-gold); padding: 0.9rem 1.1rem; font-size: 0.75rem; line-height: 1.6; color: var(--text-main); margin-bottom: 1.5rem; }
+  .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
+  .chevron { transition: transform 0.2s; font-size: 0.8rem; }
+  .chevron.open { transform: rotate(180deg); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<span style="font-family:'DM Serif Display',serif;font-size:1.1rem;">
+  <i class="bi bi-asterisk me-2" style="color:var(--accent-gold)"></i>Setup
+</span>
+{% endblock %}
+
+{% block header_right %}
+<a href="/setup/" class="btn-luxury d-none d-sm-inline-flex">
+  <i class="bi bi-arrow-left me-1"></i> Setup Home
+</a>
+{% endblock %}
+
+{% block content %}
 <div class="page-body">
-    <!-- LEFT: ADD STATION -->
-    <div>
-        <p class="page-eyebrow">Configuration</p>
-        <h1 class="page-title">Stations</h1>
-        <div class="divider"></div>
-        <p class="page-sub">Define your kitchen stations (e.g. Hot Kitchen, Bar, Bakery). KOTs are routed to specific stations based on menu item assignments.</p>
 
-        {% if messages %}
-        {% for msg in messages %}
-        <div class="alert">{{ msg }}</div>
-        {% endfor %}
-        {% endif %}
+  <!-- LEFT: ADD NEW STATION -->
+  <div>
+    <p class="page-eyebrow">Configuration</p>
+    <h1 class="page-title">Kitchen Stations</h1>
+    <div class="divider"></div>
+    <p class="page-sub">
+      Each station (Hot Kitchen, Bar, Bakery…) routes KOTs to its own printer.
+      Set the printer IP, paper width, and cut type per station, then send a test print to confirm alignment before going live.
+    </p>
 
-        <form method="post">
-            {% csrf_token %}
-            <label class="form-label">Station Name</label>
-            <input type="text" name="station_name" class="form-control" placeholder="e.g. Hot Kitchen, Bar" required>
-            <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Add Station</button>
-        </form>
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="printer-callout">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label class="field-label">Station Name</label>
+      <input type="text" name="station_name" class="field-input" placeholder="e.g. Hot Kitchen, Bar" required autocomplete="off">
+      <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Add Station</button>
+    </form>
+
+    <div style="margin-top:2.5rem;">
+      <div class="printer-callout">
+        <strong>Printer quick-start:</strong><br>
+        1. Connect printer to your Wi-Fi router (or use a static IP).<br>
+        2. Find its IP from the printer's self-test page (hold Feed button on power-up).<br>
+        3. Paste the IP here, pick the correct paper width, hit <strong>Save</strong>.<br>
+        4. Click <strong>Test Print</strong> — if text fits the paper, you're done.
+      </div>
     </div>
+  </div>
 
-    <!-- RIGHT: EXISTING STATIONS -->
-    <div>
-        <p class="section-label">Active Stations</p>
+  <!-- RIGHT: EXISTING STATIONS -->
+  <div>
+    <p class="section-label">Active Stations</p>
 
-        {% for station in stations %}
-        <div class="station-card {% if station.is_default %}is-default{% endif %}">
-            <div style="display:flex; align-items:center;">
-                <i class="bi bi-fire station-icon {% if not station.is_default %}" style="color:var(--text-muted){% endif %}"></i>
-                <div class="station-name">{{ station.name }}</div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                {% if station.is_default %}
-                <span class="badge-default">Default</span>
-                {% else %}
-                <a href="/setup/set-default-station/{{ station.id }}/" class="btn-set-default">Set Default</a>
-                {% endif %}
-            </div>
+    {% for station in stations %}
+    <div class="station-card {% if station.is_default %}is-default{% endif %}" id="card-{{ station.id }}">
+
+      <!-- Header row — click to expand printer config -->
+      <div class="station-header" onclick="togglePanel({{ station.id }})">
+        <div class="station-name">
+          <i class="bi bi-fire" style="color:{% if station.is_default %}var(--accent-gold){% else %}var(--text-muted){% endif %}"></i>
+          {{ station.name }}
+          {% if station.is_default %}<span class="badge-default">Default</span>{% endif %}
         </div>
-        {% empty %}
-        <p class="empty-state">No stations yet. At least one station is required for KOT routing.</p>
-        {% endfor %}
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          {% if station.printer_ip %}
+            <span class="printer-status"><span class="dot orange"></span>{{ station.printer_ip }}</span>
+          {% else %}
+            <span class="printer-status"><span class="dot"></span>No printer</span>
+          {% endif %}
+          {% if not station.is_default %}
+            <a href="/setup/set-default-station/{{ station.id }}/" class="btn-ghost" onclick="event.stopPropagation()">Set Default</a>
+          {% endif %}
+          <i class="bi bi-chevron-down chevron" id="chevron-{{ station.id }}"></i>
+        </div>
+      </div>
+
+      <!-- Printer config panel -->
+      <div class="printer-panel" id="panel-{{ station.id }}">
+
+        <p class="hint">
+          Paper width sets how many characters fit per line (58mm→32, 80mm→48).
+          If text overflows or looks squashed, change the paper width and re-test.
+          Cut type: if the printer jams or beeps after printing, switch to <em>Partial</em> or <em>None</em>.
+        </p>
+
+        <div class="printer-grid">
+          <div>
+            <label class="field-label">Printer IP Address</label>
+            <input type="text" class="field-input" id="ip-{{ station.id }}"
+              value="{{ station.printer_ip|default:'' }}"
+              placeholder="e.g. 192.168.1.100"
+              pattern="^(\d{1,3}\.){3}\d{1,3}$">
+          </div>
+          <div>
+            <label class="field-label">Port</label>
+            <input type="number" class="field-input" id="port-{{ station.id }}"
+              value="{{ station.printer_port }}" min="1" max="65535">
+          </div>
+          <div>
+            <label class="field-label">Paper Width</label>
+            <select class="field-select" id="paper-{{ station.id }}">
+              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm — standard (48 chars)</option>
+              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm — small (32 chars)</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Cut Type</label>
+            <select class="field-select" id="cut-{{ station.id }}">
+              <option value="full"    {% if station.cut_type == 'full'    %}selected{% endif %}>Full cut</option>
+              <option value="partial" {% if station.cut_type == 'partial' %}selected{% endif %}>Partial cut</option>
+              <option value="none"    {% if station.cut_type == 'none'    %}selected{% endif %}>No cut (tear)</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="field-label">Encoding</label>
+        <select class="field-select" id="enc-{{ station.id }}" style="max-width:320px;">
+          <option value="cp437" {% if station.printer_encoding == 'cp437' %}selected{% endif %}>CP437 — standard (most printers)</option>
+          <option value="cp850" {% if station.printer_encoding == 'cp850' %}selected{% endif %}>CP850 — western Europe</option>
+          <option value="utf-8" {% if station.printer_encoding == 'utf-8' %}selected{% endif %}>UTF-8 — modern printers only</option>
+        </select>
+        <p class="hint">Leave CP437 unless your printer explicitly supports UTF-8. Wrong encoding prints garbage characters.</p>
+
+        <div class="btn-row">
+          <button class="btn-save" onclick="saveConfig({{ station.id }})">
+            <i class="bi bi-floppy me-1"></i> Save
+          </button>
+          <button class="btn-test" id="test-btn-{{ station.id }}"
+            {% if not station.printer_ip %}disabled title="Save a printer IP first"{% endif %}
+            onclick="testPrint({{ station.id }})">
+            <i class="bi bi-printer me-1"></i> Test Print
+          </button>
+          <span class="printer-status" id="status-{{ station.id }}"></span>
+        </div>
+      </div>
     </div>
+    {% empty %}
+    <p class="empty-state">No stations yet. Add one on the left — at least one station is required for KOT routing.</p>
+    {% endfor %}
+  </div>
+
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() { let icon = document.getElementById("themeIcon"); if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); } }
-    updateIcons();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
-</script>
-</body>
+function togglePanel(id) {
+  const panel   = document.getElementById(`panel-${id}`);
+  const chevron = document.getElementById(`chevron-${id}`);
+  const isOpen  = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
 
-</html>
+function setStatus(id, type, msg) {
+  const el = document.getElementById(`status-${id}`);
+  const colors = { ok: '#10b981', err: '#ef4444', busy: 'var(--text-muted)' };
+  el.innerHTML = `<span class="dot" style="background:${colors[type]}"></span> ${msg}`;
+}
+
+async function saveConfig(id) {
+  const ip   = document.getElementById(`ip-${id}`).value.trim();
+  const port = document.getElementById(`port-${id}`).value.trim();
+  const paper = document.getElementById(`paper-${id}`).value;
+  const cut  = document.getElementById(`cut-${id}`).value;
+  const enc  = document.getElementById(`enc-${id}`).value;
+
+  setStatus(id, 'busy', 'Saving…');
+  try {
+    const data = await apiClient.post(`/setup/kitchen-stations/${id}/printer/`, {
+      printer_ip: ip, printer_port: port,
+      paper_width_mm: paper, cut_type: cut, printer_encoding: enc,
+    });
+    setStatus(id, 'ok', data.message || 'Saved');
+    // Enable test button now that there's an IP
+    const testBtn = document.getElementById(`test-btn-${id}`);
+    if (ip) { testBtn.disabled = false; testBtn.title = ''; }
+    // Update status dot in header
+    const card = document.getElementById(`card-${id}`);
+    const dots = card.querySelectorAll('.dot');
+    if (dots.length) dots[0].style.background = ip ? '#f59e0b' : 'var(--border-color)';
+  } catch (e) {
+    setStatus(id, 'err', 'Save failed');
+  }
+}
+
+async function testPrint(id) {
+  const btn = document.getElementById(`test-btn-${id}`);
+  btn.disabled = true;
+  setStatus(id, 'busy', 'Sending test page…');
+  try {
+    const data = await apiClient.post(`/setup/kitchen-stations/${id}/test-print/`, {});
+    setStatus(id, 'ok', data.message || 'Test sent!');
+    // Turn dot green to show the printer responded
+    const card = document.getElementById(`card-${id}`);
+    const dots = card.querySelectorAll('.dot');
+    if (dots.length) dots[0].style.background = '#10b981';
+  } catch (e) {
+    const msg = e.message || 'Could not reach printer';
+    setStatus(id, 'err', msg);
+    ui.toast(msg, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

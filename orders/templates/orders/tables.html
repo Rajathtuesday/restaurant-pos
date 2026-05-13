@@ -1,1018 +1,618 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Floor Plan</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    
-    <!-- Premium Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+{% extends 'core/base.html' %}
+{% block title %}Floor Plan | {{ request.user.tenant.name }}{% endblock %}
 
-    <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            /* True Premium Light Mode Palette */
-            --bg-color: #f3f4f6; /* A slightly cooler, rich linen backdrop */
-            --panel-bg: #ffffff;
-            --text-main: #1f2937; /* Warmer, softer true-black */
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb; /* Stronger structural lines */
-            --accent-gold: #c5a059;
-            
-            --c-free: #10b981; 
-            --c-order: #eab308;
-            --c-prepare: #f97316;
-            --c-serve: #3b82f6; 
-            --c-clean: #ec4899;
-            
-            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
-            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
+{% block extra_css %}
+<style>
+  ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+  ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
 
-        body.dark {
-            --bg-color: #0f1115; /* Sophisticated Slate-Dark */
-            --panel-bg: #1a1d24;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --border-color: #2d3139;
-            --accent-gold: #d4af37;
-            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
-            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
+  /* Page-specific palette additions */
+  :root {
+    --c-free:    #10b981;
+    --c-order:   #eab308;
+    --c-prepare: #f97316;
+    --c-serve:   #3b82f6;
+    --c-clean:   #ec4899;
+    --shadow-soft:  0 4px 15px rgba(0,0,0,0.06);
+    --shadow-hover: 0 10px 30px rgba(0,0,0,0.12);
+    --invert-val: 0;
+  }
+  html.dark {
+    --shadow-soft:  0 4px 15px rgba(0,0,0,0.3);
+    --shadow-hover: 0 10px 30px rgba(0,0,0,0.5);
+    --invert-val: 1;
+  }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            transition: var(--transition-smooth);
-            min-height: 100vh;
-        }
-        
-        h1, h2, h3, h4, h5, h6, .serif-text {
-            font-family: 'DM Serif Display', serif;
-            font-weight: 600;
-        }
+  /* Override base header for sticky mode */
+  .pos-header { padding: 1.5rem 2rem; position: sticky; top: 0; z-index: 1000; flex-wrap: wrap; gap: 1rem; }
+  .brand-title { font-size: 1.5rem; margin: 0; color: var(--text-main); }
 
-        /* HEADER */
-        .pos-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--panel-bg); /* Use panel instead of flat bg to pop */
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            flex-wrap: wrap; /* MOBILE WRAP */
-            gap: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        .brand-title {
-            font-size: 1.5rem; margin: 0; color: var(--text-main);
-        }
+  /* Table cards */
+  .table-card {
+    background: var(--panel-bg); border: 1px solid var(--border-color);
+    padding: 1.5rem 1.2rem; text-align: left; transition: var(--transition-smooth);
+    position: relative; display: flex; flex-direction: column;
+    justify-content: space-between; height: 100%;
+    border-radius: 12px; box-shadow: var(--shadow-soft);
+  }
+  .table-card:hover { border-color: var(--accent-gold); transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+  .table-status-line { position: absolute; top: 0; left: 0; right: 0; height: 4px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+  .table-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .table-name { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--text-main); margin: 0; line-height: 1; }
+  .table-status { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-top: 0.4rem; }
+  .table-timer { font-weight: 600; font-size: 0.9rem; background: rgba(115,115,115,0.1); padding: 0.2rem 0.6rem; border-radius: 12px; }
 
-        /* ACTIONS */
-        .btn-luxury {
-            border: 1px solid var(--border-color);
-            background: transparent; color: var(--text-main);
-            border-radius: 0; text-transform: uppercase;
-            font-size: 0.75rem; letter-spacing: 1px; font-weight: 500;
-            padding: 0.6rem 1rem; display: inline-flex; align-items: center; justify-content: center;
-            transition: var(--transition-smooth); white-space: nowrap; cursor: pointer;
-            text-decoration: none;
-        }
-        .btn-luxury:hover {
-            border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main);
-        }
-        .btn-icon {
-            border: none; background: transparent; color: var(--text-main);
-            font-size: 1.25rem; padding: 0.5rem; cursor: pointer;
-        }
+  .status-free     { color: var(--c-free); }   .bg-free    { background: var(--c-free); }
+  .status-ordering { color: var(--c-order); }  .bg-order   { background: var(--c-order); }
+  .status-preparing{ color: var(--c-prepare);} .bg-prepare { background: var(--c-prepare); }
+  .status-served   { color: var(--c-serve); }  .bg-serve   { background: var(--c-serve); }
+  .status-billing  { color: #06b6d4; }         .bg-billing { background: #06b6d4; }
+  .status-cleaning { color: var(--c-clean); }  .bg-clean   { background: var(--c-clean); }
+  .status-merged   { color: #a855f7; }         .bg-merged  { background: #a855f7; }
+  .status-approval { color: #f43f5e; font-weight: bold; } .bg-approval { background: #f43f5e; }
 
-        /* TABLES GRID */
-        .table-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            padding: 1.5rem 1.2rem;
-            text-align: left;
-            transition: var(--transition-smooth);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            height: 100%;
-            border-radius: 12px;
-            box-shadow: var(--shadow-soft);
-        }
-        .table-card:hover {
-            border-color: var(--accent-gold);
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-hover);
-        }
-        
-        .table-status-line {
-            position: absolute; top: 0; left: 0; right: 0; height: 4px;
-            border-top-left-radius: 8px; border-top-right-radius: 8px;
-        }
+  .occupancy { font-size: 0.8rem; color: var(--text-muted); margin-top: 15px; display: flex; align-items: center; gap: 5px; }
 
-        .table-header {
-            display: flex; justify-content: space-between; align-items: flex-start;
-        }
+  .card-actions { margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .btn-card-action {
+    flex: 1; min-width: 30%; padding: 0.6rem 0.2rem;
+    border: 1px solid var(--border-color); background: rgba(255,255,255,0.05);
+    color: var(--text-main); font-size: 0.70rem; text-transform: uppercase;
+    font-weight: 700; letter-spacing: 0.5px; border-radius: 4px;
+    transition: var(--transition-smooth); text-align: center;
+  }
+  .btn-card-action:hover { background: var(--text-main); color: var(--panel-bg); }
+  .btn-card-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-card-primary:hover { background: #b59250; color: #fff; }
 
-        .table-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.6rem;
-            color: var(--text-main);
-            margin: 0;
-            line-height: 1;
-        }
-        
-        .table-status {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-weight: 700;
-            margin-top: 0.4rem;
-        }
+  /* Metrics */
+  .metric-card {
+    background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 12px;
+    padding: 1.5rem; text-align: center; display: flex; flex-direction: column;
+    justify-content: center; box-shadow: var(--shadow-soft); transition: var(--transition-smooth);
+    position: relative; overflow: hidden;
+  }
+  .metric-card::before { content: ''; position: absolute; top:0; left:0; width:4px; height:100%; background: var(--accent-gold); }
+  .metric-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+  .metric-val { font-family: 'DM Serif Display', serif; font-size: 2.5rem; font-weight: 700; color: var(--text-main); line-height: 1; }
+  .metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; }
 
-        .table-timer {
-            font-family: 'Outfit', sans-serif;
-            font-weight: 600;
-            font-size: 0.9rem;
-            background: rgba(115, 115, 115, 0.1);
-            padding: 0.2rem 0.6rem;
-            border-radius: 12px;
-        }
+  /* Modal overrides */
+  .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
+  .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; }
+  .modal-body { padding: 1.5rem; }
+  .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+  html.dark .btn-close { filter: invert(1); }
 
-        .status-free    { color: var(--c-free); }   .bg-free { background: var(--c-free); }
-        .status-ordering{ color: var(--c-order); }  .bg-order { background: var(--c-order); }
-        .status-preparing{color: var(--c-prepare);} .bg-prepare { background: var(--c-prepare); }
-        .status-served  { color: var(--c-serve); }  .bg-serve { background: var(--c-serve); }
-        .status-billing { color: #06b6d4; }         .bg-billing { background: #06b6d4; }
-        .status-cleaning{ color: var(--c-clean); }  .bg-clean { background: var(--c-clean); }
-        .status-merged  { color: #a855f7; }         .bg-merged { background: #a855f7; }
-        .status-approval{ color: #f43f5e; font-weight: bold; } .bg-approval { background: #f43f5e; }
+  .form-select-luxury { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; margin-bottom: 1rem; }
 
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+  .toast-minimal {
+    position: fixed; top: 20px; right: 20px; background: var(--text-main); color: var(--bg-color);
+    padding: 1rem 1.5rem; z-index: 1060; opacity: 0; transition: opacity 0.3s ease;
+    pointer-events: none; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+  }
+  .toast-minimal.show { opacity: 1; pointer-events: auto; }
 
-        .occupancy {
-            font-size: 0.8rem; color: var(--text-muted); margin-top: 15px;
-            display: flex; align-items: center; gap: 5px;
-        }
+  .waiter-badge {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800;
+    border: 2px solid var(--panel-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    position: absolute; top: -10px; right: -10px; z-index: 5; cursor: help;
+  }
+  .waiter-badge.qr-badge { background: #f43f5e; }
 
-        /* QUICK ACTIONS */
-        .card-actions {
-            margin-top: 1.5rem;
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap; /* allow wrapping on tiny screens */
-        }
-        .btn-card-action {
-            flex: 1;
-            min-width: 30%;
-            padding: 0.6rem 0.2rem;
-            border: 1px solid var(--border-color);
-            background: rgba(255,255,255,0.05); /* slightly visible button background */
-            color: var(--text-main);
-            font-size: 0.70rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            border-radius: 4px;
-            transition: var(--transition-smooth);
-            text-align: center;
-        }
-        .btn-card-action:hover {
-            background: var(--text-main); color: var(--panel-bg);
-        }
-        .btn-card-primary {
-            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
-        }
-        .btn-card-primary:hover {
-            background: #b59250; color: #fff;
-        }
+  @media (max-width: 576px) {
+    body { overflow-x: hidden; }
+    .pos-header { padding: 0.85rem 1rem; justify-content: space-between; }
+    .action-group { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.4rem; margin-top: 10px; }
+    .btn-luxury { padding: 0.45rem 0.6rem; font-size: 0.68rem; }
+    .table-name { font-size: 1.3rem; }
+    .table-card { padding: 1rem 0.75rem; }
+    .metric-val { font-size: 1.8rem; }
+  }
+  @media (max-width: 400px) {
+    .btn-luxury { padding: 0.4rem 0.5rem; font-size: 0.65rem; letter-spacing: 0; }
+  }
+</style>
+{% endblock %}
 
-        /* INFOGRAPHICS METRICS */
-        .metric-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            box-shadow: var(--shadow-soft);
-            transition: var(--transition-smooth);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .metric-card::before {
-            content: ''; position: absolute; top:0; left:0; width:4px; height:100%;
-            background: var(--accent-gold);
-        }
+{% block header_left %}
+<div class="d-flex flex-column">
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
+  </a>
+  <p class="mb-0 text-muted" style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;">Floor Plan — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
 
-        .metric-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+{% block header_right %}
+<div class="action-group d-flex align-items-center flex-wrap gap-2">
+  <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#manageTablesModal"><i class="bi bi-gear me-1"></i> Tables</button>
+  <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#mergeModal">Combine</button>
+  <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
+  <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+  <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
+  <span class="notif-wrapper d-none d-sm-inline-flex">
+    <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none"><i class="bi bi-bell me-1"></i> Calls</a>
+    <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
+  </span>
+  <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
 
-        .metric-val { font-family: 'DM Serif Display', serif; font-size: 2.5rem; font-weight: 700; color: var(--text-main); line-height: 1; }
-        .metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; }
+  <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
+  <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
+  <span class="notif-wrapper d-sm-none">
+    <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
+    <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
+  </span>
+  <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
 
-        /* NOTIFICATION BADGE (WhatsApp-style) */
-        .notif-wrapper { position: relative; display: inline-flex; }
-        .notif-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            min-width: 18px;
-            height: 18px;
-            padding: 0 4px;
-            background: #ef4444;
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            font-family: 'Outfit', sans-serif;
-            border-radius: 9px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-            pointer-events: none;
-            z-index: 10;
-            animation: badgePop 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-        }
-        @keyframes badgePop {
-            0%   { transform: scale(0); opacity: 0; }
-            70%  { transform: scale(1.2); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .notif-badge.hidden { display: none; }
+  <button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+  </button>
+</div>
+{% endblock %}
 
-        /* MODALS */
-        .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
-        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-        .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; }
-        .modal-body { padding: 1.5rem; }
-        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
-        
-        .form-select-luxury {
-            background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main);
-            border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; margin-bottom: 1rem;
-        }
-
-        @media (max-width: 576px) {
-            body { overflow-x: hidden; }
-            .pos-header { padding: 0.85rem 1rem; justify-content: space-between; }
-            .action-group { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.4rem; margin-top: 10px; }
-            .btn-luxury { padding: 0.45rem 0.6rem; font-size: 0.68rem; }
-            .table-name { font-size: 1.3rem; }
-            .table-card { padding: 1rem 0.75rem; }
-            .metric-val { font-size: 1.8rem; }
-        }
-
-        @media (max-width: 400px) {
-            .btn-luxury { padding: 0.4rem 0.5rem; font-size: 0.65rem; letter-spacing: 0; }
-        }
-
-        /* TOAST */
-        .toast-minimal {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--text-main);
-            color: var(--bg-color);
-            padding: 1rem 1.5rem;
-            z-index: 1060;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 0.8rem;
-        }
-        .toast-minimal.show { opacity: 1; pointer-events: auto; }
-
-        /* WAITER BADGE */
-        .waiter-badge {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: var(--accent-gold);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.65rem;
-            font-weight: 800;
-            border: 2px solid var(--panel-bg);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            z-index: 5;
-            cursor: help;
-        }
-
-        .waiter-badge.qr-badge {
-            background: #f43f5e;
-        }
-
-    </style>
-</head>
-
-<body>
-
+{% block content %}
 <div id="toastBox" class="toast-minimal">Message</div>
 
-<!-- HEADER -->
-<header class="pos-header">
-    <div class="d-flex flex-column">
-        <a href="/dashboard/" style="text-decoration: none; color: inherit;">
-            <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
-        </a>
-        <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">Floor Plan — {{ request.user.outlet.name }}</p>
-    </div>
-    
-    <div class="action-group">
-        <button class="btn-luxury me-2 btn-gold" data-bs-toggle="modal" data-bs-target="#manageTablesModal"><i class="bi bi-gear me-1"></i> Tables</button>
-        <button class="btn-luxury me-2" data-bs-toggle="modal" data-bs-target="#mergeModal">Combine</button>
-        <button class="btn-luxury me-2" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
-        <a href="/billing/" class="btn-luxury me-2 d-none d-sm-inline-flex">Billing</a>
-        <a href="/kitchen/" class="btn-luxury me-2 d-none d-sm-inline-flex">Kitchen</a>
-        <a href="/waiter-dashboard/" class="btn-luxury me-2 d-none d-sm-inline-flex position-relative">
-            <i class="bi bi-bell me-1"></i> Calls
-            <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
-        </a>
-        <a href="/reports/dashboard/" class="btn-luxury me-2 d-none d-sm-inline-flex">Reports</a>
-        
-        <!-- Mobile compact links -->
-        <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
-        <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-        <a href="/waiter-dashboard/" class="btn-icon d-sm-none position-relative" title="Calls">
-            <i class="bi bi-bell"></i>
-            <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
-        </a>
-        <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
-        
-        <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
-            <i class="bi bi-moon" id="themeIcon"></i>
-        </button>
-    </div>
-</header>
+<div class="container-fluid mx-auto py-3 py-md-5" style="max-width:1400px;padding-left:1rem;padding-right:1rem;">
 
-<div class="container-fluid mx-auto py-3 py-md-5" style="max-width: 1400px; padding-left: 1rem; padding-right: 1rem;">
-    
-    <!-- LIGHT INFOGRAPHICS -->
-    <div class="row g-4 mb-5">
-        <div class="col-6 col-md-3">
-            <div class="metric-card">
-                <div class="metric-val" id="stat-total">0</div>
-                <div class="metric-label">Total Tables</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="metric-card" style="--accent-gold: var(--c-free);">
-                <div class="metric-val" id="stat-free">0</div>
-                <div class="metric-label">Tables Free</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="metric-card" style="--accent-gold: var(--c-order);">
-                <div class="metric-val" id="stat-active">0</div>
-                <div class="metric-label">Active Orders</div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="metric-card" style="--accent-gold: #06b6d4;">
-                <div class="metric-val" id="stat-billing">0</div>
-                <div class="metric-label">Awaiting Payment</div>
-            </div>
-        </div>
+  <!-- METRICS -->
+  <div class="row g-4 mb-5">
+    <div class="col-6 col-md-3">
+      <div class="metric-card">
+        <div class="metric-val" id="stat-total">0</div>
+        <div class="metric-label">Total Tables</div>
+      </div>
     </div>
+    <div class="col-6 col-md-3">
+      <div class="metric-card" style="--accent-gold:var(--c-free);">
+        <div class="metric-val" id="stat-free">0</div>
+        <div class="metric-label">Tables Free</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="metric-card" style="--accent-gold:var(--c-order);">
+        <div class="metric-val" id="stat-active">0</div>
+        <div class="metric-label">Active Orders</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="metric-card" style="--accent-gold:#06b6d4;">
+        <div class="metric-val" id="stat-billing">0</div>
+        <div class="metric-label">Awaiting Payment</div>
+      </div>
+    </div>
+  </div>
 
-    <!-- LEGEND -->
-    <div class="d-flex flex-wrap gap-4 mb-5 justify-content-center text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px; font-weight: 600;">
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-free); margin-right:6px;"></span> Free</div>
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-order); margin-right:6px;"></span> Ordering</div>
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-prepare); margin-right:6px;"></span> Preparing</div>
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-serve); margin-right:6px;"></span> Served</div>
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#06b6d4; margin-right:6px;"></span> Billing</div>
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:var(--c-clean); margin-right:6px;"></span> Cleaning</div>
-        <div class="d-flex align-items-center"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#a855f7; margin-right:6px;"></span> Linked</div>
-        <div class="d-flex align-items-center status-approval"><span style="display:inline-block; width:12px; height:12px; border-radius:3px; background:#f43f5e; margin-right:6px;"></span> Review</div>
-    </div>
+  <!-- LEGEND -->
+  <div class="d-flex flex-wrap gap-4 mb-5 justify-content-center text-uppercase" style="font-size:0.75rem;letter-spacing:1px;font-weight:600;">
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c-free);margin-right:6px;"></span> Free</div>
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c-order);margin-right:6px;"></span> Ordering</div>
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c-prepare);margin-right:6px;"></span> Preparing</div>
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c-serve);margin-right:6px;"></span> Served</div>
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#06b6d4;margin-right:6px;"></span> Billing</div>
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c-clean);margin-right:6px;"></span> Cleaning</div>
+    <div class="d-flex align-items-center"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#a855f7;margin-right:6px;"></span> Linked</div>
+    <div class="d-flex align-items-center status-approval"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:#f43f5e;margin-right:6px;"></span> Review</div>
+  </div>
 
-    <!-- TABLES GRID -->
-    <div class="row g-4" id="tableGrid">
-        <div class="col-12 text-center text-muted" style="letter-spacing:2px; font-size:0.8rem; text-transform:uppercase;">Loading Configuration...</div>
-    </div>
+  <!-- TABLES GRID -->
+  <div class="row g-4" id="tableGrid">
+    <div class="col-12 text-center text-muted" style="letter-spacing:2px;font-size:0.8rem;text-transform:uppercase;">Loading Configuration...</div>
+  </div>
 </div>
 
 <!-- ACTION MODAL -->
 <div class="modal fade" id="actionModal">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title m-0" id="actionModalTitle">Table Name</h5>
-                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center p-4">
-                <p class="text-muted text-uppercase mb-4" style="font-size:0.75rem; letter-spacing:1px;" id="actionModalStatus">Status</p>
-                
-                <div class="d-flex flex-column gap-2" id="actionModalButtons">
-                    <!-- Buttons injected via JS -->
-                </div>
-            </div>
-        </div>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title m-0" id="actionModalTitle">Table Name</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-4">
+        <p class="text-muted text-uppercase mb-4" style="font-size:0.75rem;letter-spacing:1px;" id="actionModalStatus">Status</p>
+        <div class="d-flex flex-column gap-2" id="actionModalButtons"></div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- MERGE MODAL -->
 <div class="modal fade" id="mergeModal">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title m-0">Combine Tables</h5>
-                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <label class="text-muted text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:1px;">Primary Table (Maintains Data)</label>
-                <select id="mergePrimary" class="form-select-luxury">
-                    <option value="" disabled selected>Select Primary Table...</option>
-                </select>
-                
-                <label class="text-muted text-uppercase mt-2 mb-2" style="font-size:0.7rem; letter-spacing:1px;">Secondary Table (Will be merged)</label>
-                <select id="mergeSecondary" class="form-select-luxury">
-                    <option value="" disabled selected>Select a table to merge...</option>
-                </select>
-                
-                <button onclick="executeMerge()" class="btn-luxury w-100 mt-4" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#111;">Execute Merge</button>
-            </div>
-        </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title m-0">Combine Tables</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="text-muted text-uppercase mb-2" style="font-size:0.7rem;letter-spacing:1px;">Primary Table (Maintains Data)</label>
+        <select id="mergePrimary" class="form-select-luxury">
+          <option value="" disabled selected>Select Primary Table...</option>
+        </select>
+        <label class="text-muted text-uppercase mt-2 mb-2" style="font-size:0.7rem;letter-spacing:1px;">Secondary Table (Will be merged)</label>
+        <select id="mergeSecondary" class="form-select-luxury">
+          <option value="" disabled selected>Select a table to merge...</option>
+        </select>
+        <button onclick="executeMerge()" class="btn-luxury w-100 mt-4" style="background:var(--accent-gold);border-color:var(--accent-gold);color:#111;">Execute Merge</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- TRANSFER MODAL -->
 <div class="modal fade" id="transferModal">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title m-0">Transfer Table</h5>
-                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="transferOrderId">
-                
-                <label class="text-muted text-uppercase mb-2" style="font-size:0.7rem; letter-spacing:1px;">Source Table</label>
-                <select id="transferFrom" class="form-select-luxury" disabled>
-                    <!-- Auto populated -->
-                </select>
-                
-                <label class="text-muted text-uppercase mt-2 mb-2" style="font-size:0.7rem; letter-spacing:1px;">Destination (New) Table</label>
-                <select id="transferTo" class="form-select-luxury">
-                    <option value="" disabled selected>Select an empty table...</option>
-                </select>
-                
-                <button onclick="executeTransfer()" class="btn-luxury w-100 mt-4" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#111;">Execute Transfer</button>
-            </div>
-        </div>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title m-0">Transfer Table</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="transferOrderId">
+        <label class="text-muted text-uppercase mb-2" style="font-size:0.7rem;letter-spacing:1px;">Source Table</label>
+        <select id="transferFrom" class="form-select-luxury" disabled></select>
+        <label class="text-muted text-uppercase mt-2 mb-2" style="font-size:0.7rem;letter-spacing:1px;">Destination (New) Table</label>
+        <select id="transferTo" class="form-select-luxury">
+          <option value="" disabled selected>Select an empty table...</option>
+        </select>
+        <button onclick="executeTransfer()" class="btn-luxury w-100 mt-4" style="background:var(--accent-gold);border-color:var(--accent-gold);color:#111;">Execute Transfer</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- MANAGE TABLES MODAL -->
 <div class="modal fade" id="manageTablesModal">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title m-0">Manage Tables</h5>
-                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body d-flex flex-column gap-3">
-                <div class="table-responsive">
-                    <table class="table table-borderless align-middle" style="color:var(--text-main);">
-                        <thead style="border-bottom: 2px solid var(--border-color);">
-                            <tr>
-                                <th>Table Name</th>
-                                <th>Section</th>
-                                <th>QR Code</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tblManageList"></tbody>
-                    </table>
-                </div>
-                
-                <hr class="my-2" style="border-color:var(--border-color);">
-                <h6 class="serif-text">Add New Table</h6>
-                <div class="row g-2">
-                    <div class="col-5">
-                        <input type="text" id="newTableName" class="form-control form-select-luxury m-0" placeholder="Table Name (e.g. T-12)">
-                    </div>
-                    <div class="col-4">
-                        <input type="text" id="newTableSection" class="form-control form-select-luxury m-0" placeholder="Section (e.g. Patio)">
-                    </div>
-                    <div class="col-3">
-                        <button class="btn-luxury w-100 h-100" style="background:var(--accent-gold); color:#111;" onclick="createTable()">Create</button>
-                    </div>
-                </div>
-            </div>
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title m-0">Manage Tables</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body d-flex flex-column gap-3">
+        <div class="table-responsive">
+          <table class="table table-borderless align-middle" style="color:var(--text-main);">
+            <thead style="border-bottom:2px solid var(--border-color);">
+              <tr><th>Table Name</th><th>Section</th><th>QR Code</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="tblManageList"></tbody>
+          </table>
         </div>
+        <hr class="my-2" style="border-color:var(--border-color);">
+        <h6 style="font-family:'DM Serif Display',serif;">Add New Table</h6>
+        <div class="row g-2">
+          <div class="col-5"><input type="text" id="newTableName" class="form-control form-select-luxury m-0" placeholder="Table Name (e.g. T-12)"></div>
+          <div class="col-4"><input type="text" id="newTableSection" class="form-control form-select-luxury m-0" placeholder="Section (e.g. Patio)"></div>
+          <div class="col-3"><button class="btn-luxury w-100 h-100" style="background:var(--accent-gold);color:#111;" onclick="createTable()">Create</button></div>
+        </div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- QR CODE MODAL -->
 <div class="modal fade" id="qrModal">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title m-0" id="qrModalTitle">Table QR</h5>
-                <button type="button" class="btn-close" style="filter: invert(var(--invert-val));" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center p-4">
-                <img id="qrImage" src="" alt="QR Code" class="img-fluid rounded mb-3" style="border: 4px solid #fff;">
-                <p class="text-muted small">Scan this code to load the digital menu for this table.</p>
-                <div class="d-flex gap-2">
-                    <button class="btn-card-action w-50" target='_blank' id='qrViewBtn'>View Large</button>
-                    <button class="btn-card-action w-50" data-bs-toggle="modal" data-bs-target="#manageTablesModal">Back</button>
-                </div>
-            </div>
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title m-0" id="qrModalTitle">Table QR</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center p-4">
+        <img id="qrImage" src="" alt="QR Code" class="img-fluid rounded mb-3" style="border:4px solid #fff;">
+        <p class="text-muted small">Scan this code to load the digital menu for this table.</p>
+        <div class="d-flex gap-2">
+          <button class="btn-card-action w-50" id="qrViewBtn">View Large</button>
+          <button class="btn-card-action w-50" data-bs-toggle="modal" data-bs-target="#manageTablesModal">Back</button>
         </div>
+      </div>
     </div>
+  </div>
 </div>
+{% endblock %}
 
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+{% block extra_js %}
 <script>
-    /* UTILS */
-    function showToast(msg){
-        let t = document.getElementById("toastBox");
-        t.innerText = msg; t.classList.add("show");
-        setTimeout(() => t.classList.remove("show"), 3000);
-    }
+  function showToast(msg) {
+    const t = document.getElementById("toastBox");
+    t.innerText = msg; t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3000);
+  }
 
-    function getCookie(name) {
-        let v = null;
-        if (document.cookie) {
-            document.cookie.split(";").forEach(c => {
-                if(c.trim().startsWith(name + "=")) v = decodeURIComponent(c.split("=")[1]);
-            });
-        }
-        return v;
-    }
+  let tableDataStore = [];
 
-    /* THEME MANAGEMENT */
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateTheme() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) {
-            document.body.classList.add("dark");
-            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-            document.documentElement.style.setProperty('--invert-val', '1');
-        } else {
-            document.body.classList.remove("dark");
-            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-            document.documentElement.style.setProperty('--invert-val', '0');
-        }
-    }
-    updateTheme();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateTheme(); }
+  function refreshLayout() {
+    fetch("/tables-data/")
+      .then(r => r.json())
+      .then(d => {
+        if (!d || !d.tables) throw new Error(d.message || "Invalid data from server");
+        tableDataStore = d.tables;
+        const container = document.getElementById("tableGrid");
+        if (!container) return;
 
-    /* RENDER TABLES */
-    let tableDataStore = [];
-    
-    function refreshLayout() {
-        fetch("/tables-data/")
-        .then(r => r.json())
-        .then(d => {
-            if (!d || !d.tables) {
-                console.error("Invalid table data:", d);
-                throw new Error(d.message || "Invalid data format from server");
-            }
-            
-            tableDataStore = d.tables;
-            let container = document.getElementById("tableGrid");
-            if (!container) return;
+        let fullHtml = "";
+        d.tables.forEach(t => {
+          let statusText = t.status || "free";
+          let statusClass = "status-free", bgClass = "bg-free";
+          let timerHtml = "", actionsHtml = "";
 
-            let fullHtml = ""; 
-            
-            d.tables.forEach(t => {
-                let statusText = t.status || "free";
-                let statusClass = "status-free";
-                let bgClass = "bg-free";
-                let timerHtml = "";
-                let actionsHtml = "";
+          if      (statusText === "ordering")       { statusClass = "status-ordering";  bgClass = "bg-order";   }
+          else if (statusText === "preparing")      { statusClass = "status-preparing"; bgClass = "bg-prepare"; }
+          else if (statusText === "served" || statusText === "ready") { statusClass = "status-served"; bgClass = "bg-serve"; }
+          else if (statusText === "billing")        { statusClass = "status-billing";   bgClass = "bg-billing"; }
+          else if (statusText === "cleaning")       { statusClass = "status-cleaning";  bgClass = "bg-clean";   }
+          else if (statusText === "merged")         { statusClass = "status-merged";    bgClass = "bg-merged";  }
+          else if (statusText === "needs_approval") { statusClass = "status-approval";  bgClass = "bg-approval";}
 
-                if (statusText === "ordering") { statusClass = "status-ordering"; bgClass = "bg-order"; }
-                else if (statusText === "preparing") { statusClass = "status-preparing"; bgClass = "bg-prepare"; }
-                else if (statusText === "served" || statusText === "ready") { statusClass = "status-served"; bgClass = "bg-serve"; }
-                else if (statusText === "billing") { statusClass = "status-billing"; bgClass = "bg-billing"; }
-                else if (statusText === "cleaning") { statusClass = "status-cleaning"; bgClass = "bg-clean"; }
-                else if (statusText === "merged") { statusClass = "status-merged"; bgClass = "bg-merged"; }
-                else if (statusText === "needs_approval") { statusClass = "status-approval"; bgClass = "bg-approval"; }
+          if (statusText === "free") {
+            actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
+            if (t.is_primary) actionsHtml += `<button onclick="unmergeTable(${t.id})" class="btn-card-action w-100" style="color:#ef4444;margin-top:5px;"><i class="bi bi-scissors"></i> Unmerge</button>`;
+          } else if (statusText === "merged") {
+            const pName = t.primary_table_name || t.primary_table;
+            timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
+            actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>`;
+          } else if (statusText === "cleaning") {
+            timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
+            actionsHtml = `<button onclick="markTableCleaned(${t.id})" class="btn-card-action btn-card-primary w-100">Mark Clean</button>`;
+          } else if (statusText === "billing") {
+            timerHtml = `<div class="table-timer status-billing"><i class="bi bi-receipt"></i> Billing</div>`;
+            actionsHtml = `<button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-card-action btn-card-primary w-100" style="background:#06b6d4;border-color:#06b6d4;"><i class="bi bi-credit-card me-1"></i> Pay Bill</button>
+              <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>`;
+          } else if (statusText === "needs_approval") {
+            timerHtml = `<div class="table-timer bg-approval text-white"><i class="bi bi-exclamation-triangle"></i> Review</div>`;
+            actionsHtml = `<button onclick="handleTableClick(${t.id})" class="btn-card-action btn-card-primary w-100" style="background:#f43f5e;border-color:#f43f5e;"><i class="bi bi-check-circle me-1"></i> Approve QR</button>`;
+          } else {
+            if (t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
+            actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
+              <button onclick="generateBillForOrder(${t.order_id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
+              <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>`;
+          }
 
-                if (statusText === "free") {
-                    actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
-                    if (t.is_primary) {
-                        actionsHtml += `<button onclick="unmergeTable(${t.id})" class="btn-card-action w-100" style="color:#ef4444; margin-top:5px;"><i class="bi bi-scissors"></i> Unmerge</button>`;
-                    }
-                } 
-                else if (statusText === "merged") {
-                    let pName = t.primary_table_name || t.primary_table;
-                    timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
-                    actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>`;
-                }
-                else if (statusText === "cleaning") {
-                    timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
-                    actionsHtml = `<button onclick="markTableCleaned(${t.id})" class="btn-card-action btn-card-primary w-100">Mark Clean</button>`;
-                }
-                else if (statusText === "billing") {
-                    timerHtml = `<div class="table-timer status-billing"><i class="bi bi-receipt"></i> Billing</div>`;
-                    actionsHtml = `
-                        <button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-card-action btn-card-primary w-100" style="background:#06b6d4; border-color:#06b6d4;"><i class="bi bi-credit-card me-1"></i> Pay Bill</button>
-                        <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
-                    `;
-                }
-                else if (statusText === "needs_approval") {
-                    timerHtml = `<div class="table-timer bg-approval text-white"><i class="bi bi-exclamation-triangle"></i> Review</div>`;
-                    actionsHtml = `
-                        <button onclick="handleTableClick(${t.id})" class="btn-card-action btn-card-primary w-100" style="background:#f43f5e; border-color:#f43f5e;"><i class="bi bi-check-circle me-1"></i> Approve QR</button>
-                    `;
-                }
-                else {
-                    if(t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
-                    actionsHtml = `
-                        <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
-                        <button onclick="generateBillForOrder(${t.order_id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
-                        <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>
-                    `;
-                }
+          let mergeBadge = '';
+          if (statusText === "merged") {
+            mergeBadge = `<div class="occupancy"><i class="bi bi-link-45deg"></i> Linked to ${t.primary_table_name || 'Primary'}</div>`;
+          } else if (t.is_primary) {
+            mergeBadge = `<div class="occupancy"><i class="bi bi-diagram-3"></i> Merged w/ ${t.merged_with_names}</div>`;
+          }
+          const sectionBadge = t.section ? `<span class="badge bg-secondary ms-2 bg-opacity-25" style="color:var(--text-main);">${t.section}</span>` : '';
 
-                let mergeBadge = '';
-                if (statusText === "merged") {
-                    mergeBadge = `<div class="occupancy"><i class="bi bi-link-45deg"></i> Linked to ${t.primary_table_name || 'Primary'}</div>`;
-                } else if (t.is_primary) {
-                    mergeBadge = `<div class="occupancy"><i class="bi bi-diagram-3"></i> Merged w/ ${t.merged_with_names}</div>`;
-                }
-                
-                let sectionBadge = t.section ? `<span class="badge bg-secondary ms-2 bg-opacity-25" style="color:var(--text-main);">${t.section}</span>` : '';
-
-                fullHtml += `
-                <div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
-                    <div class="table-card w-100 shadow-sm">
-                        <div class="table-status-line ${bgClass}"></div>
-                        ${t.waiter_initials ? `<div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">${t.waiter_initials}</div>` : ''}
-                        <div class="table-header">
-                            <div class="d-flex align-items-center flex-wrap"><h3 class="table-name mb-0">${t.name}</h3>${sectionBadge}</div>
-                            ${timerHtml}
-                        </div>
-                        <div class="table-status ${statusClass}">${statusText}</div>
-                        ${mergeBadge}
-                        <div class="mt-auto"><div class="card-actions">${actionsHtml}</div></div>
-                    </div>
-                </div>`;
-            });
-            
-            container.innerHTML = fullHtml;
-            
-            // Update live metrics
-            let statTotal = d.tables.length;
-            let statFree = d.tables.filter(x => x.status === "free").length;
-            let statBilling = d.tables.filter(x => x.status === "billing").length;
-            let statActive = statTotal - statFree - d.tables.filter(x => x.status === "cleaning" || x.status === "merged").length;
-            
-            if (document.getElementById("stat-total")) document.getElementById("stat-total").innerText = statTotal;
-            if (document.getElementById("stat-free")) document.getElementById("stat-free").innerText = statFree;
-            if (document.getElementById("stat-active")) document.getElementById("stat-active").innerText = statActive;
-            if (document.getElementById("stat-billing")) document.getElementById("stat-billing").innerText = statBilling;
-
-            populateModals();
-        })
-        .catch(err => {
-            console.error("Tables Load Error:", err);
-            let container = document.getElementById("tableGrid");
-            if (container) {
-                container.innerHTML = `<div class="col-12 text-center text-danger py-5">
-                    <i class="bi bi-exclamation-triangle fs-1 d-block mb-3"></i>
-                    Failed to load table floor plan. ${err.message || ''}
-                </div>`;
-            }
-        });
-    }
-
-    function populateModals() {
-        let p = document.getElementById("mergePrimary");
-        let s = document.getElementById("mergeSecondary");
-        let tf = document.getElementById("transferFrom");
-        let tt = document.getElementById("transferTo");
-        let mList = document.getElementById("tblManageList");
-        
-        if (!p || !s || !tf || !tt) return; // Guard against missing elements
-
-        let pVal = p.value, sVal = s.value, tfVal = tf.value, ttVal = tt.value;
-        
-        let pOptions = '<option value="" disabled selected>Select Primary Table...</option>';
-        let sOptions = '<option value="" disabled selected>Select a table to merge...</option>';
-        let tfOptions = '<option value="" disabled selected>Select source table...</option>';
-        let ttOptions = '<option value="" disabled selected>Select destination table...</option>';
-
-        tableDataStore.forEach(t => {
-            let opt = `<option value="${t.id}">${t.name}</option>`;
-            pOptions += opt;
-            if(t.status === "free") ttOptions += opt;
-            if(t.status === "free") sOptions += opt;
-            tfOptions += opt;
+          fullHtml += `<div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
+            <div class="table-card w-100 shadow-sm">
+              <div class="table-status-line ${bgClass}"></div>
+              ${t.waiter_initials ? `<div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">${t.waiter_initials}</div>` : ''}
+              <div class="table-header">
+                <div class="d-flex align-items-center flex-wrap"><h3 class="table-name mb-0">${t.name}</h3>${sectionBadge}</div>
+                ${timerHtml}
+              </div>
+              <div class="table-status ${statusClass}">${statusText}</div>
+              ${mergeBadge}
+              <div class="mt-auto"><div class="card-actions">${actionsHtml}</div></div>
+            </div>
+          </div>`;
         });
 
-        p.innerHTML = pOptions;
-        s.innerHTML = sOptions;
-        tf.innerHTML = tfOptions;
-        tt.innerHTML = ttOptions;
-        
-        if(pVal) p.value = pVal;
-        if(sVal) s.value = sVal;
-        if(tfVal) tf.value = tfVal;
-        if(ttVal) tt.value = ttVal;
-        
-        if (mList) {
-            let mHtml = "";
-            tableDataStore.forEach(t => {
-                mHtml += `
-                <tr>
-                    <td><input type="text" id="editName_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.name}"></td>
-                    <td><input type="text" id="editSection_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.section || ''}"></td>
-                    <td><button class="btn btn-sm btn-outline-secondary py-1" onclick="showQR('${t.name}', '${t.qr_token}')"><i class="bi bi-qr-code"></i></button></td>
-                    <td><button class="btn btn-sm btn-dark py-1" onclick="saveTableEdit(${t.id})">Save</button></td>
-                </tr>`;
-            });
-            mList.innerHTML = mHtml;
-        }
-    }
+        container.innerHTML = fullHtml;
 
-    function showQR(name, token) {
-        let baseUrl = window.location.origin;
-        let qrUrl = `${baseUrl}/menu/digital-menu/?table_token=${token}`;
-        let apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
-        
-        document.getElementById("qrModalTitle").innerText = name + " QR Reference";
-        document.getElementById("qrImage").src = apiUrl;
-        let vBtn = document.getElementById("qrViewBtn");
-        vBtn.onclick = () => window.open(apiUrl, '_blank');
-        
-        let m = bootstrap.Modal.getInstance(document.getElementById("manageTablesModal"));
-        if(m) m.hide();
-        new bootstrap.Modal(document.getElementById("qrModal")).show();
-    }
+        const statTotal   = d.tables.length;
+        const statFree    = d.tables.filter(x => x.status === "free").length;
+        const statBilling = d.tables.filter(x => x.status === "billing").length;
+        const statActive  = statTotal - statFree - d.tables.filter(x => x.status === "cleaning" || x.status === "merged").length;
+        const s = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+        s("stat-total", statTotal); s("stat-free", statFree); s("stat-active", statActive); s("stat-billing", statBilling);
+        populateModals();
+      })
+      .catch(err => {
+        const container = document.getElementById("tableGrid");
+        if (container) container.innerHTML = `<div class="col-12 text-center text-danger py-5"><i class="bi bi-exclamation-triangle fs-1 d-block mb-3"></i>Failed to load floor plan. ${err.message || ''}</div>`;
+      });
+  }
 
-    function createTable() {
-        let name = document.getElementById("newTableName").value;
-        let sec = document.getElementById("newTableSection").value;
-        if(!name) return showToast("Enter table name");
-        fetch("/manage-table/", {
-            method: "POST", headers:{"X-CSRFToken":getCookie("csrftoken"), "Content-Type":"application/json"},
-            body: JSON.stringify({action:"create", name: name, section: sec})
-        }).then(r=>r.json()).then(d=>{ if(d.success) refreshLayout(); else showToast(d.error); });
-    }
+  function populateModals() {
+    const p = document.getElementById("mergePrimary");
+    const s = document.getElementById("mergeSecondary");
+    const tf = document.getElementById("transferFrom");
+    const tt = document.getElementById("transferTo");
+    const mList = document.getElementById("tblManageList");
+    if (!p || !s || !tf || !tt) return;
+    const pVal = p.value, sVal = s.value, tfVal = tf.value, ttVal = tt.value;
 
-    function saveTableEdit(id) {
-        let name = document.getElementById("editName_"+id).value;
-        let sec = document.getElementById("editSection_"+id).value;
-        fetch("/manage-table/", {
-            method: "POST", headers:{"X-CSRFToken":getCookie("csrftoken"), "Content-Type":"application/json"},
-            body: JSON.stringify({action:"edit", table_id: id, name: name, section: sec})
-        }).then(r=>r.json()).then(d=>{
-            if(d.success) { showToast("Table saved!"); refreshLayout(); }
-            else showToast(d.error);
-        });
-    }
+    let pOpts = '<option value="" disabled selected>Select Primary Table...</option>';
+    let sOpts = '<option value="" disabled selected>Select a table to merge...</option>';
+    let tfOpts = '<option value="" disabled selected>Select source table...</option>';
+    let ttOpts = '<option value="" disabled selected>Select destination table...</option>';
 
-    /* TABLE CLICK LOGIC */
-    let actionModal = null;
-    
-    function handleTableClick(tableId) {
-        let t = tableDataStore.find(x => x.id === tableId);
-        if(!t) return;
-
-        if(t.status === "free") {
-            window.location.href = `/billing/?table=${t.id}`;
-            return;
-        }
-
-        if(t.status === "cleaning") {
-            document.getElementById("actionModalTitle").innerText = t.name;
-            document.getElementById("actionModalStatus").innerText = `Table needs to be cleaned`;
-            
-            let btns = document.getElementById("actionModalButtons");
-            btns.innerHTML = `
-                <button onclick="markTableCleaned(${t.id})" class="btn-luxury w-100" style="color:var(--c-clean); border-color:var(--c-clean);"><i class="bi bi-stars me-2"></i>Mark as Cleaned</button>
-            `;
-
-            if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
-            actionModal.show();
-            return;
-        }
-
-        // It has an active order, show options
-        document.getElementById("actionModalTitle").innerText = t.name;
-        document.getElementById("actionModalStatus").innerText = `Order Active (${t.status})`;
-        
-        let btns = document.getElementById("actionModalButtons");
-
-        if (t.status === "billing") {
-            let unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444; border-color:#ef4444;">Unmerge Tables</button>` : '';
-            btns.innerHTML = `
-                <button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-luxury w-100" style="color:#06b6d4; border-color:#06b6d4;">Pay Bill UI</button>
-                <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add More Items</button>
-                ${unmergeBtn}
-            `;
-            if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
-            actionModal.show();
-            return;
-        }
-
-        if(t.status === "needs_approval") {
-            document.getElementById("actionModalTitle").innerText = t.name;
-            document.getElementById("actionModalStatus").innerText = `Customer added items via QR`;
-            
-            let btns = document.getElementById("actionModalButtons");
-            btns.innerHTML = `
-                <button onclick="approveTableItems(${t.order_id})" class="btn-luxury w-100" style="color:#f43f5e; border-color:#f43f5e; background: rgba(244, 63, 94, 0.1);"><i class="bi bi-check-circle me-2"></i>Approve All Items</button>
-                <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Review Items Individually</button>
-            `;
-
-            if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
-            actionModal.show();
-            return;
-        }
-
-        let unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444; border-color:#ef4444;">Unmerge Tables</button>` : '';
-
-        btns.innerHTML = `
-            <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add Items</button>
-            <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Show Running Order</button>
-            <button onclick="openSmartTransfer(${t.id}, ${t.order_id})" class="btn-luxury w-100">Transfer Table</button>
-            <button onclick="generateBillForOrder(${t.order_id})" class="btn-luxury w-100" style="color:#10b981; border-color:#10b981;">Generate Bill</button>
-            ${unmergeBtn}
-        `;
-
-        if(!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
-        actionModal.show();
-    }
-
-    function openSmartTransfer(tableId, orderId) {
-        if(actionModal) actionModal.hide();
-        document.getElementById("transferFrom").value = tableId;
-        document.getElementById("transferOrderId").value = orderId;
-        new bootstrap.Modal(document.getElementById("transferModal")).show();
-    }
-
-    function generateBillForOrder(orderId) {
-        if (!orderId) {
-            showToast("No active order for this table");
-            return;
-        }
-        fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), {
-            method: "POST",
-            headers: { "X-CSRFToken": getCookie("csrftoken") }
-        })
-        .then(r => r.json())
-        .then(d => {
-            if(d.success) window.location.href = "/bill/" + d.order_id + "/";
-            else showToast(d.error || "Failed to generate bill");
-        })
-        .catch(err => showToast("Request failed"));
-    }
-
-    function markTableCleaned(tableId) {
-        fetch("{% url 'clean-table' 0 %}".replace('0', tableId), {
-            method: "POST",
-            headers: { "X-CSRFToken": getCookie("csrftoken") }
-        })
-        .then(r => r.json())
-        .then(d => {
-            if(d.success) {
-                if(actionModal) actionModal.hide();
-                showToast("Table Cleaned Successfully");
-                refreshLayout();
-            } else {
-                showToast(d.error || "Failed to mark table clear");
-            }
-        });
-    }
-
-    function unmergeTable(primaryId) {
-        if(!confirm("Are you sure you want to unmerge all tables linked to this primary table?")) return;
-        fetch("{% url 'unmerge-tables' 0 %}".replace('0', primaryId), {
-            method: "POST",
-            headers: { "X-CSRFToken": getCookie("csrftoken") }
-        })
-        .then(r => r.json())
-        .then(d => {
-            if(d.success) { showToast("Tables Unmerged"); setTimeout(()=>location.reload(), 1000); }
-            else showToast(d.error || "Unmerge failed");
-        });
-    }
-
-    /* API MERGE */
-    function executeMerge() {
-        let p = document.getElementById("mergePrimary").value;
-        let s = document.getElementById("mergeSecondary").value;
-        if(!p || !s) return;
-        if(p === s) { showToast("Cannot merge table with itself"); return; }
-        
-        fetch("{% url 'merge-tables' %}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-            body: JSON.stringify({ primary_table: parseInt(p), tables: [parseInt(s)] })
-        })
-        .then(r => r.json())
-        .then(d => {
-            if(d.success) { showToast("Tables Combined"); setTimeout(()=>location.reload(), 1000); }
-            else showToast(d.error || "Merge failed");
-        });
-    }
-
-    /* API TRANSFER */
-    function executeTransfer() {
-        let o = document.getElementById("transferOrderId").value;
-        let tId = document.getElementById("transferTo").value;
-        if(!o || !tId) return;
-
-        fetch("{% url 'transfer-table' %}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-            body: JSON.stringify({ order_id: parseInt(o), table_id: parseInt(tId) })
-        })
-        .then(r => r.json())
-        .then(d => {
-            if(d.success) { showToast("Table Transferred"); setTimeout(()=>location.reload(), 1000); }
-            else showToast(d.error || "Transfer failed");
-        });
-    }
-
-    /* APPROVE QR ITEMS */
-    function approveTableItems(orderId) {
-        if(!confirm("Approve all items for this table?")) return;
-        fetch("{% url 'approve-items' 0 %}".replace('0', orderId), {
-            method: "POST",
-            headers: { "X-CSRFToken": getCookie("csrftoken") }
-        })
-        .then(r => r.json())
-        .then(d => {
-            if(d.success) {
-                if(actionModal) actionModal.hide();
-                showToast("Items Approved & Sent to Kitchen Prep");
-                refreshLayout();
-            } else {
-                showToast(d.error || "Approval failed");
-            }
-        });
-    }
-
-    async function pollNotifications() {
-        try {
-            const res = await fetch('/api/notifications/');
-            const data = await res.json();
-            
-            // Update badges
-            const waiterBadge = document.getElementById('notif-badge-waiter');
-            const waiterBadgeMobile = document.getElementById('notif-badge-waiter-mobile');
-            const kitchenBadge = document.getElementById('notif-badge-kitchen');
-            const kitchenBadgeMobile = document.getElementById('notif-badge-kitchen-mobile');
-
-            const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
-
-            if (totalCount > 0) {
-                if (waiterBadge) { waiterBadge.innerText = totalCount; waiterBadge.classList.remove('hidden'); }
-                if (waiterBadgeMobile) { waiterBadgeMobile.innerText = totalCount; waiterBadgeMobile.classList.remove('hidden'); }
-            } else {
-                if (waiterBadge) waiterBadge.classList.add('hidden');
-                if (waiterBadgeMobile) waiterBadgeMobile.classList.add('hidden');
-            }
-        } catch (e) { console.error("Poll failed", e); }
-    }
-
-    /* INIT */
-    document.addEventListener("DOMContentLoaded", () => {
-        refreshLayout();
-        setInterval(refreshLayout, 5000); // Polling for live status
-        setInterval(pollNotifications, 10000); // Polling for kitchen alerts
+    tableDataStore.forEach(t => {
+      const opt = `<option value="${t.id}">${t.name}</option>`;
+      pOpts += opt; tfOpts += opt;
+      if (t.status === "free") { sOpts += opt; ttOpts += opt; }
     });
 
-</script>
+    p.innerHTML = pOpts; s.innerHTML = sOpts; tf.innerHTML = tfOpts; tt.innerHTML = ttOpts;
+    if (pVal) p.value = pVal; if (sVal) s.value = sVal;
+    if (tfVal) tf.value = tfVal; if (ttVal) tt.value = ttVal;
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    if (mList) {
+      mList.innerHTML = tableDataStore.map(t => `
+        <tr>
+          <td><input type="text" id="editName_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.name}"></td>
+          <td><input type="text" id="editSection_${t.id}" class="form-control form-select-luxury py-1 m-0" value="${t.section || ''}"></td>
+          <td><button class="btn btn-sm btn-outline-secondary py-1" onclick="showQR('${t.name}', '${t.qr_token}')"><i class="bi bi-qr-code"></i></button></td>
+          <td><button class="btn btn-sm btn-dark py-1" onclick="saveTableEdit(${t.id})">Save</button></td>
+        </tr>`).join('');
+    }
+  }
+
+  function showQR(name, token) {
+    const qrUrl  = `${window.location.origin}/menu/digital-menu/?table_token=${token}`;
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrUrl)}`;
+    document.getElementById("qrModalTitle").innerText = name + " QR Reference";
+    document.getElementById("qrImage").src = apiUrl;
+    document.getElementById("qrViewBtn").onclick = () => window.open(apiUrl, '_blank');
+    const m = bootstrap.Modal.getInstance(document.getElementById("manageTablesModal"));
+    if (m) m.hide();
+    new bootstrap.Modal(document.getElementById("qrModal")).show();
+  }
+
+  function createTable() {
+    const name = document.getElementById("newTableName").value;
+    const sec  = document.getElementById("newTableSection").value;
+    if (!name) return showToast("Enter table name");
+    fetch("/manage-table/", {
+      method: "POST",
+      headers: { "X-CSRFToken": apiClient.getCsrf(), "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create", name, section: sec })
+    }).then(r => r.json()).then(d => { if (d.success) refreshLayout(); else showToast(d.error); });
+  }
+
+  function saveTableEdit(id) {
+    const name = document.getElementById("editName_" + id).value;
+    const sec  = document.getElementById("editSection_" + id).value;
+    fetch("/manage-table/", {
+      method: "POST",
+      headers: { "X-CSRFToken": apiClient.getCsrf(), "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "edit", table_id: id, name, section: sec })
+    }).then(r => r.json()).then(d => {
+      if (d.success) { showToast("Table saved!"); refreshLayout(); } else showToast(d.error);
+    });
+  }
+
+  let actionModal = null;
+  function handleTableClick(tableId) {
+    const t = tableDataStore.find(x => x.id === tableId);
+    if (!t) return;
+
+    if (t.status === "free") { window.location.href = `/billing/?table=${t.id}`; return; }
+
+    document.getElementById("actionModalTitle").innerText = t.name;
+    const btns = document.getElementById("actionModalButtons");
+
+    if (t.status === "cleaning") {
+      document.getElementById("actionModalStatus").innerText = "Table needs to be cleaned";
+      btns.innerHTML = `<button onclick="markTableCleaned(${t.id})" class="btn-luxury w-100" style="color:var(--c-clean);border-color:var(--c-clean);"><i class="bi bi-stars me-2"></i>Mark as Cleaned</button>`;
+    } else if (t.status === "billing") {
+      document.getElementById("actionModalStatus").innerText = `Order Active (${t.status})`;
+      const unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444;border-color:#ef4444;">Unmerge Tables</button>` : '';
+      btns.innerHTML = `<button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-luxury w-100" style="color:#06b6d4;border-color:#06b6d4;">Pay Bill UI</button>
+        <button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add More Items</button>
+        ${unmergeBtn}`;
+    } else if (t.status === "needs_approval") {
+      document.getElementById("actionModalStatus").innerText = "Customer added items via QR";
+      btns.innerHTML = `<button onclick="approveTableItems(${t.order_id})" class="btn-luxury w-100" style="color:#f43f5e;border-color:#f43f5e;background:rgba(244,63,94,0.1);"><i class="bi bi-check-circle me-2"></i>Approve All Items</button>
+        <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Review Items Individually</button>`;
+    } else {
+      document.getElementById("actionModalStatus").innerText = `Order Active (${t.status})`;
+      const unmergeBtn = t.is_primary ? `<button onclick="unmergeTable(${t.id})" class="btn-luxury w-100" style="color:#ef4444;border-color:#ef4444;">Unmerge Tables</button>` : '';
+      btns.innerHTML = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-luxury w-100">Add Items</button>
+        <button onclick="window.location.href='/order/${t.order_id}/'" class="btn-luxury w-100">Show Running Order</button>
+        <button onclick="openSmartTransfer(${t.id}, ${t.order_id})" class="btn-luxury w-100">Transfer Table</button>
+        <button onclick="generateBillForOrder(${t.order_id})" class="btn-luxury w-100" style="color:#10b981;border-color:#10b981;">Generate Bill</button>
+        ${unmergeBtn}`;
+    }
+
+    if (!actionModal) actionModal = new bootstrap.Modal(document.getElementById("actionModal"));
+    actionModal.show();
+  }
+
+  function openSmartTransfer(tableId, orderId) {
+    if (actionModal) actionModal.hide();
+    document.getElementById("transferFrom").value = tableId;
+    document.getElementById("transferOrderId").value = orderId;
+    new bootstrap.Modal(document.getElementById("transferModal")).show();
+  }
+
+  function generateBillForOrder(orderId) {
+    if (!orderId) { showToast("No active order for this table"); return; }
+    fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), {
+      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+    }).then(r => r.json()).then(d => {
+      if (d.success) window.location.href = "/bill/" + d.order_id + "/";
+      else showToast(d.error || "Failed to generate bill");
+    }).catch(() => showToast("Request failed"));
+  }
+
+  function markTableCleaned(tableId) {
+    fetch("{% url 'clean-table' 0 %}".replace('0', tableId), {
+      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+    }).then(r => r.json()).then(d => {
+      if (d.success) { if (actionModal) actionModal.hide(); showToast("Table Cleaned"); refreshLayout(); }
+      else showToast(d.error || "Failed to mark clean");
+    });
+  }
+
+  function unmergeTable(primaryId) {
+    if (!confirm("Unmerge all tables linked to this primary table?")) return;
+    fetch("{% url 'unmerge-tables' 0 %}".replace('0', primaryId), {
+      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+    }).then(r => r.json()).then(d => {
+      if (d.success) { showToast("Tables Unmerged"); setTimeout(() => location.reload(), 1000); }
+      else showToast(d.error || "Unmerge failed");
+    });
+  }
+
+  function executeMerge() {
+    const p = document.getElementById("mergePrimary").value;
+    const s = document.getElementById("mergeSecondary").value;
+    if (!p || !s) return;
+    if (p === s) { showToast("Cannot merge table with itself"); return; }
+    fetch("{% url 'merge-tables' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
+      body: JSON.stringify({ primary_table: parseInt(p), tables: [parseInt(s)] })
+    }).then(r => r.json()).then(d => {
+      if (d.success) { showToast("Tables Combined"); setTimeout(() => location.reload(), 1000); }
+      else showToast(d.error || "Merge failed");
+    });
+  }
+
+  function executeTransfer() {
+    const o   = document.getElementById("transferOrderId").value;
+    const tId = document.getElementById("transferTo").value;
+    if (!o || !tId) return;
+    fetch("{% url 'transfer-table' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
+      body: JSON.stringify({ order_id: parseInt(o), table_id: parseInt(tId) })
+    }).then(r => r.json()).then(d => {
+      if (d.success) { showToast("Table Transferred"); setTimeout(() => location.reload(), 1000); }
+      else showToast(d.error || "Transfer failed");
+    });
+  }
+
+  function approveTableItems(orderId) {
+    if (!confirm("Approve all items for this table?")) return;
+    fetch("{% url 'approve-items' 0 %}".replace('0', orderId), {
+      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+    }).then(r => r.json()).then(d => {
+      if (d.success) { if (actionModal) actionModal.hide(); showToast("Items Approved & Sent to Kitchen"); refreshLayout(); }
+      else showToast(d.error || "Approval failed");
+    });
+  }
+
+  async function pollNotifications() {
+    try {
+      const res  = await fetch('/api/notifications/');
+      const data = await res.json();
+      const w  = document.getElementById('notif-badge-waiter');
+      const wm = document.getElementById('notif-badge-waiter-mobile');
+      const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
+      if (totalCount > 0) {
+        if (w)  { w.innerText  = totalCount; w.classList.remove('hidden'); }
+        if (wm) { wm.innerText = totalCount; wm.classList.remove('hidden'); }
+      } else {
+        if (w)  w.classList.add('hidden');
+        if (wm) wm.classList.add('hidden');
+      }
+    } catch (e) { console.error("Poll failed", e); }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    refreshLayout();
+    setInterval(refreshLayout, 5000);
+    setInterval(pollNotifications, 10000);
+  });
+</script>
+{% endblock %}

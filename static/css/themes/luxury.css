@@ -1,0 +1,150 @@
+/* ============================================================
+   LUXURY THEME — Fine Dining / Premium
+   Black, white, and gold. Sharp edges. Serif headings.
+   ============================================================ */
+
+:root {
+    --accent-gold:      #c5a059;
+    --accent-hover:     #b59250;
+    --bg-color:         #fafafa;
+    --panel-bg:         #ffffff;
+    --text-main:        #111111;
+    --text-muted:       #737373;
+    --border-color:     #eaeaea;
+    --border-radius:    0px;
+    --shadow-soft:      0 2px 8px rgba(0,0,0,0.04);
+    --shadow-hover:     0 8px 24px rgba(0,0,0,0.10);
+    --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --min-tap-target:   48px;
+    --danger:           #ef4444;
+    --success:          #10b981;
+}
+
+/* Dark mode for luxury */
+html.dark {
+    --bg-color:         #000000;
+    --panel-bg:         #0a0a0a;
+    --text-main:        #ffffff;
+    --text-muted:       #888888;
+    --border-color:     #262626;
+    --accent-gold:      #d4af37;
+    --accent-hover:     #e5c45e;
+    --shadow-soft:      0 4px 15px rgba(0,0,0,0.3);
+    --shadow-hover:     0 10px 30px rgba(0,0,0,0.5);
+}
+
+/* ── Typography ──────────────────────────────────────────── */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: var(--font-main, 'Outfit', sans-serif);
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+h1, h2, h3, h4, h5, h6, .serif-text {
+    font-family: 'DM Serif Display', serif;
+}
+
+/* ── Core Button System ──────────────────────────────────── */
+.btn-luxury {
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-main);
+    padding: 0.55rem 1.1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 500;
+    border-radius: 0;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    cursor: pointer;
+    min-height: var(--min-tap-target);
+}
+.btn-luxury:hover {
+    border-color: var(--text-main);
+    color: var(--panel-bg);
+    background: var(--text-main);
+}
+.btn-accent {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: #fff !important;
+    border-radius: 0;
+}
+.btn-accent:hover {
+    opacity: 0.9;
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+    border-radius: 0;
+    border-color: var(--border-color);
+    background: var(--panel-bg);
+}
+.card-header, .card-footer { border-color: var(--border-color); }
+
+/* ── Form controls ───────────────────────────────────────── */
+.form-control, .form-select {
+    background: var(--panel-bg);
+    border-color: var(--border-color);
+    color: var(--text-main);
+    border-radius: 0;
+    min-height: var(--min-tap-target);
+    font-size: 1rem;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--accent-gold);
+    box-shadow: none;
+    background: var(--panel-bg);
+    color: var(--text-main);
+}
+
+/* ── Tables ──────────────────────────────────────────────── */
+.table { color: var(--text-main); }
+.table th { border-color: var(--border-color); color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; }
+.table td { border-color: var(--border-color); }
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge {
+    border-radius: 0;
+    letter-spacing: 0.5px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+}
+
+/* ── Modals ──────────────────────────────────────────────── */
+.modal-content {
+    border-radius: 0;
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg);
+    color: var(--text-main);
+}
+.modal-header, .modal-footer { border-color: var(--border-color); }
+.modal-title { font-family: 'DM Serif Display', serif; }
+
+/* ── Offcanvas ───────────────────────────────────────────── */
+.offcanvas {
+    background: var(--panel-bg);
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+
+/* ── Scrollbars (thin, luxury) ───────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
+
+/* ── Gold accent text / border helpers ───────────────────── */
+.text-accent { color: var(--accent-gold) !important; }
+.border-accent { border-color: var(--accent-gold) !important; }
+.bg-panel { background: var(--panel-bg); }
+.bg-surface { background: var(--bg-color); }
+
+/* ── Placeholder ─────────────────────────────────────────── */
+::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }

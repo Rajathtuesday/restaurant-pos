@@ -1,152 +1,131 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promo Campaigns | {{ current_outlet.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display&family=Space+Mono&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #f5f6fa; --panel: #fff; --text: #111; --muted: #737373;
-            --border: #e5e7eb; --gold: #c5a059; --success: #16a34a;
-            --danger: #dc2626; --info: #2563eb; --warning: #d97706;
-            --radius: 10px; --trans: all .2s ease;
-        }
-        body.dark { --bg:#0d0d0d; --panel:#161616; --text:#f0f0f0; --muted:#666; --border:#2a2a2a; }
-        *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
-        body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+{% extends 'core/base.html' %}
+{% load static %}
 
-        /* Header */
-        .hdr { background:var(--panel); border-bottom:1px solid var(--border); padding:.9rem 1.5rem;
-               display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
-        .hdr-brand { font-family:'DM Serif Display',serif; font-size:1.2rem; display:flex; align-items:center; gap:8px; }
-        .hdr-brand i { color:var(--gold); }
-        .hdr-actions { display:flex; gap:.5rem; align-items:center; }
-        .btn-out { text-decoration:none; font-size:.72rem; text-transform:uppercase; letter-spacing:1px;
-                   border:1px solid var(--border); color:var(--text); padding:.5rem .9rem; transition:var(--trans); }
-        .btn-out:hover { background:var(--text); color:var(--bg); }
+{% block title %}Promo Campaigns | {{ current_outlet.name }}{% endblock %}
 
-        /* Page layout */
-        .page { max-width:1000px; margin:2.5rem auto; padding:0 1.5rem 4rem; }
-        .eyebrow { font-size:.62rem; letter-spacing:4px; text-transform:uppercase; color:var(--gold); margin-bottom:.4rem; }
-        .page-title { font-family:'DM Serif Display',serif; font-size:2rem; margin-bottom:.4rem; }
-        .divider { width:36px; height:2px; background:var(--gold); margin:1rem 0 2rem; }
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+    :root {
+        /* Aliases for this page's local var names */
+        --bg: var(--bg-color);
+        --panel: var(--panel-bg);
+        --text: var(--text-main);
+        --muted: var(--text-muted);
+        --border: var(--border-color);
+        --gold: var(--accent-gold);
+        --success: #16a34a;
+        --danger: #dc2626;
+        --warning: #d97706;
+        --radius: 10px;
+        --trans: var(--transition-smooth);
+    }
 
-        /* Alerts */
-        .alert { padding:.7rem 1rem; margin-bottom:1rem; border-left:3px solid var(--gold);
-                 font-size:.78rem; border-radius:0 4px 4px 0; }
-        .alert-s { border-left-color:var(--success); background:rgba(22,163,74,.08); color:var(--success); }
-        .alert-e { border-left-color:var(--danger);  background:rgba(220,38,38,.08);  color:var(--danger); }
+    .page { max-width: 1000px; margin: 2.5rem auto; padding: 0 1.5rem 4rem; }
+    .eyebrow { font-size: .62rem; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); margin-bottom: .4rem; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: .4rem; }
+    .divider { width: 36px; height: 2px; background: var(--gold); margin: 1rem 0 2rem; }
 
-        /* Stats bar */
-        .stats-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-                     gap:1rem; margin-bottom:2rem; }
-        .stat-card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius);
-                     padding:1.1rem 1.3rem; }
-        .stat-label { font-size:.6rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:.3rem; }
-        .stat-val   { font-size:1.8rem; font-weight:700; color:var(--text); }
-        .stat-val.gold { color:var(--gold); }
-        .stat-val.green { color:var(--success); }
+    .alert { padding: .7rem 1rem; margin-bottom: 1rem; border-left: 3px solid var(--gold); font-size: .78rem; border-radius: 0 4px 4px 0; }
+    .alert-s { border-left-color: var(--success); background: rgba(22,163,74,.08); color: var(--success); }
+    .alert-e { border-left-color: var(--danger);  background: rgba(220,38,38,.08);  color: var(--danger); }
 
-        /* Two-col layout */
-        .layout { display:grid; grid-template-columns:1fr 360px; gap:1.5rem; align-items:start; }
-        @media(max-width:760px) { .layout { grid-template-columns:1fr; } }
+    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.3rem; }
+    .stat-label { font-size: .6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: .3rem; }
+    .stat-val   { font-size: 1.8rem; font-weight: 700; color: var(--text); }
+    .stat-val.gold  { color: var(--gold); }
+    .stat-val.green { color: var(--success); }
 
-        /* Card */
-        .card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
-        .card-hdr { padding:.9rem 1.2rem; border-bottom:1px solid var(--border);
-                    display:flex; align-items:center; gap:.5rem; }
-        .card-hdr-title { font-size:.68rem; text-transform:uppercase; letter-spacing:2px; font-weight:700; }
-        .card-hdr i { color:var(--gold); }
-        .card-body { padding:1.2rem; }
+    .layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
+    @media(max-width: 760px) { .layout { grid-template-columns: 1fr; } }
 
-        /* Promo table */
-        .promo-table { width:100%; border-collapse:collapse; }
-        .promo-table th { font-size:.6rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted);
-                          padding:.6rem .8rem; border-bottom:1px solid var(--border); text-align:left; }
-        .promo-table td { padding:.75rem .8rem; border-bottom:1px solid var(--border); font-size:.82rem; vertical-align:middle; }
-        .promo-table tr:last-child td { border-bottom:none; }
-        .promo-table tr:hover td { background:rgba(197,160,89,.04); }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .card-hdr { padding: .9rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .5rem; }
+    .card-hdr-title { font-size: .68rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+    .card-hdr i { color: var(--gold); }
+    .card-body { padding: 1.2rem; }
 
-        .badge { display:inline-flex; align-items:center; gap:4px; padding:2px 8px;
-                 border-radius:999px; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
-        .badge-active   { background:#dcfce7; color:#15803d; }
-        .badge-inactive { background:#fee2e2; color:#991b1b; }
-        .badge-all      { background:#ede9fe; color:#6d28d9; }
-        .badge-outlet   { background:#dbeafe; color:#1d4ed8; }
-        .badge-pct      { background:#fef3c7; color:#92400e; }
-        .badge-flat     { background:#fce7f3; color:#9d174d; }
-        .badge-expired  { background:#f1f5f9; color:#94a3b8; }
+    .promo-table { width: 100%; border-collapse: collapse; }
+    .promo-table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: .6rem .8rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .promo-table td { padding: .75rem .8rem; border-bottom: 1px solid var(--border); font-size: .82rem; vertical-align: middle; }
+    .promo-table tr:last-child td { border-bottom: none; }
+    .promo-table tr:hover td { background: rgba(197,160,89,.04); }
 
-        .code-chip { font-family:'Space Mono',monospace; font-size:.65rem; background:var(--bg);
-                     border:1px solid var(--border); padding:2px 7px; border-radius:4px; letter-spacing:1px; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .badge-active   { background: #dcfce7; color: #15803d; }
+    .badge-inactive { background: #fee2e2; color: #991b1b; }
+    .badge-all      { background: #ede9fe; color: #6d28d9; }
+    .badge-outlet   { background: #dbeafe; color: #1d4ed8; }
+    .badge-pct      { background: #fef3c7; color: #92400e; }
+    .badge-flat     { background: #fce7f3; color: #9d174d; }
+    .badge-expired  { background: #f1f5f9; color: #94a3b8; }
 
-        .tbl-actions { display:flex; gap:.4rem; }
-        .tbl-btn { border:none; border-radius:6px; padding:.3rem .55rem; cursor:pointer; font-size:.7rem;
-                   display:inline-flex; align-items:center; gap:3px; transition:var(--trans); }
-        .tbl-btn-toggle { background:#f0fdf4; color:#15803d; }
-        .tbl-btn-toggle.off { background:#fef2f2; color:#dc2626; }
-        .tbl-btn-del    { background:#fef2f2; color:#dc2626; }
-        .tbl-btn:hover  { opacity:.8; transform:scale(1.05); }
+    .code-chip { font-family: 'Space Mono', monospace; font-size: .65rem; background: var(--bg); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 1px; }
 
-        .empty-state { text-align:center; padding:3rem 1rem; color:var(--muted); font-size:.85rem; }
-        .empty-state i { font-size:2rem; display:block; margin-bottom:.5rem; color:var(--border); }
+    .tbl-actions { display: flex; gap: .4rem; }
+    .tbl-btn { border: none; border-radius: 6px; padding: .3rem .55rem; cursor: pointer; font-size: .7rem; display: inline-flex; align-items: center; gap: 3px; transition: var(--trans); }
+    .tbl-btn-toggle { background: #f0fdf4; color: #15803d; }
+    .tbl-btn-toggle.off { background: #fef2f2; color: #dc2626; }
+    .tbl-btn-del    { background: #fef2f2; color: #dc2626; }
+    .tbl-btn:hover  { opacity: .8; transform: scale(1.05); }
 
-        /* Create form */
-        .field { margin-bottom:1rem; }
-        .field:last-of-type { margin-bottom:0; }
-        .field label { display:block; font-size:.6rem; text-transform:uppercase; letter-spacing:1.5px;
-                       color:var(--muted); margin-bottom:.35rem; font-weight:600; }
-        .field input, .field select, .field textarea {
-            width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
-            color:var(--text); padding:.4rem 0; font-size:.9rem; font-family:'Outfit',sans-serif;
-            outline:none; transition:border-color .2s; }
-        .field input:focus, .field select:focus, .field textarea:focus { border-bottom-color:var(--gold); }
-        .field textarea { resize:vertical; min-height:52px; font-size:.82rem; }
-        .field-hint { font-size:.62rem; color:var(--muted); margin-top:.25rem; }
-        .two { display:grid; grid-template-columns:1fr 1fr; gap:.8rem; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .85rem; }
+    .empty-state i { font-size: 2rem; display: block; margin-bottom: .5rem; color: var(--border); }
 
-        /* Toggle switch */
-        .toggle-row { display:flex; align-items:center; justify-content:space-between;
-                      padding:.8rem 0; border-bottom:1px solid var(--border); margin-bottom:.8rem; }
-        .toggle-label { font-size:.78rem; font-weight:600; }
-        .toggle-hint  { font-size:.62rem; color:var(--muted); }
-        .switch { position:relative; display:inline-block; width:38px; height:22px; flex-shrink:0; }
-        .switch input { opacity:0; width:0; height:0; }
-        .slider { position:absolute; inset:0; background:#ccc; border-radius:34px; transition:.3s; cursor:pointer; }
-        .slider::before { content:""; position:absolute; height:16px; width:16px; left:3px; bottom:3px;
-                          background:#fff; border-radius:50%; transition:.3s; }
-        input:checked + .slider { background:var(--gold); }
-        input:checked + .slider::before { transform:translateX(16px); }
+    .field { margin-bottom: 1rem; }
+    .field:last-of-type { margin-bottom: 0; }
+    .field label { display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: .35rem; font-weight: 600; }
+    .field input, .field select, .field textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: .4rem 0; font-size: .9rem; font-family: 'Outfit', sans-serif; outline: none; transition: border-color .2s; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-bottom-color: var(--gold); }
+    .field textarea { resize: vertical; min-height: 52px; font-size: .82rem; }
+    .field-hint { font-size: .62rem; color: var(--muted); margin-top: .25rem; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
 
-        /* Submit button */
-        .btn-create { width:100%; padding:1rem; background:var(--gold); border:none; color:#fff;
-                      font-size:.72rem; text-transform:uppercase; letter-spacing:3px; font-weight:700;
-                      cursor:pointer; border-radius:6px; margin-top:1.2rem; font-family:'Outfit',sans-serif;
-                      transition:var(--trans); }
-        .btn-create:hover { background:#b08040; }
-        .btn-create:disabled { opacity:.5; cursor:not-allowed; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .8rem 0; border-bottom: 1px solid var(--border); margin-bottom: .8rem; }
+    .toggle-label { font-size: .78rem; font-weight: 600; }
+    .toggle-hint  { font-size: .62rem; color: var(--muted); }
+    .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #ccc; border-radius: 34px; transition: .3s; cursor: pointer; }
+    .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+    input:checked + .slider { background: var(--gold); }
+    input:checked + .slider::before { transform: translateX(16px); }
 
-        #form-msg { margin-top:.6rem; font-size:.75rem; display:none; }
+    .btn-create { width: 100%; padding: 1rem; background: var(--gold); border: none; color: #fff; font-size: .72rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; border-radius: 6px; margin-top: 1.2rem; font-family: 'Outfit', sans-serif; transition: var(--trans); }
+    .btn-create:hover { background: var(--accent-hover); }
+    .btn-create:disabled { opacity: .5; cursor: not-allowed; }
 
-        /* Validity status dots */
-        .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; flex-shrink:0; }
-        .dot-g { background:var(--success); }
-        .dot-r { background:var(--danger); }
-        .dot-y { background:var(--warning); }
-    </style>
-</head>
-<body>
+    #form-msg { margin-top: .6rem; font-size: .75rem; display: none; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; flex-shrink: 0; }
+    .dot-g { background: var(--success); }
+    .dot-r { background: var(--danger); }
+    .dot-y { background: var(--warning); }
+</style>
+{% endblock %}
 
-<header class="hdr">
-    <div class="hdr-brand"><i class="bi bi-lightning-charge-fill"></i> Promo Campaigns</div>
-    <div class="hdr-actions">
-        <a href="/setup/outlet/" class="btn-out"><i class="bi bi-gear"></i> Outlet Settings</a>
-        <a href="/setup/" class="btn-out"><i class="bi bi-grid-3x3-gap"></i> Setup</a>
-    </div>
-</header>
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Promo Campaigns — {{ current_outlet.name }}</p>
+</div>
+{% endblock %}
 
+{% block header_right %}
+<a href="{% url 'outlet_settings' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Outlet Settings</a>
+<a href="/setup/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Setup</a>
+<a href="/logout/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Logout</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
 <div class="page">
     <p class="eyebrow">Discounts &amp; Promotions</p>
     <h1 class="page-title">Promo Campaigns</h1>
@@ -164,9 +143,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-label">Active Now</div>
-            <div class="stat-val green">{% with promos|length as total %}{{ promos|dictsort:"is_active"|last|yesno:",0" }}{% endwith %}
-                <span id="active-count" style="font-size:1.8rem;">—</span>
-            </div>
+            <div class="stat-val green"><span id="active-count">—</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-label">All-Outlet Promos</div>
@@ -174,7 +151,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Uses</div>
-            <div class="stat-val" id="uses-count">{% for p in promos %}{% if forloop.first %}0{% endif %}{% endfor %}—</div>
+            <div class="stat-val" id="uses-count">—</div>
         </div>
     </div>
 
@@ -279,8 +256,6 @@
                 <span class="card-hdr-title">New Campaign</span>
             </div>
             <div class="card-body">
-
-                <!-- All-Outlets toggle -->
                 <div class="toggle-row">
                     <div>
                         <div class="toggle-label">Run on All Outlets</div>
@@ -292,7 +267,6 @@
                     </label>
                 </div>
 
-                <!-- Specific outlet picker (hidden when all-outlets on) -->
                 <div id="outlet-picker" class="field">
                     <label>Outlet</label>
                     <select id="f-outlet">
@@ -313,7 +287,7 @@
                 <div class="field">
                     <label>Promo Code <span style="color:var(--muted);font-size:.6rem;">(optional)</span></label>
                     <input type="text" id="f-code" placeholder="HH20" oninput="this.value=this.value.toUpperCase()"
-                           style="font-family:'Space Mono',monospace; letter-spacing:1px;">
+                           style="font-family:'Space Mono',monospace;letter-spacing:1px;">
                     <div class="field-hint">Shown on the bill. Unique per tenant.</div>
                 </div>
 
@@ -364,19 +338,12 @@
             </div>
         </div>
 
-    </div><!-- /.layout -->
+    </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    function getCsrf() {
-        let v = null;
-        document.cookie.split(';').forEach(c => {
-            const t = c.trim();
-            if (t.startsWith('csrftoken=')) v = decodeURIComponent(t.split('=')[1]);
-        });
-        return v;
-    }
-
     function toggleOutletPicker() {
         const on = document.getElementById('all-outlets-toggle').checked;
         document.getElementById('outlet-picker').style.display = on ? 'none' : '';
@@ -388,62 +355,63 @@
         const allOutlets = document.getElementById('all-outlets-toggle').checked;
 
         const payload = {
-            all_outlets:    allOutlets,
-            outlet_id:      allOutlets ? null : document.getElementById('f-outlet').value,
-            name:           document.getElementById('f-name').value.trim(),
-            code:           document.getElementById('f-code').value.trim(),
-            discount_type:  document.getElementById('f-type').value,
-            discount_value: parseFloat(document.getElementById('f-value').value),
+            all_outlets:     allOutlets,
+            outlet_id:       allOutlets ? null : document.getElementById('f-outlet').value,
+            name:            document.getElementById('f-name').value.trim(),
+            code:            document.getElementById('f-code').value.trim(),
+            discount_type:   document.getElementById('f-type').value,
+            discount_value:  parseFloat(document.getElementById('f-value').value),
             min_order_value: parseFloat(document.getElementById('f-min').value) || 0,
-            max_uses:       document.getElementById('f-maxuses').value || null,
-            valid_from:     document.getElementById('f-from').value || null,
-            valid_until:    document.getElementById('f-until').value || null,
-            description:    document.getElementById('f-desc').value.trim(),
+            max_uses:        document.getElementById('f-maxuses').value || null,
+            valid_from:      document.getElementById('f-from').value || null,
+            valid_until:     document.getElementById('f-until').value || null,
+            description:     document.getElementById('f-desc').value.trim(),
         };
 
         if (!payload.name || isNaN(payload.discount_value) || payload.discount_value <= 0) {
-            show(msg, 'Name and a valid positive value are required.', 'e');
+            showMsg(msg, 'Name and a valid positive value are required.', 'e');
             return;
         }
 
         btn.disabled = true;
         btn.textContent = 'Creating…';
 
-        const res  = await fetch('/setup/promos/create/', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json','X-CSRFToken':getCsrf()},
-            body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-plus-lg"></i> Create Campaign';
-
-        if (data.success) {
-            show(msg, `✓ "${data.name}" created for ${data.scope}.`, 's');
-            ['f-name','f-code','f-value','f-desc','f-from','f-until','f-maxuses'].forEach(id => {
-                document.getElementById(id).value = '';
-            });
-            document.getElementById('f-min').value = '0';
-            setTimeout(() => location.reload(), 1200);
-        } else {
-            show(msg, data.error || 'Failed.', 'e');
+        try {
+            const data = await apiClient.post('/setup/promos/create/', payload);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plus-lg"></i> Create Campaign';
+            if (data.success) {
+                showMsg(msg, `✓ "${data.name}" created for ${data.scope}.`, 's');
+                ['f-name','f-code','f-value','f-desc','f-from','f-until','f-maxuses'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+                document.getElementById('f-min').value = '0';
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                showMsg(msg, data.error || 'Failed.', 'e');
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-plus-lg"></i> Create Campaign';
         }
     }
 
     async function togglePromo(id, btn) {
-        const res  = await fetch(`/setup/promos/${id}/toggle/`, {method:'POST',headers:{'X-CSRFToken':getCsrf()}});
-        const data = await res.json();
-        if (data.success) location.reload();
+        try {
+            const data = await apiClient.post(`/setup/promos/${id}/toggle/`, {});
+            if (data.success) location.reload();
+        } catch (e) { /* apiClient showed error toast */ }
     }
 
     async function deletePromo(id) {
-        if (!confirm('Permanently delete this promo?')) return;
-        const res  = await fetch(`/setup/promos/${id}/delete/`, {method:'POST',headers:{'X-CSRFToken':getCsrf()}});
-        const data = await res.json();
-        if (data.success) { document.getElementById(`row-${id}`).remove(); updateStats(); }
+        if (!await ui.confirm('Permanently delete this promo?')) return;
+        try {
+            const data = await apiClient.post(`/setup/promos/${id}/delete/`, {});
+            if (data.success) { document.getElementById(`row-${id}`).remove(); updateStats(); }
+        } catch (e) { /* apiClient showed error toast */ }
     }
 
-    function show(el, text, type) {
+    function showMsg(el, text, type) {
         el.style.display = 'block';
         el.style.color   = type === 's' ? 'var(--success)' : 'var(--danger)';
         el.textContent   = text;
@@ -468,5 +436,4 @@
 
     document.addEventListener('DOMContentLoaded', updateStats);
 </script>
-</body>
-</html>
+{% endblock %}

@@ -1,133 +1,132 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Token Board | {{ request.user.outlet.name }} — {{ request.user.tenant.name }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #fafafa; --panel: #ffffff; --text: #111111; --muted: #737373;
-            --border: #eaeaea; --gold: #c5a059; --gold-hover: #b59250;
-            --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
-            --online: #fc8019; --zomato: #e23744;
-            --transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        body.dark { --bg: #0a0a0a; --panel: #111111; --text: #f5f5f5; --muted: #888888; --border: #262626; --gold: #d4af37; }
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+{% extends 'core/base.html' %}
+{% load static %}
 
-        /* ── Header ── */
-        .pos-header { padding: 0.9rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--bg); position: sticky; top: 0; z-index: 200; }
-        .brand-title { font-family: 'DM Serif Display', serif; font-size: 1.25rem; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 8px; }
-        .brand-title i { color: var(--gold); }
-        .outlet-sub { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-top: 2px; }
+{% block title %}Token Board | {{ request.user.outlet.name }} — {{ request.user.tenant.name }}{% endblock %}
 
-        /* ── Buttons ── */
-        .btn-lux { border: 1px solid var(--border); background: transparent; color: var(--text); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 1px; font-weight: 500; padding: 0.55rem 1rem; cursor: pointer; transition: var(--transition); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .btn-lux:hover { border-color: var(--text); background: var(--text); color: var(--bg); }
-        .btn-lux.primary { background: var(--gold); border-color: var(--gold); color: #fff; font-size: 0.8rem; padding: 0.65rem 1.4rem; }
-        .btn-lux.primary:hover { background: var(--gold-hover); border-color: var(--gold-hover); }
-        .btn-lux.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-        .theme-toggle { cursor: pointer; background: none; border: none; color: var(--muted); font-size: 1.1rem; padding: 0.4rem; }
+{% block extra_css %}
+<style>
+    :root {
+        /* Shorthand aliases → luxury theme vars */
+        --bg: var(--bg-color);
+        --panel: var(--panel-bg);
+        --text: var(--text-main);
+        --muted: var(--text-muted);
+        --border: var(--border-color);
+        --gold: var(--accent-gold);
+        --gold-hover: var(--accent-hover);
+        --transition: var(--transition-smooth);
+        /* Page-specific colors */
+        --danger: #ef4444;
+        --success: #22c55e;
+        --warning: #f59e0b;
+        --online: #fc8019;
+        --zomato: #e23744;
+    }
 
-        /* ── Layout ── */
-        .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 1.75rem 1.5rem; }
+    .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 1.75rem 1.5rem; }
 
-        /* ── Stats row ── */
-        .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-bottom: 2rem; }
-        @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 480px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
-        .stat-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem; text-align: center; }
-        .stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
-        .stat-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--gold); line-height: 1; }
-        .stat-value.neutral { color: var(--text); }
-        .stat-value.online-color { color: var(--online); }
+    /* ── Aggregator bar (header) ── */
+    .aggregator-bar { background: var(--panel); border: 1px solid var(--border); padding: 0.25rem; border-radius: 4px; display: flex; align-items: center; }
+    .aggregator-bar span { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0.5rem; }
+    .btn-agg { padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: 3px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: var(--transition); }
 
-        /* ── Section header ── */
-        .section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
-        .section-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; }
-        .section-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; font-family: 'Outfit', sans-serif; font-weight: 600; }
-        .section-tag.counter { background: rgba(197,160,89,0.12); color: var(--gold); }
-        .section-tag.online-tag { background: rgba(252,128,25,0.12); color: var(--online); }
+    /* ── Gold primary button (New Order) ── */
+    .btn-lux-primary { background: var(--gold); border-color: var(--gold); color: #fff; font-size: 0.8rem; padding: 0.65rem 1.4rem; }
+    .btn-lux-primary:hover { background: var(--gold-hover); border-color: var(--gold-hover); color: #fff; }
+    .btn-lux-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* ── Token grid ── */
-        .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
+    /* ── Stats row ── */
+    .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; margin-bottom: 2rem; }
+    @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 480px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    .stat-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem; text-align: center; }
+    .stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
+    .stat-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--gold); line-height: 1; }
+    .stat-value.neutral { color: var(--text); }
+    .stat-value.online-color { color: var(--online); }
 
-        /* ── Token card ── */
-        .token-wrap { position: relative; }
-        .token-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem 1rem; text-align: center; cursor: pointer; text-decoration: none; display: block; color: var(--text); transition: var(--transition); }
-        .token-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); color: var(--text); }
-        .token-card.status-billing { border-left: 3px solid var(--warning); }
-        .token-card.status-open { border-left: 3px solid var(--border); }
-        .token-card.is-online { border-left: 3px solid var(--online); }
-        .token-card.is-online:hover { border-color: var(--online); }
+    /* ── Section header ── */
+    .section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+    .section-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+    .section-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; font-family: 'Outfit', sans-serif; font-weight: 600; }
+    .section-tag.counter { background: rgba(197,160,89,0.12); color: var(--gold); }
+    .section-tag.online-tag { background: rgba(252,128,25,0.12); color: var(--online); }
 
-        .token-number { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; margin-bottom: 0.4rem; }
-        .token-amount { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
-        .token-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.15rem 0.5rem; border: 1px solid var(--border); display: inline-block; color: var(--muted); }
-        .token-badge.billing { border-color: var(--warning); color: var(--warning); }
-        .token-badge.paid { border-color: var(--success); color: var(--success); }
-        .token-badge.platform { border: none; padding: 0.2rem 0.5rem; border-radius: 2px; font-weight: 600; }
-        .token-badge.zomato { background: var(--zomato); color: #fff; }
-        .token-badge.swiggy { background: var(--online); color: #fff; }
-        .token-badge.web { background: #6366f1; color: #fff; }
-        .token-time { font-size: 0.68rem; color: var(--muted); margin-top: 0.35rem; }
+    /* ── Token grid ── */
+    .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 1rem; }
 
-        /* ── Cancel button ── */
-        .btn-cancel-token { position: absolute; top: 4px; right: 4px; background: transparent; border: none; color: var(--muted); opacity: 0; font-size: 1rem; line-height: 1; padding: 2px 4px; cursor: pointer; transition: var(--transition); z-index: 10; }
-        .token-wrap:hover .btn-cancel-token { opacity: 0.5; }
-        .btn-cancel-token:hover { color: var(--danger); opacity: 1 !important; }
+    /* ── Token card ── */
+    .token-wrap { position: relative; }
+    .token-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem 1rem; text-align: center; cursor: pointer; text-decoration: none; display: block; color: var(--text); transition: var(--transition); }
+    .token-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); color: var(--text); }
+    .token-card.status-billing { border-left: 3px solid var(--warning); }
+    .token-card.status-open { border-left: 3px solid var(--border); }
+    .token-card.is-online { border-left: 3px solid var(--online); }
+    .token-card.is-online:hover { border-color: var(--online); }
 
-        /* ── Empty state ── */
-        .empty-state { text-align: center; padding: 3rem 2rem; color: var(--muted); }
-        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
-        .empty-state p { text-transform: uppercase; letter-spacing: 1.5px; font-size: 0.78rem; }
+    .token-number { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; margin-bottom: 0.4rem; }
+    .token-amount { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .token-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.15rem 0.5rem; border: 1px solid var(--border); display: inline-block; color: var(--muted); }
+    .token-badge.billing { border-color: var(--warning); color: var(--warning); }
+    .token-badge.paid { border-color: var(--success); color: var(--success); }
+    .token-badge.platform { border: none; padding: 0.2rem 0.5rem; border-radius: 2px; font-weight: 600; }
+    .token-badge.zomato { background: var(--zomato); color: #fff; }
+    .token-badge.swiggy { background: var(--online); color: #fff; }
+    .token-badge.web { background: #6366f1; color: #fff; }
+    .token-time { font-size: 0.68rem; color: var(--muted); margin-top: 0.35rem; }
 
-        /* ── Online section divider ── */
-        .online-section { margin-top: 2.5rem; }
+    /* ── Cancel button (hover reveal) ── */
+    .btn-cancel-token { position: absolute; top: 4px; right: 4px; background: transparent; border: none; color: var(--muted); opacity: 0; font-size: 1rem; line-height: 1; padding: 2px 4px; cursor: pointer; transition: var(--transition); z-index: 10; }
+    .token-wrap:hover .btn-cancel-token { opacity: 0.5; }
+    .btn-cancel-token:hover { color: var(--danger); opacity: 1 !important; }
 
-        /* ── Toast ── */
-        #toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 0.75rem 1.5rem; font-size: 0.85rem; letter-spacing: 0.5px; z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        #toast.error { background: var(--danger); color: #fff; }
-        #toast.success { background: var(--success); color: #fff; }
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 3rem 2rem; color: var(--muted); }
+    .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+    .empty-state p { text-transform: uppercase; letter-spacing: 1.5px; font-size: 0.78rem; }
 
-        /* ── Refresh bar ── */
-        .refresh-bar { height: 2px; background: var(--border); position: fixed; bottom: 0; left: 0; width: 100%; }
-        .refresh-bar-fill { height: 100%; background: var(--gold); width: 100%; transform-origin: left; animation: countdown 15s linear infinite; }
-        @keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-    </style>
-</head>
-<body>
+    .online-section { margin-top: 2.5rem; }
 
-<header class="pos-header">
-    <div>
-        <a href="/dashboard/" class="brand-title">
-            <i class="bi bi-diamond-half"></i>{{ request.user.tenant.name }}
-        </a>
-        <div class="outlet-sub">Tokens — {{ request.user.outlet.name }}</div>
-    </div>
-    <div style="display:flex; align-items:center; gap:0.5rem;">
-        <!-- Aggregator Quick Toggles -->
-        <div class="d-none d-md-flex align-items-center me-3" style="background:var(--panel);border:1px solid var(--border);padding:0.25rem;border-radius:4px;">
-            <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0.5rem;">Online:</span>
-            <button id="toggle-zomato" class="btn-lux" style="padding:0.3rem 0.6rem;font-size:0.7rem;border-radius:3px;border:none;{% if aggregator.zomato_enabled %}background:#e23744;color:white;{% else %}background:transparent;color:var(--muted);{% endif %}" onclick="toggleAggregator('zomato', {% if aggregator.zomato_enabled %}false{% else %}true{% endif %})">Zomato</button>
-            <button id="toggle-swiggy" class="btn-lux" style="padding:0.3rem 0.6rem;font-size:0.7rem;border-radius:3px;border:none;{% if aggregator.swiggy_enabled %}background:#fc8019;color:white;{% else %}background:transparent;color:var(--muted);{% endif %}" onclick="toggleAggregator('swiggy', {% if aggregator.swiggy_enabled %}false{% else %}true{% endif %})">Swiggy</button>
-        </div>
-        {% if 'reports' in tenant_features %}
-        <a href="/reports/dashboard/" class="btn-lux d-none d-sm-inline-flex">Reports</a>
-        {% endif %}
-        <button class="theme-toggle" onclick="toggleDark()" title="Toggle dark mode"><i class="bi bi-moon-stars-fill" id="themeIcon"></i></button>
-        <a href="/logout/" class="btn-lux" style="border:none;padding:0.55rem;"><i class="bi bi-box-arrow-right"></i></a>
-    </div>
-</header>
+    /* ── Auto-refresh progress bar ── */
+    .refresh-bar { height: 2px; background: var(--border); position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; }
+    .refresh-bar-fill { height: 100%; background: var(--gold); width: 100%; transform-origin: left; animation: countdown 15s linear infinite; }
+    @keyframes countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+</style>
+{% endblock %}
 
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Tokens — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+{% if 'platform_sync' in tenant_features %}
+<div class="aggregator-bar d-none d-md-flex me-1">
+    <span>Online:</span>
+    <button id="toggle-zomato" class="btn-agg" style="{% if aggregator.zomato_enabled %}background:#e23744;color:#fff;{% endif %}" onclick="toggleAggregator('zomato', {% if aggregator.zomato_enabled %}false{% else %}true{% endif %})">Zomato</button>
+    <button id="toggle-swiggy" class="btn-agg" style="{% if aggregator.swiggy_enabled %}background:#fc8019;color:#fff;{% endif %}" onclick="toggleAggregator('swiggy', {% if aggregator.swiggy_enabled %}false{% else %}true{% endif %})">Swiggy</button>
+</div>
+{% endif %}
+{% if 'reports' in tenant_features %}
+<a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+{% endif %}
+<a href="/logout/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Logout</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
 <div class="dashboard-container">
 
-    <!-- Stats (6 cards: Next, Active, Online, Completed, Revenue, Cancelled) -->
+    <!-- Stats row -->
     <div class="stats-row">
         <div class="stat-card">
             <div class="stat-label">Next Token</div>
@@ -155,11 +154,11 @@
         </div>
     </div>
 
-    <!-- ── Counter Tokens ───────────────────────────────────── -->
+    <!-- Counter Tokens -->
     <div class="section-header">
         <h2>Counter Tokens <span class="section-tag counter">Walk-in</span></h2>
         {% if can_create %}
-        <button onclick="createNewToken()" class="btn-lux primary" id="newOrderBtn">
+        <button onclick="createNewToken()" class="btn-luxury btn-lux-primary" id="newOrderBtn">
             <i class="bi bi-plus-lg"></i> New Order
         </button>
         {% endif %}
@@ -171,8 +170,7 @@
             <a href="{% url 'token-bill' token.order.id %}"
                class="token-card status-{{ token.order.status }}"
                id="token-card-{{ token.order.id }}">
-
-                <div class="token-number" style="color:var(--gold);">{{ token.token_number }}</div>
+                <div class="token-number" style="color:var(--accent-gold);">{{ token.token_number }}</div>
                 <div class="token-amount">{% if token.order.grand_total %}₹{{ token.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
                 <div class="token-badge {% if token.order.status == 'billing' %}billing{% elif token.order.status == 'closed' %}paid{% endif %}">
                     {{ token.order.get_status_display }}
@@ -193,12 +191,12 @@
         {% endfor %}
     </div>
 
-    <!-- ── Online Tokens ──────────────────────────────────────── -->
+    <!-- Online Tokens -->
     {% if online_tokens or aggregator.zomato_enabled or aggregator.swiggy_enabled %}
     <div class="online-section">
         <div class="section-header">
             <h2>Online Orders <span class="section-tag online-tag">Aggregator</span></h2>
-            <div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">
                 Next: O-{{ next_online_token }}
             </div>
         </div>
@@ -228,54 +226,26 @@
     {% endif %}
 
 </div>
-
-<div id="toast"></div>
 <div class="refresh-bar"><div class="refresh-bar-fill" id="refreshBar"></div></div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    const CSRF = '{{ csrf_token }}';
-
-    function showToast(msg, type = '', duration = 2500) {
-        const el = document.getElementById('toast');
-        el.textContent = msg;
-        el.className = type;
-        el.style.display = 'block';
-        clearTimeout(el._timer);
-        el._timer = setTimeout(() => { el.style.display = 'none'; }, duration);
-    }
-
-    function toggleDark() {
-        document.body.classList.toggle('dark');
-        const icon = document.getElementById('themeIcon');
-        icon.className = document.body.classList.contains('dark') ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
-        localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
-    }
-    if (localStorage.getItem('theme') === 'dark') {
-        document.body.classList.add('dark');
-        document.getElementById('themeIcon').className = 'bi bi-sun-fill';
-    }
-
     async function createNewToken() {
         const btn = document.getElementById('newOrderBtn');
         if (!btn) return;
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Creating…';
         try {
-            const res = await fetch('{% url "create-token-order" %}', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' }
-            });
-            if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t.slice(0,120)}`); }
-            const data = await res.json();
+            const data = await apiClient.post('{% url "create-token-order" %}', {});
             if (data.success) {
                 window.location.href = `/token/${data.order_id}/bill/`;
             } else {
-                showToast(data.error || 'Failed to create order', 'error');
+                ui.toast(data.error || 'Failed to create order', 'error');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-plus-lg"></i> New Order';
             }
         } catch (e) {
-            showToast('Network error — check connection', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-plus-lg"></i> New Order';
         }
@@ -284,13 +254,11 @@
     async function cancelTokenOrder(event, orderId, tokenNumber) {
         event.preventDefault();
         event.stopPropagation();
-        if (!confirm(`Cancel Token #${tokenNumber}? This cannot be undone.`)) return;
+        if (!await ui.confirm(`Cancel Token #${tokenNumber}? This cannot be undone.`)) return;
         const wrap = document.getElementById(`wrap-${orderId}`);
         if (wrap) wrap.style.opacity = '0.4';
         try {
-            const res = await fetch(`/cancel-order/${orderId}/`, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
+            const data = await apiClient.post(`/cancel-order/${orderId}/`, {});
             if (data.success) {
                 if (wrap) {
                     wrap.style.transition = 'opacity 0.3s, transform 0.3s';
@@ -298,14 +266,13 @@
                     wrap.style.transform = 'scale(0.9)';
                     setTimeout(() => { wrap.remove(); updateActiveCount(); }, 300);
                 }
-                showToast(`Token #${tokenNumber} cancelled`, 'success');
+                ui.toast(`Token #${tokenNumber} cancelled`, 'success');
             } else {
                 if (wrap) wrap.style.opacity = '1';
-                showToast(data.error || 'Cancel failed', 'error');
+                ui.toast(data.error || 'Cancel failed', 'error');
             }
         } catch (e) {
             if (wrap) wrap.style.opacity = '1';
-            showToast('Network error — could not cancel', 'error');
         }
     }
 
@@ -323,23 +290,15 @@
 
     async function toggleAggregator(platform, enable) {
         try {
-            const res = await fetch('/setup/aggregators/toggle/', {
-                method: 'POST',
-                headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ platform, enabled: enable })
-            });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
+            const data = await apiClient.post('/setup/aggregators/toggle/', { platform, enabled: enable });
             if (data.success) {
-                showToast(`${platform.toUpperCase()} ${enable ? 'ON' : 'OFF'}`, 'success');
+                ui.toast(`${platform.toUpperCase()} ${enable ? 'ON' : 'OFF'}`, 'success');
                 setTimeout(() => window.location.reload(), 500);
-            } else {
-                showToast(data.error || 'Failed to toggle', 'error');
             }
-        } catch (e) { showToast('Network error', 'error'); }
+        } catch (e) { /* apiClient already showed error toast */ }
     }
 
-    // Auto-refresh every 15s
+    // Auto-refresh every 15s; any user interaction resets the timer
     let refreshTimer = setTimeout(() => window.location.reload(), 15000);
     ['click', 'keydown', 'touchstart'].forEach(evt => {
         document.addEventListener(evt, () => {
@@ -350,5 +309,4 @@
         }, { passive: true });
     });
 </script>
-</body>
-</html>
+{% endblock %}

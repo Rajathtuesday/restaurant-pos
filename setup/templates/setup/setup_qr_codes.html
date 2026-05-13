@@ -1,167 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Print QR Codes | {{ request.user.tenant.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #fafafa; --panel-bg: #ffffff; --text-main: #111111; --text-muted: #737373;
-            --border-color: #eaeaea; --accent-gold: #c5a059; --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        body.dark {
-            --bg-color: #0a0a0a; --panel-bg: #111111; --text-main: #f5f5f5; --text-muted: #888888;
-            --border-color: #262626; --accent-gold: #d4af37;
-        }
-        body {
-            background: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            padding: 40px 20px;
-            transition: var(--transition-smooth);
-            min-height: 100vh;
-        }
-        .header-controls {
-            max-width: 1000px;
-            margin: 0 auto 40px auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .qr-grid {
-            max-width: 1000px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
-        }
-        .qr-card {
-            background: var(--panel-bg);
-            padding: 30px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            position: relative;
-            transition: var(--transition-smooth);
-        }
-        .qr-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent-gold);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        }
-        .restaurant-name {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.4rem;
-            margin-bottom: 5px;
-        }
-        .table-name {
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--accent-gold);
-            margin-bottom: 20px;
-        }
-        .qr-image {
-            width: 180px;
-            height: 180px;
-            margin: 0 auto 20px auto;
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            background: #fff; /* QR MUST always have white bg for scanability */
-        }
-        .qr-hint {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 10px;
-        }
+{% extends 'core/base.html' %}
+{% load static %}
 
-        @media print {
-            .header-controls { display: none; }
-            body { background: #fff !important; padding: 0 !important; color: #000 !important; }
-            .qr-grid { display: block; }
-            .qr-card { 
-                page-break-inside: avoid; 
-                border: 2px solid #000 !important; 
-                margin-bottom: 30px; 
-                box-shadow: none !important;
-                transform: none !important;
-                background: #fff !important;
-            }
-            .restaurant-name, .table-name, .qr-hint { color: #000 !important; }
-        }
-        
-        .btn-luxury {
-            border: 1px solid var(--border-color);
-            background: transparent;
-            color: var(--text-main);
-            padding: 0.6rem 1.5rem;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            transition: var(--transition-smooth);
-        }
-        .btn-luxury:hover { background: var(--text-main); color: var(--bg-color); }
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; padding: 0.5rem; cursor: pointer; }
-    </style>
-</head>
-<body>
+{% block title %}Print QR Codes | {{ request.user.tenant.name }}{% endblock %}
 
-<div class="header-controls">
-    <div>
-        <h1 style="font-family:'DM Serif Display'; font-size: 2rem; margin: 0;">Table QR Codes</h1>
-        <p style="color:var(--text-muted); font-size: 0.8rem; margin: 0;">Print and place these on tables for digital ordering.</p>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <a href="/setup/tables/" class="btn-luxury"><i class="bi bi-arrow-left me-1"></i> Back</a>
-        <button onclick="window.print()" class="btn-luxury"><i class="bi bi-printer me-1"></i> Print All</button>
-        <button class="btn-icon ms-2" onclick="toggleDark()" title="Toggle Theme">
-            <i class="bi bi-moon" id="themeIcon"></i>
-        </button>
-    </div>
+{% block extra_css %}
+<style>
+    .qr-container { max-width: 1000px; margin: 2.5rem auto; padding: 0 1.5rem 4rem; }
+
+    .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+
+    .qr-card { background: var(--panel-bg); padding: 30px; text-align: center; border: 1px solid var(--border-color); border-radius: 12px; position: relative; transition: var(--transition-smooth); }
+    .qr-card:hover { transform: translateY(-5px); border-color: var(--accent-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+
+    .restaurant-name { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 5px; }
+    .table-name { text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 20px; }
+
+    .qr-image { width: 180px; height: 180px; margin: 0 auto 20px; border: 1px solid var(--border-color); padding: 10px; background: #fff; /* white bg required for QR scanability */ }
+    .qr-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 10px; }
+
+    @media print {
+        .pos-header { display: none !important; }
+        body { background: #fff !important; color: #000 !important; }
+        .qr-container { padding: 0 !important; }
+        .qr-grid { display: block; }
+        .qr-card { page-break-inside: avoid; border: 2px solid #000 !important; margin-bottom: 30px; box-shadow: none !important; transform: none !important; background: #fff !important; }
+        .restaurant-name, .table-name, .qr-hint { color: #000 !important; }
+    }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <h1 class="brand-title mb-0" style="font-family:'DM Serif Display',serif;font-size:1.5rem;">
+        <i class="bi bi-qr-code-scan" style="color:var(--accent-gold);"></i>
+        Table QR Codes
+    </h1>
+    <p class="brand-subtitle">Print and place these on tables for digital ordering</p>
 </div>
+{% endblock %}
 
-<div class="qr-grid">
-    {% for table in tables %}
-    <div class="qr-card">
-        <div class="restaurant-name">{{ request.user.tenant.name }}</div>
-        <div class="table-name">Table {{ table.name }}</div>
-        
-        <div class="qr-image">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ menu_base_url }}{{ table.qr_token }}/" 
-                 alt="QR for {{ table.name }}" 
-                 style="width:100%; height:100%;">
+{% block header_right %}
+<a href="/setup/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">
+    <i class="bi bi-arrow-left me-1"></i> Back
+</a>
+<button onclick="window.print()" class="btn-luxury">
+    <i class="bi bi-printer me-1"></i> Print All
+</button>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="qr-container">
+    <div class="qr-grid">
+        {% for table in tables %}
+        <div class="qr-card">
+            <div class="restaurant-name">{{ request.user.tenant.name }}</div>
+            <div class="table-name">Table {{ table.name }}</div>
+            <div class="qr-image">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ menu_base_url }}{{ table.qr_token }}/"
+                     alt="QR for {{ table.name }}"
+                     style="width:100%;height:100%;">
+            </div>
+            <div class="qr-hint">Scan to View Menu &amp; Order</div>
+            <div style="font-size:0.6rem;color:var(--text-muted);margin-top:5px;opacity:0.5;">{{ table.qr_token }}</div>
         </div>
-        
-        <div class="qr-hint">Scan to View Menu & Order</div>
-        <div style="font-size: 0.6rem; color: var(--text-muted); margin-top: 5px; opacity: 0.5;">{{ table.qr_token }}</div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
-
-<script>
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) {
-            document.body.classList.add("dark");
-            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-        } else {
-            document.body.classList.remove("dark");
-            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-        }
-    }
-    updateIcons();
-    function toggleDark() {
-        isDark = !isDark;
-        localStorage.setItem("dark", isDark);
-        updateIcons();
-    }
-</script>
-</body>
-</html>
+{% endblock %}
