@@ -249,8 +249,6 @@
           <option value="web">Website</option>
         </select>
         <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
-        <input type="text" id="customerNameDesktop" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
-        <input type="tel" id="customerPhoneDesktop" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
       </div>
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
@@ -306,8 +304,6 @@
           <option value="web">Website</option>
         </select>
         <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
-        <input type="text" id="customerNameMobile" class="form-control-minimal mb-2" placeholder="Customer Name (Optional)">
-        <input type="tel" id="customerPhoneMobile" class="form-control-minimal mb-2" placeholder="Customer Phone (Optional)">
       </div>
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
@@ -557,13 +553,10 @@
     const isMobile = window.innerWidth < 992;
     const source   = document.getElementById(isMobile ? "sourceSelectMobile"  : "sourceSelectDesktop").value;
     const aggId    = document.getElementById(isMobile ? "aggregatorIdMobile"   : "aggregatorIdDesktop").value;
-    const custName = document.getElementById(isMobile ? "customerNameMobile"   : "customerNameDesktop").value;
-    const custPhone= document.getElementById(isMobile ? "customerPhoneMobile"  : "customerPhoneDesktop").value;
-
     fetch("{% url 'create-order' %}", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify({ cart, table_id: tableId, source, aggregator_id: aggId, customer_name: custName, customer_phone: custPhone })
+      body: JSON.stringify({ cart, table_id: tableId, source, aggregator_id: aggId, customer_name: '', customer_phone: '' })
     })
       .then(r => r.json())
       .then(d => {
