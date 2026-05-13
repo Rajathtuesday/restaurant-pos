@@ -129,6 +129,16 @@ def owner_dashboard(request):
     )
 
 @login_required
+@tenant_required
+def dashboard_metrics_json(request):
+    """AJAX endpoint — returns today's metrics as JSON for live refresh."""
+    if request.user.role not in ["owner", "manager", "cashier"]:
+        return JsonResponse({"error": "forbidden"}, status=403)
+    metrics = owner_dashboard_metrics(request.user)
+    return JsonResponse({"metrics": metrics})
+
+
+@login_required
 def sales_dashboard(request):
     """
     Shows all clients (Tenants). 

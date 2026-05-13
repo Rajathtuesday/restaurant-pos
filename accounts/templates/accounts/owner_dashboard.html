@@ -115,13 +115,88 @@
     .revenue { color: var(--accent-gold); font-weight: 700; font-size: 1rem; }
     .low-stock { color: #ef4444; font-weight: 700; }
 
+    /* ── Metric cards (desktop Today's Performance) ── */
+    .metric-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+    }
+    .metric-cell {
+        padding: 0.7rem 0;
+        border-bottom: 1px dashed var(--border-color);
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .metric-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .metric-cell:nth-child(odd) { padding-right: 1rem; border-right: 1px dashed var(--border-color); }
+    .metric-cell:nth-child(even) { padding-left: 1rem; }
+    .revenue { color: var(--accent-gold); font-weight: 700; font-size: 1rem; }
+    .low-stock { color: #ef4444; font-weight: 700; }
+    .val-warn  { color: #f59e0b; font-weight: 700; }
+    .val-ok    { color: #22c55e; font-weight: 700; }
+
+    /* ── Mobile revenue strip ──────────────────────── */
+    .mobile-revenue-strip {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-left: 4px solid var(--accent-gold);
+        padding: 1rem 1.25rem;
+        margin-bottom: 1rem;
+    }
+    .strip-revenue {
+        font-family: 'DM Serif Display', serif;
+        font-size: 2.4rem;
+        font-weight: 700;
+        color: var(--accent-gold);
+        line-height: 1;
+        margin-bottom: 0.3rem;
+    }
+    .strip-outlet {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--text-muted);
+        margin-bottom: 0.6rem;
+    }
+    .strip-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 0.5rem;
+    }
+    .strip-pill {
+        font-size: 0.72rem;
+        padding: 3px 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        color: var(--text-muted);
+        white-space: nowrap;
+    }
+    .strip-pill.warn  { border-color: #f59e0b; color: #f59e0b; }
+    .strip-pill.alert { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,.07); }
+    .strip-pill.gold  { border-color: var(--accent-gold); color: var(--accent-gold); }
+    .strip-refresh {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    .strip-refresh i { font-size: 0.7rem; }
+
     /* ── Mobile ────────────────────────────────────── */
     @media (max-width: 576px) {
         .quick-card { min-height: 90px; padding: 1rem 0.75rem; }
         .quick-card .icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
         .quick-card h5 { font-size: 0.72rem; }
-        .quick-card p { display: none; } /* too small for tiny phones */
+        .quick-card p { display: none; }
         .section-title { font-size: 1.1rem; }
+    }
+    @media (min-width: 768px) {
+        .mobile-revenue-strip { display: none !important; }
     }
 </style>
 {% endblock %}
@@ -157,6 +232,32 @@
 
 {% block content %}
 <div class="container-fluid py-3 px-3 px-md-4">
+
+<!-- ══ MOBILE REVENUE STRIP — only on phones ═══════════════ -->
+{% if not is_cashier %}
+{% for m in metrics %}
+<div class="mobile-revenue-strip" id="mobileStrip{{ forloop.counter }}">
+    {% if metrics|length > 1 %}<div class="strip-outlet">{{ m.outlet }}</div>{% endif %}
+    <div class="strip-revenue" id="stripRevenue{{ forloop.counter }}">₹ {{ m.revenue }}</div>
+    <div class="strip-pills" id="stripPills{{ forloop.counter }}">
+        <span class="strip-pill gold">{{ m.orders }} orders</span>
+        {% if m.active_tables > 0 %}<span class="strip-pill">{{ m.active_tables }} tables open</span>{% endif %}
+        {% if m.kitchen_orders > 0 %}<span class="strip-pill warn">{{ m.kitchen_orders }} in kitchen</span>{% endif %}
+        {% if m.voids_today > 0 %}<span class="strip-pill alert">{{ m.voids_today }} void{% if m.voids_today > 1 %}s{% endif %}</span>{% endif %}
+        {% if m.discounts_amount > 0 %}<span class="strip-pill alert">₹{{ m.discounts_amount }} discounted</span>{% endif %}
+        {% if m.low_stock > 0 %}<span class="strip-pill alert"><i class="bi bi-exclamation-triangle-fill"></i> {{ m.low_stock }} low stock</span>{% endif %}
+    </div>
+    <div class="strip-refresh" id="stripTs{{ forloop.counter }}">
+        <i class="bi bi-arrow-clockwise"></i> Live · refreshes every 60s
+    </div>
+</div>
+{% empty %}
+<div class="mobile-revenue-strip">
+    <div class="strip-revenue" style="font-size:1.5rem;color:var(--text-muted);">No data yet</div>
+    <div class="strip-refresh">Today's sales will appear here</div>
+</div>
+{% endfor %}
+{% endif %}
 
 <!-- ══ CORE OPERATIONS ════════════════════════════════════ -->
 <h5 class="section-title">Core Operations <small>Front of House</small></h5>
@@ -351,13 +452,18 @@
 <div class="row g-3">
     {% for m in metrics %}
     <div class="col-12 col-md-6 col-lg-4">
-        <div class="outlet-card">
+        <div class="outlet-card" id="outletCard{{ forloop.counter }}">
             <h6>{{ m.outlet }}</h6>
-            <div class="metric"><span>Revenue</span><span class="revenue">₹ {{ m.revenue }}</span></div>
-            <div class="metric"><span>Orders</span><span><strong>{{ m.orders }}</strong></span></div>
-            <div class="metric"><span>Active Tables</span><span><strong>{{ m.active_tables }}</strong></span></div>
-            <div class="metric"><span>Kitchen Queue</span><span><strong>{{ m.kitchen_orders }}</strong></span></div>
-            <div class="metric"><span>Low Stock</span><span class="low-stock">{{ m.low_stock }}</span></div>
+            <div class="metric-grid">
+                <div class="metric-cell"><span>Revenue</span><span class="revenue" data-field="revenue">₹ {{ m.revenue }}</span></div>
+                <div class="metric-cell"><span>Orders</span><span data-field="orders"><strong>{{ m.orders }}</strong></span></div>
+                <div class="metric-cell"><span>Avg Order</span><span data-field="avg">₹ {{ m.avg_order_value|floatformat:0 }}</span></div>
+                <div class="metric-cell"><span>In Kitchen</span><span data-field="kitchen" class="{% if m.kitchen_orders > 0 %}val-warn{% endif %}">{{ m.kitchen_orders }}</span></div>
+                <div class="metric-cell"><span>Active Tables</span><span data-field="tables">{{ m.active_tables }}</span></div>
+                <div class="metric-cell"><span>Low Stock</span><span data-field="stock" class="{% if m.low_stock > 0 %}low-stock{% endif %}">{{ m.low_stock }}</span></div>
+                <div class="metric-cell"><span>Voids Today</span><span data-field="voids" class="{% if m.voids_today > 0 %}val-warn{% endif %}">{{ m.voids_today }}</span></div>
+                <div class="metric-cell"><span>Discounts</span><span data-field="discounts" class="{% if m.discounts_amount > 0 %}val-warn{% endif %}">{% if m.discounts_amount > 0 %}₹ {{ m.discounts_amount }}{% else %}—{% endif %}</span></div>
+            </div>
         </div>
     </div>
     {% empty %}
@@ -395,5 +501,52 @@
             if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-receipt-cutoff"></i> New Order'; }
         }
     }
+
+    /* ── Live metrics refresh (every 60s) ──────────────────────── */
+    function refreshMetrics() {
+        fetch("{% url 'dashboard-metrics-json' %}")
+            .then(r => r.json())
+            .then(d => {
+                if (!d.metrics) return;
+                d.metrics.forEach((m, idx) => {
+                    const n = idx + 1;
+
+                    // Mobile strip
+                    const rev   = document.getElementById(`stripRevenue${n}`);
+                    const pills = document.getElementById(`stripPills${n}`);
+                    const ts    = document.getElementById(`stripTs${n}`);
+                    if (rev) rev.textContent = '₹ ' + m.revenue;
+                    if (pills) {
+                        let html = `<span class="strip-pill gold">${m.orders} orders</span>`;
+                        if (m.active_tables > 0)   html += `<span class="strip-pill">${m.active_tables} tables open</span>`;
+                        if (m.kitchen_orders > 0)  html += `<span class="strip-pill warn">${m.kitchen_orders} in kitchen</span>`;
+                        if (m.voids_today > 0)     html += `<span class="strip-pill alert">${m.voids_today} void${m.voids_today > 1 ? 's' : ''}</span>`;
+                        if (m.discounts_amount > 0)html += `<span class="strip-pill alert">₹${m.discounts_amount} discounted</span>`;
+                        if (m.low_stock > 0)       html += `<span class="strip-pill alert"><i class="bi bi-exclamation-triangle-fill"></i> ${m.low_stock} low stock</span>`;
+                        pills.innerHTML = html;
+                    }
+                    if (ts) {
+                        const now = new Date();
+                        ts.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Updated ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+                    }
+
+                    // Desktop outlet card
+                    const card = document.getElementById(`outletCard${n}`);
+                    if (!card) return;
+                    const set = (field, val) => { const el = card.querySelector(`[data-field="${field}"]`); if (el) el.textContent = val; };
+                    set('revenue',  '₹ ' + m.revenue);
+                    set('orders',   m.orders);
+                    set('avg',      '₹ ' + Math.round(m.avg_order_value || 0));
+                    set('kitchen',  m.kitchen_orders);
+                    set('tables',   m.active_tables);
+                    set('stock',    m.low_stock);
+                    set('voids',    m.voids_today);
+                    set('discounts', m.discounts_amount > 0 ? '₹ ' + m.discounts_amount : '—');
+                });
+            })
+            .catch(() => {});
+    }
+
+    setInterval(refreshMetrics, 60000);
 </script>
 {% endblock %}
