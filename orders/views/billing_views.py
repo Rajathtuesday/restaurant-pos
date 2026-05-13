@@ -281,7 +281,11 @@ def bill_view(request, order_id):
         valid_promos = [p for p in promos if p.is_currently_valid]
 
         from core.features import has_feature
+        from setup.services.station_service import get_default_station
         direct_billing_mode = has_feature(request.user.tenant, "direct_billing_mode")
+
+        station = get_default_station(request.user)
+        paper_width_mm = station.paper_width_mm if station else 80
 
         return render(request, "orders/bill.html", {
             "order": order,
@@ -289,7 +293,8 @@ def bill_view(request, order_id):
             "remaining": remaining,
             "total_paid": total_paid,
             "promos": valid_promos,
-            "direct_billing_mode": direct_billing_mode
+            "direct_billing_mode": direct_billing_mode,
+            "paper_width_mm": paper_width_mm,
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

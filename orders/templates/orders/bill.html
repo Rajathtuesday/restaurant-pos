@@ -102,13 +102,22 @@
     .loyalty-msg { display: none; margin-top: 0.6rem; font-size: 0.75rem; text-align: center; letter-spacing: 1px; }
 
     /* ── Print styles ─────────────────────────────────────── */
+    /* @page sets physical paper dimensions — browser routes to built-in
+       printer on handhelds (Sunmi, PAX, etc.) or to network printer.
+       paper_width_mm comes from KitchenStation.paper_width_mm (58 or 80). */
+    @page {
+        size: {{ paper_width_mm|default:80 }}mm auto;
+        margin: 3mm 2mm;
+    }
     @media print {
-        /* Hide nav, pay area, loyalty section — print only the receipt */
+        /* Hide everything except the receipt card */
         .nav-back, .pay-area, .discount-section, .loyalty-section,
-        .gst-breakdown, .balance-card, .no-print { display: none !important; }
+        .gst-breakdown, .balance-card, .no-print,
+        .pos-header { display: none !important; }
         body, html { background: #fff !important; color: #000 !important; }
         .bill-page { padding: 0; min-height: 0; }
-        .receipt-container { box-shadow: none; border: none; max-width: 100%; padding: 0; }
+        .bill-wrap { max-width: 100% !important; }
+        .receipt-container { box-shadow: none; border: none; padding: 0; }
         .item-val, .grand-total, .r-logo, .total-row { color: #000 !important; }
         * { border-color: #000 !important; }
     }
