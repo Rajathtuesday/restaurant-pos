@@ -41,6 +41,7 @@ from .views import (
     resolve_waiter_call,
     resolve_kitchen_message,
     print_bill_action,
+    print_kot_action,
     approve_items
 )
 
@@ -77,6 +78,7 @@ urlpatterns = [
     path("bill/<int:order_id>/", bill_view, name="bill-view"),
     path("pay/<int:order_id>/", pay_order, name="pay-order"),
     path("print-bill/<int:order_id>/", print_bill_action, name="print-bill"),
+    path("print-kot/<int:kot_id>/", print_kot_action, name="print-kot"),
     path("download-pdf/<int:order_id>/", download_pdf_bill, name="download-pdf"),
 
     path("tables/", table_dashboard, name="table-dashboard"),

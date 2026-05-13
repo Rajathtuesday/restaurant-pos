@@ -15,6 +15,8 @@ from .views import (
     promo_toggle,
     promo_delete,
     toggle_aggregator,
+    update_printer_config,
+    test_print_station,
 )
 
 urlpatterns = [
@@ -37,4 +39,8 @@ urlpatterns = [
     
     # Aggregator quick toggle
     path("aggregators/toggle/", toggle_aggregator, name="toggle_aggregator"),
+
+    # Printer config per station
+    path("kitchen-stations/<int:station_id>/printer/", update_printer_config, name="update_printer_config"),
+    path("kitchen-stations/<int:station_id>/test-print/", test_print_station, name="test_print_station"),
 ]

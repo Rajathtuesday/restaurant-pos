@@ -16,6 +16,19 @@ class KitchenStation(models.Model):
     printer_ip = models.GenericIPAddressField(null=True, blank=True, help_text="IP of the thermal printer for this station")
     printer_port = models.IntegerField(default=9100)
 
+    PAPER_WIDTH_CHOICES = [(58, "58mm — small receipt (32 chars/line)"), (80, "80mm — standard receipt (48 chars/line)")]
+    paper_width_mm = models.IntegerField(default=80, choices=PAPER_WIDTH_CHOICES, help_text="Physical paper roll width")
+
+    CUT_CHOICES = [("full", "Full cut"), ("partial", "Partial cut"), ("none", "No cut (tear manually)")]
+    cut_type = models.CharField(max_length=10, default="full", choices=CUT_CHOICES)
+
+    ENCODING_CHOICES = [("cp437", "CP437 — standard (most printers)"), ("cp850", "CP850 — western Europe"), ("utf-8", "UTF-8 — modern printers only")]
+    printer_encoding = models.CharField(max_length=10, default="cp437", choices=ENCODING_CHOICES, help_text="Use UTF-8 only if your printer explicitly supports it; otherwise CP437")
+
+    @property
+    def chars_per_line(self):
+        return 32 if self.paper_width_mm == 58 else 48
+
     class Meta:
         constraints = [
             UniqueConstraint(

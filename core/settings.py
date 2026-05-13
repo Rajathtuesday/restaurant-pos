@@ -338,6 +338,22 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
 # -------------------------------------------------------
+# WHATSAPP RECEIPTS
+# Backend 1 (preferred): Meta WhatsApp Business Cloud API — free 1000 msg/month
+#   META_WHATSAPP_TOKEN    = your permanent system user token
+#   META_WHATSAPP_PHONE_ID = phone number ID from Meta Business dashboard
+# Backend 2 (fallback): Twilio
+#   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM
+# Leave all blank to disable silently.
+# -------------------------------------------------------
+META_WHATSAPP_TOKEN   = os.getenv("META_WHATSAPP_TOKEN", "")
+META_WHATSAPP_PHONE_ID = os.getenv("META_WHATSAPP_PHONE_ID", "")
+
+TWILIO_ACCOUNT_SID   = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN    = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+
+# -------------------------------------------------------
 # SESSION — long enough for a full 12-hour QSR shift.
 # SESSION_EXPIRE_AT_BROWSER_CLOSE removed:
 #   Tablets used as POS terminals rarely close the browser tab.

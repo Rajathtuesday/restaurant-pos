@@ -214,6 +214,62 @@ def setup_kitchen_stations(request):
     )
 
 # -------------------------------------------------
+# PRINTER CONFIG — update IP/port/paper/cut/encoding for a station
+# -------------------------------------------------
+
+@login_required
+@require_POST
+def update_printer_config(request, station_id):
+    station = get_object_or_404(
+        KitchenStation,
+        id=station_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+    )
+    ip = request.POST.get("printer_ip", "").strip() or None
+    port = request.POST.get("printer_port", "9100").strip()
+    paper = request.POST.get("paper_width_mm", "80").strip()
+    cut = request.POST.get("cut_type", "full").strip()
+    enc = request.POST.get("printer_encoding", "cp437").strip()
+
+    station.printer_ip = ip
+    station.printer_port = int(port) if port.isdigit() else 9100
+    station.paper_width_mm = int(paper) if paper in ("58", "80") else 80
+    station.cut_type = cut if cut in ("full", "partial", "none") else "full"
+    station.printer_encoding = enc if enc in ("cp437", "cp850", "utf-8") else "cp437"
+    station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm", "cut_type", "printer_encoding"])
+
+    return JsonResponse({"success": True, "message": f"Printer settings saved for {station.name}"})
+
+
+@login_required
+@require_POST
+def test_print_station(request, station_id):
+    station = get_object_or_404(
+        KitchenStation,
+        id=station_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+    )
+    if not station.printer_ip:
+        return JsonResponse({"error": "No printer IP set for this station."}, status=400)
+
+    from orders.services.printing_service import PrintingService
+    svc = PrintingService(
+        printer_type="network",
+        host=station.printer_ip,
+        port=station.printer_port,
+        chars_per_line=station.chars_per_line,
+        cut_type=station.cut_type,
+        encoding=station.printer_encoding,
+    )
+    success = svc.test_print(station_name=station.name)
+    if success:
+        return JsonResponse({"success": True, "message": "Test page sent to printer"})
+    return JsonResponse({"error": "Could not connect to printer. Check the IP and port, and make sure the printer is on."}, status=500)
+
+
+# -------------------------------------------------
 # PAYMENT METHODS
 # -------------------------------------------------
 

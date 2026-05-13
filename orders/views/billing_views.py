@@ -279,15 +279,11 @@ def bill_view(request, order_id):
         ).filter(Q(outlet=request.user.outlet) | Q(outlet__isnull=True))
 
         valid_promos = [p for p in promos if p.is_currently_valid]
-        
-        template_name = "orders/bill.html"
-        if request.user.tenant.tenant_type in ['franchise', 'cafe']:
-            template_name = "orders/qsr_bill.html"
-            
+
         from core.features import has_feature
         direct_billing_mode = has_feature(request.user.tenant, "direct_billing_mode")
-        
-        return render(request, template_name, {
+
+        return render(request, "orders/bill.html", {
             "order": order,
             "config": config,
             "remaining": remaining,
@@ -440,6 +436,19 @@ def pay_order(request, order_id):
                         order.table.state = "cleaning"
                         order.table.save(update_fields=["state"])
                     logger.info(f"Order #{order.id} fully paid and closed")
+
+                    # WhatsApp receipt — fire after commit so it doesn't run on rollback
+                    _order_id = order.id
+                    _order_ref = order  # captured for closure
+                    def _send_whatsapp():
+                        try:
+                            from notifications.services.whatsapp_service import send_bill_receipt
+                            _order_ref.refresh_from_db()
+                            send_bill_receipt(_order_ref)
+                        except Exception as _e:
+                            logger.error("WhatsApp receipt failed for order %s: %s", _order_id, _e)
+                    transaction.on_commit(_send_whatsapp)
+
                     return JsonResponse({
                         "success": True,
                         "message": "Payment complete, order closed",
@@ -724,32 +733,56 @@ def log_bypass(request, order_id):
 @tenant_required
 @role_required("manager", "cashier", "owner")
 def print_bill_action(request, order_id):
-    """Triggers the physical thermal printer for a bill in the background."""
-    import threading
+    """Triggers the thermal printer for a bill using the outlet's default station printer."""
     from orders.services.printing_service import PrintingService
+    from setup.services.station_service import get_default_station
     try:
         order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
-        
-        # Table does not have a .station attribute — get printer from setup config
-        from setup.models import PaymentConfig
-        printer_host = None
+        station = get_default_station(request.user)
+        if not station.printer_ip:
+            return JsonResponse({"error": "No printer configured. Set printer IP in Setup → Kitchen Stations."}, status=400)
 
-        # Attempt to get outlet-level printer IP from setup if you store it there
-        # For now fall back to localhost (local print agent)
-        if not printer_host:
-            printer_host = "127.0.0.1"
-        
-        # TODO: Implement proper Celery task for printing
-        # For now, execute synchronously to prevent daemon threads getting killed silently
-        printer = PrintingService(printer_type="network", host=printer_host) 
-        printer.print_bill(order)
-        
-        return JsonResponse({"success": True, "message": "Printing initiated"})
-            
+        printer = PrintingService(printer_type="network", host=station.printer_ip, port=station.printer_port)
+        success = printer.print_bill(order)
+        if success:
+            return JsonResponse({"success": True, "message": "Bill sent to printer"})
+        return JsonResponse({"error": "Printer connected but print failed. Check paper/connection."}, status=500)
+
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
     except Exception as e:
-        logger.exception("Error initiating print")
+        logger.exception("Error printing bill for order %s", order_id)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+@require_POST
+@tenant_required
+@role_required("manager", "cashier", "owner", "kitchen")
+def print_kot_action(request, kot_id):
+    """Re-print a KOT on the station's thermal printer."""
+    from orders.services.printing_service import PrintingService
+    from orders.models import KOTBatch
+    try:
+        kot = KOTBatch.objects.select_related("order", "station").get(
+            id=kot_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+        )
+        station = kot.station
+        if not station or not station.printer_ip:
+            return JsonResponse({"error": "No printer configured for this station."}, status=400)
+
+        printer = PrintingService(printer_type="network", host=station.printer_ip, port=station.printer_port)
+        success = printer.print_kot(kot.order, kot)
+        if success:
+            return JsonResponse({"success": True, "message": f"KOT #{kot.kot_number} sent to printer"})
+        return JsonResponse({"error": "Printer connected but print failed."}, status=500)
+
+    except KOTBatch.DoesNotExist:
+        return JsonResponse({"error": "KOT not found"}, status=404)
+    except Exception as e:
+        logger.exception("Error printing KOT %s", kot_id)
         return JsonResponse({"error": str(e)}, status=500)
 
 
@@ -891,11 +924,7 @@ def download_pdf_bill(request, order_id):
     # This mirrors the correct calculation already used in bill_view and pay_order.
     remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
     
-    template_name = "orders/bill.html"
-    if request.user.tenant.tenant_type in ['franchise', 'cafe']:
-        template_name = "orders/qsr_bill.html"
-        
-    html_string = render_to_string(template_name, {"order": order, "request": request, "remaining": remaining})
+    html_string = render_to_string("orders/bill.html", {"order": order, "request": request, "remaining": remaining})
     pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
     
     response = HttpResponse(pdf_file, content_type='application/pdf')
