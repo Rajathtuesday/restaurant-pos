@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     set_default_station,
     setup_wizard,
+    onboarding_wizard,
     setup_tables,
     setup_menu,
     setup_kitchen_stations,
@@ -21,6 +22,7 @@ from .views import (
 
 urlpatterns = [
     path('', setup_wizard, name='setup_wizard'),
+    path('onboard/', onboarding_wizard, name='onboarding_wizard'),
     path('tables/', setup_tables, name='setup_tables'),
     path('menu/', setup_menu, name='setup_menu'),
     path('kitchen-stations/', setup_kitchen_stations, name='setup_kitchen_stations'),

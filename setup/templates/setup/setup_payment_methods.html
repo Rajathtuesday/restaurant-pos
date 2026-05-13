@@ -77,9 +77,9 @@
             </label>
         </div>
 
-        <div class="method-card">
+        <div class="method-card" style="flex-wrap:wrap;gap:1rem;">
             <div class="method-icon"><i class="bi bi-qr-code-scan"></i></div>
-            <div class="method-info">
+            <div class="method-info" style="flex:1;min-width:200px;">
                 <div class="method-name">UPI</div>
                 <div class="method-desc">Google Pay, PhonePe, Paytm</div>
                 <input type="text" name="upi_label" class="method-label-input mt-2" value="{{ config.upi_label }}" placeholder="Label (e.g. GPay / UPI)">
@@ -88,6 +88,15 @@
                 <input type="checkbox" name="methods" value="upi" {% if config.upi_enabled %}checked{% endif %}>
                 <span class="slider"></span>
             </label>
+            <div style="width:100%;padding-top:0.75rem;border-top:1px dashed var(--border-color);display:flex;align-items:center;gap:0.75rem;">
+                <i class="bi bi-at" style="color:var(--accent-gold);font-size:1.1rem;"></i>
+                <div style="flex:1;">
+                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px;">UPI ID (shows as QR on bill)</div>
+                    <input type="text" name="upi_id" value="{{ config.upi_id }}"
+                           placeholder="e.g. myrestaurant@okaxis"
+                           style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:4px 0;font-size:0.85rem;outline:none;font-family:inherit;">
+                </div>
+            </div>
         </div>
 
         <div class="method-card">

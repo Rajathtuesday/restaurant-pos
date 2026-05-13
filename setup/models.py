@@ -67,6 +67,10 @@ class PaymentConfig(models.Model):
     upi_label = models.CharField(max_length=50, default="UPI / GPay")
     card_label = models.CharField(max_length=50, default="Card")
 
+    # UPI VPA for QR generation on the bill (e.g. restaurant@okaxis)
+    upi_id = models.CharField(max_length=100, blank=True, default="",
+                              help_text="UPI ID (VPA) shown as QR on bill — e.g. myrestaurant@okaxis")
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

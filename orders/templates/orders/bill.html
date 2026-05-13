@@ -101,6 +101,9 @@
     .loyalty-info { font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0 0.6rem; padding: 0.5rem; border: 1px solid var(--border-color); }
     .loyalty-msg { display: none; margin-top: 0.6rem; font-size: 0.75rem; text-align: center; letter-spacing: 1px; }
 
+    /* ── GST print block (hidden on screen, shown on print) ── */
+    .print-gst { display: none; }
+
     /* ── Print styles ─────────────────────────────────────── */
     /* @page sets physical paper dimensions — browser routes to built-in
        printer on handhelds (Sunmi, PAX, etc.) or to network printer.
@@ -114,6 +117,10 @@
         .nav-back, .pay-area, .discount-section, .loyalty-section,
         .gst-breakdown, .balance-card, .no-print,
         .pos-header { display: none !important; }
+        /* UPI QR prints on the receipt — customer scans after meal */
+        #upi-qr-wrap { display: block !important; border: none; padding: 0.5rem 0; }
+        /* CGST/SGST lines required on printed GST invoice */
+        .print-gst { display: block !important; }
         body, html { background: #fff !important; color: #000 !important; }
         .bill-page { padding: 0; min-height: 0; }
         .bill-wrap { max-width: 100% !important; }
@@ -224,6 +231,7 @@
         {% endif %}
 
         {% if order.gst_breakdown %}
+        {# Screen: collapsible detail block #}
         <div class="gst-breakdown no-print">
             <div class="gst-breakdown-title">Tax Breakdown</div>
             {% for gst in order.gst_breakdown %}
@@ -237,7 +245,13 @@
                 <span>Total GST</span><span>₹{{ order.gst_total }}</span>
             </div>
         </div>
-        <div class="total-row" style="display:none;" class="print-only"><span>GST</span><span>₹{{ order.gst_total }}</span></div>
+        {# Print: compact CGST+SGST lines — legally required on GST invoice #}
+        <div class="print-gst" style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:0.35rem 0;margin:0.4rem 0;">
+            {% for gst in order.gst_breakdown %}
+            <div class="total-row" style="font-size:0.78rem;"><span>CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
+            <div class="total-row" style="font-size:0.78rem;"><span>SGST @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
+            {% endfor %}
+        </div>
         {% endif %}
 
         {% if order.round_off != 0 %}
@@ -258,6 +272,22 @@
             {% endfor %}
             <div class="total-row" style="margin-top:0.4rem;font-weight:700;">
                 <span>Balance Due</span><span>₹{{ remaining }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- UPI QR — show when upi_id configured and order not yet fully paid -->
+        {% if config.upi_id and remaining > 0 %}
+        <div id="upi-qr-wrap" style="margin:1.25rem 0;text-align:center;border:1px dashed var(--border-color);padding:1.25rem;">
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.75rem;">
+                Scan &amp; Pay  ·  ₹{{ remaining }}
+            </div>
+            <div id="upi-qr-canvas" style="display:inline-block;"></div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.6rem;">
+                {{ config.upi_id }}
+            </div>
+            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">
+                Works with GPay, PhonePe, Paytm, any UPI app
             </div>
         </div>
         {% endif %}
@@ -362,6 +392,17 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if config.upi_id and remaining > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+(function() {
+    const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am={{ remaining }}&cu=INR&tn=Order%20{{ order.order_number|default:order.id }}";
+    QRCode.toCanvas(upiString, { width: 180, margin: 1, color: { dark: "#000000", light: "#ffffff" } }, function(err, canvas) {
+        if (!err) document.getElementById('upi-qr-canvas').appendChild(canvas);
+    });
+})();
+</script>
+{% endif %}
 <script>
     /* ── Discount ─────────────────────────────────────────── */
     async function applyDiscount(promoId = null) {

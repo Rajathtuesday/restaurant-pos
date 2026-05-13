@@ -304,6 +304,7 @@ def setup_payment_methods(request):
         if card_label:
             config.card_label = card_label
 
+        config.upi_id = request.POST.get("upi_id", "").strip().lower()
         config.save()
         messages.success(request, "Payment methods saved.")
         return redirect("/tables/")
@@ -729,4 +730,130 @@ def toggle_aggregator(request):
         "success":        True,
         "zomato_enabled": config.zomato_enabled,
         "swiggy_enabled": config.swiggy_enabled,
-    })
+    })
+
+# -------------------------------------------------
+# ONBOARDING WIZARD  — /setup/onboard/?step=N
+# 5 steps: Restaurant Info → Menu → Staff → Tables → Payment
+# -------------------------------------------------
+
+@login_required
+def onboarding_wizard(request):
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+    step   = int(request.GET.get("step", 1))
+
+    # ── STEP 1: Restaurant info ──────────────────
+    if step == 1:
+        if request.method == "POST":
+            tenant.name        = request.POST.get("name", tenant.name).strip() or tenant.name
+            tenant.tenant_type = request.POST.get("tenant_type", tenant.tenant_type)
+            if "logo" in request.FILES:
+                tenant.logo = request.FILES["logo"]
+            tenant.save(update_fields=["name", "tenant_type", "logo"])
+
+            outlet.address  = request.POST.get("address", "").strip()
+            outlet.phone    = request.POST.get("phone", "").strip()
+            outlet.gst_no   = request.POST.get("gst_no", "").strip().upper()
+            outlet.fssai_no = request.POST.get("fssai_no", "").strip()
+            outlet.save(update_fields=["address", "phone", "gst_no", "fssai_no"])
+
+            return redirect(f"/setup/onboard/?step=2")
+
+    # ── STEP 2: First menu items ─────────────────
+    elif step == 2:
+        if request.method == "POST":
+            cat_name = request.POST.get("category", "").strip()
+            if cat_name:
+                cat, _ = MenuCategory.objects.get_or_create(
+                    tenant=tenant, outlet=outlet, name=cat_name,
+                    defaults={"is_active": True}
+                )
+                for i in range(1, 4):
+                    iname  = request.POST.get(f"item_{i}_name", "").strip()
+                    iprice = request.POST.get(f"item_{i}_price", "").strip()
+                    if iname and iprice:
+                        try:
+                            from decimal import Decimal
+                            MenuItem.objects.get_or_create(
+                                tenant=tenant, outlet=outlet,
+                                name=iname, category=cat,
+                                defaults={"price": Decimal(iprice), "is_available": True}
+                            )
+                        except Exception:
+                            pass
+            return redirect(f"/setup/onboard/?step=3")
+
+    # ── STEP 3: First staff member ───────────────
+    elif step == 3:
+        if request.method == "POST":
+            from accounts.models import User
+            uname = request.POST.get("username", "").strip()
+            fname = request.POST.get("first_name", "").strip()
+            lname = request.POST.get("last_name", "").strip()
+            role  = request.POST.get("role", "cashier")
+            pwd   = request.POST.get("password", "").strip()
+            if uname and pwd:
+                try:
+                    if not User.objects.filter(username=uname, tenant=tenant).exists():
+                        User.objects.create_user(
+                            username=uname, password=pwd,
+                            first_name=fname, last_name=lname,
+                            tenant=tenant, outlet=outlet, role=role
+                        )
+                except Exception:
+                    pass
+            return redirect(f"/setup/onboard/?step=4")
+
+    # ── STEP 4: Tables (skip for QSR/Café) ──────
+    elif step == 4:
+        if request.method == "POST":
+            if tenant.tenant_type == "fine_dining":
+                table_names = [
+                    request.POST.get(f"table_{i}", "").strip()
+                    for i in range(1, 6)
+                ]
+                for tname in table_names:
+                    if tname:
+                        Table.objects.get_or_create(
+                            tenant=tenant, outlet=outlet, name=tname,
+                            defaults={"is_active": True}
+                        )
+            return redirect(f"/setup/onboard/?step=5")
+
+    # ── STEP 5: Payment + done ───────────────────
+    elif step == 5:
+        if request.method == "POST":
+            config, _ = PaymentConfig.objects.get_or_create(
+                tenant=tenant, outlet=outlet
+            )
+            config.upi_enabled  = "upi"  in request.POST.getlist("methods")
+            config.cash_enabled = "cash" in request.POST.getlist("methods")
+            config.card_enabled = "card" in request.POST.getlist("methods")
+            config.upi_id = request.POST.get("upi_id", "").strip().lower()
+            config.save()
+            # Mark onboarding complete in session
+            request.session["onboarding_done"] = True
+            return redirect("/dashboard/")
+
+    # Progress calculation for the progress bar
+    progress = {
+        1: MenuCategory.objects.filter(tenant=tenant, outlet=outlet).exists(),
+        2: MenuItem.objects.filter(tenant=tenant, outlet=outlet).exists(),
+        3: tenant.users.filter(outlet=outlet).exclude(role="owner").exists(),
+        4: Table.objects.filter(tenant=tenant, outlet=outlet).exists()
+               if tenant.tenant_type == "fine_dining" else True,
+    }
+    done_count = sum(1 for v in progress.values() if v)
+
+    config, _ = PaymentConfig.objects.get_or_create(tenant=tenant, outlet=outlet)
+
+    return render(request, "setup/onboard.html", {
+        "step": step,
+        "total_steps": 5,
+        "done_count": done_count,
+        "tenant": tenant,
+        "outlet": outlet,
+        "config": config,
+        "is_qsr": tenant.tenant_type in ("franchise", "cafe"),
+    })

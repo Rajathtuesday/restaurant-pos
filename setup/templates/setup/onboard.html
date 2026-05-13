@@ -1,0 +1,350 @@
+{% extends 'core/base.html' %}
+{% block title %}Setup Rasova — Step {{ step }} of {{ total_steps }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main);
+        --muted: var(--text-muted); --border: var(--border-color); --gold: var(--accent-gold);
+    }
+
+    .wiz-shell { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+
+    /* Progress bar */
+    .wiz-progress { display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem; }
+    .wiz-step-dot {
+        width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
+        justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+        border: 2px solid var(--border);
+        background: var(--panel); color: var(--muted);
+        transition: all 0.3s;
+    }
+    .wiz-step-dot.done  { background: var(--gold); border-color: var(--gold); color: #fff; }
+    .wiz-step-dot.active { border-color: var(--gold); color: var(--gold); font-weight: 800; }
+    .wiz-step-line { flex: 1; height: 1px; background: var(--border); }
+    .wiz-step-line.done { background: var(--gold); }
+
+    /* Card */
+    .wiz-card { background: var(--panel); border: 1px solid var(--border); padding: 2.5rem 2rem; }
+    .wiz-eyebrow { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-bottom: 0.5rem; }
+    .wiz-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 400; margin-bottom: 0.4rem; }
+    .wiz-sub { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin-bottom: 2rem; }
+
+    /* Fields */
+    .field { margin-bottom: 1.4rem; }
+    .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
+    .field input, .field select, .field textarea {
+        width: 100%; background: transparent; border: none;
+        border-bottom: 1px solid var(--border); color: var(--text);
+        padding: 0.5rem 0; font-size: 0.95rem; font-family: 'Outfit', sans-serif;
+        outline: none;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
+    .field textarea { resize: vertical; min-height: 60px; }
+    .field select option { background: var(--panel); }
+    .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media(max-width:480px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* Item rows */
+    .item-row { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; margin-bottom: 0.75rem; align-items: end; }
+    .item-row .field { margin-bottom: 0; }
+
+    /* Toggle row */
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
+    .toggle-row:last-of-type { border-bottom: none; }
+    .toggle-label-text { font-size: 0.9rem; font-weight: 500; }
+    .toggle-label-sub { font-size: 0.75rem; color: var(--muted); }
+    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .slider { position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: 0.3s; }
+    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: var(--muted); border-radius: 50%; transition: 0.3s; }
+    input:checked + .slider { background: var(--gold); }
+    input:checked + .slider::before { transform: translateX(20px); background: #fff; }
+
+    /* Buttons */
+    .btn-next { width: 100%; padding: 1rem; background: var(--gold); border: none; color: #fff; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 2rem; min-height: 52px; transition: opacity 0.2s; }
+    .btn-next:hover { opacity: 0.88; }
+    .btn-skip { display: block; text-align: center; margin-top: 1rem; font-size: 0.75rem; color: var(--muted); text-decoration: none; letter-spacing: 1px; }
+    .btn-skip:hover { color: var(--text); }
+
+    /* Logo preview */
+    .logo-preview { width: 80px; height: 80px; object-fit: contain; border: 1px solid var(--border); margin-bottom: 0.75rem; display: none; }
+    .logo-preview.show { display: block; }
+    .file-btn { display: inline-block; border: 1px dashed var(--border); padding: 0.5rem 1rem; font-size: 0.75rem; cursor: pointer; color: var(--muted); transition: border-color 0.2s; }
+    .file-btn:hover { border-color: var(--gold); color: var(--gold); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <h1 class="brand-title mb-0">
+        <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+        Rasova Setup
+    </h1>
+    <p class="brand-subtitle">Let's get your restaurant running</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="wiz-shell">
+
+    <!-- Progress dots -->
+    <div class="wiz-progress">
+        {% for s in "12345" %}
+        {% with sn=forloop.counter %}
+        <div class="wiz-step-dot {% if sn < step %}done{% elif sn == step %}active{% endif %}">
+            {% if sn < step %}<i class="bi bi-check-lg"></i>{% else %}{{ sn }}{% endif %}
+        </div>
+        {% if not forloop.last %}<div class="wiz-step-line {% if sn < step %}done{% endif %}"></div>{% endif %}
+        {% endwith %}
+        {% endfor %}
+    </div>
+
+    <div class="wiz-card">
+
+        {# ── STEP 1: Restaurant info ── #}
+        {% if step == 1 %}
+        <p class="wiz-eyebrow">Step 1 of 5</p>
+        <h2 class="wiz-title">Your Restaurant</h2>
+        <p class="wiz-sub">This appears on every receipt and bill. Takes 2 minutes.</p>
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="field">
+                <label>Restaurant Name *</label>
+                <input type="text" name="name" value="{{ tenant.name }}" required placeholder="e.g. Spice Garden">
+            </div>
+
+            <div class="field">
+                <label>Type of Restaurant</label>
+                <select name="tenant_type">
+                    <option value="fine_dining" {% if tenant.tenant_type == 'fine_dining' %}selected{% endif %}>Fine Dining (table service)</option>
+                    <option value="franchise"   {% if tenant.tenant_type == 'franchise'   %}selected{% endif %}>QSR / Fast Food (token counter)</option>
+                    <option value="cafe"        {% if tenant.tenant_type == 'cafe'        %}selected{% endif %}>Café / Coffee Shop</option>
+                </select>
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label>Phone Number</label>
+                    <input type="tel" name="phone" value="{{ outlet.phone }}" placeholder="9876543210">
+                </div>
+                <div class="field">
+                    <label>GSTIN</label>
+                    <input type="text" name="gst_no" value="{{ outlet.gst_no }}" maxlength="15" placeholder="27AAAAA0000A1Z5">
+                    <div class="field-hint">15-character GST number. Leave blank if not registered.</div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Address (appears on bills)</label>
+                <textarea name="address" placeholder="Shop 4, MG Road, Pune 411001">{{ outlet.address }}</textarea>
+            </div>
+
+            <div class="field">
+                <label>FSSAI License Number (optional)</label>
+                <input type="text" name="fssai_no" value="{{ outlet.fssai_no }}" maxlength="14" placeholder="12345678901234">
+            </div>
+
+            <div class="field">
+                <label>Restaurant Logo (optional)</label>
+                {% if tenant.logo %}
+                <img src="{{ tenant.logo.url }}" class="logo-preview show" id="logoPreview">
+                {% else %}
+                <img src="" class="logo-preview" id="logoPreview">
+                {% endif %}
+                <label class="file-btn" for="logoFile"><i class="bi bi-upload me-1"></i>Upload Logo</label>
+                <input type="file" id="logoFile" name="logo" accept="image/*" style="display:none;"
+                       onchange="previewLogo(this)">
+            </div>
+
+            <button type="submit" class="btn-next">Continue — Add Menu <i class="bi bi-arrow-right ms-1"></i></button>
+        </form>
+
+        {# ── STEP 2: Menu ── #}
+        {% elif step == 2 %}
+        <p class="wiz-eyebrow">Step 2 of 5</p>
+        <h2 class="wiz-title">First Menu Items</h2>
+        <p class="wiz-sub">Add one category and up to 3 items to get started. You can add more later from the Menu section.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="field">
+                <label>Category Name *</label>
+                <input type="text" name="category" placeholder="e.g. Burgers, Main Course, Beverages" required>
+            </div>
+
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:0.75rem;margin-top:0.5rem;">Items (name + price)</div>
+
+            {% for i in "123" %}
+            <div class="item-row">
+                <div class="field">
+                    <label>Item {{ forloop.counter }}</label>
+                    <input type="text" name="item_{{ forloop.counter }}_name" placeholder="e.g. Veg Burger">
+                </div>
+                <div class="field" style="width:110px;">
+                    <label>Price (₹)</label>
+                    <input type="number" name="item_{{ forloop.counter }}_price" min="0" step="0.5" placeholder="120">
+                </div>
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="btn-next">Continue — Add Staff <i class="bi bi-arrow-right ms-1"></i></button>
+        </form>
+        <a href="/setup/onboard/?step=3" class="btn-skip">Skip — I'll add the menu later</a>
+
+        {# ── STEP 3: Staff ── #}
+        {% elif step == 3 %}
+        <p class="wiz-eyebrow">Step 3 of 5</p>
+        <h2 class="wiz-title">First Staff Member</h2>
+        <p class="wiz-sub">Create a login for your cashier or manager. They can log in on any device with this username and password.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="field-row">
+                <div class="field">
+                    <label>First Name</label>
+                    <input type="text" name="first_name" placeholder="Ravi">
+                </div>
+                <div class="field">
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" placeholder="Kumar">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>Username (they'll use this to log in) *</label>
+                <input type="text" name="username" placeholder="ravi_cashier" pattern="[a-zA-Z0-9_]+" required>
+                <div class="field-hint">Letters, numbers and underscores only. No spaces.</div>
+            </div>
+
+            <div class="field">
+                <label>Role</label>
+                <select name="role">
+                    <option value="cashier">Cashier — takes payments, manages bills</option>
+                    <option value="manager">Manager — discounts, reports, full access</option>
+                    <option value="waiter">Waiter — takes orders, sees table status</option>
+                    <option value="kitchen">Kitchen — sees KOTs, marks items ready</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Password *</label>
+                <input type="password" name="password" minlength="6" required placeholder="Min 6 characters">
+            </div>
+
+            <button type="submit" class="btn-next">
+                Continue — {% if is_qsr %}Payment{% else %}Tables{% endif %}
+                <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+        </form>
+        <a href="/setup/onboard/?step=4" class="btn-skip">Skip — I'll add staff later</a>
+
+        {# ── STEP 4: Tables (fine dining) or skip (QSR) ── #}
+        {% elif step == 4 %}
+        <p class="wiz-eyebrow">Step 4 of 5</p>
+
+        {% if is_qsr %}
+        <h2 class="wiz-title">No Tables Needed</h2>
+        <p class="wiz-sub">QSR and café setups use token numbers instead of tables. You're all set — move on to payment.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn-next">Continue — Payment Setup <i class="bi bi-arrow-right ms-1"></i></button>
+        </form>
+        {% else %}
+        <h2 class="wiz-title">Your Tables</h2>
+        <p class="wiz-sub">Enter up to 5 table names. You can add more from Setup → Tables later.</p>
+        <form method="post">
+            {% csrf_token %}
+            {% for i in "12345" %}
+            <div class="field">
+                <label>Table {{ forloop.counter }}</label>
+                <input type="text" name="table_{{ forloop.counter }}" placeholder="e.g. T{{ forloop.counter }}, Window {{ forloop.counter }}, Booth A">
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn-next">Continue — Payment Setup <i class="bi bi-arrow-right ms-1"></i></button>
+        </form>
+        <a href="/setup/onboard/?step=5" class="btn-skip">Skip — I'll add tables later</a>
+        {% endif %}
+
+        {# ── STEP 5: Payment ── #}
+        {% elif step == 5 %}
+        <p class="wiz-eyebrow">Step 5 of 5 — Almost done!</p>
+        <h2 class="wiz-title">Payment Methods</h2>
+        <p class="wiz-sub">Choose what your customers can pay with. You can change this anytime from Setup → Payment Methods.</p>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="toggle-row">
+                <div>
+                    <div class="toggle-label-text"><i class="bi bi-cash-coin me-2" style="color:var(--gold);"></i>Cash</div>
+                    <div class="toggle-label-sub">Physical notes and coins</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" name="methods" value="cash" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div>
+                    <div class="toggle-label-text"><i class="bi bi-qr-code-scan me-2" style="color:var(--gold);"></i>UPI</div>
+                    <div class="toggle-label-sub">Google Pay, PhonePe, Paytm</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" name="methods" value="upi" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-row">
+                <div>
+                    <div class="toggle-label-text"><i class="bi bi-credit-card me-2" style="color:var(--gold);"></i>Card</div>
+                    <div class="toggle-label-sub">Debit / Credit via POS machine</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" name="methods" value="card">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="field" style="margin-top:1.5rem;">
+                <label>UPI ID — customers scan this QR to pay directly <span style="color:var(--gold);">(recommended)</span></label>
+                <input type="text" name="upi_id" value="{{ config.upi_id }}" placeholder="yourrestaurant@okaxis">
+                <div class="field-hint">Your UPI VPA. Works with any bank — no Razorpay needed.</div>
+            </div>
+
+            <button type="submit" class="btn-next" style="background:#10b981;">
+                <i class="bi bi-check-lg me-2"></i>Finish Setup — Open Dashboard
+            </button>
+        </form>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewLogo(input) {
+    const img = document.getElementById('logoPreview');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { img.src = e.target.result; img.classList.add('show'); };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+{% endblock %}
