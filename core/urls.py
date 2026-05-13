@@ -66,15 +66,15 @@ urlpatterns = [
 
     path('admin/', admin.site.urls),
 
-    # default redirect
-    path('', TemplateView.as_view(template_name='core/landing.html'), name='landing'),
+    # default redirect — authenticated → dashboard, anonymous → login
+    path('', views.landing, name='landing'),
 
     # Health check
     path('health/', views.health_check, name='health_check'),
     path('robots.txt', robots_txt),
     path('sitemap.xml', sitemap_xml),
     # PWA
-    path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript')),
+    path('sw.js', views.serve_sw, name='service_worker'),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/manifest+json')),
 
     # apps

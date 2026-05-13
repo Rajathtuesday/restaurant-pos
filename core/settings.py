@@ -96,6 +96,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ContextLoggingMiddleware',
+    'core.middleware.RequestLoggingMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -252,76 +253,188 @@ AXES_USERNAME_FORM_FIELD = "username"
 AXES_ENABLE_ADMIN = False  # don't lock admin separately
 
 
-LOGGING = {
+_LOG_DIR = BASE_DIR / "logs"
+_LOG_DIR.mkdir(exist_ok=True)
 
+LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
 
     "filters": {
-        "tenant_outlet_filter": {
+        "tenant_outlet": {
             "()": "core.log_filters.TenantOutletFilter",
-        }
+        },
+        "require_debug_false": {
+            "()": "django.utils.log.RequireDebugFalse",
+        },
     },
 
     "formatters": {
-
-        "pos_format": {
-            "format": "[{levelname}] {asctime} [T:{tenant_id}|O:{outlet_id}] {name} {message}",
+        # Short format for console during development
+        "simple": {
+            "format": "[{levelname}] {name}: {message}",
             "style": "{",
-        }
-
+        },
+        # Full format for all file handlers
+        "verbose": {
+            "format": (
+                "[{levelname}] {asctime} pid={process:d} "
+                "[T:{tenant_id}|O:{outlet_id}] {name} {message}"
+            ),
+            "style": "{",
+        },
+        # Request-specific format (no tenant filter — uses its own fields)
+        "request_fmt": {
+            "format": (
+                "[{levelname}] {asctime} {message}"
+            ),
+            "style": "{",
+        },
     },
 
     "handlers": {
-
-        "file": {
-            "level": "INFO",
-            "class": "logging.handlers.RotatingFileHandler",
-            "filename": os.path.join(BASE_DIR, "pos.log"),
-            "maxBytes": 5 * 1024 * 1024,
-            "backupCount": 7,
-            "formatter": "pos_format",
-            "filters": ["tenant_outlet_filter"],
-        },
-
+        # ── Console ──────────────────────────────────────────────
         "console": {
-
             "class": "logging.StreamHandler",
-            "formatter": "pos_format",
-            "filters": ["tenant_outlet_filter"],
-
+            "formatter": "simple",
+            "filters": ["tenant_outlet"],
+            "level": "DEBUG",
         },
 
+        # ── Main application log (all POS events) ────────────────
+        "pos_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(_LOG_DIR / "pos.log"),
+            "maxBytes": 10 * 1024 * 1024,   # 10 MB
+            "backupCount": 10,
+            "formatter": "verbose",
+            "filters": ["tenant_outlet"],
+            "level": "DEBUG",
+            "encoding": "utf-8",
+        },
+
+        # ── Errors only (WARNING+) ───────────────────────────────
+        "error_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(_LOG_DIR / "errors.log"),
+            "maxBytes": 5 * 1024 * 1024,    # 5 MB
+            "backupCount": 10,
+            "formatter": "verbose",
+            "filters": ["tenant_outlet"],
+            "level": "WARNING",
+            "encoding": "utf-8",
+        },
+
+        # ── Django framework / request log ───────────────────────
+        "django_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(_LOG_DIR / "django.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 7,
+            "formatter": "request_fmt",
+            "level": "INFO",
+            "encoding": "utf-8",
+        },
+
+        # ── Security events (login failures, CSRF, etc.) ─────────
+        "security_file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": str(_LOG_DIR / "security.log"),
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 10,
+            "formatter": "request_fmt",
+            "level": "DEBUG",
+            "encoding": "utf-8",
+        },
     },
 
     "loggers": {
-        "pos.notifications": {
-            "handlers": ["file", "console"],
+        # ── Django internal loggers ───────────────────────────────
+        "django": {
+            "handlers": ["django_file", "console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        "django.request": {
+            "handlers": ["django_file", "error_file"],
+            "level": "WARNING",   # logs 4xx/5xx with full tracebacks
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["security_file", "error_file"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            # Set to DEBUG to log every SQL query; INFO to suppress
+            "handlers": ["pos_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
+        # ── POS application loggers ───────────────────────────────
+        "pos": {
+            # Root POS logger — all pos.* namespaces inherit this
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.notifications": {
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "pos.menu": {
-            "handlers": ["file", "console"],
-            "level": "INFO",
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "pos.orders": {
-            "handlers": ["file", "console"],
-            "level": "INFO",
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "pos.inventory": {
-            "handlers": ["file", "console"],
-            "level": "INFO",
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
             "propagate": False,
         },
         "pos.reports": {
-            "handlers": ["file", "console"],
-            "level": "INFO",
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.billing": {
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.auth": {
+            "handlers": ["security_file", "pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.setup": {
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.core": {
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.shifts": {
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "pos.crm": {
+            "handlers": ["pos_file", "error_file", "console"],
+            "level": "DEBUG",
             "propagate": False,
         },
     },
-
 }
 
 # Aggregator webhook IP allowlist

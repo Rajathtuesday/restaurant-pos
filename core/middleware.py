@@ -1,6 +1,11 @@
+import time
+import logging
+
 from django.conf import settings
 from tenants.models import Tenant
 from .log_filters import set_current_tenant_outlet, clear_current_tenant_outlet
+
+request_logger = logging.getLogger("pos.core")
 
 
 class TenantMiddleware:
@@ -62,11 +67,54 @@ class ContextLoggingMiddleware:
                 tenant_id = request.user.tenant.id
 
         set_current_tenant_outlet(tenant_id, outlet_id)
-        
+
         try:
             response = self.get_response(request)
         finally:
             # Clear context after request finishes to prevent leak between threads
             clear_current_tenant_outlet()
-            
+
+        return response
+
+
+class RequestLoggingMiddleware:
+    """
+    Logs every HTTP request: method, path, status, duration, user, tenant.
+    Add after ContextLoggingMiddleware in MIDDLEWARE so user/tenant are already set.
+    """
+
+    # Paths not worth logging (health checks, static assets)
+    _SKIP_PREFIXES = ("/static/", "/media/", "/health/", "/favicon.")
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if any(request.path.startswith(p) for p in self._SKIP_PREFIXES):
+            return self.get_response(request)
+
+        t0 = time.monotonic()
+        response = self.get_response(request)
+        duration_ms = round((time.monotonic() - t0) * 1000)
+
+        user = request.user
+        username = user.username if user.is_authenticated else "anon"
+        tenant_name = getattr(getattr(user, "tenant", None), "name", None)
+        if not tenant_name:
+            tenant_name = getattr(getattr(request, "tenant", None), "name", "–")
+
+        status = response.status_code
+        level = logging.WARNING if status >= 400 else logging.INFO
+
+        request_logger.log(
+            level,
+            "%s %s %s  %dms  user=%s  tenant=%s",
+            request.method,
+            request.path,
+            status,
+            duration_ms,
+            username,
+            tenant_name,
+        )
+
         return response
