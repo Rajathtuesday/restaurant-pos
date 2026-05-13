@@ -149,6 +149,31 @@ def serve_item(request, item_id):
 @require_POST
 @tenant_required
 @feature_required("kitchen_display")
+def bump_kot(request, kot_id):
+    """Mark all pending/preparing items in a KOT as ready in one tap."""
+    from orders.models import KOTBatch
+    from orders.services.kitchen_service import set_item_ready
+    try:
+        kot = KOTBatch.objects.select_related("order").get(
+            id=kot_id, order__tenant=request.user.tenant
+        )
+        bumped = 0
+        for item in kot.items.filter(status__in=["sent", "preparing"]):
+            try:
+                set_item_ready(request.user, item.id)
+                bumped += 1
+            except Exception:
+                pass
+        logger.info("KOT #%s bumped — %d items marked ready by %s", kot.kot_number, bumped, request.user.username)
+        return JsonResponse({"success": True, "bumped": bumped})
+    except KOTBatch.DoesNotExist:
+        return JsonResponse({"error": "KOT not found"}, status=404)
+
+
+@login_required
+@require_POST
+@tenant_required
+@feature_required("kitchen_display")
 def send_kitchen_message(request, order_id):
     """
     Allows waiters/staff to send urgent ad-hoc text messages to the kitchen KDS

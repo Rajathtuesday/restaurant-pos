@@ -12,6 +12,7 @@ from .api import api_tables, api_active_orders, api_ingest_order, notification_a
 
 
 from .views import (
+    bump_kot,
     apply_discount,
     available_tables,
     billing_view,
@@ -73,6 +74,7 @@ urlpatterns = [
 
     path("item-start/<int:item_id>/", start_preparing,name="item-start"),
     path("item-ready/<int:item_id>/", mark_ready, name="mark-ready"),
+    path("bump-kot/<int:kot_id>/", bump_kot, name="bump-kot"),
 
     path("serve-item/<int:item_id>/", serve_item, name="serve-item"),
 

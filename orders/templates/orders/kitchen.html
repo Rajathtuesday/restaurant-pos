@@ -88,7 +88,8 @@
     }
     .table-name {
         font-family: 'DM Serif Display', serif;
-        font-size: 1.5rem;
+        font-size: 2rem;      /* 32px — readable at 2m */
+        font-weight: 700;
         color: var(--text-main);
         line-height: 1;
         margin-bottom: 0.2rem;
@@ -99,7 +100,18 @@
         letter-spacing: 2px;
         text-transform: uppercase;
     }
-    .timer { font-size: 1.2rem; font-family: 'DM Serif Display', serif; }
+    .timer { font-size: 1.6rem; font-weight: 700; font-family: 'DM Serif Display', serif; }
+
+    /* BUMP — mark entire KOT done, big enough for a knuckle tap */
+    .btn-bump {
+        width: 100%; padding: 1rem; background: transparent;
+        border: none; border-top: 1px solid var(--border-color);
+        font-size: 1rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 2px; cursor: pointer; color: var(--c-fresh);
+        transition: background .2s;
+        min-height: 56px;
+    }
+    .btn-bump:hover { background: rgba(212,175,55,.12); }
     .card-fresh  .timer { color: var(--c-fresh); }
     .card-warn   .timer { color: var(--c-warn); }
     .card-urgent .timer { color: var(--c-urgent); }
@@ -319,6 +331,8 @@
                             <div class="action-cell">${action}</div>
                         </div>`;
                     }).join('');
+                    const allDone = kot.items.every(i => i.status === 'ready' || i.status === 'served');
+                    const bumpBtn = allDone ? '' : `<button class="btn-bump" onclick="bumpKot(${kot.id})"><i class="bi bi-check2-all me-2"></i>BUMP — All Ready</button>`;
                     return `<div class="col-12 col-md-6 col-xl-4 col-xxl-3">
                         <div class="order-card ${cc}">
                             <div class="order-header">
@@ -334,6 +348,7 @@
                                 <div class="timer">${minutes}m</div>
                             </div>
                             <div class="items-container">${items}</div>
+                            ${bumpBtn}
                         </div>
                     </div>`;
                 }).join('');
@@ -358,6 +373,12 @@
 
     function markReady(id) {
         fetch("{% url 'mark-ready' 0 %}".replace('0', id), {
+            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+        }).then(loadKitchen).catch(console.error);
+    }
+
+    function bumpKot(kotId) {
+        fetch("{% url 'bump-kot' 0 %}".replace('0', kotId), {
             method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
         }).then(loadKitchen).catch(console.error);
     }

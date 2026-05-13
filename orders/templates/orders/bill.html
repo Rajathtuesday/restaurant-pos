@@ -331,7 +331,13 @@
         <!-- Payment UI -->
         <div class="pay-area no-print">
             {% if remaining > 0 %}
-                <input type="number" id="payAmount" class="input-pay" value="{{ remaining }}" placeholder="Enter amount…">
+                <input type="number" id="payAmount" class="input-pay" value="{{ remaining }}" placeholder="Enter amount…"
+                       oninput="updateChange(this.value)">
+                <!-- Change-to-give — appears only when cashier enters more than balance -->
+                <div id="change-display" style="display:none;background:#dc2626;color:#fff;text-align:center;padding:0.9rem 1rem;margin-bottom:0.75rem;">
+                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;opacity:.85;margin-bottom:0.2rem;">Change to Give Back</div>
+                    <div id="change-amount" style="font-family:'DM Serif Display',serif;font-size:2.8rem;font-weight:700;line-height:1.1;">₹0</div>
+                </div>
                 <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
                     <button class="btn-set" onclick="setVal('{{ remaining }}')">Pay All</button>
                     <button class="btn-set" onclick="splitPay('{{ remaining }}')">Split</button>
@@ -468,7 +474,24 @@
     }
 
     /* ── Payment ──────────────────────────────────────────── */
-    function setVal(v) { document.getElementById('payAmount').value = v; }
+    function setVal(v) {
+        document.getElementById('payAmount').value = v;
+        updateChange(v);
+    }
+
+    function updateChange(enteredVal) {
+        const entered = parseFloat(enteredVal) || 0;
+        const balance = {{ remaining }};
+        const change  = Math.round(entered - balance);
+        const display = document.getElementById('change-display');
+        if (!display) return;
+        if (change > 0) {
+            document.getElementById('change-amount').textContent = '₹' + change;
+            display.style.display = 'block';
+        } else {
+            display.style.display = 'none';
+        }
+    }
     function splitPay(v) {
         const n = parseInt(prompt('Split into how many people?'));
         if (n > 0) document.getElementById('payAmount').value = (v / n).toFixed(2);
