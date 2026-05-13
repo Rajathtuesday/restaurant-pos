@@ -3,7 +3,7 @@
    Handles: offline caching, install prompt, order queue
    ============================================================ */
 
-const CACHE_VERSION = 'rasova-v1';
+const CACHE_VERSION = 'rasova-v3';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
 
@@ -17,10 +17,10 @@ const STATIC_ASSETS = [
     'https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.min.css',
 ];
 
-/* Pages to cache for offline use */
+/* Pages to pre-warm on install (best-effort, need auth so may 302 — that's fine) */
 const OFFLINE_PAGES = [
-    '/',
     '/dashboard/',
+    '/billing/',
     '/kitchen/',
 ];
 
@@ -92,7 +92,8 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // App pages — network first, fallback to cache
+    // App pages — network first, cache on success, serve cache when offline
+    const isBillingOrKitchen = url.pathname.startsWith('/billing') || url.pathname.startsWith('/kitchen');
     event.respondWith(
         fetch(request, { credentials: 'include' })
             .then(response => {
@@ -103,9 +104,13 @@ self.addEventListener('fetch', event => {
                 return response;
             })
             .catch(() =>
-                caches.match(request).then(cached =>
-                    cached || caches.match('/dashboard/')
-                )
+                caches.match(request).then(cached => {
+                    if (cached) return cached;
+                    // For non-critical pages fall back to dashboard cache
+                    return isBillingOrKitchen
+                        ? caches.match('/billing/')
+                        : caches.match('/dashboard/');
+                })
             )
     );
 });

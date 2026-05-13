@@ -138,9 +138,9 @@ class PrintingService:
             p.text(self._sep() + "\n")
 
             for item in kot_batch.items.select_related("menu_item").all():
-                qty_label = f"{item.quantity}x  "
+                veg_flag = "[V]" if item.menu_item.is_veg else "[N]"
+                qty_label = f"{item.quantity}x  {veg_flag} "
                 item_name = str(item.menu_item.name)
-                # Truncate item name to fit after qty prefix
                 max_name = W - len(qty_label)
                 p.set(bold=True)
                 p.text(f"{qty_label}{item_name[:max_name]}\n")

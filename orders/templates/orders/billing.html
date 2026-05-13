@@ -67,6 +67,19 @@
   .qty-value { font-size: 0.85rem; width: 20px; text-align: center; }
   .cart-item-price { font-weight: 500; font-size: 0.85rem; width: 55px; text-align: right; color: var(--text-main); }
 
+  /* Veg / non-veg indicator — Indian standard */
+  .veg-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; flex-shrink: 0; vertical-align: middle; position: relative; top: -1px; }
+  .veg-dot.veg { background: #22c55e; }
+  .veg-dot.nonveg { background: #ef4444; }
+
+  /* Printer error banner */
+  #printer-error-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:#fff; padding:10px 20px; font-size:13px; font-weight:600; display:none; align-items:center; gap:10px; }
+  #printer-error-banner i { font-size:1.1rem; }
+  #printer-error-banner .dismiss { margin-left:auto; cursor:pointer; opacity:0.8; font-size:1.1rem; }
+
+  /* Offline indicator */
+  #offline-banner { display:none; position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fcd34d; border-radius:20px; padding:6px 18px; font-size:12px; font-weight:600; z-index:9998; letter-spacing:1px; }
+
   .cart-summary { border-top: 1px solid var(--border-color); padding: 1.5rem; background: var(--panel-bg); }
   .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
   .summary-total { display: flex; justify-content: space-between; margin: 1rem 0 1.5rem; font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
@@ -178,6 +191,13 @@
 {% block content %}
 <div id="toastBox" class="toast-minimal">Message</div>
 
+<div id="printer-error-banner" style="display:none;">
+  <i class="bi bi-printer-fill"></i>
+  <span id="printer-error-text">Kitchen printer is not responding — check the connection or call the manager.</span>
+  <span class="dismiss" onclick="this.parentElement.style.display='none'">✕</span>
+</div>
+<div id="offline-banner"><i class="bi bi-wifi-off"></i>&nbsp; Offline — orders will sync when reconnected</div>
+
 <div class="workspace">
 
   <!-- DESKTOP CATEGORIES -->
@@ -206,8 +226,12 @@
       <div class="row g-3 g-md-4 mb-5">
         {% for item in category.items.all %}
         <div class="col-6 col-lg-6 menu-item-searchable">
-          <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage|default:5 }}')">
-            <div><div class="item-name">{{ item.name }}</div></div>
+          <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage|default:5 }}', {{ item.is_veg|yesno:'true,false' }})">
+            <div>
+              <div class="item-name">
+                <span class="veg-dot {% if item.is_veg %}veg{% else %}nonveg{% endif %}"></span>{{ item.name }}
+              </div>
+            </div>
             <div class="item-price">₹{{ item.price|floatformat:0 }}</div>
           </div>
         </div>
@@ -427,8 +451,8 @@
     loadRunningOrder();
   }
 
-  function openItemModal(id, name, price, gst) {
-    selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
+  function openItemModal(id, name, price, gst, isVeg) {
+    selectedItem = { id, name, price, gst_percentage: parseFloat(gst), is_veg: isVeg !== false };
     const modalEl = document.getElementById("itemModal");
     const nameEl  = document.getElementById("modalItemName");
     const noteEl  = document.getElementById("itemNote");
@@ -479,7 +503,7 @@
     if (existing) {
       existing.quantity++;
     } else {
-      cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, note: finalNote, is_takeaway: isTakeaway, modifiers: modsSelectedIds, gst_percentage: selectedItem.gst_percentage });
+      cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, note: finalNote, is_takeaway: isTakeaway, modifiers: modsSelectedIds, gst_percentage: selectedItem.gst_percentage, is_veg: selectedItem.is_veg });
     }
     renderCart();
     if (activeModal) activeModal.hide();
@@ -498,7 +522,8 @@
       const total = i.price * i.quantity;
       subtotal += total;
       gst += total * ((i.gst_percentage || 5) / 100);
-      const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
+      const vegDot = `<span class="veg-dot ${i.is_veg !== false ? 'veg' : 'nonveg'}"></span>`;
+      const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${vegDot}${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
       dc.innerHTML += html;
       mc.innerHTML += html;
     });
@@ -638,6 +663,31 @@
     setInterval(pollNotifications, 8000);
     const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
     const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");
+
+    // ── Printer error polling ──────────────────────────────
+    function checkPrinterStatus() {
+      fetch("{% url 'printer-status' %}")
+        .then(r => r.json())
+        .then(d => {
+          const banner = document.getElementById("printer-error-banner");
+          if (d.error) {
+            document.getElementById("printer-error-text").textContent = d.message;
+            banner.style.display = "flex";
+          }
+        })
+        .catch(() => {});
+    }
+    setInterval(checkPrinterStatus, 20000);
+    checkPrinterStatus();
+
+    // ── Offline / online banner ────────────────────────────
+    const offlineBanner = document.getElementById("offline-banner");
+    function syncOnlineState() {
+      offlineBanner.style.display = navigator.onLine ? "none" : "block";
+    }
+    window.addEventListener("online",  syncOnlineState);
+    window.addEventListener("offline", syncOnlineState);
+    syncOnlineState();
   });
 </script>
 {% endblock %}

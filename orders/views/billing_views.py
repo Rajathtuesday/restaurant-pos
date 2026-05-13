@@ -792,6 +792,28 @@ def print_kot_action(request, kot_id):
 
 
 # -------------------------------------------------
+# PRINTER STATUS  — GET /orders/printer-status/
+# Polled by the billing page every 20s to surface print failures
+# -------------------------------------------------
+
+@login_required
+@tenant_required
+def printer_status(request):
+    from django.core.cache import cache
+    error = cache.get(f"printer_err_{request.user.outlet_id}")
+    if error:
+        station = error.get("station", "Kitchen printer")
+        kot = error.get("kot", "?")
+        detail = error.get("detail", "unknown error")
+        message = (
+            f"{station} is not responding (KOT #{kot}) — "
+            f"check the cable/network or print to PDF. ({detail})"
+        )
+        return JsonResponse({"error": True, "message": message})
+    return JsonResponse({"error": False})
+
+
+# -------------------------------------------------
 # SPLIT BILL  — POST /orders/<id>/split-pay/
 # -------------------------------------------------
 
