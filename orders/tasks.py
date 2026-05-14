@@ -7,10 +7,19 @@ from orders.services.printing_service import PrintingService
 
 logger = logging.getLogger("pos.printing")
 
-# When this worker is running LOCALLY inside a restaurant, set RASOVA_OUTLET_ID
-# to the outlet's DB id so the worker only processes print jobs for that outlet.
-# Leave unset (or 0) to process ALL outlets (only safe on a trusted private server).
+# ── Local worker isolation ─────────────────────────────────────────────────
+# Set these env vars on the machine that runs the Celery worker inside the
+# restaurant. The worker will silently skip jobs for any other tenant/outlet
+# so multiple restaurants can share the same Redis queue without interfering.
+#
+# Leave at 0 to process ALL tenants/outlets (safe only on a private server
+# where every tenant's worker is the same process, e.g. dev/staging).
+_LOCAL_TENANT_ID = int(os.getenv("RASOVA_TENANT_ID", "0"))
 _LOCAL_OUTLET_ID = int(os.getenv("RASOVA_OUTLET_ID", "0"))
+
+# Idempotency TTL — keep "already printed" markers for 2 hours.
+# Prevents double-printing when a task is retried after a crash.
+_IDEMPOTENCY_TTL = 7200
 
 _PRINTER_ERROR_TTL = 180  # seconds before auto-clearing the banner
 
@@ -21,11 +30,17 @@ _PRINTER_ERROR_TTL = 180  # seconds before auto-clearing the banner
     default_retry_delay=5,
     queue="printing",
     name="orders.tasks.print_kot_task",
+    acks_late=True,           # acknowledge AFTER completion, not on receive
+    reject_on_worker_lost=True,  # re-queue if worker dies mid-task
 )
 def print_kot_task(self, station_id, order_id, kot_id):
     """
     Print a KOT to a network thermal printer.
-    Retries twice (5-second gap) before giving up and storing a banner error.
+
+    Isolation: respects RASOVA_TENANT_ID and RASOVA_OUTLET_ID env vars so
+    each restaurant's local worker only processes its own jobs.
+
+    Idempotency: Redis key prevents double-printing if task is retried.
     """
     from orders.models import Order, KOTBatch
 
@@ -34,13 +49,21 @@ def print_kot_task(self, station_id, order_id, kot_id):
         order   = Order.objects.get(id=order_id)
         kot     = KOTBatch.objects.get(id=kot_id)
 
-        # If this worker is scoped to a specific outlet (local restaurant worker),
-        # silently skip jobs that belong to other outlets — they will be picked up
-        # by the correct restaurant's worker.
+        # ── Tenant + outlet isolation ──────────────────────────────────────
+        if _LOCAL_TENANT_ID and order.tenant_id != _LOCAL_TENANT_ID:
+            logger.debug("KOT #%s is for tenant %s — skipping (this worker = tenant %s).",
+                         kot.kot_number, order.tenant_id, _LOCAL_TENANT_ID)
+            return False
         if _LOCAL_OUTLET_ID and order.outlet_id != _LOCAL_OUTLET_ID:
-            logger.debug("KOT #%s belongs to outlet %s — skipping (this worker = outlet %s).",
+            logger.debug("KOT #%s is for outlet %s — skipping (this worker = outlet %s).",
                          kot.kot_number, order.outlet_id, _LOCAL_OUTLET_ID)
             return False
+
+        # ── Idempotency — prevent double-print on retry ────────────────────
+        idem_key = f"kot_printed_{kot_id}"
+        if cache.get(idem_key):
+            logger.info("KOT #%s already printed — skipping duplicate task.", kot.kot_number)
+            return True
 
         if not station.printer_ip:
             logger.warning(
@@ -60,10 +83,9 @@ def print_kot_task(self, station_id, order_id, kot_id):
         success = printer.print_kot(order, kot)
 
         if success:
-            logger.info(
-                "KOT #%s for Order #%s printed at station '%s'.",
-                kot.kot_number, order.id, station.name,
-            )
+            logger.info("KOT #%s for Order #%s printed at '%s'.",
+                        kot.kot_number, order.id, station.name)
+            cache.set(idem_key, True, timeout=_IDEMPOTENCY_TTL)  # mark done
             cache.delete(f"printer_err_{order.outlet_id}")
             return True
 
@@ -98,15 +120,15 @@ def print_kot_task(self, station_id, order_id, kot_id):
     default_retry_delay=5,
     queue="printing",
     name="orders.tasks.print_bill_task",
+    acks_late=True,
+    reject_on_worker_lost=True,
 )
 def print_bill_task(self, order_id, station_id):
     """
     Print bill + all KOTs after payment.
 
-    strip_mode is auto-detected:
-      - no kitchen_display feature → QSR strip (token receipt + KOTs as one connected strip,
-        partial cuts between sections, single full cut at the very end)
-      - kitchen_display present   → fine-dining (bill full cut, KOTs partial cuts)
+    strip_mode auto-detected: no kitchen_display → QSR strip (one connected
+    receipt+KOT chain, single full cut at end). Otherwise fine-dining split.
     """
     from orders.models import Order, KOTBatch
     from core.features import has_feature
@@ -122,10 +144,21 @@ def print_bill_task(self, order_id, station_id):
             .order_by("kot_number")
         )
 
+        # ── Tenant + outlet isolation ──────────────────────────────────────
+        if _LOCAL_TENANT_ID and order.tenant_id != _LOCAL_TENANT_ID:
+            logger.debug("Bill for tenant %s — skipping (this worker = tenant %s).",
+                         order.tenant_id, _LOCAL_TENANT_ID)
+            return False
         if _LOCAL_OUTLET_ID and order.outlet_id != _LOCAL_OUTLET_ID:
             logger.debug("Bill for outlet %s — skipping (this worker = outlet %s).",
                          order.outlet_id, _LOCAL_OUTLET_ID)
             return False
+
+        # ── Idempotency — prevent double-print on retry ────────────────────
+        idem_key = f"bill_printed_{order_id}"
+        if cache.get(idem_key):
+            logger.info("Bill for Order #%s already printed — skipping duplicate.", order_id)
+            return True
 
         if not station.printer_ip:
             logger.warning("No printer IP on station '%s' — bill print skipped.", station.name)
@@ -146,6 +179,7 @@ def print_bill_task(self, order_id, station_id):
 
         if success:
             logger.info("Bill + %d KOT(s) printed for Order #%s.", len(kots), order_id)
+            cache.set(idem_key, True, timeout=_IDEMPOTENCY_TTL)  # mark done
             cache.delete(f"printer_err_{order.outlet_id}")
             return True
 

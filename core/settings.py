@@ -513,3 +513,14 @@ CELERY_TASK_ROUTES = {
 }
 
 CELERY_TASK_DEFAULT_QUEUE = "default"
+
+# Acknowledge tasks AFTER completion, not on receipt.
+# If the worker crashes mid-task, the task is re-queued for the next worker.
+# Combined with idempotency keys in tasks.py this prevents both lost tasks
+# and double-printing.
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+
+# Discard tasks queued more than 30 minutes ago — stale print jobs from a
+# previous session should not print when the worker restarts.
+CELERY_TASK_EXPIRES = 1800  # seconds
