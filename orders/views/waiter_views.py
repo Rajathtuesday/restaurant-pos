@@ -26,6 +26,8 @@ def waiter_dashboard(request):
         outlet=request.user.outlet,
         is_resolved=False
     ).select_related("order", "order__table").order_by("-created_at")
+    if request.user.role == 'waiter':
+        kitchen_messages = kitchen_messages.filter(order__created_by=request.user)
 
     return render(request, "orders/waiter_dashboard.html", {
         "calls": calls,

@@ -73,6 +73,7 @@ urlpatterns = [
     path('health/', views.health_check, name='health_check'),
     path('robots.txt', robots_txt),
     path('sitemap.xml', sitemap_xml),
+    path('favicon.ico', lambda r: HttpResponse(status=204)),
     # PWA
     path('sw.js', views.serve_sw, name='service_worker'),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/manifest+json')),

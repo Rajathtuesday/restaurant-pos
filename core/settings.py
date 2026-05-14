@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'shifts',
     'crm',
     'agency',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -477,3 +478,38 @@ TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886"
 # -------------------------------------------------------
 SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+
+# -------------------------------------------------------
+# CELERY — background task queue (printing, notifications)
+# Broker  : Redis  (fast in-memory queue)
+# Backend : django-celery-results (task results stored in DB)
+# -------------------------------------------------------
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "django-cache"
+CELERY_RESULT_EXTENDED = True
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "Asia/Kolkata"
+
+# If Redis is unreachable, fall back gracefully instead of crashing the request.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 3
+
+# Printing tasks should be fast; kill them if they run over 60 seconds.
+CELERY_TASK_SOFT_TIME_LIMIT = 30   # raises SoftTimeLimitExceeded
+CELERY_TASK_TIME_LIMIT      = 60   # hard kill after 60s
+
+# Two queues: default for everything, printing for thermal printer tasks.
+# This lets you prioritise print jobs without blocking other tasks.
+CELERY_TASK_ROUTES = {
+    "orders.tasks.print_kot_task":  {"queue": "printing"},
+    "orders.tasks.print_bill_task": {"queue": "printing"},
+}
+
+CELERY_TASK_DEFAULT_QUEUE = "default"

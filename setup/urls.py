@@ -18,6 +18,8 @@ from .views import (
     toggle_aggregator,
     update_printer_config,
     test_print_station,
+    sample_menu,
+    checklist_status,
 )
 
 urlpatterns = [
@@ -45,4 +47,8 @@ urlpatterns = [
     # Printer config per station
     path("kitchen-stations/<int:station_id>/printer/", update_printer_config, name="update_printer_config"),
     path("kitchen-stations/<int:station_id>/test-print/", test_print_station, name="test_print_station"),
+
+    # Onboarding helpers
+    path("sample-menu/", sample_menu, name="setup_sample_menu"),
+    path("checklist/", checklist_status, name="setup_checklist"),
 ]

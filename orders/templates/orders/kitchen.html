@@ -394,18 +394,27 @@
     function submitKitchenMessage() {
         const text = document.getElementById('customMsgText').value.trim();
         if (!text || !activeOrderId) return;
+        const sendBtn = document.querySelector('#msgModal .btn-warning');
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending…'; }
         fetch("{% url 'send-kitchen-message' 0 %}".replace('0', activeOrderId), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
             body: JSON.stringify({ message: text })
-        }).then(r => r.json()).then(d => {
+        })
+        .then(r => r.json())
+        .then(d => {
             if (d.success) {
-                bootstrap.Modal.getInstance(document.getElementById('msgModal')).hide();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('msgModal'));
+                if (modal) modal.hide();
                 document.getElementById('customMsgText').value = '';
                 ui.toast('Message sent to waiter', 'success');
             } else {
                 ui.toast(d.error || 'Failed to send', 'error');
             }
+        })
+        .catch(() => ui.toast('Network error — message not sent', 'error'))
+        .finally(() => {
+            if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="bi bi-send me-1"></i>Send'; }
         });
     }
 

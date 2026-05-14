@@ -278,11 +278,20 @@
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
       <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
       <div class="d-flex flex-column gap-2 mt-3">
+        {% if auto_kot_mode %}
+        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitQSROrder()" style="background:#10b981;border-color:#10b981;font-size:0.85rem;letter-spacing:2px;">
+          <i class="bi bi-cash-coin me-2"></i>PAY &amp; PRINT SLIP
+        </button>
+        {% else %}
         <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch <i class="bi bi-arrow-right ms-2"></i></button>
         <div class="d-flex gap-2">
           <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
           <button class="btn-luxury w-50" style="color:var(--text-muted);border-color:var(--border-color);" onclick="clearCart()">Clear</button>
         </div>
+        {% endif %}
+        <button class="btn-luxury w-100" style="color:var(--text-muted);border-color:var(--border-color);font-size:0.75rem;" onclick="clearCart()">
+          <i class="bi bi-x me-1"></i>Clear Cart
+        </button>
       </div>
     </div>
   </aside>
@@ -333,11 +342,17 @@
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
       <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
       <div class="d-flex flex-column gap-2 mt-3">
+        {% if auto_kot_mode %}
+        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitQSROrder()" style="background:#10b981;border-color:#10b981;font-size:0.85rem;letter-spacing:2px;">
+          <i class="bi bi-cash-coin me-2"></i>PAY &amp; PRINT SLIP
+        </button>
+        {% else %}
         <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
         <div class="d-flex gap-2">
           <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
           <button class="btn-luxury w-50" style="color:var(--text-muted);border-color:var(--border-color);" onclick="clearCart()">Clear</button>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -366,6 +381,64 @@
     </div>
   </div>
 </div>
+
+{% if auto_kot_mode %}
+<!-- QSR inline payment modal — appears after order is created, before payment -->
+<div class="modal fade" id="qsrPayModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+    <div class="modal-content" style="border-radius:0;background:var(--panel-bg);border:1px solid var(--border-color);">
+      <div class="modal-header border-0 pb-0">
+        <div>
+          <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">QSR Counter</p>
+          <h5 class="modal-title" style="font-family:'DM Serif Display',serif;font-size:1.4rem;">Collect Payment</h5>
+        </div>
+      </div>
+      <div class="modal-body pt-2">
+        <div style="font-size:2.2rem;font-family:'DM Serif Display',serif;text-align:center;padding:0.5rem 0 1rem;" id="qsrGrandTotal">₹ —</div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.2rem;" id="qsrMethodBtns">
+          <button class="qsr-method-btn" data-method="cash" onclick="selectQSRMethod(this)" style="padding:0.75rem;border:1px solid var(--border-color);background:transparent;color:var(--text-main);cursor:pointer;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;transition:all 0.15s;">
+            <i class="bi bi-cash-coin me-2"></i>Cash
+          </button>
+          <button class="qsr-method-btn" data-method="upi" onclick="selectQSRMethod(this)" style="padding:0.75rem;border:1px solid var(--border-color);background:transparent;color:var(--text-main);cursor:pointer;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;transition:all 0.15s;">
+            <i class="bi bi-qr-code-scan me-2"></i>UPI / GPay
+          </button>
+          <button class="qsr-method-btn" data-method="card" onclick="selectQSRMethod(this)" style="padding:0.75rem;border:1px solid var(--border-color);background:transparent;color:var(--text-main);cursor:pointer;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;transition:all 0.15s;">
+            <i class="bi bi-credit-card me-2"></i>Card
+          </button>
+        </div>
+        <div style="margin-bottom:0.75rem;" id="qsrAmountRow">
+          <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Amount Tendered</label>
+          <input type="number" id="qsrAmount" min="0" step="0.01" placeholder="Enter amount"
+            style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);font-size:1.2rem;padding:0.4rem 0;outline:none;"
+            oninput="updateQSRChange()">
+        </div>
+        <div id="qsrChangeLine" style="display:none;text-align:right;font-size:0.9rem;color:#10b981;font-weight:600;"></div>
+      </div>
+      <div class="modal-footer border-0 pt-0 flex-column gap-2">
+        <button id="qsrPayBtn" class="btn-luxury btn-luxury-primary w-100 py-3" onclick="submitQSRPayment()" disabled
+          style="font-size:0.78rem;letter-spacing:2px;background:#10b981;border-color:#10b981;">
+          <i class="bi bi-printer me-2"></i>CONFIRM &amp; PRINT SLIP
+        </button>
+        <button class="btn-luxury w-100" style="font-size:0.75rem;color:var(--text-muted);border-color:transparent;" onclick="cancelQSROrder()">
+          Cancel Order
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QSR confirmation overlay — shown after successful payment + print queued -->
+<div id="qsrConfirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="text-align:center;color:#fff;">
+    <div style="font-size:5rem;margin-bottom:1rem;">✓</div>
+    <div style="font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:0.5rem;">Paid</div>
+    <div id="qsrConfirmNum" style="font-size:1rem;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;"></div>
+    <div style="margin-top:1rem;font-size:0.8rem;color:rgba(255,255,255,0.5);">Slip printing… next customer</div>
+    <div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.35);" id="qsrChangeDue"></div>
+  </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -392,11 +465,14 @@
     setTimeout(() => t.classList.remove("show"), 3000);
   }
 
+  const AUTO_KOT_MODE = {{ auto_kot_mode|yesno:"true,false" }};
+
   let cart = [];
   let selectedItem = null;
   let sending = false;
   let currentOrderId = null;
   let activeModal = null;
+  let qsrPendingOrderId = null;
 
   function switchTab(tab) {
     document.getElementById("tabCart").classList.toggle("active", tab === 'cart');
@@ -689,5 +765,151 @@
     window.addEventListener("offline", syncOnlineState);
     syncOnlineState();
   });
+
+  {% if auto_kot_mode %}
+  // ── QSR AUTO-KOT MODE FUNCTIONS ──────────────────────────────────────
+  let _qsrMethod = null;
+  let _qsrTotal  = 0;
+
+  async function submitQSROrder() {
+    if (sending) return;
+    if (cart.length === 0) { showToast("Add items first."); return; }
+    sending = true;
+    document.querySelectorAll(".send-btn").forEach(b => { b.disabled = true; b.textContent = "Creating order…"; });
+
+    const isMobile = window.innerWidth < 992;
+    const source   = document.getElementById(isMobile ? "sourceSelectMobile" : "sourceSelectDesktop").value;
+
+    try {
+      // Step 1: create order (items remain pending — no send-to-kitchen)
+      const r1 = await fetch("{% url 'create-order' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
+        body: JSON.stringify({ cart, source, table_id: null })
+      });
+      const d1 = await r1.json();
+      if (!d1.success) { showToast(d1.error || "Order creation failed"); resetSendBtn(); return; }
+
+      qsrPendingOrderId = d1.order_id;
+
+      // Step 2: generate bill to calculate totals
+      const r2 = await fetch("{% url 'generate-bill' 0 %}".replace("0", qsrPendingOrderId), {
+        method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+      });
+      const d2 = await r2.json();
+      if (!d2.success) { showToast(d2.error || "Could not calculate total"); resetSendBtn(); return; }
+
+      _qsrTotal = d2.grand_total || 0;
+      document.getElementById("qsrGrandTotal").textContent = "₹ " + parseFloat(_qsrTotal).toFixed(2);
+      document.getElementById("qsrAmount").value = "";
+      document.getElementById("qsrChangeLine").style.display = "none";
+      _qsrMethod = null;
+      document.querySelectorAll(".qsr-method-btn").forEach(b => b.style.background = "transparent");
+      document.getElementById("qsrPayBtn").disabled = true;
+
+      new bootstrap.Modal(document.getElementById("qsrPayModal")).show();
+    } catch (e) {
+      showToast("Network error. Try again.");
+    }
+    resetSendBtn();
+  }
+
+  function selectQSRMethod(btn) {
+    _qsrMethod = btn.dataset.method;
+    document.querySelectorAll(".qsr-method-btn").forEach(b => {
+      b.style.background = "transparent";
+      b.style.color = "var(--text-main)";
+      b.style.borderColor = "var(--border-color)";
+    });
+    btn.style.background = "var(--accent-gold)";
+    btn.style.color = "#fff";
+    btn.style.borderColor = "var(--accent-gold)";
+    // Auto-fill amount for non-cash (exact amount)
+    if (_qsrMethod !== "cash") {
+      document.getElementById("qsrAmount").value = parseFloat(_qsrTotal).toFixed(2);
+    }
+    updateQSRChange();
+  }
+
+  function updateQSRChange() {
+    const amt = parseFloat(document.getElementById("qsrAmount").value) || 0;
+    const changeLine = document.getElementById("qsrChangeLine");
+    const payBtn = document.getElementById("qsrPayBtn");
+    if (amt >= _qsrTotal && _qsrMethod) {
+      const change = (amt - _qsrTotal).toFixed(2);
+      if (parseFloat(change) > 0) {
+        changeLine.style.display = "block";
+        changeLine.textContent = "Change due: ₹" + change;
+      } else {
+        changeLine.style.display = "none";
+      }
+      payBtn.disabled = false;
+    } else {
+      changeLine.style.display = "none";
+      payBtn.disabled = !(_qsrMethod && amt > 0);
+    }
+  }
+
+  async function submitQSRPayment() {
+    if (!qsrPendingOrderId || !_qsrMethod) return;
+    const amount = parseFloat(document.getElementById("qsrAmount").value);
+    if (!amount || amount <= 0) { showToast("Enter amount"); return; }
+
+    const payBtn = document.getElementById("qsrPayBtn");
+    payBtn.disabled = true;
+    payBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing…';
+
+    try {
+      const r = await fetch("{% url 'pay-order' 0 %}".replace("0", qsrPendingOrderId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
+        body: JSON.stringify({ method: _qsrMethod, amount: amount.toFixed(2) })
+      });
+      const d = await r.json();
+
+      if (d.success) {
+        // Close payment modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
+        if (modal) modal.hide();
+
+        // Show full-screen confirmation briefly
+        const confirm = document.getElementById("qsrConfirm");
+        document.getElementById("qsrConfirmNum").textContent = "Order " + (d.order_number || qsrPendingOrderId);
+        const change = parseFloat(d.change_due || 0);
+        document.getElementById("qsrChangeDue").textContent = change > 0 ? "Change: ₹" + change.toFixed(2) : "";
+        confirm.style.display = "flex";
+
+        // Auto-reset after 2.5 seconds
+        setTimeout(() => {
+          confirm.style.display = "none";
+          clearCart();
+          qsrPendingOrderId = null;
+          _qsrMethod = null;
+          _qsrTotal = 0;
+        }, 2500);
+      } else {
+        showToast(d.error || "Payment failed");
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<i class="bi bi-printer me-2"></i>CONFIRM & PRINT SLIP';
+      }
+    } catch (e) {
+      showToast("Network error during payment");
+      payBtn.disabled = false;
+      payBtn.innerHTML = '<i class="bi bi-printer me-2"></i>CONFIRM & PRINT SLIP';
+    }
+  }
+
+  async function cancelQSROrder() {
+    if (!qsrPendingOrderId) { bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"))?.hide(); return; }
+    try {
+      await fetch("{% url 'cancel-order' 0 %}".replace("0", qsrPendingOrderId), {
+        method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+      });
+    } catch {}
+    bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"))?.hide();
+    clearCart();
+    qsrPendingOrderId = null;
+  }
+  {% endif %}
 </script>
 {% endblock %}

@@ -186,7 +186,7 @@
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div class="item-identity">
                 <span class="item-name">
-                  {{ item.name }}
+                  <span style="display:inline-block;width:10px;height:10px;border-radius:2px;border:1.5px solid {% if item.is_veg %}#22c55e;background:#22c55e{% else %}#ef4444;background:#ef4444{% endif %};margin-right:5px;vertical-align:middle;"></span>{{ item.name }}
                   {% if not item.is_available %}<span class="luxury-badge badge-disabled">Offline</span>{% endif %}
                 </span>
                 <div class="d-flex gap-1 mt-1">
@@ -205,7 +205,7 @@
                 </div>
               </div>
               <div class="btn-group-luxury">
-                <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{ item.id }}', name:'{{ item.name|escapejs }}', price:'{{ item.price }}', description:'{{ item.description|escapejs }}', category:'{{ item.category.id }}', station:'{% if item.station %}{{ item.station.id }}{% endif %}', prepTime:{{ item.estimated_prep_time }}})"><i class="bi bi-pencil-square"></i></button>
+                <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{ item.id }}', name:'{{ item.name|escapejs }}', price:'{{ item.price }}', description:'{{ item.description|escapejs }}', category:'{{ item.category.id }}', station:'{% if item.station %}{{ item.station.id }}{% endif %}', prepTime:{{ item.estimated_prep_time }}, isVeg:{{ item.is_veg|lower }}})"><i class="bi bi-pencil-square"></i></button>
                 <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem('{{ item.id }}')"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
                 <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal('{{ item.id }}')"><i class="bi bi-journal-text"></i></button>
                 <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem('{{ item.id }}')"><i class="bi bi-trash"></i></button>
@@ -294,6 +294,19 @@
         <div class="mb-0 mt-3">
           <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing:1px;">Est. Prep Time (minutes)</label>
           <input id="itemPrepTime" type="number" min="1" max="120" class="form-control form-input-luxury" placeholder="e.g. 15"/>
+        </div>
+        <div class="mt-3 d-flex align-items-center gap-3">
+          <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing:1px;">Type</label>
+          <div class="d-flex gap-2">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;">
+              <input type="radio" name="itemVegType" id="itemIsVeg" value="true" checked style="accent-color:#22c55e;">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;border:2px solid #22c55e;background:#22c55e;"></span> Veg
+            </label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:0.85rem;font-weight:600;">
+              <input type="radio" name="itemVegType" id="itemIsNonVeg" value="false" style="accent-color:#ef4444;">
+              <span style="display:inline-block;width:12px;height:12px;border-radius:2px;border:2px solid #ef4444;background:#ef4444;"></span> Non-Veg
+            </label>
+          </div>
         </div>
       </div>
       <div class="modal-footer pt-0 border-0">
@@ -386,6 +399,7 @@
     document.getElementById("itemDescription").value = "";
     document.getElementById("itemImage").value = "";
     document.getElementById("itemPrepTime").value = "15";
+    document.getElementById("itemIsVeg").checked = true;
     idInput.value = "";
     if (item) {
       title.innerText = "Edit Menu Selection";
@@ -397,6 +411,7 @@
       document.getElementById("itemCategory").value = item.category;
       document.getElementById("itemStation").value = item.station || "";
       document.getElementById("itemPrepTime").value = item.prepTime || 15;
+      document.getElementById(item.isVeg === false ? "itemIsNonVeg" : "itemIsVeg").checked = true;
     } else {
       title.innerText = "New Menu Selection";
       btn.innerText = "Add to Collection";
@@ -450,6 +465,7 @@
     formData.append("station",            document.getElementById("itemStation").value);
     formData.append("description",        document.getElementById("itemDescription").value);
     formData.append("estimated_prep_time",document.getElementById("itemPrepTime").value || 15);
+    formData.append("is_veg", document.getElementById("itemIsVeg").checked ? "true" : "false");
     const imgInput = document.getElementById("itemImage");
     if (imgInput.files[0]) formData.append("image", imgInput.files[0]);
     const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";

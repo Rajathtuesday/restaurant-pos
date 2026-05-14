@@ -386,26 +386,35 @@
                 if (!res.ok) return; // User not logged in or server error — skip silently
 
                 const data = await res.json();
-                const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
+                const wCount = data.waiter_calls.count || 0;
+                const kCount = data.kitchen_messages.count || 0;
+                const totalCount = wCount + kCount;
 
                 // ---- Update nav badges ----
                 updateBadge('notif-badge-waiter', totalCount);
 
                 // ---- Fire toast ONLY for NEW notifications (not on first load) ----
                 if (prevWaiterCount !== -1 && wCount > prevWaiterCount) {
-                    // New waiter call came in
                     const newCalls = data.waiter_calls.items.slice(0, wCount - prevWaiterCount);
                     newCalls.forEach(call => {
                         ui.toast(`🔔 Waiter called from ${call.table}`, 'warning');
                     });
-                    // Vibrate on tablets/phones for tactile feedback
                     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-                    // Request browser-level notification if permitted
                     sendBrowserNotif(`Waiter Call — ${newCalls[0]?.table || 'Table'}`,
                         `Customer is calling for assistance.`);
                 }
-
                 prevWaiterCount = wCount;
+
+                if (prevKitchenCount !== -1 && kCount > prevKitchenCount) {
+                    const newMsgs = data.kitchen_messages.items.slice(0, kCount - prevKitchenCount);
+                    newMsgs.forEach(msg => {
+                        ui.toast(`Kitchen (${msg.table}): ${msg.message}`, 'info');
+                    });
+                    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                    sendBrowserNotif(`Kitchen Alert — ${newMsgs[0]?.table || 'Table'}`,
+                        newMsgs[0]?.message || 'Message from kitchen');
+                }
+                prevKitchenCount = kCount;
 
             } catch (e) {
                 // Network blip — ignore, next poll will recover
@@ -522,5 +531,64 @@
         });
     })();
     </script>
+
+    {% if user.is_authenticated and user.tenant %}
+    <div id="setup-checklist-widget" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:9990;font-family:var(--font-main,'Outfit',sans-serif);display:none;">
+        <div id="setup-checklist-panel" style="display:none;background:var(--panel-bg);border:1px solid var(--border-color);width:260px;margin-bottom:0.5rem;box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+            <div style="padding:0.85rem 1rem;border-bottom:1px solid var(--border-color);display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent-gold);font-weight:700;">Setup Checklist</span>
+                <button onclick="toggleChecklist()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:0;line-height:1;">✕</button>
+            </div>
+            <div id="setup-checklist-items" style="padding:0.5rem 0;"></div>
+        </div>
+        <button id="setup-checklist-btn" onclick="toggleChecklist()" style="background:var(--panel-bg);border:1px solid var(--border-color);color:var(--text-main);padding:0.6rem 1rem;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.5rem;box-shadow:0 4px 16px rgba(0,0,0,0.2);white-space:nowrap;font-family:inherit;">
+            <span style="color:var(--accent-gold);">&#9881;</span>
+            <span id="setup-checklist-label">Setup</span>
+        </button>
+    </div>
+    <script>
+    (function() {
+        const HIDE_KEY = 'rasova_setup_done';
+        let panelOpen = false;
+
+        if (localStorage.getItem(HIDE_KEY) === '1') return;
+
+        const widget = document.getElementById('setup-checklist-widget');
+        const panel = document.getElementById('setup-checklist-panel');
+        const label = document.getElementById('setup-checklist-label');
+        const itemsEl = document.getElementById('setup-checklist-items');
+
+        window.toggleChecklist = function() {
+            panelOpen = !panelOpen;
+            panel.style.display = panelOpen ? 'block' : 'none';
+        };
+
+        function renderItems(steps, doneCount, total) {
+            label.textContent = 'Setup ' + doneCount + '/' + total + ' complete';
+            itemsEl.innerHTML = steps.map(s => {
+                const icon = s.done
+                    ? '<span style="color:#10b981;font-size:1rem;">&#10003;</span>'
+                    : '<span style="color:var(--border-color);font-size:0.85rem;">&#9711;</span>';
+                const color = s.done ? 'var(--text-muted)' : 'var(--text-main)';
+                return '<a href="' + s.url + '" style="display:flex;align-items:center;gap:0.75rem;padding:0.55rem 1rem;text-decoration:none;color:' + color + ';font-size:0.82rem;border-bottom:1px solid var(--border-color);">' +
+                    icon + '<span>' + s.label + '</span></a>';
+            }).join('');
+        }
+
+        fetch('/setup/checklist/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) return;
+                if (data.all_done) {
+                    localStorage.setItem(HIDE_KEY, '1');
+                    return;
+                }
+                renderItems(data.steps, data.done_count, data.steps.length);
+                widget.style.display = 'block';
+            })
+            .catch(() => {});
+    })();
+    </script>
+    {% endif %}
 </body>
 </html>

@@ -114,6 +114,43 @@
   @media (max-width: 400px) {
     .btn-luxury { padding: 0.4rem 0.5rem; font-size: 0.65rem; letter-spacing: 0; }
   }
+
+  /* Urgency overlays */
+  .card-urgent { border-color: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239,68,68,.25) !important; }
+  .card-warn   { border-color: #f97316 !important; box-shadow: 0 0 0 2px rgba(249,115,22,.15) !important; }
+
+  /* Cooking badge */
+  .cooking-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.7rem; font-weight: 700; color: #f97316;
+    background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.3);
+    border-radius: 12px; padding: 2px 8px; margin-top: 6px;
+  }
+
+  /* Section dividers */
+  .section-header {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 3px;
+    font-weight: 700; color: var(--text-muted); padding: 0.4rem 0.2rem 0.2rem;
+    border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
+  }
+
+  /* ── Manager alert strip ───────────────────────────── */
+  .alert-strip {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 0.75rem 1rem; margin-bottom: 1.5rem;
+    background: var(--panel-bg); border: 1px solid var(--border-color);
+    border-left: 4px solid #ef4444;
+    font-size: 0.78rem; font-weight: 600;
+  }
+  .alert-strip.clean { border-left-color: #10b981; }
+  .alert-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px; font-size: 0.72rem;
+  }
+  .chip-danger { background: rgba(239,68,68,.1); color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
+  .chip-warn   { background: rgba(249,115,22,.1); color: #f97316; border: 1px solid rgba(249,115,22,.3); }
+  .chip-info   { background: rgba(6,182,212,.1);  color: #06b6d4; border: 1px solid rgba(6,182,212,.3); }
+  .chip-ok     { background: rgba(16,185,129,.1); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
 </style>
 {% endblock %}
 
@@ -334,65 +371,108 @@
         const container = document.getElementById("tableGrid");
         if (!container) return;
 
-        let fullHtml = "";
+        const ACTIVE_STATES = ["ordering", "preparing", "served", "ready"];
+
+        // ── Manager alert strip ───────────────────────────────────────────
+        const stuckCount    = d.tables.filter(t => ACTIVE_STATES.includes(t.status) && (t.elapsed || 0) > 30).length;
+        const approvalCount = d.tables.filter(t => t.status === "needs_approval").length;
+        const billingCount  = d.tables.filter(t => t.status === "billing").length;
+        const isClean = stuckCount === 0 && approvalCount === 0;
+
+        let fullHtml = `<div class="col-12"><div class="alert-strip ${isClean ? 'clean' : ''}">
+          <span style="color:var(--text-muted);text-transform:uppercase;letter-spacing:2px;font-size:0.65rem;">Floor</span>`;
+        if (stuckCount > 0)    fullHtml += `<span class="alert-chip chip-danger"><i class="bi bi-exclamation-triangle-fill"></i> ${stuckCount} stuck &gt;30m</span>`;
+        if (approvalCount > 0) fullHtml += `<span class="alert-chip chip-warn"><i class="bi bi-hourglass-split"></i> ${approvalCount} need approval</span>`;
+        if (billingCount > 0)  fullHtml += `<span class="alert-chip chip-info"><i class="bi bi-receipt"></i> ${billingCount} awaiting payment</span>`;
+        if (isClean)           fullHtml += `<span class="alert-chip chip-ok"><i class="bi bi-check-circle-fill"></i> All clear</span>`;
+        fullHtml += `</div></div>`;
+
+        // ── Group tables by section ───────────────────────────────────────
+        const sections = {};
         d.tables.forEach(t => {
-          let statusText = t.status || "free";
-          let statusClass = "status-free", bgClass = "bg-free";
-          let timerHtml = "", actionsHtml = "";
+          const sec = t.section || "";
+          if (!sections[sec]) sections[sec] = [];
+          sections[sec].push(t);
+        });
+        const sectionKeys = Object.keys(sections).sort();
 
-          if      (statusText === "ordering")       { statusClass = "status-ordering";  bgClass = "bg-order";   }
-          else if (statusText === "preparing")      { statusClass = "status-preparing"; bgClass = "bg-prepare"; }
-          else if (statusText === "served" || statusText === "ready") { statusClass = "status-served"; bgClass = "bg-serve"; }
-          else if (statusText === "billing")        { statusClass = "status-billing";   bgClass = "bg-billing"; }
-          else if (statusText === "cleaning")       { statusClass = "status-cleaning";  bgClass = "bg-clean";   }
-          else if (statusText === "merged")         { statusClass = "status-merged";    bgClass = "bg-merged";  }
-          else if (statusText === "needs_approval") { statusClass = "status-approval";  bgClass = "bg-approval";}
-
-          if (statusText === "free") {
-            actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
-            if (t.is_primary) actionsHtml += `<button onclick="unmergeTable(${t.id})" class="btn-card-action w-100" style="color:#ef4444;margin-top:5px;"><i class="bi bi-scissors"></i> Unmerge</button>`;
-          } else if (statusText === "merged") {
-            const pName = t.primary_table_name || t.primary_table;
-            timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
-            actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>`;
-          } else if (statusText === "cleaning") {
-            timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
-            actionsHtml = `<button onclick="markTableCleaned(${t.id})" class="btn-card-action btn-card-primary w-100">Mark Clean</button>`;
-          } else if (statusText === "billing") {
-            timerHtml = `<div class="table-timer status-billing"><i class="bi bi-receipt"></i> Billing</div>`;
-            actionsHtml = `<button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-card-action btn-card-primary w-100" style="background:#06b6d4;border-color:#06b6d4;"><i class="bi bi-credit-card me-1"></i> Pay Bill</button>
-              <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>`;
-          } else if (statusText === "needs_approval") {
-            timerHtml = `<div class="table-timer bg-approval text-white"><i class="bi bi-exclamation-triangle"></i> Review</div>`;
-            actionsHtml = `<button onclick="handleTableClick(${t.id})" class="btn-card-action btn-card-primary w-100" style="background:#f43f5e;border-color:#f43f5e;"><i class="bi bi-check-circle me-1"></i> Approve QR</button>`;
-          } else {
-            if (t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
-            actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
-              <button onclick="generateBillForOrder(${t.order_id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
-              <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>`;
+        sectionKeys.forEach(sec => {
+          if (sec) {
+            fullHtml += `<div class="col-12"><div class="section-header"><i class="bi bi-grid-3x3-gap me-1"></i>${sec}</div></div>`;
           }
 
-          let mergeBadge = '';
-          if (statusText === "merged") {
-            mergeBadge = `<div class="occupancy"><i class="bi bi-link-45deg"></i> Linked to ${t.primary_table_name || 'Primary'}</div>`;
-          } else if (t.is_primary) {
-            mergeBadge = `<div class="occupancy"><i class="bi bi-diagram-3"></i> Merged w/ ${t.merged_with_names}</div>`;
-          }
-          const sectionBadge = t.section ? `<span class="badge bg-secondary ms-2 bg-opacity-25" style="color:var(--text-main);">${t.section}</span>` : '';
+          sections[sec].forEach(t => {
+            let statusText = t.status || "free";
+            let statusClass = "status-free", bgClass = "bg-free";
+            let cardClasses = "";
+            let timerHtml = "", actionsHtml = "", cookingBadge = "";
 
-          fullHtml += `<div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
-            <div class="table-card w-100 shadow-sm">
-              <div class="table-status-line ${bgClass}"></div>
-              ${t.waiter_initials ? `<div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">${t.waiter_initials}</div>` : ''}
-              <div class="table-header">
-                <div class="d-flex align-items-center flex-wrap"><h3 class="table-name mb-0">${t.name}</h3>${sectionBadge}</div>
-                ${timerHtml}
+            if      (statusText === "ordering")       { statusClass = "status-ordering";  bgClass = "bg-order";   }
+            else if (statusText === "preparing")      { statusClass = "status-preparing"; bgClass = "bg-prepare"; }
+            else if (statusText === "served" || statusText === "ready") { statusClass = "status-served"; bgClass = "bg-serve"; }
+            else if (statusText === "billing")        { statusClass = "status-billing";   bgClass = "bg-billing"; }
+            else if (statusText === "cleaning")       { statusClass = "status-cleaning";  bgClass = "bg-clean";   }
+            else if (statusText === "merged")         { statusClass = "status-merged";    bgClass = "bg-merged";  }
+            else if (statusText === "needs_approval") { statusClass = "status-approval";  bgClass = "bg-approval";}
+
+            // Urgency highlighting for active tables
+            if (ACTIVE_STATES.includes(statusText)) {
+              const elapsed = t.elapsed || 0;
+              if (elapsed > 30)      cardClasses = "card-urgent";
+              else if (elapsed > 15) cardClasses = "card-warn";
+            }
+
+            // Cooking badge
+            if (t.cooking_items > 0) {
+              cookingBadge = `<span class="cooking-badge"><i class="bi bi-fire"></i> ${t.cooking_items} in kitchen</span>`;
+            }
+
+            if (statusText === "free") {
+              actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action w-100"><i class="bi bi-plus-lg me-1"></i> New Order</button>`;
+              if (t.is_primary) actionsHtml += `<button onclick="unmergeTable(${t.id})" class="btn-card-action w-100" style="color:#ef4444;margin-top:5px;"><i class="bi bi-scissors"></i> Unmerge</button>`;
+            } else if (statusText === "merged") {
+              const pName = t.primary_table_name || t.primary_table;
+              timerHtml = `<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>`;
+              actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.primary_table}'" class="btn-card-action w-100">Go to Primary (${pName})</button>`;
+            } else if (statusText === "cleaning") {
+              timerHtml = `<div class="table-timer text-muted"><i class="bi bi-stars"></i> Table Dirty</div>`;
+              actionsHtml = `<button onclick="markTableCleaned(${t.id})" class="btn-card-action btn-card-primary w-100">Mark Clean</button>`;
+            } else if (statusText === "billing") {
+              timerHtml = `<div class="table-timer status-billing"><i class="bi bi-receipt"></i> Billing</div>`;
+              actionsHtml = `<button onclick="window.location.href='/bill/${t.order_id}/'" class="btn-card-action btn-card-primary w-100" style="background:#06b6d4;border-color:#06b6d4;"><i class="bi bi-credit-card me-1"></i> Pay Bill</button>
+                <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>`;
+            } else if (statusText === "needs_approval") {
+              timerHtml = `<div class="table-timer bg-approval text-white"><i class="bi bi-exclamation-triangle"></i> Review</div>`;
+              actionsHtml = `<button onclick="handleTableClick(${t.id})" class="btn-card-action btn-card-primary w-100" style="background:#f43f5e;border-color:#f43f5e;"><i class="bi bi-check-circle me-1"></i> Approve QR</button>`;
+            } else {
+              if (t.elapsed !== undefined) timerHtml = `<div class="table-timer ${statusClass}"><i class="bi bi-clock"></i> ${t.elapsed}m</div>`;
+              actionsHtml = `<button onclick="window.location.href='/billing/?table=${t.id}'" class="btn-card-action" title="Add Items"><i class="bi bi-cart-plus d-block mb-1 mx-auto fs-5"></i> Add</button>
+                <button onclick="generateBillForOrder(${t.order_id})" class="btn-card-action" title="Generate Bill"><i class="bi bi-receipt d-block mb-1 mx-auto fs-5"></i> Bill</button>
+                <button onclick="handleTableClick(${t.id})" class="btn-card-action" title="More Options"><i class="bi bi-three-dots d-block mb-1 mx-auto fs-5"></i> More</button>`;
+            }
+
+            let mergeBadge = '';
+            if (statusText === "merged") {
+              mergeBadge = `<div class="occupancy"><i class="bi bi-link-45deg"></i> Linked to ${t.primary_table_name || 'Primary'}</div>`;
+            } else if (t.is_primary) {
+              mergeBadge = `<div class="occupancy"><i class="bi bi-diagram-3"></i> Merged w/ ${t.merged_with_names}</div>`;
+            }
+
+            fullHtml += `<div class="col-12 col-md-6 col-xl-4 col-xxl-3 d-flex">
+              <div class="table-card w-100 shadow-sm ${cardClasses}">
+                <div class="table-status-line ${bgClass}"></div>
+                ${t.waiter_initials ? `<div class="waiter-badge ${t.waiter_initials === 'QR' ? 'qr-badge' : ''}" title="Waiter: ${t.waiter_name}">${t.waiter_initials}</div>` : ''}
+                <div class="table-header">
+                  <div class="d-flex align-items-center flex-wrap"><h3 class="table-name mb-0">${t.name}</h3></div>
+                  ${timerHtml}
+                </div>
+                <div class="table-status ${statusClass}">${statusText.replace('_', ' ')}</div>
+                ${cookingBadge}
+                ${mergeBadge}
+                <div class="mt-auto"><div class="card-actions">${actionsHtml}</div></div>
               </div>
-              <div class="table-status ${statusClass}">${statusText}</div>
-              ${mergeBadge}
-              <div class="mt-auto"><div class="card-actions">${actionsHtml}</div></div>
-            </div>
-          </div>`;
+            </div>`;
+          });
         });
 
         container.innerHTML = fullHtml;

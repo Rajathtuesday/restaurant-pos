@@ -1,0 +1,131 @@
+"""AI menu importer and multi-outlet menu sync."""
+import logging
+from decimal import Decimal
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
+from core.decorators import tenant_required, feature_required
+from menu.models import MenuCategory, MenuItem
+
+logger = logging.getLogger("pos.menu")
+
+
+@login_required
+@tenant_required
+@feature_required("ai_menu_import")
+def ai_menu_importer(request):
+    """Gemini-powered menu parser — accepts photo/PDF upload or raw text."""
+    from core.ai_service import AIService
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        text       = request.POST.get("text")
+        file       = request.FILES.get("file")
+        image_bytes = mime_type = None
+        if file:
+            image_bytes = file.read()
+            mime_type   = file.content_type
+
+        structured_data = AIService().parse_menu(
+            text=text, image_bytes=image_bytes, mime_type=mime_type
+        )
+        imported_count = 0
+        with transaction.atomic():
+            for entry in structured_data:
+                category, _ = MenuCategory.objects.get_or_create(
+                    tenant=request.user.tenant, outlet=request.user.outlet,
+                    name=entry.get("category", "General"),
+                )
+                for item_data in entry.get("items", []):
+                    name  = item_data.get("name")
+                    price = item_data.get("price", 0)
+                    if name:
+                        MenuItem.objects.get_or_create(
+                            tenant=request.user.tenant, outlet=request.user.outlet,
+                            category=category, name=name,
+                            defaults={"price": Decimal(str(price))},
+                        )
+                        imported_count += 1
+
+        return JsonResponse({
+            "success": True,
+            "message": f"AI imported {imported_count} items.",
+        })
+    except Exception as e:
+        logger.exception("AI Import error")
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("multi_outlet")
+@require_POST
+def sync_menu_to_outlets(request):
+    """Push categories, items and recipes from this outlet to all other outlets in the tenant."""
+    from tenants.models import Outlet
+    from inventory.models import InventoryItem
+    from menu.models import Recipe
+
+    if request.user.role != "owner":
+        return JsonResponse({"error": "Only owners can sync menus"}, status=403)
+
+    tenant        = request.user.tenant
+    source_outlet = request.user.outlet
+    target_outlets = Outlet.objects.filter(tenant=tenant).exclude(id=source_outlet.id)
+
+    if not target_outlets.exists():
+        return JsonResponse({"error": "No other branches found to sync to."}, status=400)
+
+    source_categories = MenuCategory.objects.filter(tenant=tenant, outlet=source_outlet)
+    stats = {
+        "categories_created": 0, "items_created": 0,
+        "recipes_created": 0, "outlets_updated": target_outlets.count(),
+    }
+
+    with transaction.atomic():
+        for target_outlet in target_outlets:
+            for src_cat in source_categories:
+                target_cat, cat_created = MenuCategory.objects.update_or_create(
+                    tenant=tenant, outlet=target_outlet, name=src_cat.name,
+                    defaults={"is_active": src_cat.is_active},
+                )
+                if cat_created:
+                    stats["categories_created"] += 1
+
+                for src_item in src_cat.items.all():
+                    target_item, item_created = MenuItem.objects.update_or_create(
+                        tenant=tenant, outlet=target_outlet, name=src_item.name,
+                        defaults={
+                            "category":            target_cat,
+                            "price":               src_item.price,
+                            "description":         src_item.description,
+                            "estimated_prep_time": src_item.estimated_prep_time,
+                            "gst_percentage":      src_item.gst_percentage,
+                            "is_available":        src_item.is_available,
+                            "available_takeaway":  src_item.available_takeaway,
+                            "available_zomato":    src_item.available_zomato,
+                            "available_swiggy":    src_item.available_swiggy,
+                            "is_veg":              src_item.is_veg,
+                        },
+                    )
+                    if item_created:
+                        stats["items_created"] += 1
+
+                    for src_recipe in src_item.recipes.all():
+                        target_inv = InventoryItem.objects.filter(
+                            tenant=tenant, outlet=target_outlet,
+                            name__iexact=src_recipe.inventory_item.name,
+                        ).first()
+                        if target_inv:
+                            _, recipe_created = Recipe.objects.get_or_create(
+                                menu_item=target_item, inventory_item=target_inv,
+                                defaults={"quantity_required": src_recipe.quantity_required},
+                            )
+                            if recipe_created:
+                                stats["recipes_created"] += 1
+
+    return JsonResponse({"success": True, "stats": stats})

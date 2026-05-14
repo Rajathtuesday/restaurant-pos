@@ -30,10 +30,14 @@ def notification_api(request):
         tenant=tenant, outlet=outlet, is_resolved=False
     ).select_related('table').order_by('-created_at')
 
-    # 2. Active Kitchen Messages (not acknowledged)
+    # 2. Active Kitchen Messages (not acknowledged).
+    # Waiters only see messages for orders they created (their own tables).
+    # Managers / owners / cashiers see all messages for the outlet.
     kitchen_msgs = KitchenMessage.objects.filter(
         tenant=tenant, outlet=outlet, is_resolved=False
     ).select_related('order', 'order__table').order_by('-created_at')
+    if request.user.role == 'waiter':
+        kitchen_msgs = kitchen_msgs.filter(order__created_by=request.user)
 
     # 3. Unread System Notifications (the 'unread' specific path user mentioned)
     unread_system = Notification.objects.filter(

@@ -1,0 +1,256 @@
+{% extends 'core/base.html' %}
+{% block title %}Setup — {{ tenant.name }} | Rasova Control Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cfg-wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+  .cfg-section { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.75rem; margin-bottom: 1.5rem; }
+  .cfg-section h3 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; font-weight: 400; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; }
+  .field { margin-bottom: 1rem; }
+  .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.3rem; }
+  .field input, .field select { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 0.9rem; font-family: inherit; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--accent-gold); }
+  .field select option { background: var(--panel-bg); }
+  .field-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+  .btn-cfg { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.5rem 1.2rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; transition: all 0.2s; }
+  .btn-cfg:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .btn-cfg-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-cfg-primary:hover { background: #b59250; color: #fff; }
+  .feat-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; margin: 3px; }
+  .feat-on  { background: rgba(16,185,129,.1); color:#10b981; border:1px solid rgba(16,185,129,.3); }
+  .feat-off { background: rgba(115,115,115,.1); color:var(--text-muted); border:1px solid var(--border-color); }
+  .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; }
+  .role-chip { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
+    <a href="/superuser/" style="color:var(--accent-gold);text-decoration:none;">Control Panel</a> / {{ tenant.name }}
+  </p>
+  <h1 class="brand-title mb-0"><i class="bi bi-building me-2" style="color:var(--accent-gold);"></i>{{ tenant.name }}</h1>
+  <p class="brand-subtitle">{{ tenant.get_tenant_type_display }} — {{ outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/settings/features/?tenant_id={{ tenant.id }}" class="btn-luxury me-2"><i class="bi bi-toggles me-1"></i>Feature Flags</a>
+<a href="/superuser/" class="btn-luxury">All Restaurants</a>
+{% endblock %}
+
+{% block content %}
+<div class="cfg-wrap">
+
+  <!-- Feature summary -->
+  <div class="cfg-section">
+    <h3><i class="bi bi-toggles" style="color:var(--accent-gold);"></i> Active Features</h3>
+    <div style="margin-bottom:1rem;">
+      {% for f in feature_summary %}
+        <span class="feat-pill {% if f.on %}feat-on{% else %}feat-off{% endif %}">
+          <i class="bi {% if f.on %}bi-check-circle-fill{% else %}bi-x-circle{% endif %}"></i>
+          {{ f.key|title|cut:"_" }}
+        </span>
+      {% endfor %}
+    </div>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;">
+      {% for key, preset in presets.items %}
+      <button onclick="applyPreset('{{ key }}', '{{ preset.label }}')" class="btn-cfg" style="font-size:0.68rem;">
+        <i class="bi bi-lightning-charge me-1"></i>{{ preset.label }}
+      </button>
+      {% endfor %}
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem;">
+      Presets apply instantly. For fine-grained control: <a href="/settings/features/?tenant_id={{ tenant.id }}" style="color:var(--accent-gold);">Feature Flags →</a>
+    </p>
+  </div>
+
+  <!-- Outlet info -->
+  <div class="cfg-section">
+    <h3><i class="bi bi-shop" style="color:var(--accent-gold);"></i> Outlet Info</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_outlet">
+      <div class="field-row">
+        <div class="field">
+          <label>Phone</label>
+          <input type="tel" name="phone" value="{{ outlet.phone|default:'' }}" placeholder="9876543210">
+        </div>
+        <div class="field">
+          <label>GSTIN</label>
+          <input type="text" name="gst_no" value="{{ outlet.gst_no|default:'' }}" maxlength="15" placeholder="27AAAAA0000A1Z5">
+        </div>
+        <div class="field">
+          <label>FSSAI</label>
+          <input type="text" name="fssai_no" value="{{ outlet.fssai_no|default:'' }}" maxlength="14" placeholder="12345678901234">
+        </div>
+      </div>
+      <div class="field">
+        <label>Address (prints on bills)</label>
+        <input type="text" name="address" value="{{ outlet.address|default:'' }}" placeholder="Shop 4, MG Road, Pune 411001">
+      </div>
+      <button type="submit" class="btn-cfg btn-cfg-primary">Save Outlet Info</button>
+    </form>
+  </div>
+
+  <!-- Printer / Kitchen Stations -->
+  <div class="cfg-section">
+    <h3><i class="bi bi-printer" style="color:var(--accent-gold);"></i> Printers / Kitchen Stations</h3>
+    {% for station in stations %}
+    <div style="border:1px solid var(--border-color);padding:1.25rem;margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div>
+          <strong>{{ station.name }}</strong>
+          {% if station.is_default %}<span style="font-size:0.6rem;color:var(--accent-gold);margin-left:8px;text-transform:uppercase;letter-spacing:1px;">Default (billing)</span>{% endif %}
+        </div>
+        {% if station.printer_ip %}
+          <span style="font-size:0.75rem;color:#10b981;"><i class="bi bi-wifi"></i> {{ station.printer_ip }}:{{ station.printer_port }}</span>
+        {% else %}
+          <span style="font-size:0.75rem;color:var(--text-muted);"><i class="bi bi-wifi-off"></i> No printer configured</span>
+        {% endif %}
+      </div>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="update_printer">
+        <input type="hidden" name="station_id" value="{{ station.id }}">
+        <div class="field-row">
+          <div class="field">
+            <label>Printer IP</label>
+            <input type="text" name="printer_ip" value="{{ station.printer_ip|default:'' }}" placeholder="192.168.1.100">
+          </div>
+          <div class="field">
+            <label>Port</label>
+            <input type="number" name="printer_port" value="{{ station.printer_port }}" placeholder="9100">
+          </div>
+          <div class="field">
+            <label>Paper Width</label>
+            <select name="paper_width_mm">
+              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm (48 chars)</option>
+              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm (32 chars)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cut Type</label>
+            <select name="cut_type">
+              <option value="partial" {% if station.cut_type == "partial" %}selected{% endif %}>Partial (recommended)</option>
+              <option value="full"    {% if station.cut_type == "full"    %}selected{% endif %}>Full cut</option>
+              <option value="none"    {% if station.cut_type == "none"    %}selected{% endif %}>None (manual tear)</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-cfg btn-cfg-primary">Save Printer</button>
+      </form>
+    </div>
+    {% endfor %}
+
+    <!-- Add station -->
+    <form method="post" style="display:flex;gap:0.75rem;align-items:flex-end;margin-top:0.5rem;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_station">
+      <div class="field" style="flex:1;margin:0;">
+        <label>Add Station (e.g. Grill, Fryer, Bar)</label>
+        <input type="text" name="station_name" placeholder="Station name">
+      </div>
+      <button type="submit" class="btn-cfg">+ Add Station</button>
+    </form>
+  </div>
+
+  <!-- Payment methods -->
+  <div class="cfg-section">
+    <h3><i class="bi bi-cash-coin" style="color:var(--accent-gold);"></i> Payment Methods</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_payment">
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.25rem;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" name="methods" value="cash" {% if config.cash_enabled %}checked{% endif %}> Cash
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" name="methods" value="upi" {% if config.upi_enabled %}checked{% endif %}> UPI / GPay / PhonePe
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" name="methods" value="card" {% if config.card_enabled %}checked{% endif %}> Card (POS machine)
+        </label>
+      </div>
+      <div class="field" style="max-width:300px;">
+        <label>UPI ID (for bill QR code)</label>
+        <input type="text" name="upi_id" value="{{ config.upi_id|default:'' }}" placeholder="restaurant@okaxis">
+      </div>
+      <button type="submit" class="btn-cfg btn-cfg-primary">Save Payment Config</button>
+    </form>
+  </div>
+
+  <!-- Staff -->
+  <div class="cfg-section">
+    <h3><i class="bi bi-people" style="color:var(--accent-gold);"></i> Staff Accounts ({{ staff.count }})</h3>
+    {% for user in staff %}
+    <div class="staff-row">
+      <div>
+        <strong>{{ user.username }}</strong>
+        {% if user.first_name %}<span style="color:var(--text-muted);font-size:0.85rem;"> — {{ user.get_full_name }}</span>{% endif %}
+      </div>
+      <span class="role-chip">{{ user.role }}</span>
+    </div>
+    {% empty %}
+    <p style="color:var(--text-muted);font-size:0.85rem;">No staff yet (owner account was auto-created).</p>
+    {% endfor %}
+
+    <form method="post" style="margin-top:1.25rem;">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_staff">
+      <div class="field-row" style="margin-bottom:0.75rem;">
+        <div class="field">
+          <label>Username *</label>
+          <input type="text" name="username" placeholder="ravi_cashier" required>
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select name="role">
+            <option value="cashier">Cashier</option>
+            <option value="manager">Manager</option>
+            <option value="waiter">Waiter</option>
+            <option value="chef">Kitchen / Chef</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Password *</label>
+          <input type="password" name="password" placeholder="Min 6 chars" required>
+        </div>
+      </div>
+      <button type="submit" class="btn-cfg btn-cfg-primary">Add Staff Member</button>
+    </form>
+  </div>
+
+  <!-- Quick links -->
+  <div class="cfg-section">
+    <h3><i class="bi bi-box-arrow-up-right" style="color:var(--accent-gold);"></i> Next Steps</h3>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <a href="/admin/tenants/tenant/{{ tenant.id }}/change/" class="btn-cfg"><i class="bi bi-pencil me-1"></i>Edit in Admin</a>
+      <a href="/settings/features/?tenant_id={{ tenant.id }}" class="btn-cfg"><i class="bi bi-toggles me-1"></i>Fine-tune Features</a>
+      <a href="/menu/" class="btn-cfg" target="_blank"><i class="bi bi-grid me-1"></i>Open Menu Manager</a>
+      <a href="/setup/onboard/" class="btn-cfg" target="_blank"><i class="bi bi-play-circle me-1"></i>Run Onboarding Wizard</a>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.75rem;">
+      To add menu items: log in as the owner account, then go to /menu/ or use the AI import.
+      The onboarding wizard link above only works when logged in as that restaurant's owner.
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function applyPreset(presetKey, label) {
+  if (!confirm(`Apply preset "${label}"?\nThis overrides feature flags for {{ tenant.name }}.`)) return;
+  const r = await fetch("{% url 'superuser_preset' tenant.id %}", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": apiClient.getCsrf() },
+    body: `preset=${presetKey}`
+  });
+  const d = await r.json();
+  if (d.success) { ui.toast(`Applied: ${d.label}`, 'success'); setTimeout(() => location.reload(), 800); }
+  else ui.toast(d.error || "Failed", 'error');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends 'core/base.html' %}
+{% block title %}Rasova Control Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+  .su-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+  .su-header { margin-bottom: 2rem; }
+  .su-header h1 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 400; }
+  .su-header p  { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+  .su-table { width: 100%; border-collapse: collapse; }
+  .su-table th { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+  .su-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; vertical-align: middle; }
+  .su-table tr:hover td { background: var(--panel-bg); }
+
+  .type-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
+  .type-badge.franchise { border-color: #f97316; color: #f97316; }
+  .type-badge.fine_dining { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .type-badge.cafe { border-color: #a855f7; color: #a855f7; }
+
+  .btn-su { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.35rem 0.8rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-su:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .btn-su-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-su-primary:hover { background: #b59250; color: #fff; }
+
+  .create-panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
+  .field-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+  .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.35rem; }
+  .field input, .field select { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 0.9rem; font-family: inherit; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--accent-gold); }
+  .field select option { background: var(--panel-bg); }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-active { background: #10b981; }
+  .dot-inactive { background: #ef4444; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">Rasova Staff</p>
+  <h1 class="brand-title mb-0"><i class="bi bi-shield-lock me-2" style="color:var(--accent-gold);"></i>Control Panel</h1>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/sales/" class="btn-luxury me-2">Reseller Dashboard</a>
+<a href="/settings/features/" class="btn-luxury me-2">Feature Flags</a>
+<a href="/admin/" class="btn-luxury">Django Admin</a>
+{% endblock %}
+
+{% block content %}
+<div class="su-wrap">
+
+  {% if error %}
+  <div style="background:rgba(239,68,68,.1);border:1px solid #ef4444;color:#ef4444;padding:1rem;margin-bottom:1.5rem;">{{ error }}</div>
+  {% endif %}
+
+  <!-- Create new restaurant -->
+  <div class="create-panel">
+    <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.5rem;">New Restaurant</p>
+    <h2 style="font-family:'DM Serif Display',serif;font-size:1.3rem;font-weight:400;margin-bottom:1.5rem;">Add a Restaurant</h2>
+    <form id="createForm">
+      <div class="field-row" style="margin-bottom:1rem;">
+        <div class="field">
+          <label>Restaurant Name *</label>
+          <input type="text" name="name" placeholder="Spice Garden" required>
+        </div>
+        <div class="field">
+          <label>Type *</label>
+          <select name="tenant_type">
+            <option value="franchise">QSR / Fast Food</option>
+            <option value="fine_dining">Fine Dining</option>
+            <option value="cafe">Café / Coffee Shop</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Branch / Outlet Name</label>
+          <input type="text" name="outlet_name" placeholder="Main Branch">
+        </div>
+        <div class="field">
+          <label>GSTIN (optional)</label>
+          <input type="text" name="gst_no" placeholder="27AAAAA0000A1Z5" maxlength="15">
+        </div>
+        <div class="field">
+          <label>Phone (optional)</label>
+          <input type="tel" name="phone" placeholder="9876543210">
+        </div>
+      </div>
+      <div class="field-row" style="margin-bottom:1.5rem;">
+        <div class="field">
+          <label>Owner Username *</label>
+          <input type="text" name="owner_username" placeholder="spicegarden_owner" required>
+        </div>
+        <div class="field">
+          <label>Owner Password *</label>
+          <input type="password" name="owner_password" placeholder="min 8 chars" required>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <button type="submit" class="btn-su btn-su-primary"><i class="bi bi-plus-lg"></i> Create Restaurant</button>
+        <span id="createStatus" style="font-size:0.8rem;color:var(--text-muted);"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- Restaurant list -->
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.75rem;">All Restaurants ({{ tenant_data|length }})</p>
+  <table class="su-table">
+    <thead>
+      <tr>
+        <th>Restaurant</th>
+        <th>Type</th>
+        <th>Outlet</th>
+        <th>Staff</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in tenant_data %}
+      <tr>
+        <td>
+          <strong>{{ row.tenant.name }}</strong>
+          <div style="font-size:0.72rem;color:var(--text-muted);">#{{ row.tenant.id }}</div>
+        </td>
+        <td><span class="type-badge {{ row.tenant.tenant_type }}">{{ row.tenant.get_tenant_type_display }}</span></td>
+        <td style="font-size:0.85rem;color:var(--text-muted);">{{ row.outlet.name|default:"—" }}</td>
+        <td style="font-size:0.85rem;">{{ row.user_count }}</td>
+        <td>
+          <span class="status-dot {% if row.tenant.is_active %}dot-active{% else %}dot-inactive{% endif %}"></span>
+          <span style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;">
+            {{ row.tenant.subscription_status }}
+          </span>
+        </td>
+        <td>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <a href="/superuser/tenant/{{ row.tenant.id }}/" class="btn-su"><i class="bi bi-gear"></i> Setup</a>
+            <a href="/settings/features/?tenant_id={{ row.tenant.id }}" class="btn-su"><i class="bi bi-toggles"></i> Features</a>
+          </div>
+          <!-- Quick preset buttons -->
+          <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
+            {% for key, preset in presets.items %}
+            <button onclick="applyPreset({{ row.tenant.id }}, '{{ key }}', '{{ preset.label }}')" class="btn-su" style="font-size:0.62rem;padding:2px 7px;">{{ preset.label }}</button>
+            {% endfor %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:3rem;">No restaurants yet. Create the first one above.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById("createForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const status = document.getElementById("createStatus");
+  const btn    = this.querySelector("button[type=submit]");
+  btn.disabled = true;
+  status.textContent = "Creating…";
+
+  const data = {};
+  new FormData(this).forEach((v, k) => data[k] = v);
+
+  const r = await fetch("{% url 'superuser_create' %}", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": apiClient.getCsrf() },
+    body: new URLSearchParams(data)
+  });
+  const d = await r.json();
+
+  if (d.success) {
+    status.style.color = "#10b981";
+    status.textContent = "Created! Redirecting…";
+    setTimeout(() => location.href = `/superuser/tenant/${d.tenant_id}/`, 800);
+  } else {
+    status.style.color = "#ef4444";
+    status.textContent = d.error || "Failed";
+    btn.disabled = false;
+  }
+});
+
+async function applyPreset(tenantId, presetKey, label) {
+  if (!confirm(`Apply preset "${label}" to this restaurant? This will override feature flags.`)) return;
+  const r = await fetch(`/superuser/tenant/${tenantId}/preset/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": apiClient.getCsrf() },
+    body: `preset=${presetKey}`
+  });
+  const d = await r.json();
+  if (d.success) { alert(`Applied: ${d.label}`); location.reload(); }
+  else alert(d.error || "Failed");
+}
+</script>
+{% endblock %}

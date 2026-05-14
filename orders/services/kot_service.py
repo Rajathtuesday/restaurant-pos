@@ -13,7 +13,11 @@ from setup.services.station_service import get_default_station
 
 
 @transaction.atomic
-def create_kot(user, order):
+def create_kot(user, order, print_on_create=True):
+    """
+    print_on_create=False: create KOT records but skip queuing print tasks.
+    Used by pay_order() in auto-KOT mode — print_bill_task handles everything.
+    """
 
     # -----------------------------------------
     # LOCK ORDER ITEMS + LOAD RELATIONS IN ONE QUERY
@@ -63,6 +67,14 @@ def create_kot(user, order):
     # -----------------------------------------
 
     print_jobs = []
+    # Resolved once — used as fallback printer for stations without their own IP.
+    _default_station_cache = None
+
+    def _default_station():
+        nonlocal _default_station_cache
+        if _default_station_cache is None:
+            _default_station_cache = get_default_station(user)
+        return _default_station_cache
 
     for station_id, group_items in station_groups.items():
 
@@ -71,12 +83,10 @@ def create_kot(user, order):
         counter.save(update_fields=["value"])
 
         kot_number = counter.value
-        
 
         station = group_items[0].menu_item.station
-        
-        if not station :
-            station = get_default_station(user)
+        if not station:
+            station = _default_station()
 
         kot = KOTBatch.objects.create(
             tenant=user.tenant,
@@ -101,9 +111,13 @@ def create_kot(user, order):
 
         # -----------------------------------------
         # QUEUE KOT PRINTING (OUTSIDE TRANSACTION)
+        # If this station has no printer, fall back to the default station's
+        # printer — this is the single-printer QSR pattern where one counter
+        # printer handles all KOTs and bills.
         # -----------------------------------------
-        if station and station.printer_ip:
-            print_jobs.append((station, kot))
+        printer_station = station if (station and station.printer_ip) else _default_station()
+        if printer_station and printer_station.printer_ip:
+            print_jobs.append((printer_station, kot))
 
     # -----------------------------------------
     # UPDATE TABLE STATE
@@ -121,18 +135,22 @@ def create_kot(user, order):
     # EXECUTE PRINTING (ASYNC THREAD ON COMMIT)
     # -----------------------------------------
     def dispatch_prints():
-        import threading
+        if not print_on_create:
+            # Caller (pay_order auto-KOT mode) handles printing via print_bill_task
+            return
         from orders.tasks import print_kot_task
         for station, kot in print_jobs:
             try:
-                # Run the print task in a background thread to prevent blocking
-                threading.Thread(
-                    target=print_kot_task, 
-                    args=(station.id, order.id, kot.id),
-                    daemon=True
-                ).start()
-            except Exception as e:
-                logger.error(f"Failed to spawn print thread for KOT #{kot.kot_number}: {e}")
+                print_kot_task.delay(station.id, order.id, kot.id)
+            except Exception as exc:
+                logger.warning(
+                    "Celery unavailable for KOT #%s, falling back to sync print: %s",
+                    kot.kot_number, exc,
+                )
+                try:
+                    print_kot_task(station.id, order.id, kot.id)
+                except Exception as sync_exc:
+                    logger.error("Sync fallback also failed for KOT #%s: %s", kot.kot_number, sync_exc)
 
     transaction.on_commit(dispatch_prints)
 

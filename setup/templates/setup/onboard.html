@@ -174,7 +174,34 @@
         {% elif step == 2 %}
         <p class="wiz-eyebrow">Step 2 of 5</p>
         <h2 class="wiz-title">First Menu Items</h2>
-        <p class="wiz-sub">Add one category and up to 3 items to get started. You can add more later from the Menu section.</p>
+        <p class="wiz-sub">Choose how you'd like to add your menu.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem;">
+            <div id="ai-import-box" style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.2s;" onclick="document.getElementById('ai-file-input').click()">
+                <div style="font-size:1.5rem;margin-bottom:0.4rem;">📷</div>
+                <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">AI Import</div>
+                <div style="font-size:0.72rem;color:var(--muted);line-height:1.4;">Upload a photo of your paper menu</div>
+                <input type="file" id="ai-file-input" accept="image/*" style="display:none;">
+            </div>
+            <form method="post" action="/setup/sample-menu/" id="sample-menu-form">
+                {% csrf_token %}
+                <div style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color 0.2s;" onclick="document.getElementById('sample-menu-form').submit()">
+                    <div style="font-size:1.5rem;margin-bottom:0.4rem;">🍽️</div>
+                    <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">Load Sample Menu</div>
+                    <div style="font-size:0.72rem;color:var(--muted);line-height:1.4;">8 items across 3 categories</div>
+                </div>
+            </form>
+        </div>
+
+        <div id="ai-status" style="display:none;text-align:center;padding:1rem 0;margin-bottom:1rem;">
+            <div id="ai-spinner" style="font-size:0.85rem;color:var(--muted);"><i class="bi bi-arrow-repeat" style="animation:spin 1s linear infinite;display:inline-block;"></i> Importing your menu…</div>
+            <div id="ai-success" style="display:none;">
+                <div style="color:#10b981;font-size:0.95rem;font-weight:600;" id="ai-success-msg"></div>
+                <a href="/setup/onboard/?step=3" class="btn-next" style="display:inline-block;margin-top:1rem;text-decoration:none;text-align:center;">Continue — Add Staff <i class="bi bi-arrow-right ms-1"></i></a>
+            </div>
+        </div>
+
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:1rem;margin-top:0.5rem;text-align:center;">Or add manually</div>
 
         <form method="post">
             {% csrf_token %}
@@ -264,15 +291,26 @@
         </form>
         {% else %}
         <h2 class="wiz-title">Your Tables</h2>
-        <p class="wiz-sub">Enter up to 5 table names. You can add more from Setup → Tables later.</p>
-        <form method="post">
+        <p class="wiz-sub">Bulk-create tables in one click, or add a custom name below.</p>
+        <form method="post" id="tables-form">
             {% csrf_token %}
-            {% for i in "12345" %}
-            <div class="field">
-                <label>Table {{ forloop.counter }}</label>
-                <input type="text" name="table_{{ forloop.counter }}" placeholder="e.g. T{{ forloop.counter }}, Window {{ forloop.counter }}, Booth A">
+            <div style="display:grid;grid-template-columns:80px 1fr auto;gap:0.75rem;align-items:end;margin-bottom:0.5rem;">
+                <div class="field" style="margin-bottom:0;">
+                    <label>Count</label>
+                    <input type="number" name="table_count" id="tbl-count" value="8" min="1" max="200" oninput="updateTablePreview()">
+                </div>
+                <div class="field" style="margin-bottom:0;">
+                    <label>Prefix</label>
+                    <input type="text" name="table_prefix" id="tbl-prefix" value="T" maxlength="10" oninput="updateTablePreview()">
+                </div>
+                <button type="submit" class="btn-next" style="margin-top:0;padding:0.6rem 1rem;font-size:0.72rem;white-space:nowrap;">Create Tables</button>
             </div>
-            {% endfor %}
+            <div id="table-preview" style="font-size:0.75rem;color:var(--muted);margin-bottom:1.5rem;min-height:1.2em;"></div>
+            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:0.5rem;">Or add custom name</div>
+            <div class="field">
+                <label>Custom Table Name</label>
+                <input type="text" name="custom_table_name" placeholder="e.g. Rooftop, Private Booth, Bar">
+            </div>
             <button type="submit" class="btn-next">Continue — Payment Setup <i class="bi bi-arrow-right ms-1"></i></button>
         </form>
         <a href="/setup/onboard/?step=5" class="btn-skip">Skip — I'll add tables later</a>
@@ -337,6 +375,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 <script>
 function previewLogo(input) {
     const img = document.getElementById('logoPreview');
@@ -346,5 +387,63 @@ function previewLogo(input) {
         reader.readAsDataURL(input.files[0]);
     }
 }
+
+(function() {
+    const fileInput = document.getElementById('ai-file-input');
+    if (!fileInput) return;
+    fileInput.addEventListener('change', function() {
+        if (!this.files || !this.files[0]) return;
+        const status = document.getElementById('ai-status');
+        const spinner = document.getElementById('ai-spinner');
+        const success = document.getElementById('ai-success');
+        status.style.display = 'block';
+        spinner.style.display = 'block';
+        success.style.display = 'none';
+
+        const fd = new FormData();
+        fd.append('image', this.files[0]);
+        fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+        fetch('/menu/ai-import/', { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(data => {
+                spinner.style.display = 'none';
+                if (data.success) {
+                    document.getElementById('ai-success-msg').textContent = data.message + ' ✓';
+                    success.style.display = 'block';
+                } else {
+                    spinner.style.display = 'block';
+                    spinner.innerHTML = '<span style="color:#ef4444;">' + (data.message || 'Import failed. Try again.') + '</span>';
+                }
+            })
+            .catch(() => {
+                spinner.style.display = 'block';
+                spinner.innerHTML = '<span style="color:#ef4444;">Network error. Please try again.</span>';
+            });
+    });
+})();
+
+function updateTablePreview() {
+    const count = parseInt(document.getElementById('tbl-count')?.value) || 0;
+    const prefix = document.getElementById('tbl-prefix')?.value || 'T';
+    const preview = document.getElementById('table-preview');
+    if (!preview) return;
+    if (count <= 0) { preview.textContent = ''; return; }
+    const max = Math.min(count, 5);
+    let names = [];
+    for (let i = 1; i <= max; i++) names.push(prefix + i);
+    let text = 'Will create: ' + names.join(', ');
+    if (count > 5) text += ' … ' + prefix + count;
+    preview.textContent = text;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateTablePreview();
+    const boxes = document.querySelectorAll('#ai-import-box, #sample-menu-form > div');
+    boxes.forEach(b => {
+        b.addEventListener('mouseenter', () => b.style.borderColor = 'var(--gold)');
+        b.addEventListener('mouseleave', () => b.style.borderColor = 'var(--border)');
+    });
+});
 </script>
 {% endblock %}
