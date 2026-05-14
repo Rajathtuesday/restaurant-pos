@@ -1,3 +1,4 @@
+import os
 import logging
 from celery import shared_task
 from django.core.cache import cache
@@ -5,6 +6,11 @@ from setup.models import KitchenStation
 from orders.services.printing_service import PrintingService
 
 logger = logging.getLogger("pos.printing")
+
+# When this worker is running LOCALLY inside a restaurant, set RASOVA_OUTLET_ID
+# to the outlet's DB id so the worker only processes print jobs for that outlet.
+# Leave unset (or 0) to process ALL outlets (only safe on a trusted private server).
+_LOCAL_OUTLET_ID = int(os.getenv("RASOVA_OUTLET_ID", "0"))
 
 _PRINTER_ERROR_TTL = 180  # seconds before auto-clearing the banner
 
@@ -27,6 +33,14 @@ def print_kot_task(self, station_id, order_id, kot_id):
         station = KitchenStation.objects.get(id=station_id)
         order   = Order.objects.get(id=order_id)
         kot     = KOTBatch.objects.get(id=kot_id)
+
+        # If this worker is scoped to a specific outlet (local restaurant worker),
+        # silently skip jobs that belong to other outlets — they will be picked up
+        # by the correct restaurant's worker.
+        if _LOCAL_OUTLET_ID and order.outlet_id != _LOCAL_OUTLET_ID:
+            logger.debug("KOT #%s belongs to outlet %s — skipping (this worker = outlet %s).",
+                         kot.kot_number, order.outlet_id, _LOCAL_OUTLET_ID)
+            return False
 
         if not station.printer_ip:
             logger.warning(
@@ -107,6 +121,11 @@ def print_bill_task(self, order_id, station_id):
             .select_related("station")
             .order_by("kot_number")
         )
+
+        if _LOCAL_OUTLET_ID and order.outlet_id != _LOCAL_OUTLET_ID:
+            logger.debug("Bill for outlet %s — skipping (this worker = outlet %s).",
+                         order.outlet_id, _LOCAL_OUTLET_ID)
+            return False
 
         if not station.printer_ip:
             logger.warning("No printer IP on station '%s' — bill print skipped.", station.name)
