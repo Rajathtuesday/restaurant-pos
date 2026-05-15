@@ -129,10 +129,15 @@ def bill_view(request, order_id):
 
         from core.features import has_feature
         from setup.services.station_service import get_default_station
-        direct_billing_mode = has_feature(request.user.tenant, "direct_billing_mode")
+        tenant = request.user.tenant
+        direct_billing_mode = has_feature(tenant, "direct_billing_mode")
+        is_qsr = tenant.tenant_type in ("franchise", "cafe")
 
         station = get_default_station(request.user)
         paper_width_mm = station.paper_width_mm if station else 80
+
+        # Auto-print: after payment reload, pass print=1 so template opens receipt
+        auto_print = request.GET.get("print") == "1"
 
         return render(request, "orders/bill.html", {
             "order": order,
@@ -141,7 +146,9 @@ def bill_view(request, order_id):
             "total_paid": total_paid,
             "promos": valid_promos,
             "direct_billing_mode": direct_billing_mode,
+            "is_qsr": is_qsr,
             "paper_width_mm": paper_width_mm,
+            "auto_print": auto_print,
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

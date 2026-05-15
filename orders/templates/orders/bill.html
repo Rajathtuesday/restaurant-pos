@@ -149,7 +149,7 @@
 <div class="bill-page">
 <div class="bill-wrap">
 
-    <!-- Back navigation -->
+    <!-- Back navigation — QSR goes to Tokens, fine-dining goes to Tables -->
     {% if remaining > 0 %}
         {% if request.user.role == 'owner' or request.user.role == 'manager' %}
         <a href="#" onclick="logBypass({{ order.id }}); return false;" class="nav-back no-print">
@@ -157,11 +157,11 @@
         </a>
         {% else %}
         <a href="#" onclick="ui.toast('Complete payment before leaving','warning'); return false;" class="nav-back no-print">
-            <i class="bi bi-arrow-left"></i> Dashboard
+            <i class="bi bi-arrow-left"></i> Back
         </a>
         {% endif %}
     {% else %}
-        {% if direct_billing_mode %}
+        {% if direct_billing_mode or is_qsr %}
         <a href="/dashboard/" class="nav-back no-print"><i class="bi bi-arrow-left"></i> Dashboard</a>
         {% elif order.token %}
         <a href="{% url 'token-dashboard' %}" class="nav-back no-print"><i class="bi bi-arrow-left"></i> Tokens</a>
@@ -364,8 +364,19 @@
                 </div>
                 {% endif %}
                 <div style="display:flex;gap:0.5rem;margin-top:1.25rem;">
-                    <button class="btn-action" style="margin-top:0;border-color:var(--accent-gold);color:var(--accent-gold);" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print</button>
-                    <a href="/tables/" class="btn-action" style="margin-top:0;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;"><i class="bi bi-grid me-2"></i>Tables</a>
+                    <button class="btn-action" style="margin-top:0;border-color:var(--accent-gold);color:var(--accent-gold);"
+                            onclick="openThermalReceipt()">
+                        <i class="bi bi-printer me-2"></i>Print Slip
+                    </button>
+                    {% if is_qsr %}
+                    <a href="/token/" class="btn-action" style="margin-top:0;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-123 me-2"></i>Next Token
+                    </a>
+                    {% else %}
+                    <a href="/tables/" class="btn-action" style="margin-top:0;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-grid me-2"></i>Tables
+                    </a>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>
@@ -510,7 +521,10 @@
             if (data.success) {
                 ui.toast(data.message || 'Payment recorded', 'success');
                 window.onbeforeunload = null;
-                setTimeout(() => location.reload(), 900);
+                // Reload with ?print=1 so the thermal receipt opens automatically
+                setTimeout(() => {
+                    window.location.href = window.location.pathname + '?print=1';
+                }, 600);
             } else {
                 ui.toast(data.error || 'Payment failed', 'error');
             }
@@ -519,8 +533,23 @@
 
     async function logBypass(orderId) {
         try { await apiClient.post(`/orders/log-bypass/${orderId}/`, {}); } catch(e) {}
-        window.location.href = '/tables/';
+        window.location.href = {% if is_qsr %}'/token/'{% else %}'/tables/'{% endif %};
     }
+
+    function openThermalReceipt() {
+        const win = window.open('/thermal-receipt/{{ order.id }}/', '_blank',
+            'width=440,height=700,menubar=no,toolbar=no,location=no,status=no');
+        if (!win || win.closed) {
+            window.location.href = '/thermal-receipt/{{ order.id }}/';
+        }
+    }
+
+    {% if auto_print %}
+    // Payment just completed — auto-open receipt immediately
+    window.addEventListener('load', function() {
+        setTimeout(openThermalReceipt, 600);
+    });
+    {% endif %}
 
     /* ── Loyalty / CRM ────────────────────────────────────── */
     async function lookupGuest() {
