@@ -872,6 +872,17 @@
         const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
         if (modal) modal.hide();
 
+        // Open thermal receipt in a popup — browser prints via OS print dialog.
+        // The page auto-calls window.print() and closes after printing.
+        // Requires BillTouch (or any thermal printer) driver installed in Windows.
+        const receiptUrl = `/thermal-receipt/${qsrPendingOrderId}/`;
+        const receiptWin = window.open(receiptUrl, '_blank',
+          'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
+        // Fallback: if popup was blocked, show a print link
+        if (!receiptWin || receiptWin.closed) {
+          ui.toast('Popup blocked — <a href="' + receiptUrl + '" target="_blank">open receipt</a>', 'warning');
+        }
+
         // Show full-screen confirmation briefly
         const confirm = document.getElementById("qsrConfirm");
         document.getElementById("qsrConfirmNum").textContent = "Order " + (d.order_number || qsrPendingOrderId);

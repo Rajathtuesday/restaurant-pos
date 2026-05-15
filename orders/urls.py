@@ -45,6 +45,7 @@ from .views import (
     print_kot_action,
     approve_items,
     printer_status,
+    thermal_receipt_view,
 )
 
 from .views.token_views import (
@@ -84,6 +85,7 @@ urlpatterns = [
     path("print-kot/<int:kot_id>/", print_kot_action, name="print-kot"),
     path("printer-status/", printer_status, name="printer-status"),
     path("download-pdf/<int:order_id>/", download_pdf_bill, name="download-pdf"),
+    path("thermal-receipt/<int:order_id>/", thermal_receipt_view, name="thermal-receipt"),
 
     path("tables/", table_dashboard, name="table-dashboard"),
     path("tables-data/", tables_data ,name="tables-data"),

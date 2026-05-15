@@ -56,7 +56,7 @@ def generate_bill(request, order_id):
 @tenant_required
 @role_required("manager", "cashier", "owner")
 def print_bill_action(request, order_id):
-    """Queue bill + KOT print via Celery. Returns immediately — printer runs in background."""
+    """Queue bill + KOT print via Celery. Returns immediately - printer runs in background."""
     from orders.tasks import print_bill_task
     from setup.services.station_service import get_default_station
     try:
@@ -69,9 +69,9 @@ def print_bill_action(request, order_id):
 
         try:
             print_bill_task.delay(order.id, station.id)
-            return JsonResponse({"success": True, "message": "Print job queued — bill and KOTs printing now"})
+            return JsonResponse({"success": True, "message": "Print job queued - bill and KOTs printing now"})
         except Exception as celery_exc:
-            # Celery / Redis unavailable — fall back to synchronous print
+            # Celery / Redis unavailable - fall back to synchronous print
             logger.warning("Celery unavailable for bill print, falling back to sync: %s", celery_exc)
             from orders.models import KOTBatch
             from orders.services.printing_service import PrintingService
@@ -129,7 +129,7 @@ def print_kot_action(request, kot_id):
 
 
 # -------------------------------------------------
-# PRINTER STATUS  — GET /orders/printer-status/
+# PRINTER STATUS  - GET /orders/printer-status/
 # Polled by the billing page every 20s to surface print failures
 # -------------------------------------------------
 
@@ -143,7 +143,7 @@ def printer_status(request):
         kot = error.get("kot", "?")
         detail = error.get("detail", "unknown error")
         message = (
-            f"{station} is not responding (KOT #{kot}) — "
+            f"{station} is not responding (KOT #{kot}) - "
             f"check the cable/network or print to PDF. ({detail})"
         )
         return JsonResponse({"error": True, "message": message})
@@ -164,7 +164,7 @@ def download_pdf_bill(request, order_id):
 
     order = get_object_or_404(Order, id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
 
-    # Exclude refund rows (negative amounts) — including them inflates 'remaining'.
+    # Exclude refund rows (negative amounts) - including them inflates 'remaining'.
     # This mirrors the correct calculation already used in bill_view and pay_order.
     remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
 
@@ -174,3 +174,75 @@ def download_pdf_bill(request, order_id):
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="bill_{order.id}.pdf"'
     return response
+
+
+# -------------------------------------------------
+# THERMAL RECEIPT — browser-based printing
+# Opens in a popup, auto-calls window.print(), closes after printing.
+# Works with any printer that has a Windows/Mac driver installed.
+# This is the cloud-only printing solution — no local agent required.
+# -------------------------------------------------
+
+@login_required
+@tenant_required
+def thermal_receipt_view(request, order_id):
+    from django.shortcuts import get_object_or_404, render
+    from django.db.models import Sum
+    from orders.models import KOTBatch
+    from setup.services.station_service import get_default_station
+    from core.features import has_feature
+
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__menu_item", "items__modifiers", "payments"),
+        id=order_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+    )
+
+    kots = []
+    token = None
+    if not has_feature(order.tenant, "kitchen_display"):
+        # QSR strip mode — include KOTs in the receipt
+        kots = list(
+            KOTBatch.objects
+            .filter(order=order)
+            .prefetch_related("items__menu_item", "items__modifiers")
+            .select_related("station")
+            .order_by("kot_number")
+        )
+        # Token number for QSR
+        try:
+            if hasattr(order, "token") and order.token:
+                token = order.token.display_number
+        except Exception:
+            pass
+
+    # Payment and change
+    payment    = order.payments.order_by("-paid_at").first()
+    total_paid = order.payments.exclude(method="refund").aggregate(t=Sum("amount"))["t"] or 0
+    change_due = max(0, total_paid - order.grand_total)
+
+    # Paper dimensions from default station
+    station       = get_default_station(request.user)
+    paper_width   = station.paper_width_mm if station else 80
+    chars         = 32 if paper_width == 58 else 48
+    font_size     = 10 if paper_width == 58 else 11
+    big_font      = 12 if paper_width == 58 else 13
+    small_font    = 9  if paper_width == 58 else 10
+    token_font    = 20 if paper_width == 58 else 24
+
+    items = order.items.exclude(status="voided").select_related("menu_item")
+
+    return render(request, "orders/thermal_receipt.html", {
+        "order":       order,
+        "items":       items,
+        "kots":        kots,
+        "token":       token,
+        "payment":     payment,
+        "change_due":  change_due,
+        "paper_width": paper_width,
+        "font_size":   font_size,
+        "big_font":    big_font,
+        "small_font":  small_font,
+        "token_font":  token_font,
+    })

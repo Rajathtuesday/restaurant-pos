@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Receipt</title>
+<style>
+/* ── Thermal paper formatting ─────────────────────────────────────────── */
+@page {
+  size: {{ paper_width }}mm auto;
+  margin: 2mm 3mm;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: {{ font_size }}px;
+  width: {{ paper_width }}mm;
+  max-width: {{ paper_width }}mm;
+  color: #000;
+  background: #fff;
+}
+
+.center  { text-align: center; }
+.right   { text-align: right; }
+.bold    { font-weight: bold; }
+.big     { font-size: {{ big_font }}px; font-weight: bold; }
+.small   { font-size: {{ small_font }}px; }
+
+.sep     { border-top: 1px dashed #000; margin: 2mm 0; }
+.sep-solid { border-top: 1px solid #000; margin: 2mm 0; }
+
+/* Two-column row */
+.row { display: flex; justify-content: space-between; }
+.row .label { flex: 1; }
+.row .value { white-space: nowrap; padding-left: 2mm; }
+
+/* Token number — large for QSR */
+.token-num {
+  font-size: {{ token_font }}px;
+  font-weight: bold;
+  text-align: center;
+  padding: 1mm 0;
+  letter-spacing: 1px;
+}
+
+/* KOT section */
+.kot-section {
+  margin-top: 3mm;
+  padding-top: 2mm;
+}
+.kot-header {
+  font-size: {{ big_font }}px;
+  font-weight: bold;
+  text-align: center;
+}
+.station-label {
+  text-align: center;
+  font-size: {{ small_font }}px;
+  border: 1px solid #000;
+  display: inline-block;
+  padding: 0 2mm;
+  margin: 1mm auto;
+  width: 100%;
+}
+.item-line { padding: 0.5mm 0; }
+.item-qty  { font-weight: bold; }
+.item-note { padding-left: 3mm; font-size: {{ small_font }}px; }
+
+@media print {
+  html, body { width: {{ paper_width }}mm; }
+  .no-print  { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Receipt / Bill ─────────────────────────────────────────── -->
+<div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
+<div class="center small">{{ order.outlet.name }}</div>
+{% if order.outlet.phone %}<div class="center small">{{ order.outlet.phone }}</div>{% endif %}
+{% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
+
+<div class="sep-solid"></div>
+
+{% if token %}
+<div class="token-num">TOKEN #{{ token }}</div>
+<div class="sep"></div>
+{% else %}
+<div class="row small"><span class="label">Bill No.</span><span class="value">{{ order.order_number }}</span></div>
+{% if order.table %}<div class="row small"><span class="label">Table</span><span class="value">{{ order.table.name }}</span></div>{% endif %}
+<div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
+<div class="sep"></div>
+{% endif %}
+
+<!-- Items -->
+{% for item in items %}
+<div class="item-line">
+  <span class="item-qty">{{ item.quantity }}x</span>
+  <span>{% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
+  <span class="right" style="float:right;">{{ item.total_price|floatformat:0 }}</span>
+</div>
+{% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
+{% endfor %}
+
+<div class="sep"></div>
+
+<div class="row"><span class="label small">Subtotal</span><span class="value small">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
+<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>
+{% if order.discount_total %}<div class="row"><span class="label small">Discount</span><span class="value small">-Rs.{{ order.discount_total|floatformat:0 }}</span></div>{% endif %}
+
+<div class="sep-solid"></div>
+<div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ order.grand_total|floatformat:0 }}</span></div>
+{% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
+{% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:0 }}</span></div>{% endif %}
+
+<div class="sep-solid"></div>
+<div class="center small">Thank you for visiting!</div>
+<div class="center small">Powered by Rasova POS</div>
+
+<!-- ── KOT Sections ──────────────────────────────────────────── -->
+{% for kot in kots %}
+<div class="kot-section">
+  <div class="sep-solid"></div>
+  <div class="kot-header">KOT #{{ kot.kot_number }}</div>
+  {% if token %}<div class="center small">Token: {{ token }}</div>
+  {% elif order.table %}<div class="center small">Table: {{ order.table.name }}</div>{% endif %}
+  {% if kot.station %}<div class="station-label">{{ kot.station.name }}</div>{% endif %}
+  <div class="sep"></div>
+  {% for item in kot.items.all %}
+  <div class="item-line">
+    <span class="item-qty bold">{{ item.quantity }}x</span>
+    <span> {% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
+  </div>
+  {% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
+  {% for mod in item.modifiers.all %}<div class="item-note">+ {{ mod.name }}</div>{% endfor %}
+  {% endfor %}
+  <div class="sep"></div>
+  <div class="right small">{{ order.created_at|date:"H:i d/m" }}</div>
+</div>
+{% endfor %}
+
+<div style="margin-top:5mm;"></div>
+
+<!-- Auto-print on load ──────────────────────────────────────── -->
+<script>
+window.addEventListener('load', function() {
+  // Small delay so fonts/content render before print dialog opens
+  setTimeout(function() {
+    window.print();
+    // Close the window after printing (user can cancel print dialog to keep it open)
+    window.addEventListener('afterprint', function() {
+      window.close();
+    });
+  }, 400);
+});
+</script>
+
+</body>
+</html>
