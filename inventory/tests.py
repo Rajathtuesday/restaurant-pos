@@ -1,5 +1,5 @@
 #inventory/tests.py
-from django.test import TestCase
+from django.test import TestCase, Client
 from decimal import Decimal
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -162,3 +162,76 @@ class InventoryViewsTests(TestCase):
         
         self.item.refresh_from_db()
         self.assertEqual(self.item.stock, Decimal("30.000")) # 10 + 20
+
+
+class InventoryAccessControlTests(TestCase):
+    """Verify that only owners/managers can access the inventory board."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.tenant = Tenant.objects.create(name="Access Ctrl Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Access Ctrl Outlet")
+
+        self.owner = User.objects.create_user(
+            username="inv_owner",
+            password="pwd",
+            role="owner",
+            tenant=self.tenant,
+            outlet=self.outlet
+        )
+
+        self.waiter = User.objects.create_user(
+            username="inv_waiter",
+            password="pwd",
+            role="waiter",
+            tenant=self.tenant,
+            outlet=self.outlet
+        )
+
+    def test_owner_can_access_inventory_board(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("inventory_board"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_waiter_cannot_access_inventory_board(self):
+        self.client.force_login(self.waiter)
+        response = self.client.get(reverse("inventory_board"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_unauthenticated_redirected_from_inventory(self):
+        response = self.client.get(reverse("inventory_board"))
+        self.assertIn(response.status_code, [301, 302])
+
+
+class InventoryItemFieldTests(TestCase):
+    """Verify InventoryItem fields are stored and retrieved correctly."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Field Test Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Field Outlet")
+
+    def test_item_created_with_correct_fields(self):
+        item = InventoryItem.objects.create(
+            tenant=self.tenant,
+            outlet=self.outlet,
+            name="Tomato",
+            unit="kg",
+            stock=Decimal("5.000"),
+            low_stock_threshold=Decimal("1.000"),
+            cost_price=Decimal("20.00")
+        )
+        self.assertEqual(item.name, "Tomato")
+        self.assertEqual(item.unit, "kg")
+        self.assertEqual(item.stock, Decimal("5.000"))
+        self.assertEqual(item.cost_price, Decimal("20.00"))
+
+    def test_item_not_low_stock_when_above_threshold(self):
+        item = InventoryItem.objects.create(
+            tenant=self.tenant,
+            outlet=self.outlet,
+            name="Salt",
+            unit="kg",
+            stock=Decimal("10.000"),
+            low_stock_threshold=Decimal("2.000")
+        )
+        self.assertFalse(item.is_low_stock)

@@ -1,5 +1,6 @@
 from django.test import TestCase
-from tenants.models import Tenant, Outlet
+from tenants.models import Tenant, Outlet, TenantFeatureOverride
+from core.features import has_feature
 
 
 class TenantModelTest(TestCase):
@@ -46,3 +47,111 @@ class OutletModelTest(TestCase):
                 tenant=self.tenant,
                 name="Indiranagar"
             )
+
+
+class TenantSlugTest(TestCase):
+
+    def test_slug_auto_generated_from_name(self):
+        tenant = Tenant.objects.create(name="Burger Palace")
+        self.assertEqual(tenant.slug, "burger-palace")
+
+    def test_slug_unique_when_name_conflicts(self):
+        t1 = Tenant.objects.create(name="Green Garden")
+        t2 = Tenant.objects.create(name="Green Garden Unique")
+        self.assertNotEqual(t1.slug, t2.slug)
+
+    def test_tenant_type_defaults_to_fine_dining(self):
+        tenant = Tenant.objects.create(name="Default Type Place")
+        self.assertEqual(tenant.tenant_type, "fine_dining")
+
+    def test_subscription_status_defaults_to_trial(self):
+        tenant = Tenant.objects.create(name="Trial Restaurant")
+        self.assertEqual(tenant.subscription_status, "trial")
+
+
+class TenantFeatureFlagTest(TestCase):
+
+    def setUp(self):
+        self.fine_dining = Tenant.objects.create(
+            name="Fine Diner",
+            tenant_type="fine_dining"
+        )
+        self.franchise = Tenant.objects.create(
+            name="Franchise QSR",
+            tenant_type="franchise"
+        )
+        self.cafe = Tenant.objects.create(
+            name="Corner Cafe",
+            tenant_type="cafe"
+        )
+
+    def test_fine_dining_has_floor_plan(self):
+        self.assertTrue(has_feature(self.fine_dining, "floor_plan"))
+
+    def test_fine_dining_has_reservations(self):
+        self.assertTrue(has_feature(self.fine_dining, "reservations"))
+
+    def test_franchise_has_token_system(self):
+        self.assertTrue(has_feature(self.franchise, "token_system"))
+
+    def test_franchise_does_not_have_floor_plan(self):
+        self.assertFalse(has_feature(self.franchise, "floor_plan"))
+
+    def test_cafe_has_token_system(self):
+        self.assertTrue(has_feature(self.cafe, "token_system"))
+
+    def test_cafe_does_not_have_reservations(self):
+        self.assertFalse(has_feature(self.cafe, "reservations"))
+
+    def test_none_tenant_returns_false(self):
+        self.assertFalse(has_feature(None, "floor_plan"))
+
+    def test_unknown_feature_returns_false(self):
+        self.assertFalse(has_feature(self.fine_dining, "nonexistent_feature_xyz"))
+
+
+class TenantFeatureOverrideTest(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(
+            name="Override Cafe",
+            tenant_type="cafe"
+        )
+
+    def test_override_can_enable_feature_not_in_defaults(self):
+        # cafe does not have reservations by default
+        self.assertFalse(has_feature(self.tenant, "reservations"))
+        TenantFeatureOverride.objects.create(
+            tenant=self.tenant,
+            feature="reservations",
+            enabled=True
+        )
+        # bust the per-instance cache
+        if hasattr(self.tenant, "_feature_overrides"):
+            del self.tenant._feature_overrides
+        self.assertTrue(has_feature(self.tenant, "reservations"))
+
+    def test_override_can_disable_default_feature(self):
+        # cafe has token_system by default
+        self.assertTrue(has_feature(self.tenant, "token_system"))
+        TenantFeatureOverride.objects.create(
+            tenant=self.tenant,
+            feature="token_system",
+            enabled=False
+        )
+        if hasattr(self.tenant, "_feature_overrides"):
+            del self.tenant._feature_overrides
+        self.assertFalse(has_feature(self.tenant, "token_system"))
+
+    def test_tenant_isolation_features_independent(self):
+        tenant2 = Tenant.objects.create(
+            name="Another Cafe",
+            tenant_type="cafe"
+        )
+        TenantFeatureOverride.objects.create(
+            tenant=self.tenant,
+            feature="reservations",
+            enabled=True
+        )
+        # tenant2 must NOT inherit tenant's override
+        self.assertFalse(has_feature(tenant2, "reservations"))

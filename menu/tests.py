@@ -200,3 +200,101 @@ class MenuSecurityTests(TestCase):
         response = self.client.get(reverse("menu_management"))
 
         self.assertEqual(response.status_code, 403)
+
+
+class MenuItemMutationTests(TestCase):
+    """Tests for toggle, delete, and update_menu_item views."""
+
+    def setUp(self):
+
+        self.client = Client()
+
+        self.tenant = Tenant.objects.create(name="Mutation Tenant")
+
+        self.outlet = Outlet.objects.create(
+            tenant=self.tenant,
+            name="Mutation Outlet"
+        )
+
+        self.owner = User.objects.create_user(
+            username="mutation_owner",
+            password="testpass",
+            role="owner",
+            tenant=self.tenant,
+            outlet=self.outlet
+        )
+
+        self.client.login(username="mutation_owner", password="testpass")
+
+        self.category = MenuCategory.objects.create(
+            tenant=self.tenant,
+            outlet=self.outlet,
+            name="Mains"
+        )
+
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant,
+            outlet=self.outlet,
+            category=self.category,
+            name="Test Dish",
+            price=Decimal("150.00"),
+            is_available=True
+        )
+
+    def test_toggle_item_flips_availability(self):
+
+        original = self.item.is_available
+
+        response = self.client.post(
+            reverse("toggle_item", args=[self.item.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.item.refresh_from_db()
+
+        self.assertNotEqual(self.item.is_available, original)
+
+    def test_delete_menu_item_removes_from_db(self):
+
+        item_id = self.item.id
+
+        response = self.client.post(
+            reverse("delete_menu_item", args=[item_id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(MenuItem.objects.filter(id=item_id).exists())
+
+    def test_update_menu_item_changes_price(self):
+
+        response = self.client.post(
+            reverse("update_menu_item", args=[self.item.id]),
+            data={"name": "Test Dish", "price": "299.00", "category": self.category.id}
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        self.item.refresh_from_db()
+
+        self.assertEqual(self.item.price, Decimal("299.00"))
+
+    def test_create_item_with_is_veg_flag(self):
+
+        response = self.client.post(
+            reverse("create_menu_item"),
+            data=json.dumps({
+                "name": "Paneer Tikka",
+                "price": 220,
+                "category": self.category.id,
+                "is_veg": True
+            }),
+            content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        item = MenuItem.objects.filter(name="Paneer Tikka").first()
+        self.assertIsNotNone(item)
+        self.assertTrue(item.is_veg)
