@@ -443,16 +443,18 @@ def outlet_settings(request):
         phone = request.POST.get("phone", "").strip()
         whatsapp_no = request.POST.get("whatsapp_no", "").strip()
         email = request.POST.get("email", "").strip()
-        gst_no = request.POST.get("gst_no", "").strip().upper()
+        gst_no   = request.POST.get("gst_no",   "").strip().upper()
         fssai_no = request.POST.get("fssai_no", "").strip()
+        sac_code = request.POST.get("sac_code", "996331").strip() or "996331"
 
         if name:
             outlet.name = name
-        outlet.address = address
-        outlet.phone = phone
-        outlet.email = email
-        outlet.gst_no = gst_no
+        outlet.address  = address
+        outlet.phone    = phone
+        outlet.email    = email
+        outlet.gst_no   = gst_no
         outlet.fssai_no = fssai_no
+        outlet.sac_code = sac_code
 
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):

@@ -89,6 +89,11 @@
         <label>Address (prints on bills)</label>
         <input type="text" name="address" value="{{ outlet.address|default:'' }}" placeholder="Shop 4, MG Road, Pune 411001">
       </div>
+      <div class="field" style="max-width:220px;">
+        <label>SAC Code <span style="color:var(--accent-gold);font-size:0.65rem;">— printed on every bill</span></label>
+        <input type="text" name="sac_code" value="{{ outlet.sac_code|default:'996331' }}" maxlength="8" placeholder="996331" style="font-family:monospace;">
+        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;">996331 = Restaurant/Café/QSR &nbsp;·&nbsp; 996332 = Delivery &nbsp;·&nbsp; 996334 = Catering</div>
+      </div>
       <button type="submit" class="btn-cfg btn-cfg-primary">Save Outlet Info</button>
     </form>
   </div>

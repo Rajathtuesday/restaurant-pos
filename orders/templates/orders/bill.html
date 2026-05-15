@@ -183,6 +183,7 @@
             <div class="r-address">{{ order.outlet.address|default:""|linebreaksbr }}</div>
             {% if order.outlet.gst_no %}<div class="r-gst">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
             {% if order.outlet.fssai_no %}<div class="r-gst">FSSAI: {{ order.outlet.fssai_no }}</div>{% endif %}
+            <div class="r-gst">SAC: {{ order.outlet.sac_code|default:"996331" }}</div>
         </div>
 
         <!-- Order meta -->

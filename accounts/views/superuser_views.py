@@ -238,10 +238,11 @@ def tenant_config(request, tenant_id):
             return redirect(f"/superuser/tenant/{tenant_id}/")
 
         if action == "update_outlet":
-            outlet.phone    = request.POST.get("phone", "").strip() or None
-            outlet.gst_no   = request.POST.get("gst_no", "").strip().upper() or None
+            outlet.phone    = request.POST.get("phone",    "").strip() or None
+            outlet.gst_no   = request.POST.get("gst_no",   "").strip().upper() or None
             outlet.fssai_no = request.POST.get("fssai_no", "").strip() or None
-            outlet.address  = request.POST.get("address", "").strip()
+            outlet.address  = request.POST.get("address",  "").strip()
+            outlet.sac_code = request.POST.get("sac_code", "996331").strip() or "996331"
             outlet.save()
             return redirect(f"/superuser/tenant/{tenant_id}/")
 

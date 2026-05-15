@@ -182,6 +182,18 @@ class Outlet(models.Model):
         help_text="FSSAI License Number"
     )
 
+    sac_code = models.CharField(
+        max_length=8,
+        default="996331",
+        blank=True,
+        help_text=(
+            "SAC (Services Accounting Code) under GST. "
+            "996331 = Restaurant / café / QSR / food court (correct for most restaurants). "
+            "996332 = Delivery / food truck. 996334 = Catering. "
+            "Change only if your CA specifies a different code."
+        )
+    )
+
     whatsapp_no = models.CharField(
         max_length=15,
         blank=True,

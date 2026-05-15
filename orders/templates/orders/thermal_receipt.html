@@ -78,8 +78,11 @@ body {
 <!-- ── Receipt / Bill ─────────────────────────────────────────── -->
 <div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
-{% if order.outlet.phone %}<div class="center small">{{ order.outlet.phone }}</div>{% endif %}
+{% if order.outlet.address %}<div class="center small">{{ order.outlet.address }}</div>{% endif %}
+{% if order.outlet.phone %}<div class="center small">Ph: {{ order.outlet.phone }}</div>{% endif %}
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
+{% if order.outlet.fssai_no %}<div class="center small">FSSAI: {{ order.outlet.fssai_no }}</div>{% endif %}
+<div class="center small">SAC: {{ order.outlet.sac_code|default:"996331" }}</div>
 
 <div class="sep-solid"></div>
 

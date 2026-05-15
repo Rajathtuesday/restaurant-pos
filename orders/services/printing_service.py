@@ -188,6 +188,16 @@ class PrintingService:
 
         p.set(align="center", bold=False, double_width=False, double_height=False)
         p.text(f"{order.outlet.name}\n")
+        if order.outlet.address:
+            p.text(f"{str(order.outlet.address)[:W]}\n")
+        if order.outlet.phone:
+            p.text(f"Ph: {order.outlet.phone}\n")
+        if order.outlet.gst_no:
+            p.text(f"GSTIN: {order.outlet.gst_no}\n")
+        if order.outlet.fssai_no:
+            p.text(f"FSSAI: {order.outlet.fssai_no}\n")
+        sac = getattr(order.outlet, "sac_code", None) or "996331"
+        p.text(f"SAC: {sac}\n")
         p.text(self._sep() + "\n")
 
         p.set(align="left")
@@ -273,11 +283,15 @@ class PrintingService:
     def _print_qsr_token_body(self, p, order):
         W = self.W
 
-        # Restaurant name
+        # Restaurant name + compliance header
         p.set(align="center", bold=True, double_width=False, double_height=False)
         p.text(f"{str(order.tenant.name)[:W]}\n")
         p.set(bold=False)
         p.text(f"{order.outlet.name}\n")
+        if order.outlet.gst_no:
+            p.text(f"GSTIN: {order.outlet.gst_no}\n")
+        sac = getattr(order.outlet, "sac_code", None) or "996331"
+        p.text(f"SAC: {sac}\n")
         p.text(self._sep() + "\n")
 
         # Token number — as large as the printer supports

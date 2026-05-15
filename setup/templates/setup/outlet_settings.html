@@ -174,6 +174,17 @@
                         <input type="text" id="fssai_no" name="fssai_no" class="field-input field-mono" value="{{ outlet.fssai_no|default:'' }}" maxlength="14" placeholder="12345678901234">
                         <div class="field-hint">14-digit FSSAI license number</div>
                     </div>
+                    <div class="field-row">
+                        <label class="field-label" for="sac_code">SAC Code <span style="font-size:0.7rem;color:var(--accent-gold);font-weight:400;">(GST — printed on every bill)</span></label>
+                        <input type="text" id="sac_code" name="sac_code" class="field-input field-mono" value="{{ outlet.sac_code|default:'996331' }}" maxlength="8" placeholder="996331">
+                        <div class="field-hint">
+                            Services Accounting Code under GST.
+                            <strong>996331</strong> = Restaurant / café / QSR / food court (correct for most restaurants) &nbsp;·&nbsp;
+                            <strong>996332</strong> = Delivery / cloud kitchen &nbsp;·&nbsp;
+                            <strong>996334</strong> = Catering.
+                            Leave as 996331 unless your CA specifies otherwise.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
