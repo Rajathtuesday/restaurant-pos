@@ -1,0 +1,472 @@
+{% extends 'core/base.html' %}
+{% block title %}Order History | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hist-wrap { max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+
+  /* ── Filter bar ─────────────────────────────────────────────── */
+  .filter-bar {
+    background: var(--panel-bg); border: 1px solid var(--border-color);
+    padding: 1rem 1.25rem; margin-bottom: 1.5rem;
+    display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end;
+  }
+  .filter-bar .f-group { display: flex; flex-direction: column; gap: 3px; min-width: 130px; }
+  .filter-bar label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; }
+  .filter-bar input, .filter-bar select {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-main); padding: 0.38rem 0.6rem;
+    font-size: 0.82rem; font-family: inherit; outline: none;
+  }
+  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent-gold); }
+  .filter-bar select option { background: var(--panel-bg); }
+  .btn-filter { padding: 0.4rem 1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: inherit; }
+  .btn-filter:hover { background: #b59250; }
+  .btn-clear  { padding: 0.4rem 0.8rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.78rem; cursor: pointer; font-family: inherit; }
+
+  /* ── Summary strip ──────────────────────────────────────────── */
+  .summary-strip {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    margin-bottom: 1.25rem; align-items: center;
+  }
+  .sum-chip {
+    background: var(--panel-bg); border: 1px solid var(--border-color);
+    padding: 0.5rem 1rem; font-size: 0.78rem;
+  }
+  .sum-chip strong { font-size: 1rem; font-family: 'DM Serif Display', serif; color: var(--text-main); display: block; }
+  .sum-chip span   { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; }
+  .pay-bar { display: flex; gap: 6px; align-items: center; font-size: 0.75rem; }
+  .pay-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+  /* ── Table ─────────────────────────────────────────────────── */
+  .hist-table { width: 100%; border-collapse: collapse; }
+  .hist-table th {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-muted); font-weight: 600;
+    padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left;
+  }
+  .hist-table td {
+    padding: 0.75rem; border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem; vertical-align: middle;
+  }
+  .hist-table tr:hover td { background: var(--panel-bg); cursor: pointer; }
+  .hist-table tr.cancelled td { color: var(--text-muted); text-decoration: line-through; text-decoration-color: rgba(100,100,100,0.3); }
+
+  .order-num { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--accent-gold); }
+  .status-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 12px;
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+  }
+  .pill-closed    { background: rgba(16,185,129,.12); color: #10b981; }
+  .pill-cancelled { background: rgba(239,68,68,.1);   color: #ef4444; }
+  .pill-open      { background: rgba(234,179,8,.12);  color: #ca8a04; }
+  .pill-billing   { background: rgba(6,182,212,.12);  color: #06b6d4; }
+
+  .method-tag { font-size: 0.65rem; padding: 1px 6px; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 3px; margin-right: 3px; }
+
+  /* ── Pagination ─────────────────────────────────────────────── */
+  .pag { display: flex; gap: 0.4rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; }
+  .pag a, .pag span {
+    padding: 0.35rem 0.75rem; border: 1px solid var(--border-color);
+    font-size: 0.78rem; text-decoration: none; color: var(--text-main);
+  }
+  .pag .current { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .pag a:hover  { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  /* ── Detail panel (slide-in) ─────────────────────────────────── */
+  .detail-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 1050;
+  }
+  .detail-overlay.open { display: block; }
+  .detail-panel {
+    position: fixed; top: 0; right: -520px; width: 500px; max-width: 100vw;
+    height: 100vh; background: var(--panel-bg); border-left: 1px solid var(--border-color);
+    overflow-y: auto; z-index: 1060; transition: right 0.28s ease;
+    display: flex; flex-direction: column;
+  }
+  .detail-panel.open { right: 0; }
+  .detail-panel-head {
+    padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color);
+    display: flex; justify-content: space-between; align-items: flex-start;
+    position: sticky; top: 0; background: var(--panel-bg); z-index: 2;
+  }
+  .detail-panel-body { padding: 1.25rem 1.5rem; flex: 1; }
+  .detail-section { margin-bottom: 1.5rem; }
+  .detail-section-title {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--accent-gold); font-weight: 700; margin-bottom: 0.6rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid var(--border-color);
+  }
+  .detail-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.85rem; border-bottom: 1px dashed var(--border-color); }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .name { color: var(--text-main); flex: 1; }
+  .detail-row .amt  { white-space: nowrap; padding-left: 1rem; color: var(--text-muted); }
+  .detail-row.voided .name { text-decoration: line-through; color: var(--text-muted); }
+  .detail-row.voided .amt  { color: #ef4444; }
+  .detail-row.comp   .name { color: #10b981; }
+  .void-reason { font-size: 0.72rem; color: #ef4444; display: block; }
+  .total-row { font-weight: 700; font-size: 0.95rem; border-top: 2px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem; }
+  .refund-row { color: #ef4444; }
+
+  .audit-event { display: flex; gap: 0.75rem; padding: 0.5rem 0; font-size: 0.8rem; border-bottom: 1px dashed var(--border-color); }
+  .audit-event:last-child { border-bottom: none; }
+  .audit-time { color: var(--text-muted); white-space: nowrap; min-width: 48px; }
+  .audit-by   { color: var(--accent-gold); white-space: nowrap; }
+
+  .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; line-height: 1; }
+  .close-btn:hover { color: var(--text-main); }
+
+  .loading-detail { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.85rem; }
+
+  @media (max-width: 768px) {
+    .hist-table th:nth-child(3),
+    .hist-table td:nth-child(3),
+    .hist-table th:nth-child(5),
+    .hist-table td:nth-child(5) { display: none; }
+    .filter-bar .f-group { min-width: 100px; }
+    .detail-panel { width: 100vw; }
+  }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">{{ request.user.outlet.name }}</p>
+  <h1 class="brand-title mb-0"><i class="bi bi-clock-history me-2" style="color:var(--accent-gold);"></i>Order History</h1>
+</div>
+{% endblock %}
+
+{% block header_right %}
+{% if not is_restricted %}
+<a href="{% url 'export-orders-csv' %}?{{ request.GET.urlencode }}" class="btn-luxury no-print">
+  <i class="bi bi-download me-1"></i>Export CSV
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="hist-wrap">
+
+  <!-- Filter bar -->
+  <form method="get" class="filter-bar no-print">
+    <div class="f-group">
+      <label>From</label>
+      <input type="date" name="date_from" value="{{ f_date_from }}" {% if is_restricted %}readonly{% endif %}>
+    </div>
+    <div class="f-group">
+      <label>To</label>
+      <input type="date" name="date_to" value="{{ f_date_to }}" {% if is_restricted %}readonly{% endif %}>
+    </div>
+    <div class="f-group">
+      <label>Status</label>
+      <select name="status">
+        <option value="">All (excl. open)</option>
+        <option value="all" {% if f_status == "all" %}selected{% endif %}>Everything incl. open</option>
+        <option value="closed"    {% if f_status == "closed"    %}selected{% endif %}>Closed / Paid</option>
+        <option value="cancelled" {% if f_status == "cancelled" %}selected{% endif %}>Cancelled</option>
+        <option value="billing"   {% if f_status == "billing"   %}selected{% endif %}>Billing</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label>Payment</label>
+      <select name="method">
+        <option value="">All</option>
+        <option value="cash"          {% if f_method == "cash"          %}selected{% endif %}>Cash</option>
+        <option value="upi"           {% if f_method == "upi"           %}selected{% endif %}>UPI</option>
+        <option value="card"          {% if f_method == "card"          %}selected{% endif %}>Card</option>
+        <option value="complimentary" {% if f_method == "complimentary" %}selected{% endif %}>Complimentary</option>
+      </select>
+    </div>
+    <div class="f-group">
+      <label>Source</label>
+      <select name="source">
+        <option value="">All</option>
+        <option value="dine_in"  {% if f_source == "dine_in"  %}selected{% endif %}>Dine-in</option>
+        <option value="takeaway" {% if f_source == "takeaway" %}selected{% endif %}>Takeaway</option>
+        <option value="zomato"   {% if f_source == "zomato"   %}selected{% endif %}>Zomato</option>
+        <option value="swiggy"   {% if f_source == "swiggy"   %}selected{% endif %}>Swiggy</option>
+        <option value="qr_menu"  {% if f_source == "qr_menu"  %}selected{% endif %}>QR Menu</option>
+      </select>
+    </div>
+    {% if not is_restricted and staff_list %}
+    <div class="f-group">
+      <label>Staff</label>
+      <select name="staff_id">
+        <option value="">All Staff</option>
+        {% for s in staff_list %}
+        <option value="{{ s.id }}" {% if f_staff_id == s.id|stringformat:"s" %}selected{% endif %}>
+          {{ s.first_name|default:s.username }} ({{ s.role }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="f-group" style="min-width:180px;">
+      <label>Search order # / phone</label>
+      <input type="text" name="q" value="{{ f_q }}" placeholder="INV-1-... or 98765...">
+    </div>
+    <div style="display:flex;gap:0.4rem;align-items:flex-end;">
+      <button type="submit" class="btn-filter">Search</button>
+      <a href="{% url 'order-history' %}" class="btn-clear">Clear</a>
+    </div>
+    {% if is_restricted %}
+    <div style="font-size:0.7rem;color:var(--text-muted);align-self:flex-end;">
+      <i class="bi bi-lock me-1"></i>{% if request.user.role == "waiter" %}Today's orders only{% else %}Last 30 days{% endif %}
+    </div>
+    {% endif %}
+  </form>
+
+  <!-- Summary strip -->
+  <div class="summary-strip">
+    <div class="sum-chip">
+      <strong>{{ total_orders }}</strong>
+      <span>Orders</span>
+    </div>
+    <div class="sum-chip">
+      <strong>Rs.{{ total_revenue|floatformat:0 }}</strong>
+      <span>Revenue</span>
+    </div>
+    {% if total_orders > 0 %}
+    <div class="sum-chip">
+      <strong>Rs.{{ total_revenue|floatformat:0 }}</strong>
+      <span>Avg: Rs.{% widthratio total_revenue total_orders 1 %}</span>
+    </div>
+    {% endif %}
+    {% if pay_map %}
+    <div class="sum-chip pay-bar">
+      {% if pay_map.cash  %}<span class="pay-dot" style="background:#10b981;"></span> Cash Rs.{{ pay_map.cash|floatformat:0 }}&nbsp;&nbsp;{% endif %}
+      {% if pay_map.upi   %}<span class="pay-dot" style="background:#3b82f6;"></span> UPI Rs.{{ pay_map.upi|floatformat:0 }}&nbsp;&nbsp;{% endif %}
+      {% if pay_map.card  %}<span class="pay-dot" style="background:#a855f7;"></span> Card Rs.{{ pay_map.card|floatformat:0 }}{% endif %}
+      <span style="color:var(--text-muted);font-size:0.65rem;">Payment breakdown</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Table -->
+  {% if page.object_list %}
+  <table class="hist-table">
+    <thead>
+      <tr>
+        <th>Order #</th>
+        <th>Date / Time</th>
+        <th>Location</th>
+        <th>Source</th>
+        <th>Staff</th>
+        <th>Items</th>
+        <th style="text-align:right;">Total</th>
+        <th>Paid via</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for order in page.object_list %}
+      <tr onclick="openDetail({{ order.id }})"
+          class="{% if order.status == 'cancelled' %}cancelled{% endif %}">
+        <td><span class="order-num">{{ order.order_number|default:order.id }}</span></td>
+        <td>
+          <div style="font-size:0.85rem;">{{ order.created_at|date:"d M y" }}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);">{{ order.created_at|date:"H:i" }}</div>
+        </td>
+        <td>
+          {% if order.table %}
+            <i class="bi bi-grid-3x3-gap" style="color:var(--text-muted);font-size:0.75rem;"></i>
+            {{ order.table.name }}
+          {% else %}
+            <i class="bi bi-123" style="color:var(--text-muted);font-size:0.75rem;"></i>
+            Walk-in
+          {% endif %}
+        </td>
+        <td style="font-size:0.75rem;color:var(--text-muted);">
+          {% if order.source == "zomato" %}<i class="bi bi-bag" style="color:#e23744;"></i> Zomato
+          {% elif order.source == "swiggy" %}<i class="bi bi-bag" style="color:#fc8019;"></i> Swiggy
+          {% elif order.source == "qr_menu" %}<i class="bi bi-qr-code"></i> QR
+          {% else %}{{ order.source|title|cut:"_" }}{% endif %}
+        </td>
+        <td style="font-size:0.78rem;">
+          {% if order.created_by %}
+            {{ order.created_by.first_name|default:order.created_by.username }}
+          {% else %}
+            <span style="color:var(--text-muted);">—</span>
+          {% endif %}
+        </td>
+        <td style="font-size:0.82rem;">{{ order.items.count }}</td>
+        <td style="text-align:right;font-weight:600;">Rs.{{ order.grand_total|floatformat:0 }}</td>
+        <td>
+          {% for p in order.payments.all %}
+            {% if p.method != "refund" %}
+            <span class="method-tag">{{ p.method|upper }}</span>
+            {% endif %}
+          {% empty %}
+            {% if order.grand_total == 0 %}<span class="method-tag">COMP</span>{% endif %}
+          {% endfor %}
+        </td>
+        <td>
+          <span class="status-pill
+            {% if order.status == 'closed' %}pill-closed
+            {% elif order.status == 'cancelled' %}pill-cancelled
+            {% elif order.status == 'billing' %}pill-billing
+            {% else %}pill-open{% endif %}">
+            {{ order.status }}
+          </span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div class="pag no-print">
+    {% if page.has_previous %}
+    <a href="?{% querystring page=page.previous_page_number %}">&#8249; Prev</a>
+    {% endif %}
+    <span class="current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}
+    <a href="?{% querystring page=page.next_page_number %}">Next &#8250;</a>
+    {% endif %}
+    <span style="font-size:0.72rem;color:var(--text-muted);margin-left:0.5rem;">
+      {{ page.paginator.count }} total
+    </span>
+  </div>
+
+  {% else %}
+  <div style="text-align:center;padding:4rem;color:var(--text-muted);">
+    <i class="bi bi-inbox" style="font-size:2.5rem;display:block;margin-bottom:1rem;"></i>
+    No orders found for the current filters.
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Detail overlay + panel -->
+<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-panel-head">
+    <div>
+      <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent-gold);margin:0;">Order Detail</p>
+      <h3 id="detailOrderNum" style="font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;margin:0;"></h3>
+    </div>
+    <button class="close-btn" onclick="closeDetail()">×</button>
+  </div>
+  <div class="detail-panel-body" id="detailBody">
+    <div class="loading-detail"><i class="bi bi-hourglass-split"></i> Loading…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openDetail(orderId) {
+  document.getElementById("detailOverlay").classList.add("open");
+  document.getElementById("detailPanel").classList.add("open");
+  document.getElementById("detailBody").innerHTML =
+    '<div class="loading-detail"><i class="bi bi-hourglass-split"></i> Loading…</div>';
+  document.getElementById("detailOrderNum").textContent = "#" + orderId;
+
+  fetch(`/history/${orderId}/detail/`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
+    .then(r => r.json())
+    .then(d => {
+      if (d.error) { document.getElementById("detailBody").innerHTML = `<p style="color:#ef4444;">${d.error}</p>`; return; }
+      renderDetail(d);
+    })
+    .catch(() => {
+      document.getElementById("detailBody").innerHTML = '<p style="color:#ef4444;">Failed to load order detail.</p>';
+    });
+}
+
+function closeDetail() {
+  document.getElementById("detailOverlay").classList.remove("open");
+  document.getElementById("detailPanel").classList.remove("open");
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeDetail(); });
+
+function renderDetail(o) {
+  document.getElementById("detailOrderNum").textContent = o.order_number;
+
+  const statusColor = { closed: "#10b981", cancelled: "#ef4444", billing: "#06b6d4", open: "#ca8a04" };
+  const col = statusColor[o.status] || "#888";
+
+  let html = `
+  <div class="detail-section">
+    <div class="detail-section-title">Order Info</div>
+    <div class="detail-row"><span class="name">Date</span><span class="amt">${o.created_at}</span></div>
+    <div class="detail-row"><span class="name">Location</span><span class="amt">${o.location}</span></div>
+    <div class="detail-row"><span class="name">Source</span><span class="amt">${o.source.replace("_"," ")}</span></div>
+    <div class="detail-row"><span class="name">Waiter / Staff</span><span class="amt">${o.waiter || "—"}</span></div>
+    ${o.customer_name  ? `<div class="detail-row"><span class="name">Customer</span><span class="amt">${o.customer_name}</span></div>` : ""}
+    ${o.customer_phone ? `<div class="detail-row"><span class="name">Phone</span><span class="amt">${o.customer_phone}</span></div>` : ""}
+    ${o.duration_mins !== null ? `<div class="detail-row"><span class="name">Duration</span><span class="amt">${o.duration_mins} min</span></div>` : ""}
+    <div class="detail-row"><span class="name">Status</span><span class="amt" style="color:${col};font-weight:700;text-transform:uppercase;">${o.status}</span></div>
+  </div>`;
+
+  // Items
+  html += `<div class="detail-section"><div class="detail-section-title">Items (${o.items.length})</div>`;
+  if (!o.items.length) {
+    html += `<p style="color:var(--text-muted);font-size:0.82rem;">No items recorded.</p>`;
+  } else {
+    o.items.forEach(item => {
+      const cls = item.status === "voided" ? "voided" : item.is_complimentary ? "comp" : "";
+      const badge = item.status === "voided"
+        ? `<span style="font-size:0.65rem;background:rgba(239,68,68,.1);color:#ef4444;padding:1px 5px;border-radius:3px;margin-left:6px;">VOID</span>`
+        : item.is_complimentary
+        ? `<span style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:1px 5px;border-radius:3px;margin-left:6px;">COMP</span>`
+        : "";
+      const voidNote = item.void_reason
+        ? `<span class="void-reason">Reason: ${item.void_reason}</span>` : "";
+      const price = item.is_complimentary ? "Rs.0" : `Rs.${item.total.toFixed(0)}`;
+      html += `<div class="detail-row ${cls}">
+        <span class="name">${item.quantity}× ${item.name}${badge}${voidNote}</span>
+        <span class="amt">${price}</span>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+
+  // Totals
+  html += `<div class="detail-section"><div class="detail-section-title">Totals</div>
+    <div class="detail-row"><span class="name">Subtotal</span><span class="amt">Rs.${o.subtotal.toFixed(0)}</span></div>
+    <div class="detail-row"><span class="name">GST</span><span class="amt">Rs.${o.gst_total.toFixed(0)}</span></div>`;
+  if (o.discount_total > 0) {
+    html += `<div class="detail-row"><span class="name">Discount</span><span class="amt" style="color:#10b981;">-Rs.${o.discount_total.toFixed(0)}</span></div>`;
+  }
+  html += `<div class="detail-row total-row"><span class="name">Grand Total</span><span class="amt">Rs.${o.grand_total.toFixed(0)}</span></div></div>`;
+
+  // Payments
+  if (o.payments.length) {
+    html += `<div class="detail-section"><div class="detail-section-title">Payments</div>`;
+    o.payments.forEach(p => {
+      const refundCls = p.is_refund ? "refund-row" : "";
+      const sign = p.is_refund ? "-" : "";
+      html += `<div class="detail-row ${refundCls}">
+        <span class="name">${p.method.toUpperCase()}${p.reference ? ` · ${p.reference}` : ""}</span>
+        <span class="amt">${sign}Rs.${Math.abs(p.amount).toFixed(0)} <span style="color:var(--text-muted);font-size:0.7rem;">${p.paid_at}</span></span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Audit trail (owner/manager only — empty array for others)
+  if (o.events && o.events.length) {
+    html += `<div class="detail-section"><div class="detail-section-title">Audit Trail</div>`;
+    o.events.forEach(ev => {
+      html += `<div class="audit-event">
+        <span class="audit-time">${ev.at}</span>
+        <span style="flex:1;">${ev.label}</span>
+        <span class="audit-by">${ev.by || "System"}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Reprint button
+  html += `<div style="margin-top:1rem;">
+    <a href="/thermal-receipt/${o.id}/" target="_blank"
+       class="btn-luxury w-100" style="text-align:center;text-decoration:none;display:flex;justify-content:center;gap:6px;">
+      <i class="bi bi-printer"></i> Reprint Receipt
+    </a>
+  </div>`;
+
+  document.getElementById("detailBody").innerHTML = html;
+}
+</script>
+{% endblock %}

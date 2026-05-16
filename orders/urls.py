@@ -46,6 +46,9 @@ from .views import (
     approve_items,
     printer_status,
     thermal_receipt_view,
+    order_history_view,
+    order_detail_api,
+    export_orders_csv,
 )
 
 from .views.token_views import (
@@ -86,6 +89,11 @@ urlpatterns = [
     path("printer-status/", printer_status, name="printer-status"),
     path("download-pdf/<int:order_id>/", download_pdf_bill, name="download-pdf"),
     path("thermal-receipt/<int:order_id>/", thermal_receipt_view, name="thermal-receipt"),
+
+    # Order History
+    path("history/",                      order_history_view, name="order-history"),
+    path("history/<int:order_id>/detail/", order_detail_api,   name="order-detail-api"),
+    path("history/export/",               export_orders_csv,  name="export-orders-csv"),
 
     path("tables/", table_dashboard, name="table-dashboard"),
     path("tables-data/", tables_data ,name="tables-data"),

@@ -12,6 +12,7 @@ from .table_views import table_dashboard, tables_data, mark_table_cleaned, avail
 from .order_views import running_order_view, running_order_items, running_order_data, approve_items
 from .waiter_views import waiter_dashboard, resolve_waiter_call, resolve_kitchen_message
 from .order_actions import cancel_order, cancel_item
+from .history_views import order_history_view, order_detail_api, export_orders_csv
 
 __all__ = [
     # billing pages
@@ -65,4 +66,8 @@ __all__ = [
     # order actions
     "cancel_order",
     "cancel_item",
+    # history
+    "order_history_view",
+    "order_detail_api",
+    "export_orders_csv",
 ]
