@@ -16,6 +16,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, JsonResponse
 
 from reports.services.kitchen_reports import kitchen_performance, top_kitchen_items
+from reports.services.comparison_reports import period_comparison
+from reports.services.pl_reports import gross_margin_report
 
 @login_required
 @tenant_required
@@ -92,12 +94,14 @@ def dashboard(request):
 
     selected_outlet = outlet
 
-    sales = daily_sales(tenant, selected_outlet, start_date, end_date)
-    items = top_items(tenant, selected_outlet, start_date, end_date)
-    hourly = hourly_sales(tenant, selected_outlet, start_date, end_date)
+    sales      = daily_sales(tenant, selected_outlet, start_date, end_date)
+    items      = top_items(tenant, selected_outlet, start_date, end_date)
+    hourly     = hourly_sales(tenant, selected_outlet, start_date, end_date)
     table_stats = table_turnover(tenant, selected_outlet, start_date, end_date)
     categories = category_sales(tenant, selected_outlet, start_date, end_date)
-    waiters = waiter_performance(tenant, selected_outlet, start_date, end_date)
+    waiters    = waiter_performance(tenant, selected_outlet, start_date, end_date)
+    comparison = period_comparison(tenant, selected_outlet, start_date, end_date)
+    pl         = gross_margin_report(tenant, selected_outlet, start_date, end_date)
 
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type='text/csv')
@@ -169,18 +173,20 @@ def dashboard(request):
     is_limited_view = (request.user.role == "agent" and not request.user.is_superuser)
 
     return render(request, "reports/dashboard.html", {
-        "sales": sales,
-        "items": items if not is_limited_view else [],
-        "hourly_sales": hourly,
-        "table_stats": table_stats if not is_limited_view else [],
-        "categories": categories if not is_limited_view else [],
-        "waiters": waiters if not is_limited_view else [],
-        "outlets": outlets,
+        "sales":          sales,
+        "items":          items if not is_limited_view else [],
+        "hourly_sales":   hourly,
+        "table_stats":    table_stats if not is_limited_view else [],
+        "categories":     categories if not is_limited_view else [],
+        "waiters":        waiters if not is_limited_view else [],
+        "comparison":     comparison if not is_limited_view else {},
+        "pl":             pl         if not is_limited_view else {},
+        "outlets":        outlets,
         "current_outlet": outlet,
-        "date_filter": date_filter,
-        "start_date": start_date,
-        "end_date": end_date,
-        "is_limited_view": is_limited_view
+        "date_filter":    date_filter,
+        "start_date":     start_date,
+        "end_date":       end_date,
+        "is_limited_view": is_limited_view,
     })
 
 @login_required

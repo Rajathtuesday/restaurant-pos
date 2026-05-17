@@ -67,25 +67,59 @@
   }
   .context-info strong { color: var(--text-main); font-weight: 600; }
 
-  /* Report nav tabs */
-  .report-nav-btn {
-    border-radius: 0; border-color: var(--border-color); color: var(--text-main);
-    font-size: 0.8rem; text-transform: uppercase; background: transparent;
-    border: 1px solid var(--border-color); padding: 0.4rem 0.85rem;
-    text-decoration: none; display: inline-block; white-space: nowrap;
-    transition: var(--transition-smooth);
+  /* ── Report sub-nav ───────────────────────────────────────── */
+  .report-subnav {
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
-  .report-nav-btn:hover, .report-nav-btn.active {
-    background: var(--text-main); color: var(--panel-bg);
+  .report-subnav-left  { display: flex; align-items: center; gap: 0; }
+  .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
+
+  .report-tab {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s; display: inline-block;
   }
+  .report-tab:hover   { color: var(--text-main); }
+  .report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
+
+  .subnav-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 0.25rem; }
+
+  .subnav-select {
+    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
+    color: var(--text-main); font-size: 0.82rem; font-family: inherit;
+    padding: 0.3rem 1.2rem 0.3rem 0; cursor: pointer; outline: none;
+  }
+  .subnav-select:focus { border-color: var(--accent-gold); }
+  .subnav-select option { background: var(--panel-bg); }
+
+  .subnav-btn {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+    padding: 0.35rem 0.8rem; border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-main); cursor: pointer;
+    white-space: nowrap; text-decoration: none; display: inline-flex;
+    align-items: center; gap: 5px; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .subnav-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .subnav-btn.gold  { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .subnav-btn.gold:hover { background: var(--accent-gold); color: #fff; }
 
   @media (max-width: 768px) {
-    .form-select-luxury { font-size: 0.78rem; padding: 0.4rem 0.75rem 0.4rem 0; }
-    .btn-luxury { padding: 0.5rem 0.75rem; font-size: 0.7rem; white-space: nowrap; }
+    .report-subnav { padding: 0 1rem; }
+    .report-subnav-right { gap: 0.35rem; }
     .metric-value { font-size: 2rem; }
     .card-elegant { padding: 1.5rem 1.25rem; }
     .context-info { font-size: 0.7rem; margin-bottom: 1.5rem; }
     #customDates { flex-direction: column !important; }
+    .subnav-hide-mobile { display: none !important; }
   }
   @media (max-width: 480px) {
     .metric-value { font-size: 1.6rem; }
@@ -102,104 +136,94 @@
 {% endblock %}
 
 {% block header_right %}
-<div class="d-flex align-items-center gap-2 flex-wrap">
-
-  <!-- Report tabs -->
-  <div class="d-flex gap-1">
-    <a href="/reports/dashboard/" class="report-nav-btn {% if request.path == '/reports/dashboard/' %}active{% endif %}">Sales</a>
-    <a href="/reports/kitchen/" class="report-nav-btn {% if 'kitchen' in request.path %}active{% endif %}">Kitchen KPIs</a>
-    <a href="/dashboard/" class="report-nav-btn">POS Dashboard</a>
-  </div>
-
-  <!-- Export + Print -->
-  <div class="dropdown" style="border-left: 1px solid var(--border-color); padding-left: 0.75rem; margin-left: 0.25rem;">
-    <button onclick="window.print()" class="btn-icon me-1" title="Print View"><i class="bi bi-printer"></i></button>
-    <button class="btn-luxury dropdown-toggle" type="button" data-bs-toggle="dropdown" style="padding: 0.5rem 0.75rem; font-size: 0.72rem;">
-      <i class="bi bi-download me-1"></i> Export
-    </button>
-    <ul class="dropdown-menu dropdown-menu-end" style="border-radius:0; border-color:var(--border-color);">
-      <li><h6 class="dropdown-header text-uppercase" style="letter-spacing:1px; font-size:0.7rem;">CSV Reports</h6></li>
-      <li><a class="dropdown-item" href="#" onclick="triggerExport('orders')">Orders Details</a></li>
-      <li><a class="dropdown-item" href="#" onclick="triggerExport('items')">Items Sales</a></li>
-      <li><a class="dropdown-item" href="#" onclick="triggerExport('categories')">Category Breakdown</a></li>
-      <li><a class="dropdown-item" href="#" onclick="triggerExport('waiters')">Staff Performance</a></li>
-      <li><a class="dropdown-item" href="/shifts/sessions/export/" target="_blank">Daily Z-Report</a></li>
-      <li><hr class="dropdown-divider"></li>
-      <li><h6 class="dropdown-header text-uppercase" style="letter-spacing:1px; font-size:0.7rem;">Compliance</h6></li>
-      <li><a class="dropdown-item" href="#" onclick="triggerExport('gstr1')"><i class="bi bi-file-earmark-excel me-2" style="color:#107c41;"></i>GSTR-1 B2CS (Excel)</a></li>
-    </ul>
-  </div>
-
-  <!-- Filters -->
-  {% if request.user.role == "owner" %}
-  <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
-    <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
-      if(this.value==='custom'){document.getElementById('customDates').style.display='flex';}
-      else{document.getElementById('filterForm').submit();}">
-      <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
-      <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-      <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
-      <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
-      <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
-    </select>
-    <div id="customDates" {% if date_filter == 'custom' %}style="display:flex;gap:0.5rem;"{% else %}style="display:none;gap:0.5rem;"{% endif %}>
-      <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
-      <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
-      <button type="submit" class="btn-icon" aria-label="Apply"><i class="bi bi-chevron-right"></i></button>
-    </div>
-    <select name="outlet" class="form-select form-select-luxury ms-2" onchange="document.getElementById('filterForm').submit()">
-      <option value="">All Branches</option>
-      {% for o in outlets %}
-      <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
-      {% endfor %}
-    </select>
-  </form>
-  {% else %}
-  <form id="filterForm" method="GET" class="m-0 d-flex gap-2 align-items-center">
-    <select name="date_filter" class="form-select form-select-luxury" style="max-width:200px;" onchange="
-      if(this.value==='custom'){document.getElementById('customDates').style.display='flex';}
-      else{this.form.submit();}">
-      <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
-      <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-      <option value="weekly" {% if date_filter == 'weekly' %}selected{% endif %}>Last 7 Days</option>
-      <option value="monthly" {% if date_filter == 'monthly' %}selected{% endif %}>Last 30 Days</option>
-      <option value="custom" {% if date_filter == 'custom' %}selected{% endif %}>Custom Range</option>
-    </select>
-    <div id="customDates" {% if date_filter == 'custom' %}style="display:flex;gap:0.5rem;"{% else %}style="display:none;gap:0.5rem;"{% endif %}>
-      <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
-      <input type="date" name="end_date" class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
-      <button type="submit" class="btn-icon" aria-label="Apply"><i class="bi bi-chevron-right"></i></button>
-    </div>
-  </form>
-  {% endif %}
-
-  <!-- Z-Report + Ops + Feature nav -->
-  {% if not is_limited_view %}
-  <a href="{% url 'export-z-report' %}" class="btn-luxury text-decoration-none" style="border-color:var(--accent-gold);color:var(--accent-gold);padding:0.5rem 0.75rem;font-size:0.72rem;">
-    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Z-Report
-  </a>
-  <button class="btn-luxury" data-bs-toggle="offcanvas" data-bs-target="#opsMenu" style="padding:0.5rem 0.75rem;font-size:0.72rem;">
-    <i class="bi bi-grid me-1"></i> Operations
-  </button>
-  {% endif %}
-  {% if 'floor_plan' in tenant_features %}
-  <a href="/tables/" class="btn-luxury text-decoration-none d-none d-md-inline-block" style="padding:0.5rem 0.75rem;font-size:0.72rem;">Tables</a>
-  <a href="/billing/" class="btn-luxury text-decoration-none d-none d-md-inline-block" style="padding:0.5rem 0.75rem;font-size:0.72rem;">Billing</a>
-  {% endif %}
-  {% if 'token_system' in tenant_features %}
-  <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-md-inline-block" style="padding:0.5rem 0.75rem;font-size:0.72rem;">Token Counter</a>
-  {% endif %}
-
-  <button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
-  </button>
-  <a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-</div>
+<a href="/dashboard/" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme"><i class="bi bi-moon" id="themeIcon"></i></button>
+<a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 {% endblock %}
 
 {% block content %}
 {{ sales.payments|json_script:"payments-data" }}
 {{ hourly_sales|json_script:"hourly-data" }}
+
+<!-- ── SUB-NAV STRIP ──────────────────────────────────────────── -->
+<nav class="report-subnav">
+  <!-- Left: page tabs -->
+  <div class="report-subnav-left">
+    <a href="/reports/dashboard/" class="report-tab {% if request.path == '/reports/dashboard/' %}active{% endif %}">
+      Sales
+    </a>
+    <a href="/reports/kitchen/" class="report-tab {% if 'kitchen' in request.path %}active{% endif %}">
+      Kitchen KPIs
+    </a>
+  </div>
+
+  <!-- Right: filters + actions -->
+  <div class="report-subnav-right">
+    <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
+
+      <!-- Outlet (owner only, multi-branch) -->
+      {% if request.user.role == "owner" and outlets|length > 1 %}
+      <select name="outlet" class="subnav-select subnav-hide-mobile" onchange="document.getElementById('filterForm').submit()">
+        <option value="">All Branches</option>
+        {% for o in outlets %}
+        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="subnav-sep subnav-hide-mobile"></div>
+      {% endif %}
+
+      <!-- Date range -->
+      <select name="date_filter" class="subnav-select" onchange="
+        if(this.value==='custom'){document.getElementById('customDates').style.display='flex';}
+        else{document.getElementById('filterForm').submit();}">
+        <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
+        <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
+        <option value="custom"    {% if date_filter == 'custom'    %}selected{% endif %}>Custom Range</option>
+      </select>
+
+      <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %};gap:0.4rem;align-items:center;">
+        <input type="date" name="start_date" class="subnav-select" value="{{ start_date|date:'Y-m-d' }}" style="width:130px;">
+        <span style="color:var(--text-muted);font-size:0.75rem;">–</span>
+        <input type="date" name="end_date"   class="subnav-select" value="{{ end_date|date:'Y-m-d' }}"   style="width:130px;">
+        <button type="submit" class="subnav-btn" style="padding:0.3rem 0.6rem;"><i class="bi bi-check2"></i></button>
+      </div>
+
+    </form>
+
+    <div class="subnav-sep"></div>
+
+    <!-- Export dropdown -->
+    <div class="dropdown">
+      <button class="subnav-btn dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-download"></i> Export
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="border-radius:0;border-color:var(--border-color);min-width:200px;">
+        <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">CSV</h6></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('orders')">Orders Details</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('items')">Items Sales</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('categories')">Category Breakdown</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('waiters')">Staff Performance</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">Compliance</h6></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('gstr1')"><i class="bi bi-file-earmark-excel me-2" style="color:#107c41;"></i>GSTR-1 B2CS</a></li>
+      </ul>
+    </div>
+
+    <!-- Z-Report (prominent, for end-of-day) -->
+    {% if not is_limited_view %}
+    <a href="{% url 'export-z-report' %}" class="subnav-btn gold">
+      <i class="bi bi-file-earmark-spreadsheet"></i>
+      <span class="subnav-hide-mobile">Z-Report</span>
+    </a>
+    {% endif %}
+
+    <!-- Print -->
+    <button class="btn-icon" onclick="window.print()" title="Print"><i class="bi bi-printer"></i></button>
+  </div>
+</nav>
+<!-- ── END SUB-NAV ────────────────────────────────────────────── -->
 
 <div class="container-fluid mx-auto py-4" style="max-width:1400px; padding-left:2rem; padding-right:2rem;">
 
@@ -250,6 +274,152 @@
     </div>
     {% endif %}
   </div>
+
+  <!-- ── PERIOD COMPARISON ────────────────────────────────────── -->
+  {% if not is_limited_view and comparison %}
+  <div class="card-elegant mb-5" style="padding:1.5rem 2rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem;">
+      <h5 class="section-title" style="margin:0;text-align:left;">
+        This Period vs Previous
+      </h5>
+      <span style="font-size:0.7rem;color:var(--text-muted);letter-spacing:1px;">
+        PREV: {{ comparison.prev_start }} – {{ comparison.prev_end }}
+      </span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;">
+
+      {% with c=comparison.current p=comparison.previous d=comparison.deltas %}
+
+      {% for label, curr_val, prev_val, delta, prefix in forloop.parentloop|dictsort:"0" %}{% endfor %}
+
+      <!-- Revenue -->
+      <div style="border:1px solid var(--border-color);padding:1rem;text-align:center;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.4rem;">Revenue</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;">₹{{ c.revenue|floatformat:0 }}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs ₹{{ p.revenue|floatformat:0 }}</div>
+        {% if d.revenue is not None %}
+          {% if d.revenue >= 0 %}
+            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↑ {{ d.revenue }}%</span>
+          {% else %}
+            <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↓ {{ d.revenue|slice:"1:" }}%</span>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Orders -->
+      <div style="border:1px solid var(--border-color);padding:1rem;text-align:center;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.4rem;">Orders</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;">{{ c.orders }}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs {{ p.orders }}</div>
+        {% if d.orders is not None %}
+          {% if d.orders >= 0 %}
+            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↑ {{ d.orders }}%</span>
+          {% else %}
+            <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↓ {{ d.orders|slice:"1:" }}%</span>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Avg Order Value -->
+      <div style="border:1px solid var(--border-color);padding:1rem;text-align:center;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.4rem;">Avg Order</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;">₹{{ c.avg_order|floatformat:0 }}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs ₹{{ p.avg_order|floatformat:0 }}</div>
+        {% if d.avg_order is not None %}
+          {% if d.avg_order >= 0 %}
+            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↑ {{ d.avg_order }}%</span>
+          {% else %}
+            <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↓ {{ d.avg_order|slice:"1:" }}%</span>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- Discounts -->
+      <div style="border:1px solid var(--border-color);padding:1rem;text-align:center;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.4rem;">Discounts Given</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:{% if c.discounts > p.discounts %}#ef4444{% else %}#10b981{% endif %};">
+          ₹{{ c.discounts|floatformat:0 }}
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs ₹{{ p.discounts|floatformat:0 }}</div>
+        {% if d.discounts is not None %}
+          {% if d.discounts <= 0 %}
+            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↓ {{ d.discounts|slice:"1:" }}% better</span>
+          {% else %}
+            <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↑ {{ d.discounts }}% more</span>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      {% endwith %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── GROSS MARGIN / P&L ─────────────────────────────────── -->
+  {% if not is_limited_view and pl %}
+  <div class="card-elegant mb-5" style="padding:1.5rem 2rem;">
+    <h5 class="section-title" style="text-align:left;margin-bottom:1.5rem;">Revenue &amp; Gross Margin</h5>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+
+      <div style="padding:0.75rem;border-left:3px solid var(--accent-gold);">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Revenue</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;">₹{{ pl.gross_revenue|floatformat:0 }}</div>
+      </div>
+
+      <div style="padding:0.75rem;border-left:3px solid var(--border-color);">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">GST Collected</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--text-muted);">₹{{ pl.gst_collected|floatformat:0 }}</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);">not your income</div>
+      </div>
+
+      <div style="padding:0.75rem;border-left:3px solid #3b82f6;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Net Revenue (ex-GST)</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#3b82f6;">₹{{ pl.net_revenue|floatformat:0 }}</div>
+      </div>
+
+      <div style="padding:0.75rem;border-left:3px solid var(--border-color);">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Discounts Given</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#f97316;">₹{{ pl.discounts|floatformat:0 }}</div>
+      </div>
+
+      {% if pl.cogs > 0 %}
+      <div style="padding:0.75rem;border-left:3px solid var(--border-color);">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Cost of Goods Sold</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#ef4444;">₹{{ pl.cogs|floatformat:0 }}</div>
+      </div>
+
+      <div style="padding:0.75rem;border-left:3px solid #10b981;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Profit</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#10b981;">₹{{ pl.gross_profit|floatformat:0 }}</div>
+      </div>
+
+      <div style="padding:0.75rem;border-left:3px solid #10b981;background:rgba(16,185,129,0.05);">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Margin</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:#10b981;font-weight:700;">{{ pl.gross_margin_pct }}%</div>
+      </div>
+      {% else %}
+      <div style="padding:0.75rem;border-left:3px solid var(--border-color);grid-column:span 2;">
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Margin</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-top:0.3rem;">
+          <i class="bi bi-info-circle me-1"></i>
+          Link recipes to menu items in <a href="/menu/" style="color:var(--accent-gold);">Menu Management</a> to calculate COGS and gross margin.
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {% if pl.cogs_note %}
+    <div style="font-size:0.72rem;color:var(--text-muted);padding:0.5rem 0.75rem;border-left:2px solid var(--border-color);">
+      <i class="bi bi-info-circle me-1"></i> {{ pl.cogs_note }}
+    </div>
+    {% endif %}
+
+    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.75rem;">
+      * This is gross margin only. Operating expenses (rent, salaries, utilities) are not tracked in Rasova.
+    </div>
+  </div>
+  {% endif %}
 
   <!-- CHARTS -->
   <div class="row g-4 mb-5">
