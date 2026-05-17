@@ -406,6 +406,14 @@
     </div>
     {% endif %}
 
+    <div class="col-6 col-md-3 col-lg-2">
+        <a href="{% url 'order-history' %}" class="quick-card">
+            <div class="icon"><i class="bi bi-clock-history"></i></div>
+            <h5>History</h5>
+            <p>All Orders</p>
+        </a>
+    </div>
+
     {% if not is_manager %}
     {% if request.user.is_superuser or request.user.role == "agent" %}
     <div class="col-6 col-md-3 col-lg-2">
