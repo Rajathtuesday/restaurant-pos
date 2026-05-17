@@ -225,9 +225,19 @@ else:
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+
+    # Filter out empty strings — if CSRF_TRUSTED_ORIGINS is not set, split(',')
+    # produces [''] which silently disables CSRF origin checking entirely.
+    _raw_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+    CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf_origins.split(',') if o.strip()]
+
+    # Tell Django the real scheme when running behind nginx or any reverse proxy.
+    # Without this, Django sees all requests as HTTP and HTTPS-detection breaks.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True          # allow HSTS preload list submission
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
 

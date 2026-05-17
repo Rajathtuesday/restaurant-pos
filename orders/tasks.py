@@ -103,6 +103,12 @@ def print_kot_task(self, station_id, order_id, kot_id):
         return False
 
     except Exception as exc:
+        # MaxRetriesExceededError is a subclass of Exception — catch it
+        # explicitly so we don't try to retry a task that's already exhausted.
+        if isinstance(exc, self.MaxRetriesExceededError):
+            logger.error("KOT #%s gave up after %s retries (from general handler).",
+                         kot_id, self.max_retries)
+            return False
         logger.error("KOT #%s print error: %s", kot_id, exc)
         try:
             from orders.models import Order as O
@@ -195,6 +201,9 @@ def print_bill_task(self, order_id, station_id):
         return False
 
     except Exception as exc:
+        if isinstance(exc, self.MaxRetriesExceededError):
+            logger.error("Bill print for Order #%s gave up after max retries (general handler).", order_id)
+            return False
         logger.error("Bill print for Order #%s error: %s", order_id, exc)
         raise self.retry(exc=exc)
 

@@ -132,31 +132,23 @@ def deduct_inventory_for_items(order_items):
 def check_inventory_availability(menu_item, quantity=1):
     """
     Check if enough inventory exists before ordering.
-    Useful for future features like:
-    - blocking out-of-stock items
-    - showing 'Out of stock' in POS
+    Scoped to the same tenant + outlet as the menu item — prevents
+    a missing tenant filter from reading another tenant's inventory.
     """
-
     recipes_manager = getattr(menu_item, "recipes", None)
-
     if recipes_manager is None:
         return True
 
-    recipes = recipes_manager.all()
-
-    for recipe in recipes:
-
+    for recipe in recipes_manager.all():
         required = recipe.quantity_required * quantity
-
         try:
-
             inventory = InventoryItem.objects.get(
-                id=recipe.inventory_item_id
+                id=recipe.inventory_item_id,
+                tenant=menu_item.tenant,    # ← tenant isolation enforced
+                outlet=menu_item.outlet,    # ← outlet isolation enforced
             )
-
             if inventory.stock < required:
                 return False
-
         except InventoryItem.DoesNotExist:
             return False
 

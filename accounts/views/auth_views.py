@@ -2,9 +2,16 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.shortcuts import render, redirect
+from django_ratelimit.decorators import ratelimit
 
 
+@ratelimit(key="ip", rate="10/m", method="POST", block=False)
 def login_view(request):
+    # 10 POST attempts per minute per IP. block=False so we control the response.
+    if getattr(request, "limited", False):
+        messages.error(request, "Too many login attempts. Please wait a minute before trying again.")
+        return render(request, "accounts/login.html", status=429)
+
     if request.method == "POST":
         username = request.POST.get("username", "")
         password = request.POST.get("password", "")
