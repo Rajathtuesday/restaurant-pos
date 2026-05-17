@@ -580,3 +580,143 @@ class BatchTransfer(models.Model):
 
     def __str__(self):
         return f"Transfer {self.batch.batch_number} to {self.destination_outlet.name}"
+
+
+# -------------------------------------------------------
+# STOCK REQUISITION
+# Outlet requests items from central kitchen or vendor.
+# System auto-routes based on whether a CK outlet exists.
+# -------------------------------------------------------
+
+class StockRequisition(models.Model):
+
+    STATUS = [
+        ("draft",         "Draft"),
+        ("pending",       "Pending"),
+        ("approved",      "Approved — Ready to Fulfill"),
+        ("in_production", "In Production (CK Processing)"),
+        ("ordered",       "Ordered from Vendor"),
+        ("fulfilled",     "Fulfilled"),
+        ("cancelled",     "Cancelled"),
+    ]
+
+    ROUTE = [
+        ("auto",     "Auto-route"),           # system decides
+        ("internal", "Central Kitchen"),      # internal transfer
+        ("external", "Vendor PO"),            # external purchase
+        ("split",    "Split (CK + Vendor)"),  # some from CK, rest from vendor
+    ]
+
+    tenant            = models.ForeignKey("tenants.Tenant",  on_delete=models.CASCADE)
+    requesting_outlet = models.ForeignKey(
+        "tenants.Outlet", on_delete=models.CASCADE, related_name="requisitions_raised"
+    )
+
+    status = models.CharField(max_length=20, choices=STATUS, default="draft")
+    route  = models.CharField(max_length=20, choices=ROUTE,  default="auto")
+
+    notes  = models.TextField(blank=True)
+
+    # Set when routed
+    fulfilling_outlet = models.ForeignKey(
+        "tenants.Outlet", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="requisitions_to_fulfill",
+        help_text="Central kitchen outlet that will fulfill this (if internal)"
+    )
+
+    # Links to downstream fulfillment records
+    production_batch = models.ForeignKey(
+        ProductionBatch, on_delete=models.SET_NULL, null=True, blank=True,
+        help_text="Set when CK converts this requisition to a batch"
+    )
+    purchase_order = models.ForeignKey(
+        PurchaseOrder, on_delete=models.SET_NULL, null=True, blank=True,
+        help_text="Set when converted to a vendor PO"
+    )
+
+    created_by  = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="requisitions_created")
+    created_at  = models.DateTimeField(auto_now_add=True)
+    approved_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="requisitions_approved")
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes  = [
+            models.Index(fields=["tenant", "requesting_outlet", "status"]),
+            models.Index(fields=["tenant", "fulfilling_outlet", "status"]),
+        ]
+
+    def __str__(self):
+        return f"Req #{self.id} — {self.requesting_outlet.name} [{self.status}]"
+
+    def is_editable(self):
+        return self.status in ("draft", "pending")
+
+    def auto_route(self):
+        """
+        Decide whether to fulfill from central kitchen or vendor.
+        Sets self.route and self.fulfilling_outlet.
+        Does NOT save — caller must save.
+        """
+        from tenants.models import Outlet as _Outlet
+
+        # Find central kitchen outlet for this tenant
+        # Convention: the outlet that is the source of any ProductionBatch
+        ck = (
+            ProductionBatch.objects
+            .filter(tenant=self.tenant)
+            .values_list("source_outlet", flat=True)
+            .first()
+        )
+        if ck:
+            ck_outlet = _Outlet.objects.filter(id=ck).first()
+        else:
+            ck_outlet = None
+
+        if not ck_outlet or ck_outlet == self.requesting_outlet:
+            # No central kitchen or CK is us — go to vendor
+            self.route = "external"
+            self.fulfilling_outlet = None
+            return
+
+        # Check if CK has sufficient stock for all items
+        items     = list(self.items.select_related("inventory_item").all())
+        can_fill  = True
+        for req_item in items:
+            ck_stock = InventoryItem.objects.filter(
+                tenant=self.tenant, outlet=ck_outlet,
+                name=req_item.inventory_item.name,
+            ).values_list("stock", flat=True).first() or 0
+            if ck_stock < req_item.quantity_requested:
+                can_fill = False
+                break
+
+        if can_fill:
+            self.route            = "internal"
+            self.fulfilling_outlet = ck_outlet
+        else:
+            self.route            = "external"
+            self.fulfilling_outlet = None
+
+
+class RequisitionItem(models.Model):
+    """A single item line in a StockRequisition."""
+
+    requisition        = models.ForeignKey(StockRequisition, on_delete=models.CASCADE, related_name="items")
+    inventory_item     = models.ForeignKey(InventoryItem,    on_delete=models.CASCADE)
+    quantity_requested = models.DecimalField(max_digits=12, decimal_places=3)
+    quantity_approved  = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True,
+                                             help_text="CK can adjust this before approving")
+    unit               = models.CharField(max_length=10, choices=UNIT_CHOICES)
+    notes              = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ("requisition", "inventory_item")
+
+    def __str__(self):
+        return f"{self.inventory_item.name} × {self.quantity_requested} {self.unit}"
+
+    @property
+    def effective_quantity(self):
+        """Approved quantity if set, otherwise requested."""
+        return self.quantity_approved if self.quantity_approved is not None else self.quantity_requested

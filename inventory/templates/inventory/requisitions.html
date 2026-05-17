@@ -1,0 +1,286 @@
+{% extends 'core/base.html' %}
+{% block title %}Stock Requisitions | {{ outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .rq-wrap { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+
+  .rq-grid { display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; }
+  @media(max-width:900px){ .rq-grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.5rem; }
+  .panel-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-gold); font-weight: 700; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); }
+
+  .status-pill { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .s-draft       { background: rgba(115,115,115,.1); color: var(--text-muted); }
+  .s-pending     { background: rgba(234,179,8,.12); color: #ca8a04; }
+  .s-approved    { background: rgba(59,130,246,.12); color: #3b82f6; }
+  .s-production  { background: rgba(249,115,22,.12); color: #f97316; }
+  .s-ordered     { background: rgba(168,85,247,.12); color: #a855f7; }
+  .s-fulfilled   { background: rgba(16,185,129,.12); color: #10b981; }
+  .s-cancelled   { background: rgba(239,68,68,.1); color: #ef4444; }
+
+  .route-chip { font-size: 0.62rem; padding: 1px 7px; border-radius: 3px; margin-left: 6px; }
+  .r-internal { background: rgba(16,185,129,.1); color: #10b981; }
+  .r-external { background: rgba(239,68,68,.08); color: #ef4444; }
+  .r-auto     { background: rgba(197,160,89,.1); color: var(--accent-gold); }
+
+  .req-card { border: 1px solid var(--border-color); padding: 1rem; margin-bottom: 0.6rem; cursor: pointer; transition: border-color 0.15s; }
+  .req-card:hover { border-color: var(--accent-gold); }
+  .req-id   { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--accent-gold); }
+  .req-date { font-size: 0.7rem; color: var(--text-muted); }
+  .req-items-preview { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+  .low-stock-row { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+  .low-stock-row:last-child { border-bottom: none; }
+  .low-val { font-size: 0.72rem; color: #ef4444; font-weight: 600; }
+
+  .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.3rem; }
+  .field input, .field select, .field textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 0.88rem; font-family: inherit; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--accent-gold); }
+  .field select option { background: var(--panel-bg); }
+
+  .item-add-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 0.5rem; }
+  .item-add-row .f  { flex: 1; }
+  .item-add-row .fw { flex: 0 0 70px; }
+  .item-add-row .fu { flex: 0 0 55px; }
+
+  .btn { font-size: 0.72rem; padding: 0.45rem 1rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-gold:hover { background: #b59250; }
+  .btn-sm { font-size: 0.65rem; padding: 0.3rem 0.65rem; }
+
+  #createMsg { font-size: 0.78rem; margin-top: 0.75rem; padding: 0.5rem 0.75rem; display: none; }
+  .msg-ok  { background: rgba(16,185,129,.1); color: #10b981; }
+  .msg-err { background: rgba(239,68,68,.1); color: #ef4444; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
+    <a href="/inventory/board/" style="color:var(--accent-gold);text-decoration:none;">Inventory</a> / Requisitions
+  </p>
+  <h1 class="brand-title mb-0"><i class="bi bi-clipboard-check me-2" style="color:var(--accent-gold);"></i>Stock Requisitions</h1>
+  <p class="brand-subtitle">{{ outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<button class="btn-luxury btn-gold" onclick="autoGenerate()" id="autoBtn">
+  <i class="bi bi-magic me-1"></i>Auto-Generate from Low Stock
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="rq-wrap">
+  <div class="rq-grid">
+
+    <!-- LEFT: Create new requisition -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">New Requisition</div>
+
+        <!-- Low stock items quick-add -->
+        {% if low_stock %}
+        <div style="margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border-color);">
+          <div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:2px;color:#ef4444;margin-bottom:0.6rem;font-weight:600;">
+            <i class="bi bi-exclamation-triangle me-1"></i>{{ low_stock.count }} item(s) below threshold
+          </div>
+          {% for item in low_stock %}
+          <div class="low-stock-row">
+            <span>{{ item.name }}</span>
+            <span class="low-val">{{ item.stock }} {{ item.unit }} left</span>
+          </div>
+          {% endfor %}
+          <button class="btn btn-sm" style="margin-top:0.75rem;border-color:var(--accent-gold);color:var(--accent-gold);"
+                  onclick="fillFromLowStock()">
+            <i class="bi bi-arrow-down me-1"></i>Add all low-stock items below
+          </button>
+        </div>
+        {% endif %}
+
+        <!-- Manual item selection -->
+        <div class="field" style="margin-bottom:0.5rem;">
+          <label>Route</label>
+          <select id="routeSel">
+            <option value="auto">Auto-route (system decides)</option>
+            <option value="internal">Central Kitchen (internal)</option>
+            <option value="external">Vendor / Supplier (external PO)</option>
+          </select>
+        </div>
+
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin:1rem 0 0.4rem;">Items</div>
+        <div id="itemRows">
+          <div class="item-add-row" data-idx="0">
+            <div class="f">
+              <select class="item-sel" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:0.85rem;font-family:inherit;outline:none;">
+                <option value="">Select item...</option>
+                {% for item in inventory_items %}
+                <option value="{{ item.id }}" data-unit="{{ item.unit }}" data-name="{{ item.name }}" data-stock="{{ item.stock }}">
+                  {{ item.name }} ({{ item.stock }} {{ item.unit }} in stock)
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="fw"><input type="number" class="qty-in" min="0.01" step="0.01" placeholder="Qty" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:0.85rem;font-family:inherit;outline:none;"></div>
+            <div class="fu"><input type="text" class="unit-in" readonly placeholder="unit" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-muted);padding:0.4rem 0;font-size:0.82rem;font-family:inherit;outline:none;"></div>
+          </div>
+        </div>
+        <button class="btn btn-sm" onclick="addRow()" style="margin:0.4rem 0 1rem;">+ Add Item</button>
+
+        <div class="field">
+          <label>Notes (optional)</label>
+          <textarea id="reqNotes" rows="2" placeholder="e.g. Urgent — running out by dinner service"></textarea>
+        </div>
+
+        <div id="createMsg"></div>
+        <button class="btn btn-gold w-100" onclick="submitRequisition()">
+          <i class="bi bi-send me-1"></i>Raise Requisition
+        </button>
+      </div>
+    </div>
+
+    <!-- RIGHT: Existing requisitions -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">Requisitions — {{ outlet.name }}</div>
+
+        {% if requisitions %}
+          {% for req in requisitions %}
+          <div class="req-card" onclick="location.href='/inventory/requisitions/{{ req.id }}/'">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.4rem;">
+              <div>
+                <span class="req-id">#{{ req.id }}</span>
+                <span class="route-chip
+                  {% if req.route == 'internal' %}r-internal
+                  {% elif req.route == 'external' %}r-external
+                  {% else %}r-auto{% endif %}">
+                  {{ req.get_route_display }}
+                </span>
+              </div>
+              <span class="status-pill
+                {% if req.status == 'draft' %}s-draft
+                {% elif req.status == 'pending' %}s-pending
+                {% elif req.status == 'approved' %}s-approved
+                {% elif req.status == 'in_production' %}s-production
+                {% elif req.status == 'ordered' %}s-ordered
+                {% elif req.status == 'fulfilled' %}s-fulfilled
+                {% else %}s-cancelled{% endif %}">
+                {{ req.get_status_display }}
+              </span>
+            </div>
+            <div class="req-date">{{ req.created_at|date:"d M Y, H:i" }} · {{ req.requesting_outlet.name }}</div>
+            <div class="req-items-preview">
+              {% for item in req.items.all|slice:":3" %}{{ item.inventory_item.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              {% if req.items.count > 3 %} +{{ req.items.count|add:"-3" }} more{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:3rem;color:var(--text-muted);">
+            <i class="bi bi-clipboard" style="font-size:2rem;display:block;margin-bottom:0.75rem;"></i>
+            No requisitions yet. Use the form to request stock.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = apiClient.getCsrf();
+const LOW_STOCK_ITEMS = [
+  {% for item in low_stock %}
+  { id: {{ item.id }}, name: "{{ item.name|escapejs }}", unit: "{{ item.unit }}", reorder: {{ item.reorder_quantity|default:"0" }} },
+  {% endfor %}
+];
+
+// Wire unit autofill on first row
+document.querySelector(".item-sel").addEventListener("change", function() {
+  this.closest(".item-add-row").querySelector(".unit-in").value =
+    this.options[this.selectedIndex].dataset.unit || "";
+});
+
+function addRow() {
+  const tmpl  = document.querySelector(".item-add-row[data-idx='0']").cloneNode(true);
+  const idx   = document.querySelectorAll(".item-add-row").length;
+  tmpl.setAttribute("data-idx", idx);
+  tmpl.querySelector(".item-sel").value = "";
+  tmpl.querySelector(".qty-in").value   = "";
+  tmpl.querySelector(".unit-in").value  = "";
+  const del = document.createElement("button");
+  del.textContent = "×";
+  del.style.cssText = "background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;";
+  del.onclick = () => tmpl.remove();
+  tmpl.appendChild(del);
+  tmpl.querySelector(".item-sel").addEventListener("change", function() {
+    tmpl.querySelector(".unit-in").value = this.options[this.selectedIndex].dataset.unit || "";
+  });
+  document.getElementById("itemRows").appendChild(tmpl);
+}
+
+function fillFromLowStock() {
+  LOW_STOCK_ITEMS.forEach((item, i) => {
+    let row = document.querySelector(`.item-add-row[data-idx='${i}']`);
+    if (!row) { addRow(); row = document.querySelectorAll(".item-add-row")[i]; }
+    const sel = row.querySelector(".item-sel");
+    for (const opt of sel.options) {
+      if (parseInt(opt.value) === item.id) { opt.selected = true; break; }
+    }
+    row.querySelector(".unit-in").value = item.unit;
+    row.querySelector(".qty-in").value  = item.reorder > 0 ? item.reorder : "";
+  });
+}
+
+async function submitRequisition() {
+  const rows  = document.querySelectorAll(".item-add-row");
+  const items = [];
+  rows.forEach(row => {
+    const sel = row.querySelector(".item-sel");
+    const qty = parseFloat(row.querySelector(".qty-in").value);
+    const unit = row.querySelector(".unit-in").value;
+    if (sel.value && qty > 0) items.push({ item_id: parseInt(sel.value), quantity: qty, unit });
+  });
+  if (!items.length) { showMsg("Add at least one item.", false); return; }
+
+  const r = await fetch("{% url 'requisition-create' %}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+    body: JSON.stringify({
+      items,
+      notes: document.getElementById("reqNotes").value,
+      route: document.getElementById("routeSel").value,
+    }),
+  });
+  const d = await r.json();
+  if (d.success) { showMsg(d.message, true); setTimeout(() => location.href = `/inventory/requisitions/${d.requisition_id}/`, 800); }
+  else           { showMsg(d.error || "Failed.", false); }
+}
+
+async function autoGenerate() {
+  if (!confirm("Generate a requisition for all low-stock items automatically?")) return;
+  const btn = document.getElementById("autoBtn");
+  btn.disabled = true;
+  const r = await fetch("{% url 'requisition-auto-generate' %}", {
+    method: "POST", headers: { "X-CSRFToken": CSRF },
+  });
+  const d = await r.json();
+  if (d.success && d.created) { ui.toast(d.message, "success"); setTimeout(() => location.href = `/inventory/requisitions/${d.requisition_id}/`, 800); }
+  else if (d.success)         { ui.toast(d.message, "info"); }
+  else                        { ui.toast(d.error || "Failed.", "error"); }
+  btn.disabled = false;
+}
+
+function showMsg(msg, ok) {
+  const el = document.getElementById("createMsg");
+  el.textContent = msg;
+  el.className   = ok ? "msg-ok" : "msg-err";
+  el.style.display = "block";
+}
+</script>
+{% endblock %}

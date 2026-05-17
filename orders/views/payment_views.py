@@ -148,7 +148,7 @@ def pay_order(request, order_id):
 
                 if payment_result["order_closed"]:
                     # payment_service already set status=closed and closed_at.
-                    # Set table to cleaning here — service doesn't know about tables.
+                    # Set table to cleaning here - service doesn't know about tables.
                     if order.table:
                         order.table.state = "cleaning"
                         order.table.save(update_fields=["state"])
@@ -171,7 +171,7 @@ def pay_order(request, order_id):
                                 logger.warning("Auto-print after payment failed: %s", _pe)
                         transaction.on_commit(_auto_print)
 
-                    # WhatsApp receipt — fire after commit so it doesn't run on rollback
+                    # WhatsApp receipt - fire after commit so it doesn't run on rollback
                     _order_id = order.id
                     _order_ref = order  # captured for closure
                     def _send_whatsapp():
@@ -247,7 +247,7 @@ def refund_payment(request, payment_id):
 
 
 # -------------------------------------------------
-# SPLIT BILL  — POST /orders/<id>/split-pay/
+# SPLIT BILL  - POST /orders/<id>/split-pay/
 # -------------------------------------------------
 
 @login_required
@@ -346,7 +346,7 @@ def split_pay(request, order_id):
                 created_by=request.user,
             )
 
-            # payment_service already closed the order — set table state here.
+            # payment_service already closed the order - set table state here.
             if order.status == "closed":
                 if order.table:
                     order.table.state = "cleaning"

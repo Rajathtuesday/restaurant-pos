@@ -102,7 +102,7 @@ def token_dashboard(request):
         outlet=outlet, date=today, order__status="cancelled"
     ).count()
 
-    # Peek at counter for display only (no lock needed — approximate is fine)
+    # Peek at counter for display only (no lock needed - approximate is fine)
     try:
         counter   = DailyTokenCounter.objects.get(outlet=outlet, date=today)
         next_token = counter.value + 1
@@ -160,7 +160,7 @@ def create_and_go_to_billing(request):
     """
     One-tap shortcut for tenants with direct_billing_mode enabled.
     Creates a new counter token order and immediately redirects to its
-    billing screen — skips the token dashboard entirely.
+    billing screen - skips the token dashboard entirely.
     Used by the owner dashboard "Core Ops" card when the feature flag is on.
     """
     if request.user.role not in _STAFF_CAN_CREATE and not request.user.is_superuser:
@@ -361,7 +361,7 @@ def assign_online_token(order, outlet, tenant, business_date):
 def token_billing(request, order_id):
     """
     Billing screen for a token order.
-    Simplified — no table selection, no floor plan.
+    Simplified - no table selection, no floor plan.
     Includes active_tokens context for the sidebar so staff can
     quickly switch between open orders without going back to dashboard.
     """
@@ -379,7 +379,7 @@ def token_billing(request, order_id):
 
     token = getattr(order, "token", None)
 
-    # Only load available items — avoid showing 86'd items to cashier.
+    # Only load available items - avoid showing 86'd items to cashier.
     categories = (
         MenuCategory.objects
         .filter(

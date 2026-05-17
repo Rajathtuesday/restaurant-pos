@@ -1,6 +1,16 @@
 # inventory/urls.py
 from django.urls import path
 from . import views
+from .central_kitchen_views import (
+    central_kitchen_dashboard, create_batch, batch_detail,
+    add_batch_item, create_transfers, dispatch_batch,
+    receive_page, scan_barcode, confirm_receive,
+)
+from .requisition_views import (
+    requisition_list, create_requisition, auto_generate_requisition,
+    requisition_detail, approve_requisition,
+    convert_to_batch, convert_to_po, cancel_requisition,
+)
 
 urlpatterns = [
     # Inventory board
@@ -24,4 +34,25 @@ urlpatterns = [
 
     # Legacy alias
     path("purchase-order/", views.purchase_order_view, name="purchase_order_view"),
+
+    # Stock Requisitions
+    path("requisitions/",                                  requisition_list,            name="requisition-list"),
+    path("requisitions/create/",                           create_requisition,          name="requisition-create"),
+    path("requisitions/auto-generate/",                    auto_generate_requisition,   name="requisition-auto-generate"),
+    path("requisitions/<int:req_id>/",                     requisition_detail,          name="requisition-detail"),
+    path("requisitions/<int:req_id>/approve/",             approve_requisition,         name="requisition-approve"),
+    path("requisitions/<int:req_id>/to-batch/",            convert_to_batch,            name="requisition-to-batch"),
+    path("requisitions/<int:req_id>/to-po/",               convert_to_po,               name="requisition-to-po"),
+    path("requisitions/<int:req_id>/cancel/",              cancel_requisition,          name="requisition-cancel"),
+
+    # Central Kitchen
+    path("central-kitchen/",                              central_kitchen_dashboard, name="central-kitchen"),
+    path("central-kitchen/batch/create/",                 create_batch,              name="ck-create-batch"),
+    path("central-kitchen/batch/<int:batch_id>/",         batch_detail,              name="ck-batch-detail"),
+    path("central-kitchen/batch/<int:batch_id>/add-item/",add_batch_item,            name="ck-add-item"),
+    path("central-kitchen/batch/<int:batch_id>/transfer/",create_transfers,          name="ck-create-transfers"),
+    path("central-kitchen/batch/<int:batch_id>/dispatch/",dispatch_batch,            name="ck-dispatch"),
+    path("central-kitchen/receive/",                      receive_page,              name="ck-receive"),
+    path("central-kitchen/scan/",                         scan_barcode,              name="ck-scan"),
+    path("central-kitchen/receive/<int:transfer_id>/confirm/", confirm_receive,      name="ck-confirm-receive"),
 ]

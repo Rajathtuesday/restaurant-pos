@@ -164,7 +164,7 @@ def bump_kot(request, kot_id):
                 bumped += 1
             except Exception:
                 pass
-        logger.info("KOT #%s bumped — %d items marked ready by %s", kot.kot_number, bumped, request.user.username)
+        logger.info("KOT #%s bumped - %d items marked ready by %s", kot.kot_number, bumped, request.user.username)
         return JsonResponse({"success": True, "bumped": bumped})
     except KOTBatch.DoesNotExist:
         return JsonResponse({"error": "KOT not found"}, status=404)

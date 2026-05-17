@@ -1,0 +1,182 @@
+{% extends 'core/base.html' %}
+{% block title %}Receive Stock | {{ outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .recv-wrap { max-width: 800px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+
+  .scan-box {
+    background: var(--panel-bg); border: 1px solid var(--accent-gold);
+    padding: 1.5rem; margin-bottom: 2rem; text-align: center;
+  }
+  .scan-input {
+    width: 100%; background: transparent; border: none;
+    border-bottom: 2px solid var(--accent-gold);
+    color: var(--text-main); font-size: 1.1rem; font-family: 'Space Mono', monospace;
+    padding: 0.5rem 0; outline: none; text-align: center; letter-spacing: 2px;
+  }
+  .scan-result {
+    margin-top: 1rem; padding: 1rem;
+    border: 1px solid var(--border-color); text-align: left;
+    display: none;
+  }
+  .scan-result.found  { border-color: #10b981; }
+  .scan-result.error  { border-color: #ef4444; }
+
+  .transfer-card {
+    background: var(--panel-bg); border: 1px solid var(--border-color);
+    padding: 1.25rem; margin-bottom: 0.75rem;
+    border-left: 3px solid var(--accent-gold);
+  }
+  .tc-batch { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--accent-gold); }
+  .tc-from  { font-size: 0.72rem; color: var(--text-muted); }
+  .tc-items { font-size: 0.85rem; margin: 0.5rem 0; }
+
+  .status-badge {
+    font-size: 0.62rem; padding: 2px 8px; border-radius: 12px;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+  }
+  .s-pending { background: rgba(234,179,8,.12); color: #ca8a04; }
+  .s-transit { background: rgba(59,130,246,.12); color: #3b82f6; }
+
+  .btn-recv { font-size: 0.72rem; padding: 0.45rem 1rem; border: 1px solid var(--accent-gold); background: var(--accent-gold); color: #fff; cursor: pointer; font-family: inherit; }
+  .btn-recv:hover { background: #b59250; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
+    <a href="/inventory/central-kitchen/" style="color:var(--accent-gold);text-decoration:none;">Central Kitchen</a>
+    / Receive Stock
+  </p>
+  <h1 class="brand-title mb-0">
+    <i class="bi bi-qr-code-scan me-2" style="color:var(--accent-gold);"></i>Receive Stock
+  </h1>
+  <p class="brand-subtitle">{{ outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="recv-wrap">
+
+  <!-- Barcode Scanner -->
+  <div class="scan-box">
+    <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.75rem;">
+      Scan or Enter Barcode
+    </p>
+    <input type="text" id="barcodeInput" class="scan-input" placeholder="BATCH-20260517-001-001"
+           autofocus autocomplete="off" onkeydown="if(event.key==='Enter') lookupBarcode()">
+    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem;">
+      Scan the barcode on the package, or type it and press Enter
+    </div>
+    <div id="scanResult" class="scan-result"></div>
+  </div>
+
+  <!-- Pending transfers list -->
+  <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--text-muted);margin-bottom:0.75rem;">
+    Pending &amp; In-Transit Transfers
+  </div>
+
+  {% if incoming %}
+    {% for t in incoming %}
+    <div class="transfer-card" id="transfer-{{ t.id }}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:0.5rem;">
+        <div>
+          <div class="tc-batch">{{ t.batch.batch_number }}</div>
+          <div class="tc-from">From: {{ t.batch.source_outlet.name }} · {{ t.batch.created_at|date:"d M Y" }}</div>
+        </div>
+        <span class="status-badge {% if t.status == 'pending' %}s-pending{% else %}s-transit{% endif %}">
+          {{ t.status }}
+        </span>
+      </div>
+
+      <div class="tc-items">
+        {% for item in t.batch.items.all %}
+          <span style="display:inline-block;margin:2px 4px 2px 0;">
+            {{ item.quantity }} {{ item.unit }} <strong>{{ item.inventory_item.name }}</strong>
+          </span>
+        {% endfor %}
+      </div>
+
+      {% if t.batch.notes %}
+      <div style="font-size:0.75rem;color:var(--text-muted);font-style:italic;margin-bottom:0.5rem;">
+        {{ t.batch.notes }}
+      </div>
+      {% endif %}
+
+      <button class="btn-recv" onclick="confirmReceive({{ t.id }}, '{{ t.batch.batch_number }}')">
+        <i class="bi bi-check2-circle me-1"></i>Receive All Items
+      </button>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div style="text-align:center;padding:3rem;color:var(--text-muted);">
+      <i class="bi bi-inbox" style="font-size:2.5rem;display:block;margin-bottom:1rem;"></i>
+      No pending transfers for {{ outlet.name }}.<br>
+      <small>Transfers will appear here once the central kitchen dispatches a batch.</small>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = apiClient.getCsrf();
+
+async function lookupBarcode() {
+  const barcode = document.getElementById("barcodeInput").value.trim();
+  if (!barcode) return;
+
+  const r   = await fetch(`/inventory/central-kitchen/scan/?barcode=${encodeURIComponent(barcode)}`);
+  const d   = await r.json();
+  const box = document.getElementById("scanResult");
+
+  if (d.success) {
+    box.className = "scan-result found";
+    box.style.display = "block";
+    box.innerHTML = `
+      <div style="font-size:0.72rem;color:#10b981;margin-bottom:0.5rem;">Barcode found</div>
+      <strong>${d.item_name}</strong> — ${d.quantity} ${d.unit}<br>
+      <span style="font-size:0.75rem;color:var(--text-muted);">Batch: ${d.batch_number} · From: ${d.from_outlet}</span>
+      <div style="margin-top:0.75rem;">
+        <button class="btn-recv" onclick="confirmReceive(${d.transfer_id}, '${d.batch_number}')">
+          <i class="bi bi-check2-circle me-1"></i>Confirm Receipt
+        </button>
+      </div>`;
+  } else {
+    box.className = "scan-result error";
+    box.style.display = "block";
+    box.innerHTML = `<span style="color:#ef4444;">${d.error}</span>`;
+  }
+}
+
+async function confirmReceive(transferId, batchNum) {
+  if (!confirm(`Receive all items from batch ${batchNum}?\nStock will be added to your inventory automatically.`)) return;
+
+  const r = await fetch(`/inventory/central-kitchen/receive/${transferId}/confirm/`, {
+    method: "POST", headers: { "X-CSRFToken": CSRF },
+  });
+  const d = await r.json();
+
+  if (d.success) {
+    // Show which items were added
+    let detail = d.stock_updates.map(u =>
+      `${u.item}: +${u.added} ${u.unit} (now: ${u.new_stock})`
+    ).join("\n");
+    ui.toast(d.message, "success");
+
+    // Remove the card from the UI
+    const card = document.getElementById(`transfer-${transferId}`);
+    if (card) {
+      card.style.opacity = "0.4";
+      card.style.pointerEvents = "none";
+    }
+    setTimeout(() => location.reload(), 1200);
+  } else {
+    ui.toast(d.error || "Failed to receive transfer.", "error");
+  }
+}
+</script>
+{% endblock %}

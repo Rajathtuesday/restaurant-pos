@@ -1,0 +1,326 @@
+{% extends 'core/base.html' %}
+{% block title %}Central Kitchen | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ck-wrap { max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+
+  .ck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media(max-width:900px) { .ck-grid { grid-template-columns: 1fr; } }
+
+  .ck-panel {
+    background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.5rem;
+  }
+  .ck-panel-title {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px;
+    color: var(--accent-gold); font-weight: 700; margin-bottom: 1rem;
+    padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  .batch-card {
+    border: 1px solid var(--border-color); padding: 1rem; margin-bottom: 0.75rem;
+    transition: border-color 0.2s;
+  }
+  .batch-card:hover { border-color: var(--accent-gold); }
+  .batch-num  { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--accent-gold); }
+  .batch-date { font-size: 0.72rem; color: var(--text-muted); }
+  .batch-items-count { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+  .transfer-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.62rem; padding: 2px 8px; border-radius: 12px; margin: 2px;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+  }
+  .pill-pending  { background: rgba(234,179,8,.12); color: #ca8a04; border: 1px solid rgba(234,179,8,.3); }
+  .pill-transit  { background: rgba(59,130,246,.12); color: #3b82f6; border: 1px solid rgba(59,130,246,.3); }
+  .pill-received { background: rgba(16,185,129,.12); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
+  .pill-partial  { background: rgba(249,115,22,.12); color: #f97316; border: 1px solid rgba(249,115,22,.3); }
+
+  .incoming-card {
+    border-left: 3px solid var(--accent-gold); padding: 1rem 1rem 1rem 1.25rem;
+    margin-bottom: 0.75rem; background: var(--panel-bg);
+    border-top: 1px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .incoming-from { font-size: 0.72rem; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 1px; }
+  .incoming-items { font-size: 0.82rem; color: var(--text-muted); margin: 0.5rem 0; }
+
+  .field { margin-bottom: 0.75rem; }
+  .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.3rem; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: transparent; border: none;
+    border-bottom: 1px solid var(--border-color); color: var(--text-main);
+    padding: 0.4rem 0; font-size: 0.88rem; font-family: inherit; outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent-gold); }
+  .field select option { background: var(--panel-bg); }
+
+  .btn-ck { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.5rem 1.1rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .btn-ck:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .btn-ck-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-ck-gold:hover { background: #b59250; color: #fff; }
+  .btn-ck-sm { font-size: 0.65rem; padding: 0.3rem 0.7rem; }
+
+  .item-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 0.5rem; }
+  .item-row .f { flex: 1; }
+  .item-row .f-sm { flex: 0 0 80px; }
+
+  #statusMsg { font-size: 0.8rem; margin-top: 0.75rem; padding: 0.5rem 0.75rem; display: none; }
+  .msg-ok  { background: rgba(16,185,129,.1); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
+  .msg-err { background: rgba(239,68,68,.1);  color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
+    <a href="/inventory/board/" style="color:var(--accent-gold);text-decoration:none;">Inventory</a> / Central Kitchen
+  </p>
+  <h1 class="brand-title mb-0">
+    <i class="bi bi-building-gear me-2" style="color:var(--accent-gold);"></i>Central Kitchen
+  </h1>
+  <p class="brand-subtitle">{{ outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/inventory/central-kitchen/receive/" class="btn-luxury">
+  <i class="bi bi-qr-code-scan me-1"></i> Receive Stock
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="ck-wrap">
+
+  <div class="ck-grid">
+
+    <!-- ── LEFT: Batches sent by this outlet ────────────────────── -->
+    <div>
+      <div class="ck-panel">
+        <div class="ck-panel-title">
+          <span>Production Batches</span>
+          <button class="btn-ck btn-ck-sm btn-ck-gold" onclick="openCreateModal()">
+            <i class="bi bi-plus-lg me-1"></i>New Batch
+          </button>
+        </div>
+
+        {% if sent_batches %}
+          {% for batch in sent_batches %}
+          <div class="batch-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div>
+                <div class="batch-num">{{ batch.batch_number }}</div>
+                <div class="batch-date">{{ batch.created_at|date:"d M Y, H:i" }}</div>
+                <div class="batch-items-count">{{ batch.items.count }} item(s)</div>
+              </div>
+              <a href="/inventory/central-kitchen/batch/{{ batch.id }}/" class="btn-ck btn-ck-sm">
+                View
+              </a>
+            </div>
+            <div style="margin-top:0.6rem;">
+              {% for t in batch.transfers.all %}
+                <span class="transfer-pill
+                  {% if t.status == 'pending' %}pill-pending
+                  {% elif t.status == 'in_transit' %}pill-transit
+                  {% elif t.status == 'received' %}pill-received
+                  {% else %}pill-partial{% endif %}">
+                  {{ t.destination_outlet.name|truncatechars:12 }} · {{ t.status }}
+                </span>
+              {% empty %}
+                <span style="font-size:0.7rem;color:var(--text-muted);">No transfers yet</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:2rem;color:var(--text-muted);">
+            <i class="bi bi-box-seam" style="font-size:2rem;display:block;margin-bottom:0.75rem;"></i>
+            No batches yet. Create your first production batch.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── RIGHT: Incoming transfers for this outlet ─────────────── -->
+    <div>
+      <div class="ck-panel">
+        <div class="ck-panel-title">
+          <span>Incoming Transfers</span>
+          <span style="font-size:0.65rem;color:var(--text-muted);">Pending &amp; In Transit</span>
+        </div>
+
+        {% if incoming %}
+          {% for transfer in incoming %}
+          <div class="incoming-card">
+            <div class="incoming-from">From: {{ transfer.batch.source_outlet.name }}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;">
+              <span class="batch-num">{{ transfer.batch.batch_number }}</span>
+              <span class="transfer-pill
+                {% if transfer.status == 'pending' %}pill-pending
+                {% elif transfer.status == 'in_transit' %}pill-transit
+                {% endif %}">
+                {{ transfer.status }}
+              </span>
+            </div>
+            <div class="incoming-items">
+              {% for item in transfer.batch.items.all %}
+                {{ item.quantity }} {{ item.unit }} {{ item.inventory_item.name }}{% if not forloop.last %}, {% endif %}
+              {% endfor %}
+            </div>
+            <button class="btn-ck btn-ck-sm btn-ck-gold"
+                    onclick="confirmReceive({{ transfer.id }}, '{{ transfer.batch.batch_number }}')">
+              <i class="bi bi-check2-circle me-1"></i>Receive All
+            </button>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:2rem;color:var(--text-muted);">
+            <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:0.75rem;"></i>
+            No pending incoming transfers.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Create Batch Modal ──────────────────────────────────────────── -->
+<div id="createModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1050;align-items:center;justify-content:center;">
+  <div style="background:var(--panel-bg);border:1px solid var(--border-color);width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:2rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;margin:0;">New Production Batch</h3>
+      <button onclick="closeCreateModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;">×</button>
+    </div>
+
+    <div class="field">
+      <label>Notes (optional)</label>
+      <textarea id="batchNotes" rows="2" placeholder="Morning prep batch for south outlets..."></textarea>
+    </div>
+
+    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.5rem;">Items</div>
+    <div id="itemRows">
+      <div class="item-row" data-idx="0">
+        <div class="f">
+          <select class="item-select" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:0.85rem;font-family:inherit;outline:none;">
+            <option value="">Select item...</option>
+            {% for item in inventory_items %}
+            <option value="{{ item.id }}" data-unit="{{ item.unit }}">{{ item.name }} ({{ item.unit }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="f-sm">
+          <input type="number" class="qty-input" min="0.01" step="0.01" placeholder="Qty" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:0.85rem;font-family:inherit;outline:none;">
+        </div>
+        <div class="f-sm">
+          <input type="text" class="unit-input" placeholder="unit" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-muted);padding:0.4rem 0;font-size:0.85rem;font-family:inherit;outline:none;" readonly>
+        </div>
+      </div>
+    </div>
+    <button onclick="addItemRow()" class="btn-ck btn-ck-sm" style="margin-bottom:1.25rem;">
+      <i class="bi bi-plus me-1"></i>Add Item
+    </button>
+
+    <div id="statusMsg"></div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+      <button class="btn-ck btn-ck-gold" style="flex:1;" onclick="submitBatch()">Create Batch</button>
+      <button class="btn-ck" onclick="closeCreateModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = apiClient.getCsrf();
+
+function openCreateModal()  { document.getElementById("createModal").style.display = "flex"; }
+function closeCreateModal() { document.getElementById("createModal").style.display = "none"; }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeCreateModal(); });
+
+function addItemRow() {
+  const idx  = document.querySelectorAll(".item-row").length;
+  const orig = document.querySelector(".item-row[data-idx='0']");
+  const clone = orig.cloneNode(true);
+  clone.setAttribute("data-idx", idx);
+  clone.querySelector(".item-select").value = "";
+  clone.querySelector(".qty-input").value   = "";
+  clone.querySelector(".unit-input").value  = "";
+  // Add remove button
+  const del = document.createElement("button");
+  del.textContent = "×";
+  del.style.cssText = "background:none;border:none;color:#ef4444;cursor:pointer;font-size:1.1rem;padding:0 4px;";
+  del.onclick = function() { clone.remove(); };
+  clone.appendChild(del);
+  document.getElementById("itemRows").appendChild(clone);
+
+  // Wire up unit auto-fill on the new select
+  clone.querySelector(".item-select").addEventListener("change", function() {
+    const opt = this.options[this.selectedIndex];
+    clone.querySelector(".unit-input").value = opt.dataset.unit || "";
+  });
+}
+
+// Wire unit auto-fill on first row
+document.querySelector(".item-select").addEventListener("change", function() {
+  const opt = this.options[this.selectedIndex];
+  document.querySelector(".unit-input").value = opt.dataset.unit || "";
+});
+
+async function submitBatch() {
+  const notes = document.getElementById("batchNotes").value;
+  const rows  = document.querySelectorAll(".item-row");
+  const items = [];
+  rows.forEach(row => {
+    const sel = row.querySelector(".item-select");
+    const qty = parseFloat(row.querySelector(".qty-input").value);
+    const unit = row.querySelector(".unit-input").value;
+    if (sel.value && qty > 0) {
+      items.push({ item_id: parseInt(sel.value), quantity: qty, unit });
+    }
+  });
+  if (!items.length) { showStatus("Add at least one item.", false); return; }
+
+  const form = new FormData();
+  form.append("notes", notes);
+  form.append("items", JSON.stringify(items));
+
+  const r = await fetch("{% url 'ck-create-batch' %}", {
+    method: "POST",
+    headers: { "X-CSRFToken": CSRF },
+    body: form,
+  });
+  const d = await r.json();
+  if (d.success) {
+    showStatus(d.message, true);
+    setTimeout(() => { window.location.href = `/inventory/central-kitchen/batch/${d.batch_id}/`; }, 800);
+  } else {
+    showStatus(d.error || "Failed to create batch.", false);
+  }
+}
+
+function showStatus(msg, ok) {
+  const el = document.getElementById("statusMsg");
+  el.textContent = msg;
+  el.className   = ok ? "msg-ok" : "msg-err";
+  el.style.display = "block";
+}
+
+async function confirmReceive(transferId, batchNum) {
+  if (!confirm(`Receive all items from batch ${batchNum}?\nStock will be added to your inventory.`)) return;
+  const r = await fetch(`/inventory/central-kitchen/receive/${transferId}/confirm/`, {
+    method: "POST", headers: { "X-CSRFToken": CSRF },
+  });
+  const d = await r.json();
+  if (d.success) {
+    ui.toast(d.message, "success");
+    setTimeout(() => location.reload(), 800);
+  } else {
+    ui.toast(d.error || "Failed to receive transfer.", "error");
+  }
+}
+</script>
+{% endblock %}

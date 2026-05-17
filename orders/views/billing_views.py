@@ -1,12 +1,12 @@
 # orders/views/billing_views.py
 # ---------------------------------------------------------------------------
-# SHIM — this file is kept for backwards compatibility.
+# SHIM - this file is kept for backwards compatibility.
 # All logic has been moved to focused sub-modules:
-#   billing_core.py   — billing_view, bill_view
-#   payment_views.py  — pay_order, split_pay, refund_payment
-#   discount_views.py — apply_discount, make_item_complimentary,
+#   billing_core.py   - billing_view, bill_view
+#   payment_views.py  - pay_order, split_pay, refund_payment
+#   discount_views.py - apply_discount, make_item_complimentary,
 #                       apply_item_discount, log_bypass
-#   print_views.py    — generate_bill, print_bill_action, print_kot_action,
+#   print_views.py    - generate_bill, print_bill_action, print_kot_action,
 #                       printer_status, download_pdf_bill
 #
 # create_order lives here because it spans billing + order creation concerns
@@ -28,7 +28,7 @@ from orders.services.order_service import get_or_create_open_order, add_items_to
 logger = logging.getLogger("pos.orders")
 
 # ---------------------------------------------------------------------------
-# Re-exports — any code that still does `from orders.views.billing_views import X`
+# Re-exports - any code that still does `from orders.views.billing_views import X`
 # will continue to work without modification.
 # ---------------------------------------------------------------------------
 from .billing_core import billing_view, bill_view  # noqa: F401
@@ -71,7 +71,7 @@ __all__ = [
 # @login_required -- Removed to allow QR guest ordering
 # Rate-limit BEFORE require_POST so the check runs before any body parsing.
 # 20 requests/minute per IP. Guests hit this via QR; staff calls are authenticated
-# and go through the same endpoint — 20/min is more than enough for either.
+# and go through the same endpoint - 20/min is more than enough for either.
 @ratelimit(key="ip", rate="20/m", method="POST", block=True)
 @require_POST
 # @tenant_required -- Removed to allow QR guest ordering

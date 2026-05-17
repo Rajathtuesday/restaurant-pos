@@ -1,0 +1,219 @@
+{% extends 'core/base.html' %}
+{% block title %}Requisition #{{ req.id }} | {{ req.requesting_outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .rd-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+  .panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.5rem; margin-bottom: 1.25rem; }
+  .panel-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-gold); font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); }
+
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+  .info-cell { padding: 0.75rem; border-left: 3px solid var(--border-color); }
+  .info-cell .lbl { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+  .info-cell .val { font-size: 0.92rem; font-weight: 600; margin-top: 0.2rem; }
+
+  .status-pill { display: inline-block; padding: 3px 12px; border-radius: 12px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+  .s-draft{ background:rgba(115,115,115,.1);color:var(--text-muted); }
+  .s-pending{ background:rgba(234,179,8,.12);color:#ca8a04; }
+  .s-approved{ background:rgba(59,130,246,.12);color:#3b82f6; }
+  .s-production{ background:rgba(249,115,22,.12);color:#f97316; }
+  .s-ordered{ background:rgba(168,85,247,.12);color:#a855f7; }
+  .s-fulfilled{ background:rgba(16,185,129,.12);color:#10b981; }
+  .s-cancelled{ background:rgba(239,68,68,.1);color:#ef4444; }
+
+  .item-table { width: 100%; border-collapse: collapse; }
+  .item-table th { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.6rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
+  .item-table td { padding: 0.8rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; }
+  .item-table tr:last-child td { border-bottom: none; }
+
+  .adj-input { background: transparent; border: none; border-bottom: 1px solid var(--accent-gold); color: var(--text-main); width: 70px; padding: 0.2rem 0; font-size: 0.85rem; font-family: inherit; outline: none; }
+
+  .action-strip { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
+  .btn { font-size: 0.72rem; padding: 0.5rem 1.1rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+  .btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .btn-gold:hover { background: #b59250; }
+  .btn-blue { border-color: #3b82f6; color: #3b82f6; }
+  .btn-blue:hover { background: #3b82f6; color: #fff; }
+  .btn-red { border-color: rgba(239,68,68,.5); color: #ef4444; }
+  .btn-red:hover { background: #ef4444; color: #fff; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
+    <a href="/inventory/requisitions/" style="color:var(--accent-gold);text-decoration:none;">Requisitions</a> / #{{ req.id }}
+  </p>
+  <h1 class="brand-title mb-0"><i class="bi bi-clipboard-check me-2" style="color:var(--accent-gold);"></i>Requisition #{{ req.id }}</h1>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rd-wrap">
+
+  <!-- Status + info -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.5rem;">
+      <span class="status-pill
+        {% if req.status == 'draft' %}s-draft
+        {% elif req.status == 'pending' %}s-pending
+        {% elif req.status == 'approved' %}s-approved
+        {% elif req.status == 'in_production' %}s-production
+        {% elif req.status == 'ordered' %}s-ordered
+        {% elif req.status == 'fulfilled' %}s-fulfilled
+        {% else %}s-cancelled{% endif %}">
+        {{ req.get_status_display }}
+      </span>
+      <span style="font-size:0.72rem;color:var(--text-muted);">Route: {{ req.get_route_display }}</span>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-cell"><div class="lbl">Requested by</div><div class="val">{{ req.requesting_outlet.name }}</div></div>
+      {% if req.fulfilling_outlet %}
+      <div class="info-cell" style="border-left-color:#10b981;"><div class="lbl">Fulfilling outlet</div><div class="val" style="color:#10b981;">{{ req.fulfilling_outlet.name }}</div></div>
+      {% endif %}
+      <div class="info-cell"><div class="lbl">Created</div><div class="val">{{ req.created_at|date:"d M Y, H:i" }}</div></div>
+      {% if req.approved_by %}
+      <div class="info-cell"><div class="lbl">Approved by</div><div class="val">{{ req.approved_by.username }} · {{ req.approved_at|date:"d M H:i" }}</div></div>
+      {% endif %}
+      {% if req.production_batch %}
+      <div class="info-cell" style="border-left-color:#f97316;">
+        <div class="lbl">Production Batch</div>
+        <div class="val"><a href="/inventory/central-kitchen/batch/{{ req.production_batch.id }}/" style="color:#f97316;">{{ req.production_batch.batch_number }}</a></div>
+      </div>
+      {% endif %}
+      {% if req.purchase_order %}
+      <div class="info-cell" style="border-left-color:#a855f7;">
+        <div class="lbl">Purchase Order</div>
+        <div class="val" style="color:#a855f7;">{{ req.purchase_order.po_number }}</div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if req.notes %}
+    <div style="font-size:0.82rem;color:var(--text-muted);font-style:italic;padding:0.5rem 0.75rem;border-left:2px solid var(--border-color);">
+      {{ req.notes }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Items -->
+  <div class="panel">
+    <div class="panel-title">Items ({{ items.count }})</div>
+    <table class="item-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Requested</th>
+          {% if is_ck and req.status in "pending,approved" %}<th>Approve Qty</th>{% else %}<th>Approved</th>{% endif %}
+          <th>Unit</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>{{ item.inventory_item.name }}</td>
+          <td>{{ item.quantity_requested }}</td>
+          <td>
+            {% if is_ck and req.status in "pending,approved" %}
+              <input type="number" class="adj-input" id="adj-{{ item.id }}"
+                     value="{{ item.quantity_approved|default:item.quantity_requested }}"
+                     min="0.01" step="0.01">
+            {% else %}
+              {{ item.quantity_approved|default:item.quantity_requested }}
+            {% endif %}
+          </td>
+          <td>{{ item.unit }}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);">{{ item.notes }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Action buttons based on status and role -->
+  <div class="action-strip">
+    {% if is_ck and req.status in "pending,approved" %}
+      <button class="btn btn-gold" onclick="approveReq()">
+        <i class="bi bi-check2-circle me-1"></i>Approve (with quantities)
+      </button>
+    {% endif %}
+
+    {% if is_ck and req.status == "approved" and req.route != "external" %}
+      <button class="btn btn-blue" onclick="convertToBatch()">
+        <i class="bi bi-box-seam me-1"></i>Convert to Production Batch
+      </button>
+    {% endif %}
+
+    {% if request.user.role in "owner,manager" and req.status in "approved,pending" and req.route != "internal" %}
+      <button class="btn" style="border-color:#a855f7;color:#a855f7;" onclick="convertToPO()">
+        <i class="bi bi-cart-check me-1"></i>Create Vendor PO
+      </button>
+    {% endif %}
+
+    {% if req.is_editable and req.requesting_outlet == request.user.outlet %}
+      <button class="btn btn-red" onclick="cancelReq()">
+        <i class="bi bi-x-circle me-1"></i>Cancel
+      </button>
+    {% endif %}
+  </div>
+
+  <div id="actionMsg" style="font-size:0.8rem;margin-top:0.75rem;padding:0.5rem 0.75rem;display:none;"></div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF  = apiClient.getCsrf();
+const REQ_ID = {{ req.id }};
+
+async function approveReq() {
+  const adjustments = {};
+  document.querySelectorAll(".adj-input").forEach(inp => {
+    const itemId = inp.id.replace("adj-", "");
+    adjustments[itemId] = parseFloat(inp.value);
+  });
+  const r = await fetch(`/inventory/requisitions/${REQ_ID}/approve/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+    body: JSON.stringify({ adjustments }),
+  });
+  const d = await r.json();
+  d.success ? (ui.toast(d.message, "success"), setTimeout(() => location.reload(), 700))
+            : ui.toast(d.error || "Failed.", "error");
+}
+
+async function convertToBatch() {
+  if (!confirm("Convert this requisition to a Production Batch? You can then add more items and dispatch.")) return;
+  const r = await fetch(`/inventory/requisitions/${REQ_ID}/to-batch/`, {
+    method: "POST", headers: { "X-CSRFToken": CSRF },
+  });
+  const d = await r.json();
+  if (d.success) { ui.toast(d.message, "success"); setTimeout(() => location.href = `/inventory/central-kitchen/batch/${d.batch_id}/`, 800); }
+  else           { ui.toast(d.error || "Failed.", "error"); }
+}
+
+async function convertToPO() {
+  if (!confirm("Create a Purchase Order to the preferred vendor for each item?")) return;
+  const r = await fetch(`/inventory/requisitions/${REQ_ID}/to-po/`, {
+    method: "POST", headers: { "X-CSRFToken": CSRF },
+  });
+  const d = await r.json();
+  if (d.success) { ui.toast(d.message, "success"); setTimeout(() => location.reload(), 800); }
+  else           { ui.toast(d.error || "Failed.", "error"); }
+}
+
+async function cancelReq() {
+  if (!confirm("Cancel this requisition?")) return;
+  const r = await fetch(`/inventory/requisitions/${REQ_ID}/cancel/`, {
+    method: "POST", headers: { "X-CSRFToken": CSRF },
+  });
+  const d = await r.json();
+  d.success ? (ui.toast(d.message, "info"), setTimeout(() => location.reload(), 600))
+            : ui.toast(d.error || "Failed.", "error");
+}
+</script>
+{% endblock %}

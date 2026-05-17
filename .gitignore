@@ -48,8 +48,12 @@ er_diagrams_pos/
 
 pem/
 
+md_files/
 
 .dockerignore
 Dockerfile
 docker-compose.yml
 POS_System_Architecture_and_Documentation.md
+
+
+.claude/*

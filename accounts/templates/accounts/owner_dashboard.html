@@ -348,6 +348,23 @@
     </div>
     {% endif %}
 
+    {% if 'central_kitchen' in tenant_features %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <a href="/inventory/central-kitchen/" class="quick-card">
+            <div class="icon"><i class="bi bi-building-gear"></i></div>
+            <h5>Central Kitchen</h5>
+            <p>Batches &amp; Dispatch</p>
+        </a>
+    </div>
+    <div class="col-6 col-md-3 col-lg-2">
+        <a href="/inventory/requisitions/" class="quick-card">
+            <div class="icon"><i class="bi bi-clipboard-check"></i></div>
+            <h5>Stock Requests</h5>
+            <p>Requisitions</p>
+        </a>
+    </div>
+    {% endif %}
+
     <div class="col-6 col-md-3 col-lg-2">
         <a href="/menu/" class="quick-card">
             <div class="icon"><i class="bi bi-journal-text"></i></div>

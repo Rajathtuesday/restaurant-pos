@@ -94,7 +94,10 @@ class PrintingService:
                 return ConsolePrinter()
             elif self.printer_type == "network" and self.host:
                 from escpos.printer import Network
-                return Network(self.host, port=self.port)
+                # 10-second timeout. Default is 60s — a stuck printer would
+                # hold a Celery worker thread for a full minute, stacking up
+                # the entire print queue behind one jammed connection.
+                return Network(self.host, port=self.port, timeout=10)
             elif self.printer_type == "usb" and self.vendor_id:
                 from escpos.printer import Usb
                 return Usb(self.vendor_id, self.product_id)

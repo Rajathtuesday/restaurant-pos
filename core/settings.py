@@ -480,11 +480,30 @@ SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # -------------------------------------------------------
-# CELERY — background task queue (printing, notifications)
-# Broker  : Redis  (fast in-memory queue)
-# Backend : django-celery-results (task results stored in DB)
+# CACHE — Redis backend so sessions are shared across all
+# Gunicorn workers. Without this, SESSION_ENGINE=cached_db
+# falls back to LocMemCache (in-process) and sessions are
+# NOT shared between workers → random logouts every 2-3
+# requests. This is a production-breaking bug without Redis.
 # -------------------------------------------------------
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+
+import sys as _sys
+_TESTING = len(_sys.argv) > 1 and _sys.argv[1] == "test"
+
+CACHES = {
+    "default": {
+        "BACKEND": (
+            # Tests run without Redis — use in-process cache.
+            # Production must have Redis so sessions are shared across workers.
+            "django.core.cache.backends.locmem.LocMemCache"
+            if _TESTING else
+            "django.core.cache.backends.redis.RedisCache"
+        ),
+        "LOCATION": "" if _TESTING else REDIS_URL,
+        "TIMEOUT": 300,
+    }
+}
 
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = "django-db"

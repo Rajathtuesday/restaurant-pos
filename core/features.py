@@ -38,6 +38,7 @@ TENANT_FEATURES = {
         'token_system',
         'simple_billing',
         'barcode_transfer',
+        'central_kitchen',
         # Kitchen
         'kot_system',
         'kitchen_display',
@@ -99,6 +100,7 @@ FEATURE_GROUPS = {
     'Inventory': [
         'inventory',
         'barcode_transfer',
+        'central_kitchen',
         'purchase_orders',
     ],
     'Reports': [
