@@ -31,11 +31,12 @@ def onboarding_wizard(request):
                 tenant.logo = request.FILES["logo"]
             tenant.save(update_fields=["name", "tenant_type", "logo"])
 
-            outlet.address  = request.POST.get("address", "").strip()
-            outlet.phone    = request.POST.get("phone", "").strip()
-            outlet.gst_no   = request.POST.get("gst_no", "").strip().upper()
-            outlet.fssai_no = request.POST.get("fssai_no", "").strip()
-            outlet.save(update_fields=["address", "phone", "gst_no", "fssai_no"])
+            outlet.address      = request.POST.get("address", "").strip()
+            outlet.phone        = request.POST.get("phone", "").strip()
+            outlet.gst_no       = request.POST.get("gst_no", "").strip().upper()
+            outlet.fssai_no     = request.POST.get("fssai_no", "").strip()
+            outlet.gst_inclusive = request.POST.get("gst_inclusive") == "true"
+            outlet.save(update_fields=["address", "phone", "gst_no", "fssai_no", "gst_inclusive"])
 
             return redirect(f"/setup/onboard/?step=2")
 

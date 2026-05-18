@@ -202,10 +202,17 @@
 {% endblock %}
 
 {% block header_right %}
+{% if 'floor_plan' in tenant_features %}
 <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
-<a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
 <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
+{% endif %}
+{% if 'token_system' in tenant_features %}
+<a href="/token/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tokens</a>
+<a href="/token/" class="btn-icon d-sm-none" title="Tokens"><i class="bi bi-123"></i></a>
+{% else %}
+<a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
 <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
+{% endif %}
 <button class="btn-icon" onclick="kitchenToggleTheme()" title="Toggle Light/Dark" id="kitchenThemeBtn">
     <i class="bi bi-sun" id="themeIcon"></i>
 </button>

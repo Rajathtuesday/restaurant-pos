@@ -152,7 +152,12 @@
     <a href="{% url 'gst_management' %}" onclick="closeMobileNav()"><i class="bi bi-percent"></i> GST Rates</a>
     <a href="/dashboard/" onclick="closeMobileNav()"><i class="bi bi-bar-chart"></i> Reports</a>
     <a href="/setup/" onclick="closeMobileNav()"><i class="bi bi-gear"></i> Setup</a>
+    {% if 'floor_plan' in tenant_features %}
     <a href="/tables/" onclick="closeMobileNav()"><i class="bi bi-grid-3x3"></i> Floor Plan</a>
+    {% endif %}
+    {% if 'token_system' in tenant_features %}
+    <a href="/token/" onclick="closeMobileNav()"><i class="bi bi-123"></i> Token Counter</a>
+    {% endif %}
   </div>
 </div>
 
@@ -163,8 +168,25 @@
   {% endfor %}
 </div>
 
+<!-- GST MODE BANNER -->
+{% if request.user.outlet.gst_inclusive %}
+<div class="container-fluid mx-auto px-4 mt-3" style="max-width:1400px;padding:0 2rem;">
+  <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-left:3px solid #10b981;padding:0.6rem 1rem;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+    <span><i class="bi bi-check-circle-fill me-2" style="color:#10b981;"></i><strong>GST Inclusive Pricing</strong> — the prices you set here are what customers pay. GST is back-calculated inside those prices.</span>
+    <a href="/setup/outlet/" style="font-size:0.72rem;color:#10b981;text-decoration:none;white-space:nowrap;">Change in Settings →</a>
+  </div>
+</div>
+{% else %}
+<div class="container-fluid mx-auto px-4 mt-3" style="max-width:1400px;padding:0 2rem;">
+  <div style="background:rgba(197,160,89,.07);border:1px solid rgba(197,160,89,.2);border-left:3px solid var(--accent-gold);padding:0.6rem 1rem;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+    <span><i class="bi bi-info-circle me-2" style="color:var(--accent-gold);"></i><strong>GST Exclusive Pricing</strong> — prices shown here are base prices. GST is added on top when billing.</span>
+    <a href="/setup/outlet/" style="font-size:0.72rem;color:var(--accent-gold);text-decoration:none;white-space:nowrap;">Change in Settings →</a>
+  </div>
+</div>
+{% endif %}
+
 <!-- SEARCH -->
-<div class="container-fluid mx-auto mt-4 px-4" style="max-width:1400px;padding:0 2rem;">
+<div class="container-fluid mx-auto mt-3 px-4" style="max-width:1400px;padding:0 2rem;">
   <input type="text" id="menuManagementSearch" class="form-control form-input-luxury" placeholder="Search menu items by name..." style="max-width:400px;font-size:1.1rem;">
 </div>
 

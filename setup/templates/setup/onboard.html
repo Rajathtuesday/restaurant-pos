@@ -156,6 +156,32 @@
             </div>
 
             <div class="field">
+                <label>GST Pricing Mode</label>
+                <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.25rem;">
+                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.88rem;">
+                        <input type="radio" name="gst_inclusive" value="false"
+                               {% if not outlet.gst_inclusive %}checked{% endif %}
+                               style="margin-top:3px;accent-color:var(--gold);">
+                        <div>
+                            <strong>GST Exclusive</strong> — prices shown on menu are base prices. GST added on top at billing.
+                            <div style="font-size:0.75rem;color:var(--muted);">Example: Coffee ₹24 + GST ₹1 = Bill shows ₹25 · Used by fine dining, hotels</div>
+                        </div>
+                    </label>
+                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.88rem;">
+                        <input type="radio" name="gst_inclusive" value="true"
+                               {% if outlet.gst_inclusive %}checked{% endif %}
+                               style="margin-top:3px;accent-color:var(--gold);">
+                        <div>
+                            <strong>GST Inclusive</strong>
+                            <span style="font-size:0.72rem;background:rgba(16,185,129,.12);color:#10b981;padding:1px 7px;border-radius:3px;margin-left:6px;">Recommended for QSR & Café</span>
+                            — menu prices already include GST. Customer pays exactly what's shown.
+                            <div style="font-size:0.75rem;color:var(--muted);">Example: Coffee ₹25 (GST included) = Bill shows ₹25 · Used by QSR, cafés, Zomato restaurants</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="field">
                 <label>Restaurant Logo (optional)</label>
                 {% if tenant.logo %}
                 <img src="{{ tenant.logo.url }}" class="logo-preview show" id="logoPreview">
