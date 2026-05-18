@@ -1,61 +1,145 @@
 /* ============================================================
    LUXURY THEME — Fine Dining / Premium
    Black, white, and gold. Sharp edges. Serif headings.
+   Google Fonts: Outfit (body) · DM Serif Display (headings) · Space Mono (code)
    ============================================================ */
 
+/* ── Design Tokens ───────────────────────────────────────── */
 :root {
-    --accent-gold:      #c5a059;
-    --accent-hover:     #b59250;
-    --bg-color:         #fafafa;
-    --panel-bg:         #ffffff;
-    --text-main:        #111111;
-    --text-muted:       #737373;
-    --border-color:     #eaeaea;
-    --border-radius:    0px;
-    --shadow-soft:      0 2px 8px rgba(0,0,0,0.04);
-    --shadow-hover:     0 8px 24px rgba(0,0,0,0.10);
+    --accent-gold:       #c5a059;
+    --accent-hover:      #b59250;
+    --bg-color:          #fafafa;
+    --panel-bg:          #ffffff;
+    --text-main:         #111111;
+    --text-muted:        #737373;
+    --border-color:      #eaeaea;
+    --border-radius:     0px;
+    --shadow-soft:       0 2px 8px rgba(0,0,0,0.04);
+    --shadow-hover:      0 8px 24px rgba(0,0,0,0.10);
     --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    --min-tap-target:   48px;
-    --danger:           #ef4444;
-    --success:          #10b981;
+    --min-tap-target:    48px;
+    --danger:            #ef4444;
+    --success:           #10b981;
+
+    /* ── Font families ── */
+    --font-display:  'DM Serif Display', Georgia, serif;
+    --font-mono:     'Space Mono', 'Courier New', monospace;
+
+    /* ── Type scale (base 16px) ──
+       Use these variables instead of hardcoding px/rem in templates.
+       All values readable on a tablet at arm's length. */
+    --text-2xs: 0.7rem;    /* 11.2px — use only for legal/tiny labels  */
+    --text-xs:  0.78rem;   /* 12.5px — table headers, chips            */
+    --text-sm:  0.875rem;  /* 14px   — secondary body, hints           */
+    --text-base:1rem;      /* 16px   — main body text                  */
+    --text-lg:  1.125rem;  /* 18px   — slightly prominent body         */
+    --text-xl:  1.25rem;   /* 20px   — small headings                  */
+    --text-2xl: 1.5rem;    /* 24px   — section headings                */
+    --text-3xl: 1.875rem;  /* 30px   — page headings                   */
+    --text-4xl: 2.25rem;   /* 36px   — hero numbers (metrics, totals)  */
 }
 
-/* Dark mode for luxury */
+/* ── Dark mode ───────────────────────────────────────────── */
 html.dark {
-    --bg-color:         #000000;
-    --panel-bg:         #0a0a0a;
-    --text-main:        #ffffff;
-    --text-muted:       #888888;
-    --border-color:     #262626;
-    --accent-gold:      #d4af37;
-    --accent-hover:     #e5c45e;
-    --shadow-soft:      0 4px 15px rgba(0,0,0,0.3);
-    --shadow-hover:     0 10px 30px rgba(0,0,0,0.5);
+    --bg-color:    #000000;
+    --panel-bg:    #0a0a0a;
+    --text-main:   #ffffff;
+    --text-muted:  #888888;
+    --border-color:#262626;
+    --accent-gold: #d4af37;
+    --accent-hover:#e5c45e;
+    --shadow-soft: 0 4px 15px rgba(0,0,0,0.3);
+    --shadow-hover:0 10px 30px rgba(0,0,0,0.5);
 }
 
-/* ── Typography ──────────────────────────────────────────── */
+/* ── Base Typography ─────────────────────────────────────── */
+html {
+    font-size: 16px;                 /* explicit root — prevents browser scaling */
+    -webkit-text-size-adjust: 100%;  /* no iPhone auto-inflate on rotation       */
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
     font-family: var(--font-main, 'Outfit', sans-serif);
+    font-size: var(--text-base);     /* 16px */
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s, color 0.3s;
 }
 
-h1, h2, h3, h4, h5, h6, .serif-text {
-    font-family: 'DM Serif Display', serif;
+/* ── Heading Scale — DM Serif Display ───────────────────── */
+h1, h2, h3, h4, h5, h6,
+.serif-text,
+.brand-title,
+.modal-title,
+.metric-value,
+.section-title {
+    font-family: var(--font-display);
+    font-weight: 400;                /* Serif Display looks best at regular weight */
+    line-height: 1.2;
 }
 
-/* ── Core Button System ──────────────────────────────────── */
+h1, .h1 { font-size: var(--text-3xl);  } /* 30px */
+h2, .h2 { font-size: var(--text-2xl);  } /* 24px */
+h3, .h3 { font-size: var(--text-xl);   } /* 20px */
+h4, .h4 { font-size: var(--text-lg);   } /* 18px */
+h5, .h5 { font-size: var(--text-base); } /* 16px */
+h6, .h6 { font-size: var(--text-sm);   } /* 14px */
+
+/* Monospace — for order numbers, barcodes, IDs */
+.mono-text,
+code,
+pre,
+.font-mono { font-family: var(--font-mono); }
+
+/* ── Header / Nav ────────────────────────────────────────── */
+.pos-header {
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    gap: 1rem;
+}
+
+.brand-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;               /* was not defined — now clear */
+    font-weight: 400;
+    color: var(--text-main);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.1;
+}
+.brand-title:hover { color: var(--accent-gold); }
+
+.brand-subtitle {
+    font-size: var(--text-xs);       /* 12.5px — was 0.72rem = 11.5px */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin: 3px 0 0 0;
+    font-family: var(--font-main, 'Outfit', sans-serif);
+}
+
+/* ── Button System ───────────────────────────────────────── */
 .btn-luxury {
     border: 1px solid var(--border-color);
     background: transparent;
     color: var(--text-main);
-    padding: 0.55rem 1.1rem;
-    font-size: 0.75rem;
+    padding: 0.6rem 1.1rem;
+    font-size: var(--text-xs);       /* 12.5px — was 0.75rem = 12px */
     text-transform: uppercase;
     letter-spacing: 1px;
-    font-weight: 500;
+    font-weight: 600;
     border-radius: 0;
     transition: var(--transition-smooth);
     display: inline-flex;
@@ -64,21 +148,37 @@ h1, h2, h3, h4, h5, h6, .serif-text {
     text-decoration: none;
     cursor: pointer;
     min-height: var(--min-tap-target);
+    font-family: var(--font-main, 'Outfit', sans-serif);
 }
 .btn-luxury:hover {
     border-color: var(--text-main);
     color: var(--panel-bg);
     background: var(--text-main);
 }
+.btn-luxury.btn-luxury-primary,
 .btn-accent {
     background: var(--accent-gold);
     border-color: var(--accent-gold);
     color: #fff !important;
-    border-radius: 0;
 }
-.btn-accent:hover {
-    opacity: 0.9;
+.btn-luxury.btn-luxury-primary:hover,
+.btn-accent:hover { opacity: 0.9; }
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+    min-height: var(--min-tap-target);
+    min-width: var(--min-tap-target);
 }
+.btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); }
 
 /* ── Cards ───────────────────────────────────────────────── */
 .card {
@@ -95,7 +195,8 @@ h1, h2, h3, h4, h5, h6, .serif-text {
     color: var(--text-main);
     border-radius: 0;
     min-height: var(--min-tap-target);
-    font-size: 1rem;
+    font-size: var(--text-base);     /* 16px — was often unset, defaulting tiny */
+    font-family: var(--font-main, 'Outfit', sans-serif);
 }
 .form-control:focus, .form-select:focus {
     border-color: var(--accent-gold);
@@ -103,18 +204,44 @@ h1, h2, h3, h4, h5, h6, .serif-text {
     background: var(--panel-bg);
     color: var(--text-main);
 }
+.form-control::placeholder { color: var(--text-muted); opacity: 0.7; }
+
+/* Luxury minimal input (underline style used on many forms) */
+.form-input-luxury {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+    color: var(--text-main);
+    font-size: var(--text-base);
+    padding: 0.5rem 0;
+    width: 100%;
+    font-family: var(--font-main, 'Outfit', sans-serif);
+}
+.form-input-luxury:focus {
+    outline: none;
+    border-bottom-color: var(--accent-gold);
+}
 
 /* ── Tables ──────────────────────────────────────────────── */
-.table { color: var(--text-main); }
-.table th { border-color: var(--border-color); color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; }
+.table { color: var(--text-main); font-size: var(--text-sm); } /* 14px */
+.table th {
+    border-color: var(--border-color);
+    color: var(--text-muted);
+    font-size: var(--text-xs);       /* 12.5px — was 0.7rem = 11.2px */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 600;
+}
 .table td { border-color: var(--border-color); }
 
 /* ── Badges ──────────────────────────────────────────────── */
 .badge {
     border-radius: 0;
     letter-spacing: 0.5px;
-    font-size: 0.65rem;
+    font-size: var(--text-xs);       /* 12.5px — was 0.65rem = 10.4px */
     text-transform: uppercase;
+    font-family: var(--font-main, 'Outfit', sans-serif);
 }
 
 /* ── Modals ──────────────────────────────────────────────── */
@@ -125,7 +252,11 @@ h1, h2, h3, h4, h5, h6, .serif-text {
     color: var(--text-main);
 }
 .modal-header, .modal-footer { border-color: var(--border-color); }
-.modal-title { font-family: 'DM Serif Display', serif; }
+.modal-title {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);       /* 20px */
+}
+.modal-body { font-size: var(--text-sm); } /* 14px */
 
 /* ── Offcanvas ───────────────────────────────────────────── */
 .offcanvas {
@@ -134,17 +265,53 @@ h1, h2, h3, h4, h5, h6, .serif-text {
     border-color: var(--border-color);
 }
 
+/* ── Dropdown menus ──────────────────────────────────────── */
+.dropdown-menu {
+    background: var(--panel-bg);
+    border-color: var(--border-color);
+    border-radius: 0;
+    font-size: var(--text-sm);
+}
+.dropdown-item {
+    color: var(--text-main);
+    font-size: var(--text-sm);
+}
+.dropdown-item:hover {
+    background: var(--border-color);
+    color: var(--text-main);
+}
+
 /* ── Scrollbars (thin, luxury) ───────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 0; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
 
-/* ── Gold accent text / border helpers ───────────────────── */
-.text-accent { color: var(--accent-gold) !important; }
-.border-accent { border-color: var(--accent-gold) !important; }
-.bg-panel { background: var(--panel-bg); }
-.bg-surface { background: var(--bg-color); }
+/* ── Utility helpers ─────────────────────────────────────── */
+.text-accent  { color: var(--accent-gold) !important; }
+.border-accent{ border-color: var(--accent-gold) !important; }
+.bg-panel     { background: var(--panel-bg); }
+.bg-surface   { background: var(--bg-color); }
+.font-display { font-family: var(--font-display) !important; }
+.font-mono    { font-family: var(--font-mono) !important; }
+
+/* Text size utilities matching the scale */
+.text-2xs  { font-size: var(--text-2xs); }
+.text-xs   { font-size: var(--text-xs);  }
+.text-sm   { font-size: var(--text-sm);  }
+.text-base { font-size: var(--text-base);}
+.text-lg   { font-size: var(--text-lg);  }
+.text-xl   { font-size: var(--text-xl);  }
+.text-2xl  { font-size: var(--text-2xl); }
+.text-3xl  { font-size: var(--text-3xl); }
+.text-4xl  { font-size: var(--text-4xl); }
 
 /* ── Placeholder ─────────────────────────────────────────── */
 ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+
+/* ── Alerts / toasts ─────────────────────────────────────── */
+.alert { border-radius: 0; font-size: var(--text-sm); }
+
+/* ── Navigation active states ────────────────────────────── */
+.nav-link { color: var(--text-muted); font-size: var(--text-sm); }
+.nav-link:hover, .nav-link.active { color: var(--accent-gold); }
