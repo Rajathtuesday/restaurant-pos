@@ -194,6 +194,18 @@ class Outlet(models.Model):
         )
     )
 
+    gst_inclusive = models.BooleanField(
+        default=False,
+        help_text=(
+            "True  → menu prices already include GST. Bill back-calculates and shows GST inside the price. "
+            "         Example: Coffee ₹25 — GST (5%) ₹1.19 included. Customer pays ₹25 exactly. "
+            "         Use this for QSRs, cafés, and Zomato/Swiggy restaurants. "
+            "False → GST is added on top of menu prices at billing (default). "
+            "         Example: Coffee ₹23.81 + GST ₹1.19 = ₹25. "
+            "         Use this for fine dining and hotels."
+        )
+    )
+
     whatsapp_no = models.CharField(
         max_length=15,
         blank=True,

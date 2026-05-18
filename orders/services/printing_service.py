@@ -224,10 +224,15 @@ class PrintingService:
             amt = f"{float(item.total_price):.0f}"
             p.text(f"{name:<{name_w}} {qty:>3} {amt:>5}\n")
 
+        gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
+
         p.text(self._sep() + "\n")
         p.set(align="left")
-        p.text(self._two_col("Subtotal", self._currency(order.subtotal)) + "\n")
-        p.text(self._two_col("GST", self._currency(order.gst_total)) + "\n")
+        if gst_inclusive:
+            p.text(self._two_col("Subtotal (excl.GST)", self._currency(order.subtotal)) + "\n")
+        else:
+            p.text(self._two_col("Subtotal", self._currency(order.subtotal)) + "\n")
+        p.text(self._two_col("GST" + (" (incl.)" if gst_inclusive else ""), self._currency(order.gst_total)) + "\n")
         if order.discount_total > 0:
             p.text(self._two_col("Discount", f"-{self._currency(order.discount_total)}") + "\n")
 
@@ -239,6 +244,9 @@ class PrintingService:
         payment = order.payments.order_by("-paid_at").first()
         if payment:
             p.text(self._two_col("Paid via", payment.method.upper()) + "\n")
+
+        if gst_inclusive:
+            p.text(self._two_col("", "(prices incl. GST)") + "\n")
 
         p.text(self._sep() + "\n")
         p.set(align="center")

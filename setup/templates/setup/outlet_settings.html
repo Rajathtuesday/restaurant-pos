@@ -185,6 +185,42 @@
                             Leave as 996331 unless your CA specifies otherwise.
                         </div>
                     </div>
+
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">GST Pricing Mode</label>
+                        <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.25rem;">
+                            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+                                <input type="radio" name="gst_inclusive" value="false"
+                                    {% if not outlet.gst_inclusive %}checked{% endif %}
+                                    style="margin-top:3px;accent-color:var(--accent-gold);">
+                                <div>
+                                    <div style="font-weight:600;font-size:0.88rem;">GST Exclusive <span style="font-weight:400;color:var(--text-muted);">(default)</span></div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+                                        Menu prices are base prices. GST is added on top at billing.<br>
+                                        <em>Example: Coffee ₹23.81 + GST (5%) ₹1.19 = <strong>Total ₹25</strong></em><br>
+                                        Used by: fine dining, hotels, formal restaurants.
+                                    </div>
+                                </div>
+                            </label>
+                            <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;">
+                                <input type="radio" name="gst_inclusive" value="true"
+                                    {% if outlet.gst_inclusive %}checked{% endif %}
+                                    style="margin-top:3px;accent-color:var(--accent-gold);">
+                                <div>
+                                    <div style="font-weight:600;font-size:0.88rem;">GST Inclusive <span style="font-size:0.72rem;color:#10b981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:3px;">Recommended for QSR & Café</span></div>
+                                    <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+                                        Menu prices already include GST. Customer pays exactly the listed price.<br>
+                                        <em>Example: Coffee ₹25 (GST ₹1.19 included) = <strong>Total ₹25</strong></em><br>
+                                        Used by: QSR counters, cafés, Zomato/Swiggy restaurants.
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="field-hint" style="margin-top:0.75rem;">
+                            <strong>Changing this mid-operation:</strong> affects all new orders immediately.
+                            Existing closed orders are not affected. Consult your CA if changing after go-live.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -244,14 +244,25 @@ class Order(models.Model):
         else:
             order_discount_factor = Decimal("1.0")
 
+        try:
+            gst_inclusive = bool(self.outlet.gst_inclusive)
+        except Exception:
+            gst_inclusive = False
+
         for item in items:
             rate = item.gst_percentage
             item_base = item.total_price
             if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
                 item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-            
+
             item_taxable = item_base * order_discount_factor
-            item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
+
+            if gst_inclusive:
+                # Back-calculate: gst = amount × rate / (100 + rate)
+                item_gst = (item_taxable * rate / (Decimal("100") + rate)).quantize(Decimal("0.01")) if rate > 0 else Decimal("0.00")
+            else:
+                item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
+
             breakdown[rate] += item_gst
 
         return [
@@ -294,68 +305,165 @@ class Order(models.Model):
     # -------------------------------------------------
     
     def recalculate_totals(self):
-        # Fetch items once to avoid multiple queries / N+1 issues
+        """
+        Recalculate order totals supporting two GST modes:
+
+        EXCLUSIVE (default, gst_inclusive=False):
+            item.price = base price.  GST added on top.
+            grand_total = subtotal - discounts + gst
+
+        INCLUSIVE (gst_inclusive=True):
+            item.price = final customer price (GST already inside).
+            GST is back-calculated: gst = price × rate / (100 + rate)
+            grand_total = inclusive_price - discounts (GST already inside)
+            subtotal field stores the back-calculated base (excl. GST).
+        """
         items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
-        
-        # 1. Calculate Gross Subtotal
+
+        # Detect mode — safe fallback if outlet not loaded
+        try:
+            gst_inclusive = bool(self.outlet.gst_inclusive)
+        except Exception:
+            gst_inclusive = False
+
+        if gst_inclusive:
+            self._recalculate_inclusive(items)
+        else:
+            self._recalculate_exclusive(items)
+
+    # ------------------------------------------------------------------
+    # EXCLUSIVE MODE  (GST added on top — existing behaviour)
+    # ------------------------------------------------------------------
+
+    def _recalculate_exclusive(self, items):
         raw_subtotal = sum((item.total_price for item in items), Decimal("0.0"))
         subtotal = self._quantize(raw_subtotal)
 
-        # 2. Item Discounts
         item_discount_total = Decimal("0.00")
         subtotal_after_item_discounts = Decimal("0.00")
         for item in items:
             item_base = item.total_price
-            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
                 item_discount = item_base * (item.item_discount_pct / Decimal("100"))
                 item_discount_total += item_discount
-                item_base = item_base - item_discount
+                item_base -= item_discount
             subtotal_after_item_discounts += item_base
 
-        # 3. Order Discounts
         order_discount_total = Decimal("0.00")
         if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
             order_discount_total = subtotal_after_item_discounts * (Decimal(self.discount_value) / Decimal("100"))
         elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
             order_discount_total = Decimal(str(self.discount_value))
-        
+
         discount_total = self._quantize(item_discount_total + order_discount_total)
         if discount_total > subtotal:
             discount_total = subtotal
 
-        # 4. Taxable Amount (Post-Discount)
         taxable_amount = subtotal - discount_total
-        
-        # 5. GST
-        gst_total = Decimal("0.00")
+
         if subtotal_after_item_discounts > 0:
-            order_discount_factor = max(Decimal("0.0"), (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts)
+            order_discount_factor = max(
+                Decimal("0.0"),
+                (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts,
+            )
         else:
             order_discount_factor = Decimal("1.0")
 
+        gst_total = Decimal("0.00")
         for item in items:
             item_base = item.total_price
-            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
                 item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-            
             item_taxable = item_base * order_discount_factor
-            item_gst = (item_taxable * item.gst_percentage) / Decimal("100.0")
-            gst_total += item_gst
-        
+            gst_total += (item_taxable * item.gst_percentage) / Decimal("100.0")
+
         gst_total = self._quantize(gst_total)
-        
-        # Rounding to nearest integer for grand_total
         final_total = self._quantize(taxable_amount + gst_total)
         rounded_total = final_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-        round_off = rounded_total - final_total
 
-        self.subtotal = subtotal
-        self.gst_total = gst_total
-        self.discount_total = discount_total    
-        self.grand_total = rounded_total
-        self.round_off = round_off
+        self.subtotal      = subtotal
+        self.gst_total     = gst_total
+        self.discount_total = discount_total
+        self.grand_total   = rounded_total
+        self.round_off     = rounded_total - final_total
+        self.save(update_fields=["subtotal", "gst_total", "discount_total",
+                                 "grand_total", "round_off", "discount_type", "discount_value"])
 
-        self.save(update_fields=["subtotal", "gst_total", "discount_total", "grand_total", "round_off", "discount_type", "discount_value"])
+    # ------------------------------------------------------------------
+    # INCLUSIVE MODE  (GST back-calculated from the price)
+    # ------------------------------------------------------------------
+
+    def _recalculate_inclusive(self, items):
+        """
+        item.total_price is the CUSTOMER-FACING price (GST inside).
+        We back-calculate: gst = amount × rate / (100 + rate)
+        Discounts are applied to the inclusive price first, then GST
+        is back-calculated from the discounted inclusive amounts.
+
+        Result:
+          subtotal   = back-calculated base (excl. GST)
+          gst_total  = back-calculated GST
+          grand_total = inclusive_total - discounts  (what customer pays)
+          subtotal + gst_total ≡ grand_total  ← always true
+        """
+        raw_inclusive = sum((item.total_price for item in items), Decimal("0.0"))
+
+        # Item-level discounts on inclusive price
+        item_discount_total = Decimal("0.00")
+        inclusive_after_item_disc = Decimal("0.00")
+        for item in items:
+            inc = item.total_price
+            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
+                item_disc = inc * (item.item_discount_pct / Decimal("100"))
+                item_discount_total += item_disc
+                inc -= item_disc
+            inclusive_after_item_disc += inc
+
+        # Order-level discount on inclusive price
+        order_discount_total = Decimal("0.00")
+        if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
+            order_discount_total = inclusive_after_item_disc * (Decimal(self.discount_value) / Decimal("100"))
+        elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
+            order_discount_total = Decimal(str(self.discount_value))
+
+        discount_total = self._quantize(item_discount_total + order_discount_total)
+        if discount_total > raw_inclusive:
+            discount_total = raw_inclusive
+
+        grand_after_discount = self._quantize(raw_inclusive - discount_total)
+
+        # Proportional discount factor for back-calculation
+        if inclusive_after_item_disc > 0:
+            order_discount_factor = max(
+                Decimal("0.0"),
+                (inclusive_after_item_disc - order_discount_total) / inclusive_after_item_disc,
+            )
+        else:
+            order_discount_factor = Decimal("1.0")
+
+        # Back-calculate GST from each item's discounted inclusive amount
+        gst_total = Decimal("0.00")
+        for item in items:
+            inc = item.total_price
+            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
+                inc = inc * (1 - item.item_discount_pct / Decimal("100"))
+            inc_discounted = inc * order_discount_factor
+            rate = item.gst_percentage
+            if rate > 0:
+                # gst = amount × rate / (100 + rate)
+                gst_total += inc_discounted * rate / (Decimal("100") + rate)
+
+        gst_total  = self._quantize(gst_total)
+        subtotal   = self._quantize(grand_after_discount - gst_total)   # base excl. GST
+        rounded_total = grand_after_discount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+        self.subtotal       = subtotal
+        self.gst_total      = gst_total
+        self.discount_total = discount_total
+        self.grand_total    = rounded_total
+        self.round_off      = rounded_total - grand_after_discount
+        self.save(update_fields=["subtotal", "gst_total", "discount_total",
+                                 "grand_total", "round_off", "discount_type", "discount_value"])
 
 
 # =====================================================

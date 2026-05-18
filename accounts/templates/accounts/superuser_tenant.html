@@ -94,6 +94,25 @@
         <input type="text" name="sac_code" value="{{ outlet.sac_code|default:'996331' }}" maxlength="8" placeholder="996331" style="font-family:monospace;">
         <div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;">996331 = Restaurant/Café/QSR &nbsp;·&nbsp; 996332 = Delivery &nbsp;·&nbsp; 996334 = Catering</div>
       </div>
+      <div class="field" style="max-width:380px;">
+        <label>GST Pricing Mode</label>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.4rem;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;cursor:pointer;">
+            <input type="radio" name="gst_inclusive" value="false" {% if not outlet.gst_inclusive %}checked{% endif %} style="accent-color:var(--accent-gold);">
+            <div>
+              <strong>Exclusive</strong>
+              <span style="color:var(--text-muted);font-size:0.72rem;"> — GST added on top (fine dining, hotels)</span>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;cursor:pointer;">
+            <input type="radio" name="gst_inclusive" value="true" {% if outlet.gst_inclusive %}checked{% endif %} style="accent-color:var(--accent-gold);">
+            <div>
+              <strong>Inclusive</strong>
+              <span style="color:var(--text-muted);font-size:0.72rem;"> — GST inside price (QSR, café, Zomato)</span>
+            </div>
+          </label>
+        </div>
+      </div>
       <button type="submit" class="btn-cfg btn-cfg-primary">Save Outlet Info</button>
     </form>
   </div>

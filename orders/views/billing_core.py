@@ -131,7 +131,8 @@ def bill_view(request, order_id):
         from setup.services.station_service import get_default_station
         tenant = request.user.tenant
         direct_billing_mode = has_feature(tenant, "direct_billing_mode")
-        is_qsr = tenant.tenant_type in ("franchise", "cafe")
+        is_qsr        = tenant.tenant_type in ("franchise", "cafe")
+        gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
 
         station = get_default_station(request.user)
         paper_width_mm = station.paper_width_mm if station else 80
@@ -146,9 +147,10 @@ def bill_view(request, order_id):
             "total_paid": total_paid,
             "promos": valid_promos,
             "direct_billing_mode": direct_billing_mode,
-            "is_qsr": is_qsr,
+            "is_qsr":        is_qsr,
+            "gst_inclusive": gst_inclusive,
             "paper_width_mm": paper_width_mm,
-            "auto_print": auto_print,
+            "auto_print":    auto_print,
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

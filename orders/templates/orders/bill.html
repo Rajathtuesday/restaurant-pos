@@ -230,7 +230,12 @@
         </div>
 
         <!-- Totals -->
+        {% if gst_inclusive %}
+        {# INCLUSIVE: customer sees grand_total as the "base"; GST is broken out below #}
+        <div class="total-row"><span>Subtotal (excl. GST)</span><span>₹{{ order.subtotal }}</span></div>
+        {% else %}
         <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
+        {% endif %}
         {% if order.discount_total > 0 %}
         <div class="total-row" style="color:#ef4444"><span>Discount</span><span>−₹{{ order.discount_total }}</span></div>
         {% endif %}
@@ -238,20 +243,26 @@
         {% if order.gst_breakdown %}
         {# Screen: collapsible detail block #}
         <div class="gst-breakdown no-print">
-            <div class="gst-breakdown-title">Tax Breakdown</div>
+            <div class="gst-breakdown-title">
+                Tax Breakdown
+                {% if gst_inclusive %}<span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);"> (included in price)</span>{% endif %}
+            </div>
             {% for gst in order.gst_breakdown %}
             <div style="margin-bottom:0.4rem;">
-                <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;margin-bottom:0.2rem;">GST @ {{ gst.rate }}%</div>
+                <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;margin-bottom:0.2rem;">
+                    GST @ {{ gst.rate }}%{% if gst_inclusive %} (incl.){% endif %}
+                </div>
                 <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
                 <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">SGST @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
             </div>
             {% endfor %}
             <div class="total-row" style="font-size:0.82rem;font-weight:700;border-top:1px solid var(--border-color);padding-top:0.4rem;margin-top:0.3rem;">
-                <span>Total GST</span><span>₹{{ order.gst_total }}</span>
+                <span>Total GST{% if gst_inclusive %} (incl.){% endif %}</span><span>₹{{ order.gst_total }}</span>
             </div>
         </div>
         {# Print: compact CGST+SGST lines — legally required on GST invoice #}
         <div class="print-gst" style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:0.35rem 0;margin:0.4rem 0;">
+            {% if gst_inclusive %}<div style="font-size:0.72rem;font-style:italic;">(All prices inclusive of GST)</div>{% endif %}
             {% for gst in order.gst_breakdown %}
             <div class="total-row" style="font-size:0.78rem;"><span>CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
             <div class="total-row" style="font-size:0.78rem;"><span>SGST @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
@@ -263,7 +274,12 @@
         <div class="total-row" style="color:var(--text-muted)"><span>Round Off</span><span>{% if order.round_off > 0 %}+{% endif %}₹{{ order.round_off }}</span></div>
         {% endif %}
 
-        <div class="grand-total"><span>TOTAL</span><span>₹{{ order.grand_total }}</span></div>
+        <div class="grand-total">
+            <span>TOTAL</span><span>₹{{ order.grand_total }}</span>
+        </div>
+        {% if gst_inclusive %}
+        <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">All prices inclusive of GST</div>
+        {% endif %}
 
         <!-- Payment splits -->
         {% if order.payments.exists %}
