@@ -487,35 +487,48 @@ TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886"
 #   was redirecting to /accounts/login/ (404) instead of /login/.
 # -------------------------------------------------------
 SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # -------------------------------------------------------
-# CACHE — Redis backend so sessions are shared across all
-# Gunicorn workers. Without this, SESSION_ENGINE=cached_db
-# falls back to LocMemCache (in-process) and sessions are
-# NOT shared between workers → random logouts every 2-3
-# requests. This is a production-breaking bug without Redis.
+# CACHE + SESSION ENGINE — adapts to whether Redis is
+# available in this environment.
+#
+# REDIS_URL defaults to "" (empty) so local dev WITHOUT
+# redis running does not crash.  Set REDIS_URL in .env
+# for production (required for multi-worker session sharing).
+#
+# With Redis:    RedisCache + cached_db sessions  → multi-worker safe
+# Without Redis: LocMemCache + db sessions        → single-worker only
+#                (dev / demo laptop — perfectly fine)
 # -------------------------------------------------------
-REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "")
 
 import sys as _sys
 _TESTING = len(_sys.argv) > 1 and _sys.argv[1] == "test"
+_HAS_REDIS = bool(REDIS_URL) and not _TESTING
 
-CACHES = {
-    "default": {
-        "BACKEND": (
-            # Tests run without Redis — use in-process cache.
-            # Production must have Redis so sessions are shared across workers.
-            "django.core.cache.backends.locmem.LocMemCache"
-            if _TESTING else
-            "django.core.cache.backends.redis.RedisCache"
-        ),
-        "LOCATION": "" if _TESTING else REDIS_URL,
-        "TIMEOUT": 300,
+if _HAS_REDIS:
+    CACHES = {
+        "default": {
+            "BACKEND":  "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT":  300,
+        }
     }
-}
+    SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
-CELERY_BROKER_URL = REDIS_URL
+# django-ratelimit: when the cache is unavailable (Redis down, tests, etc.)
+# fail OPEN — allow the request rather than returning a 500.
+# This prevents the login page from crashing when Redis is not running.
+RATELIMIT_FAIL_OPEN = True
+
+CELERY_BROKER_URL = REDIS_URL or "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "django-cache"
 CELERY_RESULT_EXTENDED = True
