@@ -157,28 +157,77 @@
 
             <div class="field">
                 <label>GST Pricing Mode</label>
-                <div style="display:flex;flex-direction:column;gap:0.6rem;margin-top:0.25rem;">
-                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.88rem;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.5rem;">
+
+                    <label class="gst-pick" id="gst-pick-excl">
                         <input type="radio" name="gst_inclusive" value="false"
                                {% if not outlet.gst_inclusive %}checked{% endif %}
-                               style="margin-top:3px;accent-color:var(--gold);">
-                        <div>
-                            <strong>GST Exclusive</strong> — prices shown on menu are base prices. GST added on top at billing.
-                            <div style="font-size:0.75rem;color:var(--muted);">Example: Coffee ₹24 + GST ₹1 = Bill shows ₹25 · Used by fine dining, hotels</div>
-                        </div>
+                               onchange="syncGstPick()">
+                        <div class="gst-pick-icon">%</div>
+                        <div class="gst-pick-title">GST Exclusive</div>
+                        <div class="gst-pick-desc">GST added on top<br><em>₹24 + ₹1 = ₹25 bill</em></div>
                     </label>
-                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:0.88rem;">
+
+                    <label class="gst-pick" id="gst-pick-incl">
                         <input type="radio" name="gst_inclusive" value="true"
                                {% if outlet.gst_inclusive %}checked{% endif %}
-                               style="margin-top:3px;accent-color:var(--gold);">
-                        <div>
-                            <strong>GST Inclusive</strong>
-                            <span style="font-size:0.72rem;background:rgba(16,185,129,.12);color:#10b981;padding:1px 7px;border-radius:3px;margin-left:6px;">Recommended for QSR & Café</span>
-                            — menu prices already include GST. Customer pays exactly what's shown.
-                            <div style="font-size:0.75rem;color:var(--muted);">Example: Coffee ₹25 (GST included) = Bill shows ₹25 · Used by QSR, cafés, Zomato restaurants</div>
+                               onchange="syncGstPick()">
+                        <div class="gst-pick-icon" style="color:#10b981;">✓</div>
+                        <div class="gst-pick-title">
+                            GST Inclusive
+                            <span style="font-size:0.65rem;background:rgba(16,185,129,.12);color:#10b981;padding:1px 6px;border-radius:2px;vertical-align:middle;margin-left:4px;">QSR</span>
                         </div>
+                        <div class="gst-pick-desc">Price includes GST<br><em>₹25 = ₹25 bill</em></div>
                     </label>
+
                 </div>
+                <style>
+                .gst-pick {
+                    border: 1.5px solid var(--border-color);
+                    padding: 0.9rem 0.85rem;
+                    cursor: pointer;
+                    transition: border-color 0.15s, background 0.15s;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.25rem;
+                    user-select: none;
+                }
+                .gst-pick input { display: none; }
+                .gst-pick.active {
+                    border-color: var(--accent-gold);
+                    background: rgba(197,160,89,0.06);
+                }
+                .gst-pick-icon {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                    color: var(--accent-gold);
+                    font-family: 'DM Serif Display', serif;
+                    line-height: 1;
+                    margin-bottom: 0.1rem;
+                }
+                .gst-pick-title {
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    color: var(--text-main);
+                    line-height: 1.2;
+                }
+                .gst-pick-desc {
+                    font-size: 0.75rem;
+                    color: var(--text-muted);
+                    line-height: 1.5;
+                }
+                .gst-pick-desc em { font-style: normal; font-family: 'Space Mono', monospace; font-size: 0.7rem; }
+                </style>
+                <script>
+                function syncGstPick() {
+                    document.getElementById('gst-pick-excl').classList.toggle('active',
+                        document.querySelector('input[name="gst_inclusive"][value="false"]').checked);
+                    document.getElementById('gst-pick-incl').classList.toggle('active',
+                        document.querySelector('input[name="gst_inclusive"][value="true"]').checked);
+                }
+                // Set initial state
+                document.addEventListener('DOMContentLoaded', syncGstPick);
+                </script>
             </div>
 
             <div class="field">
