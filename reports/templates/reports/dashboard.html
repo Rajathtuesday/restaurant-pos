@@ -240,17 +240,38 @@
       {% else %}{{ start_date|date:'M d, Y' }} – {{ end_date|date:'M d, Y' }}
       {% endif %}
     </strong>
+    {% if gst_inclusive %}
+    <span class="ms-3" style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:2px 8px;border-radius:3px;border:1px solid rgba(16,185,129,.3);letter-spacing:1px;text-transform:uppercase;">
+      GST Inclusive Pricing
+    </span>
+    {% endif %}
     {% if is_limited_view %}
     <span class="ms-3 badge bg-info" style="font-size:0.6rem;letter-spacing:1px;">CHANNEL OVERSIGHT MODE</span>
     {% endif %}
   </div>
 
+  {% if gst_inclusive %}
+  <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-left:3px solid #10b981;padding:0.6rem 1rem;margin-bottom:1.5rem;font-size:0.78rem;color:var(--text-muted);">
+    <i class="bi bi-info-circle me-1" style="color:#10b981;"></i>
+    <strong style="color:var(--text-main);">GST-Inclusive Mode:</strong>
+    Revenue figures show the total collected from customers (GST inside).
+    <em>Net Revenue</em> = grand total − GST back-calculated from each order.
+    <em>GST</em> = amount embedded in customer prices, not added on top.
+    <a href="/setup/outlet/" style="color:#10b981;margin-left:6px;">Change pricing mode →</a>
+  </div>
+  {% endif %}
+
   <!-- HIGH LEVEL METRICS -->
   <div class="row g-4 mb-5">
     <div class="col-12 col-md-6 col-xl-3">
       <div class="card-elegant metric-group">
-        <span class="metric-label">Net Sales Revenue</span>
+        <span class="metric-label">
+          {% if gst_inclusive %}Revenue (incl. GST){% else %}Net Sales Revenue{% endif %}
+        </span>
         <p class="metric-value">₹{{ sales.total_sales|floatformat:0 }}</p>
+        {% if gst_inclusive %}
+        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;">GST inside: ₹{{ sales.gst_total|floatformat:0 }}</div>
+        {% endif %}
       </div>
     </div>
     <div class="col-12 col-md-6 col-xl-3">
@@ -362,19 +383,29 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
 
       <div style="padding:0.75rem;border-left:3px solid var(--accent-gold);">
-        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Revenue</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">
+          {% if gst_inclusive %}Revenue (incl. GST){% else %}Gross Revenue{% endif %}
+        </div>
         <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;">₹{{ pl.gross_revenue|floatformat:0 }}</div>
+        {% if gst_inclusive %}<div style="font-size:0.65rem;color:var(--text-muted);">GST inside the price</div>{% endif %}
       </div>
 
       <div style="padding:0.75rem;border-left:3px solid var(--border-color);">
-        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">GST Collected</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">
+          {% if gst_inclusive %}GST (back-calculated){% else %}GST Collected{% endif %}
+        </div>
         <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--text-muted);">₹{{ pl.gst_collected|floatformat:0 }}</div>
-        <div style="font-size:0.65rem;color:var(--text-muted);">not your income</div>
+        <div style="font-size:0.65rem;color:var(--text-muted);">
+          {% if gst_inclusive %}embedded in your prices{% else %}not your income{% endif %}
+        </div>
       </div>
 
       <div style="padding:0.75rem;border-left:3px solid #3b82f6;">
-        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Net Revenue (ex-GST)</div>
+        <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">
+          {% if gst_inclusive %}Your Income (excl. GST){% else %}Net Revenue (excl. GST){% endif %}
+        </div>
         <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#3b82f6;">₹{{ pl.net_revenue|floatformat:0 }}</div>
+        {% if gst_inclusive %}<div style="font-size:0.65rem;color:var(--text-muted);">= Revenue − back-calc GST</div>{% endif %}
       </div>
 
       <div style="padding:0.75rem;border-left:3px solid var(--border-color);">

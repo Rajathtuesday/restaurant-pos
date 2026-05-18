@@ -172,6 +172,8 @@ def dashboard(request):
 
     is_limited_view = (request.user.role == "agent" and not request.user.is_superuser)
 
+    gst_inclusive = getattr(outlet, "gst_inclusive", False) if outlet else False
+
     return render(request, "reports/dashboard.html", {
         "sales":          sales,
         "items":          items if not is_limited_view else [],
@@ -187,6 +189,7 @@ def dashboard(request):
         "start_date":     start_date,
         "end_date":       end_date,
         "is_limited_view": is_limited_view,
+        "gst_inclusive":   gst_inclusive,
     })
 
 @login_required
