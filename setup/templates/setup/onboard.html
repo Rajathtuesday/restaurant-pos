@@ -157,76 +157,59 @@
 
             <div class="field">
                 <label>GST Pricing Mode</label>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.5rem;">
-
-                    <label class="gst-pick" id="gst-pick-excl">
+                <div class="gst-seg" style="margin-top:0.5rem;">
+                    <label class="gst-seg-opt" id="gst-seg-excl">
                         <input type="radio" name="gst_inclusive" value="false"
                                {% if not outlet.gst_inclusive %}checked{% endif %}
-                               onchange="syncGstPick()">
-                        <div class="gst-pick-icon">%</div>
-                        <div class="gst-pick-title">GST Exclusive</div>
-                        <div class="gst-pick-desc">GST added on top<br><em>₹24 + ₹1 = ₹25 bill</em></div>
+                               onchange="syncGstSeg()">
+                        <span class="gst-seg-name">Exclusive</span>
+                        <span class="gst-seg-sub">+ GST on top · ₹24 + ₹1</span>
                     </label>
-
-                    <label class="gst-pick" id="gst-pick-incl">
+                    <label class="gst-seg-opt" id="gst-seg-incl">
                         <input type="radio" name="gst_inclusive" value="true"
                                {% if outlet.gst_inclusive %}checked{% endif %}
-                               onchange="syncGstPick()">
-                        <div class="gst-pick-icon" style="color:#10b981;">✓</div>
-                        <div class="gst-pick-title">
-                            GST Inclusive
-                            <span style="font-size:0.65rem;background:rgba(16,185,129,.12);color:#10b981;padding:1px 6px;border-radius:2px;vertical-align:middle;margin-left:4px;">QSR</span>
-                        </div>
-                        <div class="gst-pick-desc">Price includes GST<br><em>₹25 = ₹25 bill</em></div>
+                               onchange="syncGstSeg()">
+                        <span class="gst-seg-name">Inclusive <span class="gst-seg-badge">QSR</span></span>
+                        <span class="gst-seg-sub">GST included · ₹25 = ₹25</span>
                     </label>
-
                 </div>
                 <style>
-                .gst-pick {
-                    border: 1.5px solid var(--border-color);
-                    padding: 0.9rem 0.85rem;
+                .gst-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border-color); }
+                .gst-seg-opt {
+                    padding: 0.6rem 0.9rem;
                     cursor: pointer;
-                    transition: border-color 0.15s, background 0.15s;
+                    user-select: none;
+                    transition: background 0.15s, border-color 0.15s;
                     display: flex;
                     flex-direction: column;
-                    gap: 0.25rem;
-                    user-select: none;
+                    gap: 2px;
                 }
-                .gst-pick input { display: none; }
-                .gst-pick.active {
-                    border-color: var(--accent-gold);
-                    background: rgba(197,160,89,0.06);
+                .gst-seg-opt:first-child { border-right: 1px solid var(--border-color); }
+                .gst-seg-opt input { display: none; }
+                .gst-seg-opt.active {
+                    background: rgba(197,160,89,0.08);
+                    outline: 1.5px solid var(--accent-gold);
+                    outline-offset: -1px;
                 }
-                .gst-pick-icon {
-                    font-size: 1.25rem;
-                    font-weight: 700;
-                    color: var(--accent-gold);
-                    font-family: 'DM Serif Display', serif;
-                    line-height: 1;
-                    margin-bottom: 0.1rem;
-                }
-                .gst-pick-title {
-                    font-size: 0.85rem;
+                .gst-seg-name {
+                    font-size: 0.8rem;
                     font-weight: 700;
                     color: var(--text-main);
-                    line-height: 1.2;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.4rem;
                 }
-                .gst-pick-desc {
-                    font-size: 0.75rem;
-                    color: var(--text-muted);
-                    line-height: 1.5;
-                }
-                .gst-pick-desc em { font-style: normal; font-family: 'Space Mono', monospace; font-size: 0.7rem; }
+                .gst-seg-sub { font-size: 0.68rem; color: var(--text-muted); font-family: 'Space Mono', monospace; }
+                .gst-seg-badge { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; background: rgba(16,185,129,.12); color: #10b981; padding: 1px 5px; }
                 </style>
                 <script>
-                function syncGstPick() {
-                    document.getElementById('gst-pick-excl').classList.toggle('active',
+                function syncGstSeg() {
+                    document.getElementById('gst-seg-excl').classList.toggle('active',
                         document.querySelector('input[name="gst_inclusive"][value="false"]').checked);
-                    document.getElementById('gst-pick-incl').classList.toggle('active',
+                    document.getElementById('gst-seg-incl').classList.toggle('active',
                         document.querySelector('input[name="gst_inclusive"][value="true"]').checked);
                 }
-                // Set initial state
-                document.addEventListener('DOMContentLoaded', syncGstPick);
+                document.addEventListener('DOMContentLoaded', syncGstSeg);
                 </script>
             </div>
 

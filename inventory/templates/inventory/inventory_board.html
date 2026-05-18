@@ -24,7 +24,7 @@
             --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        body.dark {
+        html.dark body {
             --bg-color: #0f1115;
             --panel-bg: #1a1d24;
             --text-main: #f9fafb;
@@ -111,7 +111,7 @@
             padding: 1.2rem 1.5rem;
             font-weight: 600;
         }
-        body.dark .table th { background: rgba(255,255,255,0.02); color: var(--text-muted); }
+        html.dark .table th { background: rgba(255,255,255,0.02); color: var(--text-muted); }
 
         .table td {
             background: var(--panel-bg);
@@ -157,9 +157,9 @@
         .modal .form-control:focus, .modal .form-select:focus {
             border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2); background: transparent; color: var(--text-main);
         }
-        body.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
+        html.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
         .btn-close { filter: var(--bs-btn-close-filter); }
-        body.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+        html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
     </style>
 </head>
 <body>
@@ -172,10 +172,22 @@
         </div>
         <div class="d-flex gap-2">
             <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+            {% if 'purchase_orders' in tenant_features %}
             <a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
             <a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
+            {% endif %}
+            {% if 'central_kitchen' in tenant_features %}
+            <a href="/inventory/requisitions/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-up-right-circle me-1"></i> Requisitions</a>
+            <a href="/inventory/central-kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-building me-1"></i> Central Kitchen</a>
+            {% endif %}
+            {% if 'floor_plan' in tenant_features %}
             <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
+            {% endif %}
+            {% if 'token_system' in tenant_features %}
+            <a href="/token/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+            {% else %}
             <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+            {% endif %}
             <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
                 <i class="bi bi-moon" id="themeIcon"></i>
             </button>
@@ -345,25 +357,21 @@
     </div>
 
     <script>
-    // THEME - only once
-    let isDark = localStorage.getItem("dark") === "true";
-    
-    function updateTheme() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) {
-            document.body.classList.add("dark");
-            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-        } else {
-            document.body.classList.remove("dark");
-            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-        }
+    // THEME — synced with base.html (html.dark, localStorage key "rasova_theme")
+    function applyTheme() {
+        const dark = localStorage.getItem("rasova_theme") === "dark"
+                  || localStorage.getItem("dark") === "true";
+        document.documentElement.classList.toggle("dark", dark);
+        const icon = document.getElementById("themeIcon");
+        if (icon) { icon.className = dark ? "bi bi-sun" : "bi bi-moon"; }
     }
-    updateTheme();
+    applyTheme();
 
     function toggleDark() {
-        isDark = !isDark;
-        localStorage.setItem("dark", isDark);
-        updateTheme();
+        const dark = !document.documentElement.classList.contains("dark");
+        localStorage.setItem("rasova_theme", dark ? "dark" : "light");
+        localStorage.setItem("dark", dark);
+        applyTheme();
     }
 
     // remove updateIcons() entirely - it's dead code
