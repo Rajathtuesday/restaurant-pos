@@ -91,8 +91,7 @@ jobs:
           python manage.py test \
             accounts orders tenants inventory \
             menu setup notifications \
-            --verbosity=1 \
-            --parallel
+            --verbosity=1
 
   deploy:
     needs: test
