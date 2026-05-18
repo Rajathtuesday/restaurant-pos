@@ -872,15 +872,25 @@
         const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
         if (modal) modal.hide();
 
-        // Open thermal receipt in a popup — browser prints via OS print dialog.
-        // The page auto-calls window.print() and closes after printing.
-        // Requires BillTouch (or any thermal printer) driver installed in Windows.
-        const receiptUrl = `/thermal-receipt/${qsrPendingOrderId}/`;
-        const receiptWin = window.open(receiptUrl, '_blank',
-          'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
-        // Fallback: if popup was blocked, show a print link
-        if (!receiptWin || receiptWin.closed) {
-          ui.toast('Popup blocked — <a href="' + receiptUrl + '" target="_blank">open receipt</a>', 'warning');
+        // Try ESC/POS printer first; fall back to browser print if no printer configured.
+        const orderId = qsrPendingOrderId;
+        try {
+          const pr = await fetch(`/orders/print-bill/${orderId}/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
+          });
+          const pd = await pr.json();
+          if (!pr.ok) {
+            // No printer configured — use browser print popup
+            const receiptUrl = `/thermal-receipt/${orderId}/`;
+            const win = window.open(receiptUrl, '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
+            if (!win || win.closed) ui.toast('Popup blocked — <a href="' + receiptUrl + '" target="_blank">open receipt</a>', 'warning');
+          }
+          // If ESC/POS queued successfully, printer handles it — no browser popup needed
+        } catch {
+          // Network error — fall back to browser print
+          const receiptUrl = `/thermal-receipt/${orderId}/`;
+          window.open(receiptUrl, '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
         }
 
         // Show full-screen confirmation briefly
