@@ -50,26 +50,29 @@ class KitchenReportsTestCase(TestCase):
 
     def test_kitchen_performance_all_outlets(self):
         # We should have 3 KOTs, 6 items prepared (2 burgers+1 pizza voided+1 burger+3 pizzas), 1 total_voided
-        perf = kitchen_performance(self.tenant, start_date=timezone.now().date(), end_date=timezone.now().date())
+        today = timezone.localdate()
+        perf = kitchen_performance(self.tenant, start_date=today, end_date=today)
         self.assertEqual(perf["total_kots"], 3)
         self.assertEqual(perf["total_items_prepared"], 7)
         self.assertEqual(perf["total_voided"], 1)
 
     def test_kitchen_performance_specific_outlet(self):
+        today = timezone.localdate()
         # Outlet 1: 2 KOTs, 2+1+1=4 items, 1 voided
-        perf = kitchen_performance(self.tenant, outlet=self.outlet_1, start_date=timezone.now().date(), end_date=timezone.now().date())
+        perf = kitchen_performance(self.tenant, outlet=self.outlet_1, start_date=today, end_date=today)
         self.assertEqual(perf["total_kots"], 2)
         self.assertEqual(perf["total_items_prepared"], 4)
         self.assertEqual(perf["total_voided"], 1)
 
         # Outlet 2: 1 KOT, 3 items, 0 voided
-        perf_2 = kitchen_performance(self.tenant, outlet=self.outlet_2, start_date=timezone.now().date(), end_date=timezone.now().date())
+        perf_2 = kitchen_performance(self.tenant, outlet=self.outlet_2, start_date=today, end_date=today)
         self.assertEqual(perf_2["total_kots"], 1)
         self.assertEqual(perf_2["total_items_prepared"], 3)
         self.assertEqual(perf_2["total_voided"], 0)
 
     def test_top_kitchen_items(self):
-        top_items = top_kitchen_items(self.tenant, start_date=timezone.now().date(), end_date=timezone.now().date())
+        today = timezone.localdate()
+        top_items = top_kitchen_items(self.tenant, start_date=today, end_date=today)
         # The voided pizza should NOT be counted in top_items
         # Total Burger = 3 (from Outlet 1)
         # Total Pizza = 3 (from Outlet 2) (1 voided in Outlet 1 is ignored)
@@ -79,7 +82,8 @@ class KitchenReportsTestCase(TestCase):
         self.assertEqual(items_dict.get("Pizza"), 3)
 
     def test_top_kitchen_items_specific_outlet(self):
-        top_items_1 = top_kitchen_items(self.tenant, outlet=self.outlet_1, start_date=timezone.now().date(), end_date=timezone.now().date())
+        today = timezone.localdate()
+        top_items_1 = top_kitchen_items(self.tenant, outlet=self.outlet_1, start_date=today, end_date=today)
         items_dict_1 = {item["menu_item__name"]: item["total_qty"] for item in top_items_1}
         self.assertEqual(items_dict_1.get("Burger"), 3)
         self.assertIsNone(items_dict_1.get("Pizza"))
