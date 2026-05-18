@@ -1,4 +1,4 @@
-name: Rasova CI
+name: Rasova CI/CD
 
 on:
   push:
@@ -93,3 +93,36 @@ jobs:
             menu setup notifications \
             --verbosity=1 \
             --parallel
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/qsr' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:        ${{ secrets.EC2_HOST }}
+          username:    ${{ secrets.EC2_USER }}
+          key:         ${{ secrets.EC2_KEY }}
+          port:        22
+          timeout:     120s
+          script: |
+            cd /home/ubuntu/rasova
+            git fetch origin qsr
+            git reset --hard origin/qsr
+            source .venv/bin/activate
+            pip install -r requirements.txt --quiet
+            python manage.py migrate
+            python manage.py collectstatic --noinput
+            sudo fuser -k 8000/tcp 2>/dev/null || true
+            sleep 2
+            gunicorn \
+              --bind 0.0.0.0:8000 \
+              --workers 2 \
+              --timeout 120 \
+              --daemon \
+              core.wsgi:application
+            sleep 2
+            echo "Deploy complete — $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health/)"

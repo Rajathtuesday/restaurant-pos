@@ -119,17 +119,35 @@ def pay_order(request, order_id):
                 if amount == 0:
                     return JsonResponse({"error": "Amount must be greater than 0 for non-complimentary orders"}, status=400)
 
-                # SECURITY: Ensure a Cash Session is open before accepting payment
+                # Ensure a Cash Session is open before accepting payment.
+                # QSR counters auto-get a session on first payment of the day.
+                # Fine dining staff should open sessions manually via Shifts.
                 active_session = CashSession.objects.filter(
                     tenant=request.user.tenant,
                     outlet=request.user.outlet,
                     status="open"
-                ).exists()
+                ).first()
 
                 if not active_session:
-                    return JsonResponse({
-                        "error": "No open cash session. Please open a session in Shift Management first."
-                    }, status=400)
+                    tenant_type = getattr(request.user.tenant, "tenant_type", "")
+                    if tenant_type in ("franchise", "cafe"):
+                        # QSR/Café: auto-open a session so payment is never blocked
+                        active_session = CashSession.objects.create(
+                            tenant=request.user.tenant,
+                            outlet=request.user.outlet,
+                            status="open",
+                            opened_by=request.user,
+                            opening_balance=Decimal("0"),
+                        )
+                        logger.info(
+                            "Auto-created cash session #%s for QSR outlet %s",
+                            active_session.id, request.user.outlet.name,
+                        )
+                    else:
+                        # Fine dining: require manual session opening for proper shift tracking
+                        return JsonResponse({
+                            "error": "No open cash session. Please open a session in Shifts → Sessions."
+                        }, status=400)
 
                 payment_result = process_payment(order, method, amount, request.user)
                 change_due = payment_result.get("change_due", Decimal("0.00"))
