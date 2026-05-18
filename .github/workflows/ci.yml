@@ -1,0 +1,95 @@
+name: Rasova CI
+
+on:
+  push:
+    branches: [ main, qsr ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB:       rasova_test
+          POSTGRES_USER:     rasova
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Django system check
+        env:
+          SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          DEBUG:         "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          DB_ENGINE:     django.db.backends.postgresql
+          DB_NAME:       rasova_test
+          DB_USER:       rasova
+          DB_PASSWORD:   testpass
+          DB_HOST:       127.0.0.1
+          DB_PORT:       "5432"
+          REDIS_URL:     redis://127.0.0.1:6379/0
+        run: python manage.py check
+
+      - name: Run migrations
+        env:
+          SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          DEBUG:         "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          DB_ENGINE:     django.db.backends.postgresql
+          DB_NAME:       rasova_test
+          DB_USER:       rasova
+          DB_PASSWORD:   testpass
+          DB_HOST:       127.0.0.1
+          DB_PORT:       "5432"
+          REDIS_URL:     redis://127.0.0.1:6379/0
+        run: python manage.py migrate --run-syncdb
+
+      - name: Run test suite
+        env:
+          SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          DEBUG:         "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          DB_ENGINE:     django.db.backends.postgresql
+          DB_NAME:       rasova_test
+          DB_USER:       rasova
+          DB_PASSWORD:   testpass
+          DB_HOST:       127.0.0.1
+          DB_PORT:       "5432"
+          REDIS_URL:     redis://127.0.0.1:6379/0
+        run: |
+          python manage.py test \
+            accounts orders tenants inventory \
+            menu setup notifications \
+            --verbosity=1 \
+            --parallel
