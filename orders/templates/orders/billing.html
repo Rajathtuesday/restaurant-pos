@@ -63,7 +63,7 @@
   .cart-item-note { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
   .cart-controls { display: flex; align-items: center; gap: 10px; }
   .qty-controls { display: flex; align-items: center; border: 1px solid var(--border-color); }
-  .qty-btn { width: 24px; height: 24px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+  .qty-btn { min-width: 36px; min-height: 44px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
   .qty-value { font-size: 0.85rem; width: 20px; text-align: center; }
   .cart-item-price { font-weight: 500; font-size: 0.85rem; width: 55px; text-align: right; color: var(--text-main); }
 
@@ -73,12 +73,12 @@
   .veg-dot.nonveg { background: #ef4444; }
 
   /* Printer error banner */
-  #printer-error-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:#fff; padding:10px 20px; font-size:13px; font-weight:600; display:none; align-items:center; gap:10px; }
+  #printer-error-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:#fff; padding:10px 20px; font-size:var(--text-sm); font-weight:600; align-items:center; gap:10px; }
   #printer-error-banner i { font-size:1.1rem; }
   #printer-error-banner .dismiss { margin-left:auto; cursor:pointer; opacity:0.8; font-size:1.1rem; }
 
   /* Offline indicator */
-  #offline-banner { display:none; position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fcd34d; border-radius:20px; padding:6px 18px; font-size:12px; font-weight:600; z-index:9998; letter-spacing:1px; }
+  #offline-banner { display:none; position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fcd34d; border-radius:20px; padding:6px 18px; font-size:var(--text-xs); font-weight:600; z-index:9998; letter-spacing:1px; }
 
   .cart-summary { border-top: 1px solid var(--border-color); padding: 1.5rem; background: var(--panel-bg); }
   .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
@@ -225,7 +225,7 @@
       <h3 id="cat{{ category.id }}" class="menu-section-title">{{ category.name }}</h3>
       <div class="row g-3 g-md-4 mb-5">
         {% for item in category.items.all %}
-        <div class="col-6 col-lg-6 menu-item-searchable">
+        <div class="col-12 col-sm-6 col-lg-4 menu-item-searchable">
           <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage|default:5 }}', {{ item.is_veg|yesno:'true,false' }})">
             <div>
               <div class="item-name">
