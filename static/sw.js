@@ -68,8 +68,9 @@ self.addEventListener('fetch', event => {
     const { request } = event;
     const url = new URL(request.url);
 
-    // Skip: non-GET, cross-origin API calls, admin
+    // Skip: non-GET, cross-origin API calls, admin, landing page
     if (request.method !== 'GET') return;
+    if (url.pathname === '/') return;           // landing page — let nginx/browser handle it
     if (url.pathname.startsWith('/admin/')) return;
     if (url.pathname.startsWith('/api/')) return;
 
@@ -106,11 +107,10 @@ self.addEventListener('fetch', event => {
             .catch(() =>
                 caches.match(request).then(cached => {
                     if (cached) return cached;
-                    // For non-critical pages fall back to dashboard cache
                     return isBillingOrKitchen
                         ? caches.match('/billing/')
                         : caches.match('/dashboard/');
-                })
+                }).then(r => r || new Response('Offline', { status: 503, statusText: 'Offline' }))
             )
     );
 });
