@@ -34,18 +34,37 @@ def ai_menu_importer(request):
             text=text, image_bytes=image_bytes, mime_type=mime_type
         )
         imported_count = 0
+        tenant  = request.user.tenant
+        outlet  = request.user.outlet
+        # Cache categories by normalised name so "Starters" and "starters"
+        # resolve to the same DB row within one import run.
+        _cat_cache: dict = {}
+
+        def _get_or_merge_category(raw_name: str) -> MenuCategory:
+            name = (raw_name or "General").strip()
+            key  = name.lower()
+            if key in _cat_cache:
+                return _cat_cache[key]
+            # Case-insensitive lookup so existing "Starters" matches imported "STARTERS"
+            cat = MenuCategory.objects.filter(
+                tenant=tenant, outlet=outlet, name__iexact=name,
+            ).first()
+            if not cat:
+                cat = MenuCategory.objects.create(
+                    tenant=tenant, outlet=outlet, name=name,
+                )
+            _cat_cache[key] = cat
+            return cat
+
         with transaction.atomic():
             for entry in structured_data:
-                category, _ = MenuCategory.objects.get_or_create(
-                    tenant=request.user.tenant, outlet=request.user.outlet,
-                    name=entry.get("category", "General"),
-                )
+                category = _get_or_merge_category(entry.get("category", "General"))
                 for item_data in entry.get("items", []):
-                    name  = item_data.get("name")
+                    name  = (item_data.get("name") or "").strip()
                     price = item_data.get("price", 0)
                     if name:
                         MenuItem.objects.get_or_create(
-                            tenant=request.user.tenant, outlet=request.user.outlet,
+                            tenant=tenant, outlet=outlet,
                             category=category, name=name,
                             defaults={"price": Decimal(str(price))},
                         )
