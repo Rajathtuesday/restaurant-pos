@@ -548,7 +548,7 @@
     }
 
     async function logBypass(orderId) {
-        try { await apiClient.post(`/orders/log-bypass/${orderId}/`, {}); } catch(e) {}
+        try { await apiClient.post(`/log-bypass/${orderId}/`, {}); } catch(e) {}
         window.location.href = {% if is_qsr %}'/token/'{% else %}'/tables/'{% endif %};
     }
 

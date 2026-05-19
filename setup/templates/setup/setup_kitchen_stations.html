@@ -128,7 +128,10 @@
             <span class="printer-status"><span class="dot"></span>No printer</span>
           {% endif %}
           {% if not station.is_default %}
-            <a href="/setup/set-default-station/{{ station.id }}/" class="btn-ghost" onclick="event.stopPropagation()">Set Default</a>
+            <form method="post" action="/setup/set-default-station/{{ station.id }}/" onclick="event.stopPropagation()" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn-ghost">Set Default</button>
+            </form>
           {% endif %}
           <i class="bi bi-chevron-down chevron" id="chevron-{{ station.id }}"></i>
         </div>
