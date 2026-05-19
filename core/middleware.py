@@ -21,9 +21,9 @@ class TenantMiddleware:
 
         # --- Primary: real subdomain (production path) ---
         if len(parts) > 2 and not parts[0].replace("-", "").isdigit():
-            subdomain = parts[0]
+            subdomain = parts[0].lower()   # slugs are always lowercase
             try:
-                tenant = Tenant.objects.get(slug=subdomain, is_active=True)
+                tenant = Tenant.objects.get(slug__iexact=subdomain, is_active=True)
             except Tenant.DoesNotExist:
                 tenant = None
 
