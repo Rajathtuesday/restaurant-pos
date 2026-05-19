@@ -537,9 +537,28 @@
             if (data.success) {
                 ui.toast(data.message || 'Payment recorded', 'success');
                 window.onbeforeunload = null;
-                // Reload with ?print=1 so the thermal receipt opens automatically
+
+                // Try ESC/POS thermal printer first (bill + KOTs as one strip).
+                // If it works, skip the browser popup — printer handled everything.
+                // If it fails (no printer IP, connection error), fall back to browser print.
+                let escPosWorked = false;
+                try {
+                    const pr = await fetch('{% url "print-bill" order.id %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': apiClient.getCsrf(),
+                        },
+                    });
+                    const pd = await pr.json();
+                    if (pr.ok && pd.success) {
+                        escPosWorked = true;
+                    }
+                } catch {}
+
                 setTimeout(() => {
-                    window.location.href = window.location.pathname + '?print=1';
+                    // Only add ?print=1 (browser popup) if ESC/POS did not handle it
+                    window.location.href = window.location.pathname + (escPosWorked ? '' : '?print=1');
                 }, 600);
             } else {
                 ui.toast(data.error || 'Payment failed', 'error');
