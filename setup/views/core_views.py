@@ -213,9 +213,15 @@ def setup_kitchen_stations(request):
 
     stations_list = list(stations.order_by("is_default", "name").reverse())
 
-    # Determine print mode for the strip preview
-    any_station_has_printer = any(s.printer_ip for s in stations_list)
+    # Determine print mode for the strip preview.
+    # Only non-default stations matter: if any have their own printer IP,
+    # they print KOTs independently (per-station mode).
+    # The default station always has the cashier printer — don't count it.
     default_station = next((s for s in stations_list if s.is_default), None) or (stations_list[0] if stations_list else None)
+    any_station_has_printer = any(
+        s.printer_ip for s in stations_list
+        if not s.is_default
+    )
     cashier_ip = default_station.printer_ip if default_station else None
 
     return render(
