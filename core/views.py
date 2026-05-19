@@ -10,18 +10,12 @@ logger = logging.getLogger("pos.core")
 
 
 def landing(request):
+    # Nginx serves landing.html directly — this view only runs for
+    # authenticated users hitting / (nginx passes to Django only when
+    # the exact-match location = / fails to find the file).
     if request.user.is_authenticated:
         return redirect("/dashboard/")
-    # Serve the marketing page as raw HTML — bypasses the Django template
-    # engine so the pure-HTML file never trips on characters like { or %.
-    import os
-    from django.conf import settings
-    path = os.path.join(settings.BASE_DIR, "core", "templates", "core", "landing.html")
-    try:
-        with open(path, "rb") as f:
-            return HttpResponse(f.read(), content_type="text/html; charset=utf-8")
-    except FileNotFoundError:
-        return redirect("/login/")
+    return redirect("/login/")
 
 
 def serve_sw(request):
