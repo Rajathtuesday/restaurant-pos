@@ -51,6 +51,13 @@
   .btn-test:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .hint { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.5; }
+  .btn-delete-station {
+    background: transparent; border: 1px solid var(--border-color);
+    color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 1.5px; padding: 0.4rem 0.9rem; cursor: pointer;
+    transition: all 0.2s; font-family: inherit;
+  }
+  .btn-delete-station:hover { border-color: #ef4444; color: #ef4444; }
   .printer-callout { background: rgba(197,160,89,0.07); border-left: 3px solid var(--accent-gold); padding: 0.9rem 1.1rem; font-size: 0.75rem; line-height: 1.6; color: var(--text-main); margin-bottom: 1.5rem; }
   .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
   .chevron { transition: transform 0.2s; font-size: 0.8rem; }
@@ -195,6 +202,19 @@
           </button>
           <span class="printer-status" id="status-{{ station.id }}"></span>
         </div>
+
+        {% if stations|length > 1 %}
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-color);">
+          <button class="btn-delete-station" onclick="deleteStation({{ station.id }}, '{{ station.name|escapejs }}', {{ station.is_default|lower }})">
+            <i class="bi bi-trash me-1"></i> Remove Station
+          </button>
+          {% if station.is_default %}
+          <p class="hint" style="margin-top:0.4rem;color:#f59e0b;">
+            This is the default station. Removing it will promote another station to default automatically.
+          </p>
+          {% endif %}
+        </div>
+        {% endif %}
       </div>
     </div>
     {% empty %}
@@ -364,6 +384,30 @@ async function testPrint(id) {
     ui.toast(msg, 'error');
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function deleteStation(id, name, isDefault) {
+  // Confirmation — extra warning if deleting the default station
+  const warning = isDefault
+    ? `"${name}" is the default station. Another station will become the default automatically.\n\nMenu items assigned to "${name}" will move to the new default.\n\nDelete anyway?`
+    : `Remove kitchen station "${name}"?\n\nAny menu items assigned to this station will move to the default station.`;
+
+  if (!confirm(warning)) return;
+
+  try {
+    const data = await apiClient.post(`/setup/kitchen-stations/${id}/delete/`, {});
+    ui.toast(data.message || 'Station removed', 'success');
+    // Remove the card from DOM immediately — no need for full page reload
+    const card = document.getElementById(`card-${id}`);
+    if (card) {
+      card.style.transition = 'opacity 0.3s, transform 0.3s';
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(20px)';
+      setTimeout(() => { card.remove(); window.location.reload(); }, 350);
+    }
+  } catch (e) {
+    // apiClient already shows a toast with the error message
   }
 }
 </script>

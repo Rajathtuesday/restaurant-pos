@@ -242,11 +242,18 @@ def update_printer_config(request, station_id):
         tenant=request.user.tenant,
         outlet=request.user.outlet,
     )
-    ip = request.POST.get("printer_ip", "").strip() or None
-    port = request.POST.get("printer_port", "9100").strip()
-    paper = request.POST.get("paper_width_mm", "80").strip()
-    cut = request.POST.get("cut_type", "full").strip()
-    enc = request.POST.get("printer_encoding", "cp437").strip()
+    # apiClient sends JSON body — request.POST is empty for JSON requests
+    import json as _json
+    try:
+        body = _json.loads(request.body)
+    except Exception:
+        body = request.POST
+
+    ip   = (body.get("printer_ip") or "").strip() or None
+    port = str(body.get("printer_port") or "9100").strip()
+    paper = str(body.get("paper_width_mm") or "80").strip()
+    cut  = (body.get("cut_type") or "full").strip()
+    enc  = (body.get("printer_encoding") or "cp437").strip()
 
     station.printer_ip = ip
     station.printer_port = int(port) if port.isdigit() else 9100
@@ -411,6 +418,81 @@ def set_default_station(request, station_id):
     station.save(update_fields=["is_default"])
 
     return redirect("/setup/kitchen-stations/")
+
+
+@login_required
+@require_POST
+def delete_station(request, station_id):
+    """
+    Delete a kitchen station.
+    Edge cases handled:
+    - Cannot delete if it is the only station (KOT routing would have nowhere to go)
+    - If deleting the default station, promote another station to default automatically
+    - Menu items assigned to this station lose their station (fall to new default)
+    """
+    station = get_object_or_404(
+        KitchenStation,
+        id=station_id,
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+    )
+
+    # Edge case 1 — only station, refuse deletion
+    total = KitchenStation.objects.filter(
+        tenant=request.user.tenant,
+        outlet=request.user.outlet,
+        is_active=True,
+    ).count()
+    if total <= 1:
+        return JsonResponse(
+            {"error": "Cannot delete the only kitchen station. Add another station first."},
+            status=400,
+        )
+
+    was_default = station.is_default
+
+    # Edge case 2 — deleting default station: reassign menu items + promote another
+    if was_default:
+        next_station = (
+            KitchenStation.objects
+            .filter(tenant=request.user.tenant, outlet=request.user.outlet, is_active=True)
+            .exclude(id=station_id)
+            .first()
+        )
+        if next_station:
+            # Reassign any menu items pointing to this station
+            from menu.models import MenuItem
+            MenuItem.objects.filter(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                station=station,
+            ).update(station=next_station)
+            next_station.is_default = True
+            next_station.save(update_fields=["is_default"])
+    else:
+        # Edge case 3 — non-default station with menu items assigned
+        # Reassign those items to the default station
+        from menu.models import MenuItem
+        default = KitchenStation.objects.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            is_default=True,
+        ).first()
+        if default:
+            MenuItem.objects.filter(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                station=station,
+            ).update(station=default)
+
+    station_name = station.name
+    station.delete()
+
+    return JsonResponse({
+        "success": True,
+        "message": f"Station '{station_name}' deleted.",
+        "was_default": was_default,
+    })
 
 
 @login_required

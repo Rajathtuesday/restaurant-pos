@@ -11,6 +11,7 @@ from .core_views import (
     setup_payment_methods,
     setup_staff,
     set_default_station,
+    delete_station,
     rename_table,
     outlet_settings,
 )
@@ -45,6 +46,7 @@ __all__ = [
     "setup_payment_methods",
     "setup_staff",
     "set_default_station",
+    "delete_station",
     "rename_table",
     "outlet_settings",
     # promos
