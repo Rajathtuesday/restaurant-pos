@@ -344,44 +344,61 @@ class PrintingService:
         p.text("\n")
 
     # ------------------------------------------------------------------
-    # COMBINED PRINT
-    #
-    # strip_mode=False (fine-dining default):
-    #   receipt → FULL CUT   (customer takes bill, walks away)
-    #   KOT 1  → PARTIAL CUT
-    #   KOT N  → PARTIAL CUT (kitchen gets connected chain)
-    #
-    # strip_mode=True (QSR counter):
-    #   token receipt → PARTIAL CUT (stays connected to KOTs)
-    #   KOT 1         → PARTIAL CUT
-    #   KOT N (last)  → FULL CUT    (entire strip tears off roll)
-    #   Customer carries the whole strip to the food counter.
+    # TOKEN RECEIPT ONLY  (QSR when KOTs already printed at stations)
     # ------------------------------------------------------------------
 
-    def print_bill_with_kots(self, order, kots, strip_mode=False) -> bool:
+    def print_token_receipt(self, order) -> bool:
         p = self.get_printer()
         if not p:
             return False
         try:
-            if strip_mode:
-                # QSR: compact token receipt, stays connected to KOTs
-                self._print_qsr_token_body(p, order)
-                if kots:
-                    p.cut(mode="PART")  # connected to first KOT
-                else:
-                    p.cut(mode="FULL")  # no KOTs, just tear off receipt
-            else:
-                # Fine-dining / normal: full bill, then KOTs separate
-                self._print_bill_body(p, order)
-                p.cut(mode="FULL")
+            self._print_qsr_token_body(p, order)
+            self._cut(p)
+            return True
+        except Exception as e:
+            logger.error("Token receipt print failed for order %s: %s", order.id, e)
+            return False
 
+    # ------------------------------------------------------------------
+    # COMBINED PRINT — three modes
+    #
+    # strip_mode=True (QSR, no station printers):
+    #   token receipt → PARTIAL → KOT 1 → PARTIAL → KOT N → FULL CUT
+    #   Customer carries the full strip to the food counter.
+    #
+    # cashier_strip=True (hotel / fine dining, one cashier printer):
+    #   full bill → PARTIAL → KOT 1 [Station A] → PARTIAL → KOT N → FULL CUT
+    #   Runner delivers the strip, tears off each section at each station.
+    #
+    # neither (fine dining with per-station printers):
+    #   full bill → FULL CUT  (KOTs already printed at station printers)
+    # ------------------------------------------------------------------
+
+    def print_bill_with_kots(self, order, kots, strip_mode=False, cashier_strip=False) -> bool:
+        p = self.get_printer()
+        if not p:
+            return False
+        try:
+            # ── Bill / receipt section ─────────────────────────────────
+            if strip_mode:
+                self._print_qsr_token_body(p, order)
+            else:
+                self._print_bill_body(p, order)
+
+            # ── Cut after bill ─────────────────────────────────────────
+            if kots and (strip_mode or cashier_strip):
+                p.cut(mode="PART")   # stay connected to first KOT
+            else:
+                p.cut(mode="FULL")   # bill tears off; no KOTs on this printer
+                return True          # nothing more to print
+
+            # ── KOT sections ──────────────────────────────────────────
             for i, kot in enumerate(kots):
                 self._print_kot_body(p, order, kot)
-                is_last = (i == len(kots) - 1)
-                if strip_mode and is_last:
-                    p.cut(mode="FULL")   # final tear — entire strip comes off
+                if i == len(kots) - 1:
+                    p.cut(mode="FULL")   # final tear — entire strip off the roll
                 else:
-                    p.cut(mode="PART")   # partial — stays connected
+                    p.cut(mode="PART")   # stay connected to next section
 
             return True
         except Exception as e:

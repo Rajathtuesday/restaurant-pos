@@ -200,6 +200,106 @@
   </div>
 
 </div>
+
+<!-- PRINT STRIP PREVIEW — full width below the two-column grid -->
+{% if stations %}
+<div style="max-width:960px;margin:0 auto 4rem;padding:0 1.5rem;">
+
+  <p class="section-label" style="margin-bottom:1rem;">How Will It Print?</p>
+
+  {% if any_station_has_printer %}
+  <!-- MULTI-PRINTER MODE -->
+  <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1.5rem;">
+    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;">
+      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:#10b981;background:rgba(16,185,129,.1);padding:3px 10px;">Multi-Printer Mode</span>
+      <span style="font-size:0.75rem;color:var(--text-muted);">Each station prints its own KOT when order is sent to kitchen</span>
+    </div>
+
+    <!-- Cashier printer row -->
+    <div style="display:flex;align-items:center;gap:0;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.4rem;">
+      <div class="strip-block strip-bill">BILL</div>
+      <div class="strip-cut strip-full">✂ FULL CUT</div>
+      <span style="font-size:0.68rem;color:var(--text-muted);margin-left:0.5rem;">→ Cashier printer{% if cashier_ip %} ({{ cashier_ip }}){% endif %}</span>
+    </div>
+
+    {% for station in stations %}
+    {% if station.printer_ip and not station.is_default %}
+    <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+      <div class="strip-block strip-kot">KOT: {{ station.name }}</div>
+      <div class="strip-cut strip-full">✂ FULL CUT</div>
+      <span style="font-size:0.68rem;color:var(--text-muted);margin-left:0.5rem;">→ {{ station.printer_ip }}</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:1rem;margin-bottom:0;border-top:1px solid var(--border-color);padding-top:0.75rem;">
+      At payment: bill prints to cashier. KOTs already printed at each station when order was sent to kitchen.
+    </p>
+  </div>
+
+  {% else %}
+  <!-- ONE CASHIER PRINTER (STRIP) MODE -->
+  <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1.5rem;">
+    <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1.25rem;">
+      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--accent-gold);background:rgba(197,160,89,.1);padding:3px 10px;">Cashier Strip Mode</span>
+      <span style="font-size:0.75rem;color:var(--text-muted);">Bill + all KOTs print as one connected strip at payment</span>
+    </div>
+
+    <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;row-gap:0.5rem;">
+      <div class="strip-block strip-bill">BILL</div>
+      <div class="strip-cut strip-part">— partial</div>
+      {% for station in stations %}
+      <div class="strip-block strip-kot">KOT<br><span style="font-size:0.6rem;opacity:0.8;">{{ station.name }}</span></div>
+      {% if not forloop.last %}
+      <div class="strip-cut strip-part">— partial</div>
+      {% else %}
+      <div class="strip-cut strip-full">✂ FULL CUT</div>
+      {% endif %}
+      {% endfor %}
+    </div>
+
+    <p style="font-size:0.72rem;color:var(--text-muted);margin-top:1rem;margin-bottom:0;border-top:1px solid var(--border-color);padding-top:0.75rem;">
+      The cashier tears off the full strip after payment. Staff deliver each KOT section to the relevant station.
+      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set yet</strong> — enter the printer IP on your default station above to activate this.{% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
+<style>
+.strip-block {
+  border: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.3;
+  min-width: 70px;
+}
+.strip-bill  { border-color: var(--accent-gold); color: var(--accent-gold); }
+.strip-kot   { border-color: var(--text-muted);  color: var(--text-main); }
+.strip-cut {
+  display: flex;
+  align-items: center;
+  padding: 0 0.4rem;
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.strip-part { color: var(--text-muted); }
+.strip-full { color: var(--accent-gold); font-size: 0.65rem; }
+@media(max-width:600px) {
+  .strip-block { min-width: 56px; padding: 0.4rem 0.5rem; font-size: 0.65rem; }
+  .strip-cut   { padding: 0 0.25rem; font-size: 0.55rem; }
+}
+</style>
+
 {% endblock %}
 
 {% block extra_js %}

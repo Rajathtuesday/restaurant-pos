@@ -170,9 +170,6 @@ def print_bill_task(self, order_id, station_id):
             logger.warning("No printer IP on station '%s' — bill print skipped.", station.name)
             return False
 
-        # QSR strip mode: no KDS → receipt + KOTs are one connected strip
-        strip_mode = not has_feature(order.tenant, "kitchen_display")
-
         printer = PrintingService(
             printer_type="network",
             host=station.printer_ip,
@@ -181,7 +178,37 @@ def print_bill_task(self, order_id, station_id):
             cut_type=station.cut_type,
             encoding=station.printer_encoding,
         )
-        success = printer.print_bill_with_kots(order, kots, strip_mode=strip_mode)
+
+        # ── Determine print mode ───────────────────────────────────────────
+        # strip_mode = QSR (no kitchen_display feature) → compact token receipt
+        # cashier_strip = fine dining/hotel with ONE printer at cashier
+        #                 (stations have no individual printers)
+        # neither = fine dining with per-station printers (KOTs already printed)
+        strip_mode = not has_feature(order.tenant, "kitchen_display")
+
+        any_station_has_printer = any(
+            kot.station and kot.station.printer_ip
+            for kot in kots
+        )
+
+        if strip_mode:
+            if any_station_has_printer:
+                # QSR with station printers: KOTs already printed — just token receipt
+                logger.info("QSR order #%s: station printers used for KOTs — printing token only.", order.id)
+                success = printer.print_token_receipt(order)
+            else:
+                # QSR, one cashier printer: token + KOTs as connected strip
+                success = printer.print_bill_with_kots(order, kots, strip_mode=True)
+        else:
+            if any_station_has_printer:
+                # Fine dining with per-station printers: KOTs already at stations — just bill
+                logger.info("Order #%s: station printers used for KOTs — printing bill only.", order.id)
+                success = printer.print_bill(order)
+            else:
+                # Hotel / fine dining, one cashier printer:
+                # bill → PARTIAL → KOT station1 → PARTIAL → KOT station2 → FULL
+                logger.info("Order #%s: one cashier printer — printing bill+KOT strip.", order.id)
+                success = printer.print_bill_with_kots(order, kots, cashier_strip=True)
 
         if success:
             logger.info("Bill + %d KOT(s) printed for Order #%s.", len(kots), order_id)

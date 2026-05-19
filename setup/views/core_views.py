@@ -211,11 +211,21 @@ def setup_kitchen_stations(request):
 
         return redirect("/setup/kitchen-stations/")  # ✅ FIX
 
+    stations_list = list(stations.order_by("is_default", "name").reverse())
+
+    # Determine print mode for the strip preview
+    any_station_has_printer = any(s.printer_ip for s in stations_list)
+    default_station = next((s for s in stations_list if s.is_default), None) or (stations_list[0] if stations_list else None)
+    cashier_ip = default_station.printer_ip if default_station else None
+
     return render(
         request,
         "setup/setup_kitchen_stations.html",
         {
-            "stations": stations
+            "stations": stations_list,
+            "any_station_has_printer": any_station_has_printer,
+            "cashier_ip": cashier_ip,
+            "default_station": default_station,
         }
     )
 
