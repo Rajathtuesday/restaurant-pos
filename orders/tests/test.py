@@ -46,7 +46,7 @@ User = get_user_model()
 class OrderLockTestCase(TestCase):
 
     def setUp(self):
-        self.tenant = Tenant.objects.create(name="Test", slug="test")
+        self.tenant = Tenant.objects.create(name="Lock Tenant", slug="lock-tenant")
         self.outlet = Outlet.objects.create(tenant=self.tenant, name="Outlet")
 
         self.user1 = User.objects.create_user(

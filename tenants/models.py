@@ -12,10 +12,12 @@ from core.validators import validate_image_size
 # --------------------------------------------------
 
 RESERVED_SLUGS = frozenset({
+    # System paths that would conflict with the main app's URL routing
     'www', 'api', 'app', 'admin', 'superadmin', 'static', 'media',
-    'support', 'billing', 'login', 'logout', 'signup', 'register',
-    'help', 'mail', 'smtp', 'rasova', 'dashboard', 'setup', 'reports',
-    'demo', 'staging', 'test', 'dev', 'health', 'favicon',
+    'support', 'login', 'logout', 'signup', 'register',
+    'help', 'mail', 'smtp', 'rasova', 'health', 'favicon',
+    # Reserved to prevent confusion with Rasova branding
+    'billing', 'dashboard', 'setup',
 })
 
 
