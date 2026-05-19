@@ -56,35 +56,79 @@ def generate_bill(request, order_id):
 @tenant_required
 @role_required("manager", "cashier", "owner")
 def print_bill_action(request, order_id):
-    """Queue bill + KOT print via Celery. Returns immediately - printer runs in background."""
-    from orders.tasks import print_bill_task
+    """
+    Print bill + KOTs after payment.
+
+    Always prints synchronously — the web request blocks for ~1-2s while the
+    printer responds, which is acceptable at payment time. Celery is intentionally
+    NOT used here because:
+      • A Celery worker may not be running (local dev, small setups)
+      • Redis queues the task silently even with no worker → silent failure
+      • KOTs already print via kot_service sync fallback when order goes to kitchen
+
+    Mode detection (mirrors tasks.print_bill_task):
+      strip_mode=True    → QSR: compact token receipt + KOTs (tenant has no kitchen_display)
+      cashier_strip=True → Hotel/one-printer: full bill + KOTs connected strip
+      neither            → Fine dining with per-station printers: bill only
+    """
+    from orders.models import KOTBatch
+    from orders.services.printing_service import PrintingService
     from setup.services.station_service import get_default_station
+    from core.features import has_feature
+
     try:
-        order = Order.objects.get(
+        order = Order.objects.prefetch_related("items", "payments").get(
             id=order_id, tenant=request.user.tenant, outlet=request.user.outlet
         )
         station = get_default_station(request.user)
         if not station or not station.printer_ip:
-            return JsonResponse({"error": "No printer configured. Set printer IP in Setup → Kitchen Stations."}, status=400)
-
-        try:
-            print_bill_task.delay(order.id, station.id)
-            return JsonResponse({"success": True, "message": "Print job queued - bill and KOTs printing now"})
-        except Exception as celery_exc:
-            # Celery / Redis unavailable - fall back to synchronous print
-            logger.warning("Celery unavailable for bill print, falling back to sync: %s", celery_exc)
-            from orders.models import KOTBatch
-            from orders.services.printing_service import PrintingService
-            kots = list(KOTBatch.objects.filter(order=order).order_by("kot_number"))
-            printer = PrintingService(
-                printer_type="network", host=station.printer_ip, port=station.printer_port,
-                chars_per_line=station.chars_per_line, cut_type=station.cut_type,
-                encoding=station.printer_encoding,
+            return JsonResponse(
+                {"error": "No printer configured. Set printer IP in Setup → Kitchen Stations."},
+                status=400,
             )
-            success = printer.print_bill_with_kots(order, kots)
-            if success:
-                return JsonResponse({"success": True, "message": "Bill printed (direct)"})
-            return JsonResponse({"error": "Printer connected but print failed."}, status=500)
+
+        kots = list(
+            KOTBatch.objects
+            .filter(order=order)
+            .prefetch_related("items__menu_item", "items__modifiers")
+            .select_related("station")
+            .order_by("kot_number")
+        )
+
+        printer = PrintingService(
+            printer_type="network",
+            host=station.printer_ip,
+            port=station.printer_port,
+            chars_per_line=station.chars_per_line,
+            cut_type=station.cut_type,
+            encoding=station.printer_encoding,
+        )
+
+        # ── Mode detection ──────────────────────────────────────────
+        strip_mode = not has_feature(order.tenant, "kitchen_display")
+
+        any_station_has_printer = any(
+            kot.station and kot.station.printer_ip and not kot.station.is_default
+            for kot in kots
+        )
+
+        if strip_mode:
+            if any_station_has_printer:
+                success = printer.print_token_receipt(order)
+            else:
+                success = printer.print_bill_with_kots(order, kots, strip_mode=True)
+        else:
+            if any_station_has_printer:
+                success = printer.print_bill(order)
+            else:
+                # One cashier printer: bill → partial → KOT1 → partial → KOT2 → FULL CUT
+                success = printer.print_bill_with_kots(order, kots, cashier_strip=True)
+
+        if success:
+            logger.info("Bill + %d KOT(s) printed for order #%s", len(kots), order.id)
+            return JsonResponse({"success": True, "message": "Bill and KOTs printed"})
+
+        return JsonResponse({"error": "Printer connected but print failed. Check paper and cable."}, status=500)
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
