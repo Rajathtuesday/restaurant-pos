@@ -118,7 +118,7 @@ jobs:
             sudo fuser -k 8000/tcp 2>/dev/null || true
             sleep 2
             gunicorn \
-              --bind 0.0.0.0:8000 \
+              --bind 127.0.0.1:8000 \
               --workers 2 \
               --timeout 120 \
               --daemon \
