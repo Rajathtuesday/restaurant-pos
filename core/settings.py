@@ -187,6 +187,11 @@ STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# WhiteNoise serves files from public/ at the root URL (/)
+# index.html in public/ is served at exactly / (the landing page)
+WHITENOISE_ROOT        = BASE_DIR / 'public'
+WHITENOISE_INDEX_FILE  = True
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 

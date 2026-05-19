@@ -10,9 +10,9 @@ logger = logging.getLogger("pos.core")
 
 
 def landing(request):
-    # Nginx serves landing.html directly — this view only runs for
-    # authenticated users hitting / (nginx passes to Django only when
-    # the exact-match location = / fails to find the file).
+    # WhiteNoise serves public/index.html at / for unauthenticated users
+    # before this view is ever called. This view only runs when WhiteNoise
+    # doesn't intercept — e.g. authenticated users who should go to dashboard.
     if request.user.is_authenticated:
         return redirect("/dashboard/")
     return redirect("/login/")
