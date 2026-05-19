@@ -31,6 +31,41 @@ def serve_sw(request):
     return response
 
 
+def demo_switch(request):
+    """
+    DEBUG-only tenant switcher for local demos.
+    GET  /demo/          → shows tenant picker page
+    GET  /demo/?as=slug  → sets session tenant + redirects to dashboard
+    GET  /demo/?clear=1  → clears session tenant
+    """
+    if not settings.DEBUG:
+        from django.http import Http404
+        raise Http404
+
+    from tenants.models import Tenant
+    from django.shortcuts import render
+
+    if request.GET.get("clear"):
+        request.session.pop("dev_tenant_slug", None)
+        return redirect("/demo/")
+
+    pick = request.GET.get("as", "").strip().lower()
+    if pick:
+        try:
+            t = Tenant.objects.get(slug__iexact=pick, is_active=True)
+            request.session["dev_tenant_slug"] = t.slug
+            return redirect("/dashboard/")
+        except Tenant.DoesNotExist:
+            pass
+
+    tenants = Tenant.objects.filter(is_active=True).order_by("name")
+    active_slug = request.session.get("dev_tenant_slug", "")
+    return render(request, "core/demo_switch.html", {
+        "tenants": tenants,
+        "active_slug": active_slug,
+    })
+
+
 def health_check(request):
     try:
         connection.ensure_connection()

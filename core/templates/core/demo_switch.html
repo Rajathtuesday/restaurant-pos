@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo Mode — Rasova</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #c5a059; --bg: #0a0a0a; --panel: #111111;
+      --text: #f5f5f5; --muted: #666; --border: #222;
+    }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 2rem;
+      background-image: linear-gradient(rgba(197,160,89,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(197,160,89,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(197,160,89,0.12); border: 1px solid rgba(197,160,89,0.3);
+      color: var(--gold); font-size: 0.65rem; letter-spacing: 3px;
+      text-transform: uppercase; padding: 4px 14px; margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      margin-bottom: 0.4rem; text-align: center;
+    }
+    .sub {
+      color: var(--muted); font-size: 0.8rem; margin-bottom: 2.5rem;
+      text-align: center; letter-spacing: 1px;
+    }
+
+    .tenant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem; width: 100%; max-width: 800px;
+    }
+
+    .tenant-card {
+      background: var(--panel); border: 1px solid var(--border);
+      padding: 1.5rem; text-decoration: none; color: var(--text);
+      transition: border-color 0.2s, transform 0.15s;
+      display: block; position: relative;
+    }
+    .tenant-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+    .tenant-card.active {
+      border-color: var(--gold);
+      background: rgba(197,160,89,0.06);
+    }
+    .tenant-card.active::before {
+      content: '● Active';
+      position: absolute; top: 0.75rem; right: 0.75rem;
+      font-size: 0.55rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--gold);
+    }
+
+    .t-icon {
+      width: 40px; height: 40px;
+      background: rgba(197,160,89,0.1); border: 1px solid rgba(197,160,89,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; color: var(--gold); margin-bottom: 0.9rem;
+    }
+    .t-name {
+      font-weight: 600; font-size: 0.95rem; margin-bottom: 0.2rem;
+    }
+    .t-meta {
+      font-size: 0.7rem; color: var(--muted);
+      font-family: 'Space Mono', monospace; margin-bottom: 0.6rem;
+    }
+    .t-type {
+      font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--muted); display: flex; align-items: center; gap: 5px;
+    }
+    .t-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .dot-fd   { background: #c5a059; }
+    .dot-cafe { background: #10b981; }
+    .dot-fr   { background: #6366f1; }
+
+    .actions {
+      display: flex; gap: 1rem; margin-top: 2rem;
+      flex-wrap: wrap; justify-content: center;
+    }
+    .btn-clear {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 0.5rem 1.2rem;
+      font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase;
+      text-decoration: none; transition: all 0.2s; cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+    }
+    .btn-clear:hover { border-color: #ef4444; color: #ef4444; }
+
+    .hint {
+      margin-top: 2.5rem; font-size: 0.68rem; color: var(--muted);
+      text-align: center; max-width: 520px; line-height: 1.7;
+      font-family: 'Space Mono', monospace;
+    }
+    .hint code {
+      background: rgba(255,255,255,0.06); padding: 1px 6px;
+      color: var(--gold); border-radius: 2px;
+    }
+
+    .empty {
+      text-align: center; color: var(--muted); padding: 3rem;
+      border: 1px dashed var(--border); max-width: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="badge"><i class="bi bi-tools"></i> Dev Mode Only</div>
+
+  <h1>Demo Tenant Switcher</h1>
+  <p class="sub">Pick a tenant to impersonate — sets session cookie, redirects to dashboard</p>
+
+  {% if tenants %}
+  <div class="tenant-grid">
+    {% for t in tenants %}
+    <a href="/demo/?as={{ t.slug }}" class="tenant-card {% if t.slug == active_slug %}active{% endif %}">
+      <div class="t-icon">
+        {% if t.tenant_type == 'fine_dining' %}<i class="bi bi-building"></i>
+        {% elif t.tenant_type == 'cafe' %}<i class="bi bi-cup-hot"></i>
+        {% else %}<i class="bi bi-shop"></i>{% endif %}
+      </div>
+      <div class="t-name">{{ t.name }}</div>
+      <div class="t-meta">{{ t.slug }}.rasova.net</div>
+      <div class="t-type">
+        {% if t.tenant_type == 'fine_dining' %}
+          <span class="t-dot dot-fd"></span>Fine Dining
+        {% elif t.tenant_type == 'cafe' %}
+          <span class="t-dot dot-cafe"></span>Café / QSR
+        {% else %}
+          <span class="t-dot dot-fr"></span>Franchise
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <i class="bi bi-exclamation-circle d-block mb-2" style="font-size:2rem;color:var(--muted);"></i>
+    No tenants in database yet.<br>
+    Run <code>python manage.py createsuperuser</code> then create a tenant from Django admin.
+  </div>
+  {% endif %}
+
+  <div class="actions">
+    {% if active_slug %}
+    <a href="/demo/?clear=1" class="btn-clear"><i class="bi bi-x-circle"></i> Clear Active Tenant</a>
+    {% endif %}
+    <a href="/admin/tenants/tenant/" class="btn-clear" target="_blank"><i class="bi bi-database"></i> Django Admin</a>
+  </div>
+
+  <p class="hint">
+    Active tenant: <code>{{ active_slug|default:"none" }}</code><br>
+    Or append <code>?tenant=slug</code> to any URL to switch inline.<br>
+    This page returns 404 in production (DEBUG=False).
+  </p>
+
+</body>
+</html>

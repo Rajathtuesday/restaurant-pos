@@ -71,6 +71,8 @@ urlpatterns = [
 
     # Health check
     path('health/', views.health_check, name='health_check'),
+    # Demo tenant switcher — DEBUG only, 404 in production
+    path('demo/', views.demo_switch, name='demo_switch'),
     path('robots.txt', robots_txt),
     path('sitemap.xml', sitemap_xml),
     path('favicon.ico', lambda r: HttpResponse(status=204)),
