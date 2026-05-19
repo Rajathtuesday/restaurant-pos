@@ -222,10 +222,12 @@ def update_station(request, item_id):
                 id=station_id, tenant=request.user.tenant, outlet=request.user.outlet
             )
             item.station = station
+            station_name = station.name
         else:
             item.station = None
+            station_name = None
         item.save(update_fields=["station"])
-        return JsonResponse({"success": True})
+        return JsonResponse({"success": True, "station_name": station_name})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
