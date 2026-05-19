@@ -12,8 +12,16 @@ logger = logging.getLogger("pos.core")
 def landing(request):
     if request.user.is_authenticated:
         return redirect("/dashboard/")
-    from django.shortcuts import render
-    return render(request, "core/landing.html")
+    # Serve the marketing page as raw HTML — bypasses the Django template
+    # engine so the pure-HTML file never trips on characters like { or %.
+    import os
+    from django.conf import settings
+    path = os.path.join(settings.BASE_DIR, "core", "templates", "core", "landing.html")
+    try:
+        with open(path, "rb") as f:
+            return HttpResponse(f.read(), content_type="text/html; charset=utf-8")
+    except FileNotFoundError:
+        return redirect("/login/")
 
 
 def serve_sw(request):
