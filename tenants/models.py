@@ -11,6 +11,14 @@ from core.validators import validate_image_size
 # TENANT (Restaurant / Company)
 # --------------------------------------------------
 
+RESERVED_SLUGS = frozenset({
+    'www', 'api', 'app', 'admin', 'superadmin', 'static', 'media',
+    'support', 'billing', 'login', 'logout', 'signup', 'register',
+    'help', 'mail', 'smtp', 'rasova', 'dashboard', 'setup', 'reports',
+    'demo', 'staging', 'test', 'dev', 'health', 'favicon',
+})
+
+
 class Tenant(models.Model):
 
     name = models.CharField(
@@ -111,11 +119,17 @@ class Tenant(models.Model):
             slug = base_slug
             counter = 1
 
-            while Tenant.objects.filter(slug=slug).exclude(id=self.id).exists():
+            while (
+                Tenant.objects.filter(slug=slug).exclude(id=self.id).exists()
+                or slug in RESERVED_SLUGS
+            ):
                 slug = f"{base_slug}-{counter}"
                 counter += 1
 
             self.slug = slug
+        else:
+            if self.slug in RESERVED_SLUGS:
+                raise ValidationError(f"'{self.slug}' is a reserved subdomain and cannot be used.")
 
         from django.db import IntegrityError as _IntegrityError
         try:

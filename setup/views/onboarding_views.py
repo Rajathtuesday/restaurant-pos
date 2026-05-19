@@ -2,6 +2,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
+from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 
 from orders.models import Table
@@ -9,6 +10,7 @@ from menu.models import MenuCategory, MenuItem
 from setup.models import PaymentConfig
 from core.decorators import tenant_required
 from accounts.models import User
+from tenants.models import Tenant, RESERVED_SLUGS
 
 
 # -------------------------------------------------
@@ -29,7 +31,19 @@ def onboarding_wizard(request):
             tenant.tenant_type = request.POST.get("tenant_type", tenant.tenant_type)
             if "logo" in request.FILES:
                 tenant.logo = request.FILES["logo"]
-            tenant.save(update_fields=["name", "tenant_type", "logo"])
+
+            # Custom subdomain — validate and apply if provided
+            custom_slug = slugify(request.POST.get("custom_slug", "").strip())
+            if custom_slug and custom_slug != tenant.slug:
+                slug_ok = (
+                    custom_slug not in RESERVED_SLUGS
+                    and not Tenant.objects.filter(slug=custom_slug).exclude(id=tenant.id).exists()
+                    and len(custom_slug) >= 3
+                )
+                if slug_ok:
+                    tenant.slug = custom_slug
+
+            tenant.save(update_fields=["name", "tenant_type", "logo", "slug"])
 
             outlet.address      = request.POST.get("address", "").strip()
             outlet.phone        = request.POST.get("phone", "").strip()
@@ -215,3 +229,25 @@ def checklist_status(request):
     all_done = done_count == len(steps)
 
     return JsonResponse({"steps": steps, "all_done": all_done, "done_count": done_count})
+
+
+def check_slug_available(request):
+    """AJAX — returns whether a slug is available for use as a subdomain."""
+    raw  = request.GET.get("slug", "").strip()
+    slug = slugify(raw)
+    tenant = getattr(request.user, "tenant", None) if request.user.is_authenticated else None
+
+    if not slug:
+        return JsonResponse({"available": False, "reason": "Enter a subdomain"})
+    if len(slug) < 3:
+        return JsonResponse({"available": False, "reason": "Too short — minimum 3 characters"})
+    if slug in RESERVED_SLUGS:
+        return JsonResponse({"available": False, "reason": f"'{slug}' is reserved"})
+
+    qs = Tenant.objects.filter(slug=slug)
+    if tenant:
+        qs = qs.exclude(id=tenant.id)
+    if qs.exists():
+        return JsonResponse({"available": False, "reason": "Already taken — try another"})
+
+    return JsonResponse({"available": True, "slug": slug})

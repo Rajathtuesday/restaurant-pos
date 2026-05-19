@@ -20,6 +20,7 @@ from .views import (
     test_print_station,
     sample_menu,
     checklist_status,
+    check_slug_available,
 )
 
 urlpatterns = [
@@ -51,4 +52,5 @@ urlpatterns = [
     # Onboarding helpers
     path("sample-menu/", sample_menu, name="setup_sample_menu"),
     path("checklist/", checklist_status, name="setup_checklist"),
+    path("check-slug/", check_slug_available, name="check_slug"),
 ]

@@ -214,6 +214,111 @@
             </div>
 
             <div class="field">
+                <label>Your POS Web Address</label>
+                <div class="subdomain-preview" id="subdomainPreview">
+                    <span class="subdomain-val" id="subdomainDisplay">{{ tenant.slug }}</span><span class="subdomain-suffix">.rasova.net</span>
+                    <button type="button" class="subdomain-edit-btn" onclick="toggleSlugEdit()">
+                        <i class="bi bi-pencil"></i> Change
+                    </button>
+                </div>
+                <div class="subdomain-edit" id="subdomainEdit" style="display:none;">
+                    <div class="subdomain-input-row">
+                        <input type="text" id="slugInput" name="custom_slug"
+                               value="{{ tenant.slug }}" maxlength="30"
+                               placeholder="{{ tenant.slug }}"
+                               oninput="checkSlug(this.value)"
+                               pattern="[a-z0-9-]+"
+                               autocomplete="off">
+                        <span class="subdomain-suffix">.rasova.net</span>
+                    </div>
+                    <div class="slug-status" id="slugStatus"></div>
+                </div>
+                <style>
+                .subdomain-preview {
+                    display: flex; align-items: center; gap: 0.5rem;
+                    background: var(--panel-bg);
+                    border: 1px solid var(--border-color);
+                    padding: 0.65rem 0.9rem;
+                    margin-top: 0.4rem;
+                    font-family: 'Space Mono', monospace;
+                    font-size: 0.82rem;
+                }
+                .subdomain-val { color: var(--accent-gold); font-weight: 700; }
+                .subdomain-suffix { color: var(--text-muted); }
+                .subdomain-edit-btn {
+                    margin-left: auto; background: transparent;
+                    border: 1px solid var(--border-color);
+                    color: var(--text-muted); font-size: 0.62rem;
+                    text-transform: uppercase; letter-spacing: 1px;
+                    padding: 2px 8px; cursor: pointer;
+                    transition: border-color 0.15s, color 0.15s;
+                    font-family: 'Outfit', sans-serif;
+                }
+                .subdomain-edit-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+                .subdomain-edit { margin-top: 0.5rem; }
+                .subdomain-input-row {
+                    display: flex; align-items: center;
+                    border: 1px solid var(--accent-gold);
+                    background: rgba(197,160,89,0.04);
+                }
+                .subdomain-input-row input {
+                    flex: 1; background: transparent; border: none;
+                    color: var(--text-main); padding: 0.6rem 0.75rem;
+                    font-size: 0.85rem; font-family: 'Space Mono', monospace;
+                    outline: none;
+                }
+                .subdomain-input-row .subdomain-suffix {
+                    padding-right: 0.75rem; font-family: 'Space Mono', monospace;
+                    font-size: 0.8rem;
+                }
+                .slug-status {
+                    margin-top: 0.35rem; font-size: 0.7rem;
+                    min-height: 1.2em; transition: color 0.2s;
+                }
+                .slug-ok  { color: #10b981; }
+                .slug-err { color: #ef4444; }
+                .slug-chk { color: var(--text-muted); }
+                </style>
+                <script>
+                let _slugTimer;
+                function toggleSlugEdit() {
+                    const edit = document.getElementById('subdomainEdit');
+                    const preview = document.getElementById('subdomainPreview');
+                    const isOpen = edit.style.display !== 'none';
+                    edit.style.display = isOpen ? 'none' : 'block';
+                    if (!isOpen) document.getElementById('slugInput').focus();
+                }
+                function checkSlug(val) {
+                    const slug = val.toLowerCase().replace(/[^a-z0-9-]/g,'');
+                    document.getElementById('slugInput').value = slug;
+                    document.getElementById('subdomainDisplay').textContent = slug || '{{ tenant.slug }}';
+                    const status = document.getElementById('slugStatus');
+                    clearTimeout(_slugTimer);
+                    if (!slug || slug.length < 3) {
+                        status.textContent = slug ? 'Too short — minimum 3 characters' : '';
+                        status.className = 'slug-status slug-err';
+                        return;
+                    }
+                    status.textContent = 'Checking…';
+                    status.className = 'slug-status slug-chk';
+                    _slugTimer = setTimeout(() => {
+                        fetch(`/setup/check-slug/?slug=${encodeURIComponent(slug)}`)
+                            .then(r => r.json())
+                            .then(d => {
+                                if (d.available) {
+                                    status.textContent = `✓ ${d.slug}.rasova.net is available`;
+                                    status.className = 'slug-status slug-ok';
+                                } else {
+                                    status.textContent = `✗ ${d.reason}`;
+                                    status.className = 'slug-status slug-err';
+                                }
+                            }).catch(() => { status.textContent = ''; });
+                    }, 450);
+                }
+                </script>
+            </div>
+
+            <div class="field">
                 <label>Restaurant Logo (optional)</label>
                 {% if tenant.logo %}
                 <img src="{{ tenant.logo.url }}" class="logo-preview show" id="logoPreview">

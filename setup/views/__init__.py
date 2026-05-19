@@ -26,6 +26,7 @@ from .onboarding_views import (
     onboarding_wizard,
     sample_menu,
     checklist_status,
+    check_slug_available,
 )
 
 from .aggregator_views import (
@@ -55,6 +56,7 @@ __all__ = [
     "onboarding_wizard",
     "sample_menu",
     "checklist_status",
+    "check_slug_available",
     # aggregators
     "aggregator_setup",
     "toggle_aggregator",

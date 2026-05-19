@@ -56,6 +56,10 @@ else:
         raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production via environment variable.")
     ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
+# Cloudflare / reverse-proxy: trust forwarded headers for HTTPS detection
+USE_X_FORWARDED_HOST    = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Application definition
 
 INSTALLED_APPS = [
