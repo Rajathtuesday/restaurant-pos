@@ -2,6 +2,7 @@ from django.urls import path
 from .views import (
     set_default_station,
     delete_station,
+    set_print_mode,
     setup_wizard,
     onboarding_wizard,
     setup_tables,
@@ -50,6 +51,7 @@ urlpatterns = [
     path("kitchen-stations/<int:station_id>/printer/", update_printer_config, name="update_printer_config"),
     path("kitchen-stations/<int:station_id>/test-print/", test_print_station, name="test_print_station"),
     path("kitchen-stations/<int:station_id>/delete/", delete_station, name="delete_station"),
+    path("kitchen-stations/set-mode/<str:mode>/", set_print_mode, name="set_print_mode"),
 
     # Onboarding helpers
     path("sample-menu/", sample_menu, name="setup_sample_menu"),

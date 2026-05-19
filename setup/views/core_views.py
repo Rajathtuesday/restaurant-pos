@@ -422,6 +422,24 @@ def set_default_station(request, station_id):
 
 @login_required
 @require_POST
+def set_print_mode(request, mode):
+    """
+    'cashier' mode: clear printer IP from all non-default stations.
+                    The default station keeps its IP (that's the cashier printer).
+                    Result: print_bill_task detects no station printers → cashier strip.
+    """
+    if mode == "cashier":
+        KitchenStation.objects.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            is_default=False,
+        ).update(printer_ip=None)
+        return JsonResponse({"success": True, "message": "One Printer mode activated."})
+    return JsonResponse({"error": "Unknown mode."}, status=400)
+
+
+@login_required
+@require_POST
 def delete_station(request, station_id):
     """
     Delete a kitchen station.

@@ -51,6 +51,25 @@
   .btn-test:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .hint { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.5; }
+  .print-mode-box { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.1rem; margin-bottom: 0.25rem; }
+  .print-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .print-mode-opt {
+    background: transparent; border: 1.5px solid var(--border-color);
+    padding: 0.8rem 0.75rem; cursor: pointer; text-align: left;
+    display: flex; flex-direction: column; gap: 2px;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: inherit;
+  }
+  .print-mode-opt:hover { border-color: var(--accent-gold); }
+  .print-mode-opt.active {
+    border-color: var(--accent-gold);
+    background: rgba(197,160,89,0.07);
+  }
+  .pm-icon { font-size: 1.2rem; margin-bottom: 0.2rem; }
+  .pm-title { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
+  .pm-desc { font-size: 0.65rem; color: var(--text-muted); line-height: 1.4; }
+  @media(max-width:500px) { .print-mode-grid { grid-template-columns: 1fr; } }
+
   .btn-delete-station {
     background: transparent; border: 1px solid var(--border-color);
     color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase;
@@ -116,7 +135,32 @@
 
   <!-- RIGHT: EXISTING STATIONS -->
   <div>
-    <p class="section-label">Active Stations</p>
+
+    <!-- ── Print Mode Selector ──────────────────────────── -->
+    <div class="print-mode-box">
+      <p class="section-label" style="margin-bottom:0.75rem;">How Are Printers Set Up?</p>
+      <div class="print-mode-grid">
+
+        <button class="print-mode-opt {% if not any_station_has_printer %}active{% endif %}"
+                id="modeCashier" onclick="setPrintMode('cashier')">
+          <span class="pm-icon">🖨</span>
+          <span class="pm-title">One Printer at Counter</span>
+          <span class="pm-desc">Bill + all KOTs print on one strip. Customer carries it to each station.</span>
+        </button>
+
+        <button class="print-mode-opt {% if any_station_has_printer %}active{% endif %}"
+                id="modeStation" onclick="setPrintMode('station')">
+          <span class="pm-icon">🖨🖨</span>
+          <span class="pm-title">Printer per Station</span>
+          <span class="pm-desc">Each kitchen station has its own printer. KOTs print directly at the station.</span>
+        </button>
+
+      </div>
+      <div id="printModeHint" style="margin-top:0.75rem;font-size:0.72rem;color:var(--text-muted);line-height:1.6;"></div>
+    </div>
+    <!-- ─────────────────────────────────────────────────── -->
+
+    <p class="section-label" style="margin-top:1.5rem;">Active Stations</p>
 
     {% for station in stations %}
     <div class="station-card {% if station.is_default %}is-default{% endif %}" id="card-{{ station.id }}">
@@ -327,6 +371,45 @@
 
 {% block extra_js %}
 <script>
+async function setPrintMode(mode) {
+  const hint = document.getElementById('printModeHint');
+
+  if (mode === 'cashier') {
+    if (!confirm(
+      'Switch to One Printer mode?\n\n' +
+      'This will clear the printer IP from all stations except the default (cashier) station.\n\n' +
+      'The default station keeps its IP — that is where the full bill+KOT strip will print.'
+    )) return;
+
+    try {
+      await apiClient.post('/setup/kitchen-stations/set-mode/cashier/', {});
+      hint.textContent = '✓ One Printer mode active — bill + all KOTs print as a connected strip at the cashier printer.';
+      hint.style.color = '#10b981';
+      document.getElementById('modeCashier').classList.add('active');
+      document.getElementById('modeStation').classList.remove('active');
+      // Reload page to refresh strip preview + hide IPs on other stations
+      setTimeout(() => window.location.reload(), 800);
+    } catch(e) {}
+
+  } else {
+    hint.textContent = 'Enter a printer IP for each station below. Each station will print its own KOT when an order is sent to the kitchen.';
+    hint.style.color = 'var(--text-muted)';
+    document.getElementById('modeStation').classList.add('active');
+    document.getElementById('modeCashier').classList.remove('active');
+  }
+}
+
+// Show initial hint based on current mode
+document.addEventListener('DOMContentLoaded', () => {
+  const hint = document.getElementById('printModeHint');
+  {% if any_station_has_printer %}
+  hint.textContent = 'Each station has its own printer. KOTs print at the station when the order is sent to the kitchen.';
+  {% else %}
+  hint.textContent = '✓ One Printer mode — bill + all KOTs print as a connected strip at the cashier printer when payment is made.';
+  hint.style.color = '#10b981';
+  {% endif %}
+});
+
 function togglePanel(id) {
   const panel   = document.getElementById(`panel-${id}`);
   const chevron = document.getElementById(`chevron-${id}`);

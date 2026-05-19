@@ -12,6 +12,7 @@ from .core_views import (
     setup_staff,
     set_default_station,
     delete_station,
+    set_print_mode,
     rename_table,
     outlet_settings,
 )
