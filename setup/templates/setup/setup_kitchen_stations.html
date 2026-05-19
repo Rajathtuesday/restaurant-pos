@@ -145,7 +145,7 @@
                 id="modeCashier" onclick="setPrintMode('cashier')">
           <span class="pm-icon">🖨</span>
           <span class="pm-title">One Printer at Counter</span>
-          <span class="pm-desc">Bill + all KOTs print on one strip. Customer carries it to each station.</span>
+          <span class="pm-desc">Bill + all KOTs on one strip. Enter printer IP on the <strong>default station only</strong>. Other stations need no IP.</span>
         </button>
 
         <button class="print-mode-opt {% if any_station_has_printer %}active{% endif %}"
@@ -170,7 +170,12 @@
         <div class="station-name">
           <i class="bi bi-fire" style="color:{% if station.is_default %}var(--accent-gold){% else %}var(--text-muted){% endif %}"></i>
           {{ station.name }}
-          {% if station.is_default %}<span class="badge-default">Default</span>{% endif %}
+          {% if station.is_default %}
+            <span class="badge-default">Default</span>
+            {% if not any_station_has_printer %}
+              <span style="font-size:0.58rem;background:rgba(16,185,129,.12);color:#10b981;padding:2px 7px;letter-spacing:1px;text-transform:uppercase;">Cashier Printer</span>
+            {% endif %}
+          {% endif %}
         </div>
         <div style="display:flex;align-items:center;gap:0.6rem;">
           {% if station.printer_ip %}
@@ -190,6 +195,14 @@
 
       <!-- Printer config panel -->
       <div class="printer-panel" id="panel-{{ station.id }}">
+
+        {% if station.is_default and not any_station_has_printer %}
+        <div style="background:rgba(16,185,129,0.07);border-left:3px solid #10b981;padding:0.7rem 0.9rem;margin-bottom:1rem;font-size:0.72rem;line-height:1.6;">
+          <strong style="color:#10b981;">This is your cashier printer.</strong>
+          Enter its IP address here. Bill + all KOTs will print here as one connected strip when payment is made.
+          Leave all other stations with no IP.
+        </div>
+        {% endif %}
 
         <p class="hint">
           Paper width sets how many characters fit per line (58mm→32, 80mm→48).
@@ -405,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
   {% if any_station_has_printer %}
   hint.textContent = 'Each station has its own printer. KOTs print at the station when the order is sent to the kitchen.';
   {% else %}
-  hint.textContent = '✓ One Printer mode — bill + all KOTs print as a connected strip at the cashier printer when payment is made.';
+  hint.innerHTML = '✓ One Printer mode — enter the printer IP on the <strong>{% if default_station %}{{ default_station.name }}{% else %}default{% endif %}</strong> station only. Other stations need no IP. Bill + KOTs print as one strip at payment.';
   hint.style.color = '#10b981';
   {% endif %}
 });
