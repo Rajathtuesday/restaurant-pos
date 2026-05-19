@@ -114,8 +114,12 @@ class Tenant(models.Model):
     # --------------------------------------------
     def save(self, *args, **kwargs):
 
+        # Slugs are subdomain names — always force lowercase
+        if self.slug:
+            self.slug = self.slug.lower().strip()
+
         if not self.slug:
-            base_slug = slugify(self.name)
+            base_slug = slugify(self.name)   # slugify already lowercases
             slug = base_slug
             counter = 1
 
