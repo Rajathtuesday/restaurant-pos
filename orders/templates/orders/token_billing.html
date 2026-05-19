@@ -503,6 +503,21 @@
             </div>
             <script>window.addEventListener('DOMContentLoaded', () => { currentOrderId = {{ order.id }}; });</script>
             <div id="runningItemsDesktop" class="mb-3"></div>
+
+            {% if order.status == 'billing' %}
+            <a href="/bill/{{ order.id }}/"
+               class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
+               style="background:#10b981;min-height:52px;">
+                <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
+            </a>
+            {% elif order.status == 'paid' or order.status == 'closed' %}
+            <button class="btn-luxury w-100 mb-2"
+                    onclick="window.open('/thermal-receipt/{{ order.id }}/', '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no')"
+                    style="min-height:52px;">
+                <i class="bi bi-printer me-2"></i>Print Receipt
+            </button>
+            {% endif %}
+
             <div id="cartItemsContainerDesktop" style="min-height:160px;"></div>
         </div>
 
@@ -518,9 +533,15 @@
                         <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
                         <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
                     </div>
-                    <div>
+                    <div style="text-align:right;">
                         <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
+                        {% if t.order.status == 'billing' %}
+                        <div class="aoi-badge" style="background:#10b981;color:#fff;">Pay</div>
+                        {% elif t.order.status == 'paid' or t.order.status == 'closed' %}
+                        <div class="aoi-badge" style="background:#6366f1;color:#fff;">Print</div>
+                        {% else %}
                         <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
+                        {% endif %}
                     </div>
                 </a>
                 {% endfor %}
@@ -613,6 +634,21 @@
                 </div>
             </div>
             <div id="runningItemsMobile" class="mb-3"></div>
+
+            {% if order.status == 'billing' %}
+            <a href="/bill/{{ order.id }}/"
+               class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
+               style="background:#10b981;min-height:52px;">
+                <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
+            </a>
+            {% elif order.status == 'paid' or order.status == 'closed' %}
+            <button class="btn-luxury w-100 mb-2"
+                    onclick="window.open('/thermal-receipt/{{ order.id }}/', '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no')"
+                    style="min-height:52px;">
+                <i class="bi bi-printer me-2"></i>Print Receipt
+            </button>
+            {% endif %}
+
             <div id="cartItemsContainerMobile"></div>
         </div>
 
@@ -852,10 +888,17 @@
         fetch("{% url 'running-order-items' %}?order=" + currentOrderId)
             .then(r => r.json())
             .then(d => {
-                currentOrderId = d.order_id || null;
+                const status = d.order_status || '';
                 let html = '';
+
                 if (!d.items || !d.items.length) {
-                    html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">No active items</div>`;
+                    if (status === 'paid' || status === 'closed') {
+                        html = `<div class="text-center mt-4" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;color:#10b981;">
+                            <i class="bi bi-check-circle-fill d-block mb-2" style="font-size:1.5rem;"></i>Paid
+                        </div>`;
+                    } else {
+                        html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">No active items</div>`;
+                    }
                 } else {
                     html = d.items.map(i => {
                         const sc = i.status === 'ready' ? 'status-ready' : (i.status === 'preparing' ? 'border-warning text-warning' : '');
@@ -867,7 +910,8 @@
                             ${i.modifiers && i.modifiers.length ? `<div style="font-size:0.7rem;color:var(--accent-gold);font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
                         </div>`;
                     }).join('');
-                    if (d.order_id) {
+                    // Cancel only makes sense for open orders, not billing/paid
+                    if (d.order_id && status === 'open') {
                         html += `<div class="mt-3"><button class="btn-luxury w-100" style="border-color:#ef4444;color:#ef4444;" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Order</button></div>`;
                     }
                 }

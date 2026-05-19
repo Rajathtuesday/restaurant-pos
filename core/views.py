@@ -12,7 +12,8 @@ logger = logging.getLogger("pos.core")
 def landing(request):
     if request.user.is_authenticated:
         return redirect("/dashboard/")
-    return redirect("/login/")
+    from django.shortcuts import render
+    return render(request, "core/landing.html")
 
 
 def serve_sw(request):

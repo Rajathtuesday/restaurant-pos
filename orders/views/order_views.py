@@ -47,10 +47,7 @@ def running_order_items(request):
                 order_id = int(order_id)
                 order = (
                     Order.objects
-                    .filter(
-                        id=order_id, tenant=tenant, outlet=outlet,
-                        status__in=["open", "billing"]
-                    )
+                    .filter(id=order_id, tenant=tenant, outlet=outlet)
                     .prefetch_related("items__menu_item", "items__modifiers")
                     .first()
                 )
@@ -87,10 +84,10 @@ def running_order_items(request):
                 pass
 
         if not order:
-            return JsonResponse({"items": [], "order_id": None})
+            return JsonResponse({"items": [], "order_id": None, "order_status": None})
 
         items = []
-        for i in order.items.exclude(status="served").order_by("id"):
+        for i in order.items.exclude(status="voided").order_by("id"):
             item_name = i.menu_item.name if i.menu_item else "Unknown Item"
             items.append({
                 "id": i.id,
@@ -100,7 +97,12 @@ def running_order_items(request):
                 "modifiers": [m.name for m in i.modifiers.all()]
             })
 
-        return JsonResponse({"items": items, "order_id": order.id})
+        return JsonResponse({
+            "items": items,
+            "order_id": order.id,
+            "order_status": order.status,
+            "grand_total": float(order.grand_total or 0),
+        })
 
     except Exception as e:
         logger.error(f"running_order_items error: {str(e)}")
