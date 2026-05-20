@@ -6,8 +6,8 @@
   <!-- Inner dark diamond -->
   <rect x="166" y="166" width="180" height="180" transform="rotate(45 256 256)" fill="#0a0a0a"/>
   <!-- Centre gold fill -->
-  <circle cx="256" cy="256" r="52" fill="#c5a059"/>
+  <!-- <circle cx="256" cy="256" r="52" fill="#c5a059"/>
   <!-- R letter for Rasova -->
   <text x="256" y="282" font-family="Georgia, serif" font-size="72" font-weight="700"
-        fill="#0a0a0a" text-anchor="middle">R</text>
+        fill="#0a0a0a" text-anchor="middle">R</text> -->
 </svg>
