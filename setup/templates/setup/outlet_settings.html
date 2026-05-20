@@ -222,6 +222,26 @@
                         </div>
                     </div>
 
+                    <!-- ── Parcel Charge ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label" for="parcel_charge_amount">
+                            Parcel / Takeaway Charge
+                            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:6px;">optional</span>
+                        </label>
+                        <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.4rem;">
+                            <span style="font-size:1rem;font-weight:600;color:var(--text-muted);">₹</span>
+                            <input type="number" id="parcel_charge_amount" name="parcel_charge_amount"
+                                class="field-input" style="max-width:120px;"
+                                value="{{ outlet.parcel_charge_amount|default:0 }}"
+                                min="0" max="999" step="1" placeholder="0">
+                        </div>
+                        <div class="field-hint">
+                            Extra charge for parcel/takeaway orders. Set to 0 to disable.
+                            Cashier taps a button on the billing screen to add it per order.
+                            Appears as a separate line on the bill.
+                        </div>
+                    </div>
+
                     <!-- ── Composition Scheme ── -->
                     <div class="field-row" style="margin-top:1.25rem;">
                         <label class="field-label">GST Registration Type</label>

@@ -80,9 +80,12 @@ def billing_view(request):
     auto_kot_mode = not has_kds and not has_kt_printer
 
     return render(request, "orders/billing.html", {
-        "categories": categories, "tables": tables,
-        "order": order, "selected_table": table_id,
+        "categories":    categories,
+        "tables":        tables,
+        "order":         order,
+        "selected_table": table_id,
         "auto_kot_mode": auto_kot_mode,
+        "outlet":        request.user.outlet,
     })
 
 

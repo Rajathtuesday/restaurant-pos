@@ -133,6 +133,11 @@ class Order(models.Model):
     discount_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
+    parcel_surcharge = models.DecimalField(
+        max_digits=6, decimal_places=2, default=Decimal("0.00"),
+        help_text="Extra charge for parcel/takeaway orders. Added to grand_total."
+    )
+
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     round_off = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
@@ -381,13 +386,17 @@ class Order(models.Model):
         final_total = self._quantize(taxable_amount + gst_total)
         rounded_total = final_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
-        self.subtotal      = subtotal
-        self.gst_total     = gst_total
+        parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
+        rounded_total = (final_total + parcel).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
+        self.subtotal       = subtotal
+        self.gst_total      = gst_total
         self.discount_total = discount_total
-        self.grand_total   = rounded_total
-        self.round_off     = rounded_total - final_total
+        self.grand_total    = rounded_total
+        self.round_off      = rounded_total - final_total - parcel
         self.save(update_fields=["subtotal", "gst_total", "discount_total",
-                                 "grand_total", "round_off", "discount_type", "discount_value"])
+                                 "grand_total", "round_off", "discount_type",
+                                 "discount_value", "parcel_surcharge"])
 
     # ------------------------------------------------------------------
     # INCLUSIVE MODE  (GST back-calculated from the price)
@@ -457,13 +466,17 @@ class Order(models.Model):
         subtotal   = self._quantize(grand_after_discount - gst_total)   # base excl. GST
         rounded_total = grand_after_discount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
+        parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
+        rounded_total = (grand_after_discount + parcel).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+
         self.subtotal       = subtotal
         self.gst_total      = gst_total
         self.discount_total = discount_total
         self.grand_total    = rounded_total
-        self.round_off      = rounded_total - grand_after_discount
+        self.round_off      = rounded_total - grand_after_discount - parcel
         self.save(update_fields=["subtotal", "gst_total", "discount_total",
-                                 "grand_total", "round_off", "discount_type", "discount_value"])
+                                 "grand_total", "round_off", "discount_type",
+                                 "discount_value", "parcel_surcharge"])
 
 
 # =====================================================

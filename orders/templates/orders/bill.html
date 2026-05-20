@@ -240,6 +240,13 @@
         <div class="total-row" style="color:#ef4444"><span>Discount</span><span>−₹{{ order.discount_total }}</span></div>
         {% endif %}
 
+        {% if order.parcel_surcharge %}
+        <div class="total-row" style="color:var(--text-muted);font-size:0.85rem;">
+            <span><i class="bi bi-bag me-1"></i>Parcel Charge</span>
+            <span>₹{{ order.parcel_surcharge|floatformat:0 }}</span>
+        </div>
+        {% endif %}
+
         {% if order.gst_breakdown %}
         {# Screen: collapsible detail block #}
         <div class="gst-breakdown no-print">

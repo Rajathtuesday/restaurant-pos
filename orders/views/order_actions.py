@@ -120,3 +120,43 @@ def cancel_item(request, item_id):
     except Exception as e:
         logger.error(f"Error cancelling item #{item_id}: {str(e)}")
         return JsonResponse({"error": "Server error", "detail": str(e)}, status=500)
+
+
+@login_required
+@tenant_required
+@require_POST
+def toggle_parcel(request, order_id):
+    """
+    Toggle parcel surcharge on/off for an order.
+    Uses the outlet's configured parcel_charge_amount.
+    Returns updated grand_total and parcel_surcharge so the UI can update instantly.
+    """
+    from decimal import Decimal
+    try:
+        order = Order.objects.get(
+            id=order_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+            status__in=["open", "billing"],
+        )
+        charge = getattr(order.outlet, "parcel_charge_amount", Decimal("5"))
+        # Toggle: if already set → remove; if zero → add
+        if order.parcel_surcharge > 0:
+            order.parcel_surcharge = Decimal("0")
+        else:
+            order.parcel_surcharge = Decimal(str(charge))
+
+        order.save(update_fields=["parcel_surcharge"])
+        order.recalculate_totals()
+
+        return JsonResponse({
+            "success": True,
+            "parcel_on": order.parcel_surcharge > 0,
+            "parcel_amount": float(order.parcel_surcharge),
+            "grand_total": float(order.grand_total),
+        })
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found or already closed"}, status=404)
+    except Exception as e:
+        logger.error("toggle_parcel error for order %s: %s", order_id, e)
+        return JsonResponse({"error": str(e)}, status=500)

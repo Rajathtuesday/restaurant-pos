@@ -226,6 +226,16 @@ class Outlet(models.Model):
         )
     )
 
+    parcel_charge_amount = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=0,
+        help_text=(
+            "Extra charge added for parcel/takeaway orders. "
+            "Set to 0 to disable. Shown as a separate line on the bill."
+        )
+    )
+
     is_composition_scheme = models.BooleanField(
         default=False,
         help_text=(

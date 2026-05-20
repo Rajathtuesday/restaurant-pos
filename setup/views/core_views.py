@@ -575,6 +575,11 @@ def outlet_settings(request):
         outlet.gst_inclusive = gst_inclusive
         outlet.is_composition_scheme  = request.POST.get("is_composition_scheme") == "true"
         outlet.split_bill_by_category = request.POST.get("split_bill_by_category") == "true"
+        try:
+            from decimal import Decimal
+            outlet.parcel_charge_amount = Decimal(request.POST.get("parcel_charge_amount", "0") or "0")
+        except Exception:
+            pass
 
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):

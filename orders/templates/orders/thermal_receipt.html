@@ -164,6 +164,7 @@ body {
 
 <div class="row"><span class="label small">Subtotal</span><span class="value small">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
 {% if not is_comp %}<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
+{% if order.parcel_surcharge %}<div class="row"><span class="label small">Parcel Charge</span><span class="value small">Rs.{{ order.parcel_surcharge|floatformat:0 }}</span></div>{% endif %}
 {% if order.discount_total %}<div class="row"><span class="label small">Discount</span><span class="value small">-Rs.{{ order.discount_total|floatformat:0 }}</span></div>{% endif %}
 
 <div class="sep-solid"></div>

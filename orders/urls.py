@@ -3,7 +3,7 @@ from django.urls import path
 
 from orders.services.table_transfer_service import transfer_table
 
-from .views.order_actions import cancel_order, cancel_item
+from .views.order_actions import cancel_order, cancel_item, toggle_parcel
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.refund_views import approve_refund_view, reject_refund_view
 from .views.promo_views import list_active_promos, create_promo, toggle_promo, delete_promo
@@ -105,6 +105,7 @@ urlpatterns = [
 
     path("cancel-order/<int:order_id>/", cancel_order, name="cancel-order"),
     path("cancel-item/<int:item_id>/", cancel_item, name="cancel-item"),
+    path("toggle-parcel/<int:order_id>/", toggle_parcel, name="toggle-parcel"),
 
     path("running-order-items/", running_order_items ,name="running-order-items"),
     path("order/<int:order_id>/", running_order_view, name="running-order"),

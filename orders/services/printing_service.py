@@ -235,6 +235,8 @@ class PrintingService:
         p.text(self._two_col("GST" + (" (incl.)" if gst_inclusive else ""), self._currency(order.gst_total)) + "\n")
         if order.discount_total > 0:
             p.text(self._two_col("Discount", f"-{self._currency(order.discount_total)}") + "\n")
+        if getattr(order, "parcel_surcharge", 0) and order.parcel_surcharge > 0:
+            p.text(self._two_col("Parcel Charge", self._currency(order.parcel_surcharge)) + "\n")
 
         p.text(self._sep() + "\n")
         p.set(bold=True, double_height=True)

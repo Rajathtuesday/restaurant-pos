@@ -276,6 +276,19 @@
       </div>
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+      {% if outlet.parcel_charge_amount %}
+      <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
+        <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+      </div>
+      <button class="parcel-btn" onclick="toggleParcel()"
+        style="width:100%;padding:0.6rem;margin:0.4rem 0;border:1.5px dashed var(--border-color);
+               background:transparent;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;
+               letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+               justify-content:center;gap:0.5rem;font-family:inherit;">
+        <i class="bi bi-bag"></i>
+        <span class="parcel-btn-text">Add Parcel +₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+      </button>
+      {% endif %}
       <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
       <div class="d-flex flex-column gap-2 mt-3">
         {% if auto_kot_mode %}
@@ -340,6 +353,19 @@
       </div>
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+      {% if outlet.parcel_charge_amount %}
+      <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
+        <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+      </div>
+      <button class="parcel-btn" onclick="toggleParcel()"
+        style="width:100%;padding:0.6rem;margin:0.4rem 0;border:1.5px dashed var(--border-color);
+               background:transparent;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;
+               letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+               justify-content:center;gap:0.5rem;font-family:inherit;">
+        <i class="bi bi-bag"></i>
+        <span class="parcel-btn-text">Add Parcel +₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+      </button>
+      {% endif %}
       <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
       <div class="d-flex flex-column gap-2 mt-3">
         {% if auto_kot_mode %}
@@ -614,6 +640,50 @@
   function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
   function clearCart() { cart = []; renderCart(); }
 
+  /* ── Parcel charge toggle ───────────────────────────────────── */
+  let _parcelOn = false;
+  const _parcelAmount = {{ outlet.parcel_charge_amount|default:0 }};
+
+  async function toggleParcel() {
+    if (!qsrPendingOrderId) {
+      // No order yet — just toggle the visual indicator on cart
+      _parcelOn = !_parcelOn;
+      _syncParcelUI();
+      return;
+    }
+    // Order exists — call server to toggle
+    try {
+      const d = await apiClient.post(
+        "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + qsrPendingOrderId + '/'), {}
+      );
+      _parcelOn = d.parcel_on;
+      _syncParcelUI();
+      document.querySelectorAll(".view-total").forEach(e =>
+        e.innerText = "₹" + Math.round(d.grand_total)
+      );
+    } catch(e) { ui.toast("Could not update parcel charge", "error"); }
+  }
+
+  function _syncParcelUI() {
+    // Show/hide parcel row
+    document.querySelectorAll(".parcel-row").forEach(el =>
+      el.style.display = _parcelOn ? "flex" : "none"
+    );
+    // Update button appearance
+    document.querySelectorAll(".parcel-btn").forEach(btn => {
+      btn.style.borderColor = _parcelOn ? "var(--accent-gold)" : "var(--border-color)";
+      btn.style.color       = _parcelOn ? "var(--accent-gold)" : "var(--text-muted)";
+      btn.style.background  = _parcelOn ? "rgba(197,160,89,0.06)" : "transparent";
+    });
+    document.querySelectorAll(".parcel-btn-text").forEach(el =>
+      el.textContent = _parcelOn
+        ? "Parcel Added ✓ (tap to remove)"
+        : `Add Parcel +₹${_parcelAmount}`
+    );
+    // Update running total in cart
+    renderCart();
+  }
+
   function loadRunningOrder() {
     const tableId = document.getElementById("tableSelectDesktop").value;
     const rd = document.getElementById("runningItemsDesktop");
@@ -791,6 +861,13 @@
       if (!d1.success) { showToast(d1.error || "Order creation failed"); resetSendBtn(); return; }
 
       qsrPendingOrderId = d1.order_id;
+
+      // Apply parcel charge if toggled ON before order creation
+      if (_parcelOn && _parcelAmount > 0) {
+        await fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + qsrPendingOrderId + '/'), {
+          method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
+        });
+      }
 
       // Step 2: generate bill to calculate totals
       const r2 = await fetch("{% url 'generate-bill' 0 %}".replace("0", qsrPendingOrderId), {
