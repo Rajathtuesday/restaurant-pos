@@ -75,6 +75,20 @@ jobs:
           REDIS_URL:     redis://127.0.0.1:6379/0
         run: python manage.py migrate --run-syncdb
 
+      - name: Collect static files
+        env:
+          SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          DEBUG:         "True"
+          ALLOWED_HOSTS: "localhost,127.0.0.1"
+          DB_ENGINE:     django.db.backends.postgresql
+          DB_NAME:       rasova_test
+          DB_USER:       rasova
+          DB_PASSWORD:   testpass
+          DB_HOST:       127.0.0.1
+          DB_PORT:       "5432"
+          REDIS_URL:     redis://127.0.0.1:6379/0
+        run: python manage.py collectstatic --noinput
+
       - name: Run test suite
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
