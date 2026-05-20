@@ -235,9 +235,9 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
-    # Filter out empty strings — if CSRF_TRUSTED_ORIGINS is not set, split(',')
-    # produces [''] which silently disables CSRF origin checking entirely.
-    _raw_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+    # Wildcard covers all tenant subdomains (https://*.rasova.net)
+    # Falls back to env var for custom domains
+    _raw_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.rasova.net,https://rasova.net')
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf_origins.split(',') if o.strip()]
 
     # Tell Django the real scheme when running behind nginx or any reverse proxy.
