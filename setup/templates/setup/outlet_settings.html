@@ -221,6 +221,45 @@
                             Existing closed orders are not affected. Consult your CA if changing after go-live.
                         </div>
                     </div>
+
+                    <!-- ── Composition Scheme ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">GST Registration Type</label>
+                        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="comp-scheme-box">
+                            <input type="checkbox" name="is_composition_scheme" value="true"
+                                {% if outlet.is_composition_scheme %}checked{% endif %}
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
+                                onchange="toggleCompScheme(this)">
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;">Composition Scheme <span style="font-size:0.7rem;color:var(--accent-gold);background:rgba(197,160,89,0.1);padding:1px 6px;border-radius:3px;">COT</span></div>
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
+                                    Bills will show <strong>Bill of Supply</strong> instead of Tax Invoice.<br>
+                                    No CGST/SGST lines on the printed bill.<br>
+                                    Legal note included in CSV exports for your CA.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- ── Counter Billing / Split Bill ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">Billing Mode</label>
+                        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="split-bill-box">
+                            <input type="checkbox" name="split_bill_by_category" value="true"
+                                {% if outlet.split_bill_by_category %}checked{% endif %}
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
+                                onchange="toggleSplitBill(this)">
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;">Counter Billing Mode <span style="font-size:0.7rem;color:#6366f1;background:rgba(99,102,241,0.1);padding:1px 6px;border-radius:3px;">Food Court</span></div>
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
+                                    After payment, prints <strong>one slip per category</strong> (Breakfast, Juice, Tea…).<br>
+                                    Customer carries each slip to the relevant counter.<br>
+                                    Ideal for hotels and food courts with multiple food sections.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -311,6 +350,22 @@
         const btn = document.getElementById("saveBtn");
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
+    });
+
+    function toggleCompScheme(cb) {
+        document.getElementById('comp-scheme-box').style.borderColor =
+            cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
+    }
+    function toggleSplitBill(cb) {
+        document.getElementById('split-bill-box').style.borderColor =
+            cb.checked ? '#6366f1' : 'var(--border-color)';
+    }
+    // Set initial border state
+    document.addEventListener('DOMContentLoaded', () => {
+        const comp = document.querySelector('[name="is_composition_scheme"]');
+        const split = document.querySelector('[name="split_bill_by_category"]');
+        if (comp && comp.checked) toggleCompScheme(comp);
+        if (split && split.checked) toggleSplitBill(split);
     });
 </script>
 {% endblock %}

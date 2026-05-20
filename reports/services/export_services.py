@@ -15,10 +15,19 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
     """Generates a detailed CSV of all orders in the given date range."""
     output = io.StringIO()
     writer = csv.writer(output)
-    
+
+    # Composition Scheme note for CA — only shown when applicable
+    if outlet and getattr(outlet, 'is_composition_scheme', False):
+        writer.writerow([
+            'NOTE: Composition Taxable Person — not eligible to collect tax on supplies.',
+            f'GSTIN: {outlet.gst_no or "N/A"}',
+            f'Period: {start_date} to {end_date}'
+        ])
+        writer.writerow([])  # blank separator row
+
     writer.writerow([
-        'Order ID', 'Order No', 'Date', 'Time', 'Outlet', 'Source', 
-        'Status', 'Customer Name', 'Subtotal', 'Discount', 'GST', 
+        'Order ID', 'Order No', 'Date', 'Time', 'Outlet', 'Source',
+        'Status', 'Customer Name', 'Subtotal', 'Discount', 'GST',
         'Round Off', 'Grand Total', 'Payment Methods'
     ])
     

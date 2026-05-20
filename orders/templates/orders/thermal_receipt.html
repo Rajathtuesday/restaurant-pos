@@ -76,6 +76,7 @@ body {
 <body>
 
 <!-- ── Receipt / Bill ─────────────────────────────────────────── -->
+{% with is_comp=order.outlet.is_composition_scheme %}
 <div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
 {% if order.outlet.address %}<div class="center small">{{ order.outlet.address }}</div>{% endif %}
@@ -83,6 +84,7 @@ body {
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
 {% if order.outlet.fssai_no %}<div class="center small">FSSAI: {{ order.outlet.fssai_no }}</div>{% endif %}
 <div class="center small">SAC: {{ order.outlet.sac_code|default:"996331" }}</div>
+{% if is_comp %}<div class="center bold small" style="margin-top:1mm;">BILL OF SUPPLY</div>{% endif %}
 
 <div class="sep-solid"></div>
 
@@ -109,7 +111,7 @@ body {
 <div class="sep"></div>
 
 <div class="row"><span class="label small">Subtotal</span><span class="value small">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
-<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>
+{% if not is_comp %}<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
 {% if order.discount_total %}<div class="row"><span class="label small">Discount</span><span class="value small">-Rs.{{ order.discount_total|floatformat:0 }}</span></div>{% endif %}
 
 <div class="sep-solid"></div>
@@ -120,6 +122,7 @@ body {
 <div class="sep-solid"></div>
 <div class="center small">Thank you for visiting!</div>
 <div class="center small">Powered by Rasova POS</div>
+{% endwith %}
 
 <!-- ── KOT Sections ──────────────────────────────────────────── -->
 {% for kot in kots %}

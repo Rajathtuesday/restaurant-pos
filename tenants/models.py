@@ -226,6 +226,27 @@ class Outlet(models.Model):
         )
     )
 
+    is_composition_scheme = models.BooleanField(
+        default=False,
+        help_text=(
+            "True → Composition Scheme dealer. "
+            "Bill header shows 'Bill of Supply'. "
+            "No CGST/SGST lines on printed bill. "
+            "Legal note added to CSV exports only."
+        )
+    )
+
+    split_bill_by_category = models.BooleanField(
+        default=False,
+        help_text=(
+            "True → Counter Billing Mode. "
+            "After payment, prints one slip per menu category "
+            "(e.g. Breakfast, Juice, Tea) with partial cuts between them. "
+            "Customer carries each slip to the relevant counter. "
+            "Used in food courts and multi-section hotels."
+        )
+    )
+
     whatsapp_no = models.CharField(
         max_length=15,
         blank=True,

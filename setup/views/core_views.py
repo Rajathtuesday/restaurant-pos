@@ -573,6 +573,8 @@ def outlet_settings(request):
         outlet.fssai_no     = fssai_no
         outlet.sac_code     = sac_code
         outlet.gst_inclusive = gst_inclusive
+        outlet.is_composition_scheme  = request.POST.get("is_composition_scheme") == "true"
+        outlet.split_bill_by_category = request.POST.get("split_bill_by_category") == "true"
 
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):
