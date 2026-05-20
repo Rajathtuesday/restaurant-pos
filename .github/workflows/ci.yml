@@ -129,6 +129,7 @@ jobs:
             pip install -r requirements.txt --quiet
             python manage.py migrate
             python manage.py collectstatic --noinput
+            # Restart gunicorn
             sudo fuser -k 8000/tcp 2>/dev/null || true
             sleep 2
             gunicorn \
@@ -137,5 +138,15 @@ jobs:
               --timeout 120 \
               --daemon \
               core.wsgi:application
+            # Restart Celery worker (print queue, background tasks)
+            pkill -f 'celery worker' 2>/dev/null || true
+            sleep 1
+            celery -A core worker \
+              --queues=default,printing \
+              --concurrency=2 \
+              --loglevel=warning \
+              --detach \
+              --pidfile=/tmp/celery.pid \
+              --logfile=/home/ubuntu/rasova/logs/celery.log
             sleep 2
             echo "Deploy complete — $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health/)"
