@@ -5,7 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="{{ request.user.tenant.primary_color|default:'#c5a059' }}">
-    <title>{% block title %}{{ request.user.tenant.name|default:"POS" }}{% endblock %}</title>
+    <title>{% block title %}{{ request.user.tenant.name|default:"Rasova POS" }}{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    <link rel="apple-touch-icon" href="{% static 'icon-512.svg' %}">
+    <link rel="manifest" href="/manifest.json">
 
     <!-- Google Fonts — Outfit (body) · DM Serif Display (headings) · Space Mono (mono) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
