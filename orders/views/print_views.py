@@ -138,6 +138,57 @@ def print_bill_action(request, order_id):
 
 
 # -------------------------------------------------
+# PRINT SPLIT BILL (Counter Billing Mode)
+# -------------------------------------------------
+
+@login_required
+@require_POST
+@tenant_required
+@role_required("manager", "cashier", "owner")
+def print_split_bill(request, order_id):
+    """
+    Prints summary slip + one slip per menu category.
+    Used when outlet.split_bill_by_category = True.
+    Customer takes each category slip to the relevant counter.
+    """
+    from orders.services.printing_service import PrintingService
+    from setup.services.station_service import get_default_station
+    try:
+        order = Order.objects.prefetch_related(
+            "items__menu_item__category", "payments", "token"
+        ).get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+
+        station = get_default_station(request.user)
+        if not station or not station.printer_ip:
+            return JsonResponse(
+                {"error": "No printer configured. Set printer IP in Kitchen Stations."},
+                status=400,
+            )
+
+        printer = PrintingService(
+            printer_type="network",
+            host=station.printer_ip,
+            port=station.printer_port,
+            chars_per_line=station.chars_per_line,
+            cut_type=station.cut_type,
+            encoding=station.printer_encoding,
+        )
+        success = printer.print_split_by_category(order)
+
+        if success:
+            logger.info("Split bill printed for order #%s", order_id)
+            return JsonResponse({"success": True, "message": "Split bill printed"})
+
+        return JsonResponse({"error": "Printer connection failed."}, status=400)
+
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception as e:
+        logger.exception("Error printing split bill for order %s", order_id)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+# -------------------------------------------------
 # PRINT KOT ACTION
 # -------------------------------------------------
 
@@ -275,18 +326,33 @@ def thermal_receipt_view(request, order_id):
     small_font    = 9  if paper_width == 58 else 10
     token_font    = 20 if paper_width == 58 else 24
 
-    items = order.items.exclude(status="voided").select_related("menu_item")
+    items = order.items.exclude(status="voided").select_related("menu_item__category")
+
+    # Counter Billing Mode — group items by category for split browser print
+    split_mode = getattr(order.outlet, "split_bill_by_category", False)
+    category_groups = []
+    if split_mode:
+        groups: dict = {}
+        for item in items.order_by("menu_item__category__name"):
+            cat = item.menu_item.category
+            if cat.id not in groups:
+                groups[cat.id] = {"category": cat, "items": [], "total": 0}
+            groups[cat.id]["items"].append(item)
+            groups[cat.id]["total"] += item.total_price
+        category_groups = list(groups.values())
 
     return render(request, "orders/thermal_receipt.html", {
-        "order":       order,
-        "items":       items,
-        "kots":        kots,
-        "token":       token,
-        "payment":     payment,
-        "change_due":  change_due,
-        "paper_width": paper_width,
-        "font_size":   font_size,
-        "big_font":    big_font,
-        "small_font":  small_font,
-        "token_font":  token_font,
+        "order":           order,
+        "items":           items,
+        "kots":            kots,
+        "token":           token,
+        "payment":         payment,
+        "change_due":      change_due,
+        "paper_width":     paper_width,
+        "font_size":       font_size,
+        "big_font":        big_font,
+        "small_font":      small_font,
+        "token_font":      token_font,
+        "split_mode":      split_mode,
+        "category_groups": category_groups,
     })

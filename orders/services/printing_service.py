@@ -255,6 +255,133 @@ class PrintingService:
         p.text("\n\n")
 
     # ------------------------------------------------------------------
+    # SPLIT BILL BY CATEGORY  (Counter Billing Mode)
+    #
+    # Summary slip → PARTIAL → Category slip → PARTIAL → ... → FULL CUT
+    # Customer tears each section and takes it to the relevant counter.
+    # ------------------------------------------------------------------
+
+    def print_split_by_category(self, order) -> bool:
+        p = self.get_printer()
+        if not p:
+            return False
+        try:
+            # Group non-voided items by category
+            groups: dict = {}
+            for item in order.items.exclude(status="voided").select_related(
+                "menu_item__category"
+            ).order_by("menu_item__category__name"):
+                cat = item.menu_item.category
+                if cat.id not in groups:
+                    groups[cat.id] = {"category": cat, "items": [], "total": 0}
+                groups[cat.id]["items"].append(item)
+                groups[cat.id]["total"] += item.total_price
+
+            group_list = list(groups.values())
+            if not group_list:
+                return False
+
+            # ── Summary slip ──────────────────────────────────────────
+            self._print_summary_slip(p, order, group_list)
+
+            # ── One slip per category ─────────────────────────────────
+            for i, group in enumerate(group_list):
+                p.cut(mode="PART")
+                self._print_category_slip(p, order, group)
+
+            p.cut(mode="FULL")
+            return True
+
+        except Exception as e:
+            logger.error("Split bill print failed for order %s: %s", order.id, e)
+            return False
+
+    def _print_summary_slip(self, p, order, group_list):
+        W = self.W
+        is_comp = getattr(order.outlet, "is_composition_scheme", False)
+
+        p.set(align="center", bold=True, double_width=True, double_height=True)
+        p.text(f"{str(order.tenant.name)[:W//2]}\n")
+        p.set(bold=False, double_width=False, double_height=False)
+        p.text(f"{order.outlet.name}\n")
+        if order.outlet.gst_no:
+            p.text(f"GSTIN: {order.outlet.gst_no}\n")
+        if is_comp:
+            p.set(bold=True)
+            p.text("BILL OF SUPPLY\n")
+            p.set(bold=False)
+
+        p.text(self._sep() + "\n")
+        p.set(align="left")
+
+        # Token or order number
+        if hasattr(order, "token") and order.token:
+            p.set(bold=True, double_width=True, double_height=True)
+            p.text(f"Token #{order.token.display_number}\n")
+            p.set(bold=False, double_width=False, double_height=False)
+        else:
+            p.text(f"Bill : {order.order_number or order.id}\n")
+        p.text(f"Date : {order.created_at.strftime('%d/%m/%Y %H:%M')}\n")
+        p.text(self._sep() + "\n")
+
+        # Section totals
+        p.set(bold=True)
+        p.text(f"{'Section':<{W-8}} {'Total':>6}\n")
+        p.set(bold=False)
+        p.text(self._sep() + "\n")
+        for group in group_list:
+            name = str(group["category"].name)[:W-8]
+            p.text(f"{name:<{W-8}} {self._currency(group['total']):>6}\n")
+
+        p.text(self._sep() + "\n")
+        p.set(bold=True, double_height=True)
+        p.text(self._two_col("TOTAL", self._currency(order.grand_total)) + "\n")
+        p.set(bold=False, double_height=False)
+
+        payment = order.payments.order_by("-paid_at").first()
+        if payment:
+            p.text(self._two_col("Paid via", payment.method.upper()) + "\n")
+        p.text(self._sep() + "\n")
+        p.set(align="center")
+        p.text("Powered by Rasova\n")
+        p.text("\n")
+
+    def _print_category_slip(self, p, order, group):
+        W = self.W
+        cat_name = str(group["category"].name).upper()
+
+        # Big category name
+        p.set(align="center", bold=True, double_width=True, double_height=True)
+        p.text(f"{cat_name[:W//2]}\n")
+        p.set(bold=False, double_width=False, double_height=False)
+
+        # Token
+        if hasattr(order, "token") and order.token:
+            p.set(align="center", bold=True)
+            p.text(f"Token #{order.token.display_number}\n")
+        p.set(align="left", bold=False)
+        p.text(self._sep() + "\n")
+
+        # Items
+        for item in group["items"]:
+            veg = "[V]" if item.menu_item.is_veg else "[N]"
+            name = str(item.menu_item.name)[:W-10]
+            p.set(bold=True)
+            p.text(f"{item.quantity}x {veg} {name}\n")
+            p.set(bold=False)
+            if item.notes:
+                p.text(f"   * {str(item.notes)[:W-5]}\n")
+
+        p.text(self._sep() + "\n")
+        p.set(bold=True)
+        p.text(self._two_col(f"{cat_name[:W-10]} Total",
+                             self._currency(group["total"])) + "\n")
+        p.set(bold=False)
+        p.set(align="center")
+        p.text("Powered by Rasova\n")
+        p.text("\n")
+
+    # ------------------------------------------------------------------
     # KOT PRINT
     # ------------------------------------------------------------------
 

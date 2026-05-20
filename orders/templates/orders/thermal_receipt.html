@@ -75,7 +75,59 @@ body {
 </head>
 <body>
 
-<!-- ── Receipt / Bill ─────────────────────────────────────────── -->
+{% if split_mode %}
+<!-- ══════════════════════════════════════════════════════════════
+     COUNTER BILLING MODE — one page per section + summary page
+     Chrome --kiosk-printing prints all pages automatically.
+     Each page-break becomes a separate slip from the printer.
+     ══════════════════════════════════════════════════════════════ -->
+
+<!-- Page 1: Summary bill (customer keeps) -->
+<div style="page-break-after: always;">
+{% with is_comp=order.outlet.is_composition_scheme %}
+<div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
+<div class="center small">{{ order.outlet.name }}</div>
+{% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
+{% if is_comp %}<div class="center bold small">BILL OF SUPPLY</div>{% endif %}
+<div class="sep-solid"></div>
+{% if token %}<div class="token-num">TOKEN #{{ token }}</div>
+{% else %}<div class="row small"><span class="label">Bill</span><span class="value">{{ order.order_number }}</span></div>{% endif %}
+<div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
+<div class="sep"></div>
+{% for group in category_groups %}
+<div class="row"><span class="label">{{ group.category.name }}</span><span class="value">Rs.{{ group.total|floatformat:0 }}</span></div>
+{% endfor %}
+<div class="sep-solid"></div>
+<div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ order.grand_total|floatformat:0 }}</span></div>
+{% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
+{% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:0 }}</span></div>{% endif %}
+<div class="sep-solid"></div>
+<div class="center small">Powered by Rasova POS</div>
+{% endwith %}
+</div>
+
+<!-- Pages 2+: One slip per category -->
+{% for group in category_groups %}
+<div style="{% if not forloop.last %}page-break-after: always;{% endif %}">
+<div class="center bold" style="font-size:{{ big_font }}px;">{{ group.category.name|upper }}</div>
+{% if token %}<div class="center small">Token #{{ token }}</div>{% endif %}
+<div class="sep-solid"></div>
+{% for item in group.items %}
+<div class="item-line">
+  <span class="item-qty">{{ item.quantity }}x</span>
+  <span>{% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
+</div>
+{% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
+{% endfor %}
+<div class="sep"></div>
+<div class="row bold"><span class="label">Total</span><span class="value">Rs.{{ group.total|floatformat:0 }}</span></div>
+<div class="sep-solid"></div>
+<div class="center small">Powered by Rasova POS</div>
+</div>
+{% endfor %}
+
+{% else %}
+<!-- ── Normal single receipt ──────────────────────────────────── -->
 {% with is_comp=order.outlet.is_composition_scheme %}
 <div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
@@ -123,8 +175,9 @@ body {
 <div class="center small">Thank you for visiting!</div>
 <div class="center small">Powered by Rasova POS</div>
 {% endwith %}
+{% endif %}{# end split_mode else #}
 
-<!-- ── KOT Sections ──────────────────────────────────────────── -->
+<!-- ── KOT Sections (normal mode only) ──────────────────────── -->
 {% for kot in kots %}
 <div class="kot-section">
   <div class="sep-solid"></div>

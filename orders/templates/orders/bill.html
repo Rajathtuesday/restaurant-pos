@@ -538,12 +538,17 @@
                 ui.toast(data.message || 'Payment recorded', 'success');
                 window.onbeforeunload = null;
 
-                // Try ESC/POS thermal printer first (bill + KOTs as one strip).
-                // If it works, skip the browser popup — printer handled everything.
-                // If it fails (no printer IP, connection error), fall back to browser print.
+                // Choose print endpoint based on outlet billing mode:
+                // split_bill_by_category → print-split-bill (summary + one slip per category)
+                // normal                 → print-bill (single bill + KOTs strip)
+                const splitMode = {% if order.outlet.split_bill_by_category %}true{% else %}false{% endif %};
+                const printUrl  = splitMode
+                    ? '{% url "print-split-bill" order.id %}'
+                    : '{% url "print-bill" order.id %}';
+
                 let escPosWorked = false;
                 try {
-                    const pr = await fetch('{% url "print-bill" order.id %}', {
+                    const pr = await fetch(printUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -557,7 +562,6 @@
                 } catch {}
 
                 setTimeout(() => {
-                    // Only add ?print=1 (browser popup) if ESC/POS did not handle it
                     window.location.href = window.location.pathname + (escPosWorked ? '' : '?print=1');
                 }, 600);
             } else {
