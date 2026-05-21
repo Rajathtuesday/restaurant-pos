@@ -94,14 +94,27 @@ body {
 {% else %}<div class="row small"><span class="label">Bill</span><span class="value">{{ order.order_number }}</span></div>{% endif %}
 <div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
 <div class="sep"></div>
-{% for group in category_groups %}
-<div class="row"><span class="label">{{ group.cat_name }}</span><span class="value">Rs.{{ group.total|floatformat:0 }}</span></div>
+
+<!-- FULL item list — customer keeps this as their complete bill -->
+{% for item in items %}
+<div class="item-line">
+  <span class="item-qty">{{ item.quantity }}x</span>
+  <span> {% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
+  <span class="right" style="float:right;">{{ item.total_price|floatformat:0 }}</span>
+</div>
 {% endfor %}
+
+<div class="sep"></div>
+<div class="row small"><span class="label">Subtotal</span><span class="value">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
+{% if not is_comp and order.gst_total %}<div class="row small"><span class="label">GST</span><span class="value">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
+{% if order.parcel_surcharge %}<div class="row small"><span class="label">Parcel Charge</span><span class="value">Rs.{{ order.parcel_surcharge|floatformat:0 }}</span></div>{% endif %}
+
 <div class="sep-solid"></div>
 <div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ order.grand_total|floatformat:0 }}</span></div>
 {% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
 {% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:0 }}</span></div>{% endif %}
 <div class="sep-solid"></div>
+{% if is_comp %}<div class="center small">Bill of Supply</div>{% endif %}
 <div class="center small">Powered by Rasova POS</div>
 {% endwith %}
 </div>

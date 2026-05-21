@@ -334,14 +334,29 @@ class PrintingService:
         p.text(f"Date : {order.created_at.strftime('%d/%m/%Y %H:%M')}\n")
         p.text(self._sep() + "\n")
 
-        # Section totals — use cat_name (safe even if category is None)
+        # FULL item list — same as a normal bill (customer needs this for records)
+        name_w = W - 10
         p.set(bold=True)
-        p.text(f"{'Section':<{W-8}} {'Total':>6}\n")
+        p.text(f"{'Item':<{name_w}} {'Qty':>3} {'Amt':>5}\n")
         p.set(bold=False)
         p.text(self._sep() + "\n")
-        for group in group_list:
-            name = str(group["cat_name"])[:W-8]
-            p.text(f"{name:<{W-8}} {self._currency(group['total']):>6}\n")
+
+        for item in order.items.exclude(status="voided").select_related("menu_item"):
+            name = str(item.menu_item.name)[:name_w]
+            qty  = str(item.quantity)
+            amt  = f"{float(item.total_price):.0f}"
+            p.text(f"{name:<{name_w}} {qty:>3} {amt:>5}\n")
+
+        p.text(self._sep() + "\n")
+        # Subtotal, GST (or Bill of Supply note), parcel
+        p.text(self._two_col("Subtotal", self._currency(order.subtotal)) + "\n")
+        if not is_comp and order.gst_total:
+            p.text(self._two_col("GST", self._currency(order.gst_total)) + "\n")
+        parcel = getattr(order, "parcel_surcharge", 0)
+        if parcel and parcel > 0:
+            p.text(self._two_col("Parcel Charge", self._currency(parcel)) + "\n")
+        if order.discount_total > 0:
+            p.text(self._two_col("Discount", f"-{self._currency(order.discount_total)}") + "\n")
 
         p.text(self._sep() + "\n")
         p.set(bold=True, double_height=True)
@@ -351,6 +366,12 @@ class PrintingService:
         payment = order.payments.order_by("-paid_at").first()
         if payment:
             p.text(self._two_col("Paid via", payment.method.upper()) + "\n")
+
+        if is_comp:
+            p.text(self._sep() + "\n")
+            p.set(align="center")
+            p.text("Bill of Supply\n")
+
         p.text(self._sep() + "\n")
         p.set(align="center")
         p.text("Powered by Rasova\n")
