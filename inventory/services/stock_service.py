@@ -1,6 +1,6 @@
 from decimal import Decimal
 import logging
-from .models import InventoryItem, Recipe
+from inventory.models import Recipe
 
 logger = logging.getLogger("pos.inventory")
 

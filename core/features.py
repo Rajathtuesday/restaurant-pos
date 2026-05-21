@@ -32,6 +32,9 @@ TENANT_FEATURES = {
         'role_based_access',
         'multi_outlet',
         'shift_management',
+        # Billing modes — fine dining can also be on composition scheme
+        'composition_scheme',
+        'parcel_charge',
     ],
     'franchise': [
         # Ordering
@@ -51,6 +54,10 @@ TENANT_FEATURES = {
         'role_based_access',
         'multi_outlet',
         'shift_management',
+        # Billing modes
+        'counter_billing',   # multi-section: split bill by category
+        'composition_scheme',
+        'parcel_charge',
     ],
     'cafe': [
         # Ordering
@@ -69,6 +76,10 @@ TENANT_FEATURES = {
         'role_based_access',
         'multi_outlet',
         'shift_management',
+        # Billing modes — cafés and food courts commonly need all three
+        'counter_billing',   # multi-section: split bill by category
+        'composition_scheme',
+        'parcel_charge',
     ],
 }
 
@@ -90,6 +101,9 @@ FEATURE_GROUPS = {
         'qr_menu',
         'modifiers',
         'platform_sync',
+        'counter_billing',    # food court / multi-section counter billing
+        'composition_scheme', # GST Composition dealer: Bill of Supply
+        'parcel_charge',      # extra charge for takeaway/parcel orders
     ],
     'Kitchen': [
         'kot_system',

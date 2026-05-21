@@ -222,7 +222,8 @@
                         </div>
                     </div>
 
-                    <!-- ── Parcel Charge ── -->
+                    <!-- ── Parcel Charge (gated: parcel_charge feature) ── -->
+                    {% if 'parcel_charge' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">
                         <label class="field-label" for="parcel_charge_amount">
                             Parcel / Takeaway Charge
@@ -242,7 +243,10 @@
                         </div>
                     </div>
 
-                    <!-- ── Composition Scheme ── -->
+                    {% endif %}{# parcel_charge #}
+
+                    <!-- ── Composition Scheme (gated: composition_scheme feature) ── -->
+                    {% if 'composition_scheme' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">
                         <label class="field-label">GST Registration Type</label>
                         <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="comp-scheme-box">
@@ -261,7 +265,10 @@
                         </label>
                     </div>
 
-                    <!-- ── Counter Billing / Split Bill ── -->
+                    {% endif %}{# composition_scheme #}
+
+                    <!-- ── Counter Billing (gated: counter_billing feature) ── -->
+                    {% if 'counter_billing' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">
                         <label class="field-label">Billing Mode</label>
                         <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="split-bill-box">
@@ -279,6 +286,7 @@
                             </div>
                         </label>
                     </div>
+                    {% endif %}{# counter_billing #}
 
                 </div>
             </div>
