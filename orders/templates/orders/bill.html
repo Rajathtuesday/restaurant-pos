@@ -545,36 +545,64 @@
                 ui.toast(data.message || 'Payment recorded', 'success');
                 window.onbeforeunload = null;
 
-                // Choose print endpoint based on outlet billing mode:
-                // split_bill_by_category → print-split-bill (summary + one slip per category)
-                // normal                 → print-bill (single bill + KOTs strip)
-                const splitMode = {% if order.outlet.split_bill_by_category %}true{% else %}false{% endif %};
-                const printUrl  = splitMode
-                    ? '{% url "print-split-bill" order.id %}'
-                    : '{% url "print-bill" order.id %}';
+                const splitMode  = {% if order.outlet.split_bill_by_category %}true{% else %}false{% endif %};
+                const useQZTray  = {% if order.outlet.use_qz_tray %}true{% else %}false{% endif %};
+                const qzPrinterName = "{{ default_station.printer_name|default:'' }}";
 
-                let escPosWorked = false;
-                try {
-                    const pr = await fetch(printUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': apiClient.getCsrf(),
-                        },
-                    });
-                    const pd = await pr.json();
-                    if (pr.ok && pd.success) {
-                        escPosWorked = true;
-                    }
-                } catch {}
+                let printed = false;
 
+                // 1. Try QZ Tray (USB real cuts) if enabled
+                if (useQZTray && qzPrinterName) {
+                    printed = await printWithQZTray(qzPrinterName, {{ order.id }}, splitMode);
+                }
+
+                // 2. Try ESC/POS over network if QZ Tray didn't work
+                if (!printed) {
+                    const printUrl = splitMode
+                        ? '{% url "print-split-bill" order.id %}'
+                        : '{% url "print-bill" order.id %}';
+                    try {
+                        const pr = await fetch(printUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+                        });
+                        const pd = await pr.json();
+                        if (pr.ok && pd.success) printed = true;
+                    } catch {}
+                }
+
+                // 3. Browser print fallback
                 setTimeout(() => {
-                    window.location.href = window.location.pathname + (escPosWorked ? '' : '?print=1');
+                    window.location.href = window.location.pathname + (printed ? '' : '?print=1');
                 }, 600);
             } else {
                 ui.toast(data.error || 'Payment failed', 'error');
             }
         } catch(e) { ui.toast('Connection error', 'error'); }
+    }
+
+    /* ── QZ Tray USB printing with real ESC/POS cuts ────────────── */
+    async function printWithQZTray(printerName, orderId, splitMode) {
+        try {
+            if (!window.qz) {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js';
+                await new Promise((r, j) => { s.onload = r; s.onerror = j; document.head.appendChild(s); });
+            }
+            if (!qz.websocket.isActive()) await qz.websocket.connect();
+
+            // Fetch ESC/POS receipt data from backend
+            const resp = await fetch(`/orders/qz-data/${orderId}/?split=${splitMode?1:0}`);
+            if (!resp.ok) return false;
+            const { lines } = await resp.json();
+
+            const config = qz.configs.create(printerName);
+            await qz.print(config, [{ type: 'raw', format: 'plain', data: lines.join('') }]);
+            return true;
+        } catch(e) {
+            console.warn('QZ Tray print failed:', e.message);
+            return false;
+        }
     }
 
     async function logBypass(orderId) {

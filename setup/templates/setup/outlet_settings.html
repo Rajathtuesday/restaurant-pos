@@ -222,6 +222,24 @@
                         </div>
                     </div>
 
+                    <!-- ── QZ Tray USB Printing ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">USB Printing Method</label>
+                        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="qz-tray-box">
+                            <input type="checkbox" name="use_qz_tray" {% if outlet.use_qz_tray %}checked{% endif %}
+                                   style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
+                                   onchange="document.getElementById('qz-tray-box').style.borderColor=this.checked?'var(--accent-gold)':'var(--border-color)'">
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;">QZ Tray USB Printing <span style="font-size:0.65rem;color:#10b981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:3px;margin-left:4px;">Real cuts</span></div>
+                                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
+                                    Enable for proper partial cuts between slips and full cut at end.<br>
+                                    Requires <strong>QZ Tray</strong> installed on the billing computer. Falls back to browser print if not running.
+                                </div>
+                            </div>
+                        </label>
+                        <div class="field-hint">After enabling, go to <strong>Kitchen Stations</strong> to set the Windows printer name.</div>
+                    </div>
+
                     <!-- ── Parcel Charge (gated: parcel_charge feature) ── -->
                     {% if 'parcel_charge' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">

@@ -149,8 +149,9 @@ def bill_view(request, order_id):
             "direct_billing_mode": direct_billing_mode,
             "is_qsr":        is_qsr,
             "gst_inclusive": gst_inclusive,
-            "paper_width_mm": paper_width_mm,
-            "auto_print":    auto_print,
+            "paper_width_mm":  paper_width_mm,
+            "auto_print":      auto_print,
+            "default_station": station,
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

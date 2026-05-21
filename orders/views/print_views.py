@@ -142,6 +142,80 @@ def print_bill_action(request, order_id):
 # -------------------------------------------------
 
 @login_required
+@tenant_required
+@role_required("manager", "cashier", "owner")
+def qz_receipt_data(request, order_id):
+    """
+    Returns ESC/POS commands as JSON for QZ Tray USB printing.
+    QZ Tray sends these bytes directly to the USB printer,
+    producing real partial cuts between sections and a full cut at the end.
+    """
+    from orders.services.printing_service import PrintingService, ConsolePrinter
+    import io
+
+    try:
+        order = Order.objects.prefetch_related(
+            "items__menu_item__category", "payments", "token"
+        ).get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+
+        split_mode = request.GET.get("split") == "1"
+        station = None
+        try:
+            from setup.services.station_service import get_default_station
+            station = get_default_station(request.user)
+        except Exception:
+            pass
+
+        chars = station.chars_per_line if station else 48
+        cut   = station.cut_type if station else "full"
+        enc   = station.printer_encoding if station else "cp437"
+
+        # Use a buffer printer to capture ESC/POS bytes as strings
+        class BufferPrinter:
+            def __init__(self): self.parts = []
+            def text(self, t): self.parts.append(t)
+            def set(self, **kw): pass
+            def cut(self, mode="FULL"):
+                ESC, GS = '\x1B', '\x1D'
+                if mode == "FULL":
+                    self.parts.append(GS + 'V\x00')   # full cut
+                else:
+                    self.parts.append(GS + 'V\x01')   # partial cut
+
+        svc = PrintingService(chars_per_line=chars, cut_type=cut, encoding=enc)
+        buf = BufferPrinter()
+
+        if split_mode:
+            # Build category groups
+            groups: dict = {}
+            for item in order.items.exclude(status="voided").select_related("menu_item__category"):
+                cat = item.menu_item.category if item.menu_item else None
+                key = cat.id if cat else "none"
+                if key not in groups:
+                    groups[key] = {"category": cat, "cat_name": cat.name if cat else "General", "items": [], "total": 0}
+                groups[key]["items"].append(item)
+                groups[key]["total"] += item.total_price
+            group_list = list(groups.values())
+
+            svc._print_summary_slip(buf, order, group_list)
+            for group in group_list:
+                buf.cut(mode="PART")
+                svc._print_category_slip(buf, order, group)
+            buf.cut(mode="FULL")
+        else:
+            svc._print_bill_body(buf, order)
+            buf.cut(mode="FULL")
+
+        return JsonResponse({"success": True, "lines": buf.parts})
+
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception as e:
+        logger.exception("qz_receipt_data error for order %s", order_id)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
 @require_POST
 @tenant_required
 @role_required("manager", "cashier", "owner")

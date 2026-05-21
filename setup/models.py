@@ -14,6 +14,15 @@ class KitchenStation(models.Model):
     is_default = models.BooleanField(default=False)
     
     printer_ip = models.GenericIPAddressField(null=True, blank=True, help_text="IP of the thermal printer for this station")
+
+    # QZ Tray — USB/local printing via browser
+    printer_name = models.CharField(
+        max_length=200, blank=True, default="",
+        help_text=(
+            "Windows printer name for QZ Tray USB printing "
+            "(e.g. 'BillTouch ZY306'). Find it in Windows → Printers & Scanners."
+        )
+    )
     printer_port = models.IntegerField(default=9100)
 
     PAPER_WIDTH_CHOICES = [(58, "58mm — small receipt (32 chars/line)"), (80, "80mm — standard receipt (48 chars/line)")]

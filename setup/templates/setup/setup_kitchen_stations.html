@@ -137,6 +137,39 @@
   <div>
 
     <!-- ── Print Mode Selector ──────────────────────────── -->
+    <!-- QZ Tray USB Printing -->
+    <div class="printer-callout" style="margin-bottom:1.25rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+        <div>
+          <strong>USB Printing with Real Cuts (QZ Tray)</strong><br>
+          <span style="font-size:0.72rem;color:var(--text-muted);">
+            QZ Tray lets the browser talk directly to your USB printer — real partial cuts between slips, full cut at end. No network IP needed.
+          </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <span id="qzStatus" style="font-size:0.7rem;"></span>
+          <a href="https://qz.io/download" target="_blank" class="btn-ghost" style="font-size:0.62rem;">
+            <i class="bi bi-download me-1"></i>Download QZ Tray
+          </a>
+        </div>
+      </div>
+      {% if outlet.use_qz_tray %}
+      <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
+        <label class="field-label">Windows Printer Name</label>
+        <input type="text" id="qzPrinterName" class="field-input"
+               value="{{ default_station.printer_name|default:'' }}"
+               placeholder="e.g. BillTouch ZY306"
+               style="max-width:280px;">
+        <div class="hint" style="margin-top:0.3rem;">Exact name from Windows → Settings → Printers & Scanners</div>
+        <div style="display:flex;gap:.75rem;margin-top:.6rem;">
+          <button class="btn-save" onclick="saveQZPrinterName()">Save Printer Name</button>
+          <button class="btn-test" onclick="testQZPrint()">Test QZ Print</button>
+        </div>
+        <div id="qzTestResult" style="font-size:0.72rem;margin-top:0.4rem;"></div>
+      </div>
+      {% endif %}
+    </div>
+
     <div class="print-mode-box">
       <p class="section-label" style="margin-bottom:0.75rem;">How Are Printers Set Up?</p>
       <div class="print-mode-grid">
@@ -422,6 +455,79 @@ document.addEventListener('DOMContentLoaded', () => {
   hint.style.color = '#10b981';
   {% endif %}
 });
+
+/* ── QZ Tray integration ─────────────────────────────── */
+const QZ_WS = "wss://localhost:8182";
+let qzConnected = false;
+
+async function checkQZTray() {
+  const status = document.getElementById('qzStatus');
+  if (!status) return;
+  try {
+    const ws = new WebSocket(QZ_WS);
+    await new Promise((res, rej) => {
+      ws.onopen  = () => { qzConnected = true; ws.close(); res(); };
+      ws.onerror = () => rej();
+      setTimeout(rej, 2000);
+    });
+    status.innerHTML = '<span style="color:#10b981;"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> QZ Tray running</span>';
+  } catch {
+    qzConnected = false;
+    status.innerHTML = '<span style="color:#ef4444;"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> QZ Tray not detected</span>';
+  }
+}
+
+async function saveQZPrinterName() {
+  const name = document.getElementById('qzPrinterName')?.value?.trim();
+  if (!name) { ui.toast('Enter the printer name first', 'warning'); return; }
+  const stationId = {{ default_station.id|default:'null' }};
+  if (!stationId) { ui.toast('No default station found', 'error'); return; }
+  try {
+    await apiClient.post(`/setup/kitchen-stations/${stationId}/printer/`, { printer_name: name });
+    ui.toast('Printer name saved ✓', 'success');
+  } catch(e) { ui.toast('Save failed', 'error'); }
+}
+
+async function testQZPrint() {
+  const result = document.getElementById('qzTestResult');
+  const name = document.getElementById('qzPrinterName')?.value?.trim();
+  if (!name) { if(result) result.textContent = 'Enter printer name first.'; return; }
+  if(result) result.textContent = 'Connecting to QZ Tray…';
+  try {
+    // Dynamic import of QZ Tray library
+    if (!window.qz) {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js';
+      await new Promise((r, j) => { script.onload = r; script.onerror = j; document.head.appendChild(script); });
+    }
+    await qz.websocket.connect();
+    const config = qz.configs.create(name);
+    const ESC = '\x1B', GS = '\x1D';
+    const data = [
+      ESC+'@',             // init
+      ESC+'a\x01',         // center
+      ESC+'E\x01',         // bold
+      'RASOVA TEST PRINT\n',
+      ESC+'E\x00',
+      ESC+'a\x00',
+      '-'.repeat(32)+'\n',
+      `Printer: ${name}\n`,
+      `Station: Default\n`,
+      '-'.repeat(32)+'\n',
+      'If you see this, QZ Tray\n',
+      'and printer are working!\n',
+      '\n\n',
+      GS+'V\x00',          // full cut
+    ];
+    await qz.print(config, [{ type: 'raw', format: 'plain', data: data.join('') }]);
+    await qz.websocket.disconnect();
+    if(result) result.innerHTML = '<span style="color:#10b981;">✓ Test print sent!</span>';
+  } catch(e) {
+    if(result) result.innerHTML = `<span style="color:#ef4444;">✗ ${e.message || 'QZ Tray not running or wrong printer name'}</span>`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', checkQZTray);
 
 function togglePanel(id) {
   const panel   = document.getElementById(`panel-${id}`);

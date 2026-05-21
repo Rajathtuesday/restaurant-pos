@@ -237,6 +237,15 @@ class Outlet(models.Model):
         )
     )
 
+    use_qz_tray = models.BooleanField(
+        default=False,
+        help_text=(
+            "Use QZ Tray for USB printing with real partial/full cuts. "
+            "Requires QZ Tray installed on the billing laptop. "
+            "Falls back to browser print if QZ Tray is not running."
+        )
+    )
+
     parcel_charge_per_item = models.BooleanField(
         default=True,
         help_text=(

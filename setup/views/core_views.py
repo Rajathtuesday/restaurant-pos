@@ -232,6 +232,7 @@ def setup_kitchen_stations(request):
             "any_station_has_printer": any_station_has_printer,
             "cashier_ip": cashier_ip,
             "default_station": default_station,
+            "outlet": request.user.outlet,
         }
     )
 
@@ -266,7 +267,11 @@ def update_printer_config(request, station_id):
     station.paper_width_mm = int(paper) if paper in ("58", "80") else 80
     station.cut_type = cut if cut in ("full", "partial", "none") else "full"
     station.printer_encoding = enc if enc in ("cp437", "cp850", "utf-8") else "cp437"
-    station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm", "cut_type", "printer_encoding"])
+    # QZ Tray printer name (Windows printer name for USB printing)
+    pname = (body.get("printer_name") or "").strip()
+    if pname is not None:
+        station.printer_name = pname
+    station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm", "cut_type", "printer_encoding", "printer_name"])
 
     return JsonResponse({"success": True, "message": f"Printer settings saved for {station.name}"})
 
@@ -570,8 +575,9 @@ def outlet_settings(request):
         outlet.fssai_no     = fssai_no
         outlet.sac_code     = sac_code
         outlet.gst_inclusive = gst_inclusive
-        outlet.is_composition_scheme  = request.POST.get("is_composition_scheme") == "true"
-        outlet.split_bill_by_category = request.POST.get("split_bill_by_category") == "true"
+        outlet.use_qz_tray            = "use_qz_tray"            in request.POST
+        outlet.is_composition_scheme  = "is_composition_scheme"  in request.POST
+        outlet.split_bill_by_category = "split_bill_by_category" in request.POST
         try:
             from decimal import Decimal
             outlet.parcel_charge_amount = Decimal(request.POST.get("parcel_charge_amount", "0") or "0")

@@ -5,7 +5,7 @@
 from .billing_core import billing_view, bill_view
 from .payment_views import pay_order, split_pay, refund_payment
 from .discount_views import apply_discount, make_item_complimentary, apply_item_discount, log_bypass
-from .print_views import generate_bill, print_bill_action, print_kot_action, print_split_bill, printer_status, download_pdf_bill, thermal_receipt_view
+from .print_views import generate_bill, print_bill_action, print_kot_action, print_split_bill, qz_receipt_data, printer_status, download_pdf_bill, thermal_receipt_view
 from .billing_views import create_order
 from .kitchen_views import kitchen_view, kitchen_data, start_preparing, mark_ready, serve_item, send_to_kitchen, send_kitchen_message, bump_kot
 from .table_views import table_dashboard, tables_data, mark_table_cleaned, available_tables, merge_tables_view, unmerge_tables_view, transfer_table_view, manage_table_view
@@ -32,6 +32,7 @@ __all__ = [
     "print_bill_action",
     "print_kot_action",
     "print_split_bill",
+    "qz_receipt_data",
     "printer_status",
     "download_pdf_bill",
     "thermal_receipt_view",
