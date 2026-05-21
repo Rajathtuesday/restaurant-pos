@@ -95,7 +95,7 @@ body {
 <div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
 <div class="sep"></div>
 {% for group in category_groups %}
-<div class="row"><span class="label">{{ group.category.name }}</span><span class="value">Rs.{{ group.total|floatformat:0 }}</span></div>
+<div class="row"><span class="label">{{ group.cat_name }}</span><span class="value">Rs.{{ group.total|floatformat:0 }}</span></div>
 {% endfor %}
 <div class="sep-solid"></div>
 <div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ order.grand_total|floatformat:0 }}</span></div>

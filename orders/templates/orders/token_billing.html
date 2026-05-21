@@ -768,6 +768,19 @@
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            {% if request.user.outlet.parcel_charge_amount %}
+            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
+                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
+            </div>
+            <button class="parcel-btn" onclick="toggleParcel()"
+                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
+                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
+                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+                       justify-content:center;gap:0.5rem;font-family:inherit;">
+                <i class="bi bi-bag"></i>
+                <span class="parcel-btn-text">Add Parcel +₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
+            </button>
+            {% endif %}
             <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
             <button class="btn-checkout send-btn mb-2" onclick="submitOrder()">
                 Checkout <i class="bi bi-arrow-right ms-1"></i>

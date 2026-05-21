@@ -222,12 +222,17 @@ if _AWS_BUCKET:
     AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/" if AWS_S3_CUSTOM_DOMAIN else f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
 else:
+    _static_backend = (
+        "django.contrib.staticfiles.storage.StaticFilesStorage"  # no manifest needed in tests
+        if (len(__import__('sys').argv) > 1 and __import__('sys').argv[1] == 'test')
+        else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    )
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": _static_backend,
         },
     }
 

@@ -1,12 +1,12 @@
 """
-Tests for Malenadu Hotel billing features:
+Tests for Counter Billing Mode features:
   1. Composition Scheme (Bill of Supply)
   2. Split Bill by Category (Counter Billing Mode)
   3. Parcel Surcharge
   4. Inventory deduction at payment time
   5. Feature gating
 
-Run: python manage.py test orders.tests.test_malenadu_features
+Run: python manage.py test orders.tests.test_billing_modes
 """
 from decimal import Decimal
 from django.test import TestCase, Client
@@ -21,12 +21,12 @@ from setup.models import PaymentConfig
 
 # ── Shared fixture ────────────────────────────────────────────────────────────
 
-class MalenaduBase(TestCase):
-    """Creates a café tenant (Malenadu type) with 3 menu categories."""
+class CounterBillingBase(TestCase):
+    """Creates a café tenant (counter billing type) with 3 menu categories."""
 
     def setUp(self):
         self.tenant = Tenant.objects.create(
-            name="Malenadu Hotel Test",
+            name="Counter Cafe Test",
             tenant_type="cafe",
         )
         self.outlet = Outlet.objects.create(
@@ -42,7 +42,7 @@ class MalenaduBase(TestCase):
             cash_enabled=True, upi_enabled=True,
         )
         self.owner = User.objects.create_user(
-            username="malenadu_owner",
+            username="counter_owner",
             password="testpass",
             tenant=self.tenant,
             outlet=self.outlet,
@@ -76,7 +76,7 @@ class MalenaduBase(TestCase):
             category=self.cat_tea, name="Cutting Chai", price=15, gst_percentage=0,
         )
         self.client = Client()
-        self.client.login(username="malenadu_owner", password="testpass")
+        self.client.login(username="counter_owner", password="testpass")
 
     def _make_order(self, items=None):
         """Helper — creates an open order with given items."""
@@ -101,7 +101,7 @@ class MalenaduBase(TestCase):
 
 # ── 1. Composition Scheme ─────────────────────────────────────────────────────
 
-class CompositionSchemeTest(MalenaduBase):
+class CompositionSchemeTest(CounterBillingBase):
 
     def test_outlet_flag_defaults_false(self):
         self.assertFalse(self.outlet.is_composition_scheme)
@@ -141,7 +141,7 @@ class CompositionSchemeTest(MalenaduBase):
 
 # ── 2. Split Bill by Category ─────────────────────────────────────────────────
 
-class SplitBillTest(MalenaduBase):
+class SplitBillTest(CounterBillingBase):
 
     def setUp(self):
         super().setUp()
@@ -202,7 +202,7 @@ class SplitBillTest(MalenaduBase):
 
 # ── 3. Parcel Surcharge ───────────────────────────────────────────────────────
 
-class ParcelSurchargeTest(MalenaduBase):
+class ParcelSurchargeTest(CounterBillingBase):
 
     def test_parcel_charge_default_zero_on_order(self):
         order = self._make_order()
@@ -260,7 +260,7 @@ class ParcelSurchargeTest(MalenaduBase):
 
 # ── 4. Inventory Deduction at Payment ────────────────────────────────────────
 
-class InventoryDeductionTest(MalenaduBase):
+class InventoryDeductionTest(CounterBillingBase):
 
     def setUp(self):
         super().setUp()
