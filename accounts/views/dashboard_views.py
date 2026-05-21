@@ -21,14 +21,8 @@ def owner_dashboard(request):
     ).order_by("-created_at")[:10]
 
     from setup.models import AggregatorConfig
-    from django.db import IntegrityError
-    try:
-        aggregator_config, _ = AggregatorConfig.objects.get_or_create(
-            tenant=request.user.tenant, outlet=request.user.outlet,
-        )
-    except IntegrityError:
-        # Race condition: another request created it between our SELECT and INSERT
-        aggregator_config = AggregatorConfig.objects.get(outlet=request.user.outlet)
+    aggregator_config, _ = AggregatorConfig.for_outlet(
+        request.user.outlet, request.user.tenant)
 
     tenant = request.user.tenant
     is_qsr = tenant.tenant_type in ["franchise", "cafe"]

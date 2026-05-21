@@ -124,10 +124,7 @@ def token_dashboard(request):
         next_online_token = (max_online or 0) + 1
 
     from setup.models import AggregatorConfig
-    aggregator_config, _ = AggregatorConfig.objects.get_or_create(
-        tenant=outlet.tenant,
-        outlet=outlet
-    )
+    aggregator_config, _ = AggregatorConfig.for_outlet(outlet)
 
     can_create = request.user.role in _STAFF_CAN_CREATE or request.user.is_superuser
 
@@ -395,10 +392,7 @@ def token_billing(request, order_id):
         )
     )
 
-    config, _ = PaymentConfig.objects.get_or_create(
-        tenant=request.user.tenant,
-        outlet=outlet,
-    )
+    config, _ = PaymentConfig.for_outlet(outlet, request.user.tenant)
 
     total_paid = (
         order.payments

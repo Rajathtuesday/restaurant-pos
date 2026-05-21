@@ -112,10 +112,7 @@ def bill_view(request, order_id):
             order.table.save(update_fields=["state"])
 
         # Get payment configuration
-        config, _ = PaymentConfig.objects.get_or_create(
-            tenant=request.user.tenant,
-            outlet=request.user.outlet
-        )
+        config, _ = PaymentConfig.for_outlet(request.user.outlet, request.user.tenant)
 
         # Calculate remaining balance
         total_paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")

@@ -87,6 +87,19 @@ class PaymentConfig(models.Model):
             methods.append({"key": "card", "label": self.card_label})
         return methods
 
+    @classmethod
+    def for_outlet(cls, outlet, tenant=None):
+        """Safe get-or-create that handles the OneToOneField race condition.
+        Returns (obj, created) — drop-in replacement for get_or_create."""
+        from django.db import IntegrityError
+        try:
+            return cls.objects.get_or_create(
+                outlet=outlet,
+                defaults={'tenant': tenant or outlet.tenant},
+            )
+        except IntegrityError:
+            return cls.objects.get(outlet=outlet), False
+
     def __str__(self):
         return f"Payment Config for {self.outlet}"
 
@@ -116,6 +129,19 @@ class AggregatorConfig(models.Model):
     )
 
     updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def for_outlet(cls, outlet, tenant=None):
+        """Safe get-or-create that handles the OneToOneField race condition.
+        Returns (obj, created) — drop-in replacement for get_or_create."""
+        from django.db import IntegrityError
+        try:
+            return cls.objects.get_or_create(
+                outlet=outlet,
+                defaults={'tenant': tenant or outlet.tenant},
+            )
+        except IntegrityError:
+            return cls.objects.get(outlet=outlet), False
 
     def __str__(self):
         return f"Aggregator Config for {self.outlet}"

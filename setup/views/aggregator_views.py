@@ -22,10 +22,7 @@ def aggregator_setup(request):
         return redirect("setup_wizard")
 
     from setup.models import AggregatorConfig
-    config, created = AggregatorConfig.objects.get_or_create(
-        tenant=request.user.tenant,
-        outlet=request.user.outlet
-    )
+    config, created = AggregatorConfig.for_outlet(request.user.outlet, request.user.tenant)
 
     if request.method == "POST":
         config.zomato_enabled = request.POST.get("zomato_enabled") == "on"
@@ -80,10 +77,7 @@ def toggle_aggregator(request):
     if platform not in ("zomato", "swiggy", "all"):
         return JsonResponse({"error": "Invalid platform. Use zomato, swiggy, or all."}, status=400)
 
-    config, _ = AggregatorConfig.objects.get_or_create(
-        tenant=request.user.tenant,
-        outlet=request.user.outlet,
-    )
+    config, _ = AggregatorConfig.for_outlet(request.user.outlet, request.user.tenant)
 
     if platform == "all":
         config.zomato_enabled  = enabled

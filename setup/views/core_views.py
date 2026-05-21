@@ -312,10 +312,7 @@ def setup_payment_methods(request):
     outlet = request.user.outlet
 
     # Get or create the config record for this outlet
-    config, _ = PaymentConfig.objects.get_or_create(
-        tenant=tenant,
-        outlet=outlet
-    )
+    config, _ = PaymentConfig.for_outlet(outlet, tenant)
 
     if request.method == "POST":
         config.cash_enabled = "cash" in request.POST.getlist("methods")

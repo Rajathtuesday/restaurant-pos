@@ -128,9 +128,7 @@ def onboarding_wizard(request):
     # ── STEP 5: Payment + done ───────────────────
     elif step == 5:
         if request.method == "POST":
-            config, _ = PaymentConfig.objects.get_or_create(
-                tenant=tenant, outlet=outlet
-            )
+            config, _ = PaymentConfig.for_outlet(outlet, tenant)
             config.upi_enabled  = "upi"  in request.POST.getlist("methods")
             config.cash_enabled = "cash" in request.POST.getlist("methods")
             config.card_enabled = "card" in request.POST.getlist("methods")
@@ -151,7 +149,7 @@ def onboarding_wizard(request):
     }
     done_count = sum(1 for v in progress.values() if v)
 
-    config, _ = PaymentConfig.objects.get_or_create(tenant=tenant, outlet=outlet)
+    config, _ = PaymentConfig.for_outlet(outlet, tenant)
 
     return render(request, "setup/onboard.html", {
         "step": step,

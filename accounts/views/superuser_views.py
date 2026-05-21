@@ -143,7 +143,7 @@ def create_restaurant(request):
             )
 
             # Create default payment config
-            PaymentConfig.objects.get_or_create(tenant=tenant, outlet=outlet)
+            PaymentConfig.for_outlet(outlet, tenant)
 
         logger.info(
             "Superuser %s created restaurant '%s' (%s) with owner '%s'",
@@ -176,7 +176,7 @@ def tenant_config(request, tenant_id):
 
     stations = KitchenStation.objects.filter(tenant=tenant, outlet=outlet)
     staff    = User.objects.filter(tenant=tenant, outlet=outlet).order_by("role", "username")
-    config, _ = PaymentConfig.objects.get_or_create(tenant=tenant, outlet=outlet)
+    config, _ = PaymentConfig.for_outlet(outlet, tenant)
 
     # Current feature state
     from core.features import TENANT_FEATURES

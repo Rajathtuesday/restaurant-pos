@@ -120,7 +120,7 @@ def create_restaurant(request):
                 tenant=tenant, outlet=outlet, role="owner",
             )
             KitchenStation.objects.create(tenant=tenant, outlet=outlet, name="Counter", is_default=True)
-            PaymentConfig.objects.get_or_create(tenant=tenant, outlet=outlet)
+            PaymentConfig.for_outlet(outlet, tenant)
         logger.info("Portal %s created '%s' (%s)", request.user.username, name, tenant_type)
         return JsonResponse({"success": True, "tenant_id": tenant.id})
     except Exception as e:
@@ -139,7 +139,7 @@ def tenant_config(request, tenant_id):
 
     stations  = KitchenStation.objects.filter(tenant=tenant, outlet=outlet)
     staff     = User.objects.filter(tenant=tenant, outlet=outlet).order_by("role", "username")
-    config, _ = PaymentConfig.objects.get_or_create(tenant=tenant, outlet=outlet)
+    config, _ = PaymentConfig.for_outlet(outlet, tenant)
 
     from core.features import TENANT_FEATURES
     overrides        = {o.feature: o.enabled for o in TenantFeatureOverride.objects.filter(tenant=tenant)}
