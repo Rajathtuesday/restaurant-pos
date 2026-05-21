@@ -122,31 +122,8 @@ jobs:
           port:        22
           timeout:     120s
           script: |
+            # Set git credentials so fetch works
             cd /home/ubuntu/rasova
             git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/Rajathtuesday/restaurant-pos.git
-            git fetch origin qsr
-            git reset --hard origin/qsr
-            source .venv/bin/activate
-            pip install -r requirements.txt --quiet
-            python manage.py migrate
-            python manage.py collectstatic --noinput
-            # Restart gunicorn
-            sudo fuser -k 8000/tcp 2>/dev/null || true
-            sleep 2
-            gunicorn \
-              --bind 127.0.0.1:8000 \
-              --workers 2 \
-              --timeout 120 \
-              --daemon \
-              core.wsgi:application
-            # Restart Celery worker — nohup + disown so it survives SSH session close
-            pkill -f 'celery worker' 2>/dev/null || true
-            sleep 1
-            nohup celery -A core worker \
-              --queues=default,printing \
-              --concurrency=2 \
-              --loglevel=warning \
-              >> /home/ubuntu/rasova/logs/celery.log 2>&1 &
-            disown
-            sleep 3
-            echo "Deploy complete — $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health/)"
+            # Run the deploy script — setsid handles celery detachment
+            bash /home/ubuntu/rasova/deploy.sh
