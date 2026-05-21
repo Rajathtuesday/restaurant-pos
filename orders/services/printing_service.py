@@ -269,15 +269,23 @@ class PrintingService:
             return False
         try:
             # Group non-voided items by category
+            # Items with no category go into a fallback "General" group
             groups: dict = {}
+            _UNCATEGORISED = "uncategorised"
             for item in order.items.exclude(status="voided").select_related(
                 "menu_item__category"
             ).order_by("menu_item__category__name"):
-                cat = item.menu_item.category
-                if cat.id not in groups:
-                    groups[cat.id] = {"category": cat, "items": [], "total": 0}
-                groups[cat.id]["items"].append(item)
-                groups[cat.id]["total"] += item.total_price
+                cat = item.menu_item.category if item.menu_item else None
+                key = cat.id if cat else _UNCATEGORISED
+                if key not in groups:
+                    groups[key] = {
+                        "category": cat,  # may be None
+                        "cat_name": cat.name if cat else "General",
+                        "items": [],
+                        "total": 0,
+                    }
+                groups[key]["items"].append(item)
+                groups[key]["total"] += item.total_price
 
             group_list = list(groups.values())
             if not group_list:
@@ -326,13 +334,13 @@ class PrintingService:
         p.text(f"Date : {order.created_at.strftime('%d/%m/%Y %H:%M')}\n")
         p.text(self._sep() + "\n")
 
-        # Section totals
+        # Section totals — use cat_name (safe even if category is None)
         p.set(bold=True)
         p.text(f"{'Section':<{W-8}} {'Total':>6}\n")
         p.set(bold=False)
         p.text(self._sep() + "\n")
         for group in group_list:
-            name = str(group["category"].name)[:W-8]
+            name = str(group["cat_name"])[:W-8]
             p.text(f"{name:<{W-8}} {self._currency(group['total']):>6}\n")
 
         p.text(self._sep() + "\n")
@@ -350,7 +358,7 @@ class PrintingService:
 
     def _print_category_slip(self, p, order, group):
         W = self.W
-        cat_name = str(group["category"].name).upper()
+        cat_name = str(group["cat_name"]).upper()  # safe even if category is None
 
         # Big category name
         p.set(align="center", bold=True, double_width=True, double_height=True)

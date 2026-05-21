@@ -172,17 +172,9 @@ def pay_order(request, order_id):
                         order.table.save(update_fields=["state"])
                     logger.info(f"Order #{order.id} fully paid and closed")
 
-                    # ── Counter Billing Mode: deduct inventory at payment time ──
-                    # Normal mode: inventory deducts when KOT is created.
-                    # Counter Billing (split_bill_by_category): no KOTs → deduct here.
-                    if getattr(order.outlet, "split_bill_by_category", False):
-                        try:
-                            from inventory.services.stock_service import deduct_stock_for_item
-                            for item in order.items.exclude(status="voided").select_related("menu_item"):
-                                deduct_stock_for_item(item)
-                            logger.info("Inventory deducted at payment for counter billing order #%s", order.id)
-                        except Exception as _inv_e:
-                            logger.warning("Inventory deduction failed for order #%s: %s", order.id, _inv_e)
+                    # Inventory deduction is handled by payment_service._deduct_inventory_for_order()
+                    # which runs for all order.source == "counter" orders automatically.
+                    # No additional deduction needed here.
 
                     # Auto-print: in auto-KOT mode queue bill+KOTs immediately after
                     # payment so cashier doesn't need to click Print manually.

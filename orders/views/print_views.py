@@ -333,12 +333,19 @@ def thermal_receipt_view(request, order_id):
     category_groups = []
     if split_mode:
         groups: dict = {}
+        _UNCAT = "uncategorised"
         for item in items.order_by("menu_item__category__name"):
-            cat = item.menu_item.category
-            if cat.id not in groups:
-                groups[cat.id] = {"category": cat, "items": [], "total": 0}
-            groups[cat.id]["items"].append(item)
-            groups[cat.id]["total"] += item.total_price
+            cat = item.menu_item.category if item.menu_item else None
+            key = cat.id if cat else _UNCAT
+            if key not in groups:
+                groups[key] = {
+                    "category": cat,
+                    "cat_name": cat.name if cat else "General",
+                    "items": [],
+                    "total": 0,
+                }
+            groups[key]["items"].append(item)
+            groups[key]["total"] += item.total_price
         category_groups = list(groups.values())
 
     return render(request, "orders/thermal_receipt.html", {
