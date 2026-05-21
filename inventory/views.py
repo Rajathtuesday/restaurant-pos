@@ -549,3 +549,83 @@ def purchase_order_view(request):
     from django.shortcuts import redirect
     return redirect("purchase_order_list")
 
+
+
+@login_required
+@tenant_required
+def consumption_report(request):
+    """
+    Daily inventory consumption report.
+    Shows how much of each ingredient was used today based on orders × recipes.
+    Best practice: calculated from OrderItem quantities × Recipe.quantity_required.
+    """
+    from django.utils import timezone
+    from decimal import Decimal
+    from orders.models import OrderItem
+    from menu.models import Recipe
+    from core.utils import get_business_date
+
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+
+    # Date filter — default today, allow ?date=YYYY-MM-DD
+    date_str = request.GET.get("date", "")
+    try:
+        from datetime import date as dt_date
+        report_date = dt_date.fromisoformat(date_str) if date_str else get_business_date(
+            timezone.now(), outlet
+        )
+    except ValueError:
+        report_date = get_business_date(timezone.now(), outlet)
+
+    # All non-voided items sold today for this outlet
+    sold_items = (
+        OrderItem.objects
+        .filter(
+            order__tenant=tenant,
+            order__outlet=outlet,
+            order__created_at__date=report_date,
+            order__status__in=["closed", "paid"],
+        )
+        .exclude(status="voided")
+        .select_related("menu_item")
+    )
+
+    # Aggregate consumption per inventory item via recipes
+    consumption: dict = {}  # {inventory_item_id: {"item": obj, "qty": Decimal}}
+    for order_item in sold_items:
+        if not order_item.menu_item:
+            continue
+        for recipe in order_item.menu_item.recipes.select_related("inventory_item").all():
+            inv = recipe.inventory_item
+            qty = recipe.quantity_required * Decimal(str(order_item.quantity))
+            if inv.id not in consumption:
+                inv.refresh_from_db()
+                consumption[inv.id] = {"item": inv, "consumed": Decimal("0")}
+            consumption[inv.id]["consumed"] += qty
+
+    # Sort by consumed (most used first)
+    report_rows = sorted(consumption.values(), key=lambda x: x["consumed"], reverse=True)
+
+    # CSV export
+    if request.GET.get("export") == "csv":
+        import csv
+        from django.http import HttpResponse
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="consumption_{report_date}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["Ingredient", "Unit", "Consumed Today", "Remaining Stock"])
+        for row in report_rows:
+            writer.writerow([
+                row["item"].name,
+                row["item"].unit,
+                f"{row['consumed']:.3f}",
+                f"{row['item'].stock:.3f}",
+            ])
+        return response
+
+    return render(request, "inventory/consumption_report.html", {
+        "report_date": report_date,
+        "report_rows": report_rows,
+        "outlet": outlet,
+    })

@@ -231,8 +231,17 @@ class Outlet(models.Model):
         decimal_places=2,
         default=0,
         help_text=(
-            "Extra charge added for parcel/takeaway orders. "
-            "Set to 0 to disable. Shown as a separate line on the bill."
+            "Packaging charge per item for parcel/takeaway orders. "
+            "Set to 0 to disable. "
+            "Example: ₹5 per item — 3 items = ₹15 parcel charge total."
+        )
+    )
+
+    parcel_charge_per_item = models.BooleanField(
+        default=True,
+        help_text=(
+            "True (recommended): charge × quantity (3 idlis = ₹15). "
+            "False: flat charge per order regardless of items."
         )
     )
 

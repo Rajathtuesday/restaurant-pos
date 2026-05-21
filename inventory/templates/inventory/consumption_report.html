@@ -1,0 +1,147 @@
+{% extends 'core/base.html' %}
+{% block title %}Consumption Report | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .82rem; margin-bottom: 2rem; }
+.divider { height: 1px; background: var(--border-color); margin: 1.5rem 0; }
+
+.controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.date-input { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
+              padding: .6rem .9rem; font-size: .88rem; font-family: inherit; outline: none; }
+.date-input:focus { border-color: var(--accent-gold); }
+.btn-filter { background: var(--accent-gold); border: none; color: #fff; padding: .6rem 1.2rem;
+              font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;
+              cursor: pointer; font-family: inherit; }
+.btn-export { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+              padding: .6rem 1.2rem; font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px;
+              font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none;
+              display: inline-flex; align-items: center; gap: .4rem; transition: all .15s; }
+.btn-export:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.summary-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; }
+.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent-gold); }
+.summary-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .2rem; }
+
+.table { width: 100%; border-collapse: collapse; }
+.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
+            font-weight: 700; padding: .75rem .5rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+.table td { padding: .75rem .5rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: .85rem; }
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: rgba(197,160,89,0.03); }
+
+.bar-wrap { width: 120px; background: var(--border-color); height: 6px; border-radius: 3px; display: inline-block; vertical-align: middle; }
+.bar-fill { height: 100%; border-radius: 3px; background: var(--accent-gold); }
+.bar-fill.low { background: #ef4444; }
+.bar-fill.ok  { background: #10b981; }
+
+.empty { text-align: center; padding: 3rem; color: var(--text-muted); font-size: .85rem; }
+.empty i { font-size: 2rem; display: block; margin-bottom: .75rem; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div class="d-flex flex-column">
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h1>
+  </a>
+  <p class="mb-0 text-muted" style="font-size:.75rem;letter-spacing:1px;text-transform:uppercase;">Inventory · Consumption</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/inventory/board/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-left me-1"></i> Inventory</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme"><i class="bi bi-moon" id="themeIcon"></i></button>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+
+  <div class="page-eyebrow">Inventory</div>
+  <h1 class="page-title">Consumption Report</h1>
+  <p class="page-sub">What your kitchen used today — auto-calculated from orders and recipes.</p>
+
+  <div class="divider"></div>
+
+  <form method="get" class="controls">
+    <input type="date" name="date" class="date-input" value="{{ report_date|date:'Y-m-d' }}">
+    <button type="submit" class="btn-filter"><i class="bi bi-search me-1"></i> View</button>
+    <a href="?date={{ report_date|date:'Y-m-d' }}&export=csv" class="btn-export">
+      <i class="bi bi-download"></i> Export CSV
+    </a>
+  </form>
+
+  {% if report_rows %}
+  <!-- Summary cards -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-num">{{ report_rows|length }}</div>
+      <div class="summary-lbl">Ingredients used</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">{{ report_date|date:"d M" }}</div>
+      <div class="summary-lbl">Report date</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">{{ outlet.name|truncatechars:12 }}</div>
+      <div class="summary-lbl">Outlet</div>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Ingredient</th>
+        <th>Consumed Today</th>
+        <th>Remaining</th>
+        <th>Usage</th>
+        <th>Unit</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in report_rows %}
+      {% with item=row.item consumed=row.consumed %}
+      <tr>
+        <td style="font-weight:600;">{{ item.name }}</td>
+        <td style="font-family:'Space Mono',monospace;color:var(--accent-gold);">
+          {{ consumed|floatformat:3 }}
+        </td>
+        <td style="font-family:'Space Mono',monospace;
+          {% if item.stock <= item.low_stock_threshold %}color:#ef4444;font-weight:700;{% endif %}">
+          {{ item.stock|floatformat:3 }}
+          {% if item.stock <= item.low_stock_threshold %}
+          <i class="bi bi-exclamation-triangle-fill ms-1" title="Low stock"></i>
+          {% endif %}
+        </td>
+        <td>
+          {% if item.stock > 0 or consumed > 0 %}
+          {% with total=consumed|add:item.stock %}
+          <span class="bar-wrap">
+            <span class="bar-fill {% if item.stock <= item.low_stock_threshold %}low{% else %}ok{% endif %}"
+                  style="width:{% if total > 0 %}{{ item.stock|floatformat:0 }}{% else %}0{% endif %}%"></span>
+          </span>
+          {% endwith %}
+          {% endif %}
+        </td>
+        <td style="color:var(--text-muted);font-size:.78rem;">{{ item.unit }}</td>
+      </tr>
+      {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty">
+    <i class="bi bi-inbox text-muted"></i>
+    No consumption data for {{ report_date|date:"d M Y" }}.<br>
+    <span style="font-size:.75rem;">Orders need recipes configured for ingredients to show here.</span><br>
+    <a href="/menu/" style="color:var(--accent-gold);font-size:.75rem;">Set up recipes in Menu →</a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

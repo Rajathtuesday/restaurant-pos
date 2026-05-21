@@ -69,15 +69,15 @@ TENANT_FEATURES = {
         # Menu
         'qr_menu',
         'ai_menu_import',
-        # Operations
+        # Operations — no central_kitchen (that's franchise/hub-spoke only)
         'inventory',
         'purchase_orders',
         'reports',
         'role_based_access',
         'multi_outlet',
         'shift_management',
-        # Billing modes — cafés and food courts commonly need all three
-        'counter_billing',   # multi-section: split bill by category
+        # Billing modes
+        'counter_billing',
         'composition_scheme',
         'parcel_charge',
     ],

@@ -139,12 +139,22 @@ def toggle_parcel(request, order_id):
             outlet=request.user.outlet,
             status__in=["open", "billing"],
         )
-        charge = getattr(order.outlet, "parcel_charge_amount", Decimal("5"))
+        charge     = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
+        per_item   = getattr(order.outlet, "parcel_charge_per_item", True)
+
         # Toggle: if already set → remove; if zero → add
         if order.parcel_surcharge > 0:
             order.parcel_surcharge = Decimal("0")
         else:
-            order.parcel_surcharge = Decimal(str(charge))
+            if per_item:
+                # charge × total item quantity (industry standard)
+                total_qty = sum(
+                    item.quantity for item in
+                    order.items.exclude(status="voided")
+                )
+                order.parcel_surcharge = charge * Decimal(total_qty)
+            else:
+                order.parcel_surcharge = charge
 
         order.save(update_fields=["parcel_surcharge"])
         order.recalculate_totals()
