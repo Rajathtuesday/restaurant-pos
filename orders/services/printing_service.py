@@ -327,7 +327,7 @@ class PrintingService:
         # Token or order number
         if hasattr(order, "token") and order.token:
             p.set(bold=True, double_width=True, double_height=True)
-            p.text(f"Token #{order.token.display_number}\n")
+            p.text(f"Token {order.token.display_number}\n")
             p.set(bold=False, double_width=False, double_height=False)
         else:
             p.text(f"Bill : {order.order_number or order.id}\n")
@@ -368,7 +368,7 @@ class PrintingService:
         # Token
         if hasattr(order, "token") and order.token:
             p.set(align="center", bold=True)
-            p.text(f"Token #{order.token.display_number}\n")
+            p.text(f"Token {order.token.display_number}\n")
         p.set(align="left", bold=False)
         p.text(self._sep() + "\n")
 
@@ -450,7 +450,7 @@ class PrintingService:
 
         if token_num:
             p.set(align="center", bold=True, double_width=True, double_height=True)
-            p.text(f"TOKEN #{token_num}\n")
+            p.text(f"TOKEN {token_num}\n")
         else:
             p.set(align="center", bold=True, double_width=True, double_height=True)
             p.text(f"#{order.order_number or order.id}\n")

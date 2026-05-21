@@ -90,7 +90,7 @@ body {
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
 {% if is_comp %}<div class="center bold small">BILL OF SUPPLY</div>{% endif %}
 <div class="sep-solid"></div>
-{% if token %}<div class="token-num">TOKEN #{{ token }}</div>
+{% if token %}<div class="token-num">TOKEN {{ token }}</div>
 {% else %}<div class="row small"><span class="label">Bill</span><span class="value">{{ order.order_number }}</span></div>{% endif %}
 <div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
 <div class="sep"></div>
@@ -109,8 +109,8 @@ body {
 <!-- Pages 2+: One slip per category -->
 {% for group in category_groups %}
 <div style="{% if not forloop.last %}page-break-after: always;{% endif %}">
-<div class="center bold" style="font-size:{{ big_font }}px;">{{ group.category.name|upper }}</div>
-{% if token %}<div class="center small">Token #{{ token }}</div>{% endif %}
+<div class="center bold" style="font-size:{{ big_font }}px;">{{ group.cat_name|upper }}</div>
+{% if token %}<div class="center small">Token {{ token }}</div>{% endif %}
 <div class="sep-solid"></div>
 {% for item in group.items %}
 <div class="item-line">
@@ -141,7 +141,7 @@ body {
 <div class="sep-solid"></div>
 
 {% if token %}
-<div class="token-num">TOKEN #{{ token }}</div>
+<div class="token-num">TOKEN {{ token }}</div>
 <div class="sep"></div>
 {% else %}
 <div class="row small"><span class="label">Bill No.</span><span class="value">{{ order.order_number }}</span></div>
@@ -178,7 +178,8 @@ body {
 {% endwith %}
 {% endif %}{# end split_mode else #}
 
-<!-- ── KOT Sections (normal mode only) ──────────────────────── -->
+<!-- ── KOT Sections — only in normal mode, NOT in counter billing split mode ── -->
+{% if not split_mode %}
 {% for kot in kots %}
 <div class="kot-section">
   <div class="sep-solid"></div>
@@ -199,6 +200,7 @@ body {
   <div class="right small">{{ order.created_at|date:"H:i d/m" }}</div>
 </div>
 {% endfor %}
+{% endif %}{# end if not split_mode #}
 
 <div style="margin-top:5mm;"></div>
 
