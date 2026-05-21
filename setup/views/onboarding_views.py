@@ -220,7 +220,7 @@ def checklist_status(request):
         {"key": "info",    "label": "Restaurant info",     "done": info_done,    "url": "/setup/onboard/?step=1"},
         {"key": "menu",    "label": "Menu items",          "done": menu_done,    "url": "/menu/"},
         {"key": "tables",  "label": "Tables / counters",   "done": tables_done,  "url": "/setup/onboard/?step=4"},
-        {"key": "staff",   "label": "Staff accounts",      "done": staff_done,   "url": "/accounts/staff/"},
+        {"key": "staff",   "label": "Staff accounts",      "done": staff_done,   "url": "/setup/staff/"},
         {"key": "payment", "label": "Payment methods",     "done": payment_done, "url": "/setup/onboard/?step=5"},
     ]
     done_count = sum(1 for s in steps if s["done"])
