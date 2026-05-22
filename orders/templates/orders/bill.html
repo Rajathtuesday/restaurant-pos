@@ -546,14 +546,14 @@
                 window.onbeforeunload = null;
 
                 const splitMode  = {% if order.outlet.split_bill_by_category %}true{% else %}false{% endif %};
-                const useQZTray  = {% if order.outlet.use_qz_tray %}true{% else %}false{% endif %};
-                const qzPrinterName = "{{ default_station.printer_name|default:'' }}";
+                const useAgent  = {% if order.outlet.use_qz_tray %}true{% else %}false{% endif %};
+                const agentPrinterName = "{{ default_station.printer_name|default:'' }}";
 
                 let printed = false;
 
                 // 1. Try QZ Tray (USB real cuts) if enabled
-                if (useQZTray && qzPrinterName) {
-                    printed = await printWithQZTray(qzPrinterName, {{ order.id }}, splitMode);
+                if (useAgent && agentPrinterName) {
+                    printed = await printWithAgent(agentPrinterName, {{ order.id }}, splitMode);
                 }
 
                 // 2. Try ESC/POS over network if QZ Tray didn't work
@@ -581,26 +581,51 @@
         } catch(e) { ui.toast('Connection error', 'error'); }
     }
 
-    /* ── QZ Tray USB printing with real ESC/POS cuts ────────────── */
-    async function printWithQZTray(printerName, orderId, splitMode) {
-        try {
-            if (!window.qz) {
-                const s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js';
-                await new Promise((r, j) => { s.onload = r; s.onerror = j; document.head.appendChild(s); });
-            }
-            if (!qz.websocket.isActive()) await qz.websocket.connect();
+    /* ── Rasova Print Agent — USB printing via ws://localhost:8765 ── */
+    const RASOVA_AGENT_URL = 'ws://localhost:8765';
+    let _agentSocket = null;
 
-            // Fetch ESC/POS receipt data from backend
+    async function connectAgent() {
+        if (_agentSocket && _agentSocket.readyState === WebSocket.OPEN) return _agentSocket;
+        return new Promise((resolve, reject) => {
+            const ws = new WebSocket(RASOVA_AGENT_URL);
+            const timeout = setTimeout(() => { ws.close(); reject(new Error('timeout')); }, 2000);
+            ws.onopen  = () => { clearTimeout(timeout); _agentSocket = ws; resolve(ws); };
+            ws.onerror = () => { clearTimeout(timeout); reject(new Error('not running')); };
+        });
+    }
+
+    async function printWithAgent(printerName, orderId, splitMode) {
+        try {
+            const ws = await connectAgent();
+
+            // Fetch ESC/POS lines from backend
             const resp = await fetch(`/orders/qz-data/${orderId}/?split=${splitMode?1:0}`);
             if (!resp.ok) return false;
             const { lines } = await resp.json();
 
-            const config = qz.configs.create(printerName);
-            await qz.print(config, [{ type: 'raw', format: 'plain', data: lines.join('') }]);
-            return true;
+            return new Promise((resolve) => {
+                const jobId = Date.now().toString();
+                const handler = (event) => {
+                    const msg = JSON.parse(event.data);
+                    if (msg.job_id === jobId) {
+                        ws.removeEventListener('message', handler);
+                        resolve(msg.type === 'ok');
+                    }
+                };
+                ws.addEventListener('message', handler);
+                ws.send(JSON.stringify({
+                    type: 'print',
+                    printer: printerName,
+                    lines,
+                    job_id: jobId,
+                    encoding: 'cp437',
+                }));
+                // Timeout if no response in 10s
+                setTimeout(() => { ws.removeEventListener('message', handler); resolve(false); }, 10000);
+            });
         } catch(e) {
-            console.warn('QZ Tray print failed:', e.message);
+            console.warn('Rasova Agent not available:', e.message);
             return false;
         }
     }

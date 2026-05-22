@@ -137,35 +137,50 @@
   <div>
 
     <!-- ── Print Mode Selector ──────────────────────────── -->
-    <!-- QZ Tray USB Printing -->
-    <div class="printer-callout" style="margin-bottom:1.25rem;">
+    <!-- Rasova Print Agent -->
+    <div class="printer-callout" style="margin-bottom:1.25rem;{% if outlet.use_qz_tray %}border-color:var(--accent-gold);{% endif %}">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
         <div>
-          <strong>USB Printing with Real Cuts (QZ Tray)</strong><br>
+          <strong>Rasova Print Agent</strong>
+          <span style="font-size:0.6rem;background:rgba(16,185,129,.12);color:#10b981;padding:2px 7px;border-radius:3px;margin-left:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Our own</span><br>
           <span style="font-size:0.72rem;color:var(--text-muted);">
-            QZ Tray lets the browser talk directly to your USB printer — real partial cuts between slips, full cut at end. No network IP needed.
+            Run <code style="background:var(--bg-color);padding:1px 5px;">python rasova_agent.py</code> on the billing laptop.
+            Real partial cuts + full cut. USB or network. No Java, no certificates.
           </span>
         </div>
-        <div style="display:flex;align-items:center;gap:.75rem;">
-          <span id="qzStatus" style="font-size:0.7rem;"></span>
-          <a href="https://qz.io/download" target="_blank" class="btn-ghost" style="font-size:0.62rem;">
-            <i class="bi bi-download me-1"></i>Download QZ Tray
-          </a>
+        <div>
+          <span id="agentStatus" style="font-size:0.7rem;"></span>
         </div>
       </div>
+
       {% if outlet.use_qz_tray %}
-      <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
+      <div style="margin-top:0.9rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
         <label class="field-label">Windows Printer Name</label>
-        <input type="text" id="qzPrinterName" class="field-input"
-               value="{{ default_station.printer_name|default:'' }}"
-               placeholder="e.g. BillTouch ZY306"
-               style="max-width:280px;">
-        <div class="hint" style="margin-top:0.3rem;">Exact name from Windows → Settings → Printers & Scanners</div>
-        <div style="display:flex;gap:.75rem;margin-top:.6rem;">
-          <button class="btn-save" onclick="saveQZPrinterName()">Save Printer Name</button>
-          <button class="btn-test" onclick="testQZPrint()">Test QZ Print</button>
+        <div style="display:flex;gap:.75rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">
+          <select id="printerSelect" class="field-select" style="max-width:260px;" onchange="document.getElementById('printerNameInput').value=this.value">
+            <option value="">— Auto-detect from agent —</option>
+          </select>
+          <button class="btn-ghost" style="font-size:0.65rem;" onclick="loadPrinterList()">
+            <i class="bi bi-arrow-repeat me-1"></i>Refresh
+          </button>
         </div>
-        <div id="qzTestResult" style="font-size:0.72rem;margin-top:0.4rem;"></div>
+        <input type="text" id="printerNameInput" class="field-input"
+               value="{{ default_station.printer_name|default:'' }}"
+               placeholder="or type exact name: BillTouch ZY306"
+               style="max-width:340px;margin-top:0.5rem;">
+        <div class="hint" style="margin-top:0.3rem;">
+          If Rasova Agent is running, click Refresh to auto-populate the list.
+          Or type the exact name from Windows → Settings → Printers &amp; Scanners.
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;">
+          <button class="btn-save" onclick="saveAgentPrinterName()">
+            <i class="bi bi-floppy me-1"></i>Save Printer Name
+          </button>
+          <button class="btn-test" id="agentTestBtn" onclick="testAgentPrint()">
+            <i class="bi bi-printer me-1"></i>Test Print
+          </button>
+        </div>
+        <div id="agentTestResult" style="font-size:0.72rem;margin-top:0.5rem;"></div>
       </div>
       {% endif %}
     </div>
@@ -456,78 +471,132 @@ document.addEventListener('DOMContentLoaded', () => {
   {% endif %}
 });
 
-/* ── QZ Tray integration ─────────────────────────────── */
-const QZ_WS = "wss://localhost:8182";
-let qzConnected = false;
+/* ── Rasova Print Agent integration ──────────────────── */
+const AGENT_WS  = 'ws://localhost:8765';
+let _agentWs = null;
 
-async function checkQZTray() {
-  const status = document.getElementById('qzStatus');
+async function connectAgent(timeout = 2000) {
+  if (_agentWs && _agentWs.readyState === WebSocket.OPEN) return _agentWs;
+  return new Promise((res, rej) => {
+    const ws = new WebSocket(AGENT_WS);
+    const t  = setTimeout(() => { ws.close(); rej(new Error('timeout')); }, timeout);
+    ws.onopen  = () => { clearTimeout(t); _agentWs = ws; res(ws); };
+    ws.onerror = () => { clearTimeout(t); rej(new Error('not running')); };
+  });
+}
+
+async function checkAgentStatus() {
+  const status = document.getElementById('agentStatus');
   if (!status) return;
   try {
-    const ws = new WebSocket(QZ_WS);
-    await new Promise((res, rej) => {
-      ws.onopen  = () => { qzConnected = true; ws.close(); res(); };
-      ws.onerror = () => rej();
-      setTimeout(rej, 2000);
-    });
-    status.innerHTML = '<span style="color:#10b981;"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> QZ Tray running</span>';
+    const ws = await connectAgent(2000);
+    ws.send(JSON.stringify({ type: 'ping' }));
+    status.innerHTML = '<span style="color:#10b981;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent running</span>';
+    await loadPrinterList();
   } catch {
-    qzConnected = false;
-    status.innerHTML = '<span style="color:#ef4444;"><i class="bi bi-circle-fill" style="font-size:0.5rem;"></i> QZ Tray not detected</span>';
+    status.innerHTML = '<span style="color:#ef4444;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent not running — run <code>python rasova_agent.py</code></span>';
   }
 }
 
-async function saveQZPrinterName() {
-  const name = document.getElementById('qzPrinterName')?.value?.trim();
-  if (!name) { ui.toast('Enter the printer name first', 'warning'); return; }
+async function loadPrinterList() {
+  const sel = document.getElementById('printerSelect');
+  if (!sel) return;
+  try {
+    const ws  = await connectAgent(1500);
+    const req = JSON.stringify({ type: 'list_printers' });
+    ws.send(req);
+    await new Promise(res => {
+      const h = (ev) => {
+        const d = JSON.parse(ev.data);
+        if (d.type === 'printers') {
+          ws.removeEventListener('message', h);
+          sel.innerHTML = '<option value="">— select printer —</option>';
+          (d.list || []).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p; opt.textContent = p;
+            if (p === document.getElementById('printerNameInput')?.value) opt.selected = true;
+            sel.appendChild(opt);
+          });
+          res();
+        }
+      };
+      ws.addEventListener('message', h);
+      setTimeout(res, 3000);
+    });
+  } catch { /* agent not running */ }
+}
+
+async function saveAgentPrinterName() {
+  const name = (document.getElementById('printerNameInput')?.value ||
+                document.getElementById('printerSelect')?.value || '').trim();
+  if (!name) { ui.toast('Select or enter a printer name', 'warning'); return; }
   const stationId = {{ default_station.id|default:'null' }};
-  if (!stationId) { ui.toast('No default station found', 'error'); return; }
+  if (!stationId) { ui.toast('No default station', 'error'); return; }
   try {
     await apiClient.post(`/setup/kitchen-stations/${stationId}/printer/`, { printer_name: name });
     ui.toast('Printer name saved ✓', 'success');
-  } catch(e) { ui.toast('Save failed', 'error'); }
+  } catch { ui.toast('Save failed', 'error'); }
 }
 
-async function testQZPrint() {
-  const result = document.getElementById('qzTestResult');
-  const name = document.getElementById('qzPrinterName')?.value?.trim();
-  if (!name) { if(result) result.textContent = 'Enter printer name first.'; return; }
-  if(result) result.textContent = 'Connecting to QZ Tray…';
+async function testAgentPrint() {
+  const result = document.getElementById('agentTestResult');
+  const btn    = document.getElementById('agentTestBtn');
+  const name   = (document.getElementById('printerNameInput')?.value ||
+                  document.getElementById('printerSelect')?.value || '').trim();
+
+  if (!name) { if(result) result.textContent = 'Select a printer first.'; return; }
+  if(result) result.textContent = 'Connecting to Rasova Agent…';
+  if(btn) btn.disabled = true;
+
+  const ESC = '\x1B', GS = '\x1D';
+  const lines = [
+    ESC+'@',                        // init printer
+    ESC+'a\x01',                    // center align
+    ESC+'E\x01',                    // bold on
+    'RASOVA PRINT AGENT\n',
+    ESC+'E\x00',                    // bold off
+    '-'.repeat(32)+'\n',
+    `Printer: ${name}\n`,
+    'Partial cut test:\n',
+    '-'.repeat(32)+'\n',
+    'SECTION 1\n\n',
+    GS+'V\x01',                     // PARTIAL CUT
+    'SECTION 2\n\n',
+    GS+'V\x01',                     // PARTIAL CUT
+    'SECTION 3\n\n',
+    'If cuts worked = SUCCESS!\n\n',
+    GS+'V\x00',                     // FULL CUT
+  ];
+
   try {
-    // Dynamic import of QZ Tray library
-    if (!window.qz) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.js';
-      await new Promise((r, j) => { script.onload = r; script.onerror = j; document.head.appendChild(script); });
-    }
-    await qz.websocket.connect();
-    const config = qz.configs.create(name);
-    const ESC = '\x1B', GS = '\x1D';
-    const data = [
-      ESC+'@',             // init
-      ESC+'a\x01',         // center
-      ESC+'E\x01',         // bold
-      'RASOVA TEST PRINT\n',
-      ESC+'E\x00',
-      ESC+'a\x00',
-      '-'.repeat(32)+'\n',
-      `Printer: ${name}\n`,
-      `Station: Default\n`,
-      '-'.repeat(32)+'\n',
-      'If you see this, QZ Tray\n',
-      'and printer are working!\n',
-      '\n\n',
-      GS+'V\x00',          // full cut
-    ];
-    await qz.print(config, [{ type: 'raw', format: 'plain', data: data.join('') }]);
-    await qz.websocket.disconnect();
-    if(result) result.innerHTML = '<span style="color:#10b981;">✓ Test print sent!</span>';
+    const ws  = await connectAgent(3000);
+    const jid = 'test-' + Date.now();
+    ws.send(JSON.stringify({ type: 'print', printer: name, lines, job_id: jid, encoding: 'cp437' }));
+    await new Promise((res, rej) => {
+      const h = (ev) => {
+        const d = JSON.parse(ev.data);
+        if (d.job_id === jid) {
+          ws.removeEventListener('message', h);
+          if (d.type === 'ok') {
+            if(result) result.innerHTML = '<span style="color:#10b981;">✓ Printed! Check for 2 partial cuts + 1 full cut.</span>';
+            res();
+          } else {
+            if(result) result.innerHTML = `<span style="color:#ef4444;">✗ ${d.message}</span>`;
+            rej();
+          }
+        }
+      };
+      ws.addEventListener('message', h);
+      setTimeout(() => { ws.removeEventListener('message', h); rej(new Error('timeout')); }, 10000);
+    });
   } catch(e) {
-    if(result) result.innerHTML = `<span style="color:#ef4444;">✗ ${e.message || 'QZ Tray not running or wrong printer name'}</span>`;
+    if(result) result.innerHTML = `<span style="color:#ef4444;">✗ ${e.message || 'Agent not running'}</span>`;
+  } finally {
+    if(btn) btn.disabled = false;
   }
 }
 
-document.addEventListener('DOMContentLoaded', checkQZTray);
+document.addEventListener('DOMContentLoaded', checkAgentStatus);
 
 function togglePanel(id) {
   const panel   = document.getElementById(`panel-${id}`);

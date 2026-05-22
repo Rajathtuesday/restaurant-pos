@@ -33,3 +33,7 @@ weasyprint==62.3
 
 # WhatsApp receipts (optional — set TWILIO_* env vars to enable)
 twilio==9.3.6
+
+# Rasova Print Agent — WebSocket server for USB printing
+websockets==13.1
+pywin32==308; sys_platform == 'win32'
