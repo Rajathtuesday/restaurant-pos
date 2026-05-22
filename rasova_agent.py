@@ -2,7 +2,7 @@
 """
 Rasova Print Agent
 ==================
-Lightweight WebSocket bridge from the browser to a local USB thermal printer.
+Lightweight WebSocket bridge from the browser to a local USB/network thermal printer.
 No Java. No certificates. No third-party dependencies beyond what Rasova already uses.
 
 Usage:
@@ -13,16 +13,22 @@ Usage:
 The browser connects to: ws://localhost:8765
 
 Protocol (JSON over WebSocket):
-  Browser → Agent:
+  Browser -> Agent:
     {"type": "ping"}
     {"type": "list_printers"}
     {"type": "print", "printer": "BillTouch ZY306", "lines": [...ESC/POS strings...]}
+    {"type": "print", "network_host": "192.168.1.101", "network_port": 9100, "lines": [...], "outlet_id": "my-outlet"}
+    {"type": "discover_network_printers"}
+    {"type": "save_printer_config", "outlet_id": "my-outlet", "usb_name": "...", "network_ip": "...", "network_port": 9100}
+    {"type": "get_config"}
 
-  Agent → Browser:
-    {"type": "pong", "version": "1.0"}
+  Agent -> Browser:
+    {"type": "pong", "version": "1.1.0"}
     {"type": "printers", "list": ["BillTouch ZY306", ...]}
     {"type": "ok", "message": "Printed"}
     {"type": "error", "message": "Printer offline"}
+    {"type": "network_printers", "list": [{"ip": "192.168.1.101", "port": 9100, "responded_ms": 45}, ...]}
+    {"type": "config", "data": {...}}
 """
 
 import asyncio
@@ -31,14 +37,30 @@ import logging
 import logging.handlers
 import sys
 import os
+import socket
+import subprocess
 import time
+from datetime import datetime
 from typing import Optional
 
 HOST = "localhost"
 PORT = 8765
-VERSION = "1.0.1"
+VERSION = "1.1.0"
 
 IS_WINDOWS = sys.platform == "win32"
+
+# ── Config paths ──────────────────────────────────────────────────────────────
+
+def _config_dir() -> str:
+    if IS_WINDOWS:
+        base = os.environ.get("APPDATA", os.path.expanduser("~"))
+    else:
+        base = os.path.expanduser("~")
+        return os.path.join(base, ".rasova")
+    return os.path.join(base, "Rasova")
+
+CONFIG_DIR = _config_dir()
+CONFIG_PATH = os.path.join(CONFIG_DIR, "agent_config.json")
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 # Log to file always (agent may run hidden with no console window)
@@ -46,7 +68,7 @@ IS_WINDOWS = sys.platform == "win32"
 
 def _setup_logging():
     fmt = logging.Formatter(
-        "[%(asctime)s] %(levelname)s — %(message)s",
+        "[%(asctime)s] %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     _log = logging.getLogger("rasova.agent")
@@ -57,7 +79,7 @@ def _setup_logging():
     ch.setFormatter(fmt)
     _log.addHandler(ch)
 
-    # File handler — always active, even when running hidden
+    # File handler -- always active, even when running hidden
     log_dir = os.path.join(os.environ.get("APPDATA", "."), "Rasova")
     os.makedirs(log_dir, exist_ok=True)
     log_path = os.path.join(log_dir, "agent.log")
@@ -78,13 +100,127 @@ if IS_WINDOWS:
         import win32print as _win32print
         logger.info("Windows printing available via win32print")
     except ImportError:
-        logger.warning("pywin32 not installed — run: pip install pywin32")
+        logger.warning("pywin32 not installed -- run: pip install pywin32")
 
 # ── ESC/POS over network (fallback / LAN printers) ───────────────────────────
 try:
     from escpos.printer import Network as _NetworkPrinter
 except ImportError:
     _NetworkPrinter = None
+
+
+# ── Config persistence ────────────────────────────────────────────────────────
+
+def _load_config() -> dict:
+    """Load agent config from disk. Returns empty config if file missing or corrupt."""
+    if not os.path.exists(CONFIG_PATH):
+        return {"version": 1, "printers": {}}
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict) or "printers" not in data:
+            return {"version": 1, "printers": {}}
+        return data
+    except Exception as e:
+        logger.warning("Could not load config from %s: %s", CONFIG_PATH, e)
+        return {"version": 1, "printers": {}}
+
+
+def _save_config(config: dict) -> bool:
+    """Persist config to disk. Returns True on success."""
+    try:
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+        tmp_path = CONFIG_PATH + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+        os.replace(tmp_path, CONFIG_PATH)
+        return True
+    except Exception as e:
+        logger.error("Could not save config to %s: %s", CONFIG_PATH, e)
+        return False
+
+
+def _update_last_seen(config: dict, outlet_id: str, ip: str) -> dict:
+    """Update last_seen_ip and last_seen timestamp for an outlet in config."""
+    if not outlet_id:
+        return config
+    printers = config.setdefault("printers", {})
+    entry = printers.setdefault(outlet_id, {})
+    entry["last_seen_ip"] = ip
+    entry["last_seen"] = datetime.now().isoformat(timespec="seconds")
+    return config
+
+
+# Global config loaded at startup
+_agent_config: dict = {}
+
+
+# ── Network printer discovery ─────────────────────────────────────────────────
+
+def _get_local_subnet() -> Optional[str]:
+    """
+    Detect the machine's primary LAN IP and return the /24 subnet prefix.
+    E.g. if IP is 192.168.1.42, returns "192.168.1".
+    Returns None if no non-loopback IP found.
+    """
+    try:
+        # Connect to a public IP (doesn't actually send data) to find the
+        # outbound interface's local address.
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+        parts = ip.split(".")
+        if len(parts) == 4 and not ip.startswith("127."):
+            return ".".join(parts[:3])
+    except Exception as e:
+        logger.warning("Could not detect local subnet: %s", e)
+    return None
+
+
+async def _probe_port(ip: str, port: int, timeout: float) -> Optional[dict]:
+    """
+    Try to open a TCP connection to ip:port within `timeout` seconds.
+    Returns a result dict on success, None on failure.
+    """
+    start = time.monotonic()
+    try:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(ip, port),
+            timeout=timeout,
+        )
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        writer.close()
+        try:
+            await writer.wait_closed()
+        except Exception:
+            pass
+        return {"ip": ip, "port": port, "responded_ms": elapsed_ms}
+    except Exception:
+        return None
+
+
+async def discover_network_printers(port: int = 9100, timeout: float = 0.5) -> list:
+    """
+    Scan all 254 hosts on the local /24 subnet for open port 9100.
+    Returns list of dicts: [{"ip": "...", "port": 9100, "responded_ms": 45}, ...]
+    Completes in ~timeout seconds wall-clock time via asyncio.gather.
+    """
+    subnet = _get_local_subnet()
+    if not subnet:
+        logger.warning("Network discovery: could not detect local subnet")
+        return []
+
+    logger.info("Scanning %s.1-%s.254 port %d ...", subnet, subnet, port)
+    tasks = [
+        _probe_port(f"{subnet}.{i}", port, timeout)
+        for i in range(1, 255)
+    ]
+    results = await asyncio.gather(*tasks)
+    found = [r for r in results if r is not None]
+    found.sort(key=lambda x: x["responded_ms"])
+    logger.info("Network discovery found %d printer(s): %s",
+                len(found), [r["ip"] for r in found])
+    return found
 
 
 # ── Auto-start install / uninstall ───────────────────────────────────────────
@@ -104,15 +240,25 @@ def install_autostart():
     Drop a VBS launcher into the Windows Startup folder.
     Runs silently (no console window) every time the user logs in.
     No admin rights required.
+    Also pip-installs required dependencies.
     """
     if not IS_WINDOWS:
         print("Auto-start via Startup folder is Windows-only.")
         print("On Mac: add to Login Items in System Settings.")
         sys.exit(0)
 
+    # Step 1: Install dependencies
+    print("Installing dependencies...")
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--quiet", "websockets", "pywin32"],
+        check=False,
+    )
+    print("  Dependencies installed (websockets, pywin32).")
+
+    # Step 2: Write VBS launcher
     agent_path = os.path.abspath(__file__)
 
-    # Prefer pythonw.exe — runs with no console window
+    # Prefer pythonw.exe -- runs with no console window
     python_exe = sys.executable
     pythonw = python_exe.replace("python.exe", "pythonw.exe")
     if os.path.exists(pythonw):
@@ -128,17 +274,17 @@ def install_autostart():
     try:
         with open(vbs_file, "w", encoding="utf-8") as f:
             f.write(vbs)
-        print(f"✓  Auto-start installed.")
-        print(f"   Rasova Agent will start silently at every Windows login.")
-        print(f"   Launcher: {vbs_file}")
-        print(f"   Logs:     {LOG_PATH}")
+        print(f"  Auto-start installed.")
+        print(f"  Rasova Agent will start silently at every Windows login.")
+        print(f"  Launcher: {vbs_file}")
+        print(f"  Logs:     {LOG_PATH}")
         print()
-        print("   To verify it's running: open Kitchen Stations — look for green dot.")
-        print("   To remove auto-start:   python rasova_agent.py --uninstall")
+        print("  To verify it's running: open Kitchen Stations -- look for green dot.")
+        print("  To remove auto-start:   python rasova_agent.py --uninstall")
     except Exception as e:
-        print(f"✗  Failed to write startup file: {e}")
-        print(f"   Try running as Administrator or manually copy to:")
-        print(f"   {_startup_dir()}")
+        print(f"  Failed to write startup file: {e}")
+        print(f"  Try running as Administrator or manually copy to:")
+        print(f"  {_startup_dir()}")
         sys.exit(1)
 
 
@@ -147,9 +293,9 @@ def uninstall_autostart():
     vbs_file = _vbs_path()
     if os.path.exists(vbs_file):
         os.remove(vbs_file)
-        print("✓  Auto-start removed. Rasova Agent will no longer start at login.")
+        print("  Auto-start removed. Rasova Agent will no longer start at login.")
     else:
-        print("   Auto-start was not installed (nothing to remove).")
+        print("  Auto-start was not installed (nothing to remove).")
 
 
 # ── Printer utilities ─────────────────────────────────────────────────────────
@@ -181,7 +327,7 @@ def find_printer(name: str) -> Optional[str]:
 
 def print_raw_windows(printer_name: str, data: bytes, retries: int = 3) -> tuple:
     if not _win32print:
-        return False, "pywin32 not installed — run: pip install pywin32"
+        return False, "pywin32 not installed -- run: pip install pywin32"
 
     exact_name = find_printer(printer_name)
     if not exact_name:
@@ -207,11 +353,10 @@ def print_raw_windows(printer_name: str, data: bytes, retries: int = 3) -> tuple
             if attempt < retries - 1:
                 time.sleep(1)
 
-    return False, f"Print failed after {retries} attempts — is printer on and connected?"
+    return False, f"Print failed after {retries} attempts -- is printer on and connected?"
 
 
 def print_raw_network(host: str, port: int, data: bytes) -> tuple:
-    import socket
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(10)
@@ -220,7 +365,7 @@ def print_raw_network(host: str, port: int, data: bytes) -> tuple:
         logger.info("Sent %d bytes to %s:%d", len(data), host, port)
         return True, f"Sent to {host}:{port}"
     except Exception as e:
-        return False, f"Network print failed: {e}"
+        return False, f"Network print failed ({host}:{port}): {e}"
 
 
 def decode_lines(lines: list, encoding: str = "cp437") -> bytes:
@@ -236,9 +381,64 @@ def decode_lines(lines: list, encoding: str = "cp437") -> bytes:
     return result
 
 
+# ── Smart network print with re-discovery ─────────────────────────────────────
+
+async def smart_network_print(
+    net_host: str,
+    net_port: int,
+    data: bytes,
+    outlet_id: str,
+    config: dict,
+) -> tuple:
+    """
+    Try network printing with progressive fallback:
+    1. Provided IP (normal path)
+    2. Cached last_seen_ip for this outlet (if different from provided)
+    3. Full subnet scan, try each discovered IP until one works
+    Returns (success, message, working_ip_or_None)
+    """
+    tried = []
+
+    # Level 1: try the provided IP
+    if net_host:
+        tried.append(net_host)
+        success, msg = print_raw_network(net_host, net_port, data)
+        if success:
+            return True, msg, net_host
+
+    # Level 2: try cached last_seen_ip (if different from provided)
+    cached_ip = None
+    if outlet_id:
+        outlet_cfg = config.get("printers", {}).get(outlet_id, {})
+        cached_ip = outlet_cfg.get("last_seen_ip", "")
+    if cached_ip and cached_ip != net_host:
+        tried.append(cached_ip)
+        logger.info("Trying cached IP for outlet '%s': %s", outlet_id, cached_ip)
+        success, msg = print_raw_network(cached_ip, net_port, data)
+        if success:
+            return True, msg, cached_ip
+
+    # Level 3: full subnet discovery
+    logger.info("Network print failed on all known IPs, starting subnet discovery...")
+    discovered = await discover_network_printers(port=net_port, timeout=0.5)
+    for printer_info in discovered:
+        candidate = printer_info["ip"]
+        if candidate in tried:
+            continue
+        tried.append(candidate)
+        logger.info("Trying discovered printer at %s", candidate)
+        success, msg = print_raw_network(candidate, net_port, data)
+        if success:
+            return True, f"{msg} (re-discovered after IP change)", candidate
+
+    detail = ", ".join(tried) if tried else "none"
+    return False, f"Network print failed. Tried: {detail}", None
+
+
 # ── WebSocket handler ─────────────────────────────────────────────────────────
 
 async def handle_client(websocket):
+    global _agent_config
     client = websocket.remote_address
     logger.info("Browser connected: %s", client)
 
@@ -252,6 +452,7 @@ async def handle_client(websocket):
 
             msg_type = msg.get("type", "")
 
+            # ── ping ──────────────────────────────────────────────────────────
             if msg_type == "ping":
                 await websocket.send(json.dumps({
                     "type": "pong",
@@ -261,6 +462,7 @@ async def handle_client(websocket):
                     "log_path": LOG_PATH,
                 }))
 
+            # ── list_printers ─────────────────────────────────────────────────
             elif msg_type == "list_printers":
                 printers = list_windows_printers()
                 await websocket.send(json.dumps({
@@ -269,29 +471,80 @@ async def handle_client(websocket):
                     "default": _win32print.GetDefaultPrinter() if _win32print else None,
                 }))
 
+            # ── discover_network_printers ─────────────────────────────────────
+            elif msg_type == "discover_network_printers":
+                port = int(msg.get("port", 9100))
+                timeout = float(msg.get("timeout", 0.5))
+                found = await discover_network_printers(port=port, timeout=timeout)
+                await websocket.send(json.dumps({
+                    "type": "network_printers",
+                    "list": found,
+                }))
+
+            # ── save_printer_config ───────────────────────────────────────────
+            elif msg_type == "save_printer_config":
+                outlet_id = msg.get("outlet_id", "").strip()
+                if not outlet_id:
+                    await websocket.send(json.dumps({
+                        "type": "error",
+                        "message": "outlet_id is required for save_printer_config",
+                    }))
+                    continue
+
+                printers = _agent_config.setdefault("printers", {})
+                entry = printers.setdefault(outlet_id, {})
+                for field in ("usb_name", "network_ip", "network_port", "last_seen_ip", "last_seen"):
+                    if field in msg:
+                        entry[field] = msg[field]
+
+                saved = _save_config(_agent_config)
+                await websocket.send(json.dumps({
+                    "type": "ok" if saved else "error",
+                    "message": "Config saved" if saved else "Config save failed (check logs)",
+                }))
+
+            # ── get_config ────────────────────────────────────────────────────
+            elif msg_type == "get_config":
+                await websocket.send(json.dumps({
+                    "type": "config",
+                    "data": _agent_config,
+                    "config_path": CONFIG_PATH,
+                }))
+
+            # ── print ─────────────────────────────────────────────────────────
             elif msg_type == "print":
-                printer  = msg.get("printer", "").strip()
-                lines    = msg.get("lines", [])
-                net_host = msg.get("network_host", "")
-                net_port = int(msg.get("network_port", 9100))
-                encoding = msg.get("encoding", "cp437")
-                job_id   = msg.get("job_id", "")
+                printer   = msg.get("printer", "").strip()
+                lines     = msg.get("lines", [])
+                net_host  = msg.get("network_host", "").strip()
+                net_port  = int(msg.get("network_port", 9100))
+                encoding  = msg.get("encoding", "cp437")
+                job_id    = msg.get("job_id", "")
+                outlet_id = msg.get("outlet_id", "").strip()
 
                 if not lines:
                     await websocket.send(json.dumps({
                         "type": "error", "job_id": job_id,
-                        "message": "No print data provided"
+                        "message": "No print data provided",
                     }))
                     continue
 
                 data = decode_lines(lines, encoding)
+                working_ip = None
 
                 if net_host:
-                    success, message = print_raw_network(net_host, net_port, data)
+                    # Smart network print with fallback chain
+                    success, message, working_ip = await smart_network_print(
+                        net_host, net_port, data, outlet_id, _agent_config
+                    )
                 elif printer:
                     success, message = print_raw_windows(printer, data)
                 else:
                     success, message = False, "No printer name or network host provided"
+
+                # Save successful IP to config
+                if success and working_ip and outlet_id:
+                    _update_last_seen(_agent_config, outlet_id, working_ip)
+                    _save_config(_agent_config)
 
                 await websocket.send(json.dumps({
                     "type": "ok" if success else "error",
@@ -302,7 +555,7 @@ async def handle_client(websocket):
             else:
                 await websocket.send(json.dumps({
                     "type": "error",
-                    "message": f"Unknown message type: {msg_type}"
+                    "message": f"Unknown message type: {msg_type}",
                 }))
 
     except Exception as e:
@@ -320,14 +573,15 @@ async def main():
     logger.info("  Rasova Print Agent v%s", VERSION)
     logger.info("  Listening on ws://%s:%d", HOST, PORT)
     logger.info("  Platform: %s | win32print: %s",
-                sys.platform, "✓" if _win32print else "✗ (install pywin32)")
+                sys.platform, "yes" if _win32print else "no (install pywin32)")
     logger.info("  Log file: %s", LOG_PATH)
+    logger.info("  Config:   %s", CONFIG_PATH)
     if IS_WINDOWS:
         printers = list_windows_printers()
         if printers:
             logger.info("  Printers: %s", ", ".join(printers))
         else:
-            logger.warning("  No printers found — connect BillTouch via USB")
+            logger.warning("  No printers found -- connect BillTouch via USB")
     logger.info("=" * 56)
 
     async with websockets.serve(
@@ -353,8 +607,13 @@ if __name__ == "__main__":
     try:
         import websockets
     except ImportError:
-        logger.error("websockets not installed — run: pip install websockets")
+        logger.error("websockets not installed -- run: pip install websockets")
         sys.exit(1)
+
+    # Load config on startup
+    _agent_config = _load_config()
+    logger.info("Loaded config from %s (%d outlet(s))",
+                CONFIG_PATH, len(_agent_config.get("printers", {})))
 
     try:
         asyncio.run(main())

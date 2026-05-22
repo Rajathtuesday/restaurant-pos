@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Kitchen Stations | Setup{% endblock %}
 
 {% block extra_css %}
@@ -146,10 +147,12 @@
           <span style="font-size:0.72rem;color:var(--text-muted);">
             Real partial cuts + full cut. USB or network. No Java, no certificates.<br>
             <span style="margin-top:0.35rem;display:inline-block;">
-              <strong style="color:var(--text-main);">First time setup (run once on billing laptop):</strong><br>
-              1. <code style="background:var(--bg-color);padding:1px 5px;">pip install websockets pywin32</code><br>
-              2. <code style="background:var(--bg-color);padding:1px 5px;">python rasova_agent.py --install</code>
-              <span style="color:#10b981;margin-left:4px;">← auto-starts at every Windows login</span>
+              First time on billing laptop:
+              <a href="{% static 'agent/rasova_agent_installer.bat' %}" download
+                 style="color:var(--accent-gold);font-weight:600;">
+                <i class="bi bi-download me-1"></i>Download Installer (.bat)
+              </a>
+              — double-click it once, done forever.
             </span>
           </span>
         </div>
@@ -160,13 +163,14 @@
 
       {% if outlet.use_qz_tray %}
       <div style="margin-top:0.9rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
-        <label class="field-label">Windows Printer Name</label>
+        <!-- USB Printer -->
+        <label class="field-label">USB Printer (billing laptop)</label>
         <div style="display:flex;gap:.75rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">
           <select id="printerSelect" class="field-select" style="max-width:260px;" onchange="document.getElementById('printerNameInput').value=this.value">
-            <option value="">— Auto-detect from agent —</option>
+            <option value="">— select from list —</option>
           </select>
           <button class="btn-ghost" style="font-size:0.65rem;" onclick="loadPrinterList()">
-            <i class="bi bi-arrow-repeat me-1"></i>Refresh
+            <i class="bi bi-arrow-repeat me-1"></i>Refresh USB List
           </button>
         </div>
         <input type="text" id="printerNameInput" class="field-input"
@@ -174,12 +178,31 @@
                placeholder="or type exact name: BillTouch ZY306"
                style="max-width:340px;margin-top:0.5rem;">
         <div class="hint" style="margin-top:0.3rem;">
-          If Rasova Agent is running, click Refresh to auto-populate the list.
-          Or type the exact name from Windows → Settings → Printers &amp; Scanners.
+          Agent auto-discovers USB printers. Click Refresh or type the name from Windows → Printers &amp; Scanners.
         </div>
+
+        <!-- Network Printer Discovery -->
+        <label class="field-label" style="margin-top:1rem;">Network Printer (LAN / WiFi)</label>
+        <div style="display:flex;gap:.75rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">
+          <select id="networkPrinterSelect" class="field-select" style="max-width:260px;" onchange="document.getElementById('networkPrinterIpInput').value=this.value">
+            <option value="">— scan network —</option>
+          </select>
+          <button class="btn-ghost" style="font-size:0.65rem;" onclick="discoverNetworkPrinters()">
+            <i class="bi bi-wifi me-1"></i>Scan Network
+          </button>
+          <span id="networkScanStatus" style="font-size:0.68rem;color:var(--text-muted);"></span>
+        </div>
+        <input type="text" id="networkPrinterIpInput"
+               value="{{ default_station.printer_ip|default:'' }}"
+               placeholder="e.g. 192.168.1.101"
+               class="field-input" style="max-width:340px;margin-top:0.5rem;">
+        <div class="hint" style="margin-top:0.3rem;">
+          Scans your LAN for printers on port 9100. Set a static IP by MAC in your router for reliability.
+        </div>
+
         <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;">
           <button class="btn-save" onclick="saveAgentPrinterName()">
-            <i class="bi bi-floppy me-1"></i>Save Printer Name
+            <i class="bi bi-floppy me-1"></i>Save
           </button>
           <button class="btn-test" id="agentTestBtn" onclick="testAgentPrint()">
             <i class="bi bi-printer me-1"></i>Test Print
@@ -531,16 +554,76 @@ async function loadPrinterList() {
   } catch { /* agent not running */ }
 }
 
+async function discoverNetworkPrinters() {
+  const sel    = document.getElementById('networkPrinterSelect');
+  const status = document.getElementById('networkScanStatus');
+  if (!sel || !status) return;
+  status.textContent = 'Scanning network…';
+  try {
+    const ws = await connectAgent(3000);
+    ws.send(JSON.stringify({ type: 'discover_network_printers', port: 9100, timeout: 0.5 }));
+    await new Promise(res => {
+      const h = (ev) => {
+        const d = JSON.parse(ev.data);
+        if (d.type === 'network_printers') {
+          ws.removeEventListener('message', h);
+          sel.innerHTML = '<option value="">— select IP —</option>';
+          if (!d.list || d.list.length === 0) {
+            status.textContent = 'No network printers found on port 9100';
+            status.style.color = '#ef4444';
+          } else {
+            d.list.forEach(p => {
+              const opt = document.createElement('option');
+              opt.value = p.ip;
+              opt.textContent = `${p.ip}  (${p.responded_ms}ms)`;
+              if (p.ip === document.getElementById('networkPrinterIpInput')?.value) opt.selected = true;
+              sel.appendChild(opt);
+            });
+            status.textContent = `Found ${d.list.length} printer(s)`;
+            status.style.color = '#10b981';
+          }
+          res();
+        }
+      };
+      ws.addEventListener('message', h);
+      setTimeout(res, 4000);
+    });
+  } catch {
+    status.textContent = 'Agent not running';
+    status.style.color = '#ef4444';
+  }
+}
+
 async function saveAgentPrinterName() {
-  const name = (document.getElementById('printerNameInput')?.value ||
-                document.getElementById('printerSelect')?.value || '').trim();
-  if (!name) { ui.toast('Select or enter a printer name', 'warning'); return; }
+  const usbName  = (document.getElementById('printerNameInput')?.value ||
+                    document.getElementById('printerSelect')?.value || '').trim();
+  const netIp    = (document.getElementById('networkPrinterIpInput')?.value ||
+                    document.getElementById('networkPrinterSelect')?.value || '').trim();
+  if (!usbName && !netIp) { ui.toast('Select or enter a printer name or IP', 'warning'); return; }
+
   const stationId = {{ default_station.id|default:'null' }};
   if (!stationId) { ui.toast('No default station', 'error'); return; }
+
+  // 1. Save USB name to Django backend
+  const payload = {};
+  if (usbName) payload.printer_name = usbName;
+  if (netIp)   payload.printer_ip   = netIp;
   try {
-    await apiClient.post(`/setup/kitchen-stations/${stationId}/printer/`, { printer_name: name });
-    ui.toast('Printer name saved ✓', 'success');
-  } catch { ui.toast('Save failed', 'error'); }
+    await apiClient.post(`/setup/kitchen-stations/${stationId}/printer/`, payload);
+  } catch { ui.toast('Save failed', 'error'); return; }
+
+  // 2. Also tell the agent to remember this outlet's printer config
+  const outletId = '{{ outlet.id }}';
+  try {
+    const ws = await connectAgent(1500);
+    const cfg = { type: 'save_printer_config', outlet_id: outletId };
+    if (usbName) cfg.usb_name    = usbName;
+    if (netIp)   cfg.network_ip  = netIp;
+    if (netIp)   cfg.network_port = 9100;
+    ws.send(JSON.stringify(cfg));
+  } catch { /* agent not running — Django save is enough */ }
+
+  ui.toast('Printer settings saved ✓', 'success');
 }
 
 async function testAgentPrint() {

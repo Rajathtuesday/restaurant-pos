@@ -620,6 +620,7 @@
                     lines,
                     job_id: jobId,
                     encoding: 'cp437',
+                    outlet_id: '{{ order.outlet.id }}',
                 }));
                 // Timeout if no response in 10s
                 setTimeout(() => { ws.removeEventListener('message', handler); resolve(false); }, 10000);
