@@ -6,7 +6,9 @@ Lightweight WebSocket bridge from the browser to a local USB thermal printer.
 No Java. No certificates. No third-party dependencies beyond what Rasova already uses.
 
 Usage:
-    python rasova_agent.py
+    python rasova_agent.py              # run the agent
+    python rasova_agent.py --install    # auto-start at Windows login (run once)
+    python rasova_agent.py --uninstall  # remove auto-start
 
 The browser connects to: ws://localhost:8765
 
@@ -26,26 +28,48 @@ Protocol (JSON over WebSocket):
 import asyncio
 import json
 import logging
+import logging.handlers
 import sys
 import os
 import time
-import threading
 from typing import Optional
-
-# ── Logging ───────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s — %(message)s",
-    datefmt="%H:%M:%S",
-)
-logger = logging.getLogger("rasova.agent")
 
 HOST = "localhost"
 PORT = 8765
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
-# ── Platform detection ────────────────────────────────────────────────────────
 IS_WINDOWS = sys.platform == "win32"
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Log to file always (agent may run hidden with no console window)
+# Log to console only when running interactively
+
+def _setup_logging():
+    fmt = logging.Formatter(
+        "[%(asctime)s] %(levelname)s — %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    _log = logging.getLogger("rasova.agent")
+    _log.setLevel(logging.INFO)
+
+    # Console handler (only useful when window is visible)
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(fmt)
+    _log.addHandler(ch)
+
+    # File handler — always active, even when running hidden
+    log_dir = os.path.join(os.environ.get("APPDATA", "."), "Rasova")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "agent.log")
+    fh = logging.handlers.RotatingFileHandler(
+        log_path, maxBytes=5 * 1024 * 1024, backupCount=2, encoding="utf-8"
+    )
+    fh.setFormatter(fmt)
+    _log.addHandler(fh)
+
+    return _log, log_path
+
+logger, LOG_PATH = _setup_logging()
 
 # ── Windows printer access ────────────────────────────────────────────────────
 _win32print = None
@@ -54,20 +78,83 @@ if IS_WINDOWS:
         import win32print as _win32print
         logger.info("Windows printing available via win32print")
     except ImportError:
-        logger.warning("pywin32 not installed — install with: pip install pywin32")
+        logger.warning("pywin32 not installed — run: pip install pywin32")
 
 # ── ESC/POS over network (fallback / LAN printers) ───────────────────────────
-_network_printer = None
 try:
     from escpos.printer import Network as _NetworkPrinter
 except ImportError:
     _NetworkPrinter = None
 
 
+# ── Auto-start install / uninstall ───────────────────────────────────────────
+
+def _startup_dir() -> str:
+    return os.path.join(
+        os.environ.get("APPDATA", ""),
+        r"Microsoft\Windows\Start Menu\Programs\Startup",
+    )
+
+def _vbs_path() -> str:
+    return os.path.join(_startup_dir(), "RasovaPrintAgent.vbs")
+
+
+def install_autostart():
+    """
+    Drop a VBS launcher into the Windows Startup folder.
+    Runs silently (no console window) every time the user logs in.
+    No admin rights required.
+    """
+    if not IS_WINDOWS:
+        print("Auto-start via Startup folder is Windows-only.")
+        print("On Mac: add to Login Items in System Settings.")
+        sys.exit(0)
+
+    agent_path = os.path.abspath(__file__)
+
+    # Prefer pythonw.exe — runs with no console window
+    python_exe = sys.executable
+    pythonw = python_exe.replace("python.exe", "pythonw.exe")
+    if os.path.exists(pythonw):
+        python_exe = pythonw
+
+    # VBS launches the agent silently (window style 0 = hidden)
+    vbs = (
+        f'CreateObject("Wscript.Shell").Run '
+        f'"""{python_exe}"" ""{agent_path}""", 0, False\n'
+    )
+
+    vbs_file = _vbs_path()
+    try:
+        with open(vbs_file, "w", encoding="utf-8") as f:
+            f.write(vbs)
+        print(f"✓  Auto-start installed.")
+        print(f"   Rasova Agent will start silently at every Windows login.")
+        print(f"   Launcher: {vbs_file}")
+        print(f"   Logs:     {LOG_PATH}")
+        print()
+        print("   To verify it's running: open Kitchen Stations — look for green dot.")
+        print("   To remove auto-start:   python rasova_agent.py --uninstall")
+    except Exception as e:
+        print(f"✗  Failed to write startup file: {e}")
+        print(f"   Try running as Administrator or manually copy to:")
+        print(f"   {_startup_dir()}")
+        sys.exit(1)
+
+
+def uninstall_autostart():
+    """Remove the VBS launcher from the Windows Startup folder."""
+    vbs_file = _vbs_path()
+    if os.path.exists(vbs_file):
+        os.remove(vbs_file)
+        print("✓  Auto-start removed. Rasova Agent will no longer start at login.")
+    else:
+        print("   Auto-start was not installed (nothing to remove).")
+
+
 # ── Printer utilities ─────────────────────────────────────────────────────────
 
 def list_windows_printers() -> list:
-    """Return all installed Windows printer names."""
     if not _win32print:
         return []
     try:
@@ -81,17 +168,11 @@ def list_windows_printers() -> list:
 
 
 def find_printer(name: str) -> Optional[str]:
-    """
-    Find a printer by name (case-insensitive, partial match).
-    Returns the exact Windows printer name or None.
-    """
     all_printers = list_windows_printers()
     name_lower = name.lower()
-    # Exact match first
     for p in all_printers:
         if p.lower() == name_lower:
             return p
-    # Partial match
     for p in all_printers:
         if name_lower in p.lower():
             return p
@@ -99,10 +180,6 @@ def find_printer(name: str) -> Optional[str]:
 
 
 def print_raw_windows(printer_name: str, data: bytes, retries: int = 3) -> tuple:
-    """
-    Send raw ESC/POS bytes to a Windows USB printer.
-    Returns (success: bool, message: str)
-    """
     if not _win32print:
         return False, "pywin32 not installed — run: pip install pywin32"
 
@@ -134,7 +211,6 @@ def print_raw_windows(printer_name: str, data: bytes, retries: int = 3) -> tuple
 
 
 def print_raw_network(host: str, port: int, data: bytes) -> tuple:
-    """Send raw ESC/POS to a network printer (TCP:9100)."""
     import socket
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -148,10 +224,6 @@ def print_raw_network(host: str, port: int, data: bytes) -> tuple:
 
 
 def decode_lines(lines: list, encoding: str = "cp437") -> bytes:
-    """
-    Convert the list of ESC/POS string commands to bytes.
-    Handles Unicode → bytes safely for thermal printers.
-    """
     result = b""
     for line in lines:
         if isinstance(line, str):
@@ -170,7 +242,6 @@ async def handle_client(websocket):
     client = websocket.remote_address
     logger.info("Browser connected: %s", client)
 
-    # Tell browser we support CORS / all origins
     try:
         async for raw in websocket:
             try:
@@ -181,16 +252,15 @@ async def handle_client(websocket):
 
             msg_type = msg.get("type", "")
 
-            # ── Ping / health check ──────────────────────────────────────
             if msg_type == "ping":
                 await websocket.send(json.dumps({
                     "type": "pong",
                     "version": VERSION,
                     "platform": sys.platform,
                     "win32print": _win32print is not None,
+                    "log_path": LOG_PATH,
                 }))
 
-            # ── List available printers ──────────────────────────────────
             elif msg_type == "list_printers":
                 printers = list_windows_printers()
                 await websocket.send(json.dumps({
@@ -199,7 +269,6 @@ async def handle_client(websocket):
                     "default": _win32print.GetDefaultPrinter() if _win32print else None,
                 }))
 
-            # ── Print job ────────────────────────────────────────────────
             elif msg_type == "print":
                 printer  = msg.get("printer", "").strip()
                 lines    = msg.get("lines", [])
@@ -217,7 +286,6 @@ async def handle_client(websocket):
 
                 data = decode_lines(lines, encoding)
 
-                # Try network first if host provided, else Windows USB
                 if net_host:
                     success, message = print_raw_network(net_host, net_port, data)
                 elif printer:
@@ -253,30 +321,36 @@ async def main():
     logger.info("  Listening on ws://%s:%d", HOST, PORT)
     logger.info("  Platform: %s | win32print: %s",
                 sys.platform, "✓" if _win32print else "✗ (install pywin32)")
+    logger.info("  Log file: %s", LOG_PATH)
     if IS_WINDOWS:
         printers = list_windows_printers()
         if printers:
-            logger.info("  Printers found: %s", ", ".join(printers))
+            logger.info("  Printers: %s", ", ".join(printers))
         else:
             logger.warning("  No printers found — connect BillTouch via USB")
     logger.info("=" * 56)
-    logger.info("  In Rasova: Kitchen Stations → enable 'Rasova Agent'")
-    logger.info("  Keep this window open while billing.")
-    logger.info("  Press Ctrl+C to stop.")
-    logger.info("")
 
     async with websockets.serve(
         handle_client, HOST, PORT,
-        origins=None,          # accept connections from any origin (localhost only anyway)
+        origins=None,
         ping_interval=30,
         ping_timeout=10,
     ):
-        await asyncio.Future()  # run forever
+        await asyncio.Future()
 
 
 if __name__ == "__main__":
+    # ── CLI flags ─────────────────────────────────────────────────────────────
+    if "--install" in sys.argv:
+        install_autostart()
+        sys.exit(0)
+
+    if "--uninstall" in sys.argv:
+        uninstall_autostart()
+        sys.exit(0)
+
+    # ── Normal run ────────────────────────────────────────────────────────────
     try:
-        # Check websockets is available
         import websockets
     except ImportError:
         logger.error("websockets not installed — run: pip install websockets")

@@ -144,8 +144,13 @@
           <strong>Rasova Print Agent</strong>
           <span style="font-size:0.6rem;background:rgba(16,185,129,.12);color:#10b981;padding:2px 7px;border-radius:3px;margin-left:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Our own</span><br>
           <span style="font-size:0.72rem;color:var(--text-muted);">
-            Run <code style="background:var(--bg-color);padding:1px 5px;">python rasova_agent.py</code> on the billing laptop.
-            Real partial cuts + full cut. USB or network. No Java, no certificates.
+            Real partial cuts + full cut. USB or network. No Java, no certificates.<br>
+            <span style="margin-top:0.35rem;display:inline-block;">
+              <strong style="color:var(--text-main);">First time setup (run once on billing laptop):</strong><br>
+              1. <code style="background:var(--bg-color);padding:1px 5px;">pip install websockets pywin32</code><br>
+              2. <code style="background:var(--bg-color);padding:1px 5px;">python rasova_agent.py --install</code>
+              <span style="color:#10b981;margin-left:4px;">← auto-starts at every Windows login</span>
+            </span>
           </span>
         </div>
         <div>
@@ -494,7 +499,7 @@ async function checkAgentStatus() {
     status.innerHTML = '<span style="color:#10b981;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent running</span>';
     await loadPrinterList();
   } catch {
-    status.innerHTML = '<span style="color:#ef4444;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent not running — run <code>python rasova_agent.py</code></span>';
+    status.innerHTML = '<span style="color:#ef4444;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent not running — run <code>python rasova_agent.py --install</code> once to auto-start at login</span>';
   }
 }
 
