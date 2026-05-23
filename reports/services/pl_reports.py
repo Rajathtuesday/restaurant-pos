@@ -42,6 +42,10 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     if outlet:
         order_qs = order_qs.filter(outlet=outlet)
 
+    # Composition scheme outlets issue Bill of Supply — no GST to collect.
+    # Zero out gst_total contribution from those outlets.
+    non_comp_qs = order_qs.filter(outlet__is_composition_scheme=False)
+
     # ── Revenue totals ──────────────────────────────────────────
     totals = order_qs.aggregate(
         gross_revenue = Sum("grand_total"),
@@ -52,13 +56,14 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     from django.db.models import Count
     totals2 = order_qs.aggregate(
         gross_revenue = Sum("grand_total"),
-        gst_collected = Sum("gst_total"),
         discounts     = Sum("discount_total"),
         order_count   = Count("id"),
     )
+    # GST only from non-composition-scheme outlets
+    gst_agg = non_comp_qs.aggregate(gst_collected=Sum("gst_total"))
 
     gross_revenue = float(totals2["gross_revenue"] or 0)
-    gst_collected = float(totals2["gst_collected"] or 0)
+    gst_collected = float(gst_agg["gst_collected"] or 0)
     discounts     = float(totals2["discounts"]     or 0)
     order_count   = totals2["order_count"] or 0
     net_revenue   = gross_revenue - gst_collected

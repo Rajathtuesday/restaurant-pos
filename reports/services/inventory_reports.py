@@ -1,5 +1,5 @@
 # reports/services/inventory_reports.py
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+from django.db.models import Sum
 from inventory.models import InventoryTransaction
 
 
@@ -41,6 +41,7 @@ def inventory_wastage(tenant, outlet, start_date=None, end_date=None):
 
 def inventory_cost(tenant, outlet, start_date=None, end_date=None):
     """Total consumption cost per item (quantity × item cost_price)."""
+    from decimal import Decimal as D
     qs = InventoryTransaction.objects.filter(
         tenant=tenant,
         outlet=outlet,
@@ -50,17 +51,14 @@ def inventory_cost(tenant, outlet, start_date=None, end_date=None):
         qs = qs.filter(created_at__date__gte=start_date)
     if end_date:
         qs = qs.filter(created_at__date__lte=end_date)
-    return list(
+    rows = list(
         qs.values("item__name", "item__unit", "item__cost_price")
-          .annotate(
-              total_qty=Sum("quantity"),
-              total_cost=ExpressionWrapper(
-                  Sum("quantity") * F("item__cost_price"),
-                  output_field=DecimalField(max_digits=14, decimal_places=2),
-              ),
-          )
-          .order_by("-total_cost")
+          .annotate(total_qty=Sum("quantity"))
     )
+    for row in rows:
+        cost = row.get("item__cost_price") or D("0")
+        row["total_cost"] = (row["total_qty"] or D("0")) * cost
+    return sorted(rows, key=lambda r: r["total_cost"], reverse=True)
 
 
 def closing_stock(tenant, outlet):

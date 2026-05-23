@@ -188,7 +188,7 @@
 
         <!-- Order meta -->
         <div class="meta">
-            <div><span class="label">Invoice</span><span>{{ order.order_number|default:order.id }}</span></div>
+            <div><span class="label">{% if is_composition %}Bill of Supply{% else %}Tax Invoice{% endif %}</span><span>{{ order.order_number|default:order.id }}</span></div>
             <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
         </div>
         <div class="meta" style="margin-top:-6px">
@@ -230,8 +230,9 @@
         </div>
 
         <!-- Totals -->
-        {% if gst_inclusive %}
-        {# INCLUSIVE: customer sees grand_total as the "base"; GST is broken out below #}
+        {% if is_composition %}
+        <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
+        {% elif gst_inclusive %}
         <div class="total-row"><span>Subtotal (excl. GST)</span><span>₹{{ order.subtotal }}</span></div>
         {% else %}
         <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
@@ -247,7 +248,7 @@
         </div>
         {% endif %}
 
-        {% if order.gst_breakdown %}
+        {% if order.gst_breakdown and not is_composition %}
         {# Screen: collapsible detail block #}
         <div class="gst-breakdown no-print">
             <div class="gst-breakdown-title">
@@ -284,7 +285,9 @@
         <div class="grand-total">
             <span>TOTAL</span><span>₹{{ order.grand_total }}</span>
         </div>
-        {% if gst_inclusive %}
+        {% if is_composition %}
+        <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">Bill of Supply — GST not applicable (Composition Scheme)</div>
+        {% elif gst_inclusive %}
         <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">All prices inclusive of GST</div>
         {% endif %}
 

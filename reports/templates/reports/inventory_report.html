@@ -329,7 +329,7 @@
             <tr>
               <th>Item</th>
               <th class="text-end">Total Consumed</th>
-              <th class="text-end">Wastage</th>
+              <th class="text-end">Unit</th>
             </tr>
           </thead>
           <tbody>
@@ -337,11 +337,7 @@
             <tr>
               <td>{{ row.item__name }}</td>
               <td class="text-end mono">{{ row.total_qty|floatformat:3 }} <span style="font-size:0.75rem;color:var(--text-muted);">{{ row.item__unit }}</span></td>
-              <td class="text-end mono text-danger">
-                {% with wq=total_wastage_qty|default_if_none:0 %}
-                  {% if row.item__name in total_wastage_qty %}{{ total_wastage_qty|dictsort:row.item__name }}{% else %}—{% endif %}
-                {% endwith %}
-              </td>
+              <td class="text-end" style="color:var(--text-muted);font-size:0.82rem;">{{ row.item__unit }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -495,11 +491,12 @@
           </thead>
           <tbody>
             {% for item in closing %}
-            {% with is_low=item.stock|floatformat:3 <= item.low_stock_threshold|floatformat:3 %}
             <tr>
               <td style="font-weight:500;">{{ item.name }}</td>
               <td class="text-end mono" style="font-size:1rem;font-weight:600;
-                {% if item.stock <= item.low_stock_threshold %}color:#dc2626;{% elif item.stock <= item.low_stock_threshold|add:item.low_stock_threshold %}color:#ca8a04;{% else %}color:#16a34a;{% endif %}">
+                {% if item.stock == 0 %}color:#dc2626;
+                {% elif item.stock <= item.low_stock_threshold %}color:#dc2626;
+                {% else %}color:#16a34a;{% endif %}">
                 {{ item.stock|floatformat:3 }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">{{ item.unit }}</span>
               </td>
               <td class="text-end mono" style="color:var(--text-muted);font-size:0.85rem;">
@@ -515,7 +512,6 @@
                 {% endif %}
               </td>
             </tr>
-            {% endwith %}
             {% endfor %}
           </tbody>
         </table>

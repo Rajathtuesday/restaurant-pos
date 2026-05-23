@@ -132,7 +132,8 @@ def bill_view(request, order_id):
         tenant = request.user.tenant
         direct_billing_mode = has_feature(tenant, "direct_billing_mode")
         is_qsr        = tenant.tenant_type in ("franchise", "cafe")
-        gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
+        gst_inclusive  = getattr(order.outlet, "gst_inclusive", False)
+        is_composition = getattr(order.outlet, "is_composition_scheme", False)
 
         station = get_default_station(request.user)
         paper_width_mm = station.paper_width_mm if station else 80
@@ -148,7 +149,8 @@ def bill_view(request, order_id):
             "promos": valid_promos,
             "direct_billing_mode": direct_billing_mode,
             "is_qsr":        is_qsr,
-            "gst_inclusive": gst_inclusive,
+            "gst_inclusive":  gst_inclusive,
+            "is_composition": is_composition,
             "paper_width_mm":  paper_width_mm,
             "auto_print":      auto_print,
             "default_station": station,
