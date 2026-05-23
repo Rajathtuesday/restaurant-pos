@@ -269,6 +269,99 @@ def kitchen_dashboard(request):
 
 @login_required
 @tenant_required
+def inspection_report(request):
+    """
+    Government / tax inspection view — hardcoded to TODAY only.
+    No date controls. No history. Owner shows this screen to the inspector.
+    Accessible to owner and manager only.
+    """
+    if request.user.role not in ["owner", "manager"] and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    from decimal import Decimal
+    from django.db.models import Sum, Count
+    from orders.models import Order, Payment
+    from reports.services.item_reports import top_items
+
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+    today  = timezone.localdate()
+
+    orders = (
+        Order.objects
+        .filter(
+            tenant=tenant,
+            outlet=outlet,
+            created_at__date=today,
+            status__in=["paid", "closed"],
+        )
+        .order_by("created_at")
+        .select_related("table", "token")
+        .prefetch_related("payments")
+    )
+
+    agg = orders.aggregate(
+        gross=Sum("grand_total"),
+        gst=Sum("gst_total"),
+        discounts=Sum("discount_total"),
+        count=Count("id"),
+    )
+    gross       = agg["gross"]     or Decimal("0")
+    gst         = agg["gst"]       or Decimal("0")
+    discounts   = agg["discounts"] or Decimal("0")
+    order_count = agg["count"]     or 0
+    net         = gross - gst
+
+    # GST breakdown by rate — read from each order's stored cache
+    gst_by_rate = {}
+    for order in orders:
+        for row in (order.gst_breakdown or []):
+            rate = str(row["rate"])
+            if rate not in gst_by_rate:
+                gst_by_rate[rate] = {
+                    "rate":    row["rate"],
+                    "taxable": Decimal("0"),
+                    "cgst":    Decimal("0"),
+                    "sgst":    Decimal("0"),
+                }
+            gst_by_rate[rate]["cgst"] += row["cgst_amount"]
+            gst_by_rate[rate]["sgst"] += row["sgst_amount"]
+    for r in gst_by_rate.values():
+        r["taxable"] = r["cgst"] + r["sgst"]
+
+    items_today = top_items(tenant, outlet, start_date=today, end_date=today)[:10]
+
+    payments = (
+        Payment.objects
+        .filter(order__in=orders)
+        .exclude(method="refund")
+        .values("method")
+        .annotate(total=Sum("amount"), count=Count("id"))
+        .order_by("-total")
+    )
+
+    is_composition = getattr(outlet, "is_composition_scheme", False)
+
+    return render(request, "reports/inspect.html", {
+        "today":         today,
+        "outlet":        outlet,
+        "tenant":        tenant,
+        "orders":        orders,
+        "order_count":   order_count,
+        "gross":         gross,
+        "gst":           gst,
+        "net":           net,
+        "discounts":     discounts,
+        "gst_by_rate":   sorted(gst_by_rate.values(), key=lambda r: r["rate"]),
+        "items_today":   items_today,
+        "payments":      payments,
+        "is_composition": is_composition,
+    })
+
+
+@login_required
+@tenant_required
 @feature_required("reports")
 def inventory_report(request):
     if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:

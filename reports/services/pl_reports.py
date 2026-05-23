@@ -20,7 +20,7 @@ What we CANNOT calculate (data not tracked):
 """
 from decimal import Decimal
 
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+from django.db.models import Sum, Count
 
 from orders.models import Order, OrderItem
 from inventory.models import Recipe
@@ -47,13 +47,6 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     non_comp_qs = order_qs.filter(outlet__is_composition_scheme=False)
 
     # ── Revenue totals ──────────────────────────────────────────
-    totals = order_qs.aggregate(
-        gross_revenue = Sum("grand_total"),
-        gst_collected = Sum("gst_total"),
-        discounts     = Sum("discount_total"),
-        order_count   = Sum("id") - Sum("id") + Sum("id"),  # count
-    )
-    from django.db.models import Count
     totals2 = order_qs.aggregate(
         gross_revenue = Sum("grand_total"),
         discounts     = Sum("discount_total"),

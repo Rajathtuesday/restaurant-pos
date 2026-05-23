@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Inspection Report — {{ today }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-color: #fafafa;
+      --panel-bg: #ffffff;
+      --text-main: #111111;
+      --text-muted: #737373;
+      --border-color: #eaeaea;
+      --accent-gold: #c5a059;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ─────────────────────────────────────── */
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--panel-bg);
+    }
+    .brand-title {
+      font-size: 1.1rem; font-weight: 600; letter-spacing: 0.05em;
+      color: var(--text-main); text-decoration: none;
+    }
+
+    /* ── Header ─────────────────────────────────────── */
+    .report-header {
+      background: var(--panel-bg);
+      border-bottom: 2px solid var(--accent-gold);
+      padding: 2rem 2rem 1.5rem;
+      text-align: center;
+    }
+    .report-header .outlet-name {
+      font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .report-header .gstin {
+      font-family: 'Space Mono', monospace; font-size: 0.85rem;
+      color: var(--text-muted); margin-bottom: 0.5rem;
+    }
+    .report-header .report-date {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text-muted);
+    }
+    .report-header .report-title {
+      font-size: 1rem; text-transform: uppercase; letter-spacing: 4px;
+      color: var(--accent-gold); margin-top: 0.75rem; font-weight: 600;
+    }
+    .composition-badge {
+      display: inline-block;
+      border: 1px solid var(--text-muted);
+      color: var(--text-muted);
+      font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    /* ── Section headers ─────────────────────────────── */
+    .section-label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 3px;
+      color: var(--text-muted); margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;
+    }
+
+    /* ── Summary cards ───────────────────────────────── */
+    .summary-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .summary-card .label {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text-muted); margin-bottom: 0.5rem;
+    }
+    .summary-card .value {
+      font-size: 1.75rem; font-weight: 600; color: var(--text-main);
+    }
+    .summary-card .value.gold { color: var(--accent-gold); }
+    .summary-card .sub {
+      font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;
+    }
+
+    /* ── Tables ──────────────────────────────────────── */
+    .table-clean {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    .table-clean th {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px;
+      color: var(--text-muted); font-weight: 500;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.5rem 0.75rem;
+    }
+    .table-clean td {
+      padding: 0.75rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+    .table-clean tr:last-child td { border-bottom: none; }
+    .table-clean .mono { font-family: 'Space Mono', monospace; font-size: 0.82rem; }
+    .table-clean .text-end { text-align: right; }
+    .table-clean .total-row td {
+      font-weight: 600; border-top: 1px solid var(--border-color);
+      background: #f5f5f5;
+    }
+
+    /* ── Panel ───────────────────────────────────────── */
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Status badge ────────────────────────────────── */
+    .status-paid {
+      font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+      color: #1a7a4a; background: #e6f4ee;
+      padding: 0.15rem 0.5rem; border-radius: 2px;
+    }
+
+    /* ── Print ───────────────────────────────────────── */
+    .no-print { }
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff; }
+      .panel, .summary-card { border: 1px solid #ccc; }
+      .report-header { border-bottom: 2px solid #000; }
+      .table-clean .total-row td { background: #eee; }
+      a { text-decoration: none; color: inherit; }
+    }
+
+    /* ── Empty state ─────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 2rem;
+      color: var(--text-muted); font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar — hidden when printing -->
+<div class="top-bar no-print">
+  <a href="{% url 'dashboard' %}" class="brand-title">← Back to Reports</a>
+  <button onclick="window.print()" class="btn btn-sm" style="background:var(--accent-gold);color:#000;font-size:0.8rem;letter-spacing:1px;text-transform:uppercase;border-radius:0;">
+    <i class="bi bi-printer me-1"></i> Print
+  </button>
+</div>
+
+<!-- ── Report Header ─────────────────────────────────── -->
+<div class="report-header">
+  <div class="outlet-name">{{ outlet.name }}</div>
+  {% if outlet.gstin %}
+    <div class="gstin">GSTIN: {{ outlet.gstin }}</div>
+  {% endif %}
+  {% if outlet.address %}
+    <div class="gstin">{{ outlet.address }}</div>
+  {% endif %}
+  <div class="report-title">Daily Inspection Report</div>
+  <div class="report-date">Date: {{ today|date:"l, d F Y" }}</div>
+  {% if is_composition %}
+    <div class="mt-2"><span class="composition-badge">Composition Scheme — Bill of Supply</span></div>
+  {% endif %}
+</div>
+
+<div class="container-fluid px-3 py-4" style="max-width:960px; margin:0 auto;">
+
+  <!-- ── Revenue Summary ─────────────────────────────── -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Total Orders</div>
+        <div class="value">{{ order_count }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Gross Revenue</div>
+        <div class="value gold">₹{{ gross|floatformat:2 }}</div>
+      </div>
+    </div>
+    {% if not is_composition %}
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">GST Collected</div>
+        <div class="value">₹{{ gst|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Net Revenue (excl. GST)</div>
+        <div class="value">₹{{ net|floatformat:2 }}</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">Discounts Given</div>
+        <div class="value">₹{{ discounts|floatformat:2 }}</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="label">GST</div>
+        <div class="value">Not Applicable</div>
+        <div class="sub">Composition Scheme</div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Payment Method Breakdown ───────────────────── -->
+  <div class="panel">
+    <div class="section-label">Payment Breakdown</div>
+    {% if payments %}
+    <table class="table-clean">
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th class="text-end">Transactions</th>
+          <th class="text-end">Total Collected</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>{{ p.method|title }}</td>
+          <td class="text-end">{{ p.count }}</td>
+          <td class="text-end mono">₹{{ p.total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td>Total</td>
+          <td class="text-end">{{ order_count }}</td>
+          <td class="text-end mono">₹{{ gross|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state">No payment records for today.</div>
+    {% endif %}
+  </div>
+
+  <!-- ── GST Breakdown by Rate ───────────────────────── -->
+  {% if not is_composition %}
+  <div class="panel">
+    <div class="section-label">GST Breakdown by Rate</div>
+    {% if gst_by_rate %}
+    <table class="table-clean">
+      <thead>
+        <tr>
+          <th>GST Rate</th>
+          <th class="text-end">Taxable Value</th>
+          <th class="text-end">CGST</th>
+          <th class="text-end">SGST</th>
+          <th class="text-end">Total GST</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in gst_by_rate %}
+        <tr>
+          <td>{{ row.rate }}%</td>
+          <td class="text-end mono">₹{{ row.taxable|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ row.cgst|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ row.sgst|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ row.cgst|add:row.sgst|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td>Total</td>
+          <td class="text-end mono">₹{{ net|floatformat:2 }}</td>
+          <td colspan="2"></td>
+          <td class="text-end mono">₹{{ gst|floatformat:2 }}</td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state">No GST transactions today.</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ── Top Items Sold ──────────────────────────────── -->
+  <div class="panel">
+    <div class="section-label">Top Items Sold Today</div>
+    {% if items_today %}
+    <table class="table-clean">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Item</th>
+          <th class="text-end">Qty Sold</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items_today %}
+        <tr>
+          <td style="color:var(--text-muted)">{{ forloop.counter }}</td>
+          <td>{{ item.menu_item__name }}</td>
+          <td class="text-end mono">{{ item.total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state">No items sold today.</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Order List ──────────────────────────────────── -->
+  <div class="panel">
+    <div class="section-label">All Orders — {{ today|date:"d M Y" }}</div>
+    {% if orders %}
+    <table class="table-clean">
+      <thead>
+        <tr>
+          <th>Order #</th>
+          <th>Time</th>
+          <th>Table / Token</th>
+          <th class="text-end">Amount</th>
+          <th class="text-end no-print">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td class="mono">#{{ order.id }}</td>
+          <td>{{ order.created_at|date:"h:i A" }}</td>
+          <td>
+            {% if order.table %}{{ order.table.name }}
+            {% elif order.token %}Token {{ order.token.number }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end mono">₹{{ order.grand_total|floatformat:2 }}</td>
+          <td class="text-end no-print"><span class="status-paid">{{ order.status }}</span></td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+          <td colspan="3">Total ({{ order_count }} orders)</td>
+          <td class="text-end mono">₹{{ gross|floatformat:2 }}</td>
+          <td class="no-print"></td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state">No orders recorded for today.</div>
+    {% endif %}
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────── -->
+  <div style="text-align:center; font-size:0.7rem; color:var(--text-muted); padding: 1rem 0 2rem;">
+    This report is generated for <strong>{{ today|date:"d F Y" }}</strong> only.
+    It reflects completed transactions as of the time of printing.
+    <br>{{ tenant.name }} &mdash; {{ outlet.name }}
+  </div>
+
+</div>
+</body>
+</html>
