@@ -63,6 +63,17 @@ def inventory_cost(tenant, outlet, start_date=None, end_date=None):
     )
 
 
+def closing_stock(tenant, outlet):
+    """Current stock snapshot — all items for the outlet, low-stock items first."""
+    from inventory.models import InventoryItem
+    return (
+        InventoryItem.objects
+        .filter(tenant=tenant, outlet=outlet)
+        .order_by("stock")          # scarcest first
+        .values("name", "stock", "unit", "low_stock_threshold", "cost_price")
+    )
+
+
 def production_capacity(tenant, outlet):
     """
     For each menu item that has recipes, calculate how many portions can be

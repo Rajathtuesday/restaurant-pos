@@ -161,6 +161,16 @@
     }
     .section-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); }
 
+    @media print {
+      .top-bar, .report-subnav, .section-tabs, .subnav-btn { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .panel { border: none !important; }
+      #tab-closing { display: block !important; }
+      .data-table th, .data-table td { color: #000 !important; border-color: #ccc !important; }
+      #tab-ledger, #tab-usage, #tab-wastage, #tab-cost, #tab-canmake { display: none !important; }
+      .stat-grid { display: none !important; }
+    }
+
     @media (max-width: 768px) {
       .main-content { padding: 1rem; }
       .stat-grid { grid-template-columns: 1fr 1fr; }
@@ -268,6 +278,7 @@
       <button class="section-tab"        onclick="showTab('wastage',this)">Wastage</button>
       <button class="section-tab"        onclick="showTab('cost',this)">Cost Analysis</button>
       <button class="section-tab"        onclick="showTab('canmake',this)">Can Make</button>
+      <button class="section-tab"        onclick="showTab('closing',this)">Closing Stock</button>
     </div>
 
     <!-- Stock Ledger -->
@@ -461,13 +472,73 @@
       {% endif %}
     </div>
 
+    <!-- Closing Stock -->
+    <div id="tab-closing" style="display:none;">
+      {% if closing %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid var(--border-color);">
+        <span style="font-size:0.75rem;color:var(--text-muted);">
+          Snapshot as of <strong style="color:var(--text-main);">now</strong> &mdash; {{ closing|length }} items
+        </span>
+        <button onclick="window.print()" class="subnav-btn gold" style="padding:0.3rem 0.8rem;">
+          <i class="bi bi-printer"></i> Print
+        </button>
+      </div>
+      <div style="overflow-x:auto;" id="closing-stock-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Ingredient</th>
+              <th class="text-end">Closing Stock</th>
+              <th class="text-end">Low Stock Threshold</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in closing %}
+            {% with is_low=item.stock|floatformat:3 <= item.low_stock_threshold|floatformat:3 %}
+            <tr>
+              <td style="font-weight:500;">{{ item.name }}</td>
+              <td class="text-end mono" style="font-size:1rem;font-weight:600;
+                {% if item.stock <= item.low_stock_threshold %}color:#dc2626;{% elif item.stock <= item.low_stock_threshold|add:item.low_stock_threshold %}color:#ca8a04;{% else %}color:#16a34a;{% endif %}">
+                {{ item.stock|floatformat:3 }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">{{ item.unit }}</span>
+              </td>
+              <td class="text-end mono" style="color:var(--text-muted);font-size:0.85rem;">
+                {{ item.low_stock_threshold|floatformat:3 }} {{ item.unit }}
+              </td>
+              <td>
+                {% if item.stock == 0 %}
+                  <span class="badge-type badge-wastage">OUT OF STOCK</span>
+                {% elif item.stock <= item.low_stock_threshold %}
+                  <span class="badge-type badge-adjustment">LOW — REORDER</span>
+                {% else %}
+                  <span class="badge-type badge-consume">OK</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:0.75rem 1rem;border-top:1px solid var(--border-color);font-size:0.75rem;color:var(--text-muted);">
+        Items in <span style="color:#dc2626;font-weight:600;">red</span> are at or below threshold.
+        Use the Print button to hand this to your store manager at end of day.
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-box-seam" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
+        No inventory items found. Add items under Inventory first.
+      </div>
+      {% endif %}
+    </div>
+
   </div>
 
 </div><!-- /main-content -->
 
 <script>
 function showTab(name, btn) {
-  ['ledger','usage','wastage','cost','canmake'].forEach(function(t) {
+  ['ledger','usage','wastage','cost','canmake','closing'].forEach(function(t) {
     document.getElementById('tab-'+t).style.display = (t===name ? '' : 'none');
   });
   document.querySelectorAll('.section-tab').forEach(function(b) { b.classList.remove('active'); });
