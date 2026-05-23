@@ -267,6 +267,7 @@
       <button class="section-tab"        onclick="showTab('usage',this)">Consumption</button>
       <button class="section-tab"        onclick="showTab('wastage',this)">Wastage</button>
       <button class="section-tab"        onclick="showTab('cost',this)">Cost Analysis</button>
+      <button class="section-tab"        onclick="showTab('canmake',this)">Can Make</button>
     </div>
 
     <!-- Stock Ledger -->
@@ -403,13 +404,70 @@
       <div class="empty-state"><i class="bi bi-currency-rupee" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>No cost data available. Set cost prices on inventory items first.</div>
       {% endif %}
     </div>
+    <!-- Can Make -->
+    <div id="tab-canmake" style="display:none;">
+      {% if capacity %}
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Menu Item</th>
+              <th>Category</th>
+              <th class="text-end">Can Make</th>
+              <th>Limiting Ingredient</th>
+              <th class="text-end">Stock Left</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in capacity %}
+            <tr>
+              <td style="font-weight:500;">{{ row.menu_item }}</td>
+              <td style="color:var(--text-muted);font-size:0.82rem;">{{ row.category }}</td>
+              <td class="text-end">
+                {% if row.max_portions == 0 %}
+                  <span style="color:#dc2626;font-weight:700;font-size:1rem;">0</span>
+                  <span style="font-size:0.72rem;color:#dc2626;display:block;">OUT OF STOCK</span>
+                {% elif row.max_portions <= 5 %}
+                  <span style="color:#ca8a04;font-weight:700;font-size:1rem;">{{ row.max_portions }}</span>
+                  <span style="font-size:0.72rem;color:#ca8a04;display:block;">LOW</span>
+                {% else %}
+                  <span style="color:#16a34a;font-weight:700;font-size:1rem;">{{ row.max_portions }}</span>
+                  <span style="font-size:0.72rem;color:var(--text-muted);display:block;">portions</span>
+                {% endif %}
+              </td>
+              <td style="color:var(--text-muted);font-size:0.85rem;">
+                <i class="bi bi-funnel-fill" style="font-size:0.7rem;opacity:0.5;"></i>
+                {{ row.bottleneck }}
+              </td>
+              <td class="text-end mono" style="font-size:0.85rem;">
+                {{ row.bottleneck_stock|floatformat:3 }}
+                <span style="color:var(--text-muted);font-size:0.72rem;">{{ row.bottleneck_unit }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:0.75rem 1rem;border-top:1px solid var(--border-color);font-size:0.75rem;color:var(--text-muted);">
+        <i class="bi bi-info-circle"></i>
+        Sorted by lowest portions first. Based on current live stock levels — not date-filtered.
+        <span style="float:right;">{{ capacity|length }} items with recipes</span>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <i class="bi bi-journal-x" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
+        No recipes configured. Add recipes to menu items under Inventory → Recipes.
+      </div>
+      {% endif %}
+    </div>
+
   </div>
 
 </div><!-- /main-content -->
 
 <script>
 function showTab(name, btn) {
-  ['ledger','usage','wastage','cost'].forEach(function(t) {
+  ['ledger','usage','wastage','cost','canmake'].forEach(function(t) {
     document.getElementById('tab-'+t).style.display = (t===name ? '' : 'none');
   });
   document.querySelectorAll('.section-tab').forEach(function(b) { b.classList.remove('active'); });

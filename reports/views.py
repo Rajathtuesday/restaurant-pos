@@ -274,7 +274,7 @@ def inventory_report(request):
     if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
         return HttpResponseForbidden()
 
-    from reports.services.inventory_reports import inventory_usage, inventory_wastage, inventory_cost, stock_ledger
+    from reports.services.inventory_reports import inventory_usage, inventory_wastage, inventory_cost, stock_ledger, production_capacity
     from inventory.models import InventoryItem
 
     tenant = request.user.tenant
@@ -319,6 +319,7 @@ def inventory_report(request):
 
     total_cost = sum(r["total_cost"] for r in costs if r["total_cost"])
     total_wastage_qty = {r["item__name"]: r["total_qty"] for r in wastage}
+    capacity = production_capacity(tenant, outlet) if outlet else []
 
     return render(request, "reports/inventory_report.html", {
         "outlets": outlets,
@@ -334,6 +335,7 @@ def inventory_report(request):
         "selected_item": item_id,
         "total_cost": total_cost,
         "total_wastage_qty": total_wastage_qty,
+        "capacity": capacity,
     })
 
 
