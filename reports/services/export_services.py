@@ -174,6 +174,12 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     gst_groups = {} # rate: {'taxable': 0, 'gst': 0}
     
     for order in orders:
+        # Composition scheme outlets issue Bill of Supply — no GST, skip from GSTR-1
+        if getattr(order.outlet, "is_composition_scheme", False):
+            continue
+
+        gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
+
         # Reconstruct exactly how Order.recalculate_totals works
         items_valid = [item for item in order.items.all() if item.status != "voided" and not item.is_complimentary]
         
@@ -204,19 +210,24 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
             if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
                 item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
             
-            item_taxable = item_base * order_discount_factor
+            item_discounted = item_base * order_discount_factor
             rate = item.menu_item.gst_percentage if item.menu_item else Decimal("5.00")
-            
-            # Use string/float of rate as key for grouping
+
             rate_key = float(rate)
-            
             if rate_key not in gst_groups:
                 gst_groups[rate_key] = {'taxable': Decimal("0.0"), 'gst': Decimal("0.0")}
-                
-            item_gst = (item_taxable * rate) / Decimal("100.0")
-            
+
+            if gst_inclusive:
+                # item_discounted is the inclusive customer price — back-calculate
+                item_gst     = item_discounted * rate / (Decimal("100") + rate)
+                item_taxable = item_discounted - item_gst
+            else:
+                # item_discounted is already the pre-GST base
+                item_taxable = item_discounted
+                item_gst     = item_taxable * rate / Decimal("100")
+
             gst_groups[rate_key]['taxable'] += item_taxable
-            gst_groups[rate_key]['gst'] += item_gst
+            gst_groups[rate_key]['gst']     += item_gst
 
     total_taxable = Decimal("0.0")
     total_central = Decimal("0.0")

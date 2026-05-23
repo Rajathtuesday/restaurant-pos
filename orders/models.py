@@ -314,20 +314,22 @@ class Order(models.Model):
 
         # Detect mode — safe fallback if outlet not loaded
         try:
-            gst_inclusive = bool(self.outlet.gst_inclusive)
+            gst_inclusive    = bool(self.outlet.gst_inclusive)
+            is_composition   = bool(self.outlet.is_composition_scheme)
         except Exception:
-            gst_inclusive = False
+            gst_inclusive  = False
+            is_composition = False
 
         if gst_inclusive:
-            self._recalculate_inclusive(items)
+            self._recalculate_inclusive(items, is_composition=is_composition)
         else:
-            self._recalculate_exclusive(items)
+            self._recalculate_exclusive(items, is_composition=is_composition)
 
     # ------------------------------------------------------------------
     # EXCLUSIVE MODE  (GST added on top — existing behaviour)
     # ------------------------------------------------------------------
 
-    def _recalculate_exclusive(self, items):
+    def _recalculate_exclusive(self, items, is_composition=False):
         raw_subtotal = sum((item.total_price for item in items), Decimal("0.0"))
         subtotal = self._quantize(raw_subtotal)
 
@@ -362,12 +364,13 @@ class Order(models.Model):
             order_discount_factor = Decimal("1.0")
 
         gst_total = Decimal("0.00")
-        for item in items:
-            item_base = item.total_price
-            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-            item_taxable = item_base * order_discount_factor
-            gst_total += (item_taxable * item.gst_percentage) / Decimal("100.0")
+        if not is_composition:
+            for item in items:
+                item_base = item.total_price
+                if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
+                    item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
+                item_taxable = item_base * order_discount_factor
+                gst_total += (item_taxable * item.gst_percentage) / Decimal("100.0")
 
         gst_total = self._quantize(gst_total)
         final_total = self._quantize(taxable_amount + gst_total)
@@ -391,7 +394,7 @@ class Order(models.Model):
     # INCLUSIVE MODE  (GST back-calculated from the price)
     # ------------------------------------------------------------------
 
-    def _recalculate_inclusive(self, items):
+    def _recalculate_inclusive(self, items, is_composition=False):
         """
         item.total_price is the CUSTOMER-FACING price (GST inside).
         We back-calculate: gst = amount × rate / (100 + rate)
@@ -441,15 +444,15 @@ class Order(models.Model):
 
         # Back-calculate GST from each item's discounted inclusive amount
         gst_total = Decimal("0.00")
-        for item in items:
-            inc = item.total_price
-            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                inc = inc * (1 - item.item_discount_pct / Decimal("100"))
-            inc_discounted = inc * order_discount_factor
-            rate = item.gst_percentage
-            if rate > 0:
-                # gst = amount × rate / (100 + rate)
-                gst_total += inc_discounted * rate / (Decimal("100") + rate)
+        if not is_composition:
+            for item in items:
+                inc = item.total_price
+                if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
+                    inc = inc * (1 - item.item_discount_pct / Decimal("100"))
+                inc_discounted = inc * order_discount_factor
+                rate = item.gst_percentage
+                if rate > 0:
+                    gst_total += inc_discounted * rate / (Decimal("100") + rate)
 
         gst_total  = self._quantize(gst_total)
         subtotal   = self._quantize(grand_after_discount - gst_total)   # base excl. GST
