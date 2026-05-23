@@ -3,7 +3,6 @@
 import uuid
 
 
-from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
 from django.db.models import Q
@@ -141,6 +140,10 @@ class Order(models.Model):
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     round_off = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
+    # Cached GST breakdown populated by recalculate_totals() — avoids per-call DB queries and
+    # logic duplication between the property and _recalculate_* methods.
+    gst_breakdown_cache = models.JSONField(default=list, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     closed_at = models.DateTimeField(null=True, blank=True)
@@ -149,10 +152,9 @@ class Order(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["tenant"]),
-            models.Index(fields=["outlet"]),
-            models.Index(fields=["table"]),
-            models.Index(fields=["status"]),
+            models.Index(fields=["tenant", "outlet", "status"], name="order_tenant_outlet_status"),
+            models.Index(fields=["tenant", "outlet", "created_at"], name="order_tenant_outlet_date"),
+            models.Index(fields=["table"], name="order_table"),
         ]
 
         constraints = [
@@ -173,37 +175,36 @@ class Order(models.Model):
 
     # -------------------------------------------------
     # SAFE ORDER NUMBER GENERATION
-    # order_number is set immediately after the INSERT in the same
-    # atomic block — no concurrent reader can see order_number=NULL.
+    # For new orders: the entire INSERT + counter increment is wrapped in one
+    # atomic block so no concurrent reader ever sees order_number=NULL.
+    # For update saves (recalculate_totals, apply_discount …): no transaction
+    # wrapper here — the caller's atomic block (if any) is not polluted with
+    # extra savepoints on every call.
     # -------------------------------------------------
-    @transaction.atomic
     def save(self, *args, **kwargs):
         creating = self._state.adding
-        super().save(*args, **kwargs)
 
         if creating and not self.order_number:
-            # Generate a per-tenant, per-outlet, per-day sequential invoice number.
-            # Format: INV-YYYYMMDD-NNNN (e.g. INV-20250507-0012)
-            
-            from core.utils import get_business_date
-            
-            # Use the business date based on when the order was opened
-            business_date = get_business_date(self.created_at, self.outlet)
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+                self._generate_order_number()
+        else:
+            super().save(*args, **kwargs)
 
-            # 2. Get or create the counter for this business date
-            counter, _ = DailyOrderCounter.objects.select_for_update().get_or_create(
-                tenant=self.tenant,
-                outlet=self.outlet,
-                date=business_date,
-                defaults={"value": 0}
-            )
-            counter.value += 1
-            counter.save(update_fields=["value"])
-
-            # 3. Format and update the order number
-            order_number = f"INV-{self.outlet.id}-{business_date.strftime('%Y%m%d')}-{counter.value:04d}"
-            Order.objects.filter(pk=self.pk).update(order_number=order_number)
-            self.order_number = order_number  # keep in-memory object consistent
+    def _generate_order_number(self):
+        from core.utils import get_business_date
+        business_date = get_business_date(self.created_at, self.outlet)
+        counter, _ = DailyOrderCounter.objects.select_for_update().get_or_create(
+            tenant=self.tenant,
+            outlet=self.outlet,
+            date=business_date,
+            defaults={"value": 0}
+        )
+        counter.value += 1
+        counter.save(update_fields=["value"])
+        order_number = f"INV-{self.outlet.id}-{business_date.strftime('%Y%m%d')}-{counter.value:04d}"
+        Order.objects.filter(pk=self.pk).update(order_number=order_number)
+        self.order_number = order_number
 
     # -------------------------------------------------
     # UTIL: normalize Decimal to 2 dp
@@ -224,59 +225,45 @@ class Order(models.Model):
 
     @property
     def gst_breakdown(self):
-        """Returns GST grouped by rate — required for GST-compliant bills."""
+        """GST grouped by rate, read from the pre-computed cache.
+
+        Populated by recalculate_totals() — zero DB queries at bill render time.
+        Returns Decimal values for consistent arithmetic downstream.
+        """
+        return [
+            {k: Decimal(v) for k, v in row.items()}
+            for row in (self.gst_breakdown_cache or [])
+        ]
+
+    def _build_gst_breakdown_data(self, items, order_discount_factor, gst_inclusive):
+        """Compute GST breakdown given already-calculated order_discount_factor.
+
+        Called from _recalculate_exclusive / _recalculate_inclusive so the
+        discount factor is never recomputed a second time.
+        Returns a JSON-serialisable list[dict[str]] ready for gst_breakdown_cache.
+        """
         from collections import defaultdict
         breakdown = defaultdict(Decimal)
-
-        items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
-        
-        # Calculate subtotal after item discounts to determine order discount factor
-        subtotal_after_item_discounts = Decimal("0.00")
-        for item in items:
-            item_base = item.total_price
-            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
-                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-            subtotal_after_item_discounts += item_base
-            
-        order_discount_total = Decimal("0.00")
-        if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
-            order_discount_total = subtotal_after_item_discounts * (Decimal(self.discount_value) / Decimal("100"))
-        elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
-            order_discount_total = Decimal(str(self.discount_value))
-            
-        if subtotal_after_item_discounts > 0:
-            order_discount_factor = max(Decimal("0.0"), (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts)
-        else:
-            order_discount_factor = Decimal("1.0")
-
-        try:
-            gst_inclusive = bool(self.outlet.gst_inclusive)
-        except Exception:
-            gst_inclusive = False
 
         for item in items:
             rate = item.gst_percentage
             item_base = item.total_price
-            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
+            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
                 item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-
             item_taxable = item_base * order_discount_factor
-
             if gst_inclusive:
-                # Back-calculate: gst = amount × rate / (100 + rate)
                 item_gst = (item_taxable * rate / (Decimal("100") + rate)).quantize(Decimal("0.01")) if rate > 0 else Decimal("0.00")
             else:
                 item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
-
             breakdown[rate] += item_gst
 
         return [
             {
-                "rate": rate,
-                "cgst_rate": (rate / 2).quantize(Decimal("0.01")),
-                "sgst_rate": (rate / 2).quantize(Decimal("0.01")),
-                "cgst_amount": (amount / 2).quantize(Decimal("0.01")),
-                "sgst_amount": (amount / 2).quantize(Decimal("0.01")),
+                "rate":        str(rate),
+                "cgst_rate":   str((rate / 2).quantize(Decimal("0.01"))),
+                "sgst_rate":   str((rate / 2).quantize(Decimal("0.01"))),
+                "cgst_amount": str((amount / 2).quantize(Decimal("0.01"))),
+                "sgst_amount": str((amount / 2).quantize(Decimal("0.01"))),
             }
             for rate, amount in sorted(breakdown.items())
             if amount > 0
@@ -389,14 +376,16 @@ class Order(models.Model):
         parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
         rounded_total = (final_total + parcel).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
-        self.subtotal       = subtotal
-        self.gst_total      = gst_total
-        self.discount_total = discount_total
-        self.grand_total    = rounded_total
-        self.round_off      = rounded_total - final_total - parcel
+        self.subtotal           = subtotal
+        self.gst_total          = gst_total
+        self.discount_total     = discount_total
+        self.grand_total        = rounded_total
+        self.round_off          = rounded_total - final_total - parcel
+        self.gst_breakdown_cache = self._build_gst_breakdown_data(items, order_discount_factor, False)
         self.save(update_fields=["subtotal", "gst_total", "discount_total",
                                  "grand_total", "round_off", "discount_type",
-                                 "discount_value", "parcel_surcharge"])
+                                 "discount_value", "parcel_surcharge",
+                                 "gst_breakdown_cache"])
 
     # ------------------------------------------------------------------
     # INCLUSIVE MODE  (GST back-calculated from the price)
@@ -469,14 +458,16 @@ class Order(models.Model):
         parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
         rounded_total = (grand_after_discount + parcel).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
 
-        self.subtotal       = subtotal
-        self.gst_total      = gst_total
-        self.discount_total = discount_total
-        self.grand_total    = rounded_total
-        self.round_off      = rounded_total - grand_after_discount - parcel
+        self.subtotal            = subtotal
+        self.gst_total           = gst_total
+        self.discount_total      = discount_total
+        self.grand_total         = rounded_total
+        self.round_off           = rounded_total - grand_after_discount - parcel
+        self.gst_breakdown_cache = self._build_gst_breakdown_data(items, order_discount_factor, True)
         self.save(update_fields=["subtotal", "gst_total", "discount_total",
                                  "grand_total", "round_off", "discount_type",
-                                 "discount_value", "parcel_surcharge"])
+                                 "discount_value", "parcel_surcharge",
+                                 "gst_breakdown_cache"])
 
 
 # =====================================================
@@ -520,9 +511,9 @@ class KOTBatch(models.Model):
 
     class Meta:
         unique_together = ("order", "kot_number")
-
         indexes = [
             models.Index(fields=["tenant", "outlet"]),
+            models.Index(fields=["tenant", "outlet", "status"], name="kotbatch_tenant_outlet_status"),
         ]
 
     def __str__(self):
@@ -618,9 +609,10 @@ class OrderItem(models.Model):
     )
 
     class Meta:
-
         indexes = [
-            models.Index(fields=["status"]),
+            models.Index(fields=["order"],           name="orderitem_order"),
+            models.Index(fields=["order", "status"], name="orderitem_order_status"),
+            models.Index(fields=["kot"],             name="orderitem_kot"),
         ]
 
     def __str__(self):
@@ -709,6 +701,8 @@ class Payment(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["order"]),
+            models.Index(fields=["paid_at"],           name="payment_paid_at"),
+            models.Index(fields=["order", "method"],   name="payment_order_method"),
         ]
 
     def __str__(self):
@@ -882,11 +876,9 @@ class OrderEvent(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["order"]),
+            models.Index(fields=["order", "event_type"], name="orderevent_order_type"),
             models.Index(fields=["event_type"]),
             models.Index(fields=["created_at"]),
-            # Composite index for the bypass daily-limit counter query which filters
-            # on (tenant, outlet, created_by, event_type, created_at__gte).
-            # Without this, the query does a full table scan at high event volumes.
             models.Index(fields=["tenant", "outlet", "event_type", "created_at"],
                          name="orderevent_tenant_type_idx"),
         ]
@@ -1159,6 +1151,21 @@ class Promo(models.Model):
         self.usage_count += 1
         self.save(update_fields=["usage_count"])
 
+    def validate_and_use(self, outlet, order_subtotal: Decimal) -> tuple:
+        """Atomic validate + increment — prevents the race where two cashiers
+        both pass validate() before either calls record_use().
+
+        Must be called inside a transaction.atomic() block in the view.
+        Returns (ok: bool, error: str).
+        """
+        locked = Promo.objects.select_for_update().get(pk=self.pk)
+        ok, error = locked.validate(outlet, order_subtotal)
+        if ok:
+            locked.record_use()
+            # Keep in-memory object consistent so the caller sees updated count.
+            self.usage_count = locked.usage_count
+        return ok, error
+
 
 # =====================================================
 # DAILY TOKEN COUNTER
@@ -1190,9 +1197,7 @@ class DailyTokenCounter(models.Model):
 
     class Meta:
         unique_together = ("outlet", "date")
-        indexes = [
-            models.Index(fields=["outlet", "date"]),
-        ]
+        # unique_together already creates a (outlet, date) composite index in Postgres.
 
     def __str__(self):
         return f"Token counter | {self.outlet} | {self.date} = {self.value}"
@@ -1271,9 +1276,7 @@ class DailyOnlineTokenCounter(models.Model):
 
     class Meta:
         unique_together = ("outlet", "date")
-        indexes = [
-            models.Index(fields=["outlet", "date"]),
-        ]
+        # unique_together already creates a (outlet, date) composite index in Postgres.
 
     def __str__(self):
         return f"Online token counter | {self.outlet} | {self.date} = {self.value}"

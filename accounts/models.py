@@ -18,12 +18,13 @@ class User(AbstractUser):
     )
 
     ROLE_CHOICES = (
-        ("owner","Owner"),
-        ("manager","Manager"),
-        ("agent","Agent"),
-        ("cashier","Cashier"),
-        ("waiter","Waiter"),
-        ("chef","Chef"),
+        ("owner",   "Owner"),
+        ("manager", "Manager"),
+        ("agent",   "Agent"),
+        ("cashier", "Cashier"),
+        ("waiter",  "Waiter"),
+        ("chef",    "Chef"),
+        ("kitchen", "Kitchen Staff"),
     )
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='cashier')
@@ -31,6 +32,7 @@ class User(AbstractUser):
     class Meta:
         indexes = [
             models.Index(fields=["tenant", "role"]),
+            models.Index(fields=["outlet"], name="user_outlet"),
         ]
 
     def __str__(self):

@@ -192,7 +192,7 @@ class InventoryItem(models.Model):
                 )
                 counter.value += 1
                 counter.save(update_fields=["value"])
-                po.po_number = f"PO-{timezone.now().year}-{counter.value:04d}"
+                po.po_number = f"PO-{self.outlet_id}-{timezone.now().year}-{counter.value:04d}"
                 po.save(update_fields=["po_number"])
                 
             # Add item to PO if not already there
@@ -465,15 +465,14 @@ class InventoryTransaction(models.Model):
 
 
     class Meta:
-
         indexes = [
             models.Index(fields=["tenant", "outlet"]),
             models.Index(fields=["item"]),
+            models.Index(fields=["item", "created_at"],              name="invtxn_item_date"),
+            models.Index(fields=["tenant", "outlet", "created_at"],  name="invtxn_outlet_date"),
         ]
 
-
     def __str__(self):
-
         return f"{self.transaction_type} {self.quantity} {self.item.name}"
 
 
@@ -506,14 +505,18 @@ class Recipe(models.Model):
         default="g"
     )
 
-
     class Meta:
-
         unique_together = ("menu_item", "inventory_item")
 
+    def clean(self):
+        if (
+            self.menu_item_id
+            and self.inventory_item_id
+            and self.menu_item.tenant_id != self.inventory_item.tenant_id
+        ):
+            raise ValidationError("Recipe cannot link items across tenants.")
 
     def __str__(self):
-
         return f"{self.menu_item.name} → {self.quantity_required} {self.unit}"
 
 # -------------------------------------------------------
@@ -544,11 +547,18 @@ class ProductionBatch(models.Model):
 
 class BatchItem(models.Model):
     batch = models.ForeignKey(ProductionBatch, on_delete=models.CASCADE, related_name='items')
+    # tenant denormalised here so barcode uniqueness can be enforced per-tenant at the DB level.
+    # A globally-unique barcode (the old approach) collides when two franchise outlets use
+    # sequential numbering starting from 1.
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE, null=True, blank=True)
     inventory_item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=20, choices=UNIT_CHOICES)
-    barcode = models.CharField(max_length=100, unique=True)
-    
+    barcode = models.CharField(max_length=100)
+
+    class Meta:
+        unique_together = (("tenant", "barcode"),)
+
     def __str__(self):
         return f"{self.inventory_item.name} ({self.barcode})"
 

@@ -4,7 +4,18 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from core.validators import validate_image_size
+
+gstin_validator = RegexValidator(
+    regex=r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
+    message="Enter a valid 15-character GSTIN (e.g. 29ABCDE1234F1Z5)."
+)
+
+fssai_validator = RegexValidator(
+    regex=r'^\d{14}$',
+    message="FSSAI licence number must be exactly 14 digits."
+)
 
 
 # --------------------------------------------------
@@ -104,7 +115,7 @@ class Tenant(models.Model):
         ordering = ["name"]
 
         indexes = [
-            models.Index(fields=["slug"]),
+            # slug has unique=True — Postgres already creates a unique index on it.
             models.Index(fields=["tenant_type"]),
         ]
 
@@ -179,7 +190,8 @@ class Outlet(models.Model):
         max_length=15,
         blank=True,
         null=True,
-        help_text="Restaurant GSTIN (15 characters)"
+        validators=[gstin_validator],
+        help_text="Restaurant GSTIN (15 characters, e.g. 29ABCDE1234F1Z5)"
     )
 
     phone = models.CharField(
@@ -199,7 +211,8 @@ class Outlet(models.Model):
         max_length=14,
         blank=True,
         null=True,
-        help_text="FSSAI License Number"
+        validators=[fssai_validator],
+        help_text="FSSAI License Number (14 digits)"
     )
 
     sac_code = models.CharField(

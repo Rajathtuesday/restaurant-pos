@@ -205,3 +205,38 @@ class LogoutViewTest(TestCase):
         response = self.client.get(reverse("logout"))
 
         self.assertIn("login", response.get("Location", "").lower())
+
+
+# ---------------------------------------------------------------------------
+# Schema-review additions
+# ---------------------------------------------------------------------------
+
+class UserSchemaReviewTest(TestCase):
+    """Tests for schema-review fixes applied to the accounts.User model."""
+
+    def test_kitchen_role_in_choices(self):
+        """role_required('kitchen') is used in print_views — 'kitchen' must be in ROLE_CHOICES."""
+        role_values = [r[0] for r in User.ROLE_CHOICES]
+        self.assertIn("kitchen", role_values)
+
+    def test_all_expected_roles_present(self):
+        role_values = [r[0] for r in User.ROLE_CHOICES]
+        for role in ("owner", "manager", "agent", "cashier", "waiter", "chef", "kitchen"):
+            self.assertIn(role, role_values)
+
+    def test_outlet_index_present(self):
+        field_sets = [tuple(idx.fields) for idx in User._meta.indexes]
+        self.assertIn(("outlet",), field_sets)
+
+    def test_tenant_role_composite_index_present(self):
+        field_sets = [tuple(idx.fields) for idx in User._meta.indexes]
+        self.assertIn(("tenant", "role"), field_sets)
+
+    def test_kitchen_user_can_be_created(self):
+        tenant = Tenant.objects.create(name="Kitchen Test")
+        outlet = Outlet.objects.create(tenant=tenant, name="Main")
+        user = User.objects.create_user(
+            username="kitchenstaff1", password="pass",
+            role="kitchen", tenant=tenant, outlet=outlet
+        )
+        self.assertEqual(user.role, "kitchen")

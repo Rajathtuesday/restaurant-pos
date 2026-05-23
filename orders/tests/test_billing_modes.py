@@ -34,6 +34,7 @@ class CounterBillingBase(TestCase):
             name="Main Counter",
             gst_no="29AABCM1234A1Z1",
             parcel_charge_amount=Decimal("5"),
+            parcel_charge_per_item=False,
             is_composition_scheme=False,
             split_bill_by_category=False,
         )

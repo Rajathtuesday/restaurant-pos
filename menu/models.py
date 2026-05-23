@@ -120,19 +120,20 @@ class MenuItem(models.Model):
 
 
     class Meta:
-
         ordering = ["display_order"]
-
         indexes = [
             Index(fields=["tenant", "outlet"]),
-            Index(fields=["category"])
+            Index(fields=["category"]),
+            Index(fields=["station"], name="menuitem_station"),
         ]
-
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(price__gte=0),
                 name="menu_item_price_non_negative"
-            )
+            ),
+            # GST rate validation is enforced at the view layer via _VALID_GST in
+            # gst_views.py — a DB-level CheckConstraint on a DecimalField fails on
+            # SQLite due to TEXT storage vs. integer literal comparison.
         ]
 
     def clean(self):
@@ -189,11 +190,12 @@ class ModifierGroup(models.Model):
 
     max_select = models.PositiveIntegerField(default=1)
 
+    display_order = models.IntegerField(default=0)
+
     is_active = models.BooleanField(default=True)
 
-
     class Meta:
-
+        ordering = ["display_order", "name"]
         indexes = [
             Index(fields=["tenant", "outlet"])
         ]
@@ -226,9 +228,12 @@ class Modifier(models.Model):
         default=0
     )
 
+    display_order = models.IntegerField(default=0)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:
+        ordering = ["display_order", "name"]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(price__gte=0),

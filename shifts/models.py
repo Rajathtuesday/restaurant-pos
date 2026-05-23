@@ -158,6 +158,10 @@ class CashSession(models.Model):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
 
+    # Business date this session belongs to (may differ from opened_at.date() for
+    # outlets whose business day crosses midnight — see Outlet.business_day_start_hour).
+    date = models.DateField(null=True, blank=True)
+
     opened_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
@@ -181,6 +185,7 @@ class CashSession(models.Model):
         indexes = [
             models.Index(fields=["tenant", "outlet", "status"]),
             models.Index(fields=["opened_at"]),
+            models.Index(fields=["tenant", "outlet", "date"], name="cashsession_outlet_date"),
         ]
         constraints = [
             UniqueConstraint(
@@ -190,6 +195,13 @@ class CashSession(models.Model):
             )
         ]
         ordering = ["-opened_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.date and self.outlet_id:
+            from core.utils import get_business_date
+            from django.utils import timezone as _tz
+            self.date = get_business_date(_tz.now(), self.outlet)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Session {self.id} ({self.status}) - {self.opened_at.date()}"

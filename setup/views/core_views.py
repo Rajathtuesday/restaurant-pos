@@ -201,10 +201,15 @@ def setup_kitchen_stations(request):
             messages.warning(request, "Station already exists")
             return redirect("/setup/kitchen-stations/")
 
+        is_first = not KitchenStation.objects.filter(
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+        ).exists()
         KitchenStation.objects.create(
             tenant=request.user.tenant,
             outlet=request.user.outlet,
-            name=name.strip()
+            name=name.strip(),
+            is_default=is_first,
         )
 
         messages.success(request, "Kitchen station created")

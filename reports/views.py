@@ -270,6 +270,76 @@ def kitchen_dashboard(request):
 @login_required
 @tenant_required
 @feature_required("reports")
+def inventory_report(request):
+    if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
+        return HttpResponseForbidden()
+
+    from reports.services.inventory_reports import inventory_usage, inventory_wastage, inventory_cost, stock_ledger
+    from inventory.models import InventoryItem
+
+    tenant = request.user.tenant
+
+    date_filter = request.GET.get("date_filter", "today")
+    start_date = timezone.localdate()
+    end_date = timezone.localdate()
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+    outlet_id = request.GET.get("outlet")
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else outlets.first()
+    else:
+        outlets = Outlet.objects.filter(id=request.user.outlet_id)
+        outlet = request.user.outlet
+
+    item_id = request.GET.get("item") or None
+
+    usage = inventory_usage(tenant, outlet, start_date, end_date) if outlet else []
+    wastage = inventory_wastage(tenant, outlet, start_date, end_date) if outlet else []
+    costs = inventory_cost(tenant, outlet, start_date, end_date) if outlet else []
+    ledger = stock_ledger(tenant, outlet, start_date, end_date, item_id) if outlet else []
+    items = InventoryItem.objects.filter(tenant=tenant, outlet=outlet).order_by("name") if outlet else []
+
+    total_cost = sum(r["total_cost"] for r in costs if r["total_cost"])
+    total_wastage_qty = {r["item__name"]: r["total_qty"] for r in wastage}
+
+    return render(request, "reports/inventory_report.html", {
+        "outlets": outlets,
+        "current_outlet": outlet,
+        "date_filter": date_filter,
+        "start_date": start_date,
+        "end_date": end_date,
+        "usage": usage,
+        "wastage": wastage,
+        "costs": costs,
+        "ledger": ledger,
+        "items": items,
+        "selected_item": item_id,
+        "total_cost": total_cost,
+        "total_wastage_qty": total_wastage_qty,
+    })
+
+
+@login_required
+@tenant_required
+@feature_required("reports")
 def export_reports(request):
     """
     Handles CSV and Excel exports.
