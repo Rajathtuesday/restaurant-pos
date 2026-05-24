@@ -584,8 +584,8 @@
         } catch(e) { ui.toast('Connection error', 'error'); }
     }
 
-    /* ── Rasova Print Agent — USB printing via ws://localhost:8765 ── */
-    const RASOVA_AGENT_URL = 'ws://localhost:8765';
+    /* ── Rasova Print Agent ── */
+    const RASOVA_AGENT_URL = 'ws://{{ request.user.outlet.agent_host|default:"localhost" }}:8765';
     let _agentSocket = null;
 
     async function connectAgent() {
@@ -624,6 +624,7 @@
                     job_id: jobId,
                     encoding: 'cp437',
                     outlet_id: '{{ order.outlet.id }}',
+                    printer_mac: '{{ request.user.outlet.printer_mac|default:"" }}',
                 }));
                 // Timeout if no response in 10s
                 setTimeout(() => { ws.removeEventListener('message', handler); resolve(false); }, 10000);

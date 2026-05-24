@@ -599,6 +599,14 @@ def outlet_settings(request):
         outlet.opening_time = opening_time
         outlet.closing_time = closing_time
 
+        # ── Printer settings ──
+        outlet.printer_mac = request.POST.get("printer_mac", "").strip().upper()
+        outlet.agent_host  = request.POST.get("agent_host", "localhost").strip() or "localhost"
+        try:
+            outlet.paper_width_mm = int(request.POST.get("paper_width_mm", 80))
+        except (ValueError, TypeError):
+            outlet.paper_width_mm = 80
+
         outlet.save()
 
         # ── Logo on Tenant ──

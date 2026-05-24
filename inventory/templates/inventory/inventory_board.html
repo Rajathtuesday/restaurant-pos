@@ -1,492 +1,347 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory | {{ request.user.outlet.name|default:"POS" }}</title>
+{% extends 'core/base.html' %}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+{% block title %}Inventory | {{ request.user.tenant.name }}{% endblock %}
 
-    <style>
-        :root {
-            --bg-color: #f3f4f6;
-            --panel-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --accent-gold: #c5a059;
-            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.06); 
-            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.12);
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
+{% block extra_css %}
+<style>
+    /* HEADER */
+    .pos-header { position: sticky; top: 0; z-index: 1000; }
 
-        html.dark body {
-            --bg-color: #0f1115;
-            --panel-bg: #1a1d24;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --border-color: #2d3139;
-            --accent-gold: #d4af37;
-            --shadow-soft: 0 4px 15px rgba(0, 0, 0, 0.3);
-            --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
+    /* BUTTONS */
+    .btn-luxury {
+        border: 1px solid var(--border-color);
+        background: transparent; color: var(--text-main);
+        padding: 0.5rem 1.2rem; font-size: 0.85rem; text-transform: uppercase;
+        letter-spacing: 1px; font-weight: 600; border-radius: 4px;
+        transition: var(--transition-smooth); display: inline-flex; align-items: center;
+        text-decoration: none;
+    }
+    .btn-luxury:hover { border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main); }
+    .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+    .btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            transition: var(--transition-smooth);
-            min-height: 100vh;
-        }
+    /* TABLE */
+    .inventory-card {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-soft);
+        overflow: hidden;
+        margin-top: 2rem;
+    }
+    .table { margin-bottom: 0; color: var(--text-main); }
+    .table th {
+        background: rgba(0,0,0,0.02);
+        border-bottom: 1px solid var(--border-color);
+        text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;
+        color: var(--text-muted); padding: 1.2rem 1.5rem; font-weight: 600;
+    }
+    html.dark .table th { background: rgba(255,255,255,0.02); }
+    .table td {
+        background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
+        padding: 1.2rem 1.5rem; vertical-align: middle; color: var(--text-main);
+    }
+    .table-hover tbody tr:hover td { background: rgba(197,160,89,0.05); }
+    .stock-val { font-family: 'Space Mono', monospace; font-weight: 600; font-size: 1.1rem; }
 
-        h1, h2, h3, h4, h5, .serif-text { font-family: 'DM Serif Display', serif; }
+    /* STATUS BADGES */
+    .status-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 5px 10px; border-radius: 4px; display: inline-block; }
+    .badge-ok  { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; }
+    .badge-low { background: rgba(239,68,68,0.1);  color: #ef4444; border: 1px solid #ef4444; }
 
-        /* HEADER */
-        .pos-header {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--panel-bg);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            flex-wrap: wrap;
-            gap: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
+    /* INPUTS */
+    .input-luxury {
+        background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+        padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 4px; width: 100px;
+        font-family: 'Space Mono', monospace; transition: var(--transition-smooth);
+    }
+    .input-luxury:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); }
+    .input-luxury::placeholder { font-family: 'Outfit', sans-serif; color: var(--text-muted); }
 
-        .brand-title {
-            font-size: 1.5rem; margin: 0; color: var(--text-main);
-            font-weight: 700; letter-spacing: 0.5px;
-        }
+    /* MODALS */
+    .modal-content { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
+    .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+    .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+    .modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--text-main); }
+    .modal-body { padding: 1.5rem; }
+    .modal .form-control, .modal .form-select {
+        background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+        padding: 0.8rem; border-radius: 4px;
+    }
+    .modal .form-control:focus, .modal .form-select:focus {
+        border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); background: transparent; color: var(--text-main);
+    }
+    html.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
+    html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
 
-        /* BUTTONS */
-        .btn-luxury {
-            border: 1px solid var(--border-color);
-            background: transparent; color: var(--text-main);
-            padding: 0.5rem 1.2rem; font-size: 0.85rem; text-transform: uppercase;
-            letter-spacing: 1px; font-weight: 600; border-radius: 4px;
-            transition: var(--transition-smooth); display: inline-flex; align-items: center;
-            text-decoration: none;
-        }
-        .btn-luxury:hover {
-            border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main);
-        }
-        .btn-gold {
-            background: var(--accent-gold); border-color: var(--accent-gold); color: #fff;
-        }
-        .btn-gold:hover {
-            background: #b59250; border-color: #b59250; color: #fff;
-        }
+    @media (max-width: 767px) {
+        .table th, .table td { padding: 0.75rem 1rem; }
+        .input-luxury { width: 70px; }
+    }
+</style>
+{% endblock %}
 
-        /* TABLE STYLING */
-        .inventory-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: var(--shadow-soft);
-            overflow: hidden;
-            margin-top: 2rem;
-        }
-        
-        .table {
-            margin-bottom: 0;
-            color: var(--text-main);
-        }
-        
-        .table th {
-            background: rgba(0,0,0,0.02);
-            border-bottom: 1px solid var(--border-color);
-            font-family: 'Outfit', sans-serif;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            padding: 1.2rem 1.5rem;
-            font-weight: 600;
-        }
-        html.dark .table th { background: rgba(255,255,255,0.02); color: var(--text-muted); }
+{% block header_left %}
+<div>
+    <a href="/" class="brand-title">
+        <i class="bi bi-box-seam" style="color:var(--accent-gold);"></i>
+        <span>{{ request.user.tenant.name }}</span>
+    </a>
+    <p class="brand-subtitle">{{ request.user.outlet.name }} · Inventory Management</p>
+</div>
+{% endblock %}
 
-        .table td {
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.2rem 1.5rem;
-            vertical-align: middle;
-            color: var(--text-main);
-        }
+{% block header_right %}
+<button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+{% if 'purchase_orders' in tenant_features %}
+<a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
+<a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
+{% endif %}
+{% if 'central_kitchen' in tenant_features %}
+<a href="/inventory/requisitions/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-up-right-circle me-1"></i> Requisitions</a>
+<a href="/inventory/central-kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-building me-1"></i> Central Kitchen</a>
+{% endif %}
+{{ block.super }}
+{% endblock %}
 
-        .table-hover tbody tr:hover td {
-            background: rgba(197, 160, 89, 0.05);
-        }
+{% block content %}
+<div class="container-fluid mx-auto py-4" style="max-width:1200px; padding:1rem 2rem;">
 
-        .stock-val { font-family: 'Space Mono', monospace; font-weight: 600; font-size: 1.1rem; }
-        
-        /* STATUS BADGES */
-        .status-badge {
-            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
-            padding: 5px 10px; border-radius: 4px; display: inline-block;
-        }
-        .badge-ok { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
-        .badge-low { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
-
-        /* INPUTS */
-        .input-luxury {
-            background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 4px; width: 100px;
-            font-family: 'Space Mono', monospace; transition: var(--transition-smooth);
-        }
-        .input-luxury:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2); }
-        .input-luxury::placeholder { font-family: 'Outfit', sans-serif; color: var(--text-muted); }
-
-        /* MODALS */
-        .modal-content { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
-        .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-        .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
-        .modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--text-main); }
-        .modal-body { padding: 1.5rem; }
-        .modal .form-control, .modal .form-select {
-            background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
-            padding: 0.8rem; border-radius: 4px;
-        }
-        .modal .form-control:focus, .modal .form-select:focus {
-            border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2); background: transparent; color: var(--text-main);
-        }
-        html.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
-        .btn-close { filter: var(--bs-btn-close-filter); }
-        html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-    </style>
-</head>
-<body>
-
-    <!-- HEADER -->
-    <header class="pos-header">
-        <div>
-            <h4 class="mb-1"><i class="bi bi-box-seam me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h4>
-            <p class="mb-0 text-muted" style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">{{ request.user.outlet.name }} · Inventory Management</p>
-        </div>
-        <div class="d-flex gap-2">
-            <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
-            {% if 'purchase_orders' in tenant_features %}
-            <a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
-            <a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
-            {% endif %}
-            {% if 'central_kitchen' in tenant_features %}
-            <a href="/inventory/requisitions/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-up-right-circle me-1"></i> Requisitions</a>
-            <a href="/inventory/central-kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-building me-1"></i> Central Kitchen</a>
-            {% endif %}
-            {% if 'floor_plan' in tenant_features %}
-            <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
-            {% endif %}
-            {% if 'token_system' in tenant_features %}
-            <a href="/token/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
-            {% else %}
-            <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
-            {% endif %}
-            <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
-                <i class="bi bi-moon" id="themeIcon"></i>
-            </button>
-        </div>
-    </header>
-
-    <div class="container-fluid mx-auto py-4" style="max-width: 1200px; padding: 0 2rem;">
-        
-        <!-- Action bar for mobile -->
-        <div class="d-sm-none mb-3">
-             <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
-        </div>
-
-        <div class="inventory-card">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Ingredient</th>
-                            <th>Cost / Unit</th>
-                            <th>Current Stock</th>
-                            <th>Unit</th>
-                            <th>Value</th>
-                            <th>Status</th>
-                            <th>Refill Stock</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in items %}
-                        <tr>
-                            <td class="fw-semibold">{{item.name}}</td>
-                            <td class="stock-val text-muted">₹{{item.cost_price}}</td>
-                            <td id="stock{{item.id}}" class="stock-val">
-                                {{item.stock}}
-                            </td>
-                            <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{item.unit}}</td>
-                            <td class="stock-val text-accent-gold">
-                                {% widthratio item.cost_price 1 item.stock %}
-                            </td>
-                            <td>
-                                {% if item.is_low_stock %}
-                                <span class="status-badge badge-low"><i class="bi bi-exclamation-triangle me-1"></i> Low Stock</span>
-                                {% else %}
-                                <span class="status-badge badge-ok"><i class="bi bi-check-circle me-1"></i> Optimal</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="number" min="0" step="0.01" id="add{{item.id}}" class="input-luxury" placeholder="Qty">
-                                    <button class="btn-luxury px-3" onclick="restock('{{item.id}}')">Add</button>
-                                </div>
-                            </td>
-                            <td>
-                                <button class="btn-icon" onclick="openEditModal('{{item.id}}', '{{item.name|escapejs}}', '{{item.cost_price}}', '{{item.low_stock_threshold}}', '{{item.reorder_quantity}}', '{{item.preferred_supplier.id|default:""}}')">
-                                    <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
+    <!-- Mobile: Add button -->
+    <div class="d-sm-none mb-3">
+        <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="openAddInventoryModal()">
+            <i class="bi bi-plus-lg me-1"></i> Add Ingredient
+        </button>
     </div>
 
-    <div class="modal fade" id="inventoryModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title m-0">Add Ingredient</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
-                        <input id="invName" class="form-control" placeholder="e.g. Flour, Tomatoes, Olive Oil">
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Measurement Unit</label>
-                            <select id="invUnit" class="form-select">
-                                <option value="pcs">Pieces (pcs)</option>
-                                <option value="g">Grams (g)</option>
-                                <option value="kg">Kilograms (kg)</option>
-                                <option value="ml">Milliliters (ml)</option>
-                                <option value="l">Liters (l)</option>
-                            </select>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
-                            <input id="invCostPrice" type="number" step="0.01" class="form-control" placeholder="0.00">
-                        </div>
-                    </div>
+    <div class="inventory-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Ingredient</th>
+                        <th>Cost / Unit</th>
+                        <th>Current Stock</th>
+                        <th>Unit</th>
+                        <th>Value</th>
+                        <th>Status</th>
+                        <th>Refill Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td class="fw-semibold">{{ item.name }}</td>
+                        <td class="stock-val text-muted">₹{{ item.cost_price }}</td>
+                        <td id="stock{{ item.id }}" class="stock-val">{{ item.stock }}</td>
+                        <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{ item.unit }}</td>
+                        <td class="stock-val" style="color:var(--accent-gold);">
+                            {% widthratio item.cost_price 1 item.stock %}
+                        </td>
+                        <td>
+                            {% if item.is_low_stock %}
+                            <span class="status-badge badge-low"><i class="bi bi-exclamation-triangle me-1"></i> Low Stock</span>
+                            {% else %}
+                            <span class="status-badge badge-ok"><i class="bi bi-check-circle me-1"></i> Optimal</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" min="0" step="0.01" id="add{{ item.id }}" class="input-luxury" placeholder="Qty">
+                                <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')">Add</button>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}')">
+                                <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Initial Stock</label>
-                            <input id="invStock" type="number" step="0.01" class="form-control" placeholder="0.00">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
-                            <input id="invThreshold" type="number" step="0.01" class="form-control" placeholder="Alert below...">
-                        </div>
+<!-- Add Ingredient Modal -->
+<div class="modal fade" id="inventoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0">Add Ingredient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
+                    <input id="invName" class="form-control" placeholder="e.g. Flour, Tomatoes, Olive Oil">
+                </div>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Measurement Unit</label>
+                        <select id="invUnit" class="form-select">
+                            <option value="pcs">Pieces (pcs)</option>
+                            <option value="g">Grams (g)</option>
+                            <option value="kg">Kilograms (kg)</option>
+                            <option value="ml">Milliliters (ml)</option>
+                            <option value="l">Liters (l)</option>
+                        </select>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
+                        <input id="invCostPrice" type="number" step="0.01" class="form-control" placeholder="0.00">
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="createInventoryItem()">Create Ingredient</button>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Initial Stock</label>
+                        <input id="invStock" type="number" step="0.01" class="form-control" placeholder="0.00">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
+                        <input id="invThreshold" type="number" step="0.01" class="form-control" placeholder="Alert below...">
+                    </div>
                 </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="createInventoryItem()">Create Ingredient</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- EDIT INVENTORY MODAL -->
-    <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title m-0">Edit Ingredient</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Edit Inventory Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title m-0">Edit Ingredient</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <div class="mb-3">
+                    <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
+                    <input id="editName" class="form-control">
                 </div>
-                <div class="modal-body">
-                    <input type="hidden" id="editId">
-                    <div class="mb-3">
-                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
-                        <input id="editName" class="form-control">
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
+                        <input id="editCostPrice" type="number" step="0.01" class="form-control">
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
-                            <input id="editCostPrice" type="number" step="0.01" class="form-control">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
-                            <input id="editThreshold" type="number" step="0.01" class="form-control">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Auto-Reorder Qty</label>
-                            <input id="editReorderQty" type="number" step="0.01" class="form-control" placeholder="Qty to order">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Preferred Supplier</label>
-                            <select id="editSupplier" class="form-select">
-                                <option value="">-- None --</option>
-                                {% for s in suppliers %}
-                                <option value="{{ s.id }}">{{ s.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
+                        <input id="editThreshold" type="number" step="0.01" class="form-control">
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="updateInventoryItem()">Save Changes</button>
+                <div class="row">
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Auto-Reorder Qty</label>
+                        <input id="editReorderQty" type="number" step="0.01" class="form-control" placeholder="Qty to order">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Preferred Supplier</label>
+                        <select id="editSupplier" class="form-select">
+                            <option value="">-- None --</option>
+                            {% for s in suppliers %}
+                            <option value="{{ s.id }}">{{ s.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="updateInventoryItem()">Save Changes</button>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-    // THEME — synced with base.html (html.dark, localStorage key "rasova_theme")
-    function applyTheme() {
-        const dark = localStorage.getItem("rasova_theme") === "dark"
-                  || localStorage.getItem("dark") === "true";
-        document.documentElement.classList.toggle("dark", dark);
-        const icon = document.getElementById("themeIcon");
-        if (icon) { icon.className = dark ? "bi bi-sun" : "bi bi-moon"; }
-    }
-    applyTheme();
-
-    function toggleDark() {
-        const dark = !document.documentElement.classList.contains("dark");
-        localStorage.setItem("rasova_theme", dark ? "dark" : "light");
-        localStorage.setItem("dark", dark);
-        applyTheme();
-    }
-
-    // remove updateIcons() entirely - it's dead code
-
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie) {
-            let cookies = document.cookie.split(";");
-            for (let i = 0; i < cookies.length; i++) {
-                let cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + "=")) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                }
+{% block extra_js %}
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie) {
+        for (let c of document.cookie.split(';')) {
+            c = c.trim();
+            if (c.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(c.substring(name.length + 1));
             }
         }
-        return cookieValue;
     }
+    return cookieValue;
+}
 
-    function restock(id) {
-        let qty = document.getElementById("add" + id).value;
-        if (!qty || qty <= 0) { alert("Please enter a valid quantity."); return; }
-        fetch(`/inventory/restock/${id}/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-            body: JSON.stringify({ quantity: qty })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById("stock" + id).innerText = data.new_stock;
-                document.getElementById("add" + id).value = "";
-                location.reload();
-            } else {
-                alert("Restock failed");
-            }
-        })
-    }
+function restock(id) {
+    const qty = document.getElementById('add' + id).value;
+    if (!qty || qty <= 0) { alert('Please enter a valid quantity.'); return; }
+    fetch(`/inventory/restock/${id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ quantity: qty })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('stock' + id).innerText = data.new_stock;
+            document.getElementById('add' + id).value = '';
+            location.reload();
+        } else { alert('Restock failed'); }
+    });
+}
 
-    function openAddInventoryModal() {
-        new bootstrap.Modal(document.getElementById("inventoryModal")).show();
-    }
+function openAddInventoryModal() {
+    new bootstrap.Modal(document.getElementById('inventoryModal')).show();
+}
 
-    function createInventoryItem() {
-        let name = document.getElementById("invName").value;
-        let unit = document.getElementById("invUnit").value;
-        let stock = document.getElementById("invStock").value;
-        let threshold = document.getElementById("invThreshold").value;
-        let costPrice = document.getElementById("invCostPrice").value;
+function createInventoryItem() {
+    const name = document.getElementById('invName').value;
+    const unit = document.getElementById('invUnit').value;
+    const stock = document.getElementById('invStock').value;
+    const threshold = document.getElementById('invThreshold').value;
+    const costPrice = document.getElementById('invCostPrice').value;
+    if (!name) { alert('Please enter an ingredient name.'); return; }
+    fetch('/inventory/create/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ name, unit, stock: parseFloat(stock) || 0, threshold: parseFloat(threshold) || 0, cost_price: parseFloat(costPrice) || 0 })
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to create ingredient.'); } });
+}
 
-        if (!name) { alert("Please enter an ingredient name."); return; }
+function openEditModal(id, name, costPrice, threshold, reorderQty, supplierId) {
+    document.getElementById('editId').value = id;
+    document.getElementById('editName').value = name;
+    document.getElementById('editCostPrice').value = costPrice;
+    document.getElementById('editThreshold').value = threshold;
+    document.getElementById('editReorderQty').value = reorderQty;
+    document.getElementById('editSupplier').value = supplierId || '';
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
 
-        fetch("/inventory/create/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-            body: JSON.stringify({
-                name: name,
-                unit: unit,
-                stock: parseFloat(stock) || 0,
-                threshold: parseFloat(threshold) || 0,
-                cost_price: parseFloat(costPrice) || 0
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.error || "Failed to create ingredient.");
-            }
-        })
-    }
-
-    function openEditModal(id, name, costPrice, threshold, reorderQty, supplierId) {
-        document.getElementById('editId').value = id;
-        document.getElementById('editName').value = name;
-        document.getElementById('editCostPrice').value = costPrice;
-        document.getElementById('editThreshold').value = threshold;
-        document.getElementById('editReorderQty').value = reorderQty;
-        document.getElementById('editSupplier').value = supplierId || "";
-        new bootstrap.Modal(document.getElementById("editModal")).show();
-    }
-
-    function updateInventoryItem() {
-        let id = document.getElementById('editId').value;
-        let name = document.getElementById('editName').value;
-        let costPrice = document.getElementById('editCostPrice').value;
-        let threshold = document.getElementById('editThreshold').value;
-        let reorderQty = document.getElementById('editReorderQty').value;
-        let supplierId = document.getElementById('editSupplier').value;
-
-        if (!name) { alert("Please enter an ingredient name."); return; }
-
-        fetch(`/inventory/update/${id}/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-            body: JSON.stringify({
-                name: name,
-                cost_price: parseFloat(costPrice) || 0,
-                threshold: parseFloat(threshold) || 0,
-                reorder_quantity: parseFloat(reorderQty) || 0,
-                supplier_id: supplierId || null
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert(data.error || "Failed to update ingredient.");
-            }
-        });
-    }
+function updateInventoryItem() {
+    const id = document.getElementById('editId').value;
+    const name = document.getElementById('editName').value;
+    const costPrice = document.getElementById('editCostPrice').value;
+    const threshold = document.getElementById('editThreshold').value;
+    const reorderQty = document.getElementById('editReorderQty').value;
+    const supplierId = document.getElementById('editSupplier').value;
+    if (!name) { alert('Please enter an ingredient name.'); return; }
+    fetch(`/inventory/update/${id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ name, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null })
+    })
+    .then(r => r.json())
+    .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to update ingredient.'); } });
+}
 </script>
-
-<!-- Bootstrap only once, at the end -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

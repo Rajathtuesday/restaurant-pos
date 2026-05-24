@@ -155,6 +155,54 @@ def _update_last_seen(config: dict, outlet_id: str, ip: str) -> dict:
 _agent_config: dict = {}
 
 
+# ── MAC → IP resolution via ARP ──────────────────────────────────────────────
+
+def _normalise_mac(mac: str) -> str:
+    """Normalise any MAC format to lowercase colon-separated: aa:bb:cc:dd:ee:ff"""
+    digits = mac.replace(":", "").replace("-", "").replace(".", "").lower()
+    return ":".join(digits[i:i+2] for i in range(0, 12, 2))
+
+
+def resolve_mac_to_ip(mac: str) -> Optional[str]:
+    """
+    Parse the OS ARP table to find the current IP for a given MAC address.
+    Works on Windows, Linux, and macOS without any extra dependencies.
+    Returns the IP string or None if not found.
+    """
+    if not mac:
+        return None
+
+    target = _normalise_mac(mac)
+
+    try:
+        if IS_WINDOWS:
+            result = subprocess.run(["arp", "-a"], capture_output=True, text=True, timeout=5)
+        else:
+            result = subprocess.run(["arp", "-n"], capture_output=True, text=True, timeout=5)
+        output = result.stdout
+    except Exception as e:
+        logger.warning("ARP lookup failed: %s", e)
+        return None
+
+    import re
+    # Match lines like: 192.168.1.5   00-1b-44-11-3a-b7   dynamic
+    #               or: 192.168.1.5   00:1b:44:11:3a:b7   (Linux)
+    for line in output.splitlines():
+        # Extract any MAC-like token on the line
+        macs_on_line = re.findall(r"([0-9a-fA-F]{2}[:\-][0-9a-fA-F]{2}[:\-][0-9a-fA-F]{2}[:\-][0-9a-fA-F]{2}[:\-][0-9a-fA-F]{2}[:\-][0-9a-fA-F]{2})", line)
+        for found_mac in macs_on_line:
+            if _normalise_mac(found_mac) == target:
+                # Extract the IP from the same line (first IPv4 address)
+                ip_match = re.search(r"\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b", line)
+                if ip_match:
+                    ip = ip_match.group(1)
+                    logger.info("ARP resolved MAC %s → %s", target, ip)
+                    return ip
+
+    logger.info("ARP: MAC %s not found in table (printer may be offline or ARP cache stale)", target)
+    return None
+
+
 # ── Network printer discovery ─────────────────────────────────────────────────
 
 def _get_local_subnet() -> Optional[str]:
@@ -389,12 +437,14 @@ async def smart_network_print(
     data: bytes,
     outlet_id: str,
     config: dict,
+    printer_mac: str = "",
 ) -> tuple:
     """
     Try network printing with progressive fallback:
     1. Provided IP (normal path)
-    2. Cached last_seen_ip for this outlet (if different from provided)
-    3. Full subnet scan, try each discovered IP until one works
+    2. ARP resolution of MAC address (permanent identifier — survives DHCP changes)
+    3. Cached last_seen_ip for this outlet
+    4. Full subnet scan, try each discovered IP until one works
     Returns (success, message, working_ip_or_None)
     """
     tried = []
@@ -406,19 +456,29 @@ async def smart_network_print(
         if success:
             return True, msg, net_host
 
-    # Level 2: try cached last_seen_ip (if different from provided)
+    # Level 2: ARP-resolve the MAC address (works even after DHCP change/router reset)
+    if printer_mac:
+        arp_ip = resolve_mac_to_ip(printer_mac)
+        if arp_ip and arp_ip not in tried:
+            tried.append(arp_ip)
+            logger.info("Trying ARP-resolved IP for MAC %s: %s", printer_mac, arp_ip)
+            success, msg = print_raw_network(arp_ip, net_port, data)
+            if success:
+                return True, f"{msg} (found via MAC address)", arp_ip
+
+    # Level 3: try cached last_seen_ip (if different from already tried)
     cached_ip = None
     if outlet_id:
         outlet_cfg = config.get("printers", {}).get(outlet_id, {})
         cached_ip = outlet_cfg.get("last_seen_ip", "")
-    if cached_ip and cached_ip != net_host:
+    if cached_ip and cached_ip not in tried:
         tried.append(cached_ip)
         logger.info("Trying cached IP for outlet '%s': %s", outlet_id, cached_ip)
         success, msg = print_raw_network(cached_ip, net_port, data)
         if success:
             return True, msg, cached_ip
 
-    # Level 3: full subnet discovery
+    # Level 4: full subnet discovery
     logger.info("Network print failed on all known IPs, starting subnet discovery...")
     discovered = await discover_network_printers(port=net_port, timeout=0.5)
     for printer_info in discovered:
@@ -513,13 +573,14 @@ async def handle_client(websocket):
 
             # ── print ─────────────────────────────────────────────────────────
             elif msg_type == "print":
-                printer   = msg.get("printer", "").strip()
-                lines     = msg.get("lines", [])
-                net_host  = msg.get("network_host", "").strip()
-                net_port  = int(msg.get("network_port", 9100))
-                encoding  = msg.get("encoding", "cp437")
-                job_id    = msg.get("job_id", "")
-                outlet_id = msg.get("outlet_id", "").strip()
+                printer     = msg.get("printer", "").strip()
+                lines       = msg.get("lines", [])
+                net_host    = msg.get("network_host", "").strip()
+                net_port    = int(msg.get("network_port", 9100))
+                encoding    = msg.get("encoding", "cp437")
+                job_id      = msg.get("job_id", "")
+                outlet_id   = msg.get("outlet_id", "").strip()
+                printer_mac = msg.get("printer_mac", "").strip()
 
                 if not lines:
                     await websocket.send(json.dumps({
@@ -531,10 +592,10 @@ async def handle_client(websocket):
                 data = decode_lines(lines, encoding)
                 working_ip = None
 
-                if net_host:
-                    # Smart network print with fallback chain
+                if net_host or printer_mac:
+                    # Smart network print with fallback chain (MAC→ARP → cached IP → subnet scan)
                     success, message, working_ip = await smart_network_print(
-                        net_host, net_port, data, outlet_id, _agent_config
+                        net_host, net_port, data, outlet_id, _agent_config, printer_mac
                     )
                 elif printer:
                     success, message = print_raw_windows(printer, data)

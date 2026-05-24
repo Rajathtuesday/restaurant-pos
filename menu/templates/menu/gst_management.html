@@ -1,363 +1,129 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GST Rates — {{ request.user.tenant.name }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <style>
-        :root {
-            --bg-color: #fafafa;
-            --panel-bg: #ffffff;
-            --text-main: #111111;
-            --text-muted: #737373;
-            --border-color: #eaeaea;
-            --accent-gold: #c5a059;
-            --accent-hover: #b59250;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --blue: #60a5fa;
-            --orange: #f97316;
-            --radius: 8px;
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
+{% extends 'core/base.html' %}
 
-        body.dark {
-            --bg-color: #0a0a0a;
-            --panel-bg: #111111;
-            --text-main: #f5f5f5;
-            --text-muted: #888888;
-            --border-color: #262626;
-            --accent-gold: #d4af37;
-            --accent-hover: #e5c45e;
-        }
+{% block title %}GST Rates — {{ request.user.tenant.name }}{% endblock %}
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+{% block extra_css %}
+<style>
+    :root {
+        --blue:   #60a5fa;
+        --orange: #f97316;
+        --radius: 8px;
+    }
 
-        body {
-            background: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'DM Sans', sans-serif;
-            min-height: 100vh;
-            transition: var(--transition-smooth);
-        }
+    /* ── TOAST ── */
+    .toast-float {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        font-size: 0.82rem;
+        letter-spacing: 0.3px;
+        transition: transform 0.3s ease;
+        z-index: 9999;
+        white-space: nowrap;
+        max-width: 90vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .toast-float.show { transform: translateX(-50%) translateY(0); }
+    .toast-float.success { border-color: var(--success); color: var(--success); }
+    .toast-float.error   { border-color: var(--danger);  color: var(--danger); }
 
-        /* ── HEADER ── */
-        .header {
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+    /* ── MAIN ── */
+    .gst-main { padding: 1.5rem; max-width: 720px; margin: 0 auto; }
 
-        .header-back {
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: color 0.2s;
-            white-space: nowrap;
-        }
-        .header-back:hover { color: var(--accent-gold); }
+    /* ── INFO BANNER ── */
+    .info-banner {
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-left: 3px solid var(--accent-gold);
+        border-radius: var(--radius);
+        padding: 1rem 1.2rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.81rem;
+        color: var(--text-muted);
+        line-height: 1.7;
+    }
+    .info-banner strong { color: var(--text-main); }
 
-        .header-title {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.15rem;
-            color: var(--accent-gold);
-            flex: 1;
-        }
+    /* ── RATE LEGEND ── */
+    .rate-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .rate-chip { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.3px; border: 1px solid; }
+    .chip-0  { background: rgba(128,128,128,0.1); color: var(--text-muted); border-color: var(--border-color); }
+    .chip-5  { background: rgba(34,197,94,0.1); color: var(--success); border-color: var(--success); }
+    .chip-12 { background: rgba(96,165,250,0.1); color: var(--blue); border-color: var(--blue); }
+    .chip-18 { background: rgba(249,115,22,0.1); color: var(--orange); border-color: var(--orange); }
 
-        .header-sub {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-        }
+    /* ── CATEGORY CARD ── */
+    .category-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: var(--radius); margin-bottom: 0.75rem; overflow: hidden; transition: border-color 0.2s; }
+    .category-card:hover { border-color: var(--accent-gold); }
+    .category-header { padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; }
+    .category-card.collapsed .category-header { border-bottom-color: transparent; }
+    .category-header:hover { background: rgba(0,0,0,0.02); }
+    html.dark .category-header:hover { background: rgba(255,255,255,0.02); }
+    .cat-title-wrap { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
+    .collapse-icon { color: var(--text-muted); transition: transform 0.2s; font-size: 0.8rem; flex-shrink: 0; }
+    .category-card.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .category-name { font-size: 0.88rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .category-count { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; flex-shrink: 0; }
+    .bulk-section { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+    .bulk-label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
 
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.2rem; cursor: pointer; padding: 0.4rem; transition: var(--transition-smooth); }
-        .btn-icon:hover { color: var(--accent-gold); }
+    /* ── SELECT ── */
+    .gst-select {
+        background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
+        font-family: 'Outfit', sans-serif; font-size: 0.78rem; padding: 0.35rem 0.55rem;
+        border-radius: 6px; cursor: pointer; outline: none; transition: border-color 0.2s;
+    }
+    .gst-select:focus { border-color: var(--accent-gold); }
+    .gst-select option { background: var(--panel-bg); color: var(--text-main); }
 
-        /* ── TOAST ── */
-        .toast {
-            position: fixed;
-            bottom: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 0.75rem 1.5rem;
-            border-radius: 50px;
-            font-size: 0.82rem;
-            letter-spacing: 0.3px;
-            transition: transform 0.3s ease;
-            z-index: 999;
-            white-space: nowrap;
-            max-width: 90vw;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-        .toast.success { border-color: var(--success); color: var(--success); }
-        .toast.error   { border-color: var(--danger);  color: var(--danger); }
+    .btn-bulk { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.7rem; padding: 0.35rem 0.7rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.3px; }
+    .btn-bulk:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
 
-        /* ── MAIN ── */
-        .main {
-            padding: 1.5rem;
-            max-width: 720px;
-            margin: 0 auto;
-        }
+    /* ── ITEMS LIST ── */
+    .items-list { padding: 0.25rem 0; }
+    .item-row { display: flex; align-items: center; padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--border-color); gap: 1rem; transition: background 0.15s; }
+    .item-row:last-child { border-bottom: none; }
+    .item-row:hover { background: rgba(0,0,0,0.01); }
+    html.dark .item-row:hover { background: rgba(255,255,255,0.01); }
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 0.86rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-price { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
+    .item-gst-control { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+    .saving-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-gold); display: none; flex-shrink: 0; animation: pulse 0.9s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .empty { padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.82rem; font-style: italic; }
 
-        /* ── INFO BANNER ── */
-        .info-banner {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-left: 3px solid var(--accent-gold);
-            border-radius: var(--radius);
-            padding: 1rem 1.2rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.81rem;
-            color: var(--text-muted);
-            line-height: 1.7;
-        }
-        .info-banner strong { color: var(--text-main); }
+    @media (max-width: 520px) {
+        .gst-main { padding: 1rem; }
+        .bulk-label { display: none; }
+        .category-header { flex-wrap: wrap; gap: 0.6rem; }
+        .bulk-section { width: 100%; justify-content: flex-end; }
+        .item-row { flex-wrap: wrap; gap: 0.4rem; padding: 0.85rem 1rem; }
+        .item-gst-control { width: 100%; }
+        .item-gst-control .gst-select { flex: 1; }
+    }
+</style>
+{% endblock %}
 
-        /* ── RATE LEGEND ── */
-        .rate-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .rate-chip {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.3rem 0.7rem;
-            border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            border: 1px solid;
-        }
-        .chip-0  { background: rgba(128,128,128,0.1); color: var(--text-muted); border-color: var(--border-color); }
-        .chip-5  { background: rgba(34,197,94,0.1); color: var(--success); border-color: var(--success); }
-        .chip-12 { background: rgba(96,165,250,0.1); color: var(--blue); border-color: var(--blue); }
-        .chip-18 { background: rgba(249,115,22,0.1); color: var(--orange); border-color: var(--orange); }
-
-        /* ── CATEGORY CARD ── */
-        .category-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius);
-            margin-bottom: 0.75rem;
-            overflow: hidden;
-            transition: border-color 0.2s;
-        }
-        .category-card:hover { border-color: var(--accent-gold); }
-
-        .category-header {
-            padding: 0.9rem 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            border-bottom: 1px solid var(--border-color);
-            cursor: pointer;
-            user-select: none;
-        }
-        .category-card.collapsed .category-header { border-bottom-color: transparent; }
-        .category-header:hover { background: rgba(0,0,0,0.02); }
-        body.dark .category-header:hover { background: rgba(255,255,255,0.02); }
-
-        .cat-title-wrap {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex: 1;
-            min-width: 0;
-        }
-
-        .collapse-icon {
-            color: var(--text-muted);
-            transition: transform 0.2s;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-        }
-        .category-card.collapsed .collapse-icon { transform: rotate(-90deg); }
-
-        .category-name {
-            font-size: 0.88rem;
-            font-weight: 600;
-            color: var(--text-main);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .category-count {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            font-weight: 400;
-            flex-shrink: 0;
-        }
-
-        .bulk-section {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            flex-shrink: 0;
-        }
-
-        .bulk-label {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-
-        /* ── SELECT ── */
-        select {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.78rem;
-            padding: 0.35rem 0.55rem;
-            border-radius: 6px;
-            cursor: pointer;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        select:focus { border-color: var(--accent-gold); }
-        select option { background: var(--panel-bg); color: var(--text-main); }
-
-        /* ── BULK APPLY BUTTON ── */
-        .btn-bulk {
-            background: transparent;
-            border: 1px solid var(--border-color);
-            color: var(--text-muted);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.7rem;
-            padding: 0.35rem 0.7rem;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            letter-spacing: 0.3px;
-        }
-        .btn-bulk:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-        .btn-bulk:active { transform: scale(0.97); }
-
-        /* ── ITEMS LIST ── */
-        .items-list { padding: 0.25rem 0; }
-
-        .item-row {
-            display: flex;
-            align-items: center;
-            padding: 0.7rem 1.2rem;
-            border-bottom: 1px solid var(--border-color);
-            gap: 1rem;
-            transition: background 0.15s;
-        }
-        .item-row:last-child { border-bottom: none; }
-        .item-row:hover { background: rgba(0,0,0,0.01); }
-        body.dark .item-row:hover { background: rgba(255,255,255,0.01); }
-
-        .item-info { flex: 1; min-width: 0; }
-
-        .item-name {
-            font-size: 0.86rem;
-            font-weight: 500;
-            color: var(--text-main);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .item-price {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            margin-top: 0.1rem;
-        }
-
-        .item-gst-control {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-shrink: 0;
-        }
-
-        /* Saving indicator */
-        .saving-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent-gold);
-            display: none;
-            flex-shrink: 0;
-            animation: pulse 0.9s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50%       { opacity: 0.2; }
-        }
-
-        /* ── EMPTY STATE ── */
-        .empty {
-            padding: 2rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.82rem;
-            font-style: italic;
-        }
-
-        /* ── MOBILE RESPONSIVE ── */
-        @media (max-width: 520px) {
-            .header    { padding: 0.85rem 1rem; }
-            .main      { padding: 1rem; }
-            .bulk-label { display: none; }
-
-            .category-header {
-                flex-wrap: wrap;
-                gap: 0.6rem;
-            }
-            .bulk-section { width: 100%; justify-content: flex-end; }
-
-            .item-row {
-                flex-wrap: wrap;
-                gap: 0.4rem;
-                padding: 0.85rem 1rem;
-            }
-            .item-gst-control { width: 100%; }
-            .item-gst-control select { flex: 1; }
-        }
-    </style>
-</head>
-<body>
-
-<header class="header">
-    <a href="{% url 'menu_management' %}" class="header-back">
-        <i class="bi bi-arrow-left"></i> Menu
+{% block header_left %}
+<div>
+    <a href="{% url 'menu_management' %}" class="brand-title" style="font-size:1.2rem;">
+        <i class="bi bi-arrow-left" style="color:var(--text-muted); font-size:0.9rem;"></i>
+        <span style="color:var(--accent-gold);">GST Rates</span>
     </a>
-    <div style="flex: 1;">
-        <div class="header-title">GST Rates</div>
-        <div class="header-sub">{{ request.user.outlet.name }}</div>
-    </div>
-    <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
-        <i class="bi bi-moon" id="themeIcon"></i>
-    </button>
-</header>
+    <p class="brand-subtitle">{{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
 
-<main class="main">
+{% block content %}
+<main class="gst-main">
 
     <div class="info-banner">
         <strong>Set the correct GST rate per item.</strong> Changes save instantly — no page reload needed.<br>
@@ -377,7 +143,6 @@
     {% if categories %}
         {% for category in categories %}
         <div class="category-card" id="card-{{ category.id }}">
-
             <div class="category-header" onclick="toggleCategory({{ category.id }})">
                 <div class="cat-title-wrap">
                     <i class="bi bi-chevron-down collapse-icon" id="icon-{{ category.id }}"></i>
@@ -386,15 +151,12 @@
                 </div>
                 <div class="bulk-section">
                     <span class="bulk-label">Apply all:</span>
-                    <select id="bulk-{{ category.id }}" onclick="event.stopPropagation()">
+                    <select class="gst-select" id="bulk-{{ category.id }}" onclick="event.stopPropagation()">
                         {% for rate in gst_rates %}
                         <option value="{{ rate.value }}">{{ rate.label }}</option>
                         {% endfor %}
                     </select>
-                    <button class="btn-bulk"
-                            onclick="event.stopPropagation(); applyBulkGST({{ category.id }})">
-                        Apply
-                    </button>
+                    <button class="btn-bulk" onclick="event.stopPropagation(); applyBulkGST({{ category.id }})">Apply</button>
                 </div>
             </div>
 
@@ -406,11 +168,9 @@
                         <div class="item-price">₹{{ item.price }}</div>
                     </div>
                     <div class="item-gst-control">
-                        <select id="gst-{{ item.id }}"
-                                onchange="updateItemGST({{ item.id }}, this.value)">
+                        <select class="gst-select" id="gst-{{ item.id }}" onchange="updateItemGST({{ item.id }}, this.value)">
                             {% for rate in gst_rates %}
-                            <option value="{{ rate.value }}"
-                                {% if item.gst_percentage|floatformat:2 == rate.value %}selected{% endif %}>
+                            <option value="{{ rate.value }}" {% if item.gst_percentage|floatformat:2 == rate.value %}selected{% endif %}>
                                 {{ rate.label }}
                             </option>
                             {% endfor %}
@@ -422,7 +182,6 @@
                 <div class="empty">No items in this category</div>
                 {% endfor %}
             </div>
-
         </div>
         {% endfor %}
     {% else %}
@@ -431,99 +190,59 @@
 
 </main>
 
-<!-- Toast -->
-<div class="toast" id="toast"></div>
+<div class="toast-float" id="gst-toast"></div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-    const CSRF = "{{ csrf_token }}";
+const CSRF = "{{ csrf_token }}";
 
-    /* THEME MANAGEMENT */
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateTheme() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) {
-            document.body.classList.add("dark");
-            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-        } else {
-            document.body.classList.remove("dark");
-            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-        }
-    }
-    updateTheme();
-    function toggleDark() {
-        isDark = !isDark;
-        localStorage.setItem("dark", isDark);
-        updateTheme();
-    }
+function toggleCategory(catId) {
+    const list = document.getElementById(`cat-${catId}`);
+    const card = document.getElementById(`card-${catId}`);
+    const isCollapsed = card.classList.contains('collapsed');
+    if (isCollapsed) { list.style.display = 'block'; card.classList.remove('collapsed'); }
+    else { list.style.display = 'none'; card.classList.add('collapsed'); }
+}
 
-    // ── TOGGLE CATEGORY ──
-    function toggleCategory(catId) {
-        const list = document.getElementById(`cat-${catId}`);
-        const card = document.getElementById(`card-${catId}`);
-        const isCollapsed = card.classList.contains('collapsed');
-        if (isCollapsed) {
-            list.style.display = 'block';
-            card.classList.remove('collapsed');
-        } else {
-            list.style.display = 'none';
-            card.classList.add('collapsed');
-        }
-    }
+async function updateItemGST(itemId, gstValue) {
+    const dot = document.getElementById(`dot-${itemId}`);
+    dot.style.display = 'block';
+    try {
+        const res = await fetch(`{% url 'update_item_gst' 0 %}`.replace('/0/', `/${itemId}/`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ gst_percentage: gstValue })
+        });
+        const data = await res.json();
+        showToast(data.success ? data.message : (data.error || 'Update failed'), data.success ? 'success' : 'error');
+    } catch (e) { showToast('Connection error', 'error'); }
+    finally { dot.style.display = 'none'; }
+}
 
-    // ── UPDATE SINGLE ITEM GST ──
-    async function updateItemGST(itemId, gstValue) {
-        const dot = document.getElementById(`dot-${itemId}`);
-        dot.style.display = 'block';
-        try {
-            const res = await fetch(`{% url 'update_item_gst' 0 %}`.replace('/0/', `/${itemId}/`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                body: JSON.stringify({ gst_percentage: gstValue })
-            });
-            const data = await res.json();
-            showToast(data.success ? data.message : (data.error || 'Update failed'), data.success ? 'success' : 'error');
-        } catch (e) {
-            showToast('Connection error', 'error');
-        } finally {
-            dot.style.display = 'none';
-        }
-    }
+async function applyBulkGST(categoryId) {
+    const gstValue = document.getElementById(`bulk-${categoryId}`).value;
+    try {
+        const res = await fetch(`{% url 'update_category_gst' 0 %}`.replace('/0/', `/${categoryId}/`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ gst_percentage: gstValue })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById(`cat-${categoryId}`).querySelectorAll('select[id^="gst-"]').forEach(sel => { sel.value = gstValue; });
+            showToast(data.message, 'success');
+        } else { showToast(data.error || 'Bulk update failed', 'error'); }
+    } catch (e) { showToast('Connection error', 'error'); }
+}
 
-    // ── APPLY BULK GST TO CATEGORY ──
-    async function applyBulkGST(categoryId) {
-        const select = document.getElementById(`bulk-${categoryId}`);
-        const gstValue = select.value;
-        try {
-            const res = await fetch(`{% url 'update_category_gst' 0 %}`.replace('/0/', `/${categoryId}/`), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-                body: JSON.stringify({ gst_percentage: gstValue })
-            });
-            const data = await res.json();
-            if (data.success) {
-                // Sync all item dropdowns visually
-                document.getElementById(`cat-${categoryId}`)
-                    .querySelectorAll('select[id^="gst-"]')
-                    .forEach(sel => { sel.value = gstValue; });
-                showToast(data.message, 'success');
-            } else {
-                showToast(data.error || 'Bulk update failed', 'error');
-            }
-        } catch (e) {
-            showToast('Connection error', 'error');
-        }
-    }
-
-    // ── TOAST ──
-    let toastTimer;
-    function showToast(msg, type = '') {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.className = `toast ${type} show`;
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { toast.className = 'toast'; }, 3000);
-    }
+let toastTimer;
+function showToast(msg, type = '') {
+    const toast = document.getElementById('gst-toast');
+    toast.textContent = msg;
+    toast.className = `toast-float ${type} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.className = 'toast-float'; }, 3000);
+}
 </script>
-
-</body>
-</html>
+{% endblock %}

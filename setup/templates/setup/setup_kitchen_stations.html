@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ── Rasova Print Agent integration ──────────────────── */
-const AGENT_WS  = 'ws://localhost:8765';
+const AGENT_WS  = 'ws://{{ request.user.outlet.agent_host|default:"localhost" }}:8765';
 let _agentWs = null;
 
 async function connectAgent(timeout = 2000) {
@@ -659,7 +659,7 @@ async function testAgentPrint() {
   try {
     const ws  = await connectAgent(3000);
     const jid = 'test-' + Date.now();
-    ws.send(JSON.stringify({ type: 'print', printer: name, lines, job_id: jid, encoding: 'cp437' }));
+    ws.send(JSON.stringify({ type: 'print', printer: name, lines, job_id: jid, encoding: 'cp437', printer_mac: '{{ request.user.outlet.printer_mac|default:"" }}' }));
     await new Promise((res, rej) => {
       const h = (ev) => {
         const d = JSON.parse(ev.data);

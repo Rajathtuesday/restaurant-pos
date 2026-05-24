@@ -517,9 +517,18 @@
   }
 
   document.getElementById("menuSearch").addEventListener("input", function () {
-    const t = this.value.toLowerCase();
-    document.querySelectorAll(".menu-item-searchable").forEach(c => {
-      c.style.display = c.querySelector(".item-name").innerText.toLowerCase().includes(t) ? "block" : "none";
+    const t = this.value.toLowerCase().trim();
+    document.querySelectorAll("h3.menu-section-title").forEach(header => {
+      const row = header.nextElementSibling;
+      if (!row) return;
+      let anyVisible = false;
+      row.querySelectorAll(".menu-item-searchable").forEach(card => {
+        const matches = !t || card.querySelector(".item-name").innerText.toLowerCase().includes(t);
+        card.style.display = matches ? "" : "none";
+        if (matches) anyVisible = true;
+      });
+      header.style.display = anyVisible || !t ? "" : "none";
+      row.style.display = anyVisible || !t ? "" : "none";
     });
   });
 
@@ -532,12 +541,16 @@
     if (sidebarItems[idx]) sidebarItems[idx].classList.add("active");
     if (mobileItems[idx])  mobileItems[idx].classList.add("active");
     const target = document.getElementById(id);
-    if (target) {
-      if (window.innerWidth < 992) {
-        window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-      } else {
-        document.querySelector(".menu-area").scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-      }
+    if (!target) return;
+    if (window.innerWidth < 992) {
+      const mobileNavH = document.querySelector('.mobile-category-nav')?.offsetHeight || 60;
+      const headerH = document.querySelector('.pos-header')?.offsetHeight || 60;
+      const top = target.getBoundingClientRect().top + window.scrollY - headerH - mobileNavH - 12;
+      window.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      const menuArea = document.querySelector(".menu-area");
+      const top = target.getBoundingClientRect().top - menuArea.getBoundingClientRect().top + menuArea.scrollTop - 24;
+      menuArea.scrollTo({ top, behavior: 'smooth' });
     }
   }
 

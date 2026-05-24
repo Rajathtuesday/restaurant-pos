@@ -320,6 +320,32 @@ class Outlet(models.Model):
         help_text="Hour (0-23) at which a new business day starts. If it's before this hour, the order belongs to the previous calendar day."
     )
 
+    # ── Printer settings ──────────────────────────────────────────────────────
+    printer_mac = models.CharField(
+        max_length=17,
+        blank=True,
+        help_text=(
+            "Thermal printer MAC address (e.g. 00:1B:44:11:3A:B7). "
+            "Printed on the sticker on the bottom of the printer. "
+            "Used to locate the printer automatically even if its IP changes."
+        )
+    )
+
+    agent_host = models.CharField(
+        max_length=253,
+        default="localhost",
+        help_text=(
+            "'localhost' when the Rasova Agent runs on this device (Windows PC or Termux on tablet). "
+            "Set to a local IP (e.g. 192.168.1.200) when using a Raspberry Pi or separate print server."
+        )
+    )
+
+    paper_width_mm = models.IntegerField(
+        default=80,
+        choices=[(58, "58mm — narrow roll"), (80, "80mm — standard roll")],
+        help_text="Thermal paper width. Most restaurant printers use 80mm."
+    )
+
     class Meta:
 
         ordering = ["tenant", "name"]
