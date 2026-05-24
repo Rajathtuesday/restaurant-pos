@@ -316,95 +316,30 @@
             </div>
         </div>
 
-        <!-- Thermal Printer -->
+        <!-- Printer -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-printer section-icon"></i>
                 <span class="section-title">Thermal Printer</span>
             </div>
-            <div class="section-body">
-
-                <div class="compliance-note">
-                    <strong>Set once, never touch again.</strong>
-                    Enter the MAC address from the sticker on your printer's base.
-                    Rasova uses it to find the printer automatically — even if the IP changes after a router restart.
-                </div>
-
-                <!-- MAC address -->
-                <div class="field-row">
-                    <label class="field-label" for="printer_mac">Printer MAC Address</label>
-                    <input type="text" id="printer_mac" name="printer_mac"
-                           class="field-input field-mono"
-                           value="{{ outlet.printer_mac|default:'' }}"
-                           maxlength="17" placeholder="00:1B:44:11:3A:B7"
-                           oninput="formatMac(this)">
-                    <div class="field-hint">
-                        Found on a sticker on the <strong>bottom of the printer</strong>.
-                        Format: <code style="background:rgba(255,255,255,0.05);padding:1px 5px;">XX:XX:XX:XX:XX:XX</code>
-                        &nbsp;·&nbsp; Rasova resolves this to an IP automatically via ARP — no static IP needed.
+            <div class="section-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+                <div>
+                    {% if outlet.printer_mac %}
+                    <div style="font-size:0.88rem;font-weight:600;color:var(--text-main);">
+                        <i class="bi bi-check-circle-fill me-2" style="color:#22c55e;"></i>Printer configured
                     </div>
-                </div>
-
-                <!-- Paper width -->
-                <div class="field-row">
-                    <label class="field-label">Paper Width</label>
-                    <div style="display:flex;gap:2rem;margin-top:0.4rem;">
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                            <input type="radio" name="paper_width_mm" value="80"
-                                   {% if outlet.paper_width_mm == 80 or not outlet.paper_width_mm %}checked{% endif %}
-                                   style="accent-color:var(--accent-gold);">
-                            <span style="font-size:0.9rem;font-weight:600;">80mm <span style="font-weight:400;color:var(--text-muted);">— standard</span></span>
-                        </label>
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                            <input type="radio" name="paper_width_mm" value="58"
-                                   {% if outlet.paper_width_mm == 58 %}checked{% endif %}
-                                   style="accent-color:var(--accent-gold);">
-                            <span style="font-size:0.9rem;font-weight:600;">58mm <span style="font-weight:400;color:var(--text-muted);">— narrow</span></span>
-                        </label>
+                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace;">
+                        {{ outlet.printer_mac }} &nbsp;·&nbsp; {{ outlet.paper_width_mm }}mm &nbsp;·&nbsp; {{ outlet.agent_host }}
                     </div>
-                    <div class="field-hint">Most restaurant counters use 80mm. Check your roll width if unsure.</div>
-                </div>
-
-                <!-- Agent host -->
-                <div class="field-row">
-                    <label class="field-label" for="agent_host">Print Agent Host</label>
-                    <input type="text" id="agent_host" name="agent_host"
-                           class="field-input field-mono"
-                           value="{{ outlet.agent_host|default:'localhost' }}"
-                           placeholder="localhost">
-                    <div class="field-hint">
-                        <strong>localhost</strong> — agent runs on this device (Windows PC or Termux on tablet).<br>
-                        <strong>192.168.x.x</strong> — agent runs on a Raspberry Pi or separate device on the same network.
-                        <span id="agentStatusLine" style="margin-left:6px;"></span>
+                    {% else %}
+                    <div style="font-size:0.88rem;color:var(--text-muted);">
+                        <i class="bi bi-exclamation-circle me-2" style="color:var(--accent-gold);"></i>No printer configured yet
                     </div>
+                    {% endif %}
                 </div>
-
-                <!-- Agent status ping -->
-                <div style="margin-top:0.5rem;">
-                    <button type="button" class="btn-luxury" style="padding:0.5rem 1rem;font-size:0.7rem;" onclick="pingAgent()">
-                        <i class="bi bi-wifi me-1"></i> Test Agent Connection
-                    </button>
-                    <span id="agentPingResult" style="font-size:0.75rem;margin-left:0.8rem;color:var(--text-muted);"></span>
-                </div>
-
-                <!-- USB Printing toggle (moved from Compliance section) -->
-                <div class="field-row" style="margin-top:1.5rem;">
-                    <label class="field-label">USB Printing Method</label>
-                    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="qz-tray-box">
-                        <input type="checkbox" name="use_qz_tray" {% if outlet.use_qz_tray %}checked{% endif %}
-                               style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
-                               onchange="document.getElementById('qz-tray-box').style.borderColor=this.checked?'var(--accent-gold)':'var(--border-color)'">
-                        <div>
-                            <div style="font-weight:600;font-size:0.88rem;">Rasova Print Agent <span style="font-size:0.65rem;color:#10b981;background:rgba(16,185,129,.1);padding:1px 6px;border-radius:3px;margin-left:4px;">Real cuts</span></div>
-                            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
-                                Enable for proper partial cuts between slips and full cut at end.<br>
-                                Run <code style="background:rgba(255,255,255,0.05);padding:1px 5px;">python rasova_agent.py</code> on the billing device. Falls back to browser print if agent is not running.
-                            </div>
-                        </div>
-                    </label>
-                    <div class="field-hint">After enabling, go to <strong>Kitchen Stations</strong> to assign a printer to each station.</div>
-                </div>
-
+                <a href="{% url 'printer_setup' %}" class="btn-luxury text-decoration-none" style="white-space:nowrap;">
+                    <i class="bi bi-printer me-2"></i>{% if outlet.printer_mac %}Edit Printer Setup{% else %}Set Up Printer{% endif %}
+                </a>
             </div>
         </div>
 
@@ -470,54 +405,6 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
     });
-
-    function formatMac(input) {
-        let v = input.value.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
-        let out = "";
-        for (let i = 0; i < Math.min(v.length, 12); i++) {
-            if (i > 0 && i % 2 === 0) out += ":";
-            out += v[i];
-        }
-        input.value = out;
-    }
-
-    async function pingAgent() {
-        const host = document.getElementById("agent_host").value.trim() || "localhost";
-        const result = document.getElementById("agentPingResult");
-        result.style.color = "var(--text-muted)";
-        result.textContent = "Connecting…";
-        try {
-            const ws = new WebSocket(`ws://${host}:8765`);
-            const timeout = setTimeout(() => {
-                ws.close();
-                result.style.color = "#ef4444";
-                result.textContent = "No response — agent not running at " + host;
-            }, 4000);
-            ws.onopen = () => ws.send(JSON.stringify({ type: "ping" }));
-            ws.onmessage = (e) => {
-                clearTimeout(timeout);
-                ws.close();
-                try {
-                    const d = JSON.parse(e.data);
-                    if (d.type === "pong") {
-                        result.style.color = "#22c55e";
-                        result.textContent = `Connected — Agent v${d.version} on ${d.platform}`;
-                    }
-                } catch {
-                    result.style.color = "#22c55e";
-                    result.textContent = "Agent responded";
-                }
-            };
-            ws.onerror = () => {
-                clearTimeout(timeout);
-                result.style.color = "#ef4444";
-                result.textContent = "Cannot reach agent at " + host + ":8765";
-            };
-        } catch (e) {
-            result.style.color = "#ef4444";
-            result.textContent = "Error: " + e.message;
-        }
-    }
 
     function toggleCompScheme(cb) {
         document.getElementById('comp-scheme-box').style.borderColor =

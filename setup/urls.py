@@ -13,6 +13,7 @@ from .views import (
     rename_table,
     aggregator_setup,
     outlet_settings,
+    printer_setup,
     setup_promos,
     promo_create,
     promo_toggle,
@@ -37,6 +38,7 @@ urlpatterns = [
     path('tables/<int:table_id>/rename/', rename_table, name='rename_table'),
     path("aggregators/", aggregator_setup, name="setup_aggregators"),
     path("outlet/", outlet_settings, name="outlet_settings"),
+    path("printer/", printer_setup, name="printer_setup"),
 
     # Promo management
     path("promos/", setup_promos, name="setup_promos"),

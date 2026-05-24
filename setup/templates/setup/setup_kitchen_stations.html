@@ -659,7 +659,7 @@ async function testAgentPrint() {
   try {
     const ws  = await connectAgent(3000);
     const jid = 'test-' + Date.now();
-    ws.send(JSON.stringify({ type: 'print', printer: name, lines, job_id: jid, encoding: 'cp437', printer_mac: '{{ request.user.outlet.printer_mac|default:"" }}' }));
+    ws.send(JSON.stringify({ type: 'print', printer: name, lines, job_id: jid, encoding: 'cp437' }));
     await new Promise((res, rej) => {
       const h = (ev) => {
         const d = JSON.parse(ev.data);

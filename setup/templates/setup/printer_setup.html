@@ -1,0 +1,499 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Printer Setup | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ps-wrap { max-width: 560px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+
+    .ps-step {
+        border: 1px solid var(--border-color);
+        background: var(--panel-bg);
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+        transition: border-color 0.2s;
+    }
+    .ps-step.done  { border-color: #22c55e; }
+    .ps-step.active { border-color: var(--accent-gold); }
+
+    .ps-step-head {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1.1rem 1.4rem;
+    }
+    .ps-num {
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 1.5px solid var(--border-color);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
+        color: var(--text-muted); transition: all 0.2s;
+    }
+    .ps-step.done  .ps-num { background: #22c55e; border-color: #22c55e; color: #fff; }
+    .ps-step.active .ps-num { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+
+    .ps-step-title { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; }
+    .ps-step-sub   { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    .ps-body { padding: 0 1.4rem 1.4rem; border-top: 1px solid var(--border-color); }
+
+    /* Connection type cards */
+    .conn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 1rem; }
+    @media (max-width: 420px) { .conn-grid { grid-template-columns: 1fr; } }
+    .conn-card {
+        border: 1.5px solid var(--border-color); padding: 1rem 0.75rem;
+        text-align: center; cursor: pointer; transition: all 0.15s;
+        user-select: none;
+    }
+    .conn-card:hover { border-color: var(--accent-gold); }
+    .conn-card.selected { border-color: var(--accent-gold); background: rgba(197,160,89,0.07); }
+    .conn-card i { font-size: 1.6rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem; }
+    .conn-card.selected i { color: var(--accent-gold); }
+    .conn-card span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+    /* MAC input */
+    .mac-input {
+        width: 100%; background: transparent; border: none;
+        border-bottom: 2px solid var(--border-color); color: var(--text-main);
+        padding: 0.6rem 0; font-size: 1.4rem; font-family: 'Space Mono', monospace;
+        letter-spacing: 3px; outline: none; text-align: center; margin-top: 0.75rem;
+        transition: border-color 0.2s;
+    }
+    .mac-input:focus { border-bottom-color: var(--accent-gold); }
+    .mac-input.valid { border-bottom-color: #22c55e; }
+
+    .mac-hint {
+        margin-top: 1rem; padding: 0.75rem 1rem;
+        background: rgba(197,160,89,0.06); border-left: 2px solid var(--accent-gold);
+        font-size: 0.75rem; color: var(--text-muted); line-height: 1.7;
+    }
+    .mac-hint strong { color: var(--text-main); }
+
+    /* Paper width */
+    .width-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+    .width-card {
+        border: 1.5px solid var(--border-color); padding: 1.1rem 1rem;
+        cursor: pointer; transition: all 0.15s; display: flex;
+        flex-direction: column; align-items: center; gap: 0.4rem; user-select: none;
+    }
+    .width-card:hover { border-color: var(--accent-gold); }
+    .width-card.selected { border-color: var(--accent-gold); background: rgba(197,160,89,0.07); }
+    .width-num { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--accent-gold); line-height: 1; }
+    .width-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 700; }
+    .width-badge { font-size: 0.6rem; padding: 1px 6px; background: rgba(16,185,129,0.1); color: #10b981; border-radius: 3px; }
+
+    /* Agent host */
+    .agent-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+    .agent-card {
+        border: 1.5px solid var(--border-color); padding: 1rem; cursor: pointer;
+        transition: all 0.15s; user-select: none;
+    }
+    .agent-card:hover { border-color: var(--accent-gold); }
+    .agent-card.selected { border-color: var(--accent-gold); background: rgba(197,160,89,0.07); }
+    .agent-card-title { font-size: 0.8rem; font-weight: 700; }
+    .agent-card-sub   { font-size: 0.68rem; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+
+    .agent-ip-row { margin-top: 0.85rem; display: none; }
+    .agent-ip-row.show { display: block; }
+    .field-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.4rem; }
+    .field-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 0; font-size: 1rem; font-family: 'Space Mono', monospace; outline: none; transition: border-color 0.2s; }
+    .field-input:focus { border-bottom-color: var(--accent-gold); }
+
+    /* Agent status */
+    .agent-status { display: flex; align-items: center; gap: 0.6rem; margin-top: 1rem; font-size: 0.78rem; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); flex-shrink: 0; transition: background 0.3s; }
+    .status-dot.online  { background: #22c55e; }
+    .status-dot.offline { background: #ef4444; }
+    .status-dot.checking { background: var(--accent-gold); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* Save + Test row */
+    .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.5rem; }
+    @media (max-width: 400px) { .action-row { grid-template-columns: 1fr; } }
+
+    .btn-save {
+        padding: 1rem; background: var(--accent-gold); border: none;
+        color: #fff; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px;
+        font-weight: 700; cursor: pointer; font-family: 'Outfit', sans-serif;
+        transition: background 0.2s;
+    }
+    .btn-save:hover { background: #b59250; }
+    .btn-test {
+        padding: 1rem; background: transparent; border: 1px solid var(--border-color);
+        color: var(--text-main); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 2px;
+        font-weight: 700; cursor: pointer; font-family: 'Outfit', sans-serif;
+        transition: all 0.2s;
+    }
+    .btn-test:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+    /* Success banner */
+    .success-banner {
+        display: none; text-align: center; padding: 2rem;
+        border: 1px solid #22c55e; background: rgba(34,197,94,0.06); margin-top: 1.25rem;
+    }
+    .success-banner i { font-size: 2rem; color: #22c55e; }
+    .success-banner h4 { font-family: 'DM Serif Display', serif; margin: 0.5rem 0 0.25rem; }
+    .success-banner p { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
+
+    .test-result { margin-top: 0.75rem; font-size: 0.78rem; min-height: 20px; text-align: center; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <a href="{% url 'outlet_settings' %}" class="brand-title" style="font-size:1.1rem;">
+        <i class="bi bi-arrow-left" style="color:var(--text-muted); font-size:0.9rem;"></i>
+        <span style="color:var(--accent-gold);">Printer Setup</span>
+    </a>
+    <p class="brand-subtitle">{{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="{% url 'setup_kitchen_stations' %}" class="btn-luxury d-none d-sm-inline-flex">Kitchen Stations</a>
+{{ block.super }}
+{% endblock %}
+
+{% block content %}
+<div class="ps-wrap">
+
+    <form method="post" id="printerForm">
+        {% csrf_token %}
+        <input type="hidden" name="printer_mac"     id="h_mac"   value="{{ outlet.printer_mac|default:'' }}">
+        <input type="hidden" name="paper_width_mm"  id="h_width" value="{{ outlet.paper_width_mm|default:80 }}">
+        <input type="hidden" name="agent_host"      id="h_host"  value="{{ outlet.agent_host|default:'localhost' }}">
+        <input type="hidden" name="use_qz_tray"     id="h_qz"    value="{{ outlet.use_qz_tray|yesno:'true,false' }}">
+
+        <!-- ── Step 1: Connection type ─────────────────────────────────── -->
+        <div class="ps-step {% if outlet.printer_mac %}done{% else %}active{% endif %}" id="step1">
+            <div class="ps-step-head">
+                <div class="ps-num">{% if outlet.printer_mac %}<i class="bi bi-check-lg" style="font-size:0.75rem;"></i>{% else %}1{% endif %}</div>
+                <div>
+                    <div class="ps-step-title">How is the printer connected?</div>
+                    <div class="ps-step-sub">Choose the connection type for your thermal printer</div>
+                </div>
+            </div>
+            <div class="ps-body">
+                <div class="conn-grid">
+                    <div class="conn-card {% if outlet.agent_host != 'localhost' or outlet.printer_mac %}selected{% endif %}" id="conn-network" onclick="selectConn('network')">
+                        <i class="bi bi-wifi"></i>
+                        <span>Network<br><span style="font-weight:400;font-size:0.62rem;text-transform:none;letter-spacing:0;">WiFi / LAN</span></span>
+                    </div>
+                    <div class="conn-card" id="conn-usb" onclick="selectConn('usb')">
+                        <i class="bi bi-usb-plug"></i>
+                        <span>USB<br><span style="font-weight:400;font-size:0.62rem;text-transform:none;letter-spacing:0;">Direct cable</span></span>
+                    </div>
+                    <div class="conn-card" id="conn-bluetooth" onclick="selectConn('bluetooth')">
+                        <i class="bi bi-bluetooth"></i>
+                        <span>Bluetooth<br><span style="font-weight:400;font-size:0.62rem;text-transform:none;letter-spacing:0;">Wireless</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Step 2: MAC address ─────────────────────────────────────── -->
+        <div class="ps-step {% if outlet.printer_mac %}done{% endif %}" id="step2">
+            <div class="ps-step-head">
+                <div class="ps-num">{% if outlet.printer_mac %}<i class="bi bi-check-lg" style="font-size:0.75rem;"></i>{% else %}2{% endif %}</div>
+                <div>
+                    <div class="ps-step-title">Printer MAC address</div>
+                    <div class="ps-step-sub">From the sticker on the bottom of the printer</div>
+                </div>
+            </div>
+            <div class="ps-body">
+                <input type="text" class="mac-input {% if outlet.printer_mac %}valid{% endif %}"
+                       id="macInput"
+                       value="{{ outlet.printer_mac|default:'' }}"
+                       maxlength="17"
+                       placeholder="00:1B:44:11:3A:B7"
+                       oninput="onMacInput(this)"
+                       autocomplete="off" spellcheck="false">
+
+                <div class="mac-hint">
+                    <strong>Where to find it:</strong><br>
+                    Flip the printer upside down → look for a white sticker → find the line that says
+                    <strong>MAC</strong> or <strong>MAC Address</strong>.<br><br>
+                    Or hold the <strong>Feed</strong> button for 3 seconds — the printer prints a page
+                    with its MAC address and current IP on it.
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Step 3: Paper width ─────────────────────────────────────── -->
+        <div class="ps-step {% if outlet.paper_width_mm %}done{% endif %}" id="step3">
+            <div class="ps-step-head">
+                <div class="ps-num">{% if outlet.paper_width_mm %}<i class="bi bi-check-lg" style="font-size:0.75rem;"></i>{% else %}3{% endif %}</div>
+                <div>
+                    <div class="ps-step-title">Paper roll width</div>
+                    <div class="ps-step-sub">Check the width printed on your paper roll packaging</div>
+                </div>
+            </div>
+            <div class="ps-body">
+                <div class="width-grid">
+                    <div class="width-card {% if outlet.paper_width_mm == 80 or not outlet.paper_width_mm %}selected{% endif %}" id="w80" onclick="selectWidth(80)">
+                        <div class="width-num">80</div>
+                        <div class="width-label">mm</div>
+                        <div class="width-badge">Standard</div>
+                    </div>
+                    <div class="width-card {% if outlet.paper_width_mm == 58 %}selected{% endif %}" id="w58" onclick="selectWidth(58)">
+                        <div class="width-num">58</div>
+                        <div class="width-label">mm</div>
+                        <div class="width-label" style="color:var(--text-muted);">Narrow</div>
+                    </div>
+                </div>
+                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.75rem;">
+                    Not sure? Most restaurant and QSR printers use <strong style="color:var(--text-main);">80mm</strong>. Pick 80mm if unsure.
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Step 4: Agent location ──────────────────────────────────── -->
+        <div class="ps-step {% if outlet.agent_host %}done{% endif %}" id="step4">
+            <div class="ps-step-head">
+                <div class="ps-num">{% if outlet.agent_host %}<i class="bi bi-check-lg" style="font-size:0.75rem;"></i>{% else %}4{% endif %}</div>
+                <div>
+                    <div class="ps-step-title">Where is the Rasova Agent running?</div>
+                    <div class="ps-step-sub">The agent bridges Rasova to the physical printer</div>
+                </div>
+            </div>
+            <div class="ps-body">
+                <div class="agent-toggle">
+                    <div class="agent-card {% if outlet.agent_host == 'localhost' or not outlet.agent_host %}selected{% endif %}" id="agent-local" onclick="selectAgent('local')">
+                        <div class="agent-card-title"><i class="bi bi-laptop me-1"></i> This device</div>
+                        <div class="agent-card-sub">Agent runs on this tablet / PC — same machine as the browser</div>
+                    </div>
+                    <div class="agent-card {% if outlet.agent_host and outlet.agent_host != 'localhost' %}selected{% endif %}" id="agent-remote" onclick="selectAgent('remote')">
+                        <div class="agent-card-title"><i class="bi bi-hdd-network me-1"></i> Another device</div>
+                        <div class="agent-card-sub">Agent runs on a Raspberry Pi or a separate PC on the same network</div>
+                    </div>
+                </div>
+
+                <div class="agent-ip-row {% if outlet.agent_host and outlet.agent_host != 'localhost' %}show{% endif %}" id="agentIpRow">
+                    <label class="field-label" style="margin-top:1rem;">Device IP address</label>
+                    <input type="text" class="field-input" id="agentIpInput"
+                           value="{% if outlet.agent_host and outlet.agent_host != 'localhost' %}{{ outlet.agent_host }}{% endif %}"
+                           placeholder="192.168.1.200"
+                           oninput="document.getElementById('h_host').value = this.value || 'localhost'">
+                </div>
+
+                <!-- Live agent status -->
+                <div class="agent-status" id="agentStatus">
+                    <div class="status-dot checking" id="statusDot"></div>
+                    <span id="statusText" style="color:var(--text-muted);">Checking agent…</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Actions ─────────────────────────────────────────────────── -->
+        <div class="action-row">
+            <button type="submit" class="btn-save">
+                <i class="bi bi-check2-circle me-2"></i>Save
+            </button>
+            <button type="button" class="btn-test" onclick="testPrint()">
+                <i class="bi bi-printer me-2"></i>Test Print
+            </button>
+        </div>
+        <div class="test-result" id="testResult"></div>
+    </form>
+
+    <!-- Success banner (shown after save) -->
+    {% if saved %}
+    <div class="success-banner" id="successBanner" style="display:block;">
+        <i class="bi bi-check-circle-fill"></i>
+        <h4>Printer configured</h4>
+        <p>Settings saved. Send a test print to confirm everything works.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const AGENT_WS = 'ws://{{ outlet.agent_host|default:"localhost" }}:8765';
+    let _ws = null;
+    let _connType = 'network';
+
+    // ── Init state from saved values ──────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+        // Connection type
+        {% if outlet.use_qz_tray %}
+            selectConn('usb', true);
+        {% else %}
+            selectConn('network', true);
+        {% endif %}
+
+        // Paper width
+        selectWidth({{ outlet.paper_width_mm|default:80 }}, true);
+
+        // Agent location
+        {% if outlet.agent_host and outlet.agent_host != 'localhost' %}
+            selectAgent('remote', true);
+        {% else %}
+            selectAgent('local', true);
+        {% endif %}
+
+        checkAgent();
+    });
+
+    // ── Step 1: Connection type ───────────────────────────────────────────────
+    function selectConn(type, silent) {
+        _connType = type;
+        ['network','usb','bluetooth'].forEach(t => {
+            document.getElementById('conn-' + t).classList.toggle('selected', t === type);
+        });
+        document.getElementById('h_qz').value = (type === 'usb') ? 'true' : 'false';
+        if (!silent) markStepDone('step1');
+    }
+
+    // ── Step 2: MAC input ─────────────────────────────────────────────────────
+    function onMacInput(el) {
+        let v = el.value.replace(/[^0-9a-fA-F]/g, '').toUpperCase();
+        let out = '';
+        for (let i = 0; i < Math.min(v.length, 12); i++) {
+            if (i > 0 && i % 2 === 0) out += ':';
+            out += v[i];
+        }
+        el.value = out;
+        const valid = out.length === 17;
+        el.classList.toggle('valid', valid);
+        document.getElementById('h_mac').value = valid ? out : '';
+        if (valid) markStepDone('step2');
+    }
+
+    // ── Step 3: Paper width ───────────────────────────────────────────────────
+    function selectWidth(w, silent) {
+        document.getElementById('w80').classList.toggle('selected', w === 80);
+        document.getElementById('w58').classList.toggle('selected', w === 58);
+        document.getElementById('h_width').value = w;
+        if (!silent) markStepDone('step3');
+    }
+
+    // ── Step 4: Agent location ────────────────────────────────────────────────
+    function selectAgent(mode, silent) {
+        document.getElementById('agent-local').classList.toggle('selected', mode === 'local');
+        document.getElementById('agent-remote').classList.toggle('selected', mode === 'remote');
+        const ipRow = document.getElementById('agentIpRow');
+        ipRow.classList.toggle('show', mode === 'remote');
+        if (mode === 'local') {
+            document.getElementById('h_host').value = 'localhost';
+        } else {
+            const ip = document.getElementById('agentIpInput').value.trim();
+            document.getElementById('h_host').value = ip || 'localhost';
+        }
+        if (!silent) checkAgent();
+    }
+
+    // ── Step done helper ──────────────────────────────────────────────────────
+    function markStepDone(stepId) {
+        const el = document.getElementById(stepId);
+        el.classList.add('done');
+        el.classList.remove('active');
+        const num = el.querySelector('.ps-num');
+        num.innerHTML = '<i class="bi bi-check-lg" style="font-size:0.75rem;"></i>';
+    }
+
+    // ── Agent ping ────────────────────────────────────────────────────────────
+    async function checkAgent() {
+        const host = document.getElementById('h_host').value || 'localhost';
+        const dot  = document.getElementById('statusDot');
+        const txt  = document.getElementById('statusText');
+
+        dot.className = 'status-dot checking';
+        txt.textContent = 'Checking agent at ' + host + '…';
+        txt.style.color = 'var(--text-muted)';
+
+        try {
+            const ws = new WebSocket(`ws://${host}:8765`);
+            await new Promise((res, rej) => {
+                const t = setTimeout(() => { ws.close(); rej(); }, 3500);
+                ws.onopen  = () => ws.send(JSON.stringify({ type: 'ping' }));
+                ws.onmessage = (e) => {
+                    clearTimeout(t);
+                    const d = JSON.parse(e.data);
+                    if (d.type === 'pong') {
+                        dot.className = 'status-dot online';
+                        txt.textContent = `Agent online — v${d.version} on ${d.platform}`;
+                        txt.style.color = '#22c55e';
+                        markStepDone('step4');
+                    }
+                    ws.close(); res();
+                };
+                ws.onerror = () => { clearTimeout(t); rej(); };
+            });
+        } catch {
+            dot.className = 'status-dot offline';
+            txt.textContent = host === 'localhost'
+                ? 'Agent not running — start it with: python rasova_agent.py'
+                : `Cannot reach agent at ${host}:8765 — check the IP address`;
+            txt.style.color = '#ef4444';
+        }
+    }
+
+    // ── Test print ────────────────────────────────────────────────────────────
+    async function testPrint() {
+        const result = document.getElementById('testResult');
+        const host   = document.getElementById('h_host').value || 'localhost';
+        result.style.color = 'var(--text-muted)';
+        result.textContent  = 'Connecting to agent…';
+
+        try {
+            const ws  = new WebSocket(`ws://${host}:8765`);
+            const jid = 'test-' + Date.now();
+
+            const ESC = '\x1B', GS = '\x1D';
+            const width = parseInt(document.getElementById('h_width').value) || 80;
+            const chars = width === 58 ? 32 : 48;
+            const line  = '-'.repeat(chars);
+
+            const lines = [
+                ESC+'@',
+                ESC+'a\x01',
+                ESC+'!\x30',
+                'RASOVA\n',
+                ESC+'!\x00',
+                ESC+'a\x01',
+                'Test Print\n',
+                line + '\n',
+                ESC+'a\x00',
+                `Paper: ${width}mm (${chars} chars)\n`,
+                `Agent: ${host}\n`,
+                `MAC:   ${document.getElementById('h_mac').value || 'not set'}\n`,
+                line + '\n',
+                ESC+'a\x01',
+                'If you see this, printing works!\n',
+                '\n\n\n',
+                GS+'V\x00',
+            ];
+
+            await new Promise((res, rej) => {
+                const t = setTimeout(() => { ws.close(); rej(new Error('timeout')); }, 8000);
+                ws.onopen  = () => ws.send(JSON.stringify({
+                    type: 'print', lines, job_id: jid, encoding: 'cp437',
+                    printer_mac: document.getElementById('h_mac').value,
+                    outlet_id: '{{ request.user.outlet.id }}',
+                }));
+                ws.onmessage = (e) => {
+                    clearTimeout(t);
+                    const d = JSON.parse(e.data);
+                    if (d.job_id === jid) {
+                        ws.close();
+                        if (d.type === 'ok') {
+                            result.style.color = '#22c55e';
+                            result.textContent = '✓ Printed — check the paper came out correctly';
+                        } else {
+                            result.style.color = '#ef4444';
+                            result.textContent = '✗ ' + (d.message || 'Print failed');
+                        }
+                        res();
+                    }
+                };
+                ws.onerror = () => { clearTimeout(t); rej(new Error('not running')); };
+            });
+        } catch(e) {
+            result.style.color = '#ef4444';
+            result.textContent = e.message === 'timeout'
+                ? '✗ No response — is the printer on and connected?'
+                : '✗ Agent not reachable — start it first, then test print';
+        }
+    }
+</script>
+{% endblock %}

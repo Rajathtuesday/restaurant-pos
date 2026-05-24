@@ -15,6 +15,7 @@ from .core_views import (
     set_print_mode,
     rename_table,
     outlet_settings,
+    printer_setup,
 )
 
 from .promo_views import (
@@ -50,6 +51,7 @@ __all__ = [
     "delete_station",
     "rename_table",
     "outlet_settings",
+    "printer_setup",
     # promos
     "setup_promos",
     "promo_create",

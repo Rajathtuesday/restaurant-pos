@@ -547,6 +547,28 @@ def rename_table(request, table_id):
 # ==================================
 
 @login_required
+def printer_setup(request):
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/setup/")
+
+    outlet = request.user.outlet
+    saved  = False
+
+    if request.method == "POST":
+        outlet.printer_mac    = request.POST.get("printer_mac", "").strip().upper()
+        outlet.agent_host     = request.POST.get("agent_host", "localhost").strip() or "localhost"
+        outlet.use_qz_tray    = request.POST.get("use_qz_tray") == "true"
+        try:
+            outlet.paper_width_mm = int(request.POST.get("paper_width_mm", 80))
+        except (ValueError, TypeError):
+            outlet.paper_width_mm = 80
+        outlet.save(update_fields=["printer_mac", "agent_host", "use_qz_tray", "paper_width_mm"])
+        saved = True
+
+    return render(request, "setup/printer_setup.html", {"outlet": outlet, "saved": saved})
+
+
+@login_required
 def outlet_settings(request):
     """
     Outlet Settings page — owners can update all restaurant details
