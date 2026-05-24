@@ -227,7 +227,7 @@
                 </div>
               </div>
               <div class="btn-group-luxury">
-                <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{ item.id }}', name:'{{ item.name|escapejs }}', price:'{{ item.price }}', description:'{{ item.description|escapejs }}', category:'{{ item.category.id }}', station:'{% if item.station %}{{ item.station.id }}{% endif %}', prepTime:{{ item.estimated_prep_time }}, isVeg:{{ item.is_veg|lower }}})"><i class="bi bi-pencil-square"></i></button>
+                <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{ item.id }}', name:'{{ item.name|escapejs }}', price:'{{ item.price }}', description:'{{ item.description|escapejs }}', category:'{{ item.category.id }}', station:'{% if item.station %}{{ item.station.id }}{% endif %}', prepTime:{{ item.estimated_prep_time }}, isVeg:{{ item.is_veg|lower }}, parcelCharge:'{{ item.parcel_charge }}'})"><i class="bi bi-pencil-square"></i></button>
                 <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem('{{ item.id }}')"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
                 <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal('{{ item.id }}')"><i class="bi bi-journal-text"></i></button>
                 <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem('{{ item.id }}')"><i class="bi bi-trash"></i></button>
@@ -317,6 +317,13 @@
           <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing:1px;">Est. Prep Time (minutes)</label>
           <input id="itemPrepTime" type="number" min="1" max="120" class="form-control form-input-luxury" placeholder="e.g. 15"/>
         </div>
+        {% if outlet.parcel_charge_amount %}
+        <div class="mb-0 mt-3">
+          <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing:1px;">Parcel Charge for this item (₹)</label>
+          <input id="itemParcelCharge" type="number" min="0" step="0.5" class="form-control form-input-luxury" placeholder="0 = use outlet default"/>
+          <div class="text-muted mt-1" style="font-size:0.72rem;">Set a specific packing charge for this item. Overrides the outlet-level flat charge when any item has this set.</div>
+        </div>
+        {% endif %}
         <div class="mt-3 d-flex align-items-center gap-3">
           <label class="form-label text-muted small text-uppercase fw-bold m-0" style="letter-spacing:1px;">Type</label>
           <div class="d-flex gap-2">
@@ -422,6 +429,8 @@
     document.getElementById("itemImage").value = "";
     document.getElementById("itemPrepTime").value = "15";
     document.getElementById("itemIsVeg").checked = true;
+    const parcelField = document.getElementById("itemParcelCharge");
+    if (parcelField) parcelField.value = "0";
     idInput.value = "";
     if (item) {
       title.innerText = "Edit Menu Selection";
@@ -434,6 +443,7 @@
       document.getElementById("itemStation").value = item.station || "";
       document.getElementById("itemPrepTime").value = item.prepTime || 15;
       document.getElementById(item.isVeg === false ? "itemIsNonVeg" : "itemIsVeg").checked = true;
+      if (parcelField) parcelField.value = parseFloat(item.parcelCharge || 0);
     } else {
       title.innerText = "New Menu Selection";
       btn.innerText = "Add to Collection";
@@ -488,6 +498,8 @@
     formData.append("description",        document.getElementById("itemDescription").value);
     formData.append("estimated_prep_time",document.getElementById("itemPrepTime").value || 15);
     formData.append("is_veg", document.getElementById("itemIsVeg").checked ? "true" : "false");
+    const pf = document.getElementById("itemParcelCharge");
+    if (pf) formData.append("parcel_charge", pf.value || 0);
     const imgInput = document.getElementById("itemImage");
     if (imgInput.files[0]) formData.append("image", imgInput.files[0]);
     const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";

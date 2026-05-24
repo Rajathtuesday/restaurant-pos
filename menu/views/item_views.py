@@ -58,11 +58,18 @@ def create_menu_item(request):
                 id=station_id, tenant=request.user.tenant, outlet=request.user.outlet
             )
 
+        parcel_charge = Decimal("0")
+        try:
+            parcel_charge = Decimal(str(data.get("parcel_charge", 0) if request.content_type == "application/json" else request.POST.get("parcel_charge", 0) or 0))
+        except Exception:
+            pass
+
         MenuItem.objects.create(
             tenant=request.user.tenant, outlet=request.user.outlet,
             name=name, price=price, description=description, image=image,
             category=category, station=station,
             estimated_prep_time=prep_time, is_veg=is_veg,
+            parcel_charge=parcel_charge,
         )
         logger.info(
             "User %s created item '%s' (Rs.%s, prep: %sm) in category '%s'",
@@ -116,6 +123,13 @@ def update_menu_item(request, item_id):
             try:
                 item.estimated_prep_time = max(1, int(prep_time))
             except (ValueError, TypeError):
+                pass
+
+        parcel_charge = request.POST.get("parcel_charge")
+        if parcel_charge is not None:
+            try:
+                item.parcel_charge = max(Decimal("0"), Decimal(str(parcel_charge)))
+            except Exception:
                 pass
 
         if image:

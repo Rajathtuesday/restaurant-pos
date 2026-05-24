@@ -114,6 +114,16 @@ class MenuItem(models.Model):
 
     is_veg = models.BooleanField(default=True)
 
+    parcel_charge = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=0,
+        help_text=(
+            "Packing/parcel charge for this specific item. "
+            "When any item in the order has this set, per-item charges override the outlet-level flat charge. "
+            "Set to 0 to use the outlet default."
+        )
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     

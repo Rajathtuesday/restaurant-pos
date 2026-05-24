@@ -139,19 +139,24 @@ def toggle_parcel(request, order_id):
             outlet=request.user.outlet,
             status__in=["open", "billing"],
         )
-        charge     = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
-        per_item   = getattr(order.outlet, "parcel_charge_per_item", True)
+        charge   = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
+        per_item = getattr(order.outlet, "parcel_charge_per_item", True)
 
         # Toggle: if already set → remove; if zero → add
         if order.parcel_surcharge > 0:
             order.parcel_surcharge = Decimal("0")
         else:
-            if per_item:
-                # charge × total item quantity (industry standard)
-                total_qty = sum(
-                    item.quantity for item in
-                    order.items.exclude(status="voided")
-                )
+            active_items = list(order.items.exclude(status="voided").select_related("menu_item"))
+            # Per-item mode: if ANY menu item has its own parcel_charge set, sum those
+            per_item_total = sum(
+                (item.menu_item.parcel_charge or Decimal("0")) * item.quantity
+                for item in active_items
+                if item.menu_item and (item.menu_item.parcel_charge or Decimal("0")) > 0
+            )
+            if per_item_total > 0:
+                order.parcel_surcharge = per_item_total
+            elif per_item:
+                total_qty = sum(item.quantity for item in active_items)
                 order.parcel_surcharge = charge * Decimal(total_qty)
             else:
                 order.parcel_surcharge = charge
