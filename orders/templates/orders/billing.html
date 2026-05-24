@@ -658,8 +658,9 @@
   const _parcelAmount = {{ outlet.parcel_charge_amount|default:0 }};
 
   async function toggleParcel() {
-    if (!qsrPendingOrderId) {
-      // No order yet — just toggle the visual indicator on cart
+    const orderId = qsrPendingOrderId || currentOrderId;
+    if (!orderId) {
+      // No order yet — just toggle the visual indicator
       _parcelOn = !_parcelOn;
       _syncParcelUI();
       return;
@@ -667,9 +668,13 @@
     // Order exists — call server to toggle
     try {
       const d = await apiClient.post(
-        "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + qsrPendingOrderId + '/'), {}
+        "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + orderId + '/'), {}
       );
       _parcelOn = d.parcel_on;
+      // Update parcel row to show actual calculated amount (not unit price)
+      document.querySelectorAll(".parcel-row span:last-child").forEach(e =>
+        e.textContent = "₹" + Math.round(d.parcel_amount || 0)
+      );
       _syncParcelUI();
       document.querySelectorAll(".view-total").forEach(e =>
         e.innerText = "₹" + Math.round(d.grand_total)
@@ -745,7 +750,11 @@
       .then(r => r.json())
       .then(d => {
         if (!d.success) { showToast(d.error); resetSendBtn(); return; }
-        fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
+        const afterCreate = () => fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } });
+        const applyParcel = (_parcelOn && _parcelAmount > 0)
+          ? fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + d.order_id + '/'), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
+          : Promise.resolve();
+        applyParcel.then(() => afterCreate())
           .then(r => r.json())
           .then(k => {
             showToast(k.error && k.error !== "No items to send to kitchen" ? k.error : "Order Sent");
