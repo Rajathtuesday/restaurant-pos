@@ -110,6 +110,15 @@ class Tenant(models.Model):
     subscription_start_date = models.DateField(null=True, blank=True)
     subscription_end_date = models.DateField(null=True, blank=True)
 
+    font_scale = models.FloatField(
+        default=1.0,
+        help_text=(
+            "UI font scale multiplier. 1.0 = default size. "
+            "1.1 = 10% larger (good for large-screen kiosks). "
+            "0.9 = 10% smaller (laptops with limited space)."
+        )
+    )
+
     class Meta:
 
         ordering = ["name"]
