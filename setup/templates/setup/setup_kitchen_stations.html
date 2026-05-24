@@ -20,6 +20,27 @@
   .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
   .btn-add:hover { opacity: 0.88; }
 
+  /* Agent status pill */
+  .agent-row { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.9rem; border: 1px solid var(--border-color); margin-bottom: 1.25rem; font-size: 0.72rem; color: var(--text-muted); gap: 0.75rem; flex-wrap: wrap; }
+  .agent-pill { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+  /* Print mode */
+  .print-mode-box { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.1rem; margin-bottom: 1.25rem; }
+  .print-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .print-mode-opt {
+    background: transparent; border: 1.5px solid var(--border-color);
+    padding: 0.8rem 0.75rem; cursor: pointer; text-align: left;
+    display: flex; flex-direction: column; gap: 2px;
+    transition: border-color 0.15s, background 0.15s; font-family: inherit;
+  }
+  .print-mode-opt:hover  { border-color: var(--accent-gold); }
+  .print-mode-opt.active { border-color: var(--accent-gold); background: rgba(197,160,89,0.07); }
+  .pm-icon  { font-size: 1.2rem; margin-bottom: 0.2rem; }
+  .pm-title { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
+  .pm-desc  { font-size: 0.65rem; color: var(--text-muted); line-height: 1.4; }
+  @media(max-width:500px) { .print-mode-grid { grid-template-columns: 1fr; } }
+  #printModeHint { margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted); line-height: 1.6; }
+
   /* Station cards */
   .station-card { background: var(--panel-bg); border: 1px solid var(--border-color); margin-bottom: 0.75rem; transition: border-color 0.2s; }
   .station-card.is-default { border-color: var(--accent-gold); }
@@ -28,60 +49,53 @@
   .badge-default { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 2px 8px; }
   .btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 10px; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
   .btn-ghost:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .chevron { transition: transform 0.2s; font-size: 0.8rem; }
+  .chevron.open { transform: rotate(180deg); }
 
-  /* Printer config panel — collapsible */
+  /* Printer config panel */
   .printer-panel { border-top: 1px solid var(--border-color); padding: 1.25rem; display: none; }
   .printer-panel.open { display: block; }
-
   .printer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
-  @media(max-width: 500px) { .printer-grid { grid-template-columns: 1fr; } }
-
+  @media(max-width:500px) { .printer-grid { grid-template-columns: 1fr; } }
   .field-select { width: 100%; background: var(--panel-bg); border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.55rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.4rem; font-family: inherit; cursor: pointer; appearance: none; }
   .field-select:focus { border-bottom-color: var(--accent-gold); }
 
-  .printer-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); }
+  /* Advanced toggle */
+  .advanced-toggle { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 1rem; }
+  .advanced-toggle:hover { color: var(--text-main); }
+  .advanced-panel { display: none; }
+  .advanced-panel.open { display: block; }
+
+  .hint { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.5; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); display: inline-block; }
   .dot.green  { background: #10b981; }
   .dot.red    { background: #ef4444; }
   .dot.orange { background: #f59e0b; }
 
-  .btn-row { display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
+  .printer-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
+
+  .btn-row  { display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
   .btn-save { padding: 0.6rem 1.4rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; cursor: pointer; }
   .btn-test { padding: 0.6rem 1.4rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; }
-  .btn-test:hover { border-color: var(--text-main); }
-  .btn-test:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .hint { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.5; }
-  .print-mode-box { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.1rem; margin-bottom: 0.25rem; }
-  .print-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-  .print-mode-opt {
-    background: transparent; border: 1.5px solid var(--border-color);
-    padding: 0.8rem 0.75rem; cursor: pointer; text-align: left;
-    display: flex; flex-direction: column; gap: 2px;
-    transition: border-color 0.15s, background 0.15s;
-    font-family: inherit;
-  }
-  .print-mode-opt:hover { border-color: var(--accent-gold); }
-  .print-mode-opt.active {
-    border-color: var(--accent-gold);
-    background: rgba(197,160,89,0.07);
-  }
-  .pm-icon { font-size: 1.2rem; margin-bottom: 0.2rem; }
-  .pm-title { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
-  .pm-desc { font-size: 0.65rem; color: var(--text-muted); line-height: 1.4; }
-  @media(max-width:500px) { .print-mode-grid { grid-template-columns: 1fr; } }
-
-  .btn-delete-station {
-    background: transparent; border: 1px solid var(--border-color);
-    color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase;
-    letter-spacing: 1.5px; padding: 0.4rem 0.9rem; cursor: pointer;
-    transition: all 0.2s; font-family: inherit;
-  }
+  .btn-test:hover     { border-color: var(--text-main); }
+  .btn-test:disabled  { opacity: 0.4; cursor: not-allowed; }
+  .btn-delete-station { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 0.4rem 0.9rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
   .btn-delete-station:hover { border-color: #ef4444; color: #ef4444; }
-  .printer-callout { background: rgba(197,160,89,0.07); border-left: 3px solid var(--accent-gold); padding: 0.9rem 1.1rem; font-size: 0.75rem; line-height: 1.6; color: var(--text-main); margin-bottom: 1.5rem; }
+
   .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
-  .chevron { transition: transform 0.2s; font-size: 0.8rem; }
-  .chevron.open { transform: rotate(180deg); }
+
+  /* Print strip */
+  .strip-block { border: 1px solid var(--border-color); background: var(--panel-bg); padding: 0.5rem 0.9rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; line-height: 1.3; min-width: 70px; }
+  .strip-bill  { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .strip-kot   { border-color: var(--text-muted); color: var(--text-main); }
+  .strip-cut   { display: flex; align-items: center; padding: 0 0.4rem; font-size: 0.6rem; letter-spacing: 1px; font-weight: 600; white-space: nowrap; }
+  .strip-part  { color: var(--text-muted); }
+  .strip-full  { color: var(--accent-gold); font-size: 0.65rem; }
+  @media(max-width:600px) {
+    .strip-block { min-width: 56px; padding: 0.4rem 0.5rem; font-size: 0.65rem; }
+    .strip-cut   { padding: 0 0.25rem; font-size: 0.55rem; }
+  }
 </style>
 {% endblock %}
 
@@ -107,12 +121,12 @@
     <div class="divider"></div>
     <p class="page-sub">
       Each station (Hot Kitchen, Bar, Bakery…) routes KOTs to its own printer.
-      Set the printer IP, paper width, and cut type per station, then send a test print to confirm alignment before going live.
+      Enter the printer IP per station, then send a test print to confirm.
     </p>
 
     {% if messages %}
       {% for msg in messages %}
-        <div class="printer-callout">{{ msg }}</div>
+        <div style="background:rgba(197,160,89,0.07);border-left:3px solid var(--accent-gold);padding:0.9rem 1.1rem;font-size:0.75rem;line-height:1.6;color:var(--text-main);margin-bottom:1.5rem;">{{ msg }}</div>
       {% endfor %}
     {% endif %}
 
@@ -122,135 +136,53 @@
       <input type="text" name="station_name" class="field-input" placeholder="e.g. Hot Kitchen, Bar" required autocomplete="off">
       <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Add Station</button>
     </form>
-
-    <div style="margin-top:2.5rem;">
-      <div class="printer-callout">
-        <strong>Printer quick-start:</strong><br>
-        1. Connect printer to your Wi-Fi router (or use a static IP).<br>
-        2. Find its IP from the printer's self-test page (hold Feed button on power-up).<br>
-        3. Paste the IP here, pick the correct paper width, hit <strong>Save</strong>.<br>
-        4. Click <strong>Test Print</strong> — if text fits the paper, you're done.
-      </div>
-    </div>
   </div>
 
   <!-- RIGHT: EXISTING STATIONS -->
   <div>
 
-    <!-- ── Print Mode Selector ──────────────────────────── -->
-    <!-- Rasova Print Agent -->
-    <div class="printer-callout" style="margin-bottom:1.25rem;{% if outlet.use_qz_tray %}border-color:var(--accent-gold);{% endif %}">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
-        <div>
-          <strong>Rasova Print Agent</strong>
-          <span style="font-size:0.6rem;background:rgba(16,185,129,.12);color:#10b981;padding:2px 7px;border-radius:3px;margin-left:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;">Our own</span><br>
-          <span style="font-size:0.72rem;color:var(--text-muted);">
-            Real partial cuts + full cut. USB or network. No Java, no certificates.<br>
-            <span style="margin-top:0.35rem;display:inline-block;">
-              First time on billing laptop:
-              <a href="{% static 'agent/rasova_agent_installer.bat' %}" download
-                 style="color:var(--accent-gold);font-weight:600;">
-                <i class="bi bi-download me-1"></i>Download Installer (.bat)
-              </a>
-              — double-click it once, done forever.
-            </span>
-          </span>
-        </div>
-        <div>
-          <span id="agentStatus" style="font-size:0.7rem;"></span>
-        </div>
-      </div>
-
-      {% if outlet.use_qz_tray %}
-      <div style="margin-top:0.9rem;padding-top:0.75rem;border-top:1px solid var(--border-color);">
-        <!-- USB Printer -->
-        <label class="field-label">USB Printer (billing laptop)</label>
-        <div style="display:flex;gap:.75rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">
-          <select id="printerSelect" class="field-select" style="max-width:260px;" onchange="document.getElementById('printerNameInput').value=this.value">
-            <option value="">— select from list —</option>
-          </select>
-          <button class="btn-ghost" style="font-size:0.65rem;" onclick="loadPrinterList()">
-            <i class="bi bi-arrow-repeat me-1"></i>Refresh USB List
-          </button>
-        </div>
-        <input type="text" id="printerNameInput" class="field-input"
-               value="{{ default_station.printer_name|default:'' }}"
-               placeholder="or type exact name: BillTouch ZY306"
-               style="max-width:340px;margin-top:0.5rem;">
-        <div class="hint" style="margin-top:0.3rem;">
-          Agent auto-discovers USB printers. Click Refresh or type the name from Windows → Printers &amp; Scanners.
-        </div>
-
-        <!-- Network Printer Discovery -->
-        <label class="field-label" style="margin-top:1rem;">Network Printer (LAN / WiFi)</label>
-        <div style="display:flex;gap:.75rem;align-items:center;margin-top:0.3rem;flex-wrap:wrap;">
-          <select id="networkPrinterSelect" class="field-select" style="max-width:260px;" onchange="document.getElementById('networkPrinterIpInput').value=this.value">
-            <option value="">— scan network —</option>
-          </select>
-          <button class="btn-ghost" style="font-size:0.65rem;" onclick="discoverNetworkPrinters()">
-            <i class="bi bi-wifi me-1"></i>Scan Network
-          </button>
-          <span id="networkScanStatus" style="font-size:0.68rem;color:var(--text-muted);"></span>
-        </div>
-        <input type="text" id="networkPrinterIpInput"
-               value="{{ default_station.printer_ip|default:'' }}"
-               placeholder="e.g. 192.168.1.101"
-               class="field-input" style="max-width:340px;margin-top:0.5rem;">
-        <div class="hint" style="margin-top:0.3rem;">
-          Scans your LAN for printers on port 9100. Set a static IP by MAC in your router for reliability.
-        </div>
-
-        <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;">
-          <button class="btn-save" onclick="saveAgentPrinterName()">
-            <i class="bi bi-floppy me-1"></i>Save
-          </button>
-          <button class="btn-test" id="agentTestBtn" onclick="testAgentPrint()">
-            <i class="bi bi-printer me-1"></i>Test Print
-          </button>
-        </div>
-        <div id="agentTestResult" style="font-size:0.72rem;margin-top:0.5rem;"></div>
-      </div>
-      {% endif %}
+    <!-- Agent status — single row -->
+    <div class="agent-row">
+      <span class="agent-pill">
+        <span class="dot" id="agentDot"></span>
+        <span id="agentStatusText" style="color:var(--text-muted);">Checking Rasova Agent…</span>
+      </span>
+      <a href="{% url 'printer_setup' %}" style="font-size:0.7rem;color:var(--accent-gold);text-decoration:none;letter-spacing:1px;text-transform:uppercase;">
+        Printer Settings <i class="bi bi-arrow-right ms-1"></i>
+      </a>
     </div>
 
+    <!-- Print mode selector -->
     <div class="print-mode-box">
       <p class="section-label" style="margin-bottom:0.75rem;">How Are Printers Set Up?</p>
       <div class="print-mode-grid">
-
         <button class="print-mode-opt {% if not any_station_has_printer %}active{% endif %}"
                 id="modeCashier" onclick="setPrintMode('cashier')">
           <span class="pm-icon">🖨</span>
           <span class="pm-title">One Printer at Counter</span>
-          <span class="pm-desc">Bill + all KOTs on one strip. Enter printer IP on the <strong>default station only</strong>. Other stations need no IP.</span>
+          <span class="pm-desc">Bill + all KOTs print as one strip. Only the default station needs a printer IP.</span>
         </button>
-
         <button class="print-mode-opt {% if any_station_has_printer %}active{% endif %}"
                 id="modeStation" onclick="setPrintMode('station')">
           <span class="pm-icon">🖨🖨</span>
           <span class="pm-title">Printer per Station</span>
           <span class="pm-desc">Each kitchen station has its own printer. KOTs print directly at the station.</span>
         </button>
-
       </div>
-      <div id="printModeHint" style="margin-top:0.75rem;font-size:0.72rem;color:var(--text-muted);line-height:1.6;"></div>
+      <div id="printModeHint"></div>
     </div>
-    <!-- ─────────────────────────────────────────────────── -->
 
     <p class="section-label" style="margin-top:1.5rem;">Active Stations</p>
 
     {% for station in stations %}
     <div class="station-card {% if station.is_default %}is-default{% endif %}" id="card-{{ station.id }}">
 
-      <!-- Header row — click to expand printer config -->
       <div class="station-header" onclick="togglePanel({{ station.id }})">
         <div class="station-name">
           <i class="bi bi-fire" style="color:{% if station.is_default %}var(--accent-gold){% else %}var(--text-muted){% endif %}"></i>
           {{ station.name }}
           {% if station.is_default %}
             <span class="badge-default">Default</span>
-            {% if not any_station_has_printer %}
-              <span style="font-size:0.58rem;background:rgba(16,185,129,.12);color:#10b981;padding:2px 7px;letter-spacing:1px;text-transform:uppercase;">Cashier Printer</span>
-            {% endif %}
           {% endif %}
         </div>
         <div style="display:flex;align-items:center;gap:0.6rem;">
@@ -269,60 +201,60 @@
         </div>
       </div>
 
-      <!-- Printer config panel -->
       <div class="printer-panel" id="panel-{{ station.id }}">
 
         {% if station.is_default and not any_station_has_printer %}
         <div style="background:rgba(16,185,129,0.07);border-left:3px solid #10b981;padding:0.7rem 0.9rem;margin-bottom:1rem;font-size:0.72rem;line-height:1.6;">
-          <strong style="color:#10b981;">This is your cashier printer.</strong>
-          Enter its IP address here. Bill + all KOTs will print here as one connected strip when payment is made.
-          Leave all other stations with no IP.
+          <strong style="color:#10b981;">Cashier printer.</strong>
+          Bill + all KOTs print here as one strip. Leave other stations with no IP.
         </div>
         {% endif %}
-
-        <p class="hint">
-          Paper width sets how many characters fit per line (58mm→32, 80mm→48).
-          If text overflows or looks squashed, change the paper width and re-test.
-          Cut type: if the printer jams or beeps after printing, switch to <em>Partial</em> or <em>None</em>.
-        </p>
 
         <div class="printer-grid">
           <div>
             <label class="field-label">Printer IP Address</label>
             <input type="text" class="field-input" id="ip-{{ station.id }}"
               value="{{ station.printer_ip|default:'' }}"
-              placeholder="e.g. 192.168.1.100"
-              pattern="^(\d{1,3}\.){3}\d{1,3}$">
-          </div>
-          <div>
-            <label class="field-label">Port</label>
-            <input type="number" class="field-input" id="port-{{ station.id }}"
-              value="{{ station.printer_port }}" min="1" max="65535">
+              placeholder="e.g. 192.168.1.100">
           </div>
           <div>
             <label class="field-label">Paper Width</label>
             <select class="field-select" id="paper-{{ station.id }}">
-              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm — standard (48 chars)</option>
-              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm — small (32 chars)</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label">Cut Type</label>
-            <select class="field-select" id="cut-{{ station.id }}">
-              <option value="full"    {% if station.cut_type == 'full'    %}selected{% endif %}>Full cut</option>
-              <option value="partial" {% if station.cut_type == 'partial' %}selected{% endif %}>Partial cut</option>
-              <option value="none"    {% if station.cut_type == 'none'    %}selected{% endif %}>No cut (tear)</option>
+              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm — standard</option>
+              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm — narrow</option>
             </select>
           </div>
         </div>
 
-        <label class="field-label">Encoding</label>
-        <select class="field-select" id="enc-{{ station.id }}" style="max-width:320px;">
-          <option value="cp437" {% if station.printer_encoding == 'cp437' %}selected{% endif %}>CP437 — standard (most printers)</option>
-          <option value="cp850" {% if station.printer_encoding == 'cp850' %}selected{% endif %}>CP850 — western Europe</option>
-          <option value="utf-8" {% if station.printer_encoding == 'utf-8' %}selected{% endif %}>UTF-8 — modern printers only</option>
-        </select>
-        <p class="hint">Leave CP437 unless your printer explicitly supports UTF-8. Wrong encoding prints garbage characters.</p>
+        <!-- Advanced fields — collapsed by default -->
+        <button class="advanced-toggle" onclick="toggleAdvanced({{ station.id }})">
+          <i class="bi bi-chevron-right" id="adv-icon-{{ station.id }}" style="font-size:0.6rem;"></i>
+          Advanced
+        </button>
+        <div class="advanced-panel" id="adv-{{ station.id }}">
+          <div class="printer-grid">
+            <div>
+              <label class="field-label">Port</label>
+              <input type="number" class="field-input" id="port-{{ station.id }}"
+                value="{{ station.printer_port }}" min="1" max="65535">
+            </div>
+            <div>
+              <label class="field-label">Cut Type</label>
+              <select class="field-select" id="cut-{{ station.id }}">
+                <option value="full"    {% if station.cut_type == 'full'    %}selected{% endif %}>Full cut</option>
+                <option value="partial" {% if station.cut_type == 'partial' %}selected{% endif %}>Partial cut</option>
+                <option value="none"    {% if station.cut_type == 'none'    %}selected{% endif %}>No cut (tear)</option>
+              </select>
+            </div>
+          </div>
+          <label class="field-label">Encoding</label>
+          <select class="field-select" id="enc-{{ station.id }}" style="max-width:320px;">
+            <option value="cp437" {% if station.printer_encoding == 'cp437' %}selected{% endif %}>CP437 — standard (most printers)</option>
+            <option value="cp850" {% if station.printer_encoding == 'cp850' %}selected{% endif %}>CP850 — western Europe</option>
+            <option value="utf-8" {% if station.printer_encoding == 'utf-8' %}selected{% endif %}>UTF-8 — modern printers only</option>
+          </select>
+          <p class="hint">Leave CP437 unless your printer explicitly supports UTF-8.</p>
+        </div>
 
         <div class="btn-row">
           <button class="btn-save" onclick="saveConfig({{ station.id }})">
@@ -341,43 +273,34 @@
           <button class="btn-delete-station" onclick="deleteStation({{ station.id }}, '{{ station.name|escapejs }}', {{ station.is_default|lower }})">
             <i class="bi bi-trash me-1"></i> Remove Station
           </button>
-          {% if station.is_default %}
-          <p class="hint" style="margin-top:0.4rem;color:#f59e0b;">
-            This is the default station. Removing it will promote another station to default automatically.
-          </p>
-          {% endif %}
         </div>
         {% endif %}
+
       </div>
     </div>
     {% empty %}
-    <p class="empty-state">No stations yet. Add one on the left — at least one station is required for KOT routing.</p>
+    <p class="empty-state">No stations yet. Add one on the left — at least one is needed for KOT routing.</p>
     {% endfor %}
-  </div>
 
+  </div>
 </div>
 
-<!-- PRINT STRIP PREVIEW — full width below the two-column grid -->
+<!-- PRINT STRIP PREVIEW -->
 {% if stations %}
 <div style="max-width:960px;margin:0 auto 4rem;padding:0 1.5rem;">
-
   <p class="section-label" style="margin-bottom:1rem;">How Will It Print?</p>
 
   {% if any_station_has_printer %}
-  <!-- MULTI-PRINTER MODE -->
   <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1.5rem;">
     <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;">
       <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:#10b981;background:rgba(16,185,129,.1);padding:3px 10px;">Multi-Printer Mode</span>
-      <span style="font-size:0.75rem;color:var(--text-muted);">Each station prints its own KOT when order is sent to kitchen</span>
+      <span style="font-size:0.75rem;color:var(--text-muted);">Each station prints its own KOT when an order is sent</span>
     </div>
-
-    <!-- Cashier printer row -->
-    <div style="display:flex;align-items:center;gap:0;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.4rem;">
+    <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.75rem;flex-wrap:wrap;">
       <div class="strip-block strip-bill">BILL</div>
       <div class="strip-cut strip-full">✂ FULL CUT</div>
       <span style="font-size:0.68rem;color:var(--text-muted);margin-left:0.5rem;">→ Cashier printer{% if cashier_ip %} ({{ cashier_ip }}){% endif %}</span>
     </div>
-
     {% for station in stations %}
     {% if station.printer_ip and not station.is_default %}
     <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;flex-wrap:wrap;">
@@ -387,20 +310,17 @@
     </div>
     {% endif %}
     {% endfor %}
-
     <p style="font-size:0.72rem;color:var(--text-muted);margin-top:1rem;margin-bottom:0;border-top:1px solid var(--border-color);padding-top:0.75rem;">
-      At payment: bill prints to cashier. KOTs already printed at each station when order was sent to kitchen.
+      KOTs print at each station when the order is sent to kitchen. Bill prints at payment.
     </p>
   </div>
 
   {% else %}
-  <!-- ONE CASHIER PRINTER (STRIP) MODE -->
   <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1.5rem;">
     <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1.25rem;">
       <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--accent-gold);background:rgba(197,160,89,.1);padding:3px 10px;">Cashier Strip Mode</span>
       <span style="font-size:0.75rem;color:var(--text-muted);">Bill + all KOTs print as one connected strip at payment</span>
     </div>
-
     <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;row-gap:0.5rem;">
       <div class="strip-block strip-bill">BILL</div>
       <div class="strip-cut strip-part">— partial</div>
@@ -413,10 +333,9 @@
       {% endif %}
       {% endfor %}
     </div>
-
     <p style="font-size:0.72rem;color:var(--text-muted);margin-top:1rem;margin-bottom:0;border-top:1px solid var(--border-color);padding-top:0.75rem;">
-      The cashier tears off the full strip after payment. Staff deliver each KOT section to the relevant station.
-      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set yet</strong> — enter the printer IP on your default station above to activate this.{% endif %}
+      Cashier tears off the full strip after payment. Staff deliver each section to the station.
+      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set</strong> — open the default station above and enter its IP.{% endif %}
     </p>
   </div>
   {% endif %}
@@ -424,83 +343,11 @@
 </div>
 {% endif %}
 
-<style>
-.strip-block {
-  border: 1px solid var(--border-color);
-  background: var(--panel-bg);
-  padding: 0.5rem 0.9rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  text-align: center;
-  line-height: 1.3;
-  min-width: 70px;
-}
-.strip-bill  { border-color: var(--accent-gold); color: var(--accent-gold); }
-.strip-kot   { border-color: var(--text-muted);  color: var(--text-main); }
-.strip-cut {
-  display: flex;
-  align-items: center;
-  padding: 0 0.4rem;
-  font-size: 0.6rem;
-  letter-spacing: 1px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.strip-part { color: var(--text-muted); }
-.strip-full { color: var(--accent-gold); font-size: 0.65rem; }
-@media(max-width:600px) {
-  .strip-block { min-width: 56px; padding: 0.4rem 0.5rem; font-size: 0.65rem; }
-  .strip-cut   { padding: 0 0.25rem; font-size: 0.55rem; }
-}
-</style>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-async function setPrintMode(mode) {
-  const hint = document.getElementById('printModeHint');
-
-  if (mode === 'cashier') {
-    if (!confirm(
-      'Switch to One Printer mode?\n\n' +
-      'This will clear the printer IP from all stations except the default (cashier) station.\n\n' +
-      'The default station keeps its IP — that is where the full bill+KOT strip will print.'
-    )) return;
-
-    try {
-      await apiClient.post('/setup/kitchen-stations/set-mode/cashier/', {});
-      hint.textContent = '✓ One Printer mode active — bill + all KOTs print as a connected strip at the cashier printer.';
-      hint.style.color = '#10b981';
-      document.getElementById('modeCashier').classList.add('active');
-      document.getElementById('modeStation').classList.remove('active');
-      // Reload page to refresh strip preview + hide IPs on other stations
-      setTimeout(() => window.location.reload(), 800);
-    } catch(e) {}
-
-  } else {
-    hint.textContent = 'Enter a printer IP for each station below. Each station will print its own KOT when an order is sent to the kitchen.';
-    hint.style.color = 'var(--text-muted)';
-    document.getElementById('modeStation').classList.add('active');
-    document.getElementById('modeCashier').classList.remove('active');
-  }
-}
-
-// Show initial hint based on current mode
-document.addEventListener('DOMContentLoaded', () => {
-  const hint = document.getElementById('printModeHint');
-  {% if any_station_has_printer %}
-  hint.textContent = 'Each station has its own printer. KOTs print at the station when the order is sent to the kitchen.';
-  {% else %}
-  hint.innerHTML = '✓ One Printer mode — enter the printer IP on the <strong>{% if default_station %}{{ default_station.name }}{% else %}default{% endif %}</strong> station only. Other stations need no IP. Bill + KOTs print as one strip at payment.';
-  hint.style.color = '#10b981';
-  {% endif %}
-});
-
-/* ── Rasova Print Agent integration ──────────────────── */
-const AGENT_WS  = 'ws://{{ request.user.outlet.agent_host|default:"localhost" }}:8765';
+const AGENT_WS = 'ws://{{ request.user.outlet.agent_host|default:"localhost" }}:8765';
 let _agentWs = null;
 
 async function connectAgent(timeout = 2000) {
@@ -514,177 +361,55 @@ async function connectAgent(timeout = 2000) {
 }
 
 async function checkAgentStatus() {
-  const status = document.getElementById('agentStatus');
-  if (!status) return;
+  const dot  = document.getElementById('agentDot');
+  const text = document.getElementById('agentStatusText');
   try {
     const ws = await connectAgent(2000);
     ws.send(JSON.stringify({ type: 'ping' }));
-    status.innerHTML = '<span style="color:#10b981;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent running</span>';
-    await loadPrinterList();
+    dot.className  = 'dot green';
+    text.textContent = 'Rasova Agent running';
+    text.style.color = '#10b981';
   } catch {
-    status.innerHTML = '<span style="color:#ef4444;font-size:0.7rem;"><i class="bi bi-circle-fill" style="font-size:0.45rem;"></i> Agent not running — run <code>python rasova_agent.py --install</code> once to auto-start at login</span>';
+    dot.className  = 'dot red';
+    text.innerHTML = 'Agent not running — <a href="{% static "agent/rasova_agent_installer.bat" %}" download style="color:var(--accent-gold);">Download installer</a>';
+    text.style.color = 'var(--text-muted)';
   }
 }
 
-async function loadPrinterList() {
-  const sel = document.getElementById('printerSelect');
-  if (!sel) return;
-  try {
-    const ws  = await connectAgent(1500);
-    const req = JSON.stringify({ type: 'list_printers' });
-    ws.send(req);
-    await new Promise(res => {
-      const h = (ev) => {
-        const d = JSON.parse(ev.data);
-        if (d.type === 'printers') {
-          ws.removeEventListener('message', h);
-          sel.innerHTML = '<option value="">— select printer —</option>';
-          (d.list || []).forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p; opt.textContent = p;
-            if (p === document.getElementById('printerNameInput')?.value) opt.selected = true;
-            sel.appendChild(opt);
-          });
-          res();
-        }
-      };
-      ws.addEventListener('message', h);
-      setTimeout(res, 3000);
-    });
-  } catch { /* agent not running */ }
-}
-
-async function discoverNetworkPrinters() {
-  const sel    = document.getElementById('networkPrinterSelect');
-  const status = document.getElementById('networkScanStatus');
-  if (!sel || !status) return;
-  status.textContent = 'Scanning network…';
-  try {
-    const ws = await connectAgent(3000);
-    ws.send(JSON.stringify({ type: 'discover_network_printers', port: 9100, timeout: 0.5 }));
-    await new Promise(res => {
-      const h = (ev) => {
-        const d = JSON.parse(ev.data);
-        if (d.type === 'network_printers') {
-          ws.removeEventListener('message', h);
-          sel.innerHTML = '<option value="">— select IP —</option>';
-          if (!d.list || d.list.length === 0) {
-            status.textContent = 'No network printers found on port 9100';
-            status.style.color = '#ef4444';
-          } else {
-            d.list.forEach(p => {
-              const opt = document.createElement('option');
-              opt.value = p.ip;
-              opt.textContent = `${p.ip}  (${p.responded_ms}ms)`;
-              if (p.ip === document.getElementById('networkPrinterIpInput')?.value) opt.selected = true;
-              sel.appendChild(opt);
-            });
-            status.textContent = `Found ${d.list.length} printer(s)`;
-            status.style.color = '#10b981';
-          }
-          res();
-        }
-      };
-      ws.addEventListener('message', h);
-      setTimeout(res, 4000);
-    });
-  } catch {
-    status.textContent = 'Agent not running';
-    status.style.color = '#ef4444';
+async function setPrintMode(mode) {
+  const hint = document.getElementById('printModeHint');
+  if (mode === 'cashier') {
+    if (!confirm(
+      'Switch to One Printer mode?\n\n' +
+      'This will clear the printer IP from all stations except the default station.\n\n' +
+      'The default station keeps its IP — bill + KOTs print there as one strip.'
+    )) return;
+    try {
+      await apiClient.post('/setup/kitchen-stations/set-mode/cashier/', {});
+      hint.textContent = '✓ One Printer mode active.';
+      hint.style.color = '#10b981';
+      document.getElementById('modeCashier').classList.add('active');
+      document.getElementById('modeStation').classList.remove('active');
+      setTimeout(() => window.location.reload(), 800);
+    } catch(e) {}
+  } else {
+    hint.textContent = 'Enter a printer IP for each station below.';
+    hint.style.color = 'var(--text-muted)';
+    document.getElementById('modeStation').classList.add('active');
+    document.getElementById('modeCashier').classList.remove('active');
   }
 }
 
-async function saveAgentPrinterName() {
-  const usbName  = (document.getElementById('printerNameInput')?.value ||
-                    document.getElementById('printerSelect')?.value || '').trim();
-  const netIp    = (document.getElementById('networkPrinterIpInput')?.value ||
-                    document.getElementById('networkPrinterSelect')?.value || '').trim();
-  if (!usbName && !netIp) { ui.toast('Select or enter a printer name or IP', 'warning'); return; }
-
-  const stationId = {{ default_station.id|default:'null' }};
-  if (!stationId) { ui.toast('No default station', 'error'); return; }
-
-  // 1. Save USB name to Django backend
-  const payload = {};
-  if (usbName) payload.printer_name = usbName;
-  if (netIp)   payload.printer_ip   = netIp;
-  try {
-    await apiClient.post(`/setup/kitchen-stations/${stationId}/printer/`, payload);
-  } catch { ui.toast('Save failed', 'error'); return; }
-
-  // 2. Also tell the agent to remember this outlet's printer config
-  const outletId = '{{ outlet.id }}';
-  try {
-    const ws = await connectAgent(1500);
-    const cfg = { type: 'save_printer_config', outlet_id: outletId };
-    if (usbName) cfg.usb_name    = usbName;
-    if (netIp)   cfg.network_ip  = netIp;
-    if (netIp)   cfg.network_port = 9100;
-    ws.send(JSON.stringify(cfg));
-  } catch { /* agent not running — Django save is enough */ }
-
-  ui.toast('Printer settings saved ✓', 'success');
-}
-
-async function testAgentPrint() {
-  const result = document.getElementById('agentTestResult');
-  const btn    = document.getElementById('agentTestBtn');
-  const name   = (document.getElementById('printerNameInput')?.value ||
-                  document.getElementById('printerSelect')?.value || '').trim();
-
-  if (!name) { if(result) result.textContent = 'Select a printer first.'; return; }
-  if(result) result.textContent = 'Connecting to Rasova Agent…';
-  if(btn) btn.disabled = true;
-
-  const ESC = '\x1B', GS = '\x1D';
-  const lines = [
-    ESC+'@',                        // init printer
-    ESC+'a\x01',                    // center align
-    ESC+'E\x01',                    // bold on
-    'RASOVA PRINT AGENT\n',
-    ESC+'E\x00',                    // bold off
-    '-'.repeat(32)+'\n',
-    `Printer: ${name}\n`,
-    'Partial cut test:\n',
-    '-'.repeat(32)+'\n',
-    'SECTION 1\n\n',
-    GS+'V\x01',                     // PARTIAL CUT
-    'SECTION 2\n\n',
-    GS+'V\x01',                     // PARTIAL CUT
-    'SECTION 3\n\n',
-    'If cuts worked = SUCCESS!\n\n',
-    GS+'V\x00',                     // FULL CUT
-  ];
-
-  try {
-    const ws  = await connectAgent(3000);
-    const jid = 'test-' + Date.now();
-    ws.send(JSON.stringify({ type: 'print', printer: name, lines, job_id: jid, encoding: 'cp437' }));
-    await new Promise((res, rej) => {
-      const h = (ev) => {
-        const d = JSON.parse(ev.data);
-        if (d.job_id === jid) {
-          ws.removeEventListener('message', h);
-          if (d.type === 'ok') {
-            if(result) result.innerHTML = '<span style="color:#10b981;">✓ Printed! Check for 2 partial cuts + 1 full cut.</span>';
-            res();
-          } else {
-            if(result) result.innerHTML = `<span style="color:#ef4444;">✗ ${d.message}</span>`;
-            rej();
-          }
-        }
-      };
-      ws.addEventListener('message', h);
-      setTimeout(() => { ws.removeEventListener('message', h); rej(new Error('timeout')); }, 10000);
-    });
-  } catch(e) {
-    if(result) result.innerHTML = `<span style="color:#ef4444;">✗ ${e.message || 'Agent not running'}</span>`;
-  } finally {
-    if(btn) btn.disabled = false;
-  }
-}
-
-document.addEventListener('DOMContentLoaded', checkAgentStatus);
+document.addEventListener('DOMContentLoaded', () => {
+  checkAgentStatus();
+  const hint = document.getElementById('printModeHint');
+  {% if any_station_has_printer %}
+  hint.textContent = 'Each station has its own printer. KOTs print at the station when the order is sent.';
+  {% else %}
+  hint.innerHTML = '✓ One Printer mode — enter the IP on the <strong>{% if default_station %}{{ default_station.name }}{% else %}default{% endif %}</strong> station only.';
+  hint.style.color = '#10b981';
+  {% endif %}
+});
 
 function togglePanel(id) {
   const panel   = document.getElementById(`panel-${id}`);
@@ -694,6 +419,15 @@ function togglePanel(id) {
   chevron.classList.toggle('open', !isOpen);
 }
 
+function toggleAdvanced(id) {
+  const panel = document.getElementById(`adv-${id}`);
+  const icon  = document.getElementById(`adv-icon-${id}`);
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  icon.className = isOpen ? 'bi bi-chevron-right' : 'bi bi-chevron-down';
+  icon.style.fontSize = '0.6rem';
+}
+
 function setStatus(id, type, msg) {
   const el = document.getElementById(`status-${id}`);
   const colors = { ok: '#10b981', err: '#ef4444', busy: 'var(--text-muted)' };
@@ -701,12 +435,11 @@ function setStatus(id, type, msg) {
 }
 
 async function saveConfig(id) {
-  const ip   = document.getElementById(`ip-${id}`).value.trim();
-  const port = document.getElementById(`port-${id}`).value.trim();
+  const ip    = document.getElementById(`ip-${id}`).value.trim();
+  const port  = document.getElementById(`port-${id}`).value.trim();
   const paper = document.getElementById(`paper-${id}`).value;
-  const cut  = document.getElementById(`cut-${id}`).value;
-  const enc  = document.getElementById(`enc-${id}`).value;
-
+  const cut   = document.getElementById(`cut-${id}`).value;
+  const enc   = document.getElementById(`enc-${id}`).value;
   setStatus(id, 'busy', 'Saving…');
   try {
     const data = await apiClient.post(`/setup/kitchen-stations/${id}/printer/`, {
@@ -714,14 +447,11 @@ async function saveConfig(id) {
       paper_width_mm: paper, cut_type: cut, printer_encoding: enc,
     });
     setStatus(id, 'ok', data.message || 'Saved');
-    // Enable test button now that there's an IP
     const testBtn = document.getElementById(`test-btn-${id}`);
     if (ip) { testBtn.disabled = false; testBtn.title = ''; }
-    // Update status dot in header
-    const card = document.getElementById(`card-${id}`);
-    const dots = card.querySelectorAll('.dot');
+    const dots = document.getElementById(`card-${id}`).querySelectorAll('.dot');
     if (dots.length) dots[0].style.background = ip ? '#f59e0b' : 'var(--border-color)';
-  } catch (e) {
+  } catch {
     setStatus(id, 'err', 'Save failed');
   }
 }
@@ -729,15 +459,13 @@ async function saveConfig(id) {
 async function testPrint(id) {
   const btn = document.getElementById(`test-btn-${id}`);
   btn.disabled = true;
-  setStatus(id, 'busy', 'Sending test page…');
+  setStatus(id, 'busy', 'Sending…');
   try {
     const data = await apiClient.post(`/setup/kitchen-stations/${id}/test-print/`, {});
     setStatus(id, 'ok', data.message || 'Test sent!');
-    // Turn dot green to show the printer responded
-    const card = document.getElementById(`card-${id}`);
-    const dots = card.querySelectorAll('.dot');
+    const dots = document.getElementById(`card-${id}`).querySelectorAll('.dot');
     if (dots.length) dots[0].style.background = '#10b981';
-  } catch (e) {
+  } catch(e) {
     const msg = e.message || 'Could not reach printer';
     setStatus(id, 'err', msg);
     ui.toast(msg, 'error');
@@ -747,17 +475,13 @@ async function testPrint(id) {
 }
 
 async function deleteStation(id, name, isDefault) {
-  // Confirmation — extra warning if deleting the default station
   const warning = isDefault
-    ? `"${name}" is the default station. Another station will become the default automatically.\n\nMenu items assigned to "${name}" will move to the new default.\n\nDelete anyway?`
-    : `Remove kitchen station "${name}"?\n\nAny menu items assigned to this station will move to the default station.`;
-
+    ? `"${name}" is the default station. Another station will become the default automatically.\n\nDelete anyway?`
+    : `Remove kitchen station "${name}"?\n\nMenu items assigned to it will move to the default station.`;
   if (!confirm(warning)) return;
-
   try {
     const data = await apiClient.post(`/setup/kitchen-stations/${id}/delete/`, {});
     ui.toast(data.message || 'Station removed', 'success');
-    // Remove the card from DOM immediately — no need for full page reload
     const card = document.getElementById(`card-${id}`);
     if (card) {
       card.style.transition = 'opacity 0.3s, transform 0.3s';
@@ -765,9 +489,7 @@ async function deleteStation(id, name, isDefault) {
       card.style.transform = 'translateX(20px)';
       setTimeout(() => { card.remove(); window.location.reload(); }, 350);
     }
-  } catch (e) {
-    // apiClient already shows a toast with the error message
-  }
+  } catch { }
 }
 </script>
 {% endblock %}
