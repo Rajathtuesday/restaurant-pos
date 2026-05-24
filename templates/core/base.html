@@ -36,6 +36,7 @@
             --accent-gold: {{ request.user.tenant.primary_color|default:"#c5a059" }};
             --font-main:   '{{ request.user.tenant.font_family|default:"Outfit" }}', sans-serif;
             --font-scale:  {{ request.user.tenant.font_scale|default:1.0 }};
+            font-size: calc(16px * {{ request.user.tenant.font_scale|default:1.0 }});
         }
 
         body {
@@ -43,7 +44,6 @@
             margin: 0;
             display: flex;
             flex-direction: column;
-            font-size: calc(1rem * var(--font-scale, 1));
         }
         .mono-text { font-family: 'Space Mono', monospace; }
 
