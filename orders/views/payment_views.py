@@ -4,6 +4,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
@@ -221,14 +222,17 @@ def pay_order(request, order_id):
                     "change_due": float(change_due)
                 })
 
-        except Exception as e:
-            logger.error(f"Payment error for order #{order_id}: {e}")
-            # Get the exact error message from ValidationError if possible
-            err_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
-            return JsonResponse({"error": err_msg}, status=400)
+        except ValidationError as e:
+            return JsonResponse({"error": e.messages[0]}, status=400)
+        except Order.DoesNotExist:
+            return JsonResponse({"error": "Order not found"}, status=404)
+        except Exception:
+            logger.exception("Payment error for order #%s", order_id)
+            return JsonResponse({"error": "Payment could not be processed. Please try again."}, status=500)
 
-    except Order.DoesNotExist:
-        return JsonResponse({"error": "Order not found"}, status=404)
+    except Exception:
+        logger.exception("Unexpected error in pay_order for order #%s", order_id)
+        return JsonResponse({"error": "Payment could not be processed. Please try again."}, status=500)
 
 
 # -------------------------------------------------
@@ -384,9 +388,10 @@ def split_pay(request, order_id):
             "order_status": order.status,
         })
 
+    except ValidationError as e:
+        return JsonResponse({"error": e.messages[0]}, status=400)
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
-        logger.exception(f"Split-pay error for order #{order_id}")
-        err_msg = e.messages[0] if hasattr(e, "messages") else str(e)
-        return JsonResponse({"error": err_msg}, status=400)
+    except Exception:
+        logger.exception("Split-pay error for order #%s", order_id)
+        return JsonResponse({"error": "Payment could not be processed. Please try again."}, status=500)

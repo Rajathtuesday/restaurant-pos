@@ -70,10 +70,10 @@ def cancel_order(request, order_id):
             
         logger.info(f"User {request.user.username} cancelled Order #{order_id}")
         return JsonResponse({"success": True})
-        
+
     except Exception as e:
-        logger.error(f"Error cancelling order #{order_id}: {str(e)}")
-        return JsonResponse({"error": "Server error", "detail": str(e)}, status=500)
+        logger.error(f"Error cancelling order #{order_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Server error"}, status=500)
 
 
 @login_required
@@ -118,8 +118,8 @@ def cancel_item(request, item_id):
         return JsonResponse({"success": True, "new_total": float(order.grand_total)})
         
     except Exception as e:
-        logger.error(f"Error cancelling item #{item_id}: {str(e)}")
-        return JsonResponse({"error": "Server error", "detail": str(e)}, status=500)
+        logger.error(f"Error cancelling item #{item_id}: {str(e)}", exc_info=True)
+        return JsonResponse({"error": "Server error"}, status=500)
 
 
 @login_required
@@ -173,5 +173,5 @@ def toggle_parcel(request, order_id):
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found or already closed"}, status=404)
     except Exception as e:
-        logger.error("toggle_parcel error for order %s: %s", order_id, e)
-        return JsonResponse({"error": str(e)}, status=500)
+        logger.error("toggle_parcel error for order %s: %s", order_id, e, exc_info=True)
+        return JsonResponse({"error": "Server error"}, status=500)

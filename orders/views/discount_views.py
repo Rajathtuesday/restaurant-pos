@@ -46,8 +46,8 @@ def apply_discount(request, order_id):
                 Order.objects.select_for_update()
                 .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
             )
-            if order.status in ["paid", "closed"]:
-                raise Exception("Order is already fully paid or closed")
+            if order.status in ["paid", "closed", "cancelled"]:
+                return JsonResponse({"error": "Order is already paid, closed, or cancelled."}, status=400)
 
             if promo_id:
                 from orders.models import Promo
@@ -153,10 +153,9 @@ def apply_item_discount(request, item_id):
         logger.warning(f"User {request.user.username} applied {discount_pct}% discount to item #{item_id}")
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
-    except Exception as e:
-        logger.exception("Error applying item discount")
-        err_msg = str(e) if str(e) else "Internal Server Error"
-        return JsonResponse({"error": err_msg}, status=500)
+    except Exception:
+        logger.exception("Error applying item discount to item #%s", item_id)
+        return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)
 
 
 # -------------------------------------------------
@@ -227,6 +226,6 @@ def log_bypass(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
-        logger.error(f"Bypass error for order #{order_id}: {e}")
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Bypass error for order #%s", order_id)
+        return JsonResponse({"error": "Payment bypass could not be processed. Please try again."}, status=500)
