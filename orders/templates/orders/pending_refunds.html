@@ -1,0 +1,121 @@
+{% extends 'core/base.html' %}
+{% block title %}Pending Refunds | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ref-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+  .ref-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+  .ref-table th {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-muted); font-weight: 600;
+    padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left;
+  }
+  .ref-table td { padding: 0.85rem 0.75rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+  .order-num { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--accent-gold); }
+  .amount    { font-weight: 700; }
+  .btn-approve { padding: 0.35rem 0.9rem; border: 1px solid #10b981; color: #10b981; background: transparent; cursor: pointer; font-family: inherit; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; transition: all .2s; }
+  .btn-approve:hover { background: #10b981; color: #fff; }
+  .btn-reject  { padding: 0.35rem 0.9rem; border: 1px solid var(--border-color); color: var(--text-muted); background: transparent; cursor: pointer; font-family: inherit; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; margin-left: 6px; transition: all .2s; }
+  .btn-reject:hover  { border-color: #ef4444; color: #ef4444; }
+  .empty-state { text-align: center; padding: 4rem; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">{{ request.user.outlet.name }}</p>
+  <h1 class="brand-title mb-0"><i class="bi bi-arrow-counterclockwise me-2" style="color:var(--accent-gold);"></i>Pending Refunds</h1>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="{% url 'order-history' %}" class="btn-luxury">
+  <i class="bi bi-clock-history me-1"></i>Order History
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="ref-wrap">
+
+  {% if refunds %}
+  <table class="ref-table">
+    <thead>
+      <tr>
+        <th>Order #</th>
+        <th>Amount</th>
+        <th>Reason</th>
+        <th>Requested By</th>
+        <th>Payment Method</th>
+        {% if is_owner %}<th>Actions</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in refunds %}
+      <tr>
+        <td><span class="order-num">{{ r.order.order_number|default:r.order.id }}</span></td>
+        <td><span class="amount">₹{{ r.amount|floatformat:0 }}</span></td>
+        <td>{{ r.reason }}</td>
+        <td style="font-size:0.78rem;color:var(--text-muted);">
+          {{ r.refunded_by.get_full_name|default:r.refunded_by.username }}
+        </td>
+        <td style="font-size:0.78rem;">{{ r.payment.method|upper }}</td>
+        {% if is_owner %}
+        <td>
+          <button class="btn-approve" onclick="approveRefund({{ r.id }})">Approve</button>
+          <button class="btn-reject"  onclick="rejectRefund({{ r.id }})">Reject</button>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  <div class="empty-state">
+    <i class="bi bi-check-circle" style="font-size:2.5rem;display:block;margin-bottom:1rem;color:#10b981;"></i>
+    No pending refunds.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getCookie(name) {
+  const v = document.cookie.match("(^|;) ?" + name + "=([^;]*)(;|$)");
+  return v ? v[2] : null;
+}
+
+function approveRefund(refundId) {
+  if (!confirm("Approve this refund?")) return;
+  fetch(`/orders/refund/approve/${refundId}/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    body: "{}"
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) location.reload();
+    else alert(d.error || "Failed.");
+  })
+  .catch(() => alert("Network error."));
+}
+
+function rejectRefund(refundId) {
+  const reason = prompt("Reason for rejection (optional):");
+  if (reason === null) return;
+  fetch(`/orders/refund/reject/${refundId}/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    body: JSON.stringify({ reason })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) location.reload();
+    else alert(d.error || "Failed.");
+  })
+  .catch(() => alert("Network error."));
+}
+</script>
+{% endblock %}

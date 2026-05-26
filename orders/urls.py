@@ -5,7 +5,7 @@ from orders.services.table_transfer_service import transfer_table
 
 from .views.order_actions import cancel_order, cancel_item, toggle_parcel
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
-from .views.refund_views import approve_refund_view, reject_refund_view
+from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view
 from .views.promo_views import list_active_promos, create_promo, toggle_promo, delete_promo
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 
@@ -136,6 +136,7 @@ urlpatterns = [
     
     path("api/notifications/", notification_api, name="notification-api"),
     path("api/notifications/unread/", notification_api, name="notification-api-unread"),
+    path("refunds/pending/", pending_refunds_view, name="pending-refunds"),
     path("refund/approve/<int:refund_id>/", approve_refund_view, name="approve-refund"),
     path("refund/reject/<int:refund_id>/", reject_refund_view, name="reject-refund"),
     path("item-discount/<int:item_id>/", apply_item_discount, name="item-discount"),

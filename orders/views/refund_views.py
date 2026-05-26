@@ -3,12 +3,31 @@ import json
 import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from core.decorators import tenant_required, role_required
+from orders.models import Refund
 from orders.services.refund_service import approve_refund, reject_refund
 
 logger = logging.getLogger("pos.orders")
+
+@login_required
+@tenant_required
+@role_required("owner", "manager")
+def pending_refunds_view(request):
+    """List all pending refunds for the outlet. Owner can approve/reject inline."""
+    refunds = (
+        Refund.objects
+        .filter(order__tenant=request.user.tenant, order__outlet=request.user.outlet, status="pending")
+        .select_related("payment", "order", "refunded_by")
+        .order_by("-id")
+    )
+    return render(request, "orders/pending_refunds.html", {
+        "refunds": refunds,
+        "is_owner": request.user.role == "owner",
+    })
+
 
 @login_required
 @tenant_required
@@ -26,8 +45,8 @@ def approve_refund_view(request, refund_id):
         logger.info(f"User {request.user.username} approved refund #{refund_id}")
         return JsonResponse({"success": True, "message": "Refund approved and audit logged"})
     except Exception as e:
-        logger.error(f"Error approving refund #{refund_id}: {e}")
-        return JsonResponse({"error": str(e)}, status=400)
+        logger.exception("Error approving refund #%s", refund_id)
+        return JsonResponse({"error": "Refund could not be approved. Please try again."}, status=400)
 
 @login_required
 @tenant_required
@@ -46,5 +65,5 @@ def reject_refund_view(request, refund_id):
         logger.info(f"User {request.user.username} rejected refund #{refund_id}")
         return JsonResponse({"success": True, "message": "Refund rejected"})
     except Exception as e:
-        logger.error(f"Error rejecting refund #{refund_id}: {e}")
-        return JsonResponse({"error": str(e)}, status=400)
+        logger.exception("Error rejecting refund #%s", refund_id)
+        return JsonResponse({"error": "Refund could not be rejected. Please try again."}, status=400)

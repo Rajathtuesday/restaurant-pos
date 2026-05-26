@@ -80,7 +80,7 @@ def pay_order(request, order_id):
                     .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
                 )
 
-                if order.status in ["paid", "closed"]:
+                if order.status in ["paid", "closed", "cancelled"]:
                     return JsonResponse({"error": "Order already completed"}, status=400)
 
                 # ── Auto-KOT mode ────────────────────────────────────────────
@@ -263,9 +263,8 @@ def refund_payment(request, payment_id):
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
     except Exception as e:
-        logger.exception("Error refunding payment")
-        err_msg = str(e) if str(e) else "Internal Server Error"
-        return JsonResponse({"error": err_msg}, status=500)
+        logger.exception("Error refunding payment #%s", payment_id)
+        return JsonResponse({"error": "Refund could not be processed. Please try again."}, status=500)
 
 
 # -------------------------------------------------

@@ -52,16 +52,14 @@ def apply_discount(request, order_id):
             if promo_id:
                 from orders.models import Promo
                 try:
-                    promo = Promo.objects.select_for_update().get(id=promo_id, tenant=request.user.tenant)
-                    ok, err = promo.validate(order.outlet, order.subtotal)
+                    promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
+                    ok, err = promo.validate_and_use(order.outlet, order.subtotal)
                     if not ok:
                         return JsonResponse({"error": err}, status=400)
 
                     # Apply values from the promo
                     discount_type = promo.discount_type
                     value = promo.discount_value
-
-                    promo.record_use()
                 except Promo.DoesNotExist:
                     return JsonResponse({"error": "Promo code not found"}, status=404)
 
@@ -88,9 +86,8 @@ def apply_discount(request, order_id):
         })
 
     except Exception as e:
-        logger.exception("Error applying discount")
-        err_msg = str(e) if str(e) else "Internal Server Error"
-        return JsonResponse({"error": err_msg}, status=500)
+        logger.exception("Error applying discount for order #%s", order_id)
+        return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)
 
 
 # -------------------------------------------------

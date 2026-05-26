@@ -19,7 +19,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from core.decorators import tenant_required
-from orders.models import Order, OrderItem, Payment, OrderEvent
+from orders.models import Order, OrderItem, Payment, OrderEvent, Refund
 
 logger = logging.getLogger("pos.orders")
 
@@ -261,15 +261,34 @@ def order_detail_api(request, order_id):
             "item_discount_pct": float(item.item_discount_pct) if hasattr(item, "item_discount_pct") and item.item_discount_pct else 0,
         })
 
-    # Build payments
+    # Build payments — include ID so JS can POST refund requests
     payments_data = []
     for p in order.payments.all():
+        if p.method == "refund" or float(p.amount) < 0:
+            payments_data.append({
+                "id": p.id, "method": p.method, "amount": float(p.amount),
+                "reference": p.reference or "",
+                "paid_at": p.paid_at.strftime("%H:%M") if p.paid_at else "",
+                "is_refund": True, "refunds": [],
+            })
+            continue
+
+        refunds_for_payment = []
+        for r in Refund.objects.filter(payment=p).select_related("refunded_by").order_by("id"):
+            refunds_for_payment.append({
+                "id": r.id,
+                "amount": float(r.amount),
+                "reason": r.reason,
+                "status": r.status,
+                "by": r.refunded_by.get_full_name() or r.refunded_by.username if r.refunded_by else "",
+            })
+
         payments_data.append({
-            "method":    p.method,
-            "amount":    float(p.amount),
+            "id": p.id, "method": p.method, "amount": float(p.amount),
             "reference": p.reference or "",
-            "paid_at":   p.paid_at.strftime("%H:%M") if p.paid_at else "",
-            "is_refund": p.method == "refund" or float(p.amount) < 0,
+            "paid_at": p.paid_at.strftime("%H:%M") if p.paid_at else "",
+            "is_refund": False,
+            "refunds": refunds_for_payment,
         })
 
     # Build audit trail (owner/manager only)
@@ -313,6 +332,9 @@ def order_detail_api(request, order_id):
         "id":             order.id,
         "order_number":   order.order_number or str(order.id),
         "status":         order.status,
+        "user_role":      user.role,
+        "can_refund":     user.role in ("manager", "owner") and order.status in ("closed", "paid"),
+        "can_approve_refund": user.role == "owner",
         "source":         order.source,
         "location":       location,
         "created_at":     order.created_at.strftime("%d %b %Y, %H:%M"),

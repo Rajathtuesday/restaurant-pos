@@ -109,6 +109,54 @@
   .total-row { font-weight: 700; font-size: 0.95rem; border-top: 2px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem; }
   .refund-row { color: #ef4444; }
 
+  /* ── Refund UI ──────────────────────────────────────────────── */
+  .btn-refund {
+    font-size: 0.65rem; padding: 2px 8px; border: 1px solid #ef4444;
+    color: #ef4444; background: transparent; cursor: pointer;
+    font-family: inherit; letter-spacing: 1px; text-transform: uppercase;
+    margin-left: 8px; transition: all 0.2s;
+  }
+  .btn-refund:hover { background: #ef4444; color: #fff; }
+  .refund-entry {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.3rem 0.5rem; margin-top: 4px; font-size: 0.78rem;
+    background: rgba(239,68,68,0.06); border-left: 2px solid #ef4444;
+  }
+  .refund-entry .refund-status {
+    font-size: 0.6rem; padding: 1px 6px; border-radius: 10px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .status-pending  { background: rgba(234,179,8,.15);  color: #ca8a04; }
+  .status-approved { background: rgba(16,185,129,.12); color: #10b981; }
+  .status-rejected { background: rgba(100,100,100,.12);color: #6b6b6b; }
+  .btn-approve { font-size:0.65rem;padding:2px 8px;border:1px solid #10b981;color:#10b981;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:1px;text-transform:uppercase;transition:all .2s; }
+  .btn-approve:hover { background:#10b981;color:#fff; }
+  .btn-reject  { font-size:0.65rem;padding:2px 8px;border:1px solid var(--border-color);color:var(--text-muted);background:transparent;cursor:pointer;font-family:inherit;letter-spacing:1px;text-transform:uppercase;margin-left:4px;transition:all .2s; }
+  .btn-reject:hover  { border-color:#ef4444;color:#ef4444; }
+
+  /* ── Refund modal ────────────────────────────────────────────── */
+  .refund-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 2000;
+    align-items: center; justify-content: center;
+  }
+  .refund-modal-overlay.open { display: flex; }
+  .refund-modal {
+    background: var(--panel-bg); border: 1px solid var(--border-color);
+    padding: 1.5rem; width: 360px; max-width: 95vw;
+  }
+  .refund-modal h4 { font-family:'DM Serif Display',serif;font-size:1.1rem;font-weight:400;margin:0 0 1rem; }
+  .refund-modal label { font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);display:block;margin-bottom:3px;margin-top:0.75rem; }
+  .refund-modal input, .refund-modal textarea {
+    width:100%;background:transparent;border:1px solid var(--border-color);
+    color:var(--text-main);padding:0.4rem 0.6rem;font-size:0.85rem;font-family:inherit;outline:none;
+  }
+  .refund-modal input:focus, .refund-modal textarea:focus { border-color:var(--accent-gold); }
+  .refund-modal-actions { display:flex;gap:0.5rem;margin-top:1.25rem; }
+  .btn-refund-submit { flex:1;padding:0.6rem;background:#ef4444;border:none;color:#fff;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit; }
+  .btn-refund-submit:hover { background:#dc2626; }
+  .btn-refund-cancel { padding:0.6rem 1rem;background:transparent;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.8rem;cursor:pointer;font-family:inherit; }
+
   .audit-event { display: flex; gap: 0.75rem; padding: 0.5rem 0; font-size: 0.8rem; border-bottom: 1px dashed var(--border-color); }
   .audit-event:last-child { border-bottom: none; }
   .audit-time { color: var(--text-muted); white-space: nowrap; min-width: 48px; }
@@ -139,6 +187,9 @@
 
 {% block header_right %}
 {% if not is_restricted %}
+<a href="{% url 'pending-refunds' %}" class="btn-luxury no-print" style="margin-right:0.5rem;">
+  <i class="bi bi-arrow-counterclockwise me-1"></i>Pending Refunds
+</a>
 <a href="{% url 'export-orders-csv' %}?{{ request.GET.urlencode }}" class="btn-luxury no-print">
   <i class="bi bi-download me-1"></i>Export CSV
 </a>
@@ -338,6 +389,23 @@
 
 </div>
 
+<!-- Refund request modal -->
+<div class="refund-modal-overlay" id="refundModalOverlay">
+  <div class="refund-modal">
+    <h4>Request Refund</h4>
+    <label>Max Refundable</label>
+    <div id="refundMaxAmt" style="font-size:0.95rem;font-weight:700;color:var(--accent-gold);margin-bottom:0.25rem;"></div>
+    <label>Amount (₹)</label>
+    <input type="number" id="refundAmount" min="1" step="0.01" placeholder="Enter amount">
+    <label>Reason</label>
+    <textarea id="refundReason" rows="2" placeholder="Why is this refund being requested?"></textarea>
+    <div class="refund-modal-actions">
+      <button class="btn-refund-cancel" onclick="closeRefundModal()">Cancel</button>
+      <button class="btn-refund-submit" onclick="submitRefund()">Request Refund</button>
+    </div>
+  </div>
+</div>
+
 <!-- Detail overlay + panel -->
 <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
 <div class="detail-panel" id="detailPanel">
@@ -431,16 +499,43 @@ function renderDetail(o) {
   }
   html += `<div class="detail-row total-row"><span class="name">Grand Total</span><span class="amt">Rs.${o.grand_total.toFixed(0)}</span></div></div>`;
 
-  // Payments
+  // Payments + refund UI
   if (o.payments.length) {
     html += `<div class="detail-section"><div class="detail-section-title">Payments</div>`;
     o.payments.forEach(p => {
-      const refundCls = p.is_refund ? "refund-row" : "";
-      const sign = p.is_refund ? "-" : "";
-      html += `<div class="detail-row ${refundCls}">
-        <span class="name">${p.method.toUpperCase()}${p.reference ? ` · ${p.reference}` : ""}</span>
-        <span class="amt">${sign}Rs.${Math.abs(p.amount).toFixed(0)} <span style="color:var(--text-muted);font-size:0.7rem;">${p.paid_at}</span></span>
+      if (p.is_refund) {
+        html += `<div class="detail-row refund-row">
+          <span class="name">${p.method.toUpperCase()}${p.reference ? ` · ${p.reference}` : ""}</span>
+          <span class="amt">-Rs.${Math.abs(p.amount).toFixed(0)} <span style="color:var(--text-muted);font-size:0.7rem;">${p.paid_at}</span></span>
+        </div>`;
+        return;
+      }
+      // Calculate remaining refundable
+      const alreadyRefunded = p.refunds.filter(r => r.status !== "rejected")
+        .reduce((s, r) => s + r.amount, 0);
+      const remaining = (p.amount - alreadyRefunded).toFixed(2);
+      const refundBtn = (o.can_refund && parseFloat(remaining) > 0)
+        ? `<button class="btn-refund" onclick="openRefundModal(${p.id}, ${remaining})">Refund</button>`
+        : "";
+      html += `<div class="detail-row">
+        <span class="name">${p.method.toUpperCase()}${p.reference ? ` · ${p.reference}` : ""}${refundBtn}</span>
+        <span class="amt">Rs.${p.amount.toFixed(0)} <span style="color:var(--text-muted);font-size:0.7rem;">${p.paid_at}</span></span>
       </div>`;
+      // Show existing refunds for this payment
+      p.refunds.forEach(r => {
+        const stCls = `status-${r.status}`;
+        const approveReject = (o.can_approve_refund && r.status === "pending")
+          ? `<button class="btn-approve" onclick="approveRefund(${r.id})">Approve</button>
+             <button class="btn-reject"  onclick="rejectRefund(${r.id})">Reject</button>`
+          : "";
+        html += `<div class="refund-entry">
+          <span>₹${r.amount.toFixed(0)} · ${r.reason || "No reason"} <span style="color:var(--text-muted);font-size:0.7rem;">by ${r.by}</span></span>
+          <span style="display:flex;align-items:center;gap:4px;">
+            <span class="refund-status ${stCls}">${r.status}</span>
+            ${approveReject}
+          </span>
+        </div>`;
+      });
     });
     html += `</div>`;
   }
@@ -467,6 +562,88 @@ function renderDetail(o) {
   </div>`;
 
   document.getElementById("detailBody").innerHTML = html;
+}
+
+// ── Refund modal ──────────────────────────────────────────────
+let _activePaymentId = null;
+
+function openRefundModal(paymentId, maxAmount) {
+  _activePaymentId = paymentId;
+  document.getElementById("refundMaxAmt").textContent = "₹" + parseFloat(maxAmount).toFixed(2);
+  document.getElementById("refundAmount").value = "";
+  document.getElementById("refundAmount").max = maxAmount;
+  document.getElementById("refundReason").value = "";
+  document.getElementById("refundModalOverlay").classList.add("open");
+}
+
+function closeRefundModal() {
+  document.getElementById("refundModalOverlay").classList.remove("open");
+  _activePaymentId = null;
+}
+
+function submitRefund() {
+  const amount = document.getElementById("refundAmount").value;
+  const reason = document.getElementById("refundReason").value.trim();
+  if (!amount || parseFloat(amount) <= 0) { alert("Enter a valid amount."); return; }
+  if (!reason) { alert("Enter a reason for the refund."); return; }
+
+  fetch(`/orders/refund/${_activePaymentId}/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    body: JSON.stringify({ amount, reason })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      closeRefundModal();
+      // Refresh the detail panel
+      const orderId = parseInt(document.getElementById("detailOrderNum").textContent.replace("#",""));
+      if (orderId) openDetail(orderId);
+    } else {
+      alert(d.error || "Refund request failed.");
+    }
+  })
+  .catch(() => alert("Network error. Please try again."));
+}
+
+function approveRefund(refundId) {
+  if (!confirm("Approve this refund?")) return;
+  fetch(`/orders/refund/approve/${refundId}/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    body: "{}"
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      const orderId = parseInt(document.getElementById("detailOrderNum").textContent.replace("#",""));
+      if (orderId) openDetail(orderId);
+    } else { alert(d.error || "Approval failed."); }
+  })
+  .catch(() => alert("Network error."));
+}
+
+function rejectRefund(refundId) {
+  const reason = prompt("Reason for rejection (optional):");
+  if (reason === null) return; // user cancelled
+  fetch(`/orders/refund/reject/${refundId}/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    body: JSON.stringify({ reason })
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      const orderId = parseInt(document.getElementById("detailOrderNum").textContent.replace("#",""));
+      if (orderId) openDetail(orderId);
+    } else { alert(d.error || "Rejection failed."); }
+  })
+  .catch(() => alert("Network error."));
+}
+
+function getCookie(name) {
+  const v = document.cookie.match("(^|;) ?" + name + "=([^;]*)(;|$)");
+  return v ? v[2] : null;
 }
 </script>
 {% endblock %}
