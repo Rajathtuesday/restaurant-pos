@@ -383,6 +383,25 @@ class Outlet(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"
+
+    # State codes for Union Territories under Indian GST law.
+    # First 2 digits of GSTIN always encode the state/UT.
+    _UT_STATE_CODES = {"04", "07", "25", "31", "34", "35", "37", "38"}
+
+    @property
+    def uses_utgst(self) -> bool:
+        """
+        True if invoices should show UTGST instead of SGST.
+
+        Auto-detected from the GSTIN prefix (first 2 digits = state code).
+        Falls back to the manual is_union_territory toggle for outlets
+        without a GSTIN (e.g. composition dealers using Bill of Supply).
+        """
+        if self.gst_no and len(self.gst_no) >= 2:
+            return self.gst_no[:2] in self._UT_STATE_CODES
+        return self.is_union_territory
+
+
 class TenantFeatureOverride(models.Model):
     """
     Overrides the default features provided by the tenant_type.

@@ -269,18 +269,33 @@
                     <!-- ── Union Territory ── -->
                     <div class="field-row" style="margin-top:1.25rem;">
                         <label class="field-label">GST Jurisdiction</label>
+                        {% if outlet.uses_utgst and outlet.gst_no %}
+                        {# Auto-detected from GSTIN — show read-only badge, hide toggle #}
+                        <div style="margin-top:0.4rem;padding:0.9rem;border:1.5px solid #10b981;background:rgba(16,185,129,0.05);">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:0.75rem;background:#10b981;color:#fff;padding:2px 8px;border-radius:3px;font-weight:600;letter-spacing:1px;">AUTO</span>
+                                <span style="font-weight:600;font-size:0.88rem;">Union Territory detected</span>
+                            </div>
+                            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">
+                                GSTIN prefix <strong>{{ outlet.gst_no|slice:":2" }}</strong> identifies this outlet as a Union Territory.
+                                Invoices will show <strong>UTGST</strong> automatically. No manual override needed.
+                            </div>
+                            <input type="hidden" name="is_union_territory" value="true">
+                        </div>
+                        {% else %}
                         <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;">
                             <input type="checkbox" name="is_union_territory" value="true"
                                 {% if outlet.is_union_territory %}checked{% endif %}
                                 style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;">
                             <div>
-                                <div style="font-weight:600;font-size:0.88rem;">Union Territory</div>
+                                <div style="font-weight:600;font-size:0.88rem;">Union Territory <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;">(manual — add GSTIN above for auto-detection)</span></div>
                                 <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
                                     Enable for outlets in Delhi, J&amp;K, Chandigarh, Puducherry, Daman &amp; Diu, etc.
                                     Invoices will show <strong>UTGST</strong> instead of SGST as required by GST law.
                                 </div>
                             </div>
                         </label>
+                        {% endif %}
                     </div>
 
                     <!-- ── Counter Billing (gated: counter_billing feature) ── -->

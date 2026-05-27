@@ -261,7 +261,7 @@
                     GST @ {{ gst.rate }}%{% if gst_inclusive %} (incl.){% endif %}
                 </div>
                 <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
-                <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">{% if order.outlet.is_union_territory %}UTGST{% else %}SGST{% endif %} @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
+                <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">{% if order.outlet.uses_utgst %}UTGST{% else %}SGST{% endif %} @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
             </div>
             {% endfor %}
             <div class="total-row" style="font-size:0.82rem;font-weight:700;border-top:1px solid var(--border-color);padding-top:0.4rem;margin-top:0.3rem;">
@@ -273,7 +273,7 @@
             {% if gst_inclusive %}<div style="font-size:0.72rem;font-style:italic;">(All prices inclusive of GST)</div>{% endif %}
             {% for gst in order.gst_breakdown %}
             <div class="total-row" style="font-size:0.78rem;"><span>CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
-            <div class="total-row" style="font-size:0.78rem;"><span>{% if order.outlet.is_union_territory %}UTGST{% else %}SGST{% endif %} @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
+            <div class="total-row" style="font-size:0.78rem;"><span>{% if order.outlet.uses_utgst %}UTGST{% else %}SGST{% endif %} @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
             {% endfor %}
         </div>
         {% endif %}
