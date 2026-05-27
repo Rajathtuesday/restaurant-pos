@@ -568,16 +568,21 @@
             if (localStorage.getItem('rasova_agent_setup_done')) return;
             const p = rasovaPlatform;
 
-            let title, steps, canTest;
+            // Poll URL shown in Android steps — baked in by Django template
+        const POLL_URL = '{{ request.scheme }}://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
+
+        let title, steps, canTest;
             if (p.android) {
-                title   = 'Enable printing on Android';
+                title   = 'Enable printing — 3 steps, once only';
+                const cmd1 = `pkg install python &amp;&amp; pip install requests`;
+                const cmd2 = `python rasova_agent.py --poll '${POLL_URL}' --install-boot`;
                 steps   = [
-                    'Install <strong>Termux</strong> from <a href="https://f-droid.org/packages/com.termux/" target="_blank" style="color:var(--accent-gold);">F-Droid</a>',
-                    'In Termux: <code style="background:rgba(255,255,255,0.05);padding:1px 5px;">pkg install python && pip install websockets</code>',
-                    'Copy <strong>rasova_agent.py</strong> to your phone and run:<br><code style="background:rgba(255,255,255,0.05);padding:1px 5px;">python rasova_agent.py --install-termux</code>',
-                    'Install <strong>Termux:Boot</strong> from F-Droid so the agent starts automatically',
+                    'Install <strong>Termux</strong> from <a href="https://f-droid.org/packages/com.termux/" target="_blank" style="color:var(--accent-gold);">F-Droid</a> &amp; <strong>Termux:Boot</strong>',
+                    `In Termux: <code style="background:rgba(255,255,255,0.05);padding:2px 6px;font-size:0.78rem;">${cmd1}</code>`,
+                    `Copy <strong>rasova_agent.py</strong> to phone, then run:<br><code style="background:rgba(255,255,255,0.05);padding:2px 6px;font-size:0.73rem;word-break:break-all;">${cmd2}</code>`,
+                    'Android Settings → Apps → Termux → Battery → <strong>Unrestricted</strong>',
                 ];
-                canTest = true;
+                canTest = false; // polling mode — no local WebSocket to test
             } else if (p.ios) {
                 title   = 'Printing on iOS';
                 steps   = [
@@ -651,19 +656,25 @@
         };
 
         // ── Agent check when running as installed PWA ───────────────────────────
-        // If the app is opened from home screen and agent setup hasn't been confirmed,
-        // silently probe and show a non-blocking reminder if agent is unreachable.
+        // Android uses polling mode — no WebSocket to probe. We detect via a
+        // lightweight ping to the poll URL. Desktop checks the WebSocket.
         if (rasovaPlatform.standalone && !localStorage.getItem('rasova_agent_setup_done')) {
             window.addEventListener('load', () => {
-                const host = rasovaPlatform.agentHost;
-                if (rasovaPlatform.ios) return; // iOS has no agent
+                if (rasovaPlatform.ios) return;
+                if (rasovaPlatform.android) {
+                    // For polling mode, just show the setup sheet — there's nothing to probe
+                    // (the agent running or not doesn't affect connectivity from the browser's POV)
+                    return;
+                }
+                // Desktop: probe the local WebSocket agent
                 setTimeout(() => {
+                    const host = rasovaPlatform.agentHost;
                     const ws = new WebSocket(`ws://${host}:8765`);
                     const t  = setTimeout(() => { ws.close(); showAgentOfflineHint(); }, 3000);
                     ws.onopen  = () => ws.send(JSON.stringify({ type: 'ping' }));
                     ws.onmessage = () => { clearTimeout(t); ws.close(); };
                     ws.onerror  = () => { clearTimeout(t); showAgentOfflineHint(); };
-                }, 1500); // slight delay so page settles first
+                }, 1500);
             });
         }
 

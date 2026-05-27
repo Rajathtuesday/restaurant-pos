@@ -1288,3 +1288,47 @@ class DailyOnlineTokenCounter(models.Model):
     def __str__(self):
         return f"Online token counter | {self.outlet} | {self.date} = {self.value}"
 
+
+# =====================================================
+# PRINT JOB QUEUE
+# =====================================================
+
+class PrintJob(models.Model):
+    """
+    Queued receipt/KOT print job consumed by the Rasova Agent in polling mode.
+
+    The browser pushes a job here (HTTPS POST to EC2).
+    The agent running on the local device polls /orders/agent/<key>/jobs/ every 2 s,
+    prints to the local printer over TCP 9100, then marks the job done.
+
+    This architecture means the agent never needs an open port or inbound connection —
+    it only makes outbound HTTP calls, so Android battery optimisers and NAT routers
+    cannot break the connection.
+    """
+
+    PENDING = "pending"
+    DONE    = "done"
+    FAILED  = "failed"
+    STATUS_CHOICES = [
+        (PENDING, "Pending"),
+        (DONE,    "Done"),
+        (FAILED,  "Failed"),
+    ]
+
+    tenant     = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet     = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    # Full payload the agent needs: lines (ESC/POS), network_host, network_port, encoding
+    payload    = models.JSONField()
+    status     = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    done_at    = models.DateTimeField(null=True, blank=True)
+    error_msg  = models.CharField(max_length=512, blank=True, default="")
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes  = [models.Index(fields=["outlet", "status", "created_at"])]
+
+    def __str__(self):
+        return f"PrintJob #{self.pk} [{self.status}] outlet={self.outlet_id}"
+
+

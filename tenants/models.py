@@ -1,6 +1,8 @@
 # tenants/models.py
 # tenants/models.py
 
+import uuid
+
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
@@ -356,6 +358,13 @@ class Outlet(models.Model):
             "'localhost' when the Rasova Agent runs on this device (Windows PC or Termux on tablet). "
             "Set to a local IP (e.g. 192.168.1.200) when using a Raspberry Pi or separate print server."
         )
+    )
+
+    print_agent_key = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        unique=True,
+        help_text="Secret key the Rasova Agent uses to poll for print jobs. Never share publicly."
     )
 
     paper_width_mm = models.IntegerField(

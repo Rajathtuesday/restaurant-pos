@@ -101,12 +101,6 @@ if IS_WINDOWS:
     except ImportError:
         logger.warning("pywin32 not installed -- run: pip install pywin32")
 
-# ── ESC/POS over network (fallback / LAN printers) ───────────────────────────
-try:
-    from escpos.printer import Network as _NetworkPrinter
-except ImportError:
-    _NetworkPrinter = None
-
 
 # ── Config persistence ────────────────────────────────────────────────────────
 
@@ -700,6 +694,140 @@ async def main():
         await asyncio.Future()
 
 
+# ── Polling mode (Android / low-power devices) ───────────────────────────────
+
+def run_poll_mode(poll_url: str, interval: float = 2.0):  # noqa: C901
+    """
+    Polling mode — no WebSocket server, no open port, no firewall config.
+
+    The agent is now a simple HTTP client:
+      1. GET  <poll_url>jobs/          → list of pending print jobs
+      2. Print each job to the local thermal printer
+      3. POST <poll_url>done/<id>/     → mark job done
+      4. Sleep `interval` seconds and repeat forever
+
+    Android battery optimizer cannot kill outbound HTTP calls the same way
+    it kills a WebSocket server.  Even if the process IS killed, it will
+    be restarted by the Termux:Boot watchdog and pick up any queued jobs.
+
+    Usage:
+        python rasova_agent.py --poll https://your-site.com/orders/agent/<key>/
+    """
+    import base64
+    import urllib.request as _req
+    import urllib.error   as _err
+
+    base = poll_url.rstrip("/") + "/"
+    jobs_url = base + "jobs/"
+    done_url  = base + "done/"
+    fail_url  = base + "failed/"
+
+    logger.info("=" * 56)
+    logger.info("  Rasova Print Agent v%s — POLL MODE", VERSION)
+    logger.info("  Polling: %s", jobs_url)
+    logger.info("  Interval: %.1f s", interval)
+    logger.info("  Platform: %s", sys.platform)
+    logger.info("  Log: %s", LOG_PATH)
+    logger.info("=" * 56)
+
+    def _http_get(url):
+        r = _req.urlopen(_req.Request(url, headers={"User-Agent": f"RasovaAgent/{VERSION}"}), timeout=15)
+        return json.loads(r.read().decode())
+
+    def _http_post(url, body=None):
+        data = json.dumps(body or {}).encode()
+        r = _req.urlopen(_req.Request(
+            url, data=data,
+            headers={"Content-Type": "application/json", "User-Agent": f"RasovaAgent/{VERSION}"},
+            method="POST",
+        ), timeout=15)
+        return json.loads(r.read().decode())
+
+    consecutive_errors = 0
+
+    while True:
+        try:
+            result  = _http_get(jobs_url)
+            jobs    = result.get("jobs", [])
+            consecutive_errors = 0
+
+            for job in jobs:
+                job_id   = job["id"]
+                net_host = job.get("network_host", "")
+                net_port = int(job.get("network_port", 9100))
+                data_b64 = job.get("data_b64", "")
+
+                if not data_b64 or not net_host:
+                    _http_post(fail_url + f"{job_id}/", {"error": "empty job payload"})
+                    continue
+
+                data    = base64.b64decode(data_b64)
+                success, message = print_raw_network(net_host, net_port, data)
+
+                if success:
+                    logger.info("Job #%d printed → %s:%d (%d bytes)", job_id, net_host, net_port, len(data))
+                    _http_post(done_url + f"{job_id}/")
+                else:
+                    logger.warning("Job #%d failed: %s", job_id, message)
+                    _http_post(fail_url + f"{job_id}/", {"error": message})
+
+        except _err.HTTPError as e:
+            if e.code == 403:
+                logger.error("Invalid agent key — check the URL and regenerate key in Rasova settings")
+                sys.exit(1)
+            logger.warning("HTTP %d from server — will retry", e.code)
+            consecutive_errors += 1
+        except Exception as e:
+            consecutive_errors += 1
+            if consecutive_errors == 1:
+                logger.warning("Poll error: %s", e)
+            elif consecutive_errors % 30 == 0:
+                logger.warning("Still failing after %d attempts: %s", consecutive_errors, e)
+
+        time.sleep(interval)
+
+
+def install_autostart_termux_poll(poll_url: str):
+    """
+    Install a Termux:Boot watchdog that auto-starts polling mode on boot.
+    The watchdog loop means Android killing the process just restarts it in 3 s.
+    """
+    boot_dir = os.path.expanduser("~/.termux/boot")
+    os.makedirs(boot_dir, exist_ok=True)
+
+    agent_path = os.path.abspath(__file__)
+    boot_script = os.path.join(boot_dir, "rasova_agent.sh")
+    log_path    = os.path.join(CONFIG_DIR, "agent.log")
+
+    script = (
+        "#!/data/data/com.termux/files/usr/bin/sh\n"
+        "# Rasova Agent — auto-generated boot script\n"
+        "# termux-wake-lock prevents Android from pausing the CPU\n"
+        "termux-wake-lock\n"
+        f"POLL_URL='{poll_url}'\n"
+        "while true; do\n"
+        f"    python {agent_path} --poll \"$POLL_URL\" >> {log_path} 2>&1\n"
+        "    sleep 3\n"
+        "done &\n"
+    )
+
+    with open(boot_script, "w", encoding="utf-8") as f:
+        f.write(script)
+    os.chmod(boot_script, 0o755)
+
+    print()
+    print("  ✓ Rasova Agent will start automatically on boot")
+    print(f"  Boot script: {boot_script}")
+    print(f"  Logs:        {log_path}")
+    print()
+    print("  IMPORTANT — one-time Android setup (do this once):")
+    print("  1. Install Termux:Boot from F-Droid, then open it once")
+    print("  2. Android Settings → Apps → Termux → Battery → Unrestricted")
+    print()
+    print("  To start printing NOW (no reboot needed):")
+    print(f"  python {agent_path} --poll '{poll_url}'")
+
+
 if __name__ == "__main__":
     # ── CLI flags ─────────────────────────────────────────────────────────────
     if "--install" in sys.argv:
@@ -714,7 +842,23 @@ if __name__ == "__main__":
         uninstall_autostart()
         sys.exit(0)
 
-    # ── Normal run ────────────────────────────────────────────────────────────
+    # ── Poll mode — Android / low-power device ────────────────────────────────
+    if "--poll" in sys.argv:
+        idx = sys.argv.index("--poll")
+        if idx + 1 >= len(sys.argv):
+            print("Usage: python rasova_agent.py --poll https://your-site.com/orders/agent/<key>/")
+            sys.exit(1)
+        poll_url = sys.argv[idx + 1]
+
+        # --install-boot also sets up the Termux:Boot watchdog
+        if "--install-boot" in sys.argv:
+            install_autostart_termux_poll(poll_url)
+        else:
+            _agent_config = _load_config()
+            run_poll_mode(poll_url)
+        sys.exit(0)
+
+    # ── Normal run (WebSocket server — desktop) ───────────────────────────────
     try:
         import websockets
     except ImportError:

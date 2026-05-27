@@ -7,6 +7,7 @@ from .views.order_actions import cancel_order, cancel_item, toggle_parcel
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view
 from .views.promo_views import list_active_promos, create_promo, toggle_promo, delete_promo
+from .views.print_queue import print_queue_add, print_queue_poll, print_queue_done, print_queue_failed
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 
 
@@ -153,4 +154,10 @@ urlpatterns = [
     path("promos/create/", create_promo, name="create-promo"),
     path("promos/<int:promo_id>/toggle/", toggle_promo, name="toggle-promo"),
     path("promos/<int:promo_id>/delete/", delete_promo, name="delete-promo"),
+
+    # Print queue — polling architecture for Android agent
+    path("orders/agent/add-job/", print_queue_add, name="print-queue-add"),
+    path("orders/agent/<uuid:agent_key>/jobs/", print_queue_poll, name="print-queue-poll"),
+    path("orders/agent/<uuid:agent_key>/done/<int:job_id>/", print_queue_done, name="print-queue-done"),
+    path("orders/agent/<uuid:agent_key>/failed/<int:job_id>/", print_queue_failed, name="print-queue-failed"),
 ]

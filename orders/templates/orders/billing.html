@@ -808,12 +808,28 @@
   const _stationPrinterIp = "{{ station_printer_ip }}";
 
   async function printViaAgent(orderId) {
-    // iOS has no local agent — open the receipt page for browser/AirPrint
+    // iOS — no agent, open receipt page for browser/AirPrint
     if (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.ios) {
       window.open(`/orders/bill/${orderId}/?print=1`, '_blank');
       return;
     }
 
+    // Android — push to server-side print queue; agent polls and prints
+    // No WebSocket, no open port, survives background killing
+    if (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android) {
+      const resp = await fetch('/orders/agent/add-job/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+        body: JSON.stringify({ order_id: orderId }),
+      });
+      if (!resp.ok) {
+        const d = await resp.json().catch(() => ({}));
+        throw new Error(d.error || 'Queue failed');
+      }
+      return; // agent will print within ~2 s
+    }
+
+    // Desktop — existing WebSocket path (instant, no round-trip delay)
     const qzResp = await fetch(`/orders/qz-data/${orderId}/`, { headers: { "X-CSRFToken": apiClient.getCsrf() } });
     const qzData = await qzResp.json();
     if (!qzData.success || !qzData.lines) throw new Error("receipt-data-failed");
