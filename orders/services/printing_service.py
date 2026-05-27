@@ -138,6 +138,27 @@ class PrintingService:
         left = str(left)[:left_width].ljust(left_width)
         return left + right
 
+    def _wrap_text(self, text: str, width: int) -> list:
+        """Break text at word boundaries to fit within width."""
+        import textwrap
+        return textwrap.wrap(text, width) or [text[:width]]
+
+    def _pack_lines(self, items: list, width: int) -> list:
+        """Pack strings onto fewest lines, two-space-separated."""
+        lines = []
+        current = ""
+        for item in items:
+            candidate = (current + "  " + item) if current else item
+            if len(candidate) <= width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = item[:width]
+        if current:
+            lines.append(current)
+        return lines
+
     # ------------------------------------------------------------------
     # KOT BODY  (shared by print_kot and print_bill_with_kots)
     # ------------------------------------------------------------------
@@ -147,37 +168,35 @@ class PrintingService:
         p.set(align="center", bold=True, double_width=True, double_height=True)
         p.text(f"KOT #{kot_batch.kot_number}\n")
 
-        p.set(align="center", bold=True, double_width=False, double_height=False)
+        # token/table + station on one line — saves 1-2 lines vs before
+        p.set(align="left", bold=False, double_width=False, double_height=False)
         if hasattr(order, "token") and order.token:
-            p.text(f"Token: {order.token.token_number}\n")
+            ref = f"TKN:{order.token.token_number}"
         else:
             table_name = order.table.name if order.table else "Walk-in"
-            p.text(f"Table: {table_name}\n")
-
+            ref = f"TBL:{table_name}"
         station_name = kot_batch.station.name if kot_batch.station else ""
-        if station_name:
-            p.text(f"[{station_name}]\n")
+        info = f"{ref}  [{station_name}]" if station_name else ref
+        p.text(f"{info[:W]}\n")
 
-        p.set(align="left", bold=False)
         p.text(self._sep() + "\n")
 
         for item in kot_batch.items.select_related("menu_item").all():
             veg_flag = "[V]" if item.menu_item.is_veg else "[N]"
-            qty_label = f"{item.quantity}x  {veg_flag} "
+            qty_label = f"{item.quantity}x {veg_flag} "
             item_name = str(item.menu_item.name)
             max_name = W - len(qty_label)
             p.set(bold=True)
             p.text(f"{qty_label}{item_name[:max_name]}\n")
             p.set(bold=False)
             if item.notes:
-                p.text(f"   * {str(item.notes)[:W-5]}\n")
+                p.text(f"  *{str(item.notes)[:W-3]}\n")
             for mod in item.modifiers.all():
-                p.text(f"   + {str(mod.name)[:W-5]}\n")
+                p.text(f"  +{str(mod.name)[:W-3]}\n")
 
         p.text(self._sep() + "\n")
         p.set(align="right")
         p.text(f"{order.created_at.strftime('%d/%m %H:%M')}\n")
-        p.text("\n")
 
     # ------------------------------------------------------------------
     # BILL BODY  (shared by print_bill and print_bill_with_kots)
@@ -185,31 +204,45 @@ class PrintingService:
 
     def _print_bill_body(self, p, order):
         W = self.W
-        p.set(align="center", bold=True, double_width=True, double_height=True)
-        tenant_name = str(order.tenant.name)[:W // 2]
-        p.text(f"{tenant_name}\n")
 
-        p.set(align="center", bold=False, double_width=False, double_height=False)
+        # header: bold, normal size — no double-height saves ~4mm of paper
+        p.set(align="center", bold=True)
+        p.text(f"{str(order.tenant.name)[:W]}\n")
+        p.set(bold=False)
         p.text(f"{order.outlet.name}\n")
         if order.outlet.address:
-            p.text(f"{str(order.outlet.address)[:W]}\n")
+            for chunk in self._wrap_text(str(order.outlet.address), W):
+                p.text(f"{chunk}\n")
         if order.outlet.phone:
-            p.text(f"Ph: {order.outlet.phone}\n")
-        if order.outlet.gst_no:
-            p.text(f"GSTIN: {order.outlet.gst_no}\n")
-        if order.outlet.fssai_no:
-            p.text(f"FSSAI: {order.outlet.fssai_no}\n")
-        sac = getattr(order.outlet, "sac_code", None) or "996331"
-        p.text(f"SAC: {sac}\n")
-        p.text(self._sep() + "\n")
+            p.text(f"Ph:{order.outlet.phone}\n")
 
+        # GSTIN/FSSAI/SAC packed onto fewest lines
+        compliance = []
+        if order.outlet.gst_no:    compliance.append(f"GSTIN:{order.outlet.gst_no}")
+        if order.outlet.fssai_no:  compliance.append(f"FSSAI:{order.outlet.fssai_no}")
+        sac = getattr(order.outlet, "sac_code", None) or "996331"
+        compliance.append(f"SAC:{sac}")
+        for cl in self._pack_lines(compliance, W):
+            p.text(f"{cl}\n")
+
+        # dotted title line: .....CASH/BILL.....
+        label = "CASH/BILL"
+        fill  = W - len(label)
         p.set(align="left")
-        p.text(f"Bill : {order.order_number or order.id}\n")
+        p.text("." * (fill // 2) + label + "." * (fill - fill // 2) + "\n")
+
+        # compact info: NO.xxx  TBL/TKN:x  DD/MM/YY HH:MM — all one line
+        bill_no = f"NO.{order.order_number or order.id}"
         if hasattr(order, "token") and order.token:
-            p.text(f"Token: {order.token.token_number}\n")
+            ref = f"TKN:{order.token.token_number}"
         elif order.table:
-            p.text(f"Table: {order.table.name}\n")
-        p.text(f"Date : {order.created_at.strftime('%d/%m/%Y %H:%M')}\n")
+            ref = f"TBL:{order.table.name}"
+        else:
+            ref = ""
+        date_str   = order.created_at.strftime("%d/%m/%y %H:%M")
+        info_parts = [x for x in [bill_no, ref, date_str] if x]
+        p.text("  ".join(info_parts)[:W] + "\n")
+
         p.text(self._sep() + "\n")
 
         name_w = W - 10
@@ -220,41 +253,41 @@ class PrintingService:
 
         for item in order.items.exclude(status="voided").select_related("menu_item"):
             name = str(item.menu_item.name)[:name_w]
-            qty = str(item.quantity)
-            amt = f"{float(item.total_price):.0f}"
+            qty  = str(item.quantity)
+            amt  = f"{float(item.total_price):.0f}"
             p.text(f"{name:<{name_w}} {qty:>3} {amt:>5}\n")
 
         gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
 
         p.text(self._sep() + "\n")
-        p.set(align="left")
         if gst_inclusive:
             p.text(self._two_col("Subtotal (excl.GST)", self._currency(order.subtotal)) + "\n")
         else:
             p.text(self._two_col("Subtotal", self._currency(order.subtotal)) + "\n")
-        p.text(self._two_col("GST" + (" (incl.)" if gst_inclusive else ""), self._currency(order.gst_total)) + "\n")
+        if order.gst_total:
+            gst_label = "GST(incl.)" if gst_inclusive else "GST"
+            p.text(self._two_col(gst_label, self._currency(order.gst_total)) + "\n")
         if order.discount_total > 0:
             p.text(self._two_col("Discount", f"-{self._currency(order.discount_total)}") + "\n")
-        if getattr(order, "parcel_surcharge", 0) and order.parcel_surcharge > 0:
-            p.text(self._two_col("Parcel Charge", self._currency(order.parcel_surcharge)) + "\n")
+        parcel = getattr(order, "parcel_surcharge", 0)
+        if parcel and parcel > 0:
+            p.text(self._two_col("Parcel", self._currency(parcel)) + "\n")
 
         p.text(self._sep() + "\n")
-        p.set(bold=True, double_height=True)
+        p.set(bold=True)  # bold only — no double_height saves ~2mm
         p.text(self._two_col("TOTAL", self._currency(order.grand_total)) + "\n")
-        p.set(bold=False, double_height=False)
+        p.set(bold=False)
 
         payment = order.payments.order_by("-paid_at").first()
         if payment:
-            p.text(self._two_col("Paid via", payment.method.upper()) + "\n")
+            p.text(self._two_col("Paid", payment.method.upper()) + "\n")
 
         if gst_inclusive:
             p.text(self._two_col("", "(prices incl. GST)") + "\n")
 
         p.text(self._sep() + "\n")
         p.set(align="center")
-        p.text("Thank you for your visit!\n")
-        p.text("Powered by Rasova POS\n")
-        p.text("\n\n")
+        p.text("Thank you! Visit again.\n")
 
     # ------------------------------------------------------------------
     # SPLIT BILL BY CATEGORY  (Counter Billing Mode)
@@ -499,7 +532,6 @@ class PrintingService:
 
         p.set(align="right")
         p.text(f"{order.created_at.strftime('%d/%m %H:%M')}\n")
-        p.text("\n")
 
     # ------------------------------------------------------------------
     # TOKEN RECEIPT ONLY  (QSR when KOTs already printed at stations)
