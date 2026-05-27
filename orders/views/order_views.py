@@ -102,6 +102,8 @@ def running_order_items(request):
             "order_id": order.id,
             "order_status": order.status,
             "grand_total": float(order.grand_total or 0),
+            "parcel_on": float(order.parcel_surcharge or 0) > 0,
+            "parcel_amount": float(order.parcel_surcharge or 0),
         })
 
     except Exception as e:
