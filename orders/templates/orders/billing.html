@@ -800,10 +800,20 @@
   }
 
   /* ── Agent-based printing (EC2 → ESC/POS JSON → local agent → TCP 9100) ── */
-  const _agentHost      = "{{ outlet.agent_host|default:'localhost' }}";
+  // Android phones run the agent on-device → always localhost.
+  // Desktops/tablets use the outlet-configured agent host.
+  const _agentHost = (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android)
+                      ? 'localhost'
+                      : "{{ outlet.agent_host|default:'localhost' }}";
   const _stationPrinterIp = "{{ station_printer_ip }}";
 
   async function printViaAgent(orderId) {
+    // iOS has no local agent — open the receipt page for browser/AirPrint
+    if (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.ios) {
+      window.open(`/orders/bill/${orderId}/?print=1`, '_blank');
+      return;
+    }
+
     const qzResp = await fetch(`/orders/qz-data/${orderId}/`, { headers: { "X-CSRFToken": apiClient.getCsrf() } });
     const qzData = await qzResp.json();
     if (!qzData.success || !qzData.lines) throw new Error("receipt-data-failed");

@@ -357,7 +357,10 @@
 
 {% block extra_js %}
 <script>
-const AGENT_WS = 'ws://{{ request.user.outlet.agent_host|default:"localhost" }}:8765';
+// Android phones run the agent on-device; desktops use the configured host
+const AGENT_WS = 'ws://' + ((typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android)
+    ? 'localhost'
+    : '{{ request.user.outlet.agent_host|default:"localhost" }}') + ':8765';
 let _agentWs = null;
 
 async function connectAgent(timeout = 2000) {

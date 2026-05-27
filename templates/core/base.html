@@ -467,6 +467,26 @@
     </script>
 
     <!-- ================================================
+         Platform Detection (used by printing logic)
+         ================================================ -->
+    <script>
+    window.rasovaPlatform = (() => {
+        const ua  = navigator.userAgent.toLowerCase();
+        const android   = /android/.test(ua);
+        const ios       = /iphone|ipad|ipod/.test(ua) && !android;
+        const windows   = !android && !ios && /windows/.test(ua);
+        const mac       = !android && !ios && /mac/.test(ua);
+        // standalone = running as installed PWA (from home screen)
+        const standalone = window.matchMedia('(display-mode: standalone)').matches
+                        || navigator.standalone === true;
+        // Android phones use localhost because the agent runs on the same device
+        // Desktops/tablets use the outlet-configured agent host
+        const agentHost = android ? 'localhost' : '{{ request.user.outlet.agent_host|default:"localhost" }}';
+        return { android, ios, windows, mac, standalone, agentHost };
+    })();
+    </script>
+
+    <!-- ================================================
          PWA: Service Worker + Install Prompt
          ================================================ -->
     <script>
@@ -475,8 +495,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then(reg => {
-                        // Listen for offline order sync events
+                    .then(() => {
                         navigator.serviceWorker.addEventListener('message', event => {
                             if (event.data && event.data.type === 'ORDER_SYNCED') {
                                 if (typeof ui !== 'undefined') {
@@ -485,37 +504,39 @@
                             }
                         });
                     })
-                    .catch(() => {}); // Silently fail — don't break anything
+                    .catch(() => {});
             });
         }
 
-        // Install prompt — show a friendly "Add to Home Screen" bar
-        // that matches the POS aesthetic instead of the ugly browser default
+        // ── Install prompt ──────────────────────────────────────────────────────
         let deferredPrompt = null;
         window.addEventListener('beforeinstallprompt', e => {
             e.preventDefault();
             deferredPrompt = e;
-            // Only show if user hasn't dismissed it in this session
-            if (!sessionStorage.getItem('pwa_dismissed')) {
-                showInstallBanner();
-            }
+            if (!sessionStorage.getItem('pwa_dismissed')) showInstallBanner();
         });
 
         function showInstallBanner() {
             if (document.getElementById('pwa-banner')) return;
+            const p = rasovaPlatform;
+            const sub = p.android
+                ? 'Add to home screen — tap Install, then set up printing in Termux'
+                : p.ios
+                    ? 'Use Share → Add to Home Screen in Safari'
+                    : 'Add to your desktop for the best experience';
             const banner = document.createElement('div');
             banner.id = 'pwa-banner';
             banner.style.cssText = `
-                position: fixed; bottom: 0; left: 0; right: 0;
-                background: var(--panel-bg); border-top: 1px solid var(--border-color);
-                padding: 0.75rem 1.25rem; display: flex; align-items: center;
-                justify-content: space-between; z-index: 9998; gap: 1rem;
-                font-family: var(--font-main, 'Outfit', sans-serif);
+                position:fixed;bottom:0;left:0;right:0;
+                background:var(--panel-bg);border-top:1px solid var(--border-color);
+                padding:0.75rem 1.25rem;display:flex;align-items:center;
+                justify-content:space-between;z-index:9998;gap:1rem;
+                font-family:var(--font-main,'Outfit',sans-serif);
             `;
             banner.innerHTML = `
                 <div style="flex:1;">
                     <div style="font-weight:600;font-size:0.9rem;color:var(--text-main);">Install Rasova POS</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);">Add to your home screen for the best experience</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);">${sub}</div>
                 </div>
                 <button id="pwa-install-btn" style="background:var(--accent-gold);color:#fff;border:none;padding:0.6rem 1.2rem;font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;min-height:44px;white-space:nowrap;">Install</button>
                 <button id="pwa-dismiss-btn" style="background:transparent;border:none;color:var(--text-muted);font-size:1.2rem;padding:0.4rem;cursor:pointer;min-height:44px;">✕</button>
@@ -527,6 +548,7 @@
                 const { outcome } = await deferredPrompt.userChoice;
                 deferredPrompt = null;
                 banner.remove();
+                if (outcome === 'accepted') showPostInstallSheet();
             };
             document.getElementById('pwa-dismiss-btn').onclick = () => {
                 sessionStorage.setItem('pwa_dismissed', '1');
@@ -534,12 +556,137 @@
             };
         }
 
-        // Fired after successful install
         window.addEventListener('appinstalled', () => {
             deferredPrompt = null;
             const banner = document.getElementById('pwa-banner');
             if (banner) banner.remove();
+            showPostInstallSheet();
         });
+
+        // ── Post-install setup sheet ────────────────────────────────────────────
+        function showPostInstallSheet() {
+            if (localStorage.getItem('rasova_agent_setup_done')) return;
+            const p = rasovaPlatform;
+
+            let title, steps, canTest;
+            if (p.android) {
+                title   = 'Enable printing on Android';
+                steps   = [
+                    'Install <strong>Termux</strong> from <a href="https://f-droid.org/packages/com.termux/" target="_blank" style="color:var(--accent-gold);">F-Droid</a>',
+                    'In Termux: <code style="background:rgba(255,255,255,0.05);padding:1px 5px;">pkg install python && pip install websockets</code>',
+                    'Copy <strong>rasova_agent.py</strong> to your phone and run:<br><code style="background:rgba(255,255,255,0.05);padding:1px 5px;">python rasova_agent.py --install-termux</code>',
+                    'Install <strong>Termux:Boot</strong> from F-Droid so the agent starts automatically',
+                ];
+                canTest = true;
+            } else if (p.ios) {
+                title   = 'Printing on iOS';
+                steps   = [
+                    'Rasova will open the receipt in a new tab when you print',
+                    'Use <strong>Share → Print</strong> to send to AirPrint printers',
+                    'No extra app needed',
+                ];
+                canTest = false;
+            } else {
+                title   = 'Enable printing on this device';
+                steps   = [
+                    'Download <strong>rasova_agent.py</strong> and place it anywhere',
+                    'Run: <code style="background:rgba(255,255,255,0.05);padding:1px 5px;">pip install websockets && python rasova_agent.py --install</code>',
+                    'The agent will start automatically at every login',
+                ];
+                canTest = true;
+            }
+
+            const sheet = document.createElement('div');
+            sheet.id = 'post-install-sheet';
+            sheet.style.cssText = `
+                position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;
+                display:flex;align-items:flex-end;justify-content:center;
+                font-family:var(--font-main,'Outfit',sans-serif);
+            `;
+            sheet.innerHTML = `
+                <div style="background:var(--panel-bg);border:1px solid var(--border-color);width:100%;max-width:540px;padding:1.5rem;border-radius:0;position:relative;">
+                    <button onclick="document.getElementById('post-install-sheet').remove();" style="position:absolute;top:0.75rem;right:1rem;background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+                    <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.4rem;">Almost there</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:var(--text-main);margin-bottom:1.1rem;">${title}</div>
+                    <ol style="margin:0;padding-left:1.2rem;color:var(--text-muted);font-size:0.82rem;line-height:2;">
+                        ${steps.map(s => `<li>${s}</li>`).join('')}
+                    </ol>
+                    ${canTest ? `
+                    <div style="margin-top:1.25rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+                        <button onclick="testAgentFromSheet(this)" style="background:var(--accent-gold);color:#fff;border:none;padding:0.55rem 1.2rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;min-height:44px;">Test Connection</button>
+                        <span id="sheet-agent-status" style="font-size:0.78rem;color:var(--text-muted);"></span>
+                    </div>` : ''}
+                    <button onclick="localStorage.setItem('rasova_agent_setup_done','1');document.getElementById('post-install-sheet').remove();" style="margin-top:1rem;width:100%;background:transparent;border:1px solid var(--border-color);color:var(--text-muted);padding:0.5rem;font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;cursor:pointer;min-height:44px;">Got it — don't show again</button>
+                </div>
+            `;
+            document.body.appendChild(sheet);
+        }
+
+        window.testAgentFromSheet = async function(btn) {
+            const status = document.getElementById('sheet-agent-status');
+            btn.disabled = true;
+            status.textContent = 'Connecting…';
+            try {
+                const host = rasovaPlatform.agentHost;
+                await new Promise((res, rej) => {
+                    const ws = new WebSocket(`ws://${host}:8765`);
+                    const t  = setTimeout(() => { ws.close(); rej(); }, 4000);
+                    ws.onopen = () => ws.send(JSON.stringify({ type: 'ping' }));
+                    ws.onmessage = (e) => {
+                        clearTimeout(t);
+                        const d = JSON.parse(e.data);
+                        ws.close();
+                        d.type === 'pong' ? res(d) : rej();
+                    };
+                    ws.onerror = () => { clearTimeout(t); rej(); };
+                });
+                status.textContent = '✓ Agent connected — printing is ready';
+                status.style.color = '#10b981';
+            } catch {
+                status.textContent = 'Not running — follow the steps above first';
+                status.style.color = '#ef4444';
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // ── Agent check when running as installed PWA ───────────────────────────
+        // If the app is opened from home screen and agent setup hasn't been confirmed,
+        // silently probe and show a non-blocking reminder if agent is unreachable.
+        if (rasovaPlatform.standalone && !localStorage.getItem('rasova_agent_setup_done')) {
+            window.addEventListener('load', () => {
+                const host = rasovaPlatform.agentHost;
+                if (rasovaPlatform.ios) return; // iOS has no agent
+                setTimeout(() => {
+                    const ws = new WebSocket(`ws://${host}:8765`);
+                    const t  = setTimeout(() => { ws.close(); showAgentOfflineHint(); }, 3000);
+                    ws.onopen  = () => ws.send(JSON.stringify({ type: 'ping' }));
+                    ws.onmessage = () => { clearTimeout(t); ws.close(); };
+                    ws.onerror  = () => { clearTimeout(t); showAgentOfflineHint(); };
+                }, 1500); // slight delay so page settles first
+            });
+        }
+
+        function showAgentOfflineHint() {
+            if (document.getElementById('agent-offline-hint')) return;
+            const hint = document.createElement('div');
+            hint.id = 'agent-offline-hint';
+            hint.style.cssText = `
+                position:fixed;top:0;left:0;right:0;
+                background:#92400e;color:#fef3c7;
+                padding:0.5rem 1rem;font-size:0.78rem;
+                display:flex;align-items:center;justify-content:space-between;
+                z-index:9999;gap:1rem;font-family:var(--font-main,'Outfit',sans-serif);
+            `;
+            const msg = rasovaPlatform.android
+                ? 'Printing unavailable — open Termux and run: python rasova_agent.py'
+                : 'Printing unavailable — start Rasova Agent on this device';
+            hint.innerHTML = `
+                <span><strong>Agent offline</strong> — ${msg}</span>
+                <button onclick="document.getElementById('agent-offline-hint').remove();" style="background:none;border:none;color:#fef3c7;font-size:1.1rem;cursor:pointer;padding:0;min-height:32px;">✕</button>
+            `;
+            document.body.insertAdjacentElement('afterbegin', hint);
+        }
     })();
     </script>
 

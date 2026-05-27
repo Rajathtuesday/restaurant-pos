@@ -308,7 +308,9 @@
 
 {% block extra_js %}
 <script>
-    const AGENT_WS = 'ws://{{ outlet.agent_host|default:"localhost" }}:8765';
+    const AGENT_WS = 'ws://' + ((typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android)
+        ? 'localhost'
+        : '{{ outlet.agent_host|default:"localhost" }}') + ':8765';
     let _ws = null;
     let _connType = 'network';
 
