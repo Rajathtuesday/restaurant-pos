@@ -257,17 +257,21 @@ class Order(models.Model):
                 item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
             breakdown[rate] += item_gst
 
-        return [
-            {
+        result = []
+        for rate, amount in sorted(breakdown.items()):
+            if amount <= 0:
+                continue
+            half_rate = (rate / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            cgst_amt  = (amount / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            sgst_amt  = amount - cgst_amt   # ensures CGST + SGST == amount exactly
+            result.append({
                 "rate":        str(rate),
-                "cgst_rate":   str((rate / 2).quantize(Decimal("0.01"))),
-                "sgst_rate":   str((rate / 2).quantize(Decimal("0.01"))),
-                "cgst_amount": str((amount / 2).quantize(Decimal("0.01"))),
-                "sgst_amount": str((amount / 2).quantize(Decimal("0.01"))),
-            }
-            for rate, amount in sorted(breakdown.items())
-            if amount > 0
-        ]
+                "cgst_rate":   str(half_rate),
+                "sgst_rate":   str(half_rate),
+                "cgst_amount": str(cgst_amt),
+                "sgst_amount": str(sgst_amt),
+            })
+        return result
 
     # -------------------------------------------------
     # APPLY / CLEAR DISCOUNT (helpers for views / API)

@@ -266,6 +266,23 @@
 
                     {% endif %}{# composition_scheme #}
 
+                    <!-- ── Union Territory ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">GST Jurisdiction</label>
+                        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;">
+                            <input type="checkbox" name="is_union_territory" value="true"
+                                {% if outlet.is_union_territory %}checked{% endif %}
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;">
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;">Union Territory</div>
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
+                                    Enable for outlets in Delhi, J&amp;K, Chandigarh, Puducherry, Daman &amp; Diu, etc.
+                                    Invoices will show <strong>UTGST</strong> instead of SGST as required by GST law.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
                     <!-- ── Counter Billing (gated: counter_billing feature) ── -->
                     {% if 'counter_billing' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">

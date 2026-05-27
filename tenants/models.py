@@ -286,6 +286,15 @@ class Outlet(models.Model):
         )
     )
 
+    is_union_territory = models.BooleanField(
+        default=False,
+        help_text=(
+            "True → Outlet is in a Union Territory (Delhi, J&K, Chandigarh, "
+            "Puducherry, Daman & Diu, etc.). "
+            "Invoices will show UTGST instead of SGST as required by GST law."
+        )
+    )
+
     split_bill_by_category = models.BooleanField(
         default=False,
         help_text=(

@@ -604,6 +604,7 @@ def outlet_settings(request):
         outlet.gst_inclusive = gst_inclusive
         outlet.use_qz_tray            = "use_qz_tray"            in request.POST
         outlet.is_composition_scheme  = "is_composition_scheme"  in request.POST
+        outlet.is_union_territory     = "is_union_territory"     in request.POST
         outlet.split_bill_by_category = "split_bill_by_category" in request.POST
         try:
             from decimal import Decimal
