@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Rasova</string>
+    <string name="notif_channel_name">Rasova Print Service</string>
+    <string name="notif_channel_desc">Keeps printing active in background</string>
+</resources>

@@ -472,18 +472,36 @@
     <script>
     window.rasovaPlatform = (() => {
         const ua  = navigator.userAgent.toLowerCase();
-        const android   = /android/.test(ua);
-        const ios       = /iphone|ipad|ipod/.test(ua) && !android;
-        const windows   = !android && !ios && /windows/.test(ua);
-        const mac       = !android && !ios && /mac/.test(ua);
-        // standalone = running as installed PWA (from home screen)
+        const android      = /android/.test(ua);
+        const ios          = /iphone|ipad|ipod/.test(ua) && !android;
+        const windows      = !android && !ios && /windows/.test(ua);
+        const mac          = !android && !ios && /mac/.test(ua);
+        // nativeAndroid = running inside the Rasova Android APK (WebView shell).
+        // The APK appends "RasovaPOS-Android/1.0" to the user-agent string.
+        // When true: printing is handled by the native foreground service — no Termux needed.
+        const nativeAndroid = /rasovaPOS-android/i.test(navigator.userAgent);
+        // standalone = running as installed PWA (from home screen shortcut)
         const standalone = window.matchMedia('(display-mode: standalone)').matches
                         || navigator.standalone === true;
-        // Android phones use localhost because the agent runs on the same device
-        // Desktops/tablets use the outlet-configured agent host
         const agentHost = android ? 'localhost' : '{{ request.user.outlet.agent_host|default:"localhost" }}';
-        return { android, ios, windows, mac, standalone, agentHost };
+        return { android, ios, windows, mac, nativeAndroid, standalone, agentHost };
     })();
+
+    // ── Native Android app: auto-configure print service after login ───────────
+    // When the user logs in inside the Rasova APK, tell the native print service
+    // what URL to poll. The JSBridge receives this and starts the ForegroundService.
+    {% if request.user.is_authenticated and request.user.outlet %}
+    (function () {
+        if (!window.rasovaPlatform.nativeAndroid) return;
+        if (typeof Android === 'undefined') return;
+        const pollUrl = '{{ request.scheme }}://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
+        try {
+            Android.startPrinting(pollUrl);
+        } catch (e) {
+            console.warn('Rasova native bridge error:', e);
+        }
+    })();
+    {% endif %}
     </script>
 
     <!-- ================================================
@@ -519,7 +537,9 @@
         function showInstallBanner() {
             if (document.getElementById('pwa-banner')) return;
             const p = rasovaPlatform;
-            const sub = p.android
+            const sub = p.nativeAndroid
+                ? 'Rasova app — printing is already active'
+                : p.android
                 ? 'Add to home screen — tap Install, then set up printing in Termux'
                 : p.ios
                     ? 'Use Share → Add to Home Screen in Safari'
@@ -566,6 +586,8 @@
         // ── Post-install setup sheet ────────────────────────────────────────────
         function showPostInstallSheet() {
             if (localStorage.getItem('rasova_agent_setup_done')) return;
+            // Native Android app handles printing itself — no setup sheet needed
+            if (rasovaPlatform.nativeAndroid) return;
             const p = rasovaPlatform;
 
             // Poll URL shown in Android steps — baked in by Django template
@@ -689,7 +711,9 @@
                 display:flex;align-items:center;justify-content:space-between;
                 z-index:9999;gap:1rem;font-family:var(--font-main,'Outfit',sans-serif);
             `;
-            const msg = rasovaPlatform.android
+            const msg = rasovaPlatform.nativeAndroid
+                ? 'Printing unavailable — open Rasova app and allow battery optimization'
+                : rasovaPlatform.android
                 ? 'Printing unavailable — open Termux and run: python rasova_agent.py'
                 : 'Printing unavailable — start Rasova Agent on this device';
             hint.innerHTML = `

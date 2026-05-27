@@ -1,0 +1,52 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.rasova.pos'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.rasova.pos"
+        minSdk 26          // Android 8.0+ — covers 95%+ of active devices
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+
+        // SERVER_URL is the EC2 / production URL of your Rasova server.
+        // Change this to your actual domain before building for a customer.
+        buildConfigField "String", "SERVER_URL", '"https://your-rasova-server.com"'
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    buildTypes {
+        debug {
+            // For local testing — override SERVER_URL to your dev machine IP
+            buildConfigField "String", "SERVER_URL", '"http://192.168.1.10:8000"'
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    // OkHttp: makes HTTP requests (poll for jobs, mark done/failed)
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    // Coroutines: lets us write the polling loop without freezing the app
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0'
+}

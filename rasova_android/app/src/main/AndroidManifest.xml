@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Internet: needed to talk to EC2 (polling + printing status) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- ForegroundService: allows our PrintService to run visibly in the background.
+         Android cannot kill foreground services — they show a persistent notification. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- On Android 14+ (API 34), foreground services must declare their type -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+        android:minSdkVersion="34" />
+
+    <!-- BootCompleted: tells Android "wake our app when the phone starts up" -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- BatteryOptimizations: lets us show the "don't kill this app" dialog in-app
+         instead of making the user navigate Settings manually -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <application
+        android:allowBackup="true"
+        android:label="Rasova"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
+        android:usesCleartextTraffic="true">
+        <!--
+            usesCleartextTraffic=true: allows HTTP (not just HTTPS) connections.
+            Needed for local testing against a dev server. In production (HTTPS), this
+            is harmless but can be removed for a stricter security posture.
+        -->
+
+        <!-- MainActivity: the screen the user sees — a full-screen WebView -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- PrintService: the background engine that polls EC2 and sends bytes to printer -->
+        <service
+            android:name=".PrintService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- BootReceiver: wakes up PrintService when the phone restarts -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+</manifest>
