@@ -429,3 +429,264 @@ class KeySecurityTests(PrintQueueBase):
         bad_key = key_str[:-1] + ("0" if key_str[-1] != "0" else "1")
         r = self.client.get(f"/orders/agent/{bad_key}/jobs/")
         self.assertEqual(r.status_code, 403)
+
+
+# ── Tenant isolation (new tenant_id filter) ───────────────────────────────────
+
+class TenantIsolationTests(PrintQueueBase):
+    """
+    The poll/done/failed queries filter on BOTH tenant_id AND outlet.
+    These tests verify no cross-tenant bleed is possible even with a known job_id.
+    """
+
+    def _make_other_tenant_job(self):
+        """Set up a second tenant with its own outlet, station, order, and queued job."""
+        other_tenant = Tenant.objects.create(name="Rival Corp")
+        other_outlet = Outlet.objects.create(tenant=other_tenant, name="Rival Outlet")
+        PaymentConfig.objects.create(tenant=other_tenant, outlet=other_outlet, cash_enabled=True)
+        other_user = User.objects.create_user(
+            username="rival_owner", password="x",
+            tenant=other_tenant, outlet=other_outlet, role="owner",
+        )
+        from setup.models import KitchenStation
+        KitchenStation.objects.create(
+            tenant=other_tenant, outlet=other_outlet, name="Cashier",
+            is_default=True, is_active=True, printer_ip="10.0.0.50",
+        )
+        cat = MenuCategory.objects.create(
+            tenant=other_tenant, outlet=other_outlet, name="Food"
+        )
+        item = MenuItem.objects.create(
+            tenant=other_tenant, outlet=other_outlet, category=cat,
+            name="Tea", price=15, gst_percentage=0,
+        )
+        order = Order.objects.create(
+            tenant=other_tenant, outlet=other_outlet,
+            created_by=other_user, source="counter", status="open",
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=item, quantity=1, price=15,
+            gst_percentage=0, total_price=15,
+        )
+        order.recalculate_totals()
+        rival_client = Client()
+        rival_client.login(username="rival_owner", password="x")
+        r = rival_client.post(
+            "/orders/agent/add-job/",
+            data={"order_id": order.id},
+            content_type="application/json",
+        )
+        return other_outlet, r.json()["job_id"]
+
+    def test_poll_cross_tenant_job_invisible(self):
+        """Our outlet key sees zero jobs even when another tenant has pending jobs."""
+        self._make_other_tenant_job()
+        self.assertEqual(self._poll().json()["jobs"], [])
+
+    def test_done_cross_tenant_job_returns_404(self):
+        """Our outlet key cannot mark another tenant's job done — 404, job stays pending."""
+        _, rival_job_id = self._make_other_tenant_job()
+        r = self._done(rival_job_id)
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(PrintJob.objects.get(pk=rival_job_id).status, PrintJob.PENDING)
+
+    def test_failed_cross_tenant_job_silently_ignored(self):
+        """Our outlet key cannot fail another tenant's job — 200 but job stays pending."""
+        _, rival_job_id = self._make_other_tenant_job()
+        r = self._failed(rival_job_id, error="attempted cross-tenant failure")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(PrintJob.objects.get(pk=rival_job_id).status, PrintJob.PENDING)
+
+    def test_job_tenant_set_to_creator_tenant(self):
+        """PrintJob.tenant_id always equals the requesting user's tenant — no cross-contamination."""
+        order = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self.assertEqual(PrintJob.objects.get(pk=job_id).tenant_id, self.tenant.id)
+
+
+# ── add-job edge cases ────────────────────────────────────────────────────────
+
+class AddJobEdgeCaseTests(PrintQueueBase):
+
+    def test_empty_body_returns_400(self):
+        """Completely empty POST body → JSON parse fails → 400."""
+        r = self.client.post(
+            "/orders/agent/add-job/", data=b"", content_type="application/json"
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_non_integer_order_id_returns_400(self):
+        """String order_id → int() raises ValueError → 400."""
+        r = self.client.post(
+            "/orders/agent/add-job/",
+            data={"order_id": "not-a-number"},
+            content_type="application/json",
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_missing_order_id_returns_404(self):
+        """No order_id in body defaults to 0 → no order with pk=0 → 404."""
+        r = self.client.post(
+            "/orders/agent/add-job/", data={}, content_type="application/json"
+        )
+        self.assertEqual(r.status_code, 404)
+
+    def test_get_method_not_allowed(self):
+        r = self.client.get("/orders/agent/add-job/")
+        self.assertEqual(r.status_code, 405)
+
+    def test_order_with_voided_items_still_queues(self):
+        """Receipt is still generated when some items are voided — voided items excluded."""
+        import base64
+        order = self._make_order(qty=1)
+        extra = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=self.category, name="Coffee", price=30, gst_percentage=0,
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=extra, quantity=1, price=30,
+            gst_percentage=0, total_price=30, status="voided",
+        )
+        r = self._add_job(order.id)
+        self.assertEqual(r.status_code, 200)
+        raw = base64.b64decode(PrintJob.objects.get(pk=r.json()["job_id"]).payload["data_b64"])
+        self.assertGreater(len(raw), 0)
+
+
+# ── poll edge cases ───────────────────────────────────────────────────────────
+
+class PollEdgeCaseTests(PrintQueueBase):
+
+    def test_jobs_returned_oldest_first(self):
+        """Agent must process in the order jobs were enqueued."""
+        from datetime import timedelta
+        from django.utils import timezone
+        order = self._make_order()
+        now = timezone.now()
+        job_ids = []
+        for i in range(3):
+            jid = self._add_job(order.id).json()["job_id"]
+            job_ids.append(jid)
+            # Spread timestamps: job_ids[0] oldest, job_ids[2] newest
+            PrintJob.objects.filter(pk=jid).update(
+                created_at=now - timedelta(seconds=(3 - i) * 10)
+            )
+        polled_ids = [j["id"] for j in self._poll().json()["jobs"]]
+        self.assertEqual(polled_ids, job_ids)
+
+    def test_exactly_5_jobs_at_boundary_all_returned(self):
+        """Exactly 5 pending jobs → all 5 come back (boundary, not over-limited)."""
+        order = self._make_order()
+        for _ in range(5):
+            self._add_job(order.id)
+        self.assertEqual(len(self._poll().json()["jobs"]), 5)
+
+    def test_data_b64_contains_escpos_cut_sequence(self):
+        """Decoded base64 contains GS V (0x1D 0x56) — the ESC/POS paper-cut command."""
+        import base64
+        order = self._make_order()
+        self._add_job(order.id)
+        raw = base64.b64decode(self._poll().json()["jobs"][0]["data_b64"])
+        self.assertIn(b'\x1d\x56', raw, "ESC/POS cut sequence missing from receipt bytes")
+
+    def test_post_method_not_allowed(self):
+        r = self.client.post(f"/orders/agent/{self.outlet.print_agent_key}/jobs/")
+        self.assertEqual(r.status_code, 405)
+
+    def test_same_tenant_different_outlet_isolated(self):
+        """Outlet B's key (same tenant) cannot see outlet A's pending jobs."""
+        branch = Outlet.objects.create(tenant=self.tenant, name="Branch 2")
+        from setup.models import KitchenStation, PaymentConfig
+        KitchenStation.objects.create(
+            tenant=self.tenant, outlet=branch, name="Cashier",
+            is_default=True, is_active=True, printer_ip="192.168.1.200",
+        )
+        PaymentConfig.objects.create(tenant=self.tenant, outlet=branch, cash_enabled=True)
+        branch_user = User.objects.create_user(
+            username="branch2_staff", password="x",
+            tenant=self.tenant, outlet=branch, role="owner",
+        )
+        cat  = MenuCategory.objects.create(tenant=self.tenant, outlet=branch, name="Food")
+        item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=branch, category=cat,
+            name="Dosa", price=50, gst_percentage=0,
+        )
+        branch_order = Order.objects.create(
+            tenant=self.tenant, outlet=branch,
+            created_by=branch_user, source="counter", status="open",
+        )
+        OrderItem.objects.create(
+            order=branch_order, menu_item=item, quantity=1, price=50,
+            gst_percentage=0, total_price=50,
+        )
+        branch_client = Client()
+        branch_client.login(username="branch2_staff", password="x")
+        branch_client.post(
+            "/orders/agent/add-job/",
+            data={"order_id": branch_order.id},
+            content_type="application/json",
+        )
+        # Polling with OUR outlet's key should not reveal branch 2's job
+        self.assertEqual(self._poll().json()["jobs"], [])
+
+
+# ── done edge cases ───────────────────────────────────────────────────────────
+
+class DoneEdgeCaseTests(PrintQueueBase):
+
+    def test_failed_job_cannot_be_marked_done(self):
+        """A job that failed is no longer pending — done returns 404, status unchanged."""
+        order = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._failed(job_id, error="printer offline")
+        r = self._done(job_id)
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.FAILED)
+
+    def test_get_method_not_allowed(self):
+        order = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        r = self.client.get(
+            f"/orders/agent/{self.outlet.print_agent_key}/done/{job_id}/"
+        )
+        self.assertEqual(r.status_code, 405)
+
+
+# ── failed edge cases ─────────────────────────────────────────────────────────
+
+class FailedEdgeCaseTests(PrintQueueBase):
+
+    def test_failed_sets_done_at_timestamp(self):
+        """done_at is stamped when a job fails — enables audit and dashboard queries."""
+        order = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._failed(job_id, error="timeout")
+        self.assertIsNotNone(PrintJob.objects.get(pk=job_id).done_at)
+
+    def test_wrong_outlet_key_same_tenant_silently_ignored(self):
+        """Outlet B key (same tenant) cannot fail outlet A's job — 200 but job unchanged."""
+        branch = Outlet.objects.create(tenant=self.tenant, name="Branch 3")
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        r = self._failed(job_id, key=str(branch.print_agent_key), error="wrong outlet")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PENDING)
+
+    def test_already_done_job_cannot_be_failed(self):
+        """Marking a done job as failed does nothing — status stays DONE."""
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._done(job_id)
+        self._failed(job_id, error="late failure signal")
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.DONE)
+
+    def test_empty_error_body_stores_empty_string(self):
+        """No error field in body → error_msg is '' not None — safe for DB NOT NULL."""
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self.client.post(
+            f"/orders/agent/{self.outlet.print_agent_key}/failed/{job_id}/",
+            data={},
+            content_type="application/json",
+        )
+        self.assertEqual(PrintJob.objects.get(pk=job_id).error_msg, "")
