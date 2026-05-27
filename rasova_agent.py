@@ -43,7 +43,7 @@ import time
 from datetime import datetime
 from typing import Optional
 
-HOST = "localhost"
+HOST = "0.0.0.0"
 PORT = 8765
 VERSION = "1.1.0"
 

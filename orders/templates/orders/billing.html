@@ -655,6 +655,7 @@
 
   /* ── Parcel charge toggle ───────────────────────────────────── */
   let _parcelOn = false;
+  let _parcelAppliedToOrder = null;  // order_id that parcel is currently applied to on the server
   const _parcelAmount = {{ outlet.parcel_charge_amount|default:0 }};
 
   async function toggleParcel() {
@@ -671,6 +672,7 @@
         "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + orderId + '/'), {}
       );
       _parcelOn = d.parcel_on;
+      _parcelAppliedToOrder = d.parcel_on ? orderId : null;
       // Update parcel row to show actual calculated amount (not unit price)
       document.querySelectorAll(".parcel-row span:last-child").forEach(e =>
         e.textContent = "₹" + Math.round(d.parcel_amount || 0)
@@ -716,6 +718,22 @@
       .then(r => r.json())
       .then(d => {
         currentOrderId = d.order_id || null;
+        // Sync parcel state from server — handles session resume and table switches
+        if (d.order_id) {
+          const serverParcelOn = !!d.parcel_on;
+          _parcelOn = serverParcelOn;
+          _parcelAppliedToOrder = serverParcelOn ? d.order_id : null;
+          if (d.parcel_amount) {
+            document.querySelectorAll(".parcel-row span:last-child").forEach(e =>
+              e.textContent = "₹" + Math.round(d.parcel_amount)
+            );
+          }
+        } else {
+          // No open order on this table — reset so parcel intent doesn't bleed across tables
+          _parcelOn = false;
+          _parcelAppliedToOrder = null;
+        }
+        _syncParcelUI();
         let html = "";
         if (!d.items || d.items.length === 0) {
           html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;'>No active services</div>";
@@ -751,8 +769,10 @@
       .then(d => {
         if (!d.success) { showToast(d.error); resetSendBtn(); return; }
         const afterCreate = () => fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } });
-        const applyParcel = (_parcelOn && _parcelAmount > 0)
+        const needsParcel = _parcelOn && _parcelAmount > 0 && _parcelAppliedToOrder !== d.order_id;
+        const applyParcel = needsParcel
           ? fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + d.order_id + '/'), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
+              .then(r => { if (r.ok) _parcelAppliedToOrder = d.order_id; return r; })
           : Promise.resolve();
         applyParcel.then(() => afterCreate())
           .then(r => r.json())
@@ -777,6 +797,35 @@
   function resetSendBtn() {
     sending = false;
     document.querySelectorAll(".send-btn").forEach(b => { b.disabled = false; b.innerHTML = 'Dispatch <i class="bi bi-arrow-right ms-2"></i>'; });
+  }
+
+  /* ── Agent-based printing (EC2 → ESC/POS JSON → local agent → TCP 9100) ── */
+  const _agentHost      = "{{ outlet.agent_host|default:'localhost' }}";
+  const _stationPrinterIp = "{{ station_printer_ip }}";
+
+  async function printViaAgent(orderId) {
+    const qzResp = await fetch(`/orders/qz-data/${orderId}/`, { headers: { "X-CSRFToken": apiClient.getCsrf() } });
+    const qzData = await qzResp.json();
+    if (!qzData.success || !qzData.lines) throw new Error("receipt-data-failed");
+
+    return new Promise((resolve, reject) => {
+      const ws  = new WebSocket(`ws://${_agentHost}:8765`);
+      const jid = "bill-" + orderId + "-" + Date.now();
+      const t   = setTimeout(() => { ws.close(); reject(new Error("timeout")); }, 10000);
+      ws.onopen = () => ws.send(JSON.stringify({
+        type: "print", job_id: jid,
+        lines: qzData.lines,
+        outlet_id: "{{ request.user.outlet.id }}",
+        network_host: _stationPrinterIp,
+        network_port: 9100,
+      }));
+      ws.onmessage = (e) => {
+        clearTimeout(t);
+        const d = JSON.parse(e.data);
+        if (d.job_id === jid) { ws.close(); d.type === "ok" ? resolve() : reject(new Error(d.message || "print-failed")); }
+      };
+      ws.onerror = () => { clearTimeout(t); reject(new Error("agent-offline")); };
+    });
   }
 
   function generateBill(orderId = null) {
@@ -889,6 +938,7 @@
         await fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + qsrPendingOrderId + '/'), {
           method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
         });
+        _parcelAppliedToOrder = qsrPendingOrderId;
       }
 
       // Step 2: generate bill to calculate totals
@@ -971,26 +1021,17 @@
         const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
         if (modal) modal.hide();
 
-        // Try ESC/POS printer first; fall back to browser print if no printer configured.
+        // Print via local Rasova Agent (agent bridges EC2 → local printer over TCP 9100)
         const orderId = qsrPendingOrderId;
         try {
-          const pr = await fetch(`/orders/print-bill/${orderId}/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-          });
-          const pd = await pr.json();
-          if (!pr.ok) {
-            // No printer configured — open browser print popup and nudge owner to set up printer
-            const receiptUrl = `/thermal-receipt/${orderId}/`;
-            const win = window.open(receiptUrl, '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
-            if (!win || win.closed) ui.toast('Popup blocked — <a href="' + receiptUrl + '" target="_blank">open receipt</a>', 'warning');
-            ui.toast('No printer set up — <a href="/setup/kitchen-stations/" target="_blank">configure in Setup</a>', 'warning');
-          }
-          // If ESC/POS queued successfully, printer handles it — no browser popup needed
-        } catch {
-          // Network error — fall back to browser print
+          await printViaAgent(orderId);
+        } catch(printErr) {
+          // Agent offline or no printer configured — fall back to browser print popup
           const receiptUrl = `/thermal-receipt/${orderId}/`;
-          window.open(receiptUrl, '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
+          const win = window.open(receiptUrl, '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
+          if (!win || win.closed) ui.toast('Popup blocked — <a href="' + receiptUrl + '" target="_blank">open receipt</a>', 'warning');
+          if (printErr.message === 'agent-offline')
+            ui.toast('Agent not running — start rasova_agent.py on the billing laptop', 'warning');
         }
 
         // Show full-screen confirmation briefly

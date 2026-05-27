@@ -79,13 +79,18 @@ def billing_view(request):
     # → customer carries the combined slip to the food counter
     auto_kot_mode = not has_kds and not has_kt_printer
 
+    default_station = KitchenStation.objects.filter(
+        tenant=tenant, outlet=outlet, is_active=True
+    ).exclude(printer_ip__isnull=True).exclude(printer_ip="").first()
+
     return render(request, "orders/billing.html", {
-        "categories":    categories,
-        "tables":        tables,
-        "order":         order,
-        "selected_table": table_id,
-        "auto_kot_mode": auto_kot_mode,
-        "outlet":        request.user.outlet,
+        "categories":      categories,
+        "tables":          tables,
+        "order":           order,
+        "selected_table":  table_id,
+        "auto_kot_mode":   auto_kot_mode,
+        "outlet":          request.user.outlet,
+        "station_printer_ip": default_station.printer_ip if default_station else "",
     })
 
 
