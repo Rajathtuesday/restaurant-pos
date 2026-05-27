@@ -107,7 +107,12 @@ def print_queue_poll(request, agent_key):
     cutoff = timezone.now() - _JOB_TTL
     jobs = (
         PrintJob.objects
-        .filter(outlet=outlet, status=PrintJob.PENDING, created_at__gte=cutoff)
+        .filter(
+            tenant_id=outlet.tenant_id,
+            outlet=outlet,
+            status=PrintJob.PENDING,
+            created_at__gte=cutoff,
+        )
         .order_by("created_at")[:5]
     )
     return JsonResponse({
@@ -132,7 +137,7 @@ def print_queue_done(request, agent_key, job_id):
         return JsonResponse({"error": "Invalid key"}, status=403)
 
     updated = PrintJob.objects.filter(
-        pk=job_id, outlet=outlet, status=PrintJob.PENDING
+        pk=job_id, tenant_id=outlet.tenant_id, outlet=outlet, status=PrintJob.PENDING
     ).update(status=PrintJob.DONE, done_at=timezone.now())
 
     if not updated:
@@ -157,7 +162,7 @@ def print_queue_failed(request, agent_key, job_id):
         msg = ""
 
     PrintJob.objects.filter(
-        pk=job_id, outlet=outlet, status=PrintJob.PENDING
+        pk=job_id, tenant_id=outlet.tenant_id, outlet=outlet, status=PrintJob.PENDING
     ).update(status=PrintJob.FAILED, done_at=timezone.now(), error_msg=msg)
 
     return JsonResponse({"success": True})

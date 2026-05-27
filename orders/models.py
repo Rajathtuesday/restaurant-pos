@@ -1326,7 +1326,7 @@ class PrintJob(models.Model):
 
     class Meta:
         ordering = ["created_at"]
-        indexes  = [models.Index(fields=["outlet", "status", "created_at"])]
+        indexes  = [models.Index(fields=["tenant", "outlet", "status", "created_at"])]
 
     def __str__(self):
         return f"PrintJob #{self.pk} [{self.status}] outlet={self.outlet_id}"
