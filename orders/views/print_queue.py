@@ -8,11 +8,16 @@ Agent             → POST /orders/agent/<key>/done/<id>/  (marks job done)
 The agent polls every 2 s using plain HTTP — no WebSocket, no inbound port,
 no firewall issues.  Android cannot kill an outbound HTTP loop the same way
 it kills a listening WebSocket server.
+
+Multi-device safety: poll atomically claims jobs (PENDING → PROCESSING) so two
+devices polling the same outlet never print the same job.  A device that crashes
+mid-print is recovered after 2 minutes via the stale-claim reset at poll time.
 """
 import logging
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.db import connection, transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -26,6 +31,8 @@ logger = logging.getLogger("pos.orders")
 
 # Jobs older than this are considered stale and not served to the agent
 _JOB_TTL = timedelta(minutes=5)
+# Device that claimed a job is considered crashed after this long without done/failed
+_CLAIM_TTL = timedelta(minutes=2)
 
 
 # ── Browser side ──────────────────────────────────────────────────────────────
@@ -99,22 +106,62 @@ def print_queue_poll(request, agent_key):
     Agent calls this every 2 s to fetch pending jobs.
     Auth: agent_key must match an Outlet.print_agent_key UUID.
     Returns at most 5 jobs at a time.
+
+    Atomic claim: jobs move PENDING → PROCESSING inside a transaction.
+    PostgreSQL uses SELECT FOR UPDATE SKIP LOCKED so two concurrent polls
+    never receive the same job.  Stale PROCESSING jobs (device crashed) are
+    reset to PENDING automatically after _CLAIM_TTL.
     """
     outlet = _outlet_by_key(agent_key)
     if outlet is None:
         return JsonResponse({"error": "Invalid key"}, status=403)
 
-    cutoff = timezone.now() - _JOB_TTL
-    jobs = (
-        PrintJob.objects
-        .filter(
+    now = timezone.now()
+    job_ids = []
+
+    with transaction.atomic():
+        # Reset stale claims: device died before calling done/failed
+        reset = PrintJob.objects.filter(
+            tenant_id=outlet.tenant_id,
+            outlet=outlet,
+            status=PrintJob.PROCESSING,
+            claimed_at__lt=now - _CLAIM_TTL,
+        ).update(status=PrintJob.PENDING, claimed_at=None)
+        if reset:
+            logger.warning(
+                "PrintQueue: outlet %d — %d stale PROCESSING job(s) reset to PENDING (device crashed mid-print)",
+                outlet.pk, reset,
+            )
+
+        # Atomically claim up to 5 pending jobs
+        qs = PrintJob.objects.filter(
             tenant_id=outlet.tenant_id,
             outlet=outlet,
             status=PrintJob.PENDING,
-            created_at__gte=cutoff,
-        )
-        .order_by("created_at")[:5]
-    )
+            created_at__gte=now - _JOB_TTL,
+        ).order_by("created_at")
+
+        # PostgreSQL: SKIP LOCKED skips rows another transaction already locked —
+        # two concurrent polls will never claim the same job.
+        # SQLite (dev/test): plain SELECT FOR UPDATE — no real concurrency in dev.
+        if connection.vendor == "postgresql":
+            qs = qs.select_for_update(skip_locked=True)
+        else:
+            qs = qs.select_for_update()
+
+        job_ids = list(qs.values_list("pk", flat=True)[:5])
+
+        if job_ids:
+            PrintJob.objects.filter(pk__in=job_ids).update(
+                status=PrintJob.PROCESSING,
+                claimed_at=now,
+            )
+            logger.info(
+                "PrintQueue: outlet %d claimed %d job(s) %s",
+                outlet.pk, len(job_ids), job_ids,
+            )
+
+    jobs = PrintJob.objects.filter(pk__in=job_ids) if job_ids else []
     return JsonResponse({
         "jobs": [
             {
@@ -137,10 +184,15 @@ def print_queue_done(request, agent_key, job_id):
         return JsonResponse({"error": "Invalid key"}, status=403)
 
     updated = PrintJob.objects.filter(
-        pk=job_id, tenant_id=outlet.tenant_id, outlet=outlet, status=PrintJob.PENDING
+        pk=job_id, tenant_id=outlet.tenant_id, outlet=outlet,
+        status=PrintJob.PROCESSING,
     ).update(status=PrintJob.DONE, done_at=timezone.now())
 
     if not updated:
+        logger.warning(
+            "PrintQueue: done called for job %s but not in PROCESSING state (outlet %d)",
+            job_id, outlet.pk,
+        )
         return JsonResponse({"error": "Job not found or already done"}, status=404)
 
     return JsonResponse({"success": True})
@@ -161,9 +213,16 @@ def print_queue_failed(request, agent_key, job_id):
     except Exception:
         msg = ""
 
-    PrintJob.objects.filter(
-        pk=job_id, tenant_id=outlet.tenant_id, outlet=outlet, status=PrintJob.PENDING
+    updated = PrintJob.objects.filter(
+        pk=job_id, tenant_id=outlet.tenant_id, outlet=outlet,
+        status=PrintJob.PROCESSING,
     ).update(status=PrintJob.FAILED, done_at=timezone.now(), error_msg=msg)
+
+    if not updated:
+        logger.warning(
+            "PrintQueue: failed called for job %s but not in PROCESSING state (outlet %d)",
+            job_id, outlet.pk,
+        )
 
     return JsonResponse({"success": True})
 

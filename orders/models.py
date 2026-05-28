@@ -1306,13 +1306,15 @@ class PrintJob(models.Model):
     cannot break the connection.
     """
 
-    PENDING = "pending"
-    DONE    = "done"
-    FAILED  = "failed"
+    PENDING    = "pending"
+    PROCESSING = "processing"
+    DONE       = "done"
+    FAILED     = "failed"
     STATUS_CHOICES = [
-        (PENDING, "Pending"),
-        (DONE,    "Done"),
-        (FAILED,  "Failed"),
+        (PENDING,    "Pending"),
+        (PROCESSING, "Processing"),
+        (DONE,       "Done"),
+        (FAILED,     "Failed"),
     ]
 
     tenant     = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
@@ -1322,6 +1324,7 @@ class PrintJob(models.Model):
     status     = models.CharField(max_length=10, choices=STATUS_CHOICES, default=PENDING, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     done_at    = models.DateTimeField(null=True, blank=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
     error_msg  = models.CharField(max_length=512, blank=True, default="")
 
     class Meta:

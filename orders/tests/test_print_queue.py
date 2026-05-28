@@ -12,7 +12,7 @@ DATA MODEL
 ----------
   Outlet.print_agent_key  — UUID secret that authenticates the agent's HTTP polls.
                              Never exposed to the browser.  One per outlet.
-  PrintJob                — One row per receipt.  States: pending → done / failed.
+  PrintJob                — One row per receipt.  States: pending → processing → done / failed.
                             Auto-expires after 5 min (stale jobs are not served).
 
 API SURFACE
@@ -245,14 +245,15 @@ class PollTests(PrintQueueBase):
         """Done jobs must not be served again."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._done(job_id)
-        r = self._poll()
-        ids = [j["id"] for j in r.json()["jobs"]]
+        ids = [j["id"] for j in self._poll().json()["jobs"]]
         self.assertNotIn(job_id, ids)
 
     def test_poll_does_not_return_failed_jobs(self):
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._failed(job_id)
         ids = [j["id"] for j in self._poll().json()["jobs"]]
         self.assertNotIn(job_id, ids)
@@ -337,6 +338,7 @@ class DoneTests(PrintQueueBase):
     def test_done_marks_job_done(self):
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         r = self._done(job_id)
         self.assertEqual(r.status_code, 200)
         job = PrintJob.objects.get(pk=job_id)
@@ -364,6 +366,7 @@ class DoneTests(PrintQueueBase):
         """Marking a done job done again → 404 (idempotency guard)."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._done(job_id)
         r = self._done(job_id)
         self.assertEqual(r.status_code, 404)
@@ -380,6 +383,7 @@ class FailedTests(PrintQueueBase):
     def test_failed_marks_job_failed_with_error_message(self):
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         r = self._failed(job_id, error="Connection refused 192.168.1.100:9100")
         self.assertEqual(r.status_code, 200)
         job = PrintJob.objects.get(pk=job_id)
@@ -396,6 +400,7 @@ class FailedTests(PrintQueueBase):
         """Failed job does not loop forever in the queue."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._failed(job_id)
         ids = [j["id"] for j in self._poll().json()["jobs"]]
         self.assertNotIn(job_id, ids)
@@ -404,6 +409,7 @@ class FailedTests(PrintQueueBase):
         """Oversized error strings are clamped to protect the DB."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._failed(job_id, error="x" * 1000)
         self.assertLessEqual(len(PrintJob.objects.get(pk=job_id).error_msg), 512)
 
@@ -638,6 +644,7 @@ class DoneEdgeCaseTests(PrintQueueBase):
         """A job that failed is no longer pending — done returns 404, status unchanged."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._failed(job_id, error="printer offline")
         r = self._done(job_id)
         self.assertEqual(r.status_code, 404)
@@ -660,6 +667,7 @@ class FailedEdgeCaseTests(PrintQueueBase):
         """done_at is stamped when a job fails — enables audit and dashboard queries."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._failed(job_id, error="timeout")
         self.assertIsNotNone(PrintJob.objects.get(pk=job_id).done_at)
 
@@ -676,6 +684,7 @@ class FailedEdgeCaseTests(PrintQueueBase):
         """Marking a done job as failed does nothing — status stays DONE."""
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self._done(job_id)
         self._failed(job_id, error="late failure signal")
         self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.DONE)
@@ -684,9 +693,79 @@ class FailedEdgeCaseTests(PrintQueueBase):
         """No error field in body → error_msg is '' not None — safe for DB NOT NULL."""
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
         self.client.post(
             f"/orders/agent/{self.outlet.print_agent_key}/failed/{job_id}/",
             data={},
             content_type="application/json",
         )
         self.assertEqual(PrintJob.objects.get(pk=job_id).error_msg, "")
+
+
+# ── Claim / race condition tests ──────────────────────────────────────────────
+
+class ClaimTests(PrintQueueBase):
+    """
+    Verify atomic claim behaviour: poll transitions jobs PENDING → PROCESSING,
+    preventing two devices from printing the same job.
+    """
+
+    def test_poll_sets_status_to_processing(self):
+        """A polled job is immediately marked PROCESSING, not left as PENDING."""
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PROCESSING)
+
+    def test_poll_sets_claimed_at(self):
+        """claimed_at is stamped when a job is claimed so stale-reset can use it."""
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
+        self.assertIsNotNone(PrintJob.objects.get(pk=job_id).claimed_at)
+
+    def test_second_poll_returns_empty_when_job_claimed(self):
+        """A device that already claimed a job is not served it again on the next poll."""
+        order = self._make_order()
+        self._add_job(order.id)
+        self._poll()  # claims it → PROCESSING
+        self.assertEqual(self._poll().json()["jobs"], [])
+
+    def test_done_requires_processing_status(self):
+        """Calling done without polling first (job still PENDING) returns 404."""
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        r = self._done(job_id)  # no poll → still PENDING
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PENDING)
+
+    def test_stale_processing_job_reset_on_next_poll(self):
+        """A PROCESSING job with claimed_at > 2 min ago is reset to PENDING and re-served."""
+        from datetime import timedelta
+        from django.utils import timezone
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()  # claims → PROCESSING
+        # Backdate claimed_at to simulate a device that crashed mid-print
+        PrintJob.objects.filter(pk=job_id).update(
+            claimed_at=timezone.now() - timedelta(minutes=3)
+        )
+        # Next poll from any device should reset and re-claim it
+        ids = [j["id"] for j in self._poll().json()["jobs"]]
+        self.assertIn(job_id, ids)
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PROCESSING)
+
+    def test_done_after_stale_reset_succeeds(self):
+        """After a stale reset, the re-claiming device can successfully mark done."""
+        from datetime import timedelta
+        from django.utils import timezone
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()
+        PrintJob.objects.filter(pk=job_id).update(
+            claimed_at=timezone.now() - timedelta(minutes=3)
+        )
+        self._poll()  # reset + re-claim
+        r = self._done(job_id)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.DONE)
