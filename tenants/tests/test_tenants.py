@@ -1,5 +1,6 @@
+from django.db import IntegrityError
 from django.test import TestCase
-from tenants.models import Tenant, Outlet, TenantFeatureOverride
+from tenants.models import Tenant, Outlet, PrintProfile, TenantFeatureOverride
 from core.features import has_feature
 
 
@@ -155,3 +156,78 @@ class TenantFeatureOverrideTest(TestCase):
         )
         # tenant2 must NOT inherit tenant's override
         self.assertFalse(has_feature(tenant2, "reservations"))
+
+
+# ── PrintProfile model tests ───────────────────────────────────────────────────
+
+class PrintProfileModelTest(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Spice Garden", slug="spice-garden")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Branch")
+
+    def _profile(self, name="Standard", **kw):
+        defaults = dict(bill_inner_margin=4, kot_large_font=True, kot_show_total=True)
+        defaults.update(kw)
+        return PrintProfile.objects.create(tenant=self.tenant, name=name, **defaults)
+
+    def test_create_print_profile(self):
+        p = self._profile("Malenadu Standard")
+        self.assertEqual(p.name, "Malenadu Standard")
+        self.assertEqual(p.tenant, self.tenant)
+        self.assertTrue(p.kot_large_font)
+        self.assertTrue(p.kot_show_total)
+        self.assertEqual(p.bill_inner_margin, 4)
+
+    def test_str_includes_name_and_tenant(self):
+        p = self._profile("Standard")
+        self.assertIn("Standard", str(p))
+        self.assertIn("Spice Garden", str(p))
+
+    def test_name_unique_per_tenant(self):
+        self._profile("Standard")
+        with self.assertRaises(IntegrityError):
+            self._profile("Standard")  # same tenant, same name
+
+    def test_name_can_repeat_across_tenants(self):
+        tenant2 = Tenant.objects.create(name="Other Cafe", slug="other-cafe")
+        self._profile("Standard")
+        # Same name, different tenant — must not raise
+        PrintProfile.objects.create(
+            tenant=tenant2, name="Standard",
+            bill_inner_margin=4, kot_large_font=True, kot_show_total=True,
+        )
+        self.assertEqual(PrintProfile.objects.filter(name="Standard").count(), 2)
+
+    def test_assign_profile_to_outlet(self):
+        p = self._profile()
+        self.outlet.print_profile = p
+        self.outlet.save()
+        self.outlet.refresh_from_db()
+        self.assertEqual(self.outlet.print_profile, p)
+
+    def test_outlet_without_profile_is_valid(self):
+        self.assertIsNone(self.outlet.print_profile)
+
+    def test_deleting_profile_nullifies_outlet_fk(self):
+        p = self._profile()
+        self.outlet.print_profile = p
+        self.outlet.save()
+        p.delete()
+        self.outlet.refresh_from_db()
+        self.assertIsNone(self.outlet.print_profile)
+
+    def test_profile_scoped_to_tenant(self):
+        tenant2 = Tenant.objects.create(name="Rival", slug="rival")
+        p1 = self._profile("A")
+        PrintProfile.objects.create(
+            tenant=tenant2, name="B",
+            bill_inner_margin=0, kot_large_font=False, kot_show_total=False,
+        )
+        self.assertEqual(list(PrintProfile.objects.filter(tenant=self.tenant)), [p1])
+
+    def test_defaults(self):
+        p = PrintProfile.objects.create(tenant=self.tenant, name="Default")
+        self.assertTrue(p.kot_large_font)
+        self.assertTrue(p.kot_show_total)
+        self.assertEqual(p.bill_inner_margin, 4)
