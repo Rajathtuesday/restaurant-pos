@@ -12,12 +12,13 @@ from menu.models import MenuCategory, MenuItem
 
 logger = logging.getLogger("pos.menu")
 
-_VALID_GST = [Decimal("0"), Decimal("5"), Decimal("12"), Decimal("18")]
+_VALID_GST = [Decimal("0"), Decimal("5"), Decimal("12"), Decimal("18"), Decimal("28")]
 _GST_RATES = [
     {"value": "0.00",  "label": "0% — Exempt"},
     {"value": "5.00",  "label": "5% — Non-AC Restaurant"},
     {"value": "12.00", "label": "12% — Packaged Food"},
     {"value": "18.00", "label": "18% — AC / Liquor License"},
+    {"value": "28.00", "label": "28% — 5-Star / Premium (rare)"},
 ]
 
 

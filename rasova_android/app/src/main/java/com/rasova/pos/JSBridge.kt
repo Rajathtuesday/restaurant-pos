@@ -33,11 +33,13 @@ class JSBridge(private val context: Context) {
     fun startPrinting(pollUrl: String) {
         if (pollUrl.isBlank()) return
 
+        // Skip if already polling this exact URL — prevents duplicate loops on page navigation
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val existing = prefs.getString(KEY_POLL_URL, null)
+        if (existing == pollUrl && PrintService.status in listOf("active", "printing")) return
+
         // 1. Persist the URL — BootReceiver reads this on reboot
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_POLL_URL, pollUrl)
-            .apply()
+        prefs.edit().putString(KEY_POLL_URL, pollUrl).apply()
 
         // 2. Start (or restart) the foreground print service
         val intent = Intent(context, PrintService::class.java)

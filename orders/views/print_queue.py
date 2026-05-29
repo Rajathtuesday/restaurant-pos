@@ -253,7 +253,19 @@ def _build_receipt_b64(order, chars, cut, encoding) -> str:
                 self.buf += t.encode(encoding, errors="replace")
             else:
                 self.buf += bytes(t)
-        def set(self, **kw):  pass
+        def set(self, **kw):
+            # Font — ESC M <n>: 0=Font A (normal), 1=Font B (~60% height, fits more per roll)
+            font = kw.get('font', 'a')
+            self.buf += b'\x1b\x4d' + bytes([0 if str(font).lower() == 'a' else 1])
+            # Alignment — ESC a <n>: 0=left 1=center 2=right
+            align_byte = {'left': 0, 'center': 1, 'right': 2}.get(kw.get('align', 'left'), 0)
+            self.buf += b'\x1b\x61' + bytes([align_byte])
+            # Bold — ESC E <n>
+            self.buf += b'\x1b\x45' + bytes([1 if kw.get('bold') else 0])
+            # Character size — GS ! <n>: upper nibble=width-1, lower nibble=height-1
+            w = 2 if kw.get('double_width') else kw.get('width', 1)
+            h = 2 if kw.get('double_height') else kw.get('height', 1)
+            self.buf += b'\x1d\x21' + bytes([((w - 1) << 4) | (h - 1)])
         def cut(self, mode="FULL"):
             self.buf += b'\x1d\x56\x00' if mode == "FULL" else b'\x1d\x56\x01'
 

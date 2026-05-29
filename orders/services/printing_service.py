@@ -94,10 +94,10 @@ class PrintingService:
                 return ConsolePrinter()
             elif self.printer_type == "network" and self.host:
                 from escpos.printer import Network
-                # 10-second timeout. Default is 60s — a stuck printer would
-                # hold a Celery worker thread for a full minute, stacking up
-                # the entire print queue behind one jammed connection.
-                return Network(self.host, port=self.port, timeout=10)
+                # 3-second timeout. Real LAN printers connect in <1s.
+                # Short timeout means unreachable printers fail fast instead of
+                # blocking send-to-kitchen for 10s per station.
+                return Network(self.host, port=self.port, timeout=3)
             elif self.printer_type == "usb" and self.vendor_id:
                 from escpos.printer import Usb
                 return Usb(self.vendor_id, self.product_id)
@@ -165,10 +165,13 @@ class PrintingService:
 
     def _print_kot_body(self, p, order, kot_batch):
         W = self.W
+        profile = getattr(order.outlet, "print_profile", None)
+        large_font = profile.kot_large_font if profile else True
+        show_total = profile.kot_show_total if profile else True
+
         p.set(align="center", bold=True, double_width=True, double_height=True)
         p.text(f"KOT #{kot_batch.kot_number}\n")
 
-        # token/table + station on one line — saves 1-2 lines vs before
         p.set(align="left", bold=False, double_width=False, double_height=False)
         if hasattr(order, "token") and order.token:
             ref = f"TKN:{order.token.token_number}"
@@ -181,21 +184,29 @@ class PrintingService:
 
         p.text(self._sep() + "\n")
 
-        for item in kot_batch.items.select_related("menu_item").all():
+        items = list(kot_batch.items.select_related("menu_item").all())
+        kot_total = sum(item.total_price for item in items)
+
+        for item in items:
             veg_flag = "[V]" if item.menu_item.is_veg else "[N]"
             qty_label = f"{item.quantity}x {veg_flag} "
-            item_name = str(item.menu_item.name)
             max_name = W - len(qty_label)
-            p.set(bold=True)
-            p.text(f"{qty_label}{item_name[:max_name]}\n")
-            p.set(bold=False)
+            name = str(item.menu_item.name)[:max_name]
+            p.set(align="left", bold=True, double_height=large_font)
+            p.text(f"{qty_label}{name}\n")
+            p.set(align="left", bold=False, double_height=False)
             if item.notes:
                 p.text(f"  *{str(item.notes)[:W-3]}\n")
             for mod in item.modifiers.all():
                 p.text(f"  +{str(mod.name)[:W-3]}\n")
 
         p.text(self._sep() + "\n")
-        p.set(align="right")
+
+        if show_total:
+            p.set(align="left", bold=True)
+            p.text(self._two_col("Total", self._currency(kot_total)) + "\n")
+
+        p.set(align="right", bold=False)
         p.text(f"{order.created_at.strftime('%d/%m %H:%M')}\n")
 
     # ------------------------------------------------------------------
@@ -204,90 +215,98 @@ class PrintingService:
 
     def _print_bill_body(self, p, order):
         W = self.W
+        gst_inclusive = getattr(order.outlet, 'gst_inclusive', False)
+        profile = getattr(order.outlet, "print_profile", None)
+        bill_margin = profile.bill_inner_margin if profile else 4
 
-        # header: bold, normal size — no double-height saves ~4mm of paper
-        p.set(align="center", bold=True)
+        # ── HEADER — centered, Font A ───────────────────────────────────
+        p.set(align="center", bold=True,  font='a')
         p.text(f"{str(order.tenant.name)[:W]}\n")
-        p.set(bold=False)
+
+        p.set(align="center", bold=False, font='a')
         p.text(f"{order.outlet.name}\n")
+
         if order.outlet.address:
             for chunk in self._wrap_text(str(order.outlet.address), W):
                 p.text(f"{chunk}\n")
         if order.outlet.phone:
-            p.text(f"Ph:{order.outlet.phone}\n")
+            p.text(f"Ph: {order.outlet.phone}\n")
 
-        # GSTIN/FSSAI/SAC packed onto fewest lines
-        compliance = []
-        if order.outlet.gst_no:    compliance.append(f"GSTIN:{order.outlet.gst_no}")
-        if order.outlet.fssai_no:  compliance.append(f"FSSAI:{order.outlet.fssai_no}")
-        sac = getattr(order.outlet, "sac_code", None) or "996331"
-        compliance.append(f"SAC:{sac}")
-        for cl in self._pack_lines(compliance, W):
-            p.text(f"{cl}\n")
-
-        # dotted title line: .....CASH/BILL.....
-        label = "CASH/BILL"
-        fill  = W - len(label)
-        p.set(align="left")
-        p.text("." * (fill // 2) + label + "." * (fill - fill // 2) + "\n")
-
-        # compact info: NO.xxx  TBL/TKN:x  DD/MM/YY HH:MM — all one line
-        bill_no = f"NO.{order.order_number or order.id}"
-        if hasattr(order, "token") and order.token:
-            ref = f"TKN:{order.token.token_number}"
-        elif order.table:
-            ref = f"TBL:{order.table.name}"
-        else:
-            ref = ""
-        date_str   = order.created_at.strftime("%d/%m/%y %H:%M")
-        info_parts = [x for x in [bill_no, ref, date_str] if x]
-        p.text("  ".join(info_parts)[:W] + "\n")
+        # Each compliance field on its own line
+        if order.outlet.gst_no:
+            p.text(f"GSTIN: {order.outlet.gst_no}\n")
+        if order.outlet.fssai_no:
+            p.text(f"FSSAI: {order.outlet.fssai_no}\n")
+        sac = getattr(order.outlet, 'sac_code', None) or '996331'
+        p.text(f"SAC: {sac}\n")
 
         p.text(self._sep() + "\n")
 
-        name_w = W - 10
-        p.set(bold=True)
-        p.text(f"{'Item':<{name_w}} {'Qty':>3} {'Amt':>5}\n")
-        p.set(bold=False)
-        p.text(self._sep() + "\n")
+        C = W - bill_margin
 
+        def tc(left, right):
+            r = str(right)
+            l = str(left)[:C - len(r)].ljust(C - len(r))
+            return l + r
+
+        sep_inner = "-" * C
+
+        # ── INVOICE INFO — centered block, Font A ───────────────────────
+        p.set(align="center", bold=False, font='a')
+        p.text(tc("Bill No.", str(order.order_number or order.id)) + "\n")
+        p.text(tc("Date", order.created_at.strftime("%d/%m/%Y %H:%M")) + "\n")
+        if order.table:
+            p.text(tc("Table", order.table.name) + "\n")
+        elif hasattr(order, 'token') and order.token:
+            p.text(tc("Token", str(order.token.token_number)) + "\n")
+
+        p.text(sep_inner + "\n")
+
+        # ── ITEMS — centered block, Font A ──────────────────────────────
+        p.set(align="center", bold=False, font='a')
         for item in order.items.exclude(status="voided").select_related("menu_item"):
-            name = str(item.menu_item.name)[:name_w]
-            qty  = str(item.quantity)
-            amt  = f"{float(item.total_price):.0f}"
-            p.text(f"{name:<{name_w}} {qty:>3} {amt:>5}\n")
+            veg_flag = "[V]" if getattr(item.menu_item, 'is_veg', False) else "[N]"
+            prefix   = f"{item.quantity}x {veg_flag} "
+            amt      = f"{float(item.total_price):.0f}"
+            max_name = C - len(prefix) - len(amt) - 1
+            name     = str(item.menu_item.name)[:max_name]
+            p.text(tc(f"{prefix}{name}", amt) + "\n")
 
-        gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
+        p.text(sep_inner + "\n")
 
-        p.text(self._sep() + "\n")
-        if gst_inclusive:
-            p.text(self._two_col("Subtotal (excl.GST)", self._currency(order.subtotal)) + "\n")
-        else:
-            p.text(self._two_col("Subtotal", self._currency(order.subtotal)) + "\n")
+        # ── SUBTOTALS — centered block, Font A ──────────────────────────
+        p.set(align="center", bold=False, font='a')
+        p.text(tc("Subtotal", self._currency(order.subtotal)) + "\n")
         if order.gst_total:
-            gst_label = "GST(incl.)" if gst_inclusive else "GST"
-            p.text(self._two_col(gst_label, self._currency(order.gst_total)) + "\n")
+            label = "GST (incl.)" if gst_inclusive else "GST"
+            p.text(tc(label, self._currency(order.gst_total)) + "\n")
         if order.discount_total > 0:
-            p.text(self._two_col("Discount", f"-{self._currency(order.discount_total)}") + "\n")
-        parcel = getattr(order, "parcel_surcharge", 0)
+            p.text(tc("Discount", f"-{self._currency(order.discount_total)}") + "\n")
+        parcel = getattr(order, 'parcel_surcharge', 0)
         if parcel and parcel > 0:
-            p.text(self._two_col("Parcel", self._currency(parcel)) + "\n")
+            p.text(tc("Parcel", self._currency(parcel)) + "\n")
 
-        p.text(self._sep() + "\n")
-        p.set(bold=True)  # bold only — no double_height saves ~2mm
-        p.text(self._two_col("TOTAL", self._currency(order.grand_total)) + "\n")
-        p.set(bold=False)
+        p.text(sep_inner + "\n")
+
+        # ── TOTAL — centered block, Font A bold ─────────────────────────
+        p.set(align="center", bold=True, font='a')
+        p.text(tc("TOTAL", self._currency(order.grand_total)) + "\n")
 
         payment = order.payments.order_by("-paid_at").first()
         if payment:
-            p.text(self._two_col("Paid", payment.method.upper()) + "\n")
+            p.set(align="center", bold=False, font='a')
+            p.text(tc("Paid via", payment.method.upper()) + "\n")
 
         if gst_inclusive:
-            p.text(self._two_col("", "(prices incl. GST)") + "\n")
+            p.set(align="center", bold=False, font='a')
+            p.text("(prices include GST)\n")
 
-        p.text(self._sep() + "\n")
-        p.set(align="center")
-        p.text("Thank you! Visit again.\n")
+        p.text(sep_inner + "\n")
+
+        # ── FOOTER — Font B, centered ────────────────────────────────────
+        p.set(align="center", bold=False, font='b')
+        p.text("Thank you for visiting!\n")
+        p.text("Powered by Rasova POS\n")
 
     # ------------------------------------------------------------------
     # SPLIT BILL BY CATEGORY  (Counter Billing Mode)

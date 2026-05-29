@@ -44,7 +44,7 @@ if not SECRET_KEY:
     )
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 # Parse comma-separated hosts, fallback to localhost for dev
 env_hosts = os.getenv('ALLOWED_HOSTS', '')
@@ -54,7 +54,7 @@ else:
     from django.core.exceptions import ImproperlyConfigured
     if not DEBUG:
         raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production via environment variable.")
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    ALLOWED_HOSTS = ['*']  # dev only — production requires ALLOWED_HOSTS env var
 
 # Cloudflare / reverse-proxy: trust forwarded headers for HTTPS detection
 USE_X_FORWARDED_HOST    = True
@@ -501,7 +501,7 @@ TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886"
 #   hit /token/X/bill/ and see "Order not found" because @login_required
 #   was redirecting to /accounts/login/ (404) instead of /login/.
 # -------------------------------------------------------
-SESSION_COOKIE_AGE = 43200  # 12 hours in seconds
+SESSION_COOKIE_AGE = 86400  # 24 hours — restaurants run 18-hour shifts
 
 # -------------------------------------------------------
 # CACHE + SESSION ENGINE — adapts to whether Redis is

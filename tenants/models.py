@@ -181,6 +181,48 @@ class Tenant(models.Model):
 # OUTLET (Restaurant branch)
 # --------------------------------------------------
 
+class PrintProfile(models.Model):
+    """Named receipt/KOT format assigned per outlet. Scoped to a tenant."""
+
+    tenant = models.ForeignKey(
+        "Tenant",
+        on_delete=models.CASCADE,
+        related_name="print_profiles",
+    )
+    name = models.CharField(max_length=100)
+
+    # ── KOT settings ──────────────────────────────────────────────────────
+    kot_large_font = models.BooleanField(
+        default=True,
+        help_text="Items print double-height — easier for chefs to read at a glance.",
+    )
+    kot_show_total = models.BooleanField(
+        default=True,
+        help_text="Print the sum of KOT item prices at the bottom of the KOT.",
+    )
+
+    # ── Bill settings ─────────────────────────────────────────────────────
+    bill_inner_margin = models.PositiveSmallIntegerField(
+        default=4,
+        help_text=(
+            "Characters removed from paper width to create side margins on the bill. "
+            "4 = ~2-char margin each side on 80mm paper. 0 = full width."
+        ),
+    )
+
+    class Meta:
+        ordering = ["tenant", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "name"],
+                name="unique_print_profile_per_tenant",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.tenant.name})"
+
+
 class Outlet(models.Model):
 
     tenant = models.ForeignKey(
@@ -371,6 +413,15 @@ class Outlet(models.Model):
         default=80,
         choices=[(58, "58mm — narrow roll"), (80, "80mm — standard roll")],
         help_text="Thermal paper width. Most restaurant printers use 80mm."
+    )
+
+    print_profile = models.ForeignKey(
+        "PrintProfile",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="outlets",
+        help_text="Receipt and KOT print format for this outlet. Leave blank to use defaults.",
     )
 
     class Meta:

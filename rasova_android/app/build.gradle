@@ -16,7 +16,7 @@ android {
 
         // SERVER_URL is the EC2 / production URL of your Rasova server.
         // Change this to your actual domain before building for a customer.
-        buildConfigField "String", "SERVER_URL", '"https://your-rasova-server.com"'
+        buildConfigField "String", "SERVER_URL", '"https://rasova.net"'
     }
 
     buildFeatures {
@@ -26,7 +26,7 @@ android {
     buildTypes {
         debug {
             // For local testing — override SERVER_URL to your dev machine IP
-            buildConfigField "String", "SERVER_URL", '"http://192.168.1.10:8000"'
+            buildConfigField "String", "SERVER_URL", '"http://192.168.88.6:8000"'
         }
         release {
             minifyEnabled true

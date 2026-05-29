@@ -960,6 +960,8 @@ footer {
   .founder-section { padding: 60px 1.5rem; }
   .final-cta { padding: 60px 1.5rem; }
   footer { padding: 2rem 1.5rem; flex-direction: column; gap: 1rem; text-align: center; }
+  .android-section-grid { grid-template-columns: 1fr !important; }
+  .android-section-qr { display: none !important; }
 }
 </style>
 </head>
@@ -1246,6 +1248,33 @@ footer {
       "I built Rasova because restaurant owners deserve software that <em>actually works</em> - not something sold with an annual contract and a support ticket queue. When you message me, I reply."
     </p>
     <div class="founder-name reveal">Rajath · Founder, Rasova · Bengaluru</div>
+  </div>
+</section>
+
+<!-- ANDROID DOWNLOAD -->
+<section style="padding:80px 2rem; background:var(--panel); border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div class="android-section-grid" style="max-width:860px; margin:0 auto; display:grid; grid-template-columns:1fr auto; gap:3rem; align-items:center;">
+    <div>
+      <p style="font-size:0.7rem; letter-spacing:3px; text-transform:uppercase; color:var(--gold); font-weight:600; margin-bottom:1rem;">Android App</p>
+      <h2 style="font-family:'DM Serif Display',serif; font-size:2.2rem; line-height:1.2; margin-bottom:1rem;">Run Rasova on any Android phone</h2>
+      <p style="color:rgba(255,255,255,0.55); font-size:1rem; line-height:1.7; margin-bottom:1.5rem;">
+        No Play Store needed. Download the APK, install it once, and your phone becomes a full POS terminal
+        with built-in receipt printing — printing runs in the background automatically after login.
+      </p>
+      <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <a href="/android/rasova.apk" download class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.5rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download APK
+        </a>
+        <span style="font-size:0.75rem; color:var(--muted);">Android only · ~4 MB · Free to try</span>
+      </div>
+    </div>
+    <div class="android-section-qr" style="text-align:center; flex-shrink:0;">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://rasova.net/android/rasova.apk&bgcolor=161616&color=c5a059&margin=6"
+           alt="Scan to download Rasova Android app"
+           style="border:1px solid var(--border); display:block; margin:0 auto 0.75rem;">
+      <p style="font-size:0.65rem; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);">Scan to download</p>
+    </div>
   </div>
 </section>
 

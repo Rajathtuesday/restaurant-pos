@@ -4,7 +4,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.IBinder
 import android.util.Base64
@@ -74,9 +77,19 @@ class PrintService : Service() {
         val failBase = base + "failed/"
 
         scope.launch {
+            var backoffMs = 2_000L  // doubles on error, resets on success, max 30s
+
             while (isActive) {
+                // Skip HTTP entirely when offline — avoids 1,800 exceptions/hour on WiFi drop
+                if (!isNetworkAvailable()) {
+                    status = "error"
+                    delay(5_000)
+                    continue
+                }
+
                 try {
                     val jobs: JSONArray = fetchJobs(jobsUrl)
+                    backoffMs = 2_000L  // reset on any successful response
 
                     if (jobs.length() > 0) {
                         status = "printing"
@@ -106,13 +119,27 @@ class PrintService : Service() {
                     }
 
                 } catch (e: Exception) {
-                    Log.e(TAG, "Poll error: ${e.message}")
+                    // Exponential backoff: 2s → 4s → 8s → 16s → 30s (max)
+                    backoffMs = minOf(backoffMs * 2, 30_000L)
+                    Log.e(TAG, "Poll error (next retry in ${backoffMs}ms): ${e.message}")
                     status = "error"
                     notify("Print error — retrying…")
                 }
 
-                delay(2_000)  // poll every 2 seconds — same as the desktop agent
+                delay(backoffMs)
             }
+        }
+    }
+
+    // Returns true if there is a usable network connection
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val cap = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+            cap.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } else {
+            @Suppress("DEPRECATION")
+            cm.activeNetworkInfo?.isConnected == true
         }
     }
 
@@ -179,7 +206,7 @@ class PrintService : Service() {
         return builder
             .setContentTitle("Rasova")
             .setContentText(text)
-            .setSmallIcon(android.R.drawable.ic_print)
+            .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)   // ongoing = cannot be swiped away by user
             .build()
     }

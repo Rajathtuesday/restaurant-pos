@@ -18,18 +18,15 @@
          instead of making the user navigate Settings manually -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- NetworkState: check connectivity before attempting HTTP — no user dialog needed -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:label="Rasova"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-        android:usesCleartextTraffic="true">
-        <!--
-            usesCleartextTraffic=true: allows HTTP (not just HTTPS) connections.
-            Needed for local testing against a dev server. In production (HTTPS), this
-            is harmless but can be removed for a stricter security posture.
-        -->
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <!-- MainActivity: the screen the user sees — a full-screen WebView -->
         <activity

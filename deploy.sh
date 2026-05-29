@@ -24,6 +24,13 @@ sudo fuser -k 8000/tcp 2>/dev/null || true
 sleep 2
 gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 --daemon core.wsgi:application
 
+echo "=== Ensuring Redis is running ==="
+if ! sudo systemctl is-active --quiet redis; then
+    sudo systemctl start redis
+    sleep 2
+fi
+redis-cli ping | grep -q PONG || { echo "ERROR: Redis did not start"; exit 1; }
+
 echo "=== Restarting Celery ==="
 pkill -f 'celery worker' 2>/dev/null || true
 sleep 1

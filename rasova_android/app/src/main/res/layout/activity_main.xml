@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Full-screen WebView — no title bar, no navigation bar, just the Rasova web app -->
+<!-- Full-screen WebView with a branded splash overlay that hides once the page loads -->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -9,5 +9,41 @@
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
+
+    <!-- Splash overlay: drawn on top of WebView (FrameLayout stacks children).
+         MainActivity hides this view once onPageFinished fires. -->
+    <LinearLayout
+        android:id="@+id/splashView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="#0a0a0a">
+
+        <!-- Gold diamond: a rotated square — matches the web app logo -->
+        <View
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="#C9A84C"
+            android:rotation="45" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="RASOVA"
+            android:textColor="#C9A84C"
+            android:textSize="18sp"
+            android:letterSpacing="0.3"
+            android:fontFamily="sans-serif-medium" />
+
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            style="?android:attr/progressBarStyle"
+            android:indeterminateTint="#C9A84C" />
+
+    </LinearLayout>
 
 </FrameLayout>
