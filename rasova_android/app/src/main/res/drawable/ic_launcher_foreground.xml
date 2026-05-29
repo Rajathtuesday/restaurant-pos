@@ -4,10 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Gold diamond outline — Rasova logo mark -->
+    <!-- Outer gold diamond — vertices at the adaptive-icon safe-zone boundary (21dp–87dp) -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#C9A84C"
-        android:strokeWidth="5"
-        android:pathData="M54,18 L90,54 L54,90 L18,54 Z"/>
+        android:fillColor="#C9A84C"
+        android:pathData="M54,21 L87,54 L54,87 L21,54 Z"/>
+    <!-- Inner dark diamond — same proportions as favicon.svg (inner rect 10/16 = 0.625 ratio)
+         Creates the Rasova gold ring/border effect against the #0a0a0a background. -->
+    <path
+        android:fillColor="#0a0a0a"
+        android:pathData="M54,33.4 L74.6,54 L54,74.6 L33.4,54 Z"/>
 </vector>
