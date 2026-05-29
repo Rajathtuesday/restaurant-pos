@@ -14,9 +14,9 @@ android {
         versionCode 1
         versionName "1.0.0"
 
-        // SERVER_URL is the EC2 / production URL of your Rasova server.
-        // Change this to your actual domain before building for a customer.
-        buildConfigField "String", "SERVER_URL", '"https://rasova.net"'
+        // Empty by default — release builds get the URL from SharedPreferences
+        // (user types it or scans a QR on first launch).
+        buildConfigField "String", "SERVER_URL", '""'
     }
 
     buildFeatures {
@@ -49,4 +49,6 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     // Coroutines: lets us write the polling loop without freezing the app
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0'
+    // ZXing: QR code scanner used on first-launch setup screen
+    implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
 }

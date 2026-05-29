@@ -182,6 +182,31 @@
         </div>
     </div>
 
+    <!-- Device Setup QR — scan this FROM inside the Rasova app after installing -->
+    <div class="ps-step active" style="margin-bottom:1.25rem;">
+        <div class="ps-step-head" style="justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+            <div style="display:flex; align-items:center; gap:1rem;">
+                <div class="ps-num" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#fff; font-size:0.6rem;">URL</div>
+                <div>
+                    <div class="ps-step-title">Connect App to This Restaurant</div>
+                    <div class="ps-step-sub">After installing — open app → tap "Scan QR Code" → scan this</div>
+                </div>
+            </div>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=https://{{ request.user.tenant.slug }}.rasova.net&bgcolor=161616&color=c5a059&margin=4"
+                 alt="Scan to connect app to this restaurant"
+                 style="border:1px solid var(--border-color); flex-shrink:0;">
+        </div>
+        <div class="ps-body" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem;">
+            <p style="font-size:0.75rem; color:var(--text-muted); margin:0; line-height:1.6;">
+                This QR points the app to <strong style="color:var(--text-main)">https://{{ request.user.tenant.slug }}.rasova.net</strong>.<br>
+                Each phone only needs to scan this once — the app remembers it.
+            </p>
+            <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:1.5px; font-weight:700; color:var(--text-muted); white-space:nowrap;">
+                {{ request.user.tenant.slug }}.rasova.net
+            </span>
+        </div>
+    </div>
+
     <form method="post" id="printerForm">
         {% csrf_token %}
         <input type="hidden" name="printer_mac"     id="h_mac"   value="{{ outlet.printer_mac|default:'' }}">
