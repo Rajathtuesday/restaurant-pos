@@ -1,5 +1,6 @@
 # inventory/models.py
 from django.db import models, transaction
+from core.models import TenantScopedModel
 from django.db.models import F, Q, CheckConstraint
 from decimal import Decimal
 from django.core.exceptions import ValidationError
@@ -27,7 +28,7 @@ TRANSACTION_TYPES = [
 # INVENTORY ITEM
 # -------------------------------------------------------
 
-class InventoryItem(models.Model):
+class InventoryItem(TenantScopedModel):
 
     tenant = models.ForeignKey(
         "tenants.Tenant",
@@ -286,7 +287,7 @@ class InventoryItem(models.Model):
 # SUPPLIER
 # -------------------------------------------------------
 
-class Supplier(models.Model):
+class Supplier(TenantScopedModel):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
     
@@ -308,7 +309,7 @@ class Supplier(models.Model):
 # PURCHASE ORDER
 # -------------------------------------------------------
 
-class TenantPOCounter(models.Model):
+class TenantPOCounter(TenantScopedModel):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
     value = models.IntegerField(default=0)
@@ -316,7 +317,7 @@ class TenantPOCounter(models.Model):
     class Meta:
         unique_together = ("tenant", "outlet")
 
-class PurchaseOrder(models.Model):
+class PurchaseOrder(TenantScopedModel):
     STATUS_CHOICES = (
         ("draft", "Draft"),
         ("ordered", "Ordered"),
@@ -427,7 +428,7 @@ class PurchaseOrderItem(models.Model):
 # INVENTORY TRANSACTION LEDGER
 # -------------------------------------------------------
 
-class InventoryTransaction(models.Model):
+class InventoryTransaction(TenantScopedModel):
 
     tenant = models.ForeignKey(
         "tenants.Tenant",
@@ -523,7 +524,7 @@ class Recipe(models.Model):
 # CENTRAL KITCHEN PRODUCTION (FRANCHISE MODE)
 # -------------------------------------------------------
 
-class ProductionBatch(models.Model):
+class ProductionBatch(TenantScopedModel):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     batch_number = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -545,7 +546,7 @@ class ProductionBatch(models.Model):
         return f"Batch {self.batch_number}"
 
 
-class BatchItem(models.Model):
+class BatchItem(TenantScopedModel):
     batch = models.ForeignKey(ProductionBatch, on_delete=models.CASCADE, related_name='items')
     # tenant denormalised here so barcode uniqueness can be enforced per-tenant at the DB level.
     # A globally-unique barcode (the old approach) collides when two franchise outlets use
@@ -563,7 +564,7 @@ class BatchItem(models.Model):
         return f"{self.inventory_item.name} ({self.barcode})"
 
 
-class BatchTransfer(models.Model):
+class BatchTransfer(TenantScopedModel):
     STATUS = (
         ('pending', 'Pending'),
         ('in_transit', 'In Transit'),
@@ -598,7 +599,7 @@ class BatchTransfer(models.Model):
 # System auto-routes based on whether a CK outlet exists.
 # -------------------------------------------------------
 
-class StockRequisition(models.Model):
+class StockRequisition(TenantScopedModel):
 
     STATUS = [
         ("draft",         "Draft"),

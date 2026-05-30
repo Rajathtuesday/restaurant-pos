@@ -1,9 +1,10 @@
 # setup/models.py
 from django.db import models
 from django.db.models import UniqueConstraint, Q
+from core.models import TenantScopedModel
 
 
-class KitchenStation(models.Model):
+class KitchenStation(TenantScopedModel):
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
@@ -55,7 +56,7 @@ class KitchenStation(models.Model):
 # PAYMENT CONFIG (replaces session-based storage)
 # -------------------------------------------------
 
-class PaymentConfig(models.Model):
+class PaymentConfig(TenantScopedModel):
     """
     Stores which payment methods are enabled for an outlet.
     One record per outlet.
@@ -116,7 +117,7 @@ class PaymentConfig(models.Model):
 # AGGREGATOR CONFIG 
 # -------------------------------------------------
 
-class AggregatorConfig(models.Model):
+class AggregatorConfig(TenantScopedModel):
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.OneToOneField(
         "tenants.Outlet",

@@ -1,9 +1,10 @@
 # notifications/models.py
 from django.db import models
 from django.db.models import Index
+from core.models import TenantScopedModel
 
 
-class Notification(models.Model):
+class Notification(TenantScopedModel):
 
     tenant = models.ForeignKey(
         "tenants.Tenant",

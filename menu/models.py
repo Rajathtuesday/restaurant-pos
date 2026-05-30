@@ -1,5 +1,6 @@
 from django.db import models
 from django.db.models import UniqueConstraint, Index
+from core.models import TenantScopedModel
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from setup.models import KitchenStation
@@ -13,7 +14,7 @@ logger = logging.getLogger("pos.menu")
 
 
 
-class MenuCategory(models.Model):
+class MenuCategory(TenantScopedModel):
 
     tenant = models.ForeignKey(
         "tenants.Tenant",
@@ -57,7 +58,7 @@ class MenuCategory(models.Model):
 
 
 
-class MenuItem(models.Model):
+class MenuItem(TenantScopedModel):
 
     tenant = models.ForeignKey(
         "tenants.Tenant",
@@ -182,7 +183,7 @@ class MenuItem(models.Model):
 
 
 
-class ModifierGroup(models.Model):
+class ModifierGroup(TenantScopedModel):
 
     tenant = models.ForeignKey(
         "tenants.Tenant",

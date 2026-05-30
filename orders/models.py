@@ -5,6 +5,7 @@ import uuid
 
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
+from core.models import TenantScopedModel
 from django.db.models import Q
 from django.utils import timezone
 
@@ -14,7 +15,7 @@ from django.utils import timezone
 # TABLE
 # =====================================================
 
-class Table(models.Model):
+class Table(TenantScopedModel):
 
     STATES = (
         ("free", "Free"),
@@ -56,7 +57,7 @@ class Table(models.Model):
 # =====================================================
 
 
-class Order(models.Model):
+class Order(TenantScopedModel):
     STATUS = (
         ("open", "Open"),
         ("billing", "Billing"),
@@ -481,7 +482,7 @@ class Order(models.Model):
 # KOT
 # =====================================================
 
-class KOTBatch(models.Model):
+class KOTBatch(TenantScopedModel):
 
     STATUS = (
         ("confirmed", "Confirmed"),
@@ -774,7 +775,7 @@ class Refund(models.Model):
 # WAITER CALL
 # =====================================================
 
-class WaiterCall(models.Model):
+class WaiterCall(TenantScopedModel):
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
@@ -802,7 +803,7 @@ class WaiterCall(models.Model):
 # ORDER EVENTS (PRODUCTION GRADE)
 # =====================================================
 
-class OrderEvent(models.Model):
+class OrderEvent(TenantScopedModel):
 
     EVENT_TYPES = [
 
@@ -931,7 +932,7 @@ class OrderLock(models.Model):
 # DAILY KOT COUNTER
 # =====================================================
 
-class DailyKOTCounter(models.Model):
+class DailyKOTCounter(TenantScopedModel):
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
@@ -950,7 +951,7 @@ class DailyKOTCounter(models.Model):
 # DAILY ORDER COUNTER
 # =====================================================
 
-class DailyOrderCounter(models.Model):
+class DailyOrderCounter(TenantScopedModel):
     """
     Per-tenant, per-outlet, per-day sequential counter for invoice numbers.
 
@@ -979,7 +980,7 @@ class DailyOrderCounter(models.Model):
 # =====================================================
 
 
-class TableMerge(models.Model):
+class TableMerge(TenantScopedModel):
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
@@ -1015,7 +1016,7 @@ class TableMerge(models.Model):
 # KITCHEN MESSAGE
 # =====================================================
 
-class KitchenMessage(models.Model):
+class KitchenMessage(TenantScopedModel):
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
@@ -1045,7 +1046,7 @@ class KitchenMessage(models.Model):
 # PROMO — outlet-level promotional discounts pickable from the bill screen
 # ---------------------------------------------------------------------------
 
-class Promo(models.Model):
+class Promo(TenantScopedModel):
     """
     Tenant/outlet-scoped promotional discount applied to any order.
     - outlet=NULL  → promo runs across ALL outlets of this tenant
@@ -1178,7 +1179,7 @@ class Promo(models.Model):
 # DAILY TOKEN COUNTER
 # =====================================================
 
-class DailyTokenCounter(models.Model):
+class DailyTokenCounter(TenantScopedModel):
     """
     Per-outlet, per-day sequential counter for token numbers.
 
@@ -1214,7 +1215,7 @@ class DailyTokenCounter(models.Model):
 # TOKEN ORDER
 # =====================================================
 
-class TokenOrder(models.Model):
+class TokenOrder(TenantScopedModel):
     """
     Attaches a daily sequential token number to an Order for
     Franchise / Cafe (QSR) tenants.
@@ -1265,7 +1266,7 @@ class TokenOrder(models.Model):
 # DAILY ONLINE TOKEN COUNTER
 # =====================================================
 
-class DailyOnlineTokenCounter(models.Model):
+class DailyOnlineTokenCounter(TenantScopedModel):
     """
     Independent per-outlet, per-day counter for ONLINE orders (Zomato / Swiggy / web).
 
@@ -1293,7 +1294,7 @@ class DailyOnlineTokenCounter(models.Model):
 # PRINT JOB QUEUE
 # =====================================================
 
-class PrintJob(models.Model):
+class PrintJob(TenantScopedModel):
     """
     Queued receipt/KOT print job consumed by the Rasova Agent in polling mode.
 

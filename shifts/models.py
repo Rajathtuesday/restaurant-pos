@@ -1,10 +1,11 @@
 # shifts/models.py
 from django.db import models
 from django.db.models import Q, UniqueConstraint
+from core.models import TenantScopedModel
 from django.utils import timezone
 
 
-class Shift(models.Model):
+class Shift(TenantScopedModel):
     """
     Records a staff member's clock-in and clock-out for a given day.
     Tips can be recorded at clock-out by a manager.
@@ -75,7 +76,7 @@ class Shift(models.Model):
         return f"{self.staff.username} – {self.clocked_in_at.date()}"
 
 
-class ShiftTemplate(models.Model):
+class ShiftTemplate(TenantScopedModel):
     """
     Predefined shift patterns (e.g. 'Morning Shift', 'Kitchen Opening').
     """
@@ -96,7 +97,7 @@ class ShiftTemplate(models.Model):
         return f"{self.name} ({self.start_time}-{self.end_time})"
 
 
-class StaffSchedule(models.Model):
+class StaffSchedule(TenantScopedModel):
     """
     Assigns a staff member to a shift on a specific date.
     Used for labor cost forecasting and overtime detection.
@@ -145,7 +146,7 @@ class StaffSchedule(models.Model):
         return f"{self.staff.username} - {self.date}"
 
 
-class CashSession(models.Model):
+class CashSession(TenantScopedModel):
     """
     Manages the cash drawer for an entire outlet shift/day.
     Reconciles physical cash with digital payment records.

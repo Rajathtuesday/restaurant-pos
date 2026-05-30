@@ -1,8 +1,9 @@
 # crm/models.py
 from django.db import models
+from core.models import TenantScopedModel
 
 
-class Guest(models.Model):
+class Guest(TenantScopedModel):
     """
     A uniquely-identified guest by phone number per tenant.
     Points are accumulated across all visits.
@@ -63,7 +64,7 @@ class LoyaltyTransaction(models.Model):
         return f"{self.guest} – {self.transaction_type} {self.points}pts"
 
 
-class Reservation(models.Model):
+class Reservation(TenantScopedModel):
     STATUS_CHOICES = (
         ("pending", "Pending"),
         ("confirmed", "Confirmed"),
