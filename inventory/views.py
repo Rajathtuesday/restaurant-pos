@@ -674,6 +674,7 @@ def log_wastage(request, item_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
 
+    item.refresh_from_db()  # F() expression; object is stale until refreshed
     logger.info(
         "%s logged wastage: %s ×%.3f %s (%s)",
         request.user.username, item.name, quantity, item.unit, reference

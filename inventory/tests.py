@@ -235,3 +235,174 @@ class InventoryItemFieldTests(TestCase):
             low_stock_threshold=Decimal("2.000")
         )
         self.assertFalse(item.is_low_stock)
+
+
+# ============================================================
+# WASTAGE LOGGING TESTS
+# ============================================================
+
+class WastageViewTests(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Bar Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Bar")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="barmanager", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet
+        )
+        self.waiter = User.objects.create_user(
+            username="barwaiter", password="pwd",
+            role="waiter", tenant=self.tenant, outlet=self.outlet
+        )
+        self.rum = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Bacardi Rum", unit="ml",
+            stock=Decimal("750.000"),
+            low_stock_threshold=Decimal("100.000"),
+        )
+        self.client.force_login(self.manager)
+
+    def _post(self, item_id, payload):
+        import json
+        return self.client.post(
+            reverse("inventory_log_wastage", args=[item_id]),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+    def test_wastage_deducts_stock(self):
+        resp = self._post(self.rum.id, {"quantity": "30", "reason": "Spillage"})
+        self.assertEqual(resp.status_code, 200)
+        self.rum.refresh_from_db()
+        self.assertEqual(self.rum.stock, Decimal("720.000"))
+
+    def test_wastage_creates_transaction(self):
+        from inventory.models import InventoryTransaction
+        self._post(self.rum.id, {"quantity": "60", "reason": "Breakage", "notes": "Dropped bottle"})
+        txn = InventoryTransaction.objects.get(item=self.rum, transaction_type="wastage")
+        self.assertEqual(txn.quantity, Decimal("-60.000"))
+        self.assertIn("Breakage", txn.reference)
+
+    def test_wastage_returns_new_stock(self):
+        resp = self._post(self.rum.id, {"quantity": "50", "reason": "Over-pour"})
+        data = resp.json()
+        self.assertTrue(data["success"])
+        self.assertAlmostEqual(data["new_stock"], 700.0, places=2)
+
+    def test_wastage_rejects_zero_quantity(self):
+        resp = self._post(self.rum.id, {"quantity": "0", "reason": "Spillage"})
+        self.assertEqual(resp.status_code, 400)
+        self.rum.refresh_from_db()
+        self.assertEqual(self.rum.stock, Decimal("750.000"))
+
+    def test_wastage_rejects_negative_quantity(self):
+        resp = self._post(self.rum.id, {"quantity": "-10", "reason": "Spillage"})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_wastage_rejects_excess_quantity(self):
+        resp = self._post(self.rum.id, {"quantity": "999", "reason": "Spillage"})
+        self.assertEqual(resp.status_code, 400)
+        self.rum.refresh_from_db()
+        self.assertEqual(self.rum.stock, Decimal("750.000"))
+
+    def test_waiter_cannot_log_wastage(self):
+        self.client.force_login(self.waiter)
+        resp = self._post(self.rum.id, {"quantity": "30", "reason": "Spillage"})
+        self.assertEqual(resp.status_code, 403)
+        self.rum.refresh_from_db()
+        self.assertEqual(self.rum.stock, Decimal("750.000"))
+
+    def test_cross_tenant_item_not_accessible(self):
+        other_tenant = Tenant.objects.create(name="Other Bar")
+        other_outlet = Outlet.objects.create(tenant=other_tenant, name="Other")
+        other_item = InventoryItem.objects.create(
+            tenant=other_tenant, outlet=other_outlet,
+            name="Vodka", unit="ml", stock=Decimal("500.000"),
+        )
+        resp = self._post(other_item.id, {"quantity": "30", "reason": "Spillage"})
+        self.assertEqual(resp.status_code, 404)
+        other_item.refresh_from_db()
+        self.assertEqual(other_item.stock, Decimal("500.000"))
+
+
+# ============================================================
+# VARIANCE REPORT TESTS
+# ============================================================
+
+class VarianceReportTests(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Variance Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Bar")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="varmanager", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet
+        )
+        self.rum = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Bacardi Rum", unit="ml",
+            stock=Decimal("690.000"),
+        )
+        self.client.force_login(self.manager)
+
+    def test_variance_report_loads(self):
+        resp = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Bacardi Rum")
+
+    def test_variance_report_with_date_param(self):
+        resp = self.client.get(reverse("inventory_variance") + "?date=2026-01-01")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_variance_report_csv_export(self):
+        resp = self.client.get(reverse("inventory_variance") + "?export=csv")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/csv")
+        content = resp.content.decode()
+        self.assertIn("Bacardi Rum", content)
+        self.assertIn("Variance %", content)
+
+    def test_variance_report_shows_consumed_transactions(self):
+        from inventory.models import InventoryTransaction
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-60.000"), transaction_type="consume",
+            reference="Order #1"
+        )
+        resp = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(resp.status_code, 200)
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
+        self.assertEqual(rum_row["consumed"], Decimal("60.000"))
+
+    def test_variance_row_maths_are_consistent(self):
+        from inventory.models import InventoryTransaction
+        # Restock +100ml, consume -60ml, wastage -20ml
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("100.000"), transaction_type="restock",
+            reference="Delivery"
+        )
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-60.000"), transaction_type="consume",
+            reference="Order #1"
+        )
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-20.000"), transaction_type="wastage",
+            reference="Spillage"
+        )
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
+        # opening = actual + consumed + wastage - restocked
+        expected_opening = self.rum.stock + Decimal("60") + Decimal("20") - Decimal("100")
+        self.assertEqual(rum_row["opening"], expected_opening)
+        self.assertEqual(rum_row["consumed"], Decimal("60.000"))
+        self.assertEqual(rum_row["wastage"], Decimal("20.000"))
+        self.assertEqual(rum_row["restocked"], Decimal("100.000"))
+        # expected_closing == actual_closing (formula is consistent by design)
+        self.assertEqual(rum_row["expected_closing"], rum_row["actual_closing"])
