@@ -6,6 +6,16 @@ APP_DIR=/home/ubuntu/rasova
 cd $APP_DIR
 source .venv/bin/activate
 
+# Ensure swap exists — collectstatic OOMs on t2.micro without it
+if [ ! -f /swapfile ]; then
+    echo "=== Creating 1GB swap (one-time) ==="
+    sudo fallocate -l 1G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
+
 echo "=== Pulling latest code ==="
 git fetch origin qsr
 git reset --hard origin/qsr
@@ -16,12 +26,15 @@ pip install -r requirements.txt --quiet
 echo "=== Migrate ==="
 python manage.py migrate
 
+echo "=== Stopping gunicorn before collectstatic (free RAM) ==="
+sudo fuser -k 8000/tcp 2>/dev/null || true
+sleep 1
+
 echo "=== Static files ==="
 python manage.py collectstatic --noinput
 
 echo "=== Restarting gunicorn ==="
-sudo fuser -k 8000/tcp 2>/dev/null || true
-sleep 2
+sleep 1
 gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 --daemon core.wsgi:application
 
 echo "=== Ensuring Redis is running ==="

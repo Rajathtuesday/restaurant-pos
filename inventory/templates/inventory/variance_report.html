@@ -114,9 +114,10 @@
   {% endwith %}
 
   <div class="legend">
-    <span><span class="dot" style="background:#10b981;"></span> Green — variance &lt; 3% (normal)</span>
-    <span><span class="dot" style="background:#f59e0b;"></span> Amber — 3–8% loss (investigate)</span>
-    <span><span class="dot" style="background:#ef4444;"></span> Red — &gt; 8% loss (action needed)</span>
+    <span><span class="dot" style="background:#10b981;"></span> Green — within 3% (normal)</span>
+    <span><span class="dot" style="background:#f59e0b;"></span> Amber — 3–8% gap (investigate)</span>
+    <span><span class="dot" style="background:#ef4444;"></span> Red — &gt;8% gap (action needed)</span>
+    <span style="border-left:1px solid var(--border-color);padding-left:1rem;">Negative = orders placed, deduction didn't fire &nbsp;·&nbsp; Positive = deduction exceeds orders</span>
   </div>
 
   <div style="overflow-x:auto;">
@@ -125,14 +126,13 @@
       <tr>
         <th style="text-align:left;">Item</th>
         <th>Unit</th>
-        <th>Opening</th>
-        <th>+ Restocked</th>
-        <th>− Consumed</th>
-        <th>− Wastage</th>
-        <th>Expected</th>
-        <th>Actual</th>
+        <th>Recipe Expected</th>
+        <th>Txn Consumed</th>
         <th>Variance</th>
         <th>%</th>
+        <th>Wastage</th>
+        <th>+ Restocked</th>
+        <th>Current Stock</th>
       </tr>
     </thead>
     <tbody>
@@ -140,23 +140,20 @@
       <tr>
         <td>{{ r.item.name }}</td>
         <td style="color:var(--text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:1px;">{{ r.item.unit }}</td>
-        <td>{{ r.opening|floatformat:2 }}</td>
-        <td style="color:#10b981;">+{{ r.restocked|floatformat:2 }}</td>
-        <td style="color:#f59e0b;">{{ r.consumed|floatformat:2 }}</td>
-        <td style="color:#ef4444;">{{ r.wastage|floatformat:2 }}</td>
-        <td style="color:var(--text-muted);">{{ r.expected_closing|floatformat:2 }}</td>
-        <td style="font-weight:600;">{{ r.actual_closing|floatformat:2 }}</td>
+        <td style="color:var(--text-muted);">{{ r.recipe_expected|floatformat:2 }}</td>
+        <td>{{ r.txn_consumed|floatformat:2 }}</td>
         <td style="font-weight:700;
-          {% if r.variance < 0 and r.variance_pct is not None and r.variance_pct < -8 %}color:#ef4444;
-          {% elif r.variance < 0 and r.variance_pct is not None and r.variance_pct < -3 %}color:#f59e0b;
+          {% if r.variance_pct is not None and r.variance_pct < -8 %}color:#ef4444;
+          {% elif r.variance_pct is not None and r.variance_pct < -3 %}color:#f59e0b;
+          {% elif r.variance_pct is not None and r.variance_pct > 8 %}color:#f59e0b;
           {% else %}color:#10b981;{% endif %}">
-          {{ r.variance|floatformat:2 }}
+          {% if r.variance > 0 %}+{% endif %}{{ r.variance|floatformat:2 }}
         </td>
         <td>
           {% if r.variance_pct is not None %}
-            {% if r.variance_pct < -8 %}
+            {% if r.variance_pct < -8 or r.variance_pct > 8 %}
               <span class="badge-bad">{{ r.variance_pct }}%</span>
-            {% elif r.variance_pct < -3 %}
+            {% elif r.variance_pct < -3 or r.variance_pct > 3 %}
               <span class="badge-warn">{{ r.variance_pct }}%</span>
             {% else %}
               <span class="badge-ok">{{ r.variance_pct }}%</span>
@@ -165,6 +162,9 @@
             <span class="badge-zero">—</span>
           {% endif %}
         </td>
+        <td style="color:#ef4444;">{{ r.wastage|floatformat:2 }}</td>
+        <td style="color:#10b981;">+{{ r.restocked|floatformat:2 }}</td>
+        <td style="font-weight:600;">{{ r.item.stock|floatformat:2 }}</td>
       </tr>
       {% endfor %}
     </tbody>

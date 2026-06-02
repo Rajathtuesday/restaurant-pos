@@ -364,45 +364,114 @@ class VarianceReportTests(TestCase):
         self.assertIn("Bacardi Rum", content)
         self.assertIn("Variance %", content)
 
-    def test_variance_report_shows_consumed_transactions(self):
+    def test_variance_zero_when_txn_matches_recipe(self):
+        """Transactions consumed exactly what recipes expected — variance = 0."""
         from inventory.models import InventoryTransaction
-        InventoryTransaction.objects.create(
-            item=self.rum, tenant=self.tenant, outlet=self.outlet,
-            quantity=Decimal("-60.000"), transaction_type="consume",
-            reference="Order #1"
-        )
-        resp = self.client.get(reverse("inventory_variance"))
-        self.assertEqual(resp.status_code, 200)
-        rows = resp.context["rows"]
-        rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
-        self.assertEqual(rum_row["consumed"], Decimal("60.000"))
+        from menu.models import MenuItem, MenuCategory
+        from inventory.models import Recipe as MenuRecipe
+        from orders.models import Order, OrderItem
 
-    def test_variance_row_maths_are_consistent(self):
-        from inventory.models import InventoryTransaction
-        # Restock +100ml, consume -60ml, wastage -20ml
-        InventoryTransaction.objects.create(
-            item=self.rum, tenant=self.tenant, outlet=self.outlet,
-            quantity=Decimal("100.000"), transaction_type="restock",
-            reference="Delivery"
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Bar"
+        )
+        mojito = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Mojito", price=Decimal("300")
+        )
+        MenuRecipe.objects.create(
+            menu_item=mojito, inventory_item=self.rum,
+            quantity_required=Decimal("60.00"), unit="ml"
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            status="closed"
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=mojito, quantity=1,
+            price=Decimal("300"), gst_percentage=Decimal("0"),
+            total_price=Decimal("300"), status="served"
         )
         InventoryTransaction.objects.create(
             item=self.rum, tenant=self.tenant, outlet=self.outlet,
             quantity=Decimal("-60.000"), transaction_type="consume",
             reference="Order #1"
         )
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
+        self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
+        self.assertEqual(rum_row["txn_consumed"], Decimal("60.000"))
+        self.assertEqual(rum_row["variance"], Decimal("0.000"))
+
+    def test_variance_negative_when_deduction_missed(self):
+        """Recipe expected 60ml but no transaction fired — tracking gap (-60)."""
+        from menu.models import MenuItem, MenuCategory
+        from inventory.models import Recipe as MenuRecipe
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Bar2"
+        )
+        mojito = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Mojito2", price=Decimal("300")
+        )
+        MenuRecipe.objects.create(
+            menu_item=mojito, inventory_item=self.rum,
+            quantity_required=Decimal("60.00"), unit="ml"
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            status="closed"
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=mojito, quantity=1,
+            price=Decimal("300"), gst_percentage=Decimal("0"),
+            total_price=Decimal("300"), status="served"
+        )
+        # No InventoryTransaction — deduction never fired
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
+        self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
+        self.assertEqual(rum_row["txn_consumed"], Decimal("0"))
+        self.assertEqual(rum_row["variance"], Decimal("-60.000"))  # tracking gap
+
+    def test_variance_positive_when_deduction_exceeds_orders(self):
+        """Transaction shows 90ml consumed but recipes only expect 60ml — over-deduction (+30)."""
+        from inventory.models import InventoryTransaction
+        from menu.models import MenuItem, MenuCategory
+        from inventory.models import Recipe as MenuRecipe
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Bar3"
+        )
+        mojito = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Mojito3", price=Decimal("300")
+        )
+        MenuRecipe.objects.create(
+            menu_item=mojito, inventory_item=self.rum,
+            quantity_required=Decimal("60.00"), unit="ml"
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            status="closed"
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=mojito, quantity=1,
+            price=Decimal("300"), gst_percentage=Decimal("0"),
+            total_price=Decimal("300"), status="served"
+        )
         InventoryTransaction.objects.create(
             item=self.rum, tenant=self.tenant, outlet=self.outlet,
-            quantity=Decimal("-20.000"), transaction_type="wastage",
-            reference="Spillage"
+            quantity=Decimal("-90.000"), transaction_type="consume",
+            reference="Order #1"
         )
         resp = self.client.get(reverse("inventory_variance"))
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
-        # opening = actual + consumed + wastage - restocked
-        expected_opening = self.rum.stock + Decimal("60") + Decimal("20") - Decimal("100")
-        self.assertEqual(rum_row["opening"], expected_opening)
-        self.assertEqual(rum_row["consumed"], Decimal("60.000"))
-        self.assertEqual(rum_row["wastage"], Decimal("20.000"))
-        self.assertEqual(rum_row["restocked"], Decimal("100.000"))
-        # expected_closing == actual_closing (formula is consistent by design)
-        self.assertEqual(rum_row["expected_closing"], rum_row["actual_closing"])
+        self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
+        self.assertEqual(rum_row["txn_consumed"], Decimal("90.000"))
+        self.assertEqual(rum_row["variance"], Decimal("30.000"))

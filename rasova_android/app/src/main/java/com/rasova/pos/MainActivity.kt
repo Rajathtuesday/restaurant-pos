@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
         } else {
             showingOfflinePage = true
             splashView.visibility = View.GONE
-            webView.loadData(OFFLINE_HTML, "text/html", "UTF-8")
+            webView.loadDataWithBaseURL(null, OFFLINE_HTML, "text/html", "UTF-8", null)
         }
     }
 
@@ -213,7 +213,7 @@ class MainActivity : AppCompatActivity() {
                 view: WebView, handler: SslErrorHandler, error: SslError
             ) {
                 handler.cancel()
-                view.loadData(SSL_ERROR_HTML, "text/html", "UTF-8")
+                view.loadDataWithBaseURL(null, SSL_ERROR_HTML, "text/html", "UTF-8", null)
             }
 
             override fun shouldOverrideUrlLoading(

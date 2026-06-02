@@ -691,13 +691,16 @@ def log_wastage(request, item_id):
 @feature_required("inventory")
 def variance_report(request):
     """
-    Daily variance report for bar/liquor inventory.
-    Compares expected closing stock (from transactions) vs actual stock.
-    Variance = unexplained loss — theft, over-pour, unrecorded wastage.
+    Daily variance report.
+    Variance = transaction-recorded consumption minus recipe-expected consumption.
+      0   → KOT deductions matched orders exactly (healthy)
+      +ve → more was deducted than orders explain (untracked consumption, recipe drift)
+      -ve → orders placed but inventory wasn't fully deducted (tracking gap)
     """
     import csv
     from datetime import date as dt_date
     from core.utils import get_business_date
+    from orders.models import OrderItem
     from .models import InventoryTransaction
 
     tenant = request.user.tenant
@@ -711,63 +714,71 @@ def variance_report(request):
     except ValueError:
         report_date = get_business_date(timezone.now(), outlet)
 
-    # All inventory items for this outlet (ml/l units = liquor, but show all)
-    items = InventoryItem.objects.filter(
-        tenant=tenant, outlet=outlet
-    ).order_by("name")
+    # Step 1 — recipe-expected consumption per inventory item (from actual orders sold)
+    sold_items = (
+        OrderItem.objects
+        .filter(
+            order__tenant=tenant,
+            order__outlet=outlet,
+            order__created_at__date=report_date,
+            order__status__in=["closed", "paid"],
+        )
+        .exclude(status="voided")
+        .select_related("menu_item")
+    )
+    recipe_map: dict = {}  # {inventory_item_id: Decimal}
+    for oi in sold_items:
+        if not oi.menu_item:
+            continue
+        for recipe in oi.menu_item.recipes.select_related("inventory_item").all():
+            qty = recipe.quantity_required * Decimal(str(oi.quantity))
+            recipe_map[recipe.inventory_item_id] = (
+                recipe_map.get(recipe.inventory_item_id, Decimal("0")) + qty
+            )
 
+    # Step 2 — per item: compare recipe vs transaction
+    items = InventoryItem.objects.filter(tenant=tenant, outlet=outlet).order_by("name")
     rows = []
     for item in items:
         txns = InventoryTransaction.objects.filter(
-            item=item,
-            tenant=tenant,
-            outlet=outlet,
+            item=item, tenant=tenant, outlet=outlet,
             created_at__date=report_date,
         )
-
-        restocked = sum(t.quantity for t in txns if t.transaction_type == "restock")
-        consumed  = abs(sum(t.quantity for t in txns if t.transaction_type == "consume"))
-        wastage   = abs(sum(t.quantity for t in txns if t.transaction_type == "wastage"))
-
-        # Opening = current stock + consumed + wastage - restocked
-        opening = Decimal(item.stock) + consumed + wastage - restocked
-        expected_closing = opening + restocked - consumed - wastage
-        actual_closing   = Decimal(item.stock)
-        variance         = actual_closing - expected_closing
-
-        variance_pct = None
-        if opening > 0:
-            variance_pct = round(float(variance / opening * 100), 1)
-
+        restocked        = sum(t.quantity for t in txns if t.transaction_type == "restock")
+        txn_consumed     = abs(sum(t.quantity for t in txns if t.transaction_type == "consume"))
+        wastage          = abs(sum(t.quantity for t in txns if t.transaction_type == "wastage"))
+        recipe_expected  = recipe_map.get(item.id, Decimal("0"))
+        variance         = txn_consumed - recipe_expected
+        variance_pct     = (
+            round(float(variance / recipe_expected * 100), 1)
+            if recipe_expected > 0 else None
+        )
         rows.append({
             "item":             item,
-            "opening":          opening,
-            "restocked":        restocked,
-            "consumed":         consumed,
+            "recipe_expected":  recipe_expected,
+            "txn_consumed":     txn_consumed,
             "wastage":          wastage,
-            "expected_closing": expected_closing,
-            "actual_closing":   actual_closing,
+            "restocked":        restocked,
             "variance":         variance,
             "variance_pct":     variance_pct,
         })
 
-    # Sort: biggest absolute variance first
     rows.sort(key=lambda r: abs(r["variance"]), reverse=True)
 
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="variance_{report_date}.csv"'
         writer = csv.writer(response)
-        writer.writerow(["Item", "Unit", "Opening", "Restocked", "Consumed",
-                         "Wastage", "Expected Closing", "Actual Closing", "Variance", "Variance %"])
+        writer.writerow(["Item", "Unit", "Recipe Expected", "Txn Consumed",
+                         "Variance", "Variance %", "Wastage", "Restocked", "Current Stock"])
         for r in rows:
             writer.writerow([
                 r["item"].name, r["item"].unit,
-                f"{r['opening']:.3f}", f"{r['restocked']:.3f}",
-                f"{r['consumed']:.3f}", f"{r['wastage']:.3f}",
-                f"{r['expected_closing']:.3f}", f"{r['actual_closing']:.3f}",
+                f"{r['recipe_expected']:.3f}", f"{r['txn_consumed']:.3f}",
                 f"{r['variance']:.3f}",
                 f"{r['variance_pct']:.1f}" if r["variance_pct"] is not None else "—",
+                f"{r['wastage']:.3f}", f"{r['restocked']:.3f}",
+                f"{r['item'].stock:.3f}",
             ])
         return response
 
