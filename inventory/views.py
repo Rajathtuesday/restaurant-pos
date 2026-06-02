@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -628,4 +628,150 @@ def consumption_report(request):
         "report_date": report_date,
         "report_rows": report_rows,
         "outlet": outlet,
+    })
+
+
+# ============================================================
+# WASTAGE LOGGING
+# ============================================================
+
+@login_required
+@tenant_required
+@feature_required("inventory")
+@require_POST
+def log_wastage(request, item_id):
+    if not _manager_required(request.user):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    try:
+        quantity = Decimal(str(data.get("quantity", "0")))
+    except InvalidOperation:
+        return JsonResponse({"error": "Invalid quantity"}, status=400)
+
+    if quantity <= 0:
+        return JsonResponse({"error": "Quantity must be positive"}, status=400)
+
+    reason = data.get("reason", "").strip()[:100]
+    notes  = data.get("notes", "").strip()[:200]
+    reference = reason if not notes else f"{reason} — {notes}"
+
+    try:
+        item = InventoryItem.objects.get(
+            id=item_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+        )
+    except InventoryItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+
+    try:
+        item.record_wastage(quantity, reference=reference or "Manual wastage")
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+    logger.info(
+        "%s logged wastage: %s ×%.3f %s (%s)",
+        request.user.username, item.name, quantity, item.unit, reference
+    )
+    return JsonResponse({"success": True, "new_stock": float(item.stock)})
+
+
+# ============================================================
+# VARIANCE REPORT
+# ============================================================
+
+@login_required
+@tenant_required
+@feature_required("inventory")
+def variance_report(request):
+    """
+    Daily variance report for bar/liquor inventory.
+    Compares expected closing stock (from transactions) vs actual stock.
+    Variance = unexplained loss — theft, over-pour, unrecorded wastage.
+    """
+    import csv
+    from datetime import date as dt_date
+    from core.utils import get_business_date
+    from .models import InventoryTransaction
+
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+
+    date_str = request.GET.get("date", "")
+    try:
+        report_date = dt_date.fromisoformat(date_str) if date_str else get_business_date(
+            timezone.now(), outlet
+        )
+    except ValueError:
+        report_date = get_business_date(timezone.now(), outlet)
+
+    # All inventory items for this outlet (ml/l units = liquor, but show all)
+    items = InventoryItem.objects.filter(
+        tenant=tenant, outlet=outlet
+    ).order_by("name")
+
+    rows = []
+    for item in items:
+        txns = InventoryTransaction.objects.filter(
+            item=item,
+            tenant=tenant,
+            outlet=outlet,
+            created_at__date=report_date,
+        )
+
+        restocked = sum(t.quantity for t in txns if t.transaction_type == "restock")
+        consumed  = abs(sum(t.quantity for t in txns if t.transaction_type == "consume"))
+        wastage   = abs(sum(t.quantity for t in txns if t.transaction_type == "wastage"))
+
+        # Opening = current stock + consumed + wastage - restocked
+        opening = Decimal(item.stock) + consumed + wastage - restocked
+        expected_closing = opening + restocked - consumed - wastage
+        actual_closing   = Decimal(item.stock)
+        variance         = actual_closing - expected_closing
+
+        variance_pct = None
+        if opening > 0:
+            variance_pct = round(float(variance / opening * 100), 1)
+
+        rows.append({
+            "item":             item,
+            "opening":          opening,
+            "restocked":        restocked,
+            "consumed":         consumed,
+            "wastage":          wastage,
+            "expected_closing": expected_closing,
+            "actual_closing":   actual_closing,
+            "variance":         variance,
+            "variance_pct":     variance_pct,
+        })
+
+    # Sort: biggest absolute variance first
+    rows.sort(key=lambda r: abs(r["variance"]), reverse=True)
+
+    if request.GET.get("export") == "csv":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="variance_{report_date}.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["Item", "Unit", "Opening", "Restocked", "Consumed",
+                         "Wastage", "Expected Closing", "Actual Closing", "Variance", "Variance %"])
+        for r in rows:
+            writer.writerow([
+                r["item"].name, r["item"].unit,
+                f"{r['opening']:.3f}", f"{r['restocked']:.3f}",
+                f"{r['consumed']:.3f}", f"{r['wastage']:.3f}",
+                f"{r['expected_closing']:.3f}", f"{r['actual_closing']:.3f}",
+                f"{r['variance']:.3f}",
+                f"{r['variance_pct']:.1f}" if r["variance_pct"] is not None else "—",
+            ])
+        return response
+
+    return render(request, "inventory/variance_report.html", {
+        "report_date": report_date,
+        "rows":        rows,
+        "outlet":      outlet,
     })

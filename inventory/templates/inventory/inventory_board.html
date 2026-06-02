@@ -93,6 +93,8 @@
 
 {% block header_right %}
 <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+<a href="{% url 'inventory_consumption' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-graph-up me-1"></i> Consumption</a>
+<a href="{% url 'inventory_variance' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-droplet-half me-1"></i> Variance</a>
 {% if 'purchase_orders' in tenant_features %}
 <a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
 <a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
@@ -150,6 +152,7 @@
                             <div class="d-flex align-items-center gap-2">
                                 <input type="number" min="0" step="0.01" id="add{{ item.id }}" class="input-luxury" placeholder="Qty">
                                 <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')">Add</button>
+                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage"><i class="bi bi-droplet-half"></i></button>
                             </div>
                         </td>
                         <td>
@@ -262,6 +265,45 @@
         </div>
     </div>
 </div>
+
+<!-- WASTAGE MODAL -->
+<div class="modal fade" id="wastageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border-col);border-radius:8px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" style="color:var(--text-main);">Log Wastage / Spillage</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="wastageItemId">
+                <p class="text-muted mb-3" id="wastageItemName" style="font-size:0.9rem;"></p>
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Quantity (<span id="wastageUnit"></span>)</label>
+                    <input type="number" id="wastageQty" min="0.001" step="0.001" class="input-luxury w-100" placeholder="e.g. 30">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Reason</label>
+                    <select id="wastageReason" class="input-luxury w-100">
+                        <option value="Spillage">Spillage</option>
+                        <option value="Breakage">Breakage</option>
+                        <option value="Over-pour">Over-pour</option>
+                        <option value="Quality rejection">Quality rejection</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Notes (optional)</label>
+                    <input type="text" id="wastageNotes" class="input-luxury w-100" placeholder="e.g. Bottle dropped by staff">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn-luxury w-100 justify-content-center" style="border-color:#c9503a;color:#c9503a;" onclick="submitWastage()">
+                    <i class="bi bi-droplet-half me-2"></i>Log Wastage
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -342,6 +384,37 @@ function updateInventoryItem() {
     })
     .then(r => r.json())
     .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to update ingredient.'); } });
+}
+
+function openWastageModal(id, name, unit) {
+    document.getElementById('wastageItemId').value = id;
+    document.getElementById('wastageItemName').textContent = name;
+    document.getElementById('wastageUnit').textContent = unit;
+    document.getElementById('wastageQty').value = '';
+    document.getElementById('wastageNotes').value = '';
+    document.getElementById('wastageReason').value = 'Spillage';
+    new bootstrap.Modal(document.getElementById('wastageModal')).show();
+}
+
+function submitWastage() {
+    const id     = document.getElementById('wastageItemId').value;
+    const qty    = document.getElementById('wastageQty').value;
+    const reason = document.getElementById('wastageReason').value;
+    const notes  = document.getElementById('wastageNotes').value;
+    if (!qty || parseFloat(qty) <= 0) { alert('Enter a valid quantity.'); return; }
+    fetch(`/inventory/wastage/${id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ quantity: qty, reason, notes })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('wastageModal')).hide();
+            document.getElementById('stock' + id).innerText = parseFloat(data.new_stock).toFixed(3);
+            location.reload();
+        } else { alert(data.error || 'Failed to log wastage'); }
+    });
 }
 </script>
 {% endblock %}

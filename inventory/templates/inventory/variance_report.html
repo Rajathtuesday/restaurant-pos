@@ -1,0 +1,183 @@
+{% extends 'core/base.html' %}
+{% block title %}Variance Report | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .82rem; margin-bottom: 2rem; }
+.divider { height: 1px; background: var(--border-color); margin: 1.5rem 0; }
+
+.controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.date-input { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
+              padding: .6rem .9rem; font-size: .88rem; font-family: inherit; outline: none; }
+.date-input:focus { border-color: var(--accent-gold); }
+.btn-filter { background: var(--accent-gold); border: none; color: #fff; padding: .6rem 1.2rem;
+              font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;
+              cursor: pointer; font-family: inherit; }
+.btn-export { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+              padding: .6rem 1.2rem; font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px;
+              font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none;
+              display: inline-flex; align-items: center; gap: .4rem; transition: all .15s; }
+.btn-export:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.summary-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; }
+.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent-gold); }
+.summary-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .2rem; }
+
+.table { width: 100%; border-collapse: collapse; }
+.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
+            font-weight: 700; padding: .75rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+.table th:first-child { text-align: left; }
+.table td { padding: .75rem .5rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: .85rem; text-align: right; }
+.table td:first-child { text-align: left; font-weight: 500; }
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: rgba(197,160,89,0.03); }
+
+.badge-ok   { color: #10b981; font-size:.75rem; font-weight:700; }
+.badge-warn { color: #f59e0b; font-size:.75rem; font-weight:700; }
+.badge-bad  { color: #ef4444; font-size:.75rem; font-weight:700; }
+.badge-zero { color: var(--text-muted); font-size:.75rem; }
+
+.empty { text-align: center; padding: 3rem; color: var(--text-muted); font-size: .85rem; }
+.empty i { font-size: 2rem; display: block; margin-bottom: .75rem; }
+
+.legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: .78rem; }
+.legend span { display: flex; align-items: center; gap: .4rem; color: var(--text-muted); }
+.dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div class="d-flex flex-column">
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h1>
+  </a>
+  <p class="mb-0 text-muted" style="font-size:.75rem;letter-spacing:1px;text-transform:uppercase;">Inventory · Variance</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/inventory/board/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-left me-1"></i> Inventory</a>
+<a href="/inventory/consumption/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-graph-up me-1"></i> Consumption</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme"><i class="bi bi-moon" id="themeIcon"></i></button>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+
+  <div class="page-eyebrow">Inventory</div>
+  <h1 class="page-title">Variance Report</h1>
+  <p class="page-sub">Expected closing stock vs actual. Negative variance = unexplained loss — spillage, theft, or unrecorded wastage.</p>
+
+  <div class="divider"></div>
+
+  <form method="get" class="controls">
+    <input type="date" name="date" class="date-input" value="{{ report_date|date:'Y-m-d' }}">
+    <button type="submit" class="btn-filter"><i class="bi bi-search me-1"></i> View</button>
+    <a href="?date={{ report_date|date:'Y-m-d' }}&export=csv" class="btn-export">
+      <i class="bi bi-download"></i> Export CSV
+    </a>
+  </form>
+
+  {% if rows %}
+
+  {% with total_items=rows|length %}
+  {% with bad_count=0 %}
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-num">{{ rows|length }}</div>
+      <div class="summary-lbl">Items Tracked</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num" style="color:#10b981;">
+        {% for r in rows %}{% if r.variance_pct is not None and r.variance_pct >= -3 %}{% if forloop.last %}{{ forloop.counter }}{% endif %}{% endif %}{% endfor %}
+      </div>
+      <div class="summary-lbl">OK (variance &lt; 3%)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num" style="color:#ef4444;">
+        {% for r in rows %}{% if r.variance_pct is not None and r.variance_pct < -8 %}{% if forloop.last %}{{ forloop.counter }}{% endif %}{% endif %}{% endfor %}
+      </div>
+      <div class="summary-lbl">Critical (&gt; 8% loss)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num">{{ report_date|date:"d M" }}</div>
+      <div class="summary-lbl">Report Date</div>
+    </div>
+  </div>
+
+  {% endwith %}
+  {% endwith %}
+
+  <div class="legend">
+    <span><span class="dot" style="background:#10b981;"></span> Green — variance &lt; 3% (normal)</span>
+    <span><span class="dot" style="background:#f59e0b;"></span> Amber — 3–8% loss (investigate)</span>
+    <span><span class="dot" style="background:#ef4444;"></span> Red — &gt; 8% loss (action needed)</span>
+  </div>
+
+  <div style="overflow-x:auto;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="text-align:left;">Item</th>
+        <th>Unit</th>
+        <th>Opening</th>
+        <th>+ Restocked</th>
+        <th>− Consumed</th>
+        <th>− Wastage</th>
+        <th>Expected</th>
+        <th>Actual</th>
+        <th>Variance</th>
+        <th>%</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.item.name }}</td>
+        <td style="color:var(--text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:1px;">{{ r.item.unit }}</td>
+        <td>{{ r.opening|floatformat:2 }}</td>
+        <td style="color:#10b981;">+{{ r.restocked|floatformat:2 }}</td>
+        <td style="color:#f59e0b;">{{ r.consumed|floatformat:2 }}</td>
+        <td style="color:#ef4444;">{{ r.wastage|floatformat:2 }}</td>
+        <td style="color:var(--text-muted);">{{ r.expected_closing|floatformat:2 }}</td>
+        <td style="font-weight:600;">{{ r.actual_closing|floatformat:2 }}</td>
+        <td style="font-weight:700;
+          {% if r.variance < 0 and r.variance_pct is not None and r.variance_pct < -8 %}color:#ef4444;
+          {% elif r.variance < 0 and r.variance_pct is not None and r.variance_pct < -3 %}color:#f59e0b;
+          {% else %}color:#10b981;{% endif %}">
+          {{ r.variance|floatformat:2 }}
+        </td>
+        <td>
+          {% if r.variance_pct is not None %}
+            {% if r.variance_pct < -8 %}
+              <span class="badge-bad">{{ r.variance_pct }}%</span>
+            {% elif r.variance_pct < -3 %}
+              <span class="badge-warn">{{ r.variance_pct }}%</span>
+            {% else %}
+              <span class="badge-ok">{{ r.variance_pct }}%</span>
+            {% endif %}
+          {% else %}
+            <span class="badge-zero">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <i class="bi bi-bar-chart"></i>
+    No inventory data for {{ report_date|date:"d M Y" }}.<br>
+    Inventory is tracked automatically when orders are sent to kitchen.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
