@@ -151,9 +151,9 @@ def deduct_inventory_for_items(order_items):
 
 def check_inventory_availability(menu_item, quantity=1):
     """
-    Check if enough inventory exists before ordering.
-    Scoped to the same tenant + outlet as the menu item — prevents
-    a missing tenant filter from reading another tenant's inventory.
+    Warn-only inventory check — never blocks an order.
+    KOT deduction already handles soft-drain to 0 gracefully,
+    so blocking here would be stricter than the deduction allows.
     """
     recipes_manager = getattr(menu_item, "recipes", None)
     if recipes_manager is None:
@@ -164,12 +164,18 @@ def check_inventory_availability(menu_item, quantity=1):
         try:
             inventory = InventoryItem.objects.get(
                 id=recipe.inventory_item_id,
-                tenant=menu_item.tenant,    # ← tenant isolation enforced
-                outlet=menu_item.outlet,    # ← outlet isolation enforced
+                tenant=menu_item.tenant,
+                outlet=menu_item.outlet,
             )
             if inventory.stock < required:
-                return False
+                logger.warning(
+                    "[INVENTORY WARN] %s: need %.2f %s, have %.2f — order allowed, will soft-drain at KOT",
+                    inventory.name, required, inventory.unit, inventory.stock,
+                )
         except InventoryItem.DoesNotExist:
-            return False
+            logger.warning(
+                "[INVENTORY WARN] Recipe for '%s' references missing inventory item id=%s — skipping check",
+                menu_item.name, recipe.inventory_item_id,
+            )
 
     return True
