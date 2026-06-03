@@ -393,6 +393,47 @@
         }
         .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; cursor: pointer; padding: 0.4rem; transition: var(--transition-smooth); }
         .btn-icon:hover { color: var(--accent-gold); }
+
+        /* MODIFIER MODAL */
+        .modifier-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1060; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .modifier-overlay.active { opacity: 1; pointer-events: all; }
+        .modifier-modal {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--panel-bg); border-radius: 20px 20px 0 0;
+            padding: 1.5rem; z-index: 1070;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modifier-modal.active { transform: translateY(0); }
+        .modifier-item-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; margin-bottom: 1rem; }
+        .modifier-group-section { margin-bottom: 1.5rem; }
+        .modifier-group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .modifier-req-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 600; background: var(--border-color); color: var(--text-muted); }
+        .modifier-options { display: flex; flex-direction: column; gap: 0.5rem; }
+        .modifier-option {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.75rem; border: 1px solid var(--border-color);
+            border-radius: 10px; cursor: pointer; transition: border-color 0.2s;
+        }
+        .modifier-option:hover { border-color: var(--accent-gold); }
+        .modifier-check {
+            width: 20px; height: 20px; border-radius: 50%;
+            border: 2px solid var(--border-color); flex-shrink: 0; transition: all 0.2s;
+        }
+        .modifier-check.checked { background: var(--accent-gold); border-color: var(--accent-gold); }
+        .modifier-price { font-size: 0.85rem; font-weight: 600; color: var(--accent-gold); }
+        .modifier-total { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+        .confirm-modifier-btn {
+            background: var(--accent-gold); color: #fff; border: none;
+            padding: 0.75rem 1.5rem; border-radius: 10px;
+            font-weight: 600; font-size: 0.95rem; text-transform: uppercase;
+        }
+        .cart-modifier-names { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
     </style>
 </head>
 <body>
@@ -498,6 +539,19 @@
         <button class="view-cart-btn" onclick="openCart()">VIEW CART <i class="bi bi-arrow-right"></i></button>
     </div>
 
+    <!-- MODIFIER SELECTION MODAL -->
+    <div class="modifier-overlay" id="modifierOverlay" onclick="closeModifierModal()"></div>
+    <div class="modifier-modal" id="modifierModal">
+        <div class="modal-drag-handle"></div>
+        <button class="close-modal-btn" onclick="closeModifierModal()"><i class="bi bi-x"></i></button>
+        <h3 id="modifierItemName" class="modifier-item-title"></h3>
+        <div id="modifierGroupsContainer"></div>
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-2" style="border-top:1px solid var(--border-color);">
+            <div class="modifier-total">Total: ₹<span id="modTotalAmt">0</span></div>
+            <button class="confirm-modifier-btn" onclick="confirmModifiers()">ADD TO CART <i class="bi bi-cart-plus"></i></button>
+        </div>
+    </div>
+
     <!-- CART MODAL -->
     <div class="cart-modal-overlay" id="cartOverlay" onclick="closeCart()"></div>
     <div class="cart-modal" id="cartModal">
@@ -540,7 +594,9 @@
         </div>
     </div>
 
+{{ item_modifier_data|json_script:"item-modifiers-raw" }}
 <script>
+    const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
     let cart = {};
 
     // --- Search & Filter Logic ---
@@ -609,8 +665,17 @@
 
     // --- Cart Logic ---
     function addItem(id, name, price, prepTime, gstRate) {
-        if(!cart[id]) {
-            cart[id] = { id, name, price, qty: 1, prepTime: prepTime || 15, gstRate: gstRate || 5.0 };
+        const groups = ITEM_MODIFIERS[String(id)];
+        if (groups && groups.length > 0 && !cart[id]) {
+            openModifierModal(id, name, price, prepTime, gstRate, groups);
+        } else {
+            addToCart(id, name, price, prepTime, gstRate, [], 0);
+        }
+    }
+
+    function addToCart(id, name, price, prepTime, gstRate, modifiers, modifierPrice) {
+        if (!cart[id]) {
+            cart[id] = { id, name, price, qty: 1, prepTime: prepTime || 15, gstRate: gstRate || 5.0, modifiers: modifiers || [], modifierPrice: modifierPrice || 0 };
             document.getElementById(`addBtn-${id}`).classList.add('hidden');
             document.getElementById(`qtyCtrl-${id}`).classList.add('active');
         } else {
@@ -618,6 +683,79 @@
         }
         updateItemUI(id);
         updateCartBar();
+    }
+
+    // --- Modifier Modal ---
+    let pendingModifierItem = null;
+    let selectedModifiers = {};
+
+    function openModifierModal(id, name, price, prepTime, gstRate, groups) {
+        pendingModifierItem = { id, name, price, prepTime, gstRate };
+        selectedModifiers = {};
+        document.getElementById('modifierItemName').textContent = name;
+        const container = document.getElementById('modifierGroupsContainer');
+        container.innerHTML = '';
+        groups.forEach(group => {
+            const section = document.createElement('div');
+            section.className = 'modifier-group-section';
+            const badge = group.is_required
+                ? `<span class="modifier-req-badge" style="background:#fef3c7;color:#92400e;">Required · pick ${group.max_select}</span>`
+                : `<span class="modifier-req-badge">Optional · max ${group.max_select}</span>`;
+            const opts = group.modifiers.map(m => `
+                <label class="modifier-option" onclick="toggleModifier(${group.id},${m.id},'${m.name.replace(/'/g,"\\'")}',${m.price},${group.max_select})">
+                    <div class="modifier-check" id="modcheck-${m.id}"></div>
+                    <span>${m.name}</span>
+                    ${m.price > 0 ? `<span class="modifier-price ms-auto">+₹${m.price}</span>` : '<span class="ms-auto"></span>'}
+                </label>`).join('');
+            section.innerHTML = `<div class="modifier-group-header"><strong>${group.name}</strong>${badge}</div><div class="modifier-options">${opts}</div>`;
+            container.appendChild(section);
+        });
+        document.getElementById('modTotalAmt').textContent = price.toFixed(2);
+        document.getElementById('modifierOverlay').classList.add('active');
+        document.getElementById('modifierModal').classList.add('active');
+    }
+
+    function toggleModifier(groupId, modId, modName, modPrice, maxSelect) {
+        if (!selectedModifiers[groupId]) selectedModifiers[groupId] = [];
+        const idx = selectedModifiers[groupId].findIndex(m => m.id === modId);
+        if (idx >= 0) {
+            selectedModifiers[groupId].splice(idx, 1);
+            document.getElementById(`modcheck-${modId}`).classList.remove('checked');
+        } else {
+            if (selectedModifiers[groupId].length >= maxSelect) {
+                const removed = selectedModifiers[groupId].shift();
+                document.getElementById(`modcheck-${removed.id}`).classList.remove('checked');
+            }
+            selectedModifiers[groupId].push({ id: modId, name: modName, price: modPrice });
+            document.getElementById(`modcheck-${modId}`).classList.add('checked');
+        }
+        let extra = 0;
+        for (let gId in selectedModifiers) selectedModifiers[gId].forEach(m => extra += m.price);
+        document.getElementById('modTotalAmt').textContent = (pendingModifierItem.price + extra).toFixed(2);
+    }
+
+    function closeModifierModal() {
+        document.getElementById('modifierOverlay').classList.remove('active');
+        document.getElementById('modifierModal').classList.remove('active');
+        pendingModifierItem = null;
+        selectedModifiers = {};
+    }
+
+    function confirmModifiers() {
+        const groups = ITEM_MODIFIERS[String(pendingModifierItem.id)] || [];
+        for (const group of groups) {
+            if (group.is_required && (!selectedModifiers[group.id] || selectedModifiers[group.id].length === 0)) {
+                alert(`Please select an option for "${group.name}"`);
+                return;
+            }
+        }
+        let allModifiers = [], modifierPrice = 0;
+        for (let gId in selectedModifiers) {
+            selectedModifiers[gId].forEach(m => { allModifiers.push(m); modifierPrice += m.price; });
+        }
+        addToCart(pendingModifierItem.id, pendingModifierItem.name, pendingModifierItem.price,
+                  pendingModifierItem.prepTime, pendingModifierItem.gstRate, allModifiers, modifierPrice);
+        closeModifierModal();
     }
 
     function increaseItem(id) {
@@ -656,7 +794,7 @@
         let totalPrice = 0;
         for(let key in cart) {
             totalItems += cart[key].qty;
-            totalPrice += cart[key].qty * cart[key].price;
+            totalPrice += cart[key].qty * (cart[key].price + (cart[key].modifierPrice || 0));
         }
         
         document.getElementById('totalItems').innerText = totalItems;
@@ -707,17 +845,20 @@
 
         for(let key in cart) {
             const item = cart[key];
-            const itemTotal = item.qty * item.price;
+            const itemTotal = item.qty * (item.price + (item.modifierPrice || 0));
             subtotal += itemTotal;
-            
+
             // Calculate GST for this specific item based on its rate
             totalGst += itemTotal * ((item.gstRate || 5.0) / 100);
 
+            const modNames = item.modifiers && item.modifiers.length > 0
+                ? `<div class="cart-modifier-names">${item.modifiers.map(m => m.name).join(', ')}</div>` : '';
             const row = document.createElement('div');
             row.className = 'cart-item-row';
             row.innerHTML = `
                 <div>
                     <div class="cart-item-name">${item.name}</div>
+                    ${modNames}
                     <div class="qty-controls active" style="padding: 0.1rem 0.4rem;">
                         <button class="qty-btn" onclick="decreaseItem('${item.id}')">−</button>
                         <span class="qty-num">${item.qty}</span>
@@ -754,7 +895,8 @@
         const cartArray = Object.values(cart).map(i => ({
             id: i.id,
             quantity: i.qty,
-            price: i.price
+            price: i.price,
+            modifiers: (i.modifiers || []).map(m => m.id)
         }));
 
         const instructions = document.getElementById('specialInstructions').value;

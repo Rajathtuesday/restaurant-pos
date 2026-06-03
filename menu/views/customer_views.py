@@ -1,4 +1,5 @@
 """Customer-facing views: QR menu, digital self-order menu, waiter call."""
+import json
 import logging
 from django.http import JsonResponse, Http404
 from django.shortcuts import render, get_object_or_404
@@ -9,6 +10,30 @@ from orders.models import Table, WaiterCall
 logger = logging.getLogger("pos.menu")
 
 
+def _build_modifier_data(categories):
+    """Return a JSON string: {item_id: [{group}]} for items that have modifier groups."""
+    data = {}
+    for cat in categories:
+        for item in cat.items.all():
+            groups = []
+            for img in item.modifier_groups.all():
+                mg = img.modifier_group
+                mods = [
+                    {"id": m.id, "name": m.name, "price": float(m.price)}
+                    for m in mg.modifiers.all() if m.is_active
+                ]
+                if mods:
+                    groups.append({
+                        "id": mg.id, "name": mg.name,
+                        "is_required": mg.is_required,
+                        "max_select": mg.max_select,
+                        "modifiers": mods,
+                    })
+            if groups:
+                data[str(item.id)] = groups
+    return json.dumps(data)
+
+
 def menu_view(request, qr_token):
     """QR-scan entry point. Renders the digital self-order menu."""
     from core.features import has_feature
@@ -17,16 +42,17 @@ def menu_view(request, qr_token):
     if not has_feature(table.tenant, "qr_menu"):
         raise Http404
 
-    categories = (
+    categories = list(
         MenuCategory.objects
         .filter(tenant=table.tenant, outlet=table.outlet, is_active=True)
-        .prefetch_related("items")
+        .prefetch_related("items", "items__modifier_groups__modifier_group__modifiers")
     )
     return render(request, "menu/digital_menu.html", {
-        "table":      table,
-        "categories": categories,
-        "tenant":     table.tenant,
-        "outlet":     table.outlet,
+        "table":               table,
+        "categories":          categories,
+        "tenant":              table.tenant,
+        "outlet":              table.outlet,
+        "item_modifier_data":  _build_modifier_data(categories),
     })
 
 
@@ -73,10 +99,12 @@ def digital_menu(request):
     if not has_feature(tenant, "qr_menu"):
         raise Http404
 
-    categories = MenuCategory.objects.filter(
-        tenant=tenant, outlet=outlet, is_active=True
-    ).prefetch_related("items")
+    categories = list(
+        MenuCategory.objects.filter(tenant=tenant, outlet=outlet, is_active=True)
+        .prefetch_related("items", "items__modifier_groups__modifier_group__modifiers")
+    )
 
     return render(request, "menu/digital_menu.html", {
         "categories": categories, "table": table, "tenant": tenant, "outlet": outlet,
+        "item_modifier_data": _build_modifier_data(categories),
     })
