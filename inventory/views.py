@@ -562,7 +562,7 @@ def consumption_report(request):
     from django.utils import timezone
     from decimal import Decimal
     from orders.models import OrderItem
-    from menu.models import Recipe
+    from inventory.models import Recipe
     from core.utils import get_business_date
 
     tenant = request.user.tenant

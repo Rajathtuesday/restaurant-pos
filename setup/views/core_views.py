@@ -644,3 +644,28 @@ def outlet_settings(request):
         "outlet": outlet,
         "tenant": tenant,
     })
+
+
+@login_required
+@tenant_required
+def setup_qr_codes(request):
+    """Print QR codes for all tables — one QR per table linking to the digital menu."""
+    from django.conf import settings
+
+    outlet = request.user.outlet
+    tenant = request.user.tenant
+
+    tables = Table.objects.filter(
+        tenant=tenant, outlet=outlet
+    ).order_by("name")
+
+    base_url = getattr(settings, "BASE_URL", request.build_absolute_uri("/"))
+    if not base_url.endswith("/"):
+        base_url += "/"
+    menu_base_url = f"{base_url}menu/"
+
+    return render(request, "setup/setup_qr_codes.html", {
+        "tables":       tables,
+        "menu_base_url": menu_base_url,
+        "outlet":       outlet,
+    })

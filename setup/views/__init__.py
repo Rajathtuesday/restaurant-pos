@@ -16,6 +16,7 @@ from .core_views import (
     rename_table,
     outlet_settings,
     printer_setup,
+    setup_qr_codes,
 )
 
 from .promo_views import (
@@ -52,6 +53,7 @@ __all__ = [
     "rename_table",
     "outlet_settings",
     "printer_setup",
+    "setup_qr_codes",
     # promos
     "setup_promos",
     "promo_create",

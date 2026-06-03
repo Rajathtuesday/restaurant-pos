@@ -24,12 +24,14 @@ from .views import (
     sample_menu,
     checklist_status,
     check_slug_available,
+    setup_qr_codes,
 )
 
 urlpatterns = [
     path('', setup_wizard, name='setup_wizard'),
     path('onboard/', onboarding_wizard, name='onboarding_wizard'),
     path('tables/', setup_tables, name='setup_tables'),
+    path('qr-codes/', setup_qr_codes, name='setup_qr_codes'),
     path('menu/', setup_menu, name='setup_menu'),
     path('kitchen-stations/', setup_kitchen_stations, name='setup_kitchen_stations'),
     path('payment-methods/', setup_payment_methods, name='setup_payment_methods'),
