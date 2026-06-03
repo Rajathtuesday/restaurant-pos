@@ -167,17 +167,16 @@ def unlink_modifier_group(request):
 @tenant_required
 @feature_required("modifiers")
 @require_POST
-def add_modifier_recipe(request):
+def add_modifier_recipe(request, modifier_id):
     """Link a modifier to an inventory item so it deducts stock on KOT."""
     try:
-        data         = json.loads(request.body)
-        modifier_id  = data.get("modifier_id")
-        inv_item_id  = data.get("inventory_item_id")
-        quantity     = data.get("quantity")
-        unit         = data.get("unit", "ml")
+        data        = json.loads(request.body)
+        inv_item_id = data.get("inventory_item_id")
+        quantity    = data.get("quantity")
+        unit        = data.get("unit", "ml")
 
-        if not all([modifier_id, inv_item_id, quantity]):
-            return JsonResponse({"error": "modifier_id, inventory_item_id and quantity are required"}, status=400)
+        if not all([inv_item_id, quantity]):
+            return JsonResponse({"error": "inventory_item_id and quantity are required"}, status=400)
 
         modifier = get_object_or_404(
             Modifier, id=modifier_id,
