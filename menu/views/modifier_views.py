@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required
 from menu.models import MenuItem, MenuItemModifierGroup, ModifierGroup, Modifier
+from inventory.models import InventoryItem, ModifierRecipe
 
 
 @login_required
@@ -18,7 +19,7 @@ def modifier_management(request):
     groups = (
         ModifierGroup.objects
         .filter(tenant=request.user.tenant, outlet=request.user.outlet)
-        .prefetch_related("modifiers")
+        .prefetch_related("modifiers", "modifiers__inventory_links__inventory_item")
     )
     items = MenuItem.objects.filter(tenant=request.user.tenant, outlet=request.user.outlet)
     linked_mappings = (
@@ -26,8 +27,12 @@ def modifier_management(request):
         .filter(menu_item__tenant=request.user.tenant, menu_item__outlet=request.user.outlet)
         .select_related("menu_item", "modifier_group")
     )
+    inventory_items = InventoryItem.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet
+    ).order_by("name")
     return render(request, "menu/modifiers_management.html", {
         "groups": groups, "items": items, "linked_mappings": linked_mappings,
+        "inventory_items": inventory_items,
     })
 
 
@@ -156,3 +161,81 @@ def unlink_modifier_group(request):
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("modifiers")
+@require_POST
+def add_modifier_recipe(request):
+    """Link a modifier to an inventory item so it deducts stock on KOT."""
+    try:
+        data         = json.loads(request.body)
+        modifier_id  = data.get("modifier_id")
+        inv_item_id  = data.get("inventory_item_id")
+        quantity     = data.get("quantity")
+        unit         = data.get("unit", "ml")
+
+        if not all([modifier_id, inv_item_id, quantity]):
+            return JsonResponse({"error": "modifier_id, inventory_item_id and quantity are required"}, status=400)
+
+        modifier = get_object_or_404(
+            Modifier, id=modifier_id,
+            group__tenant=request.user.tenant, group__outlet=request.user.outlet,
+        )
+        inv_item = get_object_or_404(
+            InventoryItem, id=inv_item_id,
+            tenant=request.user.tenant, outlet=request.user.outlet,
+        )
+        mr, created = ModifierRecipe.objects.update_or_create(
+            modifier=modifier, inventory_item=inv_item,
+            defaults={"quantity_required": quantity, "unit": unit},
+        )
+        return JsonResponse({"success": True, "created": created})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("modifiers")
+@require_POST
+def delete_modifier_recipe(request, modifier_id):
+    """Remove the inventory link from a modifier."""
+    try:
+        data        = json.loads(request.body)
+        inv_item_id = data.get("inventory_item_id")
+        mr = get_object_or_404(
+            ModifierRecipe,
+            modifier_id=modifier_id,
+            inventory_item_id=inv_item_id,
+            modifier__group__tenant=request.user.tenant,
+            modifier__group__outlet=request.user.outlet,
+        )
+        mr.delete()
+        return JsonResponse({"success": True})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("modifiers")
+def modifier_inventory_links(request, modifier_id):
+    """Return existing inventory links for a modifier (for the modal)."""
+    modifier = get_object_or_404(
+        Modifier, id=modifier_id,
+        group__tenant=request.user.tenant, group__outlet=request.user.outlet,
+    )
+    links = ModifierRecipe.objects.filter(modifier=modifier).select_related("inventory_item")
+    return JsonResponse({
+        "links": [
+            {
+                "inventory_item_id":   l.inventory_item_id,
+                "inventory_item_name": l.inventory_item.name,
+                "quantity":            float(l.quantity_required),
+                "unit":                l.unit,
+            }
+            for l in links
+        ]
+    })

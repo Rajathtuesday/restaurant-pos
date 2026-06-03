@@ -86,9 +86,16 @@
                     {% for mod in group.modifiers.all %}
                     <div class="modifier-row">
                         <span class="modifier-name">{{ mod.name }}</span>
-                        <div>
+                        <div class="d-flex align-items-center gap-2">
                             <span class="modifier-price">₹{{ mod.price }}</span>
-                            <button class="btn-icon ms-2" onclick="deleteModifier('{{ mod.id }}')"><i class="bi bi-x-circle"></i></button>
+                            {% if mod.inventory_links.exists %}
+                            <span title="Inventory linked" style="color:var(--accent-gold);font-size:0.7rem;letter-spacing:1px;">
+                                <i class="bi bi-box-seam"></i>
+                                {% for link in mod.inventory_links.all %}{{ link.inventory_item.name }} ×{{ link.quantity_required }}{{ link.unit }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            </span>
+                            {% endif %}
+                            <button class="btn-icon" onclick="openInventoryModal('{{ mod.id }}', '{{ mod.name|escapejs }}')" title="Link inventory"><i class="bi bi-box-seam" style="font-size:0.9rem;"></i></button>
+                            <button class="btn-icon ms-1" onclick="deleteModifier('{{ mod.id }}')"><i class="bi bi-x-circle"></i></button>
                         </div>
                     </div>
                     {% empty %}
@@ -157,6 +164,50 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- INVENTORY LINK MODAL -->
+<div class="modal fade" id="inventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:0;border:1px solid var(--border-color);background:var(--panel-bg);color:var(--text-main);">
+            <div class="modal-header" style="border-color:var(--border-color);">
+                <h5 class="modal-title serif-text text-uppercase">Inventory Link — <span id="invModalName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">When this modifier is selected, the linked ingredient is deducted from inventory on KOT.</p>
+
+                <!-- Existing links -->
+                <div id="existingLinks" class="mb-3"></div>
+
+                <!-- Add new link -->
+                <div class="border-top pt-3">
+                    <p class="small text-uppercase fw-bold mb-2" style="letter-spacing:1px;">Add Ingredient</p>
+                    <select id="invItemSelect" class="form-control form-input-luxury mb-2">
+                        <option value="">— Select ingredient —</option>
+                        {% for item in inventory_items %}
+                        <option value="{{ item.id }}" data-unit="{{ item.unit }}">{{ item.name }} ({{ item.unit }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="d-flex gap-2">
+                        <input type="number" id="invQty" class="form-input-luxury" placeholder="Quantity" min="0.01" step="0.01" style="flex:1;">
+                        <select id="invUnit" class="form-control form-input-luxury" style="flex:1;">
+                            <option value="ml">ml</option>
+                            <option value="l">l</option>
+                            <option value="g">g</option>
+                            <option value="kg">kg</option>
+                            <option value="pcs">pcs</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="saveInventoryLink()">
+                    <i class="bi bi-box-seam me-2"></i>Save Link
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -249,6 +300,59 @@ function unlinkGroup(itemId, groupId) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
         body: JSON.stringify({ item_id: itemId, group_id: groupId })
+    }).then(() => location.reload());
+}
+
+// ── Inventory linking ─────────────────────────────────────────
+let _currentModifierId = null;
+
+function openInventoryModal(modifierId, modifierName) {
+    _currentModifierId = modifierId;
+    document.getElementById('invModalName').textContent = modifierName;
+    document.getElementById('invQty').value = '';
+
+    // Load existing links
+    fetch(`/menu/modifiers/${modifierId}/inventory/`)
+        .then(r => r.json())
+        .then(data => {
+            const box = document.getElementById('existingLinks');
+            if (!data.links.length) { box.innerHTML = '<p class="small text-muted">No ingredients linked yet.</p>'; return; }
+            box.innerHTML = '<p class="small text-uppercase fw-bold mb-2" style="letter-spacing:1px;">Existing Links</p>' +
+                data.links.map(l =>
+                    `<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                       <span class="small">${l.inventory_item_name} &times;${l.quantity}${l.unit}</span>
+                       <button class="btn-icon" onclick="removeInventoryLink(${l.inventory_item_id})">
+                           <i class="bi bi-x-circle text-danger"></i>
+                       </button>
+                     </div>`
+                ).join('');
+        });
+
+    new bootstrap.Modal(document.getElementById('inventoryModal')).show();
+}
+
+function saveInventoryLink() {
+    const inventory_item_id = document.getElementById('invItemSelect').value;
+    const quantity = document.getElementById('invQty').value;
+    const unit = document.getElementById('invUnit').value;
+    if (!inventory_item_id || !quantity) { alert('Select an ingredient and enter a quantity.'); return; }
+    fetch(`/menu/modifiers/${_currentModifierId}/inventory/add/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ inventory_item_id, quantity, unit })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert(data.error || 'Failed to save link');
+    });
+}
+
+function removeInventoryLink(inventoryItemId) {
+    fetch(`/menu/modifiers/${_currentModifierId}/inventory/delete/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        body: JSON.stringify({ inventory_item_id: inventoryItemId })
     }).then(() => location.reload());
 }
 </script>

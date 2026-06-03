@@ -25,17 +25,37 @@ def deduct_inventory_for_items(order_items):
     # 1. Aggregate total required quantities for each inventory item
     required_qty_map = defaultdict(Decimal)
     item_references = defaultdict(list)
-    
+
+    # 1a. Base recipe deductions (menu item → ingredient)
     for order_item in order_items:
         recipes_manager = getattr(order_item.menu_item, "recipes", None)
         if recipes_manager is None:
             continue
-            
-        recipes = recipes_manager.all()
-        for recipe in recipes:
+        for recipe in recipes_manager.all():
             req_qty = Decimal(str(recipe.quantity_required)) * Decimal(str(order_item.quantity))
             required_qty_map[recipe.inventory_item_id] += req_qty
             item_references[recipe.inventory_item_id].append(f"Order #{order_item.order_id}")
+
+    # 1b. Modifier deductions (selected modifier → ingredient)
+    from orders.models import OrderItemModifier
+    from inventory.models import ModifierRecipe
+
+    oi_qty = {oi.id: Decimal(str(oi.quantity)) for oi in order_items}
+    all_oims = (
+        OrderItemModifier.objects
+        .filter(order_item_id__in=oi_qty)
+        .select_related("modifier")
+    )
+    modifier_qty_map = defaultdict(list)   # {modifier_id: [(qty, label), ...]}
+    for oim in all_oims:
+        modifier_qty_map[oim.modifier_id].append(
+            (oi_qty[oim.order_item_id], f"+{oim.modifier.name}")
+        )
+    if modifier_qty_map:
+        for mr in ModifierRecipe.objects.filter(modifier_id__in=modifier_qty_map).select_related("inventory_item"):
+            for qty, label in modifier_qty_map[mr.modifier_id]:
+                required_qty_map[mr.inventory_item_id] += Decimal(str(mr.quantity_required)) * qty
+                item_references[mr.inventory_item_id].append(label)
 
     if not required_qty_map:
         return

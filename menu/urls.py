@@ -24,6 +24,9 @@ from .views import (
     delete_modifier,
     link_modifier_group,
     unlink_modifier_group,
+    add_modifier_recipe,
+    delete_modifier_recipe,
+    modifier_inventory_links,
     gst_management,
     update_item_gst,
     update_category_gst,
@@ -61,6 +64,9 @@ urlpatterns = [
     path("modifiers/delete-modifier/<int:modifier_id>/", delete_modifier, name="delete_modifier"),
     path("modifiers/link/", link_modifier_group, name="link_modifier_group"),
     path("modifiers/unlink/", unlink_modifier_group, name="unlink_modifier_group"),
+    path("modifiers/<int:modifier_id>/inventory/", modifier_inventory_links, name="modifier_inventory_links"),
+    path("modifiers/<int:modifier_id>/inventory/add/", add_modifier_recipe, name="add_modifier_recipe"),
+    path("modifiers/<int:modifier_id>/inventory/delete/", delete_modifier_recipe, name="delete_modifier_recipe"),
 
     # GST management
     path("gst/", gst_management, name="gst_management"),

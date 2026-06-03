@@ -520,6 +520,34 @@ class Recipe(models.Model):
     def __str__(self):
         return f"{self.menu_item.name} → {self.quantity_required} {self.unit}"
 
+
+class ModifierRecipe(models.Model):
+    """
+    Links a Modifier to an InventoryItem.
+    When an OrderItemModifier is selected, inventory_item is deducted
+    by quantity_required × order_item.quantity on KOT creation.
+    Example: modifier "Extra Shot" → InventoryItem "Rum" 60ml
+    """
+    modifier = models.ForeignKey(
+        "menu.Modifier",
+        on_delete=models.CASCADE,
+        related_name="inventory_links"
+    )
+    inventory_item = models.ForeignKey(
+        InventoryItem,
+        on_delete=models.CASCADE,
+        related_name="modifier_recipes"
+    )
+    quantity_required = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default="ml")
+
+    class Meta:
+        unique_together = ("modifier", "inventory_item")
+
+    def __str__(self):
+        return f"{self.modifier.name} → {self.inventory_item.name} ×{self.quantity_required}{self.unit}"
+
+
 # -------------------------------------------------------
 # CENTRAL KITCHEN PRODUCTION (FRANCHISE MODE)
 # -------------------------------------------------------

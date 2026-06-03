@@ -475,3 +475,128 @@ class VarianceReportTests(TestCase):
         self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
         self.assertEqual(rum_row["txn_consumed"], Decimal("90.000"))
         self.assertEqual(rum_row["variance"], Decimal("30.000"))
+
+
+# ============================================================
+# MODIFIER → INVENTORY DEDUCTION TESTS
+# ============================================================
+
+class ModifierInventoryTests(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Modifier Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Bar")
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="modtest", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet
+        )
+        self.rum = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Dark Rum", unit="ml", stock=Decimal("750.000"),
+        )
+
+    def _make_order_with_modifier(self, base_qty_required, modifier_qty_required):
+        """Helper: creates MenuItem + Modifier with recipes, places order, returns order_items."""
+        from inventory.models import Recipe, ModifierRecipe
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Cocktails"
+        )
+        item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Dark & Stormy", price=Decimal("350")
+        )
+        # Base recipe
+        Recipe.objects.create(
+            menu_item=item, inventory_item=self.rum,
+            quantity_required=Decimal(str(base_qty_required)), unit="ml"
+        )
+        # Modifier
+        group = ModifierGroup.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Extras"
+        )
+        mod = Modifier.objects.create(group=group, name="Extra Shot", price=Decimal("50"))
+        # Modifier recipe
+        ModifierRecipe.objects.create(
+            modifier=mod, inventory_item=self.rum,
+            quantity_required=Decimal(str(modifier_qty_required)), unit="ml"
+        )
+        # Order
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="open"
+        )
+        oi = OrderItem.objects.create(
+            order=order, menu_item=item, quantity=1,
+            price=Decimal("350"), gst_percentage=Decimal("0"),
+            total_price=Decimal("350"), status="confirmed"
+        )
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod, name=mod.name, price=mod.price)
+        return list(OrderItem.objects.filter(order=order).select_related("menu_item"))
+
+    def test_modifier_deducts_stock_on_kot(self):
+        """Base recipe 60ml + Extra Shot modifier 60ml → 120ml total deducted."""
+        from orders.services.inventory_service import deduct_inventory_for_items
+
+        order_items = self._make_order_with_modifier(
+            base_qty_required=60, modifier_qty_required=60
+        )
+        deduct_inventory_for_items(order_items)
+
+        self.rum.refresh_from_db()
+        self.assertEqual(self.rum.stock, Decimal("750.000") - Decimal("120.000"))
+
+    def test_base_recipe_and_modifier_both_deduct_independently(self):
+        """Verify base (45ml) and modifier (30ml) are each deducted correctly → 75ml."""
+        from orders.services.inventory_service import deduct_inventory_for_items
+
+        order_items = self._make_order_with_modifier(
+            base_qty_required=45, modifier_qty_required=30
+        )
+        deduct_inventory_for_items(order_items)
+
+        self.rum.refresh_from_db()
+        self.assertEqual(self.rum.stock, Decimal("750.000") - Decimal("75.000"))
+
+    def test_modifier_without_recipe_does_not_crash(self):
+        """Modifier with no ModifierRecipe → deduction runs silently, only base recipe fires."""
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+        from orders.services.inventory_service import deduct_inventory_for_items
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Food"
+        )
+        item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Burger", price=Decimal("200")
+        )
+        Recipe.objects.create(
+            menu_item=item, inventory_item=self.rum,
+            quantity_required=Decimal("30.00"), unit="ml"
+        )
+        group = ModifierGroup.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Sauces"
+        )
+        mod = Modifier.objects.create(group=group, name="Extra Ketchup", price=Decimal("0"))
+        # No ModifierRecipe for this modifier
+
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="open"
+        )
+        oi = OrderItem.objects.create(
+            order=order, menu_item=item, quantity=1,
+            price=Decimal("200"), gst_percentage=Decimal("0"),
+            total_price=Decimal("200"), status="confirmed"
+        )
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod, name=mod.name, price=mod.price)
+
+        order_items = list(OrderItem.objects.filter(order=order).select_related("menu_item"))
+        deduct_inventory_for_items(order_items)  # must not raise
+
+        self.rum.refresh_from_db()
+        # Only base recipe deducted (30ml), modifier did nothing
+        self.assertEqual(self.rum.stock, Decimal("750.000") - Decimal("30.000"))
