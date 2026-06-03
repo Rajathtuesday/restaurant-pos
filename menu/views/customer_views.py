@@ -10,7 +10,7 @@ logger = logging.getLogger("pos.menu")
 
 
 def menu_view(request, qr_token):
-    """QR-scan entry point. Renders the legacy table-locked menu."""
+    """QR-scan entry point. Renders the digital self-order menu."""
     from core.features import has_feature
 
     table = get_object_or_404(Table, qr_token=qr_token)
@@ -20,9 +20,14 @@ def menu_view(request, qr_token):
     categories = (
         MenuCategory.objects
         .filter(tenant=table.tenant, outlet=table.outlet, is_active=True)
-        .prefetch_related("items", "items__modifier_groups__modifier_group__modifiers")
+        .prefetch_related("items")
     )
-    return render(request, "menu/menu.html", {"table": table, "categories": categories})
+    return render(request, "menu/digital_menu.html", {
+        "table":      table,
+        "categories": categories,
+        "tenant":     table.tenant,
+        "outlet":     table.outlet,
+    })
 
 
 def call_waiter(request, qr_token):
