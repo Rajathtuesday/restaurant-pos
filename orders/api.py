@@ -26,33 +26,39 @@ def notification_api(request):
     tenant = request.user.tenant
 
     # 1. Active Waiter Calls (not resolved)
-    waiter_calls = WaiterCall.objects.filter(
+    waiter_calls_qs = WaiterCall.objects.filter(
         tenant=tenant, outlet=outlet, is_resolved=False
     ).select_related('table').order_by('-created_at')
+    wc_count = waiter_calls_qs.count()
+    waiter_calls = waiter_calls_qs[:20]   # cap items returned; count is real total
 
-    # 2. Active Kitchen Messages (not acknowledged).
+    # 2. Active Kitchen Messages (not acknowledged)
     # Waiters only see messages for orders they created (their own tables).
     # Managers / owners / cashiers see all messages for the outlet.
-    kitchen_msgs = KitchenMessage.objects.filter(
+    kitchen_msgs_qs = KitchenMessage.objects.filter(
         tenant=tenant, outlet=outlet, is_resolved=False
     ).select_related('order', 'order__table').order_by('-created_at')
     if request.user.role == 'waiter':
-        kitchen_msgs = kitchen_msgs.filter(order__created_by=request.user)
+        kitchen_msgs_qs = kitchen_msgs_qs.filter(order__created_by=request.user)
+    km_count = kitchen_msgs_qs.count()
+    kitchen_msgs = kitchen_msgs_qs[:20]
 
-    # 3. Unread System Notifications (the 'unread' specific path user mentioned)
+    # 3. Unread System Notifications — capped at 50.
+    # Without a limit, low-stock alerts accumulate and this query returns
+    # thousands of rows on every 8-second poll across all open browser tabs.
     unread_system = Notification.objects.filter(
         tenant=tenant, outlet=outlet, is_read=False
-    ).order_by('-created_at')
+    ).order_by('-created_at')[:50]
 
     return JsonResponse({
         "waiter_calls": {
-            "count": waiter_calls.count(),
+            "count": wc_count,
             "items": [{"id": c.id, "table": c.table.name} for c in waiter_calls]
         },
         "kitchen_messages": {
-            "count": kitchen_msgs.count(),
+            "count": km_count,
             "items": [{
-                "id": m.id, 
+                "id": m.id,
                 "table": m.order.table.name if m.order.table else "Takeaway",
                 "message": m.message
             } for m in kitchen_msgs]
