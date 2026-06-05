@@ -587,7 +587,7 @@ function submitRefund() {
   if (!amount || parseFloat(amount) <= 0) { alert("Enter a valid amount."); return; }
   if (!reason) { alert("Enter a reason for the refund."); return; }
 
-  fetch(`/orders/refund/${_activePaymentId}/`, {
+  fetch(`/refund/${_activePaymentId}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
     body: JSON.stringify({ amount, reason })
@@ -608,7 +608,7 @@ function submitRefund() {
 
 function approveRefund(refundId) {
   if (!confirm("Approve this refund?")) return;
-  fetch(`/orders/refund/approve/${refundId}/`, {
+  fetch(`/refund/approve/${refundId}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
     body: "{}"
@@ -626,7 +626,7 @@ function approveRefund(refundId) {
 function rejectRefund(refundId) {
   const reason = prompt("Reason for rejection (optional):");
   if (reason === null) return; // user cancelled
-  fetch(`/orders/refund/reject/${refundId}/`, {
+  fetch(`/refund/reject/${refundId}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
     body: JSON.stringify({ reason })

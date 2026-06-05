@@ -89,7 +89,7 @@ function getCookie(name) {
 
 function approveRefund(refundId) {
   if (!confirm("Approve this refund?")) return;
-  fetch(`/orders/refund/approve/${refundId}/`, {
+  fetch(`/refund/approve/${refundId}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
     body: "{}"
@@ -105,7 +105,7 @@ function approveRefund(refundId) {
 function rejectRefund(refundId) {
   const reason = prompt("Reason for rejection (optional):");
   if (reason === null) return;
-  fetch(`/orders/refund/reject/${refundId}/`, {
+  fetch(`/refund/reject/${refundId}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
     body: JSON.stringify({ reason })
