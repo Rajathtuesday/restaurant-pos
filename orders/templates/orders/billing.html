@@ -584,11 +584,17 @@
         let html = "";
         if (data.groups && data.groups.length > 0) {
           data.groups.forEach(g => {
-            html += `<div class="mb-3"><label class="form-label fw-bold text-uppercase" style="font-size:0.8rem;letter-spacing:1px;">${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}</label>`;
+            const inputType = g.max_select === 1 ? 'radio' : 'checkbox';
+            const inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
+            const limitHint = g.max_select === 1
+              ? `<span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:6px;">Pick 1</span>`
+              : `<span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:6px;">Pick up to ${g.max_select}</span>`;
+            html += `<div class="mb-3" data-group="${g.group_name}" data-max="${g.max_select}">
+              <label class="form-label fw-bold text-uppercase" style="font-size:0.8rem;letter-spacing:1px;">
+                ${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}${limitHint}
+              </label>`;
             g.modifiers.forEach(m => {
-              const inputType = g.max_select === 1 ? 'radio' : 'checkbox';
-              const inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
-              html += `<div class="form-check"><input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}"><label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}"><span>${m.name}</span><span class="text-muted">+₹${m.price}</span></label></div>`;
+              html += `<div class="form-check"><input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" data-group="${g.group_name}" data-max="${g.max_select}" id="mod_${m.id}" onchange="enforceModifierLimit(this)"><label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}"><span>${m.name}</span>${m.price > 0 ? `<span class="text-muted">+₹${m.price}</span>` : ''}</label></div>`;
             });
             html += `</div>`;
           });
@@ -600,6 +606,19 @@
       .catch(() => { modCont.innerHTML = ""; });
     activeModal = new bootstrap.Modal(modalEl);
     activeModal.show();
+  }
+
+  function enforceModifierLimit(checkbox) {
+    if (checkbox.type !== 'checkbox') return; // radios enforce themselves
+    const groupName = checkbox.dataset.group;
+    const max = parseInt(checkbox.dataset.max);
+    const checked = document.querySelectorAll(
+      `.modifier-check[data-group="${groupName}"]:checked`
+    );
+    if (checked.length > max) {
+      // Deselect the first one (oldest) to stay within limit
+      checked[0].checked = false;
+    }
   }
 
   function addItemWithModifiers() {

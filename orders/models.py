@@ -743,7 +743,15 @@ class Refund(models.Model):
 
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-    reason = models.CharField(max_length=255)
+    customer_complaint = models.CharField(
+        max_length=500, blank=True, default="",
+        help_text="What the customer said — visible to owner"
+    )
+
+    reason = models.CharField(
+        max_length=255,
+        help_text="Manager's internal note for this refund"
+    )
 
     status = models.CharField(
         max_length=20,

@@ -8,7 +8,7 @@ from orders.models import Payment, Refund, OrderEvent
 
 
 @transaction.atomic
-def process_refund(order, payment_id, amount, user, reason="Manager refund"):
+def process_refund(order, payment_id, amount, user, reason="", customer_complaint=""):
     """
     Requests a refund. Defaults to 'pending'.
     - Manager/Owner only
@@ -39,6 +39,7 @@ def process_refund(order, payment_id, amount, user, reason="Manager refund"):
         payment=payment,
         order=order,
         amount=amount,
+        customer_complaint=customer_complaint,
         reason=reason,
         status="pending",
         refunded_by=user,

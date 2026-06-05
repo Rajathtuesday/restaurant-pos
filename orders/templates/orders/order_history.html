@@ -394,11 +394,13 @@
   <div class="refund-modal">
     <h4>Request Refund</h4>
     <label>Max Refundable</label>
-    <div id="refundMaxAmt" style="font-size:0.95rem;font-weight:700;color:var(--accent-gold);margin-bottom:0.25rem;"></div>
+    <div id="refundMaxAmt" style="font-size:0.95rem;font-weight:700;color:var(--accent-gold);margin-bottom:0.75rem;"></div>
     <label>Amount (₹)</label>
     <input type="number" id="refundAmount" min="1" step="0.01" placeholder="Enter amount">
-    <label>Reason</label>
-    <textarea id="refundReason" rows="2" placeholder="Why is this refund being requested?"></textarea>
+    <label style="margin-top:0.75rem;">Customer Complaint <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(optional — what the customer said)</span></label>
+    <textarea id="refundCustomerComplaint" rows="2" placeholder="e.g. Food arrived cold, Wrong order delivered..."></textarea>
+    <label style="margin-top:0.75rem;">Manager Note <span style="color:#e74c3c;">*</span> <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(internal reason for approval)</span></label>
+    <textarea id="refundReason" rows="2" placeholder="e.g. Verified complaint, approving refund..."></textarea>
     <div class="refund-modal-actions">
       <button class="btn-refund-cancel" onclick="closeRefundModal()">Cancel</button>
       <button class="btn-refund-submit" onclick="submitRefund()">Request Refund</button>
@@ -572,6 +574,7 @@ function openRefundModal(paymentId, maxAmount) {
   document.getElementById("refundMaxAmt").textContent = "₹" + parseFloat(maxAmount).toFixed(2);
   document.getElementById("refundAmount").value = "";
   document.getElementById("refundAmount").max = maxAmount;
+  document.getElementById("refundCustomerComplaint").value = "";
   document.getElementById("refundReason").value = "";
   document.getElementById("refundModalOverlay").classList.add("open");
 }
@@ -582,15 +585,16 @@ function closeRefundModal() {
 }
 
 function submitRefund() {
-  const amount = document.getElementById("refundAmount").value;
-  const reason = document.getElementById("refundReason").value.trim();
+  const amount             = document.getElementById("refundAmount").value;
+  const customer_complaint = document.getElementById("refundCustomerComplaint").value.trim();
+  const reason             = document.getElementById("refundReason").value.trim();
   if (!amount || parseFloat(amount) <= 0) { alert("Enter a valid amount."); return; }
-  if (!reason) { alert("Enter a reason for the refund."); return; }
+  if (!reason) { alert("Manager Note is required."); return; }
 
   fetch(`/refund/${_activePaymentId}/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
-    body: JSON.stringify({ amount, reason })
+    body: JSON.stringify({ amount, customer_complaint, reason })
   })
   .then(r => r.json())
   .then(d => {

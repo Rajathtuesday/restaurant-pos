@@ -248,11 +248,14 @@ def refund_payment(request, payment_id):
     try:
 
         data = json.loads(request.body)
-        amount = data.get("amount")
-        reason = data.get("reason", "Manager refund")
+        amount               = data.get("amount")
+        customer_complaint   = data.get("customer_complaint", "").strip()
+        reason               = data.get("reason", "").strip()
 
         if not amount:
             return JsonResponse({"error": "Amount required"}, status=400)
+        if not reason:
+            return JsonResponse({"error": "Manager note is required"}, status=400)
 
         payment = Payment.objects.select_related("order").get(
             id=payment_id,
@@ -261,7 +264,11 @@ def refund_payment(request, payment_id):
         )
 
         with transaction.atomic():
-            refund = process_refund(payment.order, payment_id, amount, request.user)
+            refund = process_refund(
+                payment.order, payment_id, amount, request.user,
+                reason=reason,
+                customer_complaint=customer_complaint,
+            )
 
         logger.warning(f"User {request.user.username} issued refund of Rs.{amount} for payment #{payment_id}")
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})

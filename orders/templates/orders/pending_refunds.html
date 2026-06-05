@@ -54,7 +54,12 @@
       <tr>
         <td><span class="order-num">{{ r.order.order_number|default:r.order.id }}</span></td>
         <td><span class="amount">₹{{ r.amount|floatformat:0 }}</span></td>
-        <td>{{ r.reason }}</td>
+        <td>
+          {% if r.customer_complaint %}
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:3px;"><i class="bi bi-person me-1"></i>{{ r.customer_complaint }}</div>
+          {% endif %}
+          <div style="font-size:0.8rem;"><i class="bi bi-person-badge me-1" style="color:var(--accent-gold);"></i>{{ r.reason }}</div>
+        </td>
         <td style="font-size:0.78rem;color:var(--text-muted);">
           {{ r.refunded_by.get_full_name|default:r.refunded_by.username }}
         </td>
