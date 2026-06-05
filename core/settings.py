@@ -391,6 +391,12 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
+        # CSRF 403s after login are expected (token rotates on auth) — suppress in dev
+        "django.security.csrf": {
+            "handlers": ["security_file"],
+            "level": "WARNING" if not DEBUG else "ERROR",
+            "propagate": False,
+        },
         "django.db.backends": {
             # Set to DEBUG to log every SQL query; INFO to suppress
             "handlers": ["pos_file"],
@@ -491,6 +497,25 @@ META_WHATSAPP_PHONE_ID = os.getenv("META_WHATSAPP_PHONE_ID", "")
 TWILIO_ACCOUNT_SID   = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN    = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+
+# -------------------------------------------------------
+# EMAIL
+# Dev:  set EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend in .env
+#       → emails print to terminal, no Gmail needed
+# Prod: set EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+#       + EMAIL_USER and EMAIL_PASSWORD (Gmail App Password)
+# -------------------------------------------------------
+EMAIL_BACKEND  = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend"
+)
+EMAIL_HOST          = "smtp.gmail.com"
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_HOST_USER     = os.getenv("EMAIL_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
+DEFAULT_FROM_EMAIL  = os.getenv("EMAIL_USER", "noreply@rasova.net")
 
 # -------------------------------------------------------
 # SESSION — long enough for a full 12-hour QSR shift.
