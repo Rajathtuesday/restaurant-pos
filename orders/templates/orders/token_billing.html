@@ -248,7 +248,10 @@
     }
     .context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
 
-    .context-body { flex-grow: 1; padding: 1.25rem; overflow-y: auto; }
+    /* min-height:0 is required for flex children — without it, a flex item won't
+       shrink below its content size even with overflow-y:auto set, so the checkout
+       button gets pushed off screen in both the desktop sidebar and mobile offcanvas. */
+    .context-body { flex-grow: 1; min-height: 0; padding: 1.25rem; overflow-y: auto; }
 
     /* ── Cart row ─────────────────────────────────────────────────── */
     .cart-row {
@@ -414,6 +417,16 @@
         border-left: 1px solid var(--border-color);
     }
     .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.25rem; }
+
+    /* Fix: Bootstrap sets overflow-y:auto on offcanvas-body which breaks our flex layout.
+       We need offcanvas-body to be a fixed-height flex column so cart-summary
+       (checkout button) pins to the bottom while only context-body scrolls. */
+    .offcanvas-luxury .offcanvas-body {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: calc(100% - 65px); /* 65px = offcanvas-header height */
+    }
 
     /* ── Active orders list ───────────────────────────────────────── */
     .active-order-item {
