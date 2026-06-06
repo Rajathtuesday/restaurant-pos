@@ -34,28 +34,27 @@ echo "=== Static files ==="
 python manage.py collectstatic --noinput
 
 echo "=== Restarting services ==="
-if sudo systemctl is-enabled gunicorn &>/dev/null; then
-    sudo systemctl restart gunicorn
-else
+mkdir -p $APP_DIR/logs
+
+# gunicorn — try systemd, fall back to direct start
+if ! sudo systemctl restart gunicorn 2>/dev/null; then
     pkill -f 'gunicorn.*core.wsgi' 2>/dev/null || true
     sleep 1
-    setsid gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 --daemon core.wsgi:application
+    setsid gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 \
+        --daemon core.wsgi:application
 fi
 
-if sudo systemctl is-enabled redis &>/dev/null || sudo systemctl is-active redis &>/dev/null; then
-    sudo systemctl restart redis 2>/dev/null || true
-else
-    redis-cli ping &>/dev/null || redis-server --daemonize yes
-fi
+# redis — best-effort
+sudo systemctl restart redis 2>/dev/null || \
+sudo systemctl start redis 2>/dev/null || true
 
-if sudo systemctl is-enabled celery &>/dev/null; then
-    sudo systemctl restart celery 2>/dev/null || true
-else
+# celery — try systemd, fall back to nohup
+if ! sudo systemctl restart celery 2>/dev/null; then
     pkill -f 'celery worker' 2>/dev/null || true
     sleep 1
     setsid nohup celery -A core worker \
-      --queues=default,printing --concurrency=2 --loglevel=warning \
-      >> $APP_DIR/logs/celery.log 2>&1 &
+        --queues=default,printing --concurrency=2 --loglevel=warning \
+        >> $APP_DIR/logs/celery.log 2>&1 &
 fi
 
 sleep 3
