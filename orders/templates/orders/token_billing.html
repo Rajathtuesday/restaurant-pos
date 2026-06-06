@@ -227,8 +227,10 @@
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
-        height: calc(100vh - var(--header-h));
-        height: calc(100dvh - var(--header-h)); /* dvh excludes OS nav bar on Android */
+        /* Subtract 70px for Android 3-button nav bar on tablets.
+           env(safe-area-inset-bottom) handles gesture nav mode. */
+        height: calc(100vh - var(--header-h) - 70px);
+        height: calc(100dvh - var(--header-h) - max(70px, env(safe-area-inset-bottom, 70px)));
         overflow: hidden;
     }
     @media (max-width: 991px) { .context-sidebar { display: none !important; } }
@@ -298,8 +300,6 @@
     .cart-summary {
         border-top: 1px solid var(--border-color);
         padding: 1.25rem;
-        padding-bottom: calc(1.25rem + 70px); /* 70px clears Android 3-button nav bar */
-        padding-bottom: max(calc(1.25rem + 70px), calc(1.25rem + env(safe-area-inset-bottom, 70px)));
         background: var(--panel-bg);
         flex-shrink: 0;
     }
@@ -417,9 +417,12 @@
     }
     @media (max-width: 991px) { .fab-cart { display: flex; align-items: center; justify-content: center; gap: 8px; } }
     @media (min-width: 992px) { .offcanvas-luxury { display: none !important; } }
-    /* On true desktop (mouse, no nav bar) drop the nav-bar padding */
+    /* On large desktop monitors there's no Android nav bar — full height */
     @media (min-width: 1200px) {
-        .cart-summary { padding-bottom: 1.25rem; }
+        .context-sidebar {
+            height: calc(100vh - var(--header-h));
+            height: calc(100dvh - var(--header-h));
+        }
     }
 
     .offcanvas-luxury {
