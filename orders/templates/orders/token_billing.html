@@ -32,6 +32,7 @@
     .workspace {
         display: flex;
         height: calc(100vh - var(--header-h));
+        height: calc(100dvh - var(--header-h));
     }
     @media (max-width: 991px) {
         .workspace {
@@ -227,6 +228,7 @@
         flex-direction: column;
         flex-shrink: 0;
         height: calc(100vh - var(--header-h));
+        height: calc(100dvh - var(--header-h)); /* dvh excludes OS nav bar on Android */
         overflow: hidden;
     }
     @media (max-width: 991px) { .context-sidebar { display: none !important; } }
@@ -296,6 +298,7 @@
     .cart-summary {
         border-top: 1px solid var(--border-color);
         padding: 1.25rem;
+        padding-bottom: max(1.25rem, calc(1.25rem + env(safe-area-inset-bottom, 0px)));
         background: var(--panel-bg);
         flex-shrink: 0;
     }
