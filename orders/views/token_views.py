@@ -25,9 +25,12 @@ import json
 import logging
 from decimal import Decimal
 
+from datetime import timedelta
+
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Prefetch, Sum
+from django.db.models import Count, Prefetch, Q, Sum
 from django.http import Http404, JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
@@ -40,6 +43,41 @@ from orders.models import (
     Order, DailyTokenCounter, DailyOnlineTokenCounter, TokenOrder
 )
 from setup.models import PaymentConfig
+
+
+def _popular_items(tenant, outlet, top_n=12):
+    """
+    Returns (popular_list, pop_counts) scoped strictly to tenant + outlet.
+      popular_list — top_n MenuItem instances by 30-day order count
+      pop_counts   — {item_id: count} used to sort items within categories
+    Cached 15 min per outlet.
+    """
+    key = f"pop:{tenant.id}:{outlet.id}"
+    result = cache.get(key)
+    if result is None:
+        cutoff = timezone.now() - timedelta(days=30)
+        qs = (
+            MenuItem.objects
+            .filter(tenant=tenant, outlet=outlet, is_available=True)
+            .annotate(
+                order_count=Count(
+                    "orderitem",
+                    filter=Q(
+                        orderitem__order__tenant=tenant,
+                        orderitem__order__outlet=outlet,
+                        orderitem__order__status__in=["closed", "paid"],
+                        orderitem__order__created_at__gte=cutoff,
+                    )
+                )
+            )
+            .filter(order_count__gt=0)
+            .order_by("-order_count")
+        )
+        popular_list = list(qs[:top_n])
+        pop_counts   = {item.id: item.order_count for item in qs[:200]}
+        result = (popular_list, pop_counts)
+        cache.set(key, result, 900)
+    return result
 
 logger = logging.getLogger("pos.orders")
 
@@ -376,14 +414,13 @@ def token_billing(request, order_id):
 
     token = getattr(order, "token", None)
 
-    # Only load available items - avoid showing 86'd items to cashier.
-    categories = (
+    # Popular items (tenant + outlet scoped, 15-min cache)
+    popular_items, pop_counts = _popular_items(request.user.tenant, outlet)
+
+    # Categories with items sorted by popularity within each section
+    categories = list(
         MenuCategory.objects
-        .filter(
-            tenant=request.user.tenant,
-            outlet=outlet,
-            is_active=True,
-        )
+        .filter(tenant=request.user.tenant, outlet=outlet, is_active=True)
         .prefetch_related(
             Prefetch(
                 "items",
@@ -391,6 +428,12 @@ def token_billing(request, order_id):
             )
         )
     )
+    for cat in categories:
+        cat._sorted_items = sorted(
+            cat.items.all(),
+            key=lambda i: pop_counts.get(i.id, 0),
+            reverse=True,
+        )
 
     config, _ = PaymentConfig.for_outlet(outlet, request.user.tenant)
 
@@ -415,6 +458,7 @@ def token_billing(request, order_id):
         "order":          order,
         "token":          token,
         "categories":     categories,
+        "popular_items":  popular_items,
         "config":         config,
         "remaining":      remaining,
         "total_paid":     total_paid,
