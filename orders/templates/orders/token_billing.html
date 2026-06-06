@@ -292,9 +292,10 @@
 
     /* ── Cart summary footer ──────────────────────────────────────── */
     .cart-summary {
-        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
         padding: 1.25rem;
         background: var(--panel-bg);
+        flex-shrink: 0;
     }
     .summary-row {
         display: flex;
@@ -566,7 +567,39 @@
             </div>
         </div>
 
-        <!-- Current Order view -->
+        <!-- Cart summary — TOP so checkout is always visible without scrolling -->
+        <div class="cart-summary" id="cartSummaryBlock">
+            {% if 'loyalty_points' in tenant_features %}
+            <div style="margin-bottom:0.9rem;">
+                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
+                <input type="tel" id="loyaltyPhone" placeholder="10-digit number"
+                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:1rem;outline:none;font-family:inherit;"
+                    maxlength="10" inputmode="numeric">
+            </div>
+            {% endif %}
+            <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            {% if request.user.outlet.parcel_charge_amount %}
+            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
+                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
+            </div>
+            <button class="parcel-btn" onclick="toggleParcel()"
+                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
+                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
+                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+                       justify-content:center;gap:0.5rem;font-family:inherit;">
+                <i class="bi bi-bag"></i>
+                <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
+            </button>
+            {% endif %}
+            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+            <button class="btn-checkout send-btn" onclick="submitOrder()">
+                Checkout <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
+        </div>
+
+        <!-- Current Order view — scrollable items below the checkout button -->
         <div class="context-body" id="cartView">
             <div class="text-center mb-3">
                 <div style="font-family:'DM Serif Display',serif; font-size:1.8rem; color:var(--accent-gold); line-height:1;">
@@ -650,37 +683,6 @@
             </div>
         </div>
 
-        <!-- Cart summary + actions -->
-        <div class="cart-summary" id="cartSummaryBlock">
-            {% if 'loyalty_points' in tenant_features %}
-            <div style="margin-bottom:0.9rem;">
-                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
-                <input type="tel" id="loyaltyPhone" placeholder="10-digit number"
-                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:1rem;outline:none;font-family:inherit;"
-                    maxlength="10" inputmode="numeric">
-            </div>
-            {% endif %}
-            <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
-            <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-            {% if request.user.outlet.parcel_charge_amount %}
-            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);display:none;justify-content:space-between;margin-bottom:0.3rem;">
-                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
-            </div>
-            <button class="parcel-btn" onclick="toggleParcel()"
-                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
-                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
-                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-                       justify-content:center;gap:0.5rem;font-family:inherit;">
-                <i class="bi bi-bag"></i>
-                <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
-            </button>
-            {% endif %}
-            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-            <button class="btn-checkout send-btn" onclick="submitOrder()">
-                Checkout <i class="bi bi-arrow-right ms-1"></i>
-            </button>
-            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
-        </div>
     </aside>
 
 </div>
@@ -715,6 +717,40 @@
     </div>
 
     <div class="offcanvas-body d-flex flex-column p-0">
+
+        <!-- Cart summary TOP — checkout always visible on open -->
+        <div class="cart-summary" id="cartSummaryBlockMobile">
+            {% if 'loyalty_points' in tenant_features %}
+            <div style="margin-bottom:0.9rem;">
+                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
+                <input type="tel" id="loyaltyPhoneMobile" placeholder="10-digit number"
+                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:1rem;outline:none;font-family:inherit;"
+                    maxlength="10" inputmode="numeric">
+            </div>
+            {% endif %}
+            <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            {% if request.user.outlet.parcel_charge_amount %}
+            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
+                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
+            </div>
+            <button class="parcel-btn" onclick="toggleParcel()"
+                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
+                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
+                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+                       justify-content:center;gap:0.5rem;font-family:inherit;">
+                <i class="bi bi-bag"></i>
+                <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
+            </button>
+            {% endif %}
+            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+            <button class="btn-checkout send-btn mb-2" onclick="submitOrder()">
+                Checkout <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
+        </div>
+
+        <!-- Cart items — scrollable below checkout -->
         <div class="context-body flex-grow-1" id="cartViewMobile">
             <div class="text-center mb-3">
                 <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent-gold);">
@@ -768,37 +804,6 @@
                 <div class="aoi-empty">No active orders</div>
                 {% endif %}
             </div>
-        </div>
-
-        <div class="cart-summary" id="cartSummaryBlockMobile">
-            {% if 'loyalty_points' in tenant_features %}
-            <div style="margin-bottom:0.9rem;">
-                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
-                <input type="tel" id="loyaltyPhoneMobile" placeholder="10-digit number"
-                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:1rem;outline:none;font-family:inherit;"
-                    maxlength="10" inputmode="numeric">
-            </div>
-            {% endif %}
-            <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
-            <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-            {% if request.user.outlet.parcel_charge_amount %}
-            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
-                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
-            </div>
-            <button class="parcel-btn" onclick="toggleParcel()"
-                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
-                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
-                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-                       justify-content:center;gap:0.5rem;font-family:inherit;">
-                <i class="bi bi-bag"></i>
-                <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
-            </button>
-            {% endif %}
-            <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-            <button class="btn-checkout send-btn mb-2" onclick="submitOrder()">
-                Checkout <i class="bi bi-arrow-right ms-1"></i>
-            </button>
-            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
         </div>
     </div>
 </div>
