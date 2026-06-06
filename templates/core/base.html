@@ -1,10 +1,13 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background:#0a0a0a;">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="{{ request.user.tenant.primary_color|default:'#c5a059' }}">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0a0a0a">
+    <!-- Inline dark background — prevents white flash between page navigations -->
+    <style>html,body{background:#0a0a0a;}</style>
     <title>{% block title %}{{ request.user.tenant.name|default:"Rasova POS" }}{% endblock %}</title>
 
     <!-- Favicon -->
