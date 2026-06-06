@@ -226,7 +226,8 @@
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
-        overflow: hidden; /* clamps children so context-body scrolls and cart-summary stays pinned */
+        height: calc(100vh - var(--header-h));
+        overflow: hidden;
     }
     @media (max-width: 991px) { .context-sidebar { display: none !important; } }
 
