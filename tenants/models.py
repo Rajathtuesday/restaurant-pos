@@ -424,6 +424,12 @@ class Outlet(models.Model):
         help_text="Receipt and KOT print format for this outlet. Leave blank to use defaults.",
     )
 
+    outlet_number = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Sequential outlet number within the tenant (1, 2, 3…). Auto-assigned on creation.",
+    )
+
     class Meta:
 
         ordering = ["tenant", "name"]
@@ -433,13 +439,32 @@ class Outlet(models.Model):
             models.UniqueConstraint(
                 fields=["tenant", "name"],
                 name="unique_outlet_per_tenant"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["tenant", "outlet_number"],
+                name="unique_outlet_number_per_tenant",
+            ),
 
         ]
 
         indexes = [
             models.Index(fields=["tenant"]),
         ]
+
+    def save(self, *args, **kwargs):
+        if self.pk is None and self.outlet_number is None:
+            from django.db import transaction as _tx
+            with _tx.atomic():
+                last = (
+                    Outlet.objects
+                    .select_for_update()
+                    .filter(tenant=self.tenant)
+                    .order_by("-outlet_number")
+                    .values_list("outlet_number", flat=True)
+                    .first()
+                )
+                self.outlet_number = (last or 0) + 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"

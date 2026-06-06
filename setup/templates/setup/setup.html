@@ -82,6 +82,7 @@
 
 <div class="setup-grid">
 
+    {% if 'floor_plan' in tenant_features %}
     <a href="/setup/tables/" class="setup-card">
         <div class="card-icon"><i class="bi bi-grid-3x3-gap"></i></div>
         <div class="card-title">Tables</div>
@@ -90,6 +91,7 @@
             {% if tables_done %}<i class="bi bi-check-circle-fill"></i> Configured{% else %}<i class="bi bi-circle"></i> Not configured{% endif %}
         </div>
     </a>
+    {% endif %}
 
     <a href="/menu/" class="setup-card">
         <div class="card-icon"><i class="bi bi-journal-bookmark"></i></div>

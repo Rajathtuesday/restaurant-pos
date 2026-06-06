@@ -343,7 +343,7 @@ def setup_payment_methods(request):
         config.upi_id = request.POST.get("upi_id", "").strip().lower()
         config.save()
         messages.success(request, "Payment methods saved.")
-        return redirect("/tables/")
+        return redirect("/dashboard/")
 
     return render(request, "setup/setup_payment_methods.html", {"config": config})
 
