@@ -429,7 +429,7 @@ def token_billing(request, order_id):
         )
     )
     for cat in categories:
-        cat._sorted_items = sorted(
+        cat.sorted_items = sorted(
             cat.items.all(),
             key=lambda i: pop_counts.get(i.id, 0),
             reverse=True,

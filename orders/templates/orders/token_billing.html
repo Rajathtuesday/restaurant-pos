@@ -574,7 +574,7 @@
                 {% for category in categories %}
                 <h3 id="cat{{ category.id }}" class="menu-section-title">{{ category.name }}</h3>
                 <div class="row g-2 mb-3">
-                    {% for item in category._sorted_items %}
+                    {% for item in category.sorted_items %}
                     <div class="col-6 col-md-4 col-xl-3 menu-item-searchable">
                         <div class="menu-card" id="card-{{ item.id }}"
                             onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage|default:0 }}, {{ item.is_veg|lower }})">
