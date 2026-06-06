@@ -298,7 +298,8 @@
     .cart-summary {
         border-top: 1px solid var(--border-color);
         padding: 1.25rem;
-        padding-bottom: max(1.25rem, calc(1.25rem + env(safe-area-inset-bottom, 0px)));
+        padding-bottom: calc(1.25rem + 70px); /* 70px clears Android 3-button nav bar */
+        padding-bottom: max(calc(1.25rem + 70px), calc(1.25rem + env(safe-area-inset-bottom, 70px)));
         background: var(--panel-bg);
         flex-shrink: 0;
     }
@@ -416,6 +417,10 @@
     }
     @media (max-width: 991px) { .fab-cart { display: flex; align-items: center; justify-content: center; gap: 8px; } }
     @media (min-width: 992px) { .offcanvas-luxury { display: none !important; } }
+    /* On true desktop (mouse, no nav bar) drop the nav-bar padding */
+    @media (min-width: 1200px) {
+        .cart-summary { padding-bottom: 1.25rem; }
+    }
 
     .offcanvas-luxury {
         background: var(--panel-bg);
