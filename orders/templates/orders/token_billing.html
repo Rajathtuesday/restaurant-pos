@@ -866,6 +866,7 @@
 
     /* ── State ───────────────────────────────────────────────────────── */
     let cart = [];
+    const GST_INCLUSIVE = {{ request.user.outlet.gst_inclusive|yesno:"true,false" }};
     let selectedItem = null;
     let sending = false;
     let currentOrderId = null;
@@ -964,9 +965,16 @@
             dc.innerHTML = empty; mc.innerHTML = empty;
         } else {
             const rows = cart.map((i, idx) => {
-                const total = i.price * i.quantity;
+                const total    = i.price * i.quantity;
+                const rate     = (i.gst_percentage || 0) / 100;
                 subtotal += total;
-                gst      += total * ((i.gst_percentage || 5) / 100);
+                if (GST_INCLUSIVE) {
+                    // Price already includes GST — extract it: gst = price × rate / (1 + rate)
+                    gst += total * rate / (1 + rate);
+                } else {
+                    // Price excludes GST — add on top
+                    gst += total * rate;
+                }
                 return `<div class="cart-row">
                     <div style="flex-grow:1;padding-right:8px;">
                         <div class="cart-item-name">${i.name}${i.is_takeaway ? ' <span style="font-size:0.55rem;background:var(--accent-gold);color:#fff;padding:1px 5px;vertical-align:middle;">TKW</span>' : ''}</div>
@@ -986,9 +994,15 @@
         }
 
         gst = Math.round(gst);
-        const grandTotal = subtotal + gst;
+        // Inclusive: GST is already inside subtotal — don't add again
+        const grandTotal = GST_INCLUSIVE ? subtotal : subtotal + gst;
         document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + subtotal);
-        document.querySelectorAll('.view-gst').forEach(e => e.textContent = '₹' + gst);
+        document.querySelectorAll('.view-gst').forEach(e => {
+            e.textContent = '₹' + gst;
+            // Show label hint so cashier knows it's included, not added
+            const label = e.closest('.summary-row')?.querySelector('span:first-child');
+            if (label) label.textContent = GST_INCLUSIVE ? 'GST (incl.)' : 'GST';
+        });
         document.querySelectorAll('.view-total').forEach(e => e.textContent = '₹' + grandTotal);
 
         // FAB badge — total item count
