@@ -1,0 +1,30 @@
+[Unit]
+Description=Rasova POS — Gunicorn
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/rasova
+EnvironmentFile=/home/ubuntu/rasova/.env
+ExecStartPre=/bin/mkdir -p /home/ubuntu/rasova/logs
+ExecStart=/home/ubuntu/rasova/.venv/bin/gunicorn \
+    --bind 127.0.0.1:8000 \
+    --workers 2 \
+    --threads 4 \
+    --worker-class gthread \
+    --timeout 120 \
+    --access-logfile /home/ubuntu/rasova/logs/gunicorn_access.log \
+    --error-logfile /home/ubuntu/rasova/logs/gunicorn_error.log \
+    core.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/ubuntu/rasova/logs/gunicorn_access.log
+StandardError=append:/home/ubuntu/rasova/logs/gunicorn_error.log
+
+[Install]
+WantedBy=multi-user.target

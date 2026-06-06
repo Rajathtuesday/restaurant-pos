@@ -1,7 +1,10 @@
 """AI menu importer and multi-outlet menu sync."""
+import base64
 import logging
 from decimal import Decimal
+
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -16,69 +19,106 @@ logger = logging.getLogger("pos.menu")
 @tenant_required
 @feature_required("ai_menu_import")
 def ai_menu_importer(request):
-    """Gemini-powered menu parser — accepts photo/PDF upload or raw text."""
-    from core.ai_service import AIService
-
+    """
+    Gemini-powered menu parser.
+    Queues a Celery task so the Gemini API call never blocks gunicorn.
+    Returns {task_id} immediately; frontend polls /menu/ai-import-status/<id>/.
+    Falls back to synchronous parsing if Celery is unavailable.
+    """
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
     try:
-        text       = request.POST.get("text")
-        file       = request.FILES.get("file")
-        image_bytes = mime_type = None
+        text      = request.POST.get("text")
+        file      = request.FILES.get("file")
+        image_b64 = mime_type = None
+
         if file:
             if file.size > 15 * 1024 * 1024:
-                return JsonResponse({"error": "Image too large — please use a photo under 15 MB."}, status=400)
-            image_bytes = file.read()
-            mime_type   = file.content_type
-
-        structured_data = AIService().parse_menu(
-            text=text, image_bytes=image_bytes, mime_type=mime_type
-        )
-        imported_count = 0
-        tenant  = request.user.tenant
-        outlet  = request.user.outlet
-        # Cache categories by normalised name so "Starters" and "starters"
-        # resolve to the same DB row within one import run.
-        _cat_cache: dict = {}
-
-        def _get_or_merge_category(raw_name: str) -> MenuCategory:
-            name = (raw_name or "General").strip()
-            key  = name.lower()
-            if key in _cat_cache:
-                return _cat_cache[key]
-            # Case-insensitive lookup so existing "Starters" matches imported "STARTERS"
-            cat = MenuCategory.objects.filter(
-                tenant=tenant, outlet=outlet, name__iexact=name,
-            ).first()
-            if not cat:
-                cat = MenuCategory.objects.create(
-                    tenant=tenant, outlet=outlet, name=name,
+                return JsonResponse(
+                    {"error": "Image too large — please use a photo under 15 MB."},
+                    status=400,
                 )
-            _cat_cache[key] = cat
-            return cat
+            image_b64 = base64.b64encode(file.read()).decode()
+            mime_type = file.content_type
 
-        with transaction.atomic():
-            for entry in structured_data:
-                category = _get_or_merge_category(entry.get("category", "General"))
-                for item_data in entry.get("items", []):
-                    name  = (item_data.get("name") or "").strip()
-                    price = item_data.get("price", 0)
-                    if name:
-                        MenuItem.objects.get_or_create(
-                            tenant=tenant, outlet=outlet,
-                            category=category, name=name,
-                            defaults={"price": Decimal(str(price))},
-                        )
-                        imported_count += 1
+        from menu.tasks import ai_import_menu
+        try:
+            task = ai_import_menu.delay(
+                tenant_id=request.user.tenant_id,
+                outlet_id=request.user.outlet_id,
+                text=text,
+                image_b64=image_b64,
+                mime_type=mime_type,
+            )
+            return JsonResponse({"queued": True, "task_id": task.id})
+        except Exception:
+            # Celery/Redis down — run synchronously (slower but works)
+            logger.warning("Celery unavailable for AI import — running synchronously")
+            return _run_sync(request, text, image_b64, mime_type)
 
-        return JsonResponse({
-            "success": True,
-            "message": f"AI imported {imported_count} items.",
-        })
     except Exception as e:
         logger.exception("AI Import error")
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+def ai_import_status(request, task_id):
+    """Poll endpoint — returns task status stored in cache by ai_import_menu task."""
+    result = cache.get(f"ai_import:{task_id}")
+    if result is None:
+        return JsonResponse({"status": "not_found"}, status=404)
+    return JsonResponse(result)
+
+
+def _run_sync(request, text, image_b64, mime_type):
+    """Synchronous fallback used when Celery is unavailable."""
+    from core.ai_service import AIService
+
+    image_bytes = base64.b64decode(image_b64) if image_b64 else None
+    structured_data = AIService().parse_menu(
+        text=text, image_bytes=image_bytes, mime_type=mime_type
+    )
+
+    tenant = request.user.tenant
+    outlet = request.user.outlet
+    _cat_cache: dict = {}
+
+    def _get_or_merge_category(raw_name: str) -> MenuCategory:
+        name = (raw_name or "General").strip()
+        key  = name.lower()
+        if key in _cat_cache:
+            return _cat_cache[key]
+        cat = MenuCategory.objects.filter(
+            tenant=tenant, outlet=outlet, name__iexact=name,
+        ).first()
+        if not cat:
+            cat = MenuCategory.objects.create(
+                tenant=tenant, outlet=outlet, name=name,
+            )
+        _cat_cache[key] = cat
+        return cat
+
+    imported_count = 0
+    with transaction.atomic():
+        for entry in structured_data:
+            category = _get_or_merge_category(entry.get("category", "General"))
+            for item_data in entry.get("items", []):
+                name  = (item_data.get("name") or "").strip()
+                price = item_data.get("price", 0)
+                if name:
+                    MenuItem.objects.get_or_create(
+                        tenant=tenant, outlet=outlet,
+                        category=category, name=name,
+                        defaults={"price": Decimal(str(price))},
+                    )
+                    imported_count += 1
+
+    return JsonResponse({
+        "success": True,
+        "message": f"AI imported {imported_count} items.",
+    })
 
 
 @login_required

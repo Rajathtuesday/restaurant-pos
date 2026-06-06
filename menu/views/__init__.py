@@ -26,7 +26,7 @@ from .modifier_views import (
     add_modifier_recipe, delete_modifier_recipe, modifier_inventory_links,
 )
 from .gst_views import gst_management, update_item_gst, update_category_gst
-from .ai_views import ai_menu_importer, sync_menu_to_outlets
+from .ai_views import ai_menu_importer, ai_import_status, sync_menu_to_outlets
 
 __all__ = [
     "menu_view", "call_waiter", "digital_menu",
@@ -41,5 +41,5 @@ __all__ = [
     "link_modifier_group", "unlink_modifier_group",
     "add_modifier_recipe", "delete_modifier_recipe", "modifier_inventory_links",
     "gst_management", "update_item_gst", "update_category_gst",
-    "ai_menu_importer", "sync_menu_to_outlets",
+    "ai_menu_importer", "ai_import_status", "sync_menu_to_outlets",
 ]

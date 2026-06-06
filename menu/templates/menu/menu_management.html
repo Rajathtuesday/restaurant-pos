@@ -456,19 +456,60 @@
     const fileInput = document.getElementById("aiMenuFile");
     const btn       = document.getElementById("aiProcessBtn");
     if (!text.trim() && !fileInput.files[0]) { alert("Please provide text or an image."); return; }
+
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading…';
+
     const formData = new FormData();
     if (fileInput.files[0]) formData.append("file", fileInput.files[0]);
     formData.append("text", text);
+
     fetch("{% url 'ai_menu_importer' %}", {
       method: "POST",
       headers: { "X-CSRFToken": apiClient.getCsrf() },
       body: formData
-    }).then(res => res.json()).then(data => {
-      if (data.success) { alert(data.message); location.reload(); }
-      else { alert(data.error || "Import failed."); btn.disabled = false; btn.innerText = "Process with Smart AI"; }
-    }).catch(() => { alert("Error connecting to AI service"); btn.disabled = false; btn.innerText = "Process with Smart AI"; });
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        btn.disabled = false; btn.innerText = "Process with Smart AI";
+        return;
+      }
+      if (data.queued && data.task_id) {
+        // Async path — poll until done
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI is processing…';
+        pollAiImport(data.task_id, btn);
+      } else if (data.success) {
+        // Sync fallback (Celery down)
+        alert(data.message);
+        location.reload();
+      }
+    })
+    .catch(() => {
+      alert("Error connecting to AI service");
+      btn.disabled = false; btn.innerText = "Process with Smart AI";
+    });
+  }
+
+  function pollAiImport(taskId, btn) {
+    const interval = setInterval(() => {
+      fetch(`/menu/ai-import-status/${taskId}/`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === "done") {
+            clearInterval(interval);
+            alert(data.message);
+            location.reload();
+          } else if (data.status === "error") {
+            clearInterval(interval);
+            alert("AI import failed: " + (data.error || "unknown error"));
+            btn.disabled = false; btn.innerText = "Process with Smart AI";
+          }
+          // still "processing" — keep polling
+        })
+        .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Process with Smart AI"; });
+    }, 2000);
   }
 
   function togglePlatform(itemId, platform) {

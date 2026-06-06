@@ -40,7 +40,8 @@ mkdir -p $APP_DIR/logs
 if ! sudo systemctl restart gunicorn 2>/dev/null; then
     pkill -f 'gunicorn.*core.wsgi' 2>/dev/null || true
     sleep 1
-    setsid gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 \
+    setsid gunicorn --bind 127.0.0.1:8000 --workers 2 --threads 4 \
+        --worker-class gthread --timeout 120 \
         --daemon core.wsgi:application
 fi
 

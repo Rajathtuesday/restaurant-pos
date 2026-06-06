@@ -15,6 +15,7 @@ from .views import (
     update_station,
     update_menu_item,
     ai_menu_importer,
+    ai_import_status,
     delete_category,
     digital_menu,
     modifier_management,
@@ -45,6 +46,7 @@ urlpatterns = [
     path("delete-category/<int:category_id>/", delete_category, name="delete_category"),
     path("add-recipe/", add_recipe, name="add_recipe"),
     path("ai-import/", ai_menu_importer, name="ai_menu_importer"),
+    path("ai-import-status/<str:task_id>/", ai_import_status, name="ai_import_status"),
 
     path("delete-item/<int:item_id>/", delete_menu_item, name="delete_menu_item"),
     path("update-price/<int:item_id>/", update_price, name="update_price"),
