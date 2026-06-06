@@ -27,6 +27,8 @@ def ai_menu_importer(request):
         file       = request.FILES.get("file")
         image_bytes = mime_type = None
         if file:
+            if file.size > 15 * 1024 * 1024:
+                return JsonResponse({"error": "Image too large — please use a photo under 15 MB."}, status=400)
             image_bytes = file.read()
             mime_type   = file.content_type
 

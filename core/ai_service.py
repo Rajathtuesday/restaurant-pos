@@ -24,18 +24,18 @@ class AIService:
             except Exception as e:
                 logger.error(f"Failed to initialize AI Client: {e}")
 
-    def _resize_image(self, image_bytes, max_size=(1600, 1600)):
+    def _resize_image(self, image_bytes, max_size=(1024, 1024)):
         """Resizes image to speed up upload and AI processing."""
         try:
             img = Image.open(io.BytesIO(image_bytes))
             # Convert RGBA to RGB if necessary
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")
-            
+
             img.thumbnail(max_size, Image.Resampling.LANCZOS)
-            
+
             output = io.BytesIO()
-            img.save(output, format="JPEG", quality=85, optimize=True)
+            img.save(output, format="JPEG", quality=75, optimize=True)
             return output.getvalue()
         except Exception as e:
             logger.warning(f"Image optimization failed: {e}")

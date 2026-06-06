@@ -27,29 +27,16 @@ echo "=== Migrate ==="
 python manage.py migrate
 
 echo "=== Stopping gunicorn before collectstatic (free RAM) ==="
-sudo fuser -k 8000/tcp 2>/dev/null || true
+sudo systemctl stop gunicorn 2>/dev/null || sudo fuser -k 8000/tcp 2>/dev/null || true
 sleep 1
 
 echo "=== Static files ==="
 python manage.py collectstatic --noinput
 
-echo "=== Restarting gunicorn ==="
-sleep 1
-gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 --daemon core.wsgi:application
-
-echo "=== Ensuring Redis is running ==="
-if ! sudo systemctl is-active --quiet redis; then
-    sudo systemctl start redis
-    sleep 2
-fi
-redis-cli ping | grep -q PONG || { echo "ERROR: Redis did not start"; exit 1; }
-
-echo "=== Restarting Celery ==="
-pkill -f 'celery worker' 2>/dev/null || true
-sleep 1
-setsid nohup celery -A core worker \
-  --queues=default,printing --concurrency=2 --loglevel=warning \
-  >> /home/ubuntu/rasova/logs/celery.log 2>&1 &
+echo "=== Restarting services ==="
+sudo systemctl restart gunicorn
+sudo systemctl restart redis  2>/dev/null || sudo systemctl start redis
+sudo systemctl restart celery 2>/dev/null || true
 
 sleep 3
 HTTP=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health/)

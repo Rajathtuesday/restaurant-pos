@@ -116,6 +116,14 @@
         </button>
     </div>
 
+    <!-- Search bar -->
+    <div style="margin-bottom:1rem;">
+        <input type="text" id="inventorySearch" class="input-luxury"
+               style="width:100%;max-width:400px;"
+               placeholder="Search ingredients…"
+               oninput="filterInventory(this.value)">
+    </div>
+
     <div class="inventory-card">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -319,6 +327,14 @@ function getCookie(name) {
         }
     }
     return cookieValue;
+}
+
+function filterInventory(q) {
+    const term = q.toLowerCase();
+    document.querySelectorAll('tbody tr').forEach(row => {
+        const name = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+        row.style.display = name.includes(term) ? '' : 'none';
+    });
 }
 
 function restock(id) {
