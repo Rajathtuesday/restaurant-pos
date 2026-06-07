@@ -70,5 +70,9 @@ def health_check(request):
     try:
         connection.ensure_connection()
         return JsonResponse({"status": "healthy", "database": "connected"}, status=200)
-    except Exception as e:
-        return JsonResponse({"status": "unhealthy", "database": "disconnected", "error": str(e)}, status=503)
+    except Exception:
+        # Public endpoint — never leak the raw DB error (may contain host/creds).
+        # Log the detail server-side; return a generic status to the caller.
+        import logging
+        logging.getLogger("pos.core").exception("Health check DB connection failed")
+        return JsonResponse({"status": "unhealthy", "database": "disconnected"}, status=503)

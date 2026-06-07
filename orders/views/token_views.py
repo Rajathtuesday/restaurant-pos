@@ -265,9 +265,11 @@ def create_and_go_to_billing(request):
             "redirect": f"/token/{order.id}/bill/",
         })
 
-    except Exception as e:
-        logger.exception("Direct billing token creation failed: %s", e)
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Direct billing token creation failed")
+        return JsonResponse(
+            {"error": "Could not start billing. Please try again."}, status=400
+        )
 
 
 # ------------------------------------------------------------------
@@ -357,9 +359,12 @@ def create_token_order(request):
             "token_number": next_token,
         })
 
-    except Exception as e:
-        logger.exception("Token order creation failed: %s", e)
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Token order creation failed")
+        return JsonResponse(
+            {"success": False, "error": "Could not create the token order. Please try again."},
+            status=400,
+        )
 
 
 # ------------------------------------------------------------------
