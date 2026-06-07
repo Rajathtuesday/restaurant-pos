@@ -1,0 +1,20 @@
+[Unit]
+Description=Rasova POS — Celery Worker
+After=network.target redis.service
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/rasova
+EnvironmentFile=/home/ubuntu/rasova/.env
+ExecStart=/home/ubuntu/rasova/.venv/bin/celery \
+    -A core worker \
+    --queues=default,printing \
+    --concurrency=2 \
+    --loglevel=warning \
+    --logfile=/home/ubuntu/rasova/logs/celery.log
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
