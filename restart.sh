@@ -15,7 +15,7 @@ sudo systemctl restart gunicorn || {
     echo "systemctl not set up yet — starting manually"
     fuser -k 8000/tcp 2>/dev/null || true
     sleep 1
-    gunicorn --bind 127.0.0.1:8000 --workers 3 --timeout 120 --daemon core.wsgi:application
+    gunicorn --bind 127.0.0.1:8000 --workers 2 --threads 4 --worker-class gthread --timeout 120 --daemon core.wsgi:application
 }
 
 echo "=== Restarting Celery ==="
