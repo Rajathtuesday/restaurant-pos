@@ -378,7 +378,7 @@
                     {% if config.upi_enabled %}<button class="btn-pay" onclick="recordPay('upi')"><i class="bi bi-qr-code"></i>{{ config.upi_label }}</button>{% endif %}
                     {% if config.card_enabled %}<button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i>{{ config.card_label }}</button>{% endif %}
                 </div>
-                <button class="btn-action" onclick="window.print()"><i class="bi bi-printer me-2"></i>Print Receipt</button>
+                <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Receipt</button>
             {% else %}
                 {% if order.status != 'closed' and order.status != 'paid' %}
                 <button class="btn-pay" style="width:100%;" onclick="recordPay('cash', 0)">
@@ -391,7 +391,7 @@
                 {% endif %}
                 <div style="display:flex;gap:0.5rem;margin-top:1.25rem;">
                     <button class="btn-action" style="margin-top:0;border-color:var(--accent-gold);color:var(--accent-gold);"
-                            onclick="openThermalReceipt()">
+                            onclick="printReceipt({{ order.id }})">
                         <i class="bi bi-printer me-2"></i>Print Slip
                     </button>
                     {% if is_qsr %}
@@ -539,6 +539,26 @@
         if (n > 0) document.getElementById('payAmount').value = (v / n).toFixed(2);
     }
 
+    // Manual receipt print. On the Rasova app / any device, queue to the on-LAN
+    // print agent; on a plain desktop browser, fall back to window.print().
+    async function printReceipt(orderId) {
+        const p = window.rasovaPlatform || {};
+        if (p.nativeAndroid || p.android) {
+            try {
+                const resp = await fetch("{% url 'print-queue-add' %}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+                    body: JSON.stringify({ order_id: orderId }),
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (resp.ok && d.success) ui.toast('Sent to printer', 'success');
+                else ui.toast(d.error || 'Could not reach printer', 'error');
+            } catch (e) { ui.toast('Network error sending to printer', 'error'); }
+            return;
+        }
+        window.print();
+    }
+
     async function recordPay(method, amountOverride = null) {
         const amtEl  = document.getElementById('payAmount');
         const amount = amountOverride !== null ? amountOverride : (amtEl ? amtEl.value : 0);
@@ -554,8 +574,25 @@
 
                 let printed = false;
 
+                // 0. Rasova Android app (or any device): push to the print queue so
+                //    the on-LAN agent (PC/phone) prints it. The EC2 server itself
+                //    cannot reach a local printer, so this is the cloud-correct path.
+                const _p = window.rasovaPlatform || {};
+                if (_p.nativeAndroid || _p.android) {
+                    try {
+                        const ar = await fetch("{% url 'print-queue-add' %}", {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+                            body: JSON.stringify({ order_id: {{ order.id }} }),
+                        });
+                        const ad = await ar.json().catch(() => ({}));
+                        if (ar.ok && ad.success) { printed = true; ui.toast('Sent to printer', 'success'); }
+                        else ui.toast(ad.error || 'Printer queue failed', 'error');
+                    } catch { ui.toast('Network error reaching printer', 'error'); }
+                }
+
                 // 1. Try QZ Tray (USB real cuts) if enabled
-                if (useAgent && agentPrinterName) {
+                if (!printed && useAgent && agentPrinterName) {
                     printed = await printWithAgent(agentPrinterName, {{ order.id }}, splitMode);
                 }
 
