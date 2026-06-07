@@ -44,7 +44,9 @@ if not SECRET_KEY:
     )
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# Defaults to False — production must explicitly opt in to DEBUG via env var.
+# A missing/misspelled DEBUG var must never silently expose tracebacks + secrets.
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # Parse comma-separated hosts, fallback to localhost for dev
 env_hosts = os.getenv('ALLOWED_HOSTS', '')
@@ -255,6 +257,11 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True          # allow HSTS preload list submission
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+
+    # Defence-in-depth: redirect any HTTP request to HTTPS at the Django layer.
+    # nginx/Cloudflare normally handle this, but if that layer is ever
+    # misconfigured this prevents Django from serving plaintext.
+    SECURE_SSL_REDIRECT = True
 
 # Default primary key field type
 
@@ -566,6 +573,12 @@ else:
 # django-ratelimit: when the cache is unavailable (Redis down, tests, etc.)
 # fail OPEN — allow the request rather than returning a 500.
 # This prevents the login page from crashing when Redis is not running.
+#
+# SECURITY TRADE-OFF: while Redis is down, ALL rate limits (login, order
+# creation, payment) are bypassed. During that window brute-force protection
+# relies solely on django-axes account lockout (5 failures → 1h lockout).
+# Keeping fail-open is the right call (a Redis blip must not 500 the login
+# page), but be aware the rate-limit layer is best-effort, not a hard guarantee.
 RATELIMIT_FAIL_OPEN = True
 
 CELERY_BROKER_URL = REDIS_URL or "redis://127.0.0.1:6379/0"

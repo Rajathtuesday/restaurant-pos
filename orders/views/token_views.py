@@ -210,7 +210,14 @@ def create_and_go_to_billing(request):
         body = {}
 
     customer_name  = (body.get("customer_name",  "") or "").strip() or None
-    customer_phone = (body.get("customer_phone", "") or "").strip() or None
+    from core.validators import normalize_phone
+    from django.core.exceptions import ValidationError as _PhoneError
+    try:
+        customer_phone = normalize_phone(body.get("customer_phone"))
+    except _PhoneError:
+        return JsonResponse(
+            {"error": "Enter a valid 10-digit mobile number."}, status=400
+        )
 
     try:
         with transaction.atomic():
@@ -289,7 +296,14 @@ def create_token_order(request):
         body = {}
 
     customer_name  = (body.get("customer_name",  "") or "").strip() or None
-    customer_phone = (body.get("customer_phone", "") or "").strip() or None
+    from core.validators import normalize_phone
+    from django.core.exceptions import ValidationError as _PhoneError
+    try:
+        customer_phone = normalize_phone(body.get("customer_phone"))
+    except _PhoneError:
+        return JsonResponse(
+            {"error": "Enter a valid 10-digit mobile number."}, status=400
+        )
 
     try:
         with transaction.atomic():
@@ -351,6 +365,41 @@ def create_token_order(request):
 # ------------------------------------------------------------------
 # ASSIGN ONLINE TOKEN  (called from api_ingest_order inside atomic)
 # ------------------------------------------------------------------
+
+def assign_counter_token(order, outlet, tenant, business_date):
+    """
+    Creates a TokenOrder with is_online=False for a counter / walk-in order.
+    Uses DailyTokenCounter row-lock — NEVER MAX()+1, which races under load.
+    Must be called inside an existing transaction.atomic() block.
+
+    Returns the created TokenOrder instance.
+    """
+    counter, created = (
+        DailyTokenCounter.objects
+        .select_for_update()
+        .get_or_create(
+            outlet=outlet, tenant=tenant,
+            date=business_date, defaults={"value": 0},
+        )
+    )
+
+    # SELF-HEAL: counter row missing but counter tokens already exist
+    if created:
+        from django.db.models import Max
+        max_existing = TokenOrder.objects.filter(
+            outlet=outlet, date=business_date, is_online=False
+        ).aggregate(max_val=Max("token_number"))["max_val"]
+        if max_existing:
+            counter.value = max_existing
+
+    counter.value += 1
+    counter.save(update_fields=["value"])
+
+    return TokenOrder.objects.create(
+        tenant=tenant, outlet=outlet, order=order,
+        token_number=counter.value, date=business_date, is_online=False,
+    )
+
 
 def assign_online_token(order, outlet, tenant, business_date):
     """

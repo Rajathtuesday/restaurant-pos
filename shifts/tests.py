@@ -181,14 +181,19 @@ class TestShiftOvertimeHoursQueryBehaviour(TestCase):
             name="Morning", start_time=time(8, 0), end_time=time(16, 0),
         )
         now = timezone.now()
+        clock_in = now - timedelta(hours=10)
+        # Schedule must match the clock-in DATE — overtime_hours looks up by
+        # clocked_in_at.date() (shifts/models.py:60). Using now.date() made this
+        # test flaky: a 10h-earlier clock-in crosses UTC midnight ~40% of the day,
+        # missing the schedule and falling back to the 9h default.
         StaffSchedule.objects.create(
             tenant=self.tenant, outlet=self.outlet,
-            staff=self.staff, date=now.date(),
+            staff=self.staff, date=clock_in.date(),
             template=template, is_active=True,
         )
         shift = Shift.objects.create(
             tenant=self.tenant, outlet=self.outlet, staff=self.staff,
-            clocked_in_at=now - timedelta(hours=10),
+            clocked_in_at=clock_in,
             clocked_out_at=now,
         )
         # Schedule says 8h; worked 10h → 2h overtime

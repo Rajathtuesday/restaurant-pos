@@ -135,10 +135,20 @@ def create_order(request):
         # 3. Unauthorized: No token and no user
         return JsonResponse({"error": "Unauthorized. Please scan a QR code."}, status=401)
 
+    # Validate phone BEFORE opening the transaction so a bad number returns a
+    # clean 400 instead of a DB truncation error (which would leak column names).
+    from core.validators import normalize_phone
+    from django.core.exceptions import ValidationError as _PhoneError
+    try:
+        cust_phone = normalize_phone(data.get("customer_phone"))
+    except _PhoneError:
+        return JsonResponse(
+            {"error": "Enter a valid 10-digit mobile number."}, status=400
+        )
+
     try:
         with transaction.atomic():
             cust_name = data.get("customer_name")
-            cust_phone = data.get("customer_phone")
             order_id = data.get("order_id")
 
             if order_id:
@@ -177,22 +187,15 @@ def create_order(request):
                     order.customer_phone = cust_phone
 
             # Franchise / Cafe Token Generation
+            # Uses the row-locked DailyTokenCounter helper — NEVER MAX()+1,
+            # which produces duplicate token numbers under concurrent load.
             if tenant and tenant.tenant_type in ['franchise', 'cafe'] and table is None:
-                from orders.models import TokenOrder
                 from django.utils import timezone
-                from django.db.models import Max
+                from core.utils import get_business_date
+                from orders.views.token_views import assign_counter_token
                 if not hasattr(order, 'token'):
-                    today = timezone.localdate()
-                    max_token = TokenOrder.objects.filter(
-                        outlet=outlet, date=today
-                    ).aggregate(Max('token_number'))['token_number__max'] or 0
-                    TokenOrder.objects.create(
-                        tenant=tenant,
-                        outlet=outlet,
-                        order=order,
-                        token_number=max_token + 1,
-                        date=today
-                    )
+                    business_date = get_business_date(timezone.now(), outlet)
+                    assign_counter_token(order, outlet, tenant, business_date)
 
             # Allow discount application during creation for aggregators or staff
             if (source != "dine_in" or (user and user.role in ["owner", "manager", "cashier"])):
@@ -213,9 +216,18 @@ def create_order(request):
             order.recalculate_totals()
 
             u_name = user.username if user else "Guest (QR)"
-            logger.info(f"User {u_name} created/updated order #{order.id} on table {table.name if table else 'Walk-in/Online'} source {source}")
+            logger.info(
+                "User %s created/updated order #%s on table %s source %s",
+                u_name, order.id, table.name if table else "Walk-in/Online", source,
+            )
 
         return JsonResponse({"success": True, "order_id": order.id})
-    except Exception as e:
-        logger.exception(f"Order creation failed: {e}")
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        # Never leak internal exception text (DB constraints, table names) to
+        # the client — especially unauthenticated QR guests. Log full trace,
+        # return a generic message.
+        logger.exception("Order creation failed")
+        return JsonResponse(
+            {"error": "Could not create the order. Please try again."},
+            status=400,
+        )
