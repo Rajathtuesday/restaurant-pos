@@ -499,7 +499,10 @@
         // service. Harmless no-op in a browser or when the bridge is absent.
         if (!window.rasovaPlatform || !window.rasovaPlatform.nativeAndroid) return;
         if (typeof Android === 'undefined') return;
-        const pollUrl = '{{ request.scheme }}://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
+        // Always https — behind Cloudflare (Flexible SSL) request.scheme can be
+        // 'http', which builds a cleartext URL the Android service rejects
+        // (CLEARTEXT not permitted). The app always reaches the server over TLS.
+        const pollUrl = 'https://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
         try {
             Android.startPrinting(pollUrl);
         } catch (e) {
