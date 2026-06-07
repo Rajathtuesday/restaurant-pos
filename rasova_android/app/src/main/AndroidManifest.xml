@@ -21,6 +21,11 @@
     <!-- NetworkState: check connectivity before attempting HTTP — no user dialog needed -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Notifications: Android 13+ (API 33) requires this runtime permission for the
+         foreground-service notification to display. Without it the print service's
+         persistent notification is suppressed (and on some OEMs the FGS won't start). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="false"
         android:label="Rasova"

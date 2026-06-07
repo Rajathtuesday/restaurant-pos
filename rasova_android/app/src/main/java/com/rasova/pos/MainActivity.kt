@@ -1,6 +1,7 @@
 package com.rasova.pos
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
@@ -84,6 +85,17 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Android 13+ needs runtime permission for the print service's foreground
+        // notification to show. Without it the service can be blocked from starting.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001
+                )
+            }
+        }
 
         webView   = findViewById(R.id.webView)
         splashView = findViewById(R.id.splashView)
@@ -183,6 +195,10 @@ class MainActivity : AppCompatActivity() {
     // ── WebView setup ─────────────────────────────────────────────────────────
 
     private fun configureWebView() {
+        // Allow chrome://inspect remote debugging of this WebView so print/login
+        // issues can be diagnosed from a PC without rebuilding.
+        WebView.setWebContentsDebuggingEnabled(true)
+
         val settings: WebSettings = webView.settings
         settings.javaScriptEnabled        = true
         settings.domStorageEnabled        = true
