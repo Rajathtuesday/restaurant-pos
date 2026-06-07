@@ -31,6 +31,11 @@ class PrintService : Service() {
     private val serviceJob = SupervisorJob()
     private val scope = CoroutineScope(Dispatchers.IO + serviceJob)
 
+    // The single active polling loop. onStartCommand fires on every page
+    // navigation; without cancelling the previous loop we accumulate duplicate
+    // pollers (and stale-URL ones keep erroring). Track + replace it.
+    private var pollingJob: kotlinx.coroutines.Job? = null
+
     // OkHttp: an HTTP client library. Does GET/POST to EC2 efficiently.
     private val http = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
@@ -88,12 +93,15 @@ class PrintService : Service() {
     // ── Core polling loop ──────────────────────────────────────────────────────
 
     private fun startPolling(pollUrl: String) {
+        // Cancel any previous loop so only ONE poller runs (with the latest URL).
+        pollingJob?.cancel()
+
         val base     = pollUrl.trimEnd('/') + "/"
         val jobsUrl  = base + "jobs/"
         val doneBase = base + "done/"
         val failBase = base + "failed/"
 
-        scope.launch {
+        pollingJob = scope.launch {
             var backoffMs = 2_000L  // doubles on error, resets on success, max 30s
 
             while (isActive) {
