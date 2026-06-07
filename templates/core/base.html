@@ -495,13 +495,36 @@
     // what URL to poll. The JSBridge receives this and starts the ForegroundService.
     {% if request.user.is_authenticated and request.user.outlet %}
     (function () {
-        if (!window.rasovaPlatform.nativeAndroid) return;
-        if (typeof Android === 'undefined') return;
+        var p = window.rasovaPlatform || {};
+        // TEMP on-screen diagnostic — shows why the print service did / didn't start,
+        // so we can debug without USB/chrome://inspect. Remove once printing works.
+        function _diag(msg, color) {
+            function show() {
+                var d = document.createElement('div');
+                d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:999999;' +
+                    'background:' + color + ';color:#000;font:13px sans-serif;padding:8px;text-align:center';
+                d.textContent = msg;
+                document.body.appendChild(d);
+                setTimeout(function () { d.remove(); }, 9000);
+            }
+            if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
+        }
+
+        if (!p.nativeAndroid) {
+            _diag('PRINT DIAG: not native — nativeAndroid=' + p.nativeAndroid +
+                  ' android=' + p.android, '#ff6b6b');
+            return;
+        }
+        if (typeof Android === 'undefined') {
+            _diag('PRINT DIAG: bridge missing — typeof Android = undefined', '#ff6b6b');
+            return;
+        }
         const pollUrl = '{{ request.scheme }}://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
         try {
             Android.startPrinting(pollUrl);
+            _diag('PRINT DIAG: startPrinting called OK ✓', '#51cf66');
         } catch (e) {
-            console.warn('Rasova native bridge error:', e);
+            _diag('PRINT DIAG: startPrinting threw — ' + e, '#ff6b6b');
         }
     })();
     {% endif %}
