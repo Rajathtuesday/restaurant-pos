@@ -25,8 +25,11 @@ android {
 
     buildTypes {
         debug {
-            // Point at the real server so APK testing on a physical phone works
-            buildConfigField "String", "SERVER_URL", '"https://rasova.net"'
+            // Blank — like release. First launch shows the setup screen so each
+            // restaurant scans its own QR (encodes https://<slug>.rasova.net) or
+            // types its subdomain. Hardcoding rasova.net here short-circuited the
+            // setup flow and dumped every device on the marketing landing page.
+            buildConfigField "String", "SERVER_URL", '""'
         }
         release {
             minifyEnabled true
