@@ -629,7 +629,7 @@
             </a>
             {% elif order.status == 'paid' or order.status == 'closed' %}
             <button class="btn-luxury w-100 mb-2"
-                    onclick="window.open('/thermal-receipt/{{ order.id }}/', '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no')"
+                    onclick="printReceipt({{ order.id }})"
                     style="min-height:52px;">
                 <i class="bi bi-printer me-2"></i>Print Receipt
             </button>
@@ -776,7 +776,7 @@
             </a>
             {% elif order.status == 'paid' or order.status == 'closed' %}
             <button class="btn-luxury w-100 mb-2"
-                    onclick="window.open('/thermal-receipt/{{ order.id }}/', '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no')"
+                    onclick="printReceipt({{ order.id }})"
                     style="min-height:52px;">
                 <i class="bi bi-printer me-2"></i>Print Receipt
             </button>
@@ -1156,6 +1156,37 @@
             });
         })
         .catch(() => { ui.toast('Network error', 'error'); resetSendBtn(); });
+    }
+
+    /* ── Print receipt ──────────────────────────────────────────────
+       Inside the Rasova Android app, the EC2 server cannot reach the LAN
+       printer, so we push the job to the print queue — the app's on-device
+       service polls it and sends bytes to the printer over WiFi.
+       On desktop/browser, fall back to the thermal-receipt print popup. */
+    async function printReceipt(orderId) {
+        const native = (typeof rasovaPlatform !== 'undefined' &&
+                        (rasovaPlatform.nativeAndroid || rasovaPlatform.android));
+        if (native) {
+            try {
+                const resp = await fetch("{% url 'print-queue-add' %}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+                    body: JSON.stringify({ order_id: orderId }),
+                });
+                const d = await resp.json().catch(() => ({}));
+                if (resp.ok && d.success) {
+                    ui.toast('Sent to printer', 'success');
+                } else {
+                    ui.toast(d.error || 'Could not reach printer', 'error');
+                }
+            } catch (e) {
+                ui.toast('Network error sending to printer', 'error');
+            }
+            return;
+        }
+        // Desktop / browser fallback
+        window.open('/thermal-receipt/' + orderId + '/', '_blank',
+            'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
     }
 
     /* ── Parcel charge toggle ── */
