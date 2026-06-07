@@ -34,6 +34,7 @@ from django.db.models import Count, Prefetch, Q, Sum
 from django.http import Http404, JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required
@@ -444,6 +445,7 @@ def assign_online_token(order, outlet, tenant, business_date):
 # TOKEN BILLING SCREEN
 # ------------------------------------------------------------------
 
+@never_cache
 @login_required
 @tenant_required
 @feature_required("token_system")

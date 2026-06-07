@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch, Sum, Q
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.cache import never_cache
 
 from core.decorators import tenant_required
 from menu.models import MenuCategory, MenuItem
@@ -98,6 +99,7 @@ def billing_view(request):
 # BILL VIEW
 # -------------------------------------------------
 
+@never_cache
 @login_required
 @tenant_required
 def bill_view(request, order_id):
