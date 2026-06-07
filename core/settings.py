@@ -258,10 +258,13 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
 
-    # Defence-in-depth: redirect any HTTP request to HTTPS at the Django layer.
-    # nginx/Cloudflare normally handle this, but if that layer is ever
-    # misconfigured this prevents Django from serving plaintext.
-    SECURE_SSL_REDIRECT = True
+    # Django-level HTTP→HTTPS redirect. OFF by default: when Cloudflare runs in
+    # "Flexible" SSL mode (or nginx forwards X-Forwarded-Proto: http), enabling
+    # this creates an infinite redirect loop (ERR_TOO_MANY_REDIRECTS) because
+    # Django keeps seeing the proxied request as insecure.
+    # Only enable (SECURE_SSL_REDIRECT=True in env) once Cloudflare is in "Full"
+    # mode AND the origin correctly sends X-Forwarded-Proto: https.
+    SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False") == "True"
 
 # Default primary key field type
 
