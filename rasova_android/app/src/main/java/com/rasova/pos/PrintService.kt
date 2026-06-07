@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -61,7 +62,23 @@ class PrintService : Service() {
 
         // START_STICKY = if Android kills us (low memory), restart us automatically
         createNotificationChannel()
-        startForeground(NOTIF_ID, buildNotification("Rasova Printing Active"))
+
+        // Android 14 (API 34) requires the typed startForeground() for a service
+        // that declares foregroundServiceType. The 2-arg form throws
+        // MissingForegroundServiceTypeException and the service never starts.
+        try {
+            val notif = buildNotification("Rasova Printing Active")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {  // API 34
+                startForeground(NOTIF_ID, notif, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIF_ID, notif)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "startForeground failed: ${e.message}", e)
+            status = "error"
+            stopSelf()
+            return START_NOT_STICKY
+        }
         status = "active"
 
         startPolling(pollUrl)
