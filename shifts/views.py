@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from .models import Shift
 
 
@@ -143,12 +143,10 @@ def clock_out(request):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 @require_POST
 def update_shift_tips(request, shift_id):
     """Manager can update tips for any shift."""
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         data = json.loads(request.body)
         shift = Shift.objects.get(id=shift_id, tenant=request.user.tenant)
@@ -161,16 +159,13 @@ def update_shift_tips(request, shift_id):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 def cash_session_list(request):
     """
     Renders the Cash Sessions dashboard (Cash Register Management).
     Shows the active session and historical sessions for the current outlet.
-    Managers/Owners see all sessions; Cashiers/Staff see only their active sessions.
+    Managers/Owners only.
     """
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden()
-
     from .models import CashSession
     sessions = CashSession.objects.filter(
         tenant=request.user.tenant,
@@ -409,17 +404,13 @@ from .models import ShiftTemplate, StaffSchedule
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 def schedule_builder(request):
     """
     Weekly schedule grid — managers only.
     Shows each staff member vs each day of the week.
     Supports ?week=YYYY-MM-DD to navigate to any Monday.
     """
-    from core.decorators import role_required as _role_check
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden()
-
     from datetime import timedelta, datetime
     from accounts.models import User
 
@@ -503,6 +494,7 @@ def schedule_builder(request):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 @require_POST
 def create_schedule_entry(request):
     """
@@ -513,9 +505,6 @@ def create_schedule_entry(request):
     - Missing times: if no template and no start/end times supplied, reject.
     - Date in past: allowed (managers can back-fill missed schedules).
     """
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -600,15 +589,13 @@ def create_schedule_entry(request):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 @require_POST
 def delete_schedule_entry(request, schedule_id):
     """
     Soft-deletes (deactivates) a schedule entry.
     Hard-delete is not used so historical records remain intact.
     """
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         schedule = StaffSchedule.objects.get(
             id=schedule_id,
@@ -629,12 +616,9 @@ def delete_schedule_entry(request, schedule_id):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 def shift_template_list(request):
-    """Lists all shift templates for the outlet."""
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden()
-
+    """Lists all shift templates for the outlet. Managers/Owners only."""
     templates = ShiftTemplate.objects.filter(
         tenant=request.user.tenant,
         outlet=request.user.outlet
@@ -645,6 +629,7 @@ def shift_template_list(request):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 @require_POST
 def create_shift_template(request):
     """
@@ -654,9 +639,6 @@ def create_shift_template(request):
     - Duplicate name per outlet → reject.
     - end_time < start_time → overnight shift, allowed, validated by duration > 0.
     """
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -706,15 +688,13 @@ def create_shift_template(request):
 
 @login_required
 @tenant_required
+@role_required("manager", "owner")
 @require_POST
 def delete_shift_template(request, template_id):
     """
     Deletes a shift template.
     If schedules are using it, schedules are set to template=NULL (SET_NULL FK).
     """
-    if request.user.role not in ("manager", "owner") and not request.user.is_superuser:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     try:
         template = ShiftTemplate.objects.get(
             id=template_id, tenant=request.user.tenant, outlet=request.user.outlet

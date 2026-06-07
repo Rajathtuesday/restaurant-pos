@@ -10,7 +10,8 @@ Coverage:
 from datetime import date, time
 from decimal import Decimal
 
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
@@ -198,3 +199,77 @@ class TestShiftOvertimeHoursQueryBehaviour(TestCase):
         )
         # Schedule says 8h; worked 10h → 2h overtime
         self.assertAlmostEqual(shift.overtime_hours, 2.0, delta=0.05)
+
+
+# ---------------------------------------------------------------------------
+# Role-gate tests — codify who may access shifts management views.
+# These replace 8 inline role checks that are now @role_required("manager","owner").
+# If any gate is dropped, the deny-loop below fails immediately.
+# ---------------------------------------------------------------------------
+
+class ShiftsRoleGateTests(TestCase):
+
+    def setUp(self):
+        self.tenant, self.outlet = _tenant("RoleGate")
+        self.owner   = _user(self.tenant, self.outlet, role="owner",   suffix="owner")
+        self.manager = _user(self.tenant, self.outlet, role="manager", suffix="manager")
+        self.waiter  = _user(self.tenant, self.outlet, role="waiter",  suffix="waiter")
+        self.cashier = _user(self.tenant, self.outlet, role="cashier", suffix="cashier")
+
+        # Every manager/owner-gated shifts view. Args use dummy ids — the role
+        # gate (decorator) runs before the view body, so a 403 fires regardless
+        # of whether the id exists.
+        self.gated = [
+            reverse("shift-tips", args=[1]),
+            reverse("cash-session-list"),
+            reverse("schedule-builder"),
+            reverse("schedule-create"),
+            reverse("schedule-delete", args=[1]),
+            reverse("shift-template-list"),
+            reverse("shift-template-create"),
+            reverse("shift-template-delete", args=[1]),
+        ]
+
+    def test_waiter_denied_on_every_gated_view(self):
+        c = Client()
+        c.force_login(self.waiter)
+        for url in self.gated:
+            resp = c.get(url)  # role_required fires before require_POST → 403 even on GET
+            self.assertEqual(resp.status_code, 403, f"waiter NOT blocked at {url}")
+
+    def test_cashier_denied_on_every_gated_view(self):
+        c = Client()
+        c.force_login(self.cashier)
+        for url in self.gated:
+            resp = c.get(url)
+            self.assertEqual(resp.status_code, 403, f"cashier NOT blocked at {url}")
+
+    def test_anonymous_redirected_to_login(self):
+        c = Client()
+        for url in self.gated:
+            resp = c.get(url)
+            self.assertEqual(resp.status_code, 302, f"anon not redirected at {url}")
+            self.assertIn("/login", resp["Location"])
+
+    def test_manager_allowed_through_page_gate(self):
+        c = Client()
+        c.force_login(self.manager)
+        resp = c.get(reverse("schedule-builder"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_owner_allowed_through_page_gate(self):
+        c = Client()
+        c.force_login(self.owner)
+        resp = c.get(reverse("shift-template-list"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_manager_passes_gate_on_post_endpoint(self):
+        # Manager POSTs empty body → gets past the role gate (not 403/302).
+        # Body then fails validation (400) — proves the gate allowed them through.
+        c = Client()
+        c.force_login(self.manager)
+        resp = c.post(
+            reverse("shift-template-create"),
+            data="{}", content_type="application/json",
+        )
+        self.assertNotIn(resp.status_code, (302, 403))
