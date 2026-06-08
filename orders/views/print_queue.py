@@ -272,5 +272,9 @@ def _build_receipt_b64(order, chars, cut, encoding) -> str:
     svc = PrintingService(chars_per_line=chars, cut_type=cut, encoding=encoding)
     buf = BytesPrinter()
     svc._print_bill_body(buf, order)
+    # Feed blank lines so the footer clears the print-head→cutter gap (~2-4 cm).
+    # Without this the last lines sit above the blade, get clipped, and reprint
+    # at the top of the next receipt.
+    buf.text("\n\n\n\n\n\n")
     buf.cut(mode="FULL")
     return base64.b64encode(buf.buf).decode("ascii")
