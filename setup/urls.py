@@ -14,6 +14,7 @@ from .views import (
     aggregator_setup,
     outlet_settings,
     printer_setup,
+    printer_test_print,
     setup_promos,
     promo_create,
     promo_toggle,
@@ -41,6 +42,7 @@ urlpatterns = [
     path("aggregators/", aggregator_setup, name="setup_aggregators"),
     path("outlet/", outlet_settings, name="outlet_settings"),
     path("printer/", printer_setup, name="printer_setup"),
+    path("printer/test/", printer_test_print, name="printer_test_print"),
 
     # Promo management
     path("promos/", setup_promos, name="setup_promos"),

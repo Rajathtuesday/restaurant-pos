@@ -7,8 +7,10 @@ Coverage:
   - CashSession filtering by date instead of opened_at__date works correctly
   - Shift.overtime_hours N+1 warning documented via test
 """
+import json
 from datetime import date, time
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -273,3 +275,143 @@ class ShiftsRoleGateTests(TestCase):
             data="{}", content_type="application/json",
         )
         self.assertNotIn(resp.status_code, (302, 403))
+
+
+# ---------------------------------------------------------------------------
+# Cash register (session) open/close endpoints — the backend of the restored
+# Cash Sessions UI. These guard the feature that, once disabled, deadlocked
+# fine-dining payment (no session UI, but payment requires a session).
+# ---------------------------------------------------------------------------
+
+class CashSessionEndpointTests(TestCase):
+
+    def setUp(self):
+        self.tenant, self.outlet = _tenant("Register Co")
+        self.manager = _user(self.tenant, self.outlet, role="manager", suffix="mgr")
+        self.client = Client()
+        self.client.force_login(self.manager)
+
+    def test_open_session_creates_open_register(self):
+        resp = self.client.post(
+            reverse("open-cash-session"),
+            data=json.dumps({"opening_balance": "500"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["success"])
+        s = CashSession.objects.get(tenant=self.tenant, outlet=self.outlet, status="open")
+        self.assertEqual(s.opening_balance, Decimal("500"))
+
+    def test_cannot_open_two_sessions_at_once(self):
+        CashSession.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            opened_by=self.manager, status="open",
+        )
+        resp = self.client.post(
+            reverse("open-cash-session"),
+            data=json.dumps({"opening_balance": "0"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("already open", resp.json()["error"].lower())
+
+    def test_close_session_reconciles_to_closed(self):
+        CashSession.objects.create(
+            tenant=self.tenant, outlet=self.outlet, opened_by=self.manager,
+            opening_balance=Decimal("100"), status="open",
+        )
+        resp = self.client.post(
+            reverse("close-cash-session"),
+            data=json.dumps({"actual_cash": "100"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        s = CashSession.objects.get(tenant=self.tenant, outlet=self.outlet)
+        self.assertEqual(s.status, "closed")
+        # No sales recorded → expected == opening (100); actual 100 → no discrepancy
+        self.assertEqual(s.discrepancy, Decimal("0"))
+
+    def test_close_without_open_session_is_rejected(self):
+        resp = self.client.post(
+            reverse("close-cash-session"),
+            data=json.dumps({"actual_cash": "0"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_cash_session_page_loads_for_owner(self):
+        owner = _user(self.tenant, self.outlet, role="owner", suffix="own")
+        c = Client()
+        c.force_login(owner)
+        resp = c.get(reverse("cash-session-list"))
+        self.assertEqual(resp.status_code, 200)
+
+
+# ---------------------------------------------------------------------------
+# Payment ↔ cash-session gate — proves WHY the Cash Sessions UI must stay
+# reachable: fine-dining payment is blocked until a register is open, while
+# cafe/franchise auto-opens one.
+# ---------------------------------------------------------------------------
+
+class PaymentCashSessionGateTests(TestCase):
+
+    def _outlet_with_config(self, tenant_type):
+        from setup.models import PaymentConfig
+        tenant = Tenant.objects.create(name=f"Gate {tenant_type}", tenant_type=tenant_type)
+        outlet = Outlet.objects.create(tenant=tenant, name="Main")
+        PaymentConfig.objects.create(
+            tenant=tenant, outlet=outlet,
+            cash_enabled=True, upi_enabled=True, card_enabled=False,
+        )
+        return tenant, outlet
+
+    def _order(self, tenant, outlet):
+        from orders.models import Order
+        return Order.objects.create(
+            tenant=tenant, outlet=outlet, status="open", source="counter",
+            grand_total=Decimal("100.00"),
+        )
+
+    def _pay(self, client, order):
+        return client.post(
+            reverse("pay-order", args=[order.id]),
+            data=json.dumps({"method": "cash", "amount": "100"}),
+            content_type="application/json",
+        )
+
+    def test_fine_dining_payment_blocked_without_open_session(self):
+        tenant, outlet = self._outlet_with_config("fine_dining")
+        cashier = _user(tenant, outlet, role="cashier", suffix="fd")
+        c = Client(); c.force_login(cashier)
+        resp = self._pay(c, self._order(tenant, outlet))
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("session", resp.json()["error"].lower())
+
+    @patch("orders.views.payment_views.process_payment")
+    def test_fine_dining_payment_allowed_once_session_open(self, mock_pp):
+        mock_pp.return_value = {"change_due": Decimal("0.00"), "order_closed": True}
+        tenant, outlet = self._outlet_with_config("fine_dining")
+        cashier = _user(tenant, outlet, role="cashier", suffix="fd2")
+        CashSession.objects.create(
+            tenant=tenant, outlet=outlet, opened_by=cashier, status="open",
+        )
+        c = Client(); c.force_login(cashier)
+        resp = self._pay(c, self._order(tenant, outlet))
+        self.assertNotEqual(resp.status_code, 400)
+        # The session-gate error must be gone now that a register is open.
+        self.assertNotIn("session", str(resp.json()).lower())
+
+    @patch("orders.views.payment_views.process_payment")
+    def test_cafe_payment_auto_opens_session(self, mock_pp):
+        mock_pp.return_value = {"change_due": Decimal("0.00"), "order_closed": True}
+        tenant, outlet = self._outlet_with_config("cafe")
+        cashier = _user(tenant, outlet, role="cashier", suffix="cafe")
+        c = Client(); c.force_login(cashier)
+        # No session exists beforehand.
+        self.assertFalse(CashSession.objects.filter(tenant=tenant, outlet=outlet).exists())
+        resp = self._pay(c, self._order(tenant, outlet))
+        self.assertNotEqual(resp.status_code, 400)
+        # A session was auto-created for the QSR path.
+        self.assertTrue(
+            CashSession.objects.filter(tenant=tenant, outlet=outlet, status="open").exists()
+        )

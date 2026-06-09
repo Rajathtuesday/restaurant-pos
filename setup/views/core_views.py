@@ -548,24 +548,120 @@ def rename_table(request, table_id):
 
 @login_required
 def printer_setup(request):
+    """
+    Printer setup for the phone-agent printing model.
+
+    The Rasova app (or a PC poll-agent) polls /orders/agent/<key>/jobs/ and prints
+    to the printer at the default Kitchen Station's ``printer_ip``. That IP is the
+    ONLY field that actually drives printing — so this page reads/writes the default
+    station, not the legacy ``outlet.agent_host``/``use_qz_tray`` WebSocket fields.
+
+    ``outlet.printer_mac`` is still kept here: it's the printer's permanent ID, used
+    for a router DHCP reservation so the IP never drifts.
+    """
     if request.user.role not in ["owner", "manager"]:
         return redirect("/setup/")
 
-    outlet = request.user.outlet
-    saved  = False
+    from setup.services.station_service import get_default_station
+
+    outlet  = request.user.outlet
+    station = get_default_station(request.user)
+    saved   = False
 
     if request.method == "POST":
-        outlet.printer_mac    = request.POST.get("printer_mac", "").strip().upper()
-        outlet.agent_host     = request.POST.get("agent_host", "localhost").strip() or "localhost"
-        outlet.use_qz_tray    = request.POST.get("use_qz_tray") == "true"
+        # Printer IP — blank allowed (lets them clear it). Validate loosely; the
+        # GenericIPAddressField rejects garbage on save.
+        ip = (request.POST.get("printer_ip") or "").strip() or None
+        station.printer_ip = ip
+
+        port = str(request.POST.get("printer_port") or "9100").strip()
+        station.printer_port = int(port) if port.isdigit() else 9100
+
+        paper = str(request.POST.get("paper_width_mm") or "80").strip()
+        station.paper_width_mm = int(paper) if paper in ("58", "80") else 80
+
         try:
-            outlet.paper_width_mm = int(request.POST.get("paper_width_mm", 80))
-        except (ValueError, TypeError):
-            outlet.paper_width_mm = 80
-        outlet.save(update_fields=["printer_mac", "agent_host", "use_qz_tray", "paper_width_mm"])
+            station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm"])
+        except Exception:
+            messages.error(request, "That printer IP doesn't look valid — use a form like 192.168.1.100.")
+            return render(request, "setup/printer_setup.html",
+                          {"outlet": outlet, "station": station, "saved": False})
+
+        # Mirror paper width + MAC onto the outlet for any code still reading them.
+        outlet.printer_mac    = request.POST.get("printer_mac", "").strip().upper()
+        outlet.paper_width_mm = station.paper_width_mm
+        outlet.save(update_fields=["printer_mac", "paper_width_mm"])
         saved = True
 
-    return render(request, "setup/printer_setup.html", {"outlet": outlet, "saved": saved})
+    return render(request, "setup/printer_setup.html",
+                  {"outlet": outlet, "station": station, "saved": saved})
+
+
+@login_required
+@require_POST
+def printer_test_print(request):
+    """
+    Queue a test receipt the phone agent will print.
+
+    Unlike ``test_print_station`` (which opens a socket FROM the server — impossible
+    when the printer is on the cafe LAN), this enqueues a PrintJob exactly like a
+    real receipt. The phone app / PC poll-agent picks it up within ~2s and prints it.
+    """
+    if request.user.role not in ["owner", "manager"]:
+        return JsonResponse({"error": "Not allowed"}, status=403)
+
+    from setup.services.station_service import get_default_station
+    from orders.models import PrintJob
+
+    station = get_default_station(request.user)
+    if not station.printer_ip:
+        return JsonResponse({"error": "Set a printer IP first, then test."}, status=422)
+
+    import base64
+    data_b64 = base64.b64encode(_build_test_receipt(station)).decode("ascii")
+
+    job = PrintJob.objects.create(
+        tenant  = request.user.tenant,
+        outlet  = request.user.outlet,
+        payload = {
+            "data_b64":     data_b64,
+            "network_host": station.printer_ip,
+            "network_port": station.printer_port,
+            "encoding":     station.printer_encoding,
+        },
+    )
+    return JsonResponse({
+        "success": True,
+        "job_id": job.pk,
+        "message": "Test queued — a receipt prints in a few seconds if your phone app is open and logged in.",
+    })
+
+
+def _build_test_receipt(station) -> bytes:
+    """Raw ESC/POS bytes for a 'RASOVA TEST PRINT' page, sized to the station."""
+    ESC, GS = b"\x1b", b"\x1d"
+    enc   = station.printer_encoding or "cp437"
+    chars = station.chars_per_line
+    line  = ("-" * chars + "\n").encode(enc, errors="replace")
+
+    buf = b""
+    buf += ESC + b"@"                       # init
+    buf += ESC + b"a" + b"\x01"             # center
+    buf += GS  + b"!" + b"\x11"             # double width+height
+    buf += "RASOVA\n".encode(enc, errors="replace")
+    buf += GS  + b"!" + b"\x00"             # normal size
+    buf += "TEST PRINT\n".encode(enc, errors="replace")
+    buf += line
+    buf += ESC + b"a" + b"\x00"             # left
+    buf += f"Printer IP : {station.printer_ip}\n".encode(enc, errors="replace")
+    buf += f"Port       : {station.printer_port}\n".encode(enc, errors="replace")
+    buf += f"Paper      : {station.paper_width_mm}mm ({chars} chars)\n".encode(enc, errors="replace")
+    buf += line
+    buf += ESC + b"a" + b"\x01"             # center
+    buf += "If you can read this,\nprinting works!\n".encode(enc, errors="replace")
+    buf += b"\n\n\n\n\n\n"                  # feed past the cutter gap
+    buf += GS + b"V" + b"\x00"              # full cut
+    return buf
 
 
 @login_required

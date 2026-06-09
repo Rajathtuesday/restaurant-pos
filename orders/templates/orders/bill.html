@@ -618,7 +618,32 @@
             } else {
                 ui.toast(data.error || 'Payment failed', 'error');
             }
-        } catch(e) { ui.toast('Connection error', 'error'); }
+        } catch(e) {
+            // apiClient already surfaced the real server message as a toast and
+            // re-threw it. Don't bury it under a generic "Connection error".
+            const msg = (e && e.message) || '';
+            if (/cash session/i.test(msg)) {
+                // Fine-dining payment needs an open cash register. Let the cashier
+                // open it right here, then retry the same payment automatically.
+                await offerOpenRegister(() => recordPay(method, amountOverride));
+            }
+            // For genuine network errors apiClient has already toasted; nothing to add.
+        }
+    }
+
+    // Opens the cash register inline (used when a payment is blocked because no
+    // session is open), then re-runs the caller's payment attempt.
+    async function offerOpenRegister(retry) {
+        if (!confirm('No cash register is open for this outlet.\n\nOpen it now to take payment?')) return;
+        const floatStr = prompt('Opening cash already in the drawer (starting float):', '0');
+        if (floatStr === null) return;
+        try {
+            const r = await apiClient.post('/shifts/sessions/open/', { opening_balance: floatStr || '0' });
+            if (r && r.success) {
+                ui.toast('Cash register opened', 'success');
+                if (retry) await retry();
+            }
+        } catch (_) { /* apiClient already toasted the failure */ }
     }
 
     /* ── Rasova Print Agent ── */

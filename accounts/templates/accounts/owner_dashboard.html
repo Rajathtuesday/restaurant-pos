@@ -383,10 +383,21 @@
     </div>
     {% endif %}
 
-    {% if 'shift_management' in tenant_features %}
+    {# Cash Register / EOD is a payment prerequisite (fine-dining blocks payment
+       without an open session), so it must NOT be gated behind the optional
+       shift_management feature — owners/managers always need access to it. #}
     <div class="col-6 col-md-3 col-lg-2">
         <a href="/shifts/sessions/" class="quick-card">
             <div class="icon"><i class="bi bi-cash-stack"></i></div>
+            <h5>Cash Register</h5>
+            <p>Open &amp; EOD</p>
+        </a>
+    </div>
+
+    {% if 'shift_management' in tenant_features %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <a href="/shifts/" class="quick-card">
+            <div class="icon"><i class="bi bi-clock-history"></i></div>
             <h5>Shifts</h5>
             <p>Cashier Log</p>
         </a>
