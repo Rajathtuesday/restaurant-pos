@@ -120,7 +120,8 @@ jobs:
           username:    ${{ secrets.EC2_USER }}
           key:         ${{ secrets.EC2_KEY }}
           port:        22
-          timeout:     120s
+          timeout:         120s     # SSH connection establish timeout
+          command_timeout: 20m      # full deploy.sh runs long on t3.micro (collectstatic etc.)
           script: |
             # Set git credentials so fetch works
             cd /home/ubuntu/rasova

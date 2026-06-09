@@ -17,21 +17,34 @@ if [ ! -f /swapfile ]; then
 fi
 
 echo "=== Pulling latest code ==="
+OLD_REV=$(git rev-parse HEAD 2>/dev/null || echo "none")
 git fetch origin qsr
 git reset --hard origin/qsr
+NEW_REV=$(git rev-parse HEAD)
+CHANGED=$(git diff --name-only "$OLD_REV" "$NEW_REV" 2>/dev/null || echo "ALL")
 
-echo "=== Dependencies ==="
-pip install -r requirements.txt --quiet
+# Dependencies — only when requirements.txt actually changed (pip is slow on t3.micro)
+if echo "$CHANGED" | grep -q "requirements.txt"; then
+    echo "=== Dependencies (requirements changed) ==="
+    pip install -r requirements.txt --quiet
+else
+    echo "=== Dependencies unchanged — skipping pip ==="
+fi
 
 echo "=== Migrate ==="
-python manage.py migrate
+python manage.py migrate --noinput
 
-echo "=== Stopping gunicorn before collectstatic (free RAM) ==="
-sudo systemctl stop gunicorn 2>/dev/null || sudo fuser -k 8000/tcp 2>/dev/null || true
-sleep 1
-
-echo "=== Static files ==="
-python manage.py collectstatic --noinput
+# Static — only when static assets changed. collectstatic is the slowest step on
+# a small box (manifest hashing 600+ files); skipping it keeps code-only deploys fast
+# AND avoids the gunicorn-stop downtime.
+if echo "$CHANGED" | grep -qE '(^| )static/|/static/|^public/|\.css$|\.js$|\.svg$'; then
+    echo "=== Static changed — stopping gunicorn to free RAM, then collecting ==="
+    sudo systemctl stop gunicorn 2>/dev/null || sudo fuser -k 8000/tcp 2>/dev/null || true
+    sleep 1
+    python manage.py collectstatic --noinput
+else
+    echo "=== Static unchanged — skipping collectstatic ==="
+fi
 
 echo "=== Restarting services ==="
 mkdir -p $APP_DIR/logs
