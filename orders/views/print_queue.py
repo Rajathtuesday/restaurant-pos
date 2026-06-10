@@ -152,7 +152,12 @@ def print_queue_poll(request, agent_key):
         job_ids = list(qs.values_list("pk", flat=True)[:5])
 
         if job_ids:
-            PrintJob.objects.filter(pk__in=job_ids).update(
+            # Defense-in-depth: re-assert tenant+outlet on the claim UPDATE even
+            # though job_ids already came from a tenant+outlet-scoped SELECT above.
+            # This keeps the write independently safe against future refactors.
+            PrintJob.objects.filter(
+                pk__in=job_ids, tenant_id=outlet.tenant_id, outlet=outlet,
+            ).update(
                 status=PrintJob.PROCESSING,
                 claimed_at=now,
             )
@@ -161,7 +166,10 @@ def print_queue_poll(request, agent_key):
                 outlet.pk, len(job_ids), job_ids,
             )
 
-    jobs = PrintJob.objects.filter(pk__in=job_ids) if job_ids else []
+    jobs = (
+        PrintJob.objects.filter(pk__in=job_ids, tenant_id=outlet.tenant_id, outlet=outlet)
+        if job_ids else []
+    )
     return JsonResponse({
         "jobs": [
             {
