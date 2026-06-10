@@ -1343,4 +1343,33 @@ class PrintJob(TenantScopedModel):
     def __str__(self):
         return f"PrintJob #{self.pk} [{self.status}] outlet={self.outlet_id}"
 
+    # ── Redis poll-gating keys ────────────────────────────────────────────────
+    # The agent poll endpoint checks a lightweight per-outlet Redis flag before
+    # running the expensive claim transaction, so an idle poll costs one Redis
+    # read instead of 2-3 Postgres queries.
+    @staticmethod
+    def pending_flag_key(outlet_id):
+        return f"printq:pending:{outlet_id}"
+
+    @staticmethod
+    def sweep_key(outlet_id):
+        return f"printq:swept:{outlet_id}"
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        super().save(*args, **kwargs)
+        # Arm the per-outlet "has pending work" hint whenever a brand-new job is
+        # queued as PENDING. Setting it AFTER super().save() means the row is
+        # committed/visible before the flag is set — which is what makes the
+        # poll's delete-before-read safe (no job is ever left with a cleared flag).
+        # Over-arming is harmless (a false positive just costs one wasted poll).
+        # A cache failure must never block creating a print job; the poll's
+        # periodic safety sweep still delivers the job if the flag is lost.
+        if is_new and self.status == self.PENDING:
+            try:
+                from django.core.cache import cache
+                cache.set(self.pending_flag_key(self.outlet_id), 1, timeout=3600)
+            except Exception:
+                pass
+
 

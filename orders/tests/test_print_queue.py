@@ -769,3 +769,107 @@ class ClaimTests(PrintQueueBase):
         r = self._done(job_id)
         self.assertEqual(r.status_code, 200)
         self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.DONE)
+
+
+# ── Redis-gated poll: optimization + "never drop a job" correctness ────────────
+
+class RedisGatedPollTests(PrintQueueBase):
+    """
+    The poll endpoint checks a per-outlet Redis flag before running the claim
+    transaction, so idle polls cost one cache read instead of a DB transaction.
+    These tests prove the optimization works AND — more importantly — that it
+    never drops a receipt, which is the dangerous failure mode.
+    """
+
+    def setUp(self):
+        super().setUp()
+        from django.core.cache import cache
+        cache.clear()  # LocMemCache persists across tests — start each test clean
+
+    def _flag(self):
+        from django.core.cache import cache
+        return cache.get(PrintJob.pending_flag_key(self.outlet.id))
+
+    # 1 — creating a job arms the per-outlet flag (via PrintJob.save)
+    def test_adding_a_job_arms_the_pending_flag(self):
+        order = self._make_order()
+        self._add_job(order.id)
+        self.assertTrue(self._flag(), "creating a job must arm the per-outlet flag")
+
+    # 2 — the flag gates but does not block: a real job is still claimed
+    def test_flagged_poll_claims_the_job(self):
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        ids = [j["id"] for j in self._poll().json()["jobs"]]
+        self.assertIn(job_id, ids)
+        self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PROCESSING)
+
+    # 3 — the flag stays armed while a job is in flight (PROCESSING)
+    def test_flag_stays_armed_while_job_processing(self):
+        order = self._make_order()
+        self._add_job(order.id)
+        self._poll()  # claims → PROCESSING
+        self.assertTrue(self._flag(), "flag must stay armed while a job is processing")
+
+    # 4 — draining the queue clears the flag so polls go cheap again
+    def test_flag_cleared_after_queue_drained(self):
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        self._poll()        # claim → PROCESSING
+        self._done(job_id)  # complete
+        self._poll()        # sees empty queue → must clear the flag
+        self.assertFalse(self._flag(), "flag must clear once the queue is empty")
+
+    # 5 — the cheap path actually skips the claim transaction
+    def test_idle_poll_skips_the_claim_transaction(self):
+        from django.test import Client
+        from django.test.utils import CaptureQueriesContext
+        from django.db import connection
+        from django.core.cache import cache
+
+        anon = Client()  # the real agent isn't logged in → no session/user queries
+        key  = str(self.outlet.print_agent_key)
+
+        anon.get(f"/orders/agent/{key}/jobs/")          # warm the sweep marker
+        with CaptureQueriesContext(connection) as cheap:
+            anon.get(f"/orders/agent/{key}/jobs/")       # flag empty + swept → cheap
+
+        cache.set(PrintJob.pending_flag_key(self.outlet.id), 1)  # force full path
+        cache.delete(PrintJob.sweep_key(self.outlet.id))
+        with CaptureQueriesContext(connection) as full:
+            anon.get(f"/orders/agent/{key}/jobs/")
+
+        self.assertLess(len(cheap), len(full),
+                        "an idle poll must issue fewer queries than a full poll")
+
+    # 6 — FAIL SAFE: a cache outage must never drop a job
+    def test_cache_down_still_delivers_job(self):
+        from unittest.mock import patch
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        with patch("orders.views.print_queue.cache.get",
+                   side_effect=Exception("redis down")):
+            ids = [j["id"] for j in self._poll().json()["jobs"]]
+        self.assertIn(job_id, ids, "a cache outage must not drop a print job")
+
+    # 7 — SAFETY SWEEP: a lost flag is recovered on the next sweep
+    def test_lost_flag_recovered_by_sweep(self):
+        from django.core.cache import cache
+        order  = self._make_order()
+        job_id = self._add_job(order.id).json()["job_id"]
+        # Simulate a transient flag loss with no recent sweep
+        cache.delete(PrintJob.pending_flag_key(self.outlet.id))
+        cache.delete(PrintJob.sweep_key(self.outlet.id))
+        ids = [j["id"] for j in self._poll().json()["jobs"]]
+        self.assertIn(job_id, ids,
+                      "the periodic sweep must recover a job whose flag was lost")
+
+    # 8 — isolation: one outlet's flag never satisfies another outlet's poll
+    def test_flag_is_namespaced_per_outlet(self):
+        from django.core.cache import cache
+        order = self._make_order()
+        self._add_job(order.id)
+        # This outlet's flag is set…
+        self.assertTrue(cache.get(PrintJob.pending_flag_key(self.outlet.id)))
+        # …but a different outlet id has its own, independent (unset) flag.
+        self.assertIsNone(cache.get(PrintJob.pending_flag_key(self.outlet.id + 9999)))

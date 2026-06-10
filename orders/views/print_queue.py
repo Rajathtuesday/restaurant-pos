@@ -17,6 +17,7 @@ import logging
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
+from django.core.cache import cache
 from django.db import connection, transaction
 from django.http import JsonResponse
 from django.utils import timezone
@@ -33,6 +34,11 @@ logger = logging.getLogger("pos.orders")
 _JOB_TTL = timedelta(minutes=5)
 # Device that claimed a job is considered crashed after this long without done/failed
 _CLAIM_TTL = timedelta(minutes=2)
+# Max time an idle outlet can go without a real DB check, even when the Redis
+# "pending" flag says empty — bounds the worst-case delay if a flag is ever lost.
+_SWEEP_SECONDS = 30
+# How long the "pending work" flag lives if never cleared (safety backstop).
+_FLAG_TTL = 3600
 
 
 # ── Browser side ──────────────────────────────────────────────────────────────
@@ -116,6 +122,49 @@ def print_queue_poll(request, agent_key):
     if outlet is None:
         return JsonResponse({"error": "Invalid key"}, status=403)
 
+    flag_key  = PrintJob.pending_flag_key(outlet.id)
+    sweep_key = PrintJob.sweep_key(outlet.id)
+
+    # ── Fast path ──────────────────────────────────────────────────────────────
+    # 99% of polls find nothing. When the Redis "pending" flag is unset, skip the
+    # whole claim transaction — turning an idle poll from 2-3 Postgres queries
+    # into one Redis read.
+    #
+    # The flag is a HINT: false positives are harmless (one wasted DB poll), but a
+    # false negative would drop a receipt. Two guards prevent that:
+    #   1. If the cache is unreachable, FAIL SAFE to the full DB path.
+    #   2. Even when the flag says empty, a real DB sweep still runs at most once
+    #      per _SWEEP_SECONDS per outlet — so a lost flag delays a job by seconds,
+    #      never forever.
+    try:
+        flagged = cache.get(flag_key)
+        cache_ok = True
+    except Exception:                      # cache down → assume work, do full path
+        flagged, cache_ok = True, False
+
+    if cache_ok and not flagged:
+        try:
+            recently_swept = cache.get(sweep_key)
+        except Exception:
+            recently_swept = False
+        if recently_swept:
+            return JsonResponse({"jobs": []})      # truly cheap: one Redis read
+        # Sweep due — fall through to a real DB check and remember we did so.
+        try:
+            cache.set(sweep_key, 1, timeout=_SWEEP_SECONDS)
+        except Exception:
+            pass
+
+    # ── Full path ──────────────────────────────────────────────────────────────
+    # Clear the flag BEFORE reading the DB. Combined with PrintJob.save() arming
+    # the flag AFTER the row is committed, this guarantees no job is ever left
+    # PENDING with a cleared flag (proof: any job whose commit precedes our read
+    # is found here; any whose flag-set follows our delete leaves the flag set).
+    try:
+        cache.delete(flag_key)
+    except Exception:
+        pass
+
     now = timezone.now()
     job_ids = []
 
@@ -170,6 +219,20 @@ def print_queue_poll(request, agent_key):
         PrintJob.objects.filter(pk__in=job_ids, tenant_id=outlet.tenant_id, outlet=outlet)
         if job_ids else []
     )
+
+    # Re-arm the flag if servable work remains — more PENDING jobs, or jobs still
+    # PROCESSING (in flight on a device, which also keeps stale-reset polling alive).
+    # When the queue is truly empty the flag stays cleared and polls go cheap again.
+    try:
+        if PrintJob.objects.filter(
+            tenant_id=outlet.tenant_id, outlet=outlet,
+            status__in=[PrintJob.PENDING, PrintJob.PROCESSING],
+            created_at__gte=now - _JOB_TTL,
+        ).exists():
+            cache.set(flag_key, 1, timeout=_FLAG_TTL)
+    except Exception:
+        pass
+
     return JsonResponse({
         "jobs": [
             {
