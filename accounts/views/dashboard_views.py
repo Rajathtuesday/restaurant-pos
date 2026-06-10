@@ -2,6 +2,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
+from django.views.decorators.cache import never_cache
 
 from core.decorators import tenant_required
 from notifications.models import Notification
@@ -9,6 +10,7 @@ from reports.services.dashboard_metrics import owner_dashboard_metrics
 from menu.models import MenuItem
 
 
+@never_cache
 @login_required
 @tenant_required
 def owner_dashboard(request):

@@ -114,6 +114,11 @@
     <button id="toggle-swiggy" class="btn-agg" style="{% if aggregator.swiggy_enabled %}background:#fc8019;color:#fff;{% endif %}" onclick="toggleAggregator('swiggy', {% if aggregator.swiggy_enabled %}false{% else %}true{% endif %})">Swiggy</button>
 </div>
 {% endif %}
+{% if request.user.role == 'owner' or request.user.role == 'manager' %}
+<a href="/shifts/sessions/" class="btn-luxury text-decoration-none d-inline-flex align-items-center" title="Open / close the cash register & end-of-day">
+    <i class="bi bi-cash-stack"></i><span class="d-none d-sm-inline ms-1">Cash Register</span>
+</a>
+{% endif %}
 {% if 'reports' in tenant_features %}
 <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
 {% endif %}
