@@ -218,11 +218,23 @@ if _AWS_BUCKET:
         },
     }
     AWS_STORAGE_BUCKET_NAME = _AWS_BUCKET
-    AWS_S3_REGION_NAME = os.getenv("AWS_S3_REGION_NAME", "ap-south-2")
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = None  # Use bucket policy
-    AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
-    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/" if AWS_S3_CUSTOM_DOMAIN else f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
+    AWS_ACCESS_KEY_ID       = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY   = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    # R2 ignores region, but boto3 needs a value — "auto" works for Cloudflare R2.
+    AWS_S3_REGION_NAME      = os.getenv("AWS_S3_REGION_NAME", "auto")
+    # Cloudflare R2 (or any S3-compatible store): point this at the R2 endpoint,
+    # e.g. https://<ACCOUNT_ID>.r2.cloudflarestorage.com  (blank = real AWS S3)
+    AWS_S3_ENDPOINT_URL     = os.getenv("AWS_S3_ENDPOINT_URL", "") or None
+    AWS_S3_FILE_OVERWRITE   = False
+    AWS_DEFAULT_ACL         = None      # R2 has no ACLs — public access is via the bucket's public domain
+    AWS_QUERYSTRING_AUTH    = False     # serve plain public URLs, not signed/expiring ones
+    AWS_S3_CUSTOM_DOMAIN    = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
+    if AWS_S3_CUSTOM_DOMAIN:
+        MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+    elif AWS_S3_ENDPOINT_URL:
+        MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
+    else:
+        MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
 else:
     _static_backend = (
         "django.contrib.staticfiles.storage.StaticFilesStorage"  # no manifest needed in tests
