@@ -35,14 +35,29 @@ from django.http import HttpResponse
 
 def robots_txt(request):
     content = """User-agent: *
+
+# Public — the marketing site and the customer-facing digital menu
 Allow: /
+Allow: /menu/digital-menu/
+
+# Private app areas — keep crawlers out (these are login-gated anyway)
 Disallow: /admin/
-Disallow: /billing/
-Disallow: /tables/
-Disallow: /inventory/
-Disallow: /menu/
+Disallow: /superadmin/
 Disallow: /dashboard/
+Disallow: /setup/
+Disallow: /billing/
+Disallow: /order/
+Disallow: /orders/
+Disallow: /pay/
+Disallow: /kitchen/
+Disallow: /tables/
 Disallow: /reports/
+Disallow: /inventory/
+Disallow: /crm/
+Disallow: /shifts/
+Disallow: /accounts/
+Disallow: /portal/
+Disallow: /agency/
 
 Sitemap: https://rasova.net/sitemap.xml"""
     return HttpResponse(content, content_type='text/plain')
