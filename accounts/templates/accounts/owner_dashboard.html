@@ -383,9 +383,11 @@
     </div>
     {% endif %}
 
-    {# Cash Register / EOD is a payment prerequisite (fine-dining blocks payment
-       without an open session), so it must NOT be gated behind the optional
-       shift_management feature — owners/managers always need access to it. #}
+    {% comment %}
+      Cash Register / EOD is a payment prerequisite (fine-dining blocks payment
+      without an open session), so it must NOT be gated behind the optional
+      shift_management feature — owners/managers always need access to it.
+    {% endcomment %}
     <div class="col-6 col-md-3 col-lg-2">
         <a href="/shifts/sessions/" class="quick-card">
             <div class="icon"><i class="bi bi-cash-stack"></i></div>
