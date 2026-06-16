@@ -725,16 +725,28 @@ def variance_report(request):
         )
         .exclude(status="voided")
         .select_related("menu_item")
+        .prefetch_related(
+            "menu_item__recipes__inventory_item",
+            "modifiers__modifier__inventory_links__inventory_item",
+        )
     )
     recipe_map: dict = {}  # {inventory_item_id: Decimal}
     for oi in sold_items:
         if not oi.menu_item:
             continue
-        for recipe in oi.menu_item.recipes.select_related("inventory_item").all():
+        for recipe in oi.menu_item.recipes.all():
             qty = recipe.quantity_required * Decimal(str(oi.quantity))
             recipe_map[recipe.inventory_item_id] = (
                 recipe_map.get(recipe.inventory_item_id, Decimal("0")) + qty
             )
+        for oim in oi.modifiers.all():
+            if not oim.modifier:
+                continue
+            for mod_recipe in oim.modifier.inventory_links.all():
+                qty = mod_recipe.quantity_required * Decimal(str(oi.quantity))
+                recipe_map[mod_recipe.inventory_item_id] = (
+                    recipe_map.get(mod_recipe.inventory_item_id, Decimal("0")) + qty
+                )
 
     # Step 2 — per item: compare recipe vs transaction
     items = InventoryItem.objects.filter(tenant=tenant, outlet=outlet).order_by("name")
@@ -765,6 +777,10 @@ def variance_report(request):
 
     rows.sort(key=lambda r: abs(r["variance"]), reverse=True)
 
+    ok_count       = sum(1 for r in rows if r["variance_pct"] is not None and abs(r["variance_pct"]) <= 3)
+    warn_count     = sum(1 for r in rows if r["variance_pct"] is not None and 3 < abs(r["variance_pct"]) <= 8)
+    critical_count = sum(1 for r in rows if r["variance_pct"] is not None and abs(r["variance_pct"]) > 8)
+
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="variance_{report_date}.csv"'
@@ -783,7 +799,10 @@ def variance_report(request):
         return response
 
     return render(request, "inventory/variance_report.html", {
-        "report_date": report_date,
-        "rows":        rows,
-        "outlet":      outlet,
+        "report_date":    report_date,
+        "rows":           rows,
+        "outlet":         outlet,
+        "ok_count":       ok_count,
+        "warn_count":     warn_count,
+        "critical_count": critical_count,
     })

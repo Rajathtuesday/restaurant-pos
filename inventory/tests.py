@@ -1,11 +1,17 @@
 #inventory/tests.py
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from decimal import Decimal
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
 from tenants.models import Tenant, Outlet
 from inventory.models import InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem
+
+_NO_MANIFEST = override_settings(STORAGES={
+    "default":     {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+})
+
 
 class InventoryTests(TestCase):
 
@@ -164,6 +170,7 @@ class InventoryViewsTests(TestCase):
         self.assertEqual(self.item.stock, Decimal("30.000")) # 10 + 20
 
 
+@_NO_MANIFEST
 class InventoryAccessControlTests(TestCase):
     """Verify that only owners/managers can access the inventory board."""
 
@@ -330,6 +337,8 @@ class WastageViewTests(TestCase):
 # VARIANCE REPORT TESTS
 # ============================================================
 
+
+@_NO_MANIFEST
 class VarianceReportTests(TestCase):
 
     def setUp(self):
@@ -600,3 +609,320 @@ class ModifierInventoryTests(TestCase):
         self.rum.refresh_from_db()
         # Only base recipe deducted (30ml), modifier did nothing
         self.assertEqual(self.rum.stock, Decimal("750.000") - Decimal("30.000"))
+
+
+# ============================================================
+# VARIANCE REPORT — BUG FIX TESTS
+# ============================================================
+
+@_NO_MANIFEST
+class VarianceReportBugFixTests(TestCase):
+    """
+    Covers the four bugs fixed in the variance report:
+      Bug 1 — ModifierRecipe quantities were missing from recipe_expected
+      Bug 2 — summary card counters used broken forloop.last logic
+      Bug 3 — ok_count used variance_pct >= -3 (included high positive variance as OK)
+      Bug 4 — positive variance was only amber; now treated equal to negative
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="VarFix Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Bar")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="varfix_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet
+        )
+        self.rum = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Dark Rum", unit="ml",
+            stock=Decimal("1000.000"),
+        )
+        self.client.force_login(self.manager)
+
+    # ----------------------------------------------------------------
+    # Bug 1: ModifierRecipe must be included in recipe_expected
+    # ----------------------------------------------------------------
+
+    def test_modifier_recipe_included_in_recipe_expected(self):
+        """
+        Base recipe 60ml + modifier recipe 30ml + transaction 90ml → variance = 0.
+        Pre-fix: recipe_expected was 60, so variance showed a false +30.
+        """
+        from inventory.models import Recipe, ModifierRecipe, InventoryTransaction
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Cocktails"
+        )
+        mojito = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Mojito Special", price=Decimal("300")
+        )
+        Recipe.objects.create(
+            menu_item=mojito, inventory_item=self.rum,
+            quantity_required=Decimal("60.00"), unit="ml"
+        )
+        group = ModifierGroup.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Extras"
+        )
+        mod = Modifier.objects.create(group=group, name="Extra Shot", price=Decimal("50"))
+        ModifierRecipe.objects.create(
+            modifier=mod, inventory_item=self.rum,
+            quantity_required=Decimal("30.00"), unit="ml"
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed"
+        )
+        oi = OrderItem.objects.create(
+            order=order, menu_item=mojito, quantity=1,
+            price=Decimal("300"), gst_percentage=Decimal("0"),
+            total_price=Decimal("300"), status="served"
+        )
+        OrderItemModifier.objects.create(
+            order_item=oi, modifier=mod, name=mod.name, price=mod.price
+        )
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-90.000"), transaction_type="consume",
+            reference="KOT #1"
+        )
+
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Dark Rum")
+
+        self.assertEqual(rum_row["recipe_expected"], Decimal("90.00"))
+        self.assertEqual(rum_row["txn_consumed"], Decimal("90.000"))
+        self.assertEqual(rum_row["variance"], Decimal("0.00"))
+
+    def test_modifier_without_recipe_does_not_inflate_expected(self):
+        """
+        Modifier with no ModifierRecipe — only the base recipe counts in expected.
+        """
+        from inventory.models import Recipe, InventoryTransaction
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Food"
+        )
+        burger = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Burger", price=Decimal("200")
+        )
+        Recipe.objects.create(
+            menu_item=burger, inventory_item=self.rum,
+            quantity_required=Decimal("30.00"), unit="ml"
+        )
+        group = ModifierGroup.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Sauces"
+        )
+        mod = Modifier.objects.create(group=group, name="Extra Ketchup", price=Decimal("0"))
+        # No ModifierRecipe — modifier has no inventory link
+
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed"
+        )
+        oi = OrderItem.objects.create(
+            order=order, menu_item=burger, quantity=1,
+            price=Decimal("200"), gst_percentage=Decimal("0"),
+            total_price=Decimal("200"), status="served"
+        )
+        OrderItemModifier.objects.create(
+            order_item=oi, modifier=mod, name=mod.name, price=mod.price
+        )
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-30.000"), transaction_type="consume",
+            reference="KOT #1"
+        )
+
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Dark Rum")
+
+        self.assertEqual(rum_row["recipe_expected"], Decimal("30.00"))
+        self.assertEqual(rum_row["variance"], Decimal("0.00"))
+
+    def test_two_modifiers_on_different_items_both_included(self):
+        """
+        mod1 → milk (+100ml), mod2 → rum (+30ml). Both added to recipe_expected.
+        """
+        from inventory.models import Recipe, ModifierRecipe, InventoryTransaction
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+
+        milk = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Milk", unit="ml", stock=Decimal("2000.000"),
+        )
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Coffee"
+        )
+        latte = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Latte", price=Decimal("150")
+        )
+        Recipe.objects.create(
+            menu_item=latte, inventory_item=milk,
+            quantity_required=Decimal("200.00"), unit="ml"
+        )
+        group = ModifierGroup.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Size"
+        )
+        mod1 = Modifier.objects.create(group=group, name="Extra Large", price=Decimal("20"))
+        mod2 = Modifier.objects.create(group=group, name="Rum Shot", price=Decimal("50"))
+        ModifierRecipe.objects.create(
+            modifier=mod1, inventory_item=milk,
+            quantity_required=Decimal("100.00"), unit="ml"
+        )
+        ModifierRecipe.objects.create(
+            modifier=mod2, inventory_item=self.rum,
+            quantity_required=Decimal("30.00"), unit="ml"
+        )
+
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed"
+        )
+        oi = OrderItem.objects.create(
+            order=order, menu_item=latte, quantity=1,
+            price=Decimal("150"), gst_percentage=Decimal("0"),
+            total_price=Decimal("150"), status="served"
+        )
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod1, name=mod1.name, price=mod1.price)
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod2, name=mod2.name, price=mod2.price)
+
+        InventoryTransaction.objects.create(
+            item=milk, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-300.000"), transaction_type="consume", reference="KOT"
+        )
+        InventoryTransaction.objects.create(
+            item=self.rum, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-30.000"), transaction_type="consume", reference="KOT"
+        )
+
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+
+        milk_row = next(r for r in rows if r["item"].name == "Milk")
+        rum_row  = next(r for r in rows if r["item"].name == "Dark Rum")
+
+        self.assertEqual(milk_row["recipe_expected"], Decimal("300.00"))
+        self.assertEqual(milk_row["variance"], Decimal("0.00"))
+        self.assertEqual(rum_row["recipe_expected"], Decimal("30.00"))
+        self.assertEqual(rum_row["variance"], Decimal("0.00"))
+
+    # ----------------------------------------------------------------
+    # Bugs 2 & 3: Summary counts are correct and use abs(variance_pct)
+    # ----------------------------------------------------------------
+
+    def _make_item_with_variance(self, name, recipe_qty, txn_qty):
+        """Create an item + closed order + transaction to produce a controlled variance."""
+        from inventory.models import Recipe, InventoryTransaction
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name=name, unit="ml", stock=Decimal("1000.000"),
+        )
+        cat, _ = MenuCategory.objects.get_or_create(
+            tenant=self.tenant, outlet=self.outlet, name="Test Menu"
+        )
+        menu_item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name=f"Dish {name}", price=Decimal("100")
+        )
+        Recipe.objects.create(
+            menu_item=menu_item, inventory_item=item,
+            quantity_required=Decimal(str(recipe_qty)), unit="ml"
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed"
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=menu_item, quantity=1,
+            price=Decimal("100"), gst_percentage=Decimal("0"),
+            total_price=Decimal("100"), status="served"
+        )
+        InventoryTransaction.objects.create(
+            item=item, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal(str(-txn_qty)), transaction_type="consume",
+            reference="test"
+        )
+        return item
+
+    def test_summary_counts_correct(self):
+        """ok/warn/critical counts match items at 1%, 6%, and 15% variance."""
+        self._make_item_with_variance("OK Item",       recipe_qty=100, txn_qty=101)   # 1%  → ok
+        self._make_item_with_variance("Warn Item",     recipe_qty=100, txn_qty=106)   # 6%  → warn
+        self._make_item_with_variance("Critical Item", recipe_qty=100, txn_qty=115)   # 15% → critical
+
+        resp = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(resp.context["ok_count"],       1)
+        self.assertEqual(resp.context["warn_count"],     1)
+        self.assertEqual(resp.context["critical_count"], 1)
+
+    def test_positive_variance_flagged_same_as_negative(self):
+        """
+        +15% and -15% variance both count as critical.
+        Pre-fix: negative >8% was red, positive >8% was only amber.
+        """
+        self._make_item_with_variance("Over Deduct",  recipe_qty=100, txn_qty=115)  # +15%
+        self._make_item_with_variance("Under Deduct", recipe_qty=100, txn_qty=85)   # -15%
+
+        resp = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(resp.context["critical_count"], 2)
+        self.assertEqual(resp.context["ok_count"],       0)
+        self.assertEqual(resp.context["warn_count"],     0)
+
+    def test_ok_count_excludes_high_positive_variance(self):
+        """
+        Pre-fix ok_count used variance_pct >= -3 which included +50% as OK.
+        Post-fix uses abs(variance_pct) <= 3 so +50% is critical, not OK.
+        """
+        self._make_item_with_variance("High Positive", recipe_qty=100, txn_qty=150)  # +50%
+
+        resp = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(resp.context["ok_count"],       0)
+        self.assertEqual(resp.context["critical_count"], 1)
+
+    # ----------------------------------------------------------------
+    # Existing behaviour still holds
+    # ----------------------------------------------------------------
+
+    def test_voided_items_excluded_from_recipe_expected(self):
+        """Voided OrderItems must not contribute to recipe_expected."""
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Mains"
+        )
+        steak = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            category=cat, name="Steak", price=Decimal("800")
+        )
+        Recipe.objects.create(
+            menu_item=steak, inventory_item=self.rum,
+            quantity_required=Decimal("60.00"), unit="ml"
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed"
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=steak, quantity=1,
+            price=Decimal("800"), gst_percentage=Decimal("0"),
+            total_price=Decimal("800"), status="voided"
+        )
+
+        resp = self.client.get(reverse("inventory_variance"))
+        rows = resp.context["rows"]
+        rum_row = next(r for r in rows if r["item"].name == "Dark Rum")
+
+        self.assertEqual(rum_row["recipe_expected"], Decimal("0"))
+        self.assertEqual(rum_row["txn_consumed"],   Decimal("0"))
+        self.assertEqual(rum_row["variance"],       Decimal("0"))

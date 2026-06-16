@@ -84,25 +84,22 @@
 
   {% if rows %}
 
-  {% with total_items=rows|length %}
-  {% with bad_count=0 %}
-
   <div class="summary-grid">
     <div class="summary-card">
       <div class="summary-num">{{ rows|length }}</div>
       <div class="summary-lbl">Items Tracked</div>
     </div>
     <div class="summary-card">
-      <div class="summary-num" style="color:#10b981;">
-        {% for r in rows %}{% if r.variance_pct is not None and r.variance_pct >= -3 %}{% if forloop.last %}{{ forloop.counter }}{% endif %}{% endif %}{% endfor %}
-      </div>
-      <div class="summary-lbl">OK (variance &lt; 3%)</div>
+      <div class="summary-num" style="color:#10b981;">{{ ok_count }}</div>
+      <div class="summary-lbl">OK (within 3%)</div>
     </div>
     <div class="summary-card">
-      <div class="summary-num" style="color:#ef4444;">
-        {% for r in rows %}{% if r.variance_pct is not None and r.variance_pct < -8 %}{% if forloop.last %}{{ forloop.counter }}{% endif %}{% endif %}{% endfor %}
-      </div>
-      <div class="summary-lbl">Critical (&gt; 8% loss)</div>
+      <div class="summary-num" style="color:#f59e0b;">{{ warn_count }}</div>
+      <div class="summary-lbl">Warn (3–8% gap)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-num" style="color:#ef4444;">{{ critical_count }}</div>
+      <div class="summary-lbl">Critical (&gt;8% gap)</div>
     </div>
     <div class="summary-card">
       <div class="summary-num">{{ report_date|date:"d M" }}</div>
@@ -110,14 +107,11 @@
     </div>
   </div>
 
-  {% endwith %}
-  {% endwith %}
-
   <div class="legend">
-    <span><span class="dot" style="background:#10b981;"></span> Green — within 3% (normal)</span>
-    <span><span class="dot" style="background:#f59e0b;"></span> Amber — 3–8% gap (investigate)</span>
-    <span><span class="dot" style="background:#ef4444;"></span> Red — &gt;8% gap (action needed)</span>
-    <span style="border-left:1px solid var(--border-color);padding-left:1rem;">Negative = orders placed, deduction didn't fire &nbsp;·&nbsp; Positive = deduction exceeds orders</span>
+    <span><span class="dot" style="background:#10b981;"></span> Green — within ±3% (normal)</span>
+    <span><span class="dot" style="background:#f59e0b;"></span> Amber — ±3–8% gap (investigate)</span>
+    <span><span class="dot" style="background:#ef4444;"></span> Red — beyond ±8% (action needed)</span>
+    <span style="border-left:1px solid var(--border-color);padding-left:1rem;">Negative = deduction short vs orders &nbsp;·&nbsp; Positive = excess deduction (spillage / recipe drift)</span>
   </div>
 
   <div style="overflow-x:auto;">
@@ -143,20 +137,21 @@
         <td style="color:var(--text-muted);">{{ r.recipe_expected|floatformat:2 }}</td>
         <td>{{ r.txn_consumed|floatformat:2 }}</td>
         <td style="font-weight:700;
-          {% if r.variance_pct is not None and r.variance_pct < -8 %}color:#ef4444;
-          {% elif r.variance_pct is not None and r.variance_pct < -3 %}color:#f59e0b;
-          {% elif r.variance_pct is not None and r.variance_pct > 8 %}color:#f59e0b;
+          {% if r.variance_pct is not None and r.variance_pct|floatformat:1 != '0.0' %}
+            {% if r.variance_pct > 8 or r.variance_pct < -8 %}color:#ef4444;
+            {% elif r.variance_pct > 3 or r.variance_pct < -3 %}color:#f59e0b;
+            {% else %}color:#10b981;{% endif %}
           {% else %}color:#10b981;{% endif %}">
           {% if r.variance > 0 %}+{% endif %}{{ r.variance|floatformat:2 }}
         </td>
         <td>
           {% if r.variance_pct is not None %}
-            {% if r.variance_pct < -8 or r.variance_pct > 8 %}
-              <span class="badge-bad">{{ r.variance_pct }}%</span>
-            {% elif r.variance_pct < -3 or r.variance_pct > 3 %}
-              <span class="badge-warn">{{ r.variance_pct }}%</span>
+            {% if r.variance_pct > 8 or r.variance_pct < -8 %}
+              <span class="badge-bad">{% if r.variance_pct > 0 %}+{% endif %}{{ r.variance_pct }}%</span>
+            {% elif r.variance_pct > 3 or r.variance_pct < -3 %}
+              <span class="badge-warn">{% if r.variance_pct > 0 %}+{% endif %}{{ r.variance_pct }}%</span>
             {% else %}
-              <span class="badge-ok">{{ r.variance_pct }}%</span>
+              <span class="badge-ok">{% if r.variance_pct > 0 %}+{% endif %}{{ r.variance_pct }}%</span>
             {% endif %}
           {% else %}
             <span class="badge-zero">—</span>
