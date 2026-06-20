@@ -1,6 +1,6 @@
 # tenants/admin.py
 from django.contrib import admin
-from .models import Tenant, Outlet, TenantFeatureOverride, PrintProfile
+from .models import Tenant, Outlet, TenantFeatureOverride, TenantFeatureAuditLog, PrintProfile
 
 
 @admin.register(Tenant)
@@ -72,3 +72,20 @@ class TenantFeatureOverrideAdmin(admin.ModelAdmin):
     list_display = ("tenant", "feature", "enabled")
     list_filter  = ("feature", "enabled")
     search_fields = ("tenant__name", "feature")
+
+
+@admin.register(TenantFeatureAuditLog)
+class TenantFeatureAuditLogAdmin(admin.ModelAdmin):
+    list_display = ("tenant", "feature", "enabled", "source", "changed_by", "changed_at")
+    list_filter = ("feature", "enabled", "source")
+    search_fields = ("tenant__name", "feature")
+    readonly_fields = ("tenant", "feature", "enabled", "source", "changed_by", "changed_at", "notes")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

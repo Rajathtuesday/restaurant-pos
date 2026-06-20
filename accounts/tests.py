@@ -240,3 +240,96 @@ class UserSchemaReviewTest(TestCase):
             role="kitchen", tenant=tenant, outlet=outlet
         )
         self.assertEqual(user.role, "kitchen")
+
+
+# ---------------------------------------------------------------------------
+# toggle_feature_flag — feature gating + per-tenant audit history
+# ---------------------------------------------------------------------------
+
+class ToggleFeatureFlagAuditTest(TestCase):
+    """
+    Razorpay/WhatsApp (and every other custom-only feature) are toggled per-tenant
+    through this view. Each toggle must leave a permanent TenantFeatureAuditLog row —
+    TenantFeatureOverride itself only holds current state, not history.
+    """
+
+    def setUp(self):
+        import json
+        self.json = json
+        self.tenant = Tenant.objects.create(name="Gated Cafe", tenant_type="cafe")
+        self.superuser = User.objects.create_user(
+            username="support1", password="pass123", is_superuser=True, is_staff=True,
+        )
+        self.staff_user = User.objects.create_user(
+            username="owner1", password="pass123",
+            role="owner", tenant=self.tenant,
+        )
+
+    def test_non_superuser_gets_403_and_writes_no_audit_log(self):
+        from tenants.models import TenantFeatureAuditLog
+        self.client.login(username="owner1", password="pass123")
+        response = self.client.post(
+            reverse("toggle_feature_flag"),
+            data=self.json.dumps({
+                "tenant_id": self.tenant.id, "feature": "razorpay_gateway", "enabled": True,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(TenantFeatureAuditLog.objects.count(), 0)
+
+    def test_enabling_writes_audit_log_entry(self):
+        from tenants.models import TenantFeatureAuditLog
+        self.client.login(username="support1", password="pass123")
+        response = self.client.post(
+            reverse("toggle_feature_flag"),
+            data=self.json.dumps({
+                "tenant_id": self.tenant.id, "feature": "razorpay_gateway", "enabled": True,
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        entry = TenantFeatureAuditLog.objects.get(tenant=self.tenant, feature="razorpay_gateway")
+        self.assertTrue(entry.enabled)
+        self.assertEqual(entry.source, "override")
+        self.assertEqual(entry.changed_by, self.superuser)
+
+    def test_toggling_on_then_off_appends_two_audit_rows(self):
+        from tenants.models import TenantFeatureAuditLog
+        self.client.login(username="support1", password="pass123")
+
+        self.client.post(
+            reverse("toggle_feature_flag"),
+            data=self.json.dumps({
+                "tenant_id": self.tenant.id, "feature": "whatsapp_receipts", "enabled": True,
+            }),
+            content_type="application/json",
+        )
+        self.client.post(
+            reverse("toggle_feature_flag"),
+            data=self.json.dumps({
+                "tenant_id": self.tenant.id, "feature": "whatsapp_receipts", "enabled": False,
+            }),
+            content_type="application/json",
+        )
+
+        history = TenantFeatureAuditLog.objects.filter(
+            tenant=self.tenant, feature="whatsapp_receipts"
+        ).order_by("changed_at")
+        # Both toggles must be preserved — not one row overwritten in place.
+        self.assertEqual(history.count(), 2)
+        self.assertTrue(history[0].enabled)
+        self.assertFalse(history[1].enabled)
+
+    def test_second_tenant_unaffected(self):
+        from core.features import has_feature
+        tenant2 = Tenant.objects.create(name="Other Cafe", tenant_type="cafe")
+        self.client.login(username="support1", password="pass123")
+        self.client.post(
+            reverse("toggle_feature_flag"),
+            data=self.json.dumps({
+                "tenant_id": self.tenant.id, "feature": "razorpay_gateway", "enabled": True,
+            }),
+            content_type="application/json",
+        )
+        self.assertFalse(has_feature(tenant2, "razorpay_gateway"))

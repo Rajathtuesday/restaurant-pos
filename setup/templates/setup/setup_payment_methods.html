@@ -112,6 +112,56 @@
             </label>
         </div>
 
+        {% if razorpay_feature_enabled %}
+        <div class="method-card" style="flex-wrap:wrap;gap:1rem;">
+            <div class="method-icon"><i class="bi bi-qr-code-scan"></i></div>
+            <div class="method-info" style="flex:1;min-width:200px;">
+                <div class="method-name">Razorpay (UPI QR)</div>
+                <div class="method-desc">Dynamic QR via your own Razorpay account — auto-confirms via webhook, money settles straight to your bank account.</div>
+            </div>
+            <label class="toggle">
+                <input type="checkbox" name="razorpay_enabled" {% if config.razorpay_enabled %}checked{% endif %}>
+                <span class="slider"></span>
+            </label>
+            <div style="width:100%;padding-top:0.75rem;border-top:1px dashed var(--border-color);display:flex;flex-direction:column;gap:0.75rem;">
+                <div>
+                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px;">Key ID</div>
+                    <input type="text" name="razorpay_key_id" value="{{ config.razorpay_key_id }}"
+                           placeholder="rzp_live_..."
+                           style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:4px 0;font-size:0.85rem;outline:none;font-family:inherit;">
+                </div>
+                <div>
+                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px;">Key Secret</div>
+                    <input type="password" name="razorpay_key_secret"
+                           placeholder="{% if config.razorpay_key_secret %}•••••••••• (saved — leave blank to keep){% else %}Paste your key secret{% endif %}"
+                           style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:4px 0;font-size:0.85rem;outline:none;font-family:inherit;">
+                </div>
+                <div>
+                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px;">Webhook Secret</div>
+                    <input type="password" name="razorpay_webhook_secret"
+                           placeholder="{% if config.razorpay_webhook_secret %}•••••••••• (saved — leave blank to keep){% else %}From Razorpay → Settings → Webhooks{% endif %}"
+                           style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:4px 0;font-size:0.85rem;outline:none;font-family:inherit;">
+                </div>
+                {% if razorpay_webhook_url %}
+                <div>
+                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:4px;">Webhook URL — paste this into Razorpay → Settings → Webhooks</div>
+                    <input type="text" readonly value="{{ razorpay_webhook_url }}" onclick="this.select()"
+                           style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-muted);padding:4px 0;font-size:0.78rem;outline:none;font-family:monospace;">
+                </div>
+                {% endif %}
+                <div style="font-size:0.7rem;color:var(--text-muted);">Find your keys at Razorpay Dashboard → Settings → API Keys.</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="method-card" style="opacity:0.6;">
+            <div class="method-icon"><i class="bi bi-qr-code-scan"></i></div>
+            <div class="method-info">
+                <div class="method-name">Razorpay (UPI QR)</div>
+                <div class="method-desc">Not enabled for your account yet — ask Rasova support to turn this on for you.</div>
+            </div>
+        </div>
+        {% endif %}
+
         <button type="submit" class="btn-save">Save Configuration</button>
     </form>
 </div>

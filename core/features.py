@@ -130,6 +130,13 @@ FEATURE_GROUPS = {
     'Menu': [
         'ai_menu_import',
     ],
+    'Payments & Notifications': [
+        # Custom-only — deliberately absent from every TENANT_FEATURES list.
+        # Off for every tenant until a superuser enables it for that tenant
+        # specifically (via TenantFeatureOverride), e.g. when they ask for it.
+        'razorpay_gateway',
+        'whatsapp_receipts',
+    ],
 }
 
 

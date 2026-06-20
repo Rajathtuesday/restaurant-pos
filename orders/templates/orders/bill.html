@@ -377,6 +377,7 @@
                     {% if config.cash_enabled %}<button class="btn-pay" onclick="recordPay('cash')"><i class="bi bi-cash"></i>{{ config.cash_label }}</button>{% endif %}
                     {% if config.upi_enabled %}<button class="btn-pay" onclick="recordPay('upi')"><i class="bi bi-qr-code"></i>{{ config.upi_label }}</button>{% endif %}
                     {% if config.card_enabled %}<button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i>{{ config.card_label }}</button>{% endif %}
+                    {% if razorpay_feature_enabled and config.razorpay_enabled %}<button class="btn-pay" onclick="openRazorpayQR()"><i class="bi bi-qr-code-scan"></i>Razorpay QR</button>{% endif %}
                 </div>
                 <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Receipt</button>
             {% else %}
@@ -437,6 +438,23 @@
 
 </div><!-- .bill-wrap -->
 </div><!-- .bill-page -->
+
+{% if razorpay_feature_enabled and config.razorpay_enabled %}
+<div id="razorpay-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
+    <div id="razorpay-modal-card" style="background:var(--panel-bg);border:1px solid var(--border-color);padding:2rem;max-width:320px;width:90%;text-align:center;transition:background 0.25s;">
+        <div id="razorpay-qr-header" style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:1rem;">Scan with any UPI app</div>
+        <div id="razorpay-qr-area" style="min-height:200px;display:flex;align-items:center;justify-content:center;">
+            <span style="color:var(--text-muted);font-size:0.85rem;">Generating QR…</span>
+        </div>
+        <div id="razorpay-qr-status" style="margin-top:1rem;font-size:0.95rem;font-weight:600;color:var(--text-muted);">Waiting for payment…</div>
+        <div id="razorpay-modal-buttons" style="display:flex;gap:0.5rem;margin-top:1.25rem;">
+            <button class="btn-action" style="margin-top:0;" onclick="openRazorpayQR()">Regenerate</button>
+            <button class="btn-action" style="margin-top:0;border-color:var(--border-color);color:var(--text-muted);" onclick="closeRazorpayModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_js %}
@@ -449,6 +467,86 @@
         if (!err) document.getElementById('upi-qr-canvas').appendChild(canvas);
     });
 })();
+</script>
+{% endif %}
+{% if razorpay_feature_enabled and config.razorpay_enabled %}
+<script>
+    /* ── Razorpay QR ──────────────────────────────────────── */
+    let _razorpayPollTimer = null;
+
+    function closeRazorpayModal() {
+        document.getElementById('razorpay-modal-overlay').style.display = 'none';
+        if (_razorpayPollTimer) { clearInterval(_razorpayPollTimer); _razorpayPollTimer = null; }
+    }
+
+    // Big, unmistakable states — a waiter glancing at this for one second
+    // must know "paid" or "not paid" without reading English carefully.
+    function razorpaySetState(kind) {
+        const card   = document.getElementById('razorpay-modal-card');
+        const header = document.getElementById('razorpay-qr-header');
+        const status = document.getElementById('razorpay-qr-status');
+        const btns   = document.getElementById('razorpay-modal-buttons');
+        if (kind === 'paid') {
+            card.style.background = 'rgba(34,197,94,0.10)';
+            header.style.display = 'none';
+            status.style.color = '#16a34a';
+            status.style.fontSize = '1.3rem';
+            status.textContent = 'PAID ✓';
+            btns.style.display = 'none';
+        } else {
+            card.style.background = 'var(--panel-bg)';
+            header.style.display = '';
+            status.style.color = 'var(--text-muted)';
+            status.style.fontSize = '0.95rem';
+            btns.style.display = 'flex';
+        }
+    }
+
+    async function openRazorpayQR() {
+        if (_razorpayPollTimer) { clearInterval(_razorpayPollTimer); _razorpayPollTimer = null; }
+        const overlay = document.getElementById('razorpay-modal-overlay');
+        const area    = document.getElementById('razorpay-qr-area');
+        const status  = document.getElementById('razorpay-qr-status');
+        razorpaySetState('waiting');
+        overlay.style.display = 'flex';
+        area.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">Generating QR…</span>';
+        status.textContent = 'Waiting for payment…';
+
+        try {
+            const data = await apiClient.post('{% url "razorpay-create-qr" order.id %}', {});
+            area.innerHTML = `<img src="${data.image_url}" alt="Razorpay UPI QR" style="width:200px;height:200px;">`;
+
+            const expiresAt = new Date(data.expires_at).getTime();
+            _razorpayPollTimer = setInterval(async () => {
+                if (Date.now() > expiresAt) {
+                    clearInterval(_razorpayPollTimer); _razorpayPollTimer = null;
+                    status.textContent = 'QR expired — tap Regenerate';
+                    return;
+                }
+                try {
+                    const statusUrl = '{% url "razorpay-qr-status" "PLACEHOLDER" %}'.replace('PLACEHOLDER', data.qr_code_id);
+                    const s = await apiClient.get(statusUrl);
+                    if (s.status === 'paid') {
+                        clearInterval(_razorpayPollTimer); _razorpayPollTimer = null;
+                        // Replace the QR with a big green checkmark — held on
+                        // screen for 2s so it's actually seen, not just flashed.
+                        area.innerHTML = `<div style="width:90px;height:90px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;">
+                            <span style="color:#fff;font-size:3rem;line-height:1;">✓</span>
+                        </div>`;
+                        razorpaySetState('paid');
+                        ui.toast('Payment received', 'success');
+                        setTimeout(() => location.reload(), 2000);
+                    } else if (s.status === 'expired') {
+                        clearInterval(_razorpayPollTimer); _razorpayPollTimer = null;
+                        status.textContent = 'QR expired — tap Regenerate';
+                    }
+                } catch (e) { /* keep polling — a transient network blip shouldn't stop it */ }
+            }, 3000);
+        } catch (e) {
+            area.innerHTML = '<span style="color:#dc2626;font-size:0.85rem;">Could not generate QR</span>';
+            status.textContent = 'Tap Regenerate to try again';
+        }
+    }
 </script>
 {% endif %}
 <script>

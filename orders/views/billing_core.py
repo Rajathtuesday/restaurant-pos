@@ -138,6 +138,7 @@ def bill_view(request, order_id):
         from setup.services.station_service import get_default_station
         tenant = request.user.tenant
         direct_billing_mode = has_feature(tenant, "direct_billing_mode")
+        razorpay_feature_enabled = has_feature(tenant, "razorpay_gateway")
         is_qsr        = tenant.tenant_type in ("franchise", "cafe")
         gst_inclusive  = getattr(order.outlet, "gst_inclusive", False)
         is_composition = getattr(order.outlet, "is_composition_scheme", False)
@@ -155,6 +156,7 @@ def bill_view(request, order_id):
             "total_paid": total_paid,
             "promos": valid_promos,
             "direct_billing_mode": direct_billing_mode,
+            "razorpay_feature_enabled": razorpay_feature_enabled,
             "is_qsr":        is_qsr,
             "gst_inclusive":  gst_inclusive,
             "is_composition": is_composition,

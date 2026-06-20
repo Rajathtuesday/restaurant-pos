@@ -341,11 +341,38 @@ def setup_payment_methods(request):
             config.card_label = card_label
 
         config.upi_id = request.POST.get("upi_id", "").strip().lower()
+
+        from core.features import has_feature
+        if has_feature(tenant, "razorpay_gateway"):
+            config.razorpay_enabled = request.POST.get("razorpay_enabled") == "on"
+            razorpay_key_id = request.POST.get("razorpay_key_id", "").strip()
+            razorpay_key_secret = request.POST.get("razorpay_key_secret", "").strip()
+            razorpay_webhook_secret = request.POST.get("razorpay_webhook_secret", "").strip()
+            if razorpay_key_id:
+                config.razorpay_key_id = razorpay_key_id
+            if razorpay_key_secret:
+                config.razorpay_key_secret = razorpay_key_secret
+            if razorpay_webhook_secret:
+                config.razorpay_webhook_secret = razorpay_webhook_secret
+
         config.save()
         messages.success(request, "Payment methods saved.")
         return redirect("/dashboard/")
 
-    return render(request, "setup/setup_payment_methods.html", {"config": config})
+    from core.features import has_feature
+    from django.urls import reverse
+    razorpay_feature_enabled = has_feature(tenant, "razorpay_gateway")
+    razorpay_webhook_url = None
+    if razorpay_feature_enabled:
+        razorpay_webhook_url = request.build_absolute_uri(
+            f"{reverse('razorpay-webhook')}?outlet_id={outlet.id}"
+        )
+
+    return render(request, "setup/setup_payment_methods.html", {
+        "config": config,
+        "razorpay_feature_enabled": razorpay_feature_enabled,
+        "razorpay_webhook_url": razorpay_webhook_url,
+    })
 
 
 @login_required

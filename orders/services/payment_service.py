@@ -32,16 +32,17 @@ logger = logging.getLogger("pos.orders")
 
 
 @transaction.atomic
-def process_payment(order, method, amount, user=None):
+def process_payment(order, method, amount, user=None, reference=None):
     """
     Records a payment against an order.
 
     Parameters
     ----------
-    order  : Order instance (will be re-fetched under lock)
-    method : "cash" | "upi" | "card"
-    amount : Decimal — the amount TENDERED (may exceed remaining for cash)
-    user   : User instance or None
+    order     : Order instance (will be re-fetched under lock)
+    method    : "cash" | "upi" | "card"
+    amount    : Decimal — the amount TENDERED (may exceed remaining for cash)
+    user      : User instance or None
+    reference : str or None — external transaction ID (e.g. Razorpay payment id)
 
     Returns
     -------
@@ -91,6 +92,7 @@ def process_payment(order, method, amount, user=None):
         method=method,
         amount=amount_to_record,
         created_by=user,
+        reference=reference,
     )
 
     logger.info(

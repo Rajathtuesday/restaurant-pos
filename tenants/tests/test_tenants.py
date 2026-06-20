@@ -1,6 +1,6 @@
 from django.db import IntegrityError
 from django.test import TestCase
-from tenants.models import Tenant, Outlet, PrintProfile, TenantFeatureOverride
+from tenants.models import Tenant, Outlet, PrintProfile, TenantFeatureOverride, TenantFeatureAuditLog
 from core.features import has_feature
 
 
@@ -110,6 +110,18 @@ class TenantFeatureFlagTest(TestCase):
     def test_unknown_feature_returns_false(self):
         self.assertFalse(has_feature(self.fine_dining, "nonexistent_feature_xyz"))
 
+    def test_razorpay_gateway_off_by_default_for_every_tenant_type(self):
+        # Custom-only feature — deliberately absent from every TENANT_FEATURES
+        # list, so it must be False until a TenantFeatureOverride enables it.
+        self.assertFalse(has_feature(self.fine_dining, "razorpay_gateway"))
+        self.assertFalse(has_feature(self.franchise, "razorpay_gateway"))
+        self.assertFalse(has_feature(self.cafe, "razorpay_gateway"))
+
+    def test_whatsapp_receipts_off_by_default_for_every_tenant_type(self):
+        self.assertFalse(has_feature(self.fine_dining, "whatsapp_receipts"))
+        self.assertFalse(has_feature(self.franchise, "whatsapp_receipts"))
+        self.assertFalse(has_feature(self.cafe, "whatsapp_receipts"))
+
 
 class TenantFeatureOverrideTest(TestCase):
 
@@ -156,6 +168,62 @@ class TenantFeatureOverrideTest(TestCase):
         )
         # tenant2 must NOT inherit tenant's override
         self.assertFalse(has_feature(tenant2, "reservations"))
+
+    def test_override_can_enable_razorpay_gateway(self):
+        self.assertFalse(has_feature(self.tenant, "razorpay_gateway"))
+        TenantFeatureOverride.objects.create(
+            tenant=self.tenant,
+            feature="razorpay_gateway",
+            enabled=True
+        )
+        if hasattr(self.tenant, "_feature_overrides"):
+            del self.tenant._feature_overrides
+        self.assertTrue(has_feature(self.tenant, "razorpay_gateway"))
+
+        # a second, untouched tenant must not see it
+        tenant2 = Tenant.objects.create(name="Untouched Cafe", tenant_type="cafe")
+        self.assertFalse(has_feature(tenant2, "razorpay_gateway"))
+
+
+class TenantFeatureAuditLogTest(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Audit Cafe", tenant_type="cafe")
+
+    def test_create_audit_log_entry(self):
+        entry = TenantFeatureAuditLog.objects.create(
+            tenant=self.tenant,
+            feature="razorpay_gateway",
+            enabled=True,
+            source="override",
+            notes="Set by owner1",
+        )
+        self.assertEqual(entry.tenant, self.tenant)
+        self.assertTrue(entry.enabled)
+        self.assertEqual(entry.source, "override")
+
+    def test_toggling_twice_appends_two_rows_not_one(self):
+        # The point of this model: TenantFeatureOverride overwrites a single row,
+        # but every change must leave its own permanent log entry.
+        TenantFeatureAuditLog.objects.create(
+            tenant=self.tenant, feature="razorpay_gateway", enabled=True, source="override",
+        )
+        TenantFeatureAuditLog.objects.create(
+            tenant=self.tenant, feature="razorpay_gateway", enabled=False, source="default",
+        )
+        history = TenantFeatureAuditLog.objects.filter(
+            tenant=self.tenant, feature="razorpay_gateway"
+        ).order_by("changed_at")
+        self.assertEqual(history.count(), 2)
+        self.assertTrue(history[0].enabled)
+        self.assertFalse(history[1].enabled)
+
+    def test_tenant_deletion_cascades_audit_log(self):
+        TenantFeatureAuditLog.objects.create(
+            tenant=self.tenant, feature="razorpay_gateway", enabled=True, source="override",
+        )
+        self.tenant.delete()
+        self.assertEqual(TenantFeatureAuditLog.objects.count(), 0)
 
 
 # ── PrintProfile model tests ───────────────────────────────────────────────────

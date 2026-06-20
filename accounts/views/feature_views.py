@@ -37,6 +37,8 @@ _FEATURE_META = {
     "multi_outlet":        {"label": "Multi-Outlet",          "icon": "bi-building",                 "desc": "Multiple branch management and menu sync.",               "group": "Operations"},
     "shift_management":    {"label": "Shift Management",      "icon": "bi-clock",                    "desc": "Cash sessions, staff schedules.",                         "group": "Operations"},
     "role_based_access":   {"label": "Role-Based Access",     "icon": "bi-shield-check",             "desc": "Per-role permissions (owner / manager / cashier / waiter).", "group": "Operations"},
+    "razorpay_gateway":    {"label": "Razorpay Payments",      "icon": "bi-qr-code-scan",             "desc": "UPI QR via the tenant's own Razorpay account — auto-confirms via webhook.", "group": "Payments & Notifications"},
+    "whatsapp_receipts":   {"label": "WhatsApp Receipts",      "icon": "bi-whatsapp",                 "desc": "Send a bill link to the customer's WhatsApp after payment.", "group": "Payments & Notifications"},
 }
 
 
@@ -96,7 +98,7 @@ def feature_flags_view(request):
 @login_required
 @require_POST
 def toggle_feature_flag(request):
-    from tenants.models import Tenant, TenantFeatureOverride
+    from tenants.models import Tenant, TenantFeatureOverride, TenantFeatureAuditLog
     from core.features import TENANT_FEATURES
 
     if not request.user.is_superuser:
@@ -133,6 +135,13 @@ def toggle_feature_flag(request):
             defaults={"enabled": enabled, "notes": f"Set by {request.user.username}"},
         )
         source = "override"
+
+    # Append-only history — TenantFeatureOverride above is a single mutable row
+    # per (tenant, feature), so without this, past changes are lost on the next toggle.
+    TenantFeatureAuditLog.objects.create(
+        tenant=tenant, feature=feature, enabled=bool(enabled), source=source,
+        changed_by=request.user, notes=f"Set by {request.user.username}",
+    )
 
     if hasattr(tenant, "_feature_overrides"):
         del tenant._feature_overrides

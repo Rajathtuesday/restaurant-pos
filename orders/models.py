@@ -718,6 +718,47 @@ class Payment(models.Model):
 
 
 # =====================================================
+# RAZORPAY QR CODE — tracking row per generated QR
+# =====================================================
+
+class RazorpayQRCode(TenantScopedModel):
+    """
+    Records "QR X was generated for order Y, expecting amount Z, expires at T."
+
+    Without this, the webhook can't validate a payment's amount against what
+    was actually quoted (the order may have changed since the QR was shown),
+    and the bill UI has no way to show "still pending" across a page reload.
+    """
+    STATUS_CHOICES = (
+        ("active", "Active"),
+        ("paid", "Paid"),
+        ("expired", "Expired"),
+        ("closed", "Closed"),
+    )
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="razorpay_qr_codes")
+
+    qr_code_id = models.CharField(max_length=100, unique=True)
+    image_url = models.URLField()
+    quoted_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["order"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return f"Razorpay QR {self.qr_code_id} - order #{self.order_id} - {self.status}"
+
+
+# =====================================================
 # REFUND
 # =====================================================
 
@@ -835,6 +876,8 @@ class OrderEvent(TenantScopedModel):
         ("payment_refund_requested", "Refund Requested"),
         ("payment_refunded", "Payment Refunded"),
         ("payment_refund_rejected", "Refund Rejected"),
+        ("razorpay_overpaid_reconciliation", "Razorpay Payment Needs Reconciliation"),
+        ("razorpay_amount_mismatch", "Razorpay Webhook Amount Mismatch"),
 
         # Table actions
         ("table_transferred", "Table Transferred"),

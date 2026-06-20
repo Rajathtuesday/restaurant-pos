@@ -199,11 +199,19 @@ def pay_order(request, order_id):
                     _order_ref = order  # captured for closure
                     def _send_whatsapp():
                         try:
-                            from notifications.services.whatsapp_service import send_bill_receipt
-                            _order_ref.refresh_from_db()
-                            send_bill_receipt(_order_ref)
+                            from core.features import has_feature
+                            if not has_feature(_order_ref.tenant, "whatsapp_receipts"):
+                                return
+                            from notifications.tasks import send_whatsapp_receipt_task
+                            from orders.views.public_views import make_public_bill_token
+                            from django.urls import reverse
+                            # Sign + build the absolute URL here, synchronously — the
+                            # Celery task has no `request` object to build it from.
+                            token = make_public_bill_token(_order_id)
+                            bill_url = request.build_absolute_uri(reverse("public-bill", args=[token]))
+                            send_whatsapp_receipt_task.delay(_order_id, bill_url)
                         except Exception as _e:
-                            logger.error("WhatsApp receipt failed for order %s: %s", _order_id, _e)
+                            logger.error("WhatsApp receipt dispatch failed for order %s: %s", _order_id, _e)
                     transaction.on_commit(_send_whatsapp)
 
                     return JsonResponse({

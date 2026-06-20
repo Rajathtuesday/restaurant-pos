@@ -81,6 +81,15 @@ class PaymentConfig(TenantScopedModel):
     upi_id = models.CharField(max_length=100, blank=True, default="",
                               help_text="UPI ID (VPA) shown as QR on bill — e.g. myrestaurant@okaxis")
 
+    # Razorpay — bring-your-own-keys. Each tenant connects their OWN Razorpay
+    # account; money settles to their own bank account, Rasova never holds funds.
+    # Plaintext, matching AggregatorConfig's webhook_secret convention below —
+    # no field-level encryption exists anywhere in this app.
+    razorpay_enabled = models.BooleanField(default=False)
+    razorpay_key_id = models.CharField(max_length=100, blank=True, default="")
+    razorpay_key_secret = models.CharField(max_length=100, blank=True, default="")
+    razorpay_webhook_secret = models.CharField(max_length=100, blank=True, default="")
+
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

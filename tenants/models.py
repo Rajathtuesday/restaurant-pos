@@ -501,3 +501,27 @@ class TenantFeatureOverride(models.Model):
 
     def __str__(self):
         return f"{self.tenant.name} - {self.feature} - {'Enabled' if self.enabled else 'Disabled'}"
+
+
+class TenantFeatureAuditLog(models.Model):
+    """
+    Append-only history of feature flag changes per tenant.
+
+    TenantFeatureOverride is a single mutable row per (tenant, feature) — toggling
+    it overwrites the previous state. This log exists so "who turned on Razorpay for
+    this tenant, and when" survives being toggled again later.
+    """
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="feature_audit_log")
+    feature = models.CharField(max_length=50)
+    enabled = models.BooleanField()
+    source = models.CharField(max_length=20, help_text="'override' or 'default' (reset to type default)")
+    changed_by = models.ForeignKey("accounts.User", null=True, on_delete=models.SET_NULL)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["tenant", "feature"])]
+        ordering = ["-changed_at"]
+
+    def __str__(self):
+        return f"{self.tenant.name} - {self.feature} - {'Enabled' if self.enabled else 'Disabled'} @ {self.changed_at:%Y-%m-%d %H:%M}"
