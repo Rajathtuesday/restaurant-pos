@@ -65,6 +65,7 @@ def create_qr_payment(order, payment_config):
             "close_by": int(expires_at.timestamp()),
             "notes": {
                 "order_id": str(order.id),
+                "tenant_id": str(order.tenant_id),
                 "outlet_id": str(order.outlet_id),
             },
         },

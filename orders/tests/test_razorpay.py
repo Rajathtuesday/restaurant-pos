@@ -112,6 +112,8 @@ class CreateQRPaymentServiceTest(CounterBillingBase):
         _, kwargs = mock_post.call_args
         self.assertEqual(kwargs["auth"], ("rzp_test_key", "rzp_test_secret"))
         self.assertEqual(kwargs["json"]["notes"]["order_id"], str(order.id))
+        self.assertEqual(kwargs["json"]["notes"]["tenant_id"], str(order.tenant_id))
+        self.assertEqual(kwargs["json"]["notes"]["outlet_id"], str(order.outlet_id))
 
 
 class CreateRazorpayQRViewTest(CounterBillingBase):
@@ -170,9 +172,9 @@ class RazorpayWebhookTest(CounterBillingBase):
         self.client.logout()  # webhook is unauthenticated
 
     def _webhook_url(self):
-        return reverse("razorpay-webhook") + f"?outlet_id={self.outlet.id}"
+        return reverse("razorpay-webhook") + f"?tenant_id={self.tenant.id}&outlet_id={self.outlet.id}"
 
-    def _credited_payload(self, order, payment_id="pay_xyz", amount_paise=None, outlet_id=None):
+    def _credited_payload(self, order, payment_id="pay_xyz", amount_paise=None, outlet_id=None, tenant_id=None):
         if amount_paise is None:
             amount_paise = decimal_to_paise(order.grand_total)
         return {
@@ -180,7 +182,11 @@ class RazorpayWebhookTest(CounterBillingBase):
             "payload": {
                 "qr_code": {"entity": {
                     "id": "qr_xyz",
-                    "notes": {"order_id": str(order.id), "outlet_id": str(outlet_id or self.outlet.id)},
+                    "notes": {
+                        "order_id": str(order.id),
+                        "tenant_id": str(tenant_id or self.tenant.id),
+                        "outlet_id": str(outlet_id or self.outlet.id),
+                    },
                 }},
                 "payment": {"entity": {"id": payment_id, "amount": amount_paise}},
             },
@@ -265,6 +271,26 @@ class RazorpayWebhookTest(CounterBillingBase):
         order = self._make_order()
         payload = self._credited_payload(order, outlet_id=99999)
         response = self._post_webhook(payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_tenant_mismatch_rejected(self):
+        """
+        Same outlet_id, but notes claim a different tenant_id — must be
+        rejected even though outlet_id alone would otherwise resolve fine.
+        """
+        order = self._make_order()
+        payload = self._credited_payload(order, tenant_id=99999)
+        response = self._post_webhook(payload)
+        self.assertEqual(response.status_code, 400)
+
+    def test_webhook_url_requires_tenant_id(self):
+        order = self._make_order()
+        url = reverse("razorpay-webhook") + f"?outlet_id={self.outlet.id}"  # no tenant_id
+        body = json.dumps(self._credited_payload(order))
+        response = self.client.post(
+            url, data=body, content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=_sign(body),
+        )
         self.assertEqual(response.status_code, 400)
 
     def test_qr_code_closed_marks_expired(self):

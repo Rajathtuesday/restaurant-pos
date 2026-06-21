@@ -84,16 +84,24 @@ def razorpay_qr_status(request, qr_code_id):
 @require_POST
 def razorpay_webhook(request):
     """
-    Outlet is resolved from ?outlet_id= — matches the existing aggregator
-    webhook convention (orders/api.py::api_ingest_order uses query params,
-    not a path segment). Necessary here too: signature can't be verified
-    without first knowing which outlet's webhook secret to try.
-    """
-    outlet_id = request.GET.get("outlet_id")
-    if not outlet_id:
-        return JsonResponse({"error": "outlet_id required"}, status=400)
+    Outlet is resolved from ?tenant_id=&outlet_id= — matches the existing
+    aggregator webhook convention (orders/api.py::api_ingest_order takes
+    both, not outlet_id alone). Signature can't be verified without first
+    knowing which outlet's webhook secret to try.
 
-    outlet = get_object_or_404(Outlet, id=outlet_id)
+    Requiring both (not just outlet_id, which is already globally unique
+    and would resolve the tenant on its own) is a deliberate multi-tenant
+    integrity check: the lookup below fails closed if a outlet_id is ever
+    paired with the wrong tenant_id — e.g. a stale/copy-pasted webhook URL
+    pointed at the wrong tenant's outlet — rather than silently succeeding
+    because outlet_id alone happened to be enough.
+    """
+    tenant_id = request.GET.get("tenant_id")
+    outlet_id = request.GET.get("outlet_id")
+    if not tenant_id or not outlet_id:
+        return JsonResponse({"error": "tenant_id and outlet_id required"}, status=400)
+
+    outlet = get_object_or_404(Outlet, id=outlet_id, tenant_id=tenant_id)
 
     try:
         config = PaymentConfig.objects.get(tenant=outlet.tenant, outlet=outlet)
@@ -119,7 +127,12 @@ def razorpay_webhook(request):
     # retries on non-2xx, so always return 200 for events we don't act on.
     if event in ("qr_code.closed",):
         qr_code_id = payload.get("payload", {}).get("qr_code", {}).get("entity", {}).get("id")
-        RazorpayQRCode.objects.filter(qr_code_id=qr_code_id, status="active").update(status="expired")
+        # Scoped by tenant+outlet even though qr_code_id is already a Razorpay-
+        # issued unique string — a valid signature only proves the caller knows
+        # *this* outlet's webhook secret, not that qr_code_id belongs to it.
+        RazorpayQRCode.objects.filter(
+            qr_code_id=qr_code_id, tenant=outlet.tenant, outlet=outlet, status="active"
+        ).update(status="expired")
         return JsonResponse({"ok": True})
 
     if event != "qr_code.credited":
@@ -145,15 +158,17 @@ def razorpay_webhook(request):
     if Payment.objects.filter(reference=razorpay_payment_id).exists():
         return JsonResponse({"ok": True, "already_recorded": True})
 
-    order = get_object_or_404(Order, id=order_id, outlet=outlet)
+    order = get_object_or_404(Order, id=order_id, tenant=outlet.tenant, outlet=outlet)
 
-    # Integrity check: outlet in the URL must match outlet in the QR's notes.
-    if str(notes.get("outlet_id")) != str(outlet.id):
+    # Integrity check: tenant+outlet in the URL must match tenant+outlet in
+    # the QR's notes — catches a webhook routed to the right outlet but a
+    # payload referencing a different tenant/outlet's order.
+    if str(notes.get("outlet_id")) != str(outlet.id) or str(notes.get("tenant_id")) != str(outlet.tenant_id):
         logger.error(
-            "Razorpay webhook outlet mismatch: URL outlet=%s, notes outlet=%s",
-            outlet.id, notes.get("outlet_id"),
+            "Razorpay webhook tenant/outlet mismatch: URL tenant=%s outlet=%s, notes tenant=%s outlet=%s",
+            outlet.tenant_id, outlet.id, notes.get("tenant_id"), notes.get("outlet_id"),
         )
-        return JsonResponse({"error": "Outlet mismatch"}, status=400)
+        return JsonResponse({"error": "Tenant/outlet mismatch"}, status=400)
 
     webhook_amount = paise_to_decimal(int(webhook_amount_paise))
 
@@ -184,7 +199,9 @@ def razorpay_webhook(request):
                 "fully paid by another method — recorded for manual reconciliation/refund.",
                 razorpay_payment_id, order.id,
             )
-            RazorpayQRCode.objects.filter(order=order, status="active").update(status="closed")
+            RazorpayQRCode.objects.filter(
+                order=order, tenant=outlet.tenant, outlet=outlet, status="active"
+            ).update(status="closed")
             return JsonResponse({"ok": True, "reconciliation_needed": True})
 
         amount_to_record = min(webhook_amount, current_remaining)
@@ -230,6 +247,8 @@ def razorpay_webhook(request):
                 razorpay_payment_id, order.id,
             )
 
-        RazorpayQRCode.objects.filter(order=order, status="active").update(status="paid")
+        RazorpayQRCode.objects.filter(
+            order=order, tenant=outlet.tenant, outlet=outlet, status="active"
+        ).update(status="paid")
 
     return JsonResponse({"ok": True})

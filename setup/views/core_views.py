@@ -365,7 +365,7 @@ def setup_payment_methods(request):
     razorpay_webhook_url = None
     if razorpay_feature_enabled:
         razorpay_webhook_url = request.build_absolute_uri(
-            f"{reverse('razorpay-webhook')}?outlet_id={outlet.id}"
+            f"{reverse('razorpay-webhook')}?tenant_id={tenant.id}&outlet_id={outlet.id}"
         )
 
     return render(request, "setup/setup_payment_methods.html", {
