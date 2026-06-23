@@ -379,7 +379,7 @@
                     {% if config.card_enabled %}<button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i>{{ config.card_label }}</button>{% endif %}
                     {% if razorpay_feature_enabled and config.razorpay_enabled %}<button class="btn-pay" onclick="openRazorpayQR()"><i class="bi bi-qr-code-scan"></i>Razorpay QR</button>{% endif %}
                 </div>
-                <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Receipt</button>
+                <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Bill</button>
             {% else %}
                 {% if order.status != 'closed' and order.status != 'paid' %}
                 <button class="btn-pay" style="width:100%;" onclick="recordPay('cash', 0)">
@@ -393,7 +393,7 @@
                 <div style="display:flex;gap:0.5rem;margin-top:1.25rem;">
                     <button class="btn-action" style="margin-top:0;border-color:var(--accent-gold);color:var(--accent-gold);"
                             onclick="printReceipt({{ order.id }})">
-                        <i class="bi bi-printer me-2"></i>Print Slip
+                        <i class="bi bi-printer me-2"></i>Print Receipt
                     </button>
                     {% if is_qsr %}
                     <a href="/token/" class="btn-action" style="margin-top:0;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;">
