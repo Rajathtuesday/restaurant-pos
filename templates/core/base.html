@@ -260,12 +260,12 @@
 
         // --- 2. Network State Management (Edge Case: WiFi Drops) ---
         window.addEventListener('online',  () => {
-            document.getElementById('offline-banner').style.display = 'none';
             ui.toast('Connection restored', 'success');
+            offlineQueue.flush();
         });
         window.addEventListener('offline', () => {
-            document.getElementById('offline-banner').style.display = 'block';
             ui.toast('You are offline. Please check your connection.', 'error');
+            updateOfflineBanner();
         });
 
         // --- 3. Global UI Helpers ---
@@ -355,6 +355,149 @@
             put(endpoint, body) { return this.request(endpoint, { method: 'PUT', body: JSON.stringify(body) }); },
             delete(endpoint) { return this.request(endpoint, { method: 'DELETE' }); }
         };
+
+        // --- 4b. Offline Order Queue (IndexedDB) ---
+        // Real offline support for order *creation* only — see plan notes. Orders
+        // queued here are created, then sent to kitchen, the moment connectivity
+        // returns. Does not depend on the Background Sync API (unreliable inside
+        // the Android app's WebView) — flushes from page JS on 'online' and on load.
+        let _flushing = false; // guards against overlapping flush() calls (e.g. an
+                                // 'online' event firing while the page-load flush is
+                                // still in progress on a flaky connection)
+
+        const offlineQueue = {
+            DB_NAME: 'rasova_offline',
+            STORE: 'offline_orders',
+
+            openDB() {
+                return new Promise((resolve, reject) => {
+                    if (!('indexedDB' in window)) { reject(new Error('IndexedDB unsupported')); return; }
+                    const req = indexedDB.open(this.DB_NAME, 1);
+                    req.onupgradeneeded = e => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('offline_orders')) {
+                            db.createObjectStore('offline_orders', { keyPath: 'id', autoIncrement: true });
+                        }
+                    };
+                    req.onsuccess = e => resolve(e.target.result);
+                    req.onerror   = () => reject(req.error);
+                });
+            },
+
+            async add(payload) {
+                const db = await this.openDB();
+                const id = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(this.STORE, 'readwrite');
+                    const req = tx.objectStore(this.STORE).add({ payload, queued_at: Date.now() });
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror   = () => reject(req.error);
+                });
+                await updateOfflineBanner();
+                return id;
+            },
+
+            async all() {
+                const db = await this.openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(this.STORE, 'readonly');
+                    const req = tx.objectStore(this.STORE).getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror   = () => reject(req.error);
+                });
+            },
+
+            async remove(id) {
+                const db = await this.openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(this.STORE, 'readwrite');
+                    tx.objectStore(this.STORE).delete(id);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror    = () => reject(tx.error);
+                });
+            },
+
+            async flush() {
+                if (_flushing) return;     // edge case: 'online' fires while a previous
+                                            // flush (e.g. from page load) is still running
+                if (!navigator.onLine) return;
+                let records;
+                try { records = await this.all(); } catch (e) { return; } // IndexedDB unavailable — nothing to do
+
+                if (!records.length) return;
+                _flushing = true;
+                try {
+                    for (const record of records) {
+                        let createResp;
+                        try {
+                            createResp = await fetch("/create-order/", {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+                                body: JSON.stringify(record.payload)
+                            });
+                        } catch (networkErr) {
+                            // Edge case: connection dropped again mid-flush. Stop here,
+                            // leave remaining records queued, retry on next online/load.
+                            break;
+                        }
+
+                        let data;
+                        try { data = await createResp.json(); } catch (e) { break; } // malformed/empty response — stop, retry later
+
+                        if (!createResp.ok || !data.success) {
+                            // Edge case: server rejected the order itself (e.g. the
+                            // table/menu item no longer exists by the time we're back
+                            // online). Don't retry forever on a request that will never
+                            // succeed — drop it, but tell the cashier so it isn't silently lost.
+                            await this.remove(record.id);
+                            ui.toast('A saved offline order could not be recreated (' + (data && data.error ? data.error : 'server rejected it') + ') — please re-enter it.', 'error');
+                            continue;
+                        }
+
+                        // Order created — best-effort send to kitchen. Even if this
+                        // single call fails, the order itself is now safely created
+                        // server-side, so we still drop it from the local queue rather
+                        // than risk creating it twice on a retry.
+                        try {
+                            await fetch("/send-to-kitchen/" + data.order_id + "/", {
+                                method: 'POST',
+                                headers: { 'X-CSRFToken': apiClient.getCsrf() }
+                            });
+                        } catch (e) { /* order exists; kitchen-send can be retried manually from the running order */ }
+
+                        await this.remove(record.id);
+                        ui.toast('Order #' + (data.order_number || data.order_id) + ' synced and sent to kitchen', 'success');
+                    }
+                } finally {
+                    _flushing = false;
+                    updateOfflineBanner();
+                }
+            }
+        };
+
+        async function updateOfflineBanner() {
+            const banner = document.getElementById('offline-banner');
+            if (!banner) return;
+            let count = 0;
+            try { count = (await offlineQueue.all()).length; } catch (e) { /* IndexedDB unavailable — treat as 0 queued */ }
+
+            if (!navigator.onLine) {
+                banner.innerHTML = '<i class="bi bi-wifi-off me-2"></i>You are currently offline.'
+                    + (count ? ' ' + count + ' order' + (count > 1 ? 's' : '') + ' saved, will sync when reconnected.' : ' Actions may not be saved.');
+                banner.style.display = 'block';
+            } else if (count) {
+                banner.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Syncing ' + count + ' saved order' + (count > 1 ? 's' : '') + '...';
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        // Edge case: orders queued in a previous session/tab that never got a
+        // chance to sync (app closed while offline) still get flushed on next load.
+        document.addEventListener('DOMContentLoaded', () => {
+            updateOfflineBanner();
+            if (navigator.onLine) offlineQueue.flush();
+        });
     </script>
     
     {% block extra_js %}{% endblock %}
@@ -517,20 +660,12 @@
          ================================================ -->
     <script>
     (function() {
-        // Register service worker
+        // Register service worker (static-asset caching only — offline order
+        // queuing/sync happens in page JS via offlineQueue, not the service
+        // worker, so there's no postMessage listener to wire up here).
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                    .then(() => {
-                        navigator.serviceWorker.addEventListener('message', event => {
-                            if (event.data && event.data.type === 'ORDER_SYNCED') {
-                                if (typeof ui !== 'undefined') {
-                                    ui.toast('Order synced from offline queue', 'success');
-                                }
-                            }
-                        });
-                    })
-                    .catch(() => {});
+                navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
             });
         }
 

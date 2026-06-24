@@ -779,14 +779,30 @@
     const isMobile = window.innerWidth < 992;
     const source   = document.getElementById(isMobile ? "sourceSelectMobile"  : "sourceSelectDesktop").value;
     const aggId    = document.getElementById(isMobile ? "aggregatorIdMobile"   : "aggregatorIdDesktop").value;
+    const orderPayload = { cart, table_id: tableId, source, aggregator_id: aggId, customer_name: '', customer_phone: '' };
+
+    // Edge case: already offline before the cashier even hits submit — don't
+    // attempt the request at all, queue it straight away.
+    if (!navigator.onLine) {
+      offlineQueue.add(orderPayload)
+        .then(() => { ui.toast('Saved — will send to kitchen once back online', 'success'); clearCart(); })
+        .catch(() => { showToast('Could not save order offline on this device. Please note it down manually.'); });
+      resetSendBtn();
+      return;
+    }
+
     fetch("{% url 'create-order' %}", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify({ cart, table_id: tableId, source, aggregator_id: aggId, customer_name: '', customer_phone: '' })
+      body: JSON.stringify(orderPayload)
     })
       .then(r => r.json())
       .then(d => {
         if (!d.success) { showToast(d.error); resetSendBtn(); return; }
+        // Order now exists server-side (d.order_id) — everything below this
+        // line must NOT be retried via the offline queue, or it risks creating
+        // a duplicate order. Its own .catch() below just stops the spinner;
+        // staff can retry kitchen-send manually from the running order screen.
         const afterCreate = () => fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } });
         const needsParcel = _parcelOn && _parcelAmount > 0 && _parcelAppliedToOrder !== d.order_id;
         const applyParcel = needsParcel
@@ -810,7 +826,22 @@
               if (oc) oc.hide();
             }
           }).catch(() => resetSendBtn());
-      }).catch(() => resetSendBtn());
+      })
+      .catch(err => {
+        // Only reachable for the initial create-order call (the inner chain
+        // above has its own catch) — no order_id exists yet, so it's safe to
+        // queue. err instanceof TypeError = genuine network failure (same
+        // heuristic apiClient.request() already uses), as opposed to a server
+        // error response, which should not be queued/retried blindly.
+        if (err instanceof TypeError) {
+          offlineQueue.add(orderPayload)
+            .then(() => { ui.toast('Connection dropped — order saved, will send to kitchen once back online', 'success'); clearCart(); })
+            .catch(() => { showToast('Could not save order offline on this device. Please note it down manually.'); });
+        } else {
+          showToast('Could not create order. Please try again.');
+        }
+        resetSendBtn();
+      });
   }
 
   function resetSendBtn() {

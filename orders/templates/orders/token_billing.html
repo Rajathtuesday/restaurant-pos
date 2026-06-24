@@ -1134,14 +1134,30 @@
             document.getElementById('loyaltyPhoneMobile')?.value || ''
         ).trim();
 
+        const orderPayload = { cart, order_id: currentOrderId, source: 'counter', aggregator_id: '', customer_name: '', customer_phone: loyaltyPhone };
+
+        // Edge case: already offline before the cashier even hits submit —
+        // don't attempt the request at all, queue it straight away.
+        if (!navigator.onLine) {
+            offlineQueue.add(orderPayload)
+                .then(() => { ui.toast('Saved — will send to kitchen once back online', 'success'); clearCart(); })
+                .catch(() => { ui.toast('Could not save order offline on this device. Please note it down manually.', 'error'); });
+            resetSendBtn();
+            return;
+        }
+
         fetch("{% url 'create-order' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-            body: JSON.stringify({ cart, order_id: currentOrderId, source: 'counter', aggregator_id: '', customer_name: '', customer_phone: loyaltyPhone })
+            body: JSON.stringify(orderPayload)
         })
         .then(r => r.json())
         .then(d => {
             if (!d.success) { ui.toast(d.error, 'error'); resetSendBtn(); return; }
+            // Order now exists server-side (d.order_id) — the send-to-kitchen
+            // step below has its own implicit handling via the outer .catch();
+            // do not let it fall through to the offline queue, or a retry would
+            // create a duplicate order.
             return fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), {
                 method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
             })
@@ -1153,9 +1169,22 @@
                 generateBill(d.order_id);
                 const oc = bootstrap.Offcanvas.getInstance(document.getElementById('mobileCartOffcanvas'));
                 if (oc) oc.hide();
-            });
+            })
+            .catch(() => resetSendBtn()); // order already created; staff can retry kitchen-send manually
         })
-        .catch(() => { ui.toast('Network error', 'error'); resetSendBtn(); });
+        .catch(err => {
+            // Only reachable for the initial create-order call — no order_id
+            // exists yet, safe to queue. TypeError = genuine network failure
+            // (same heuristic apiClient.request() already uses elsewhere).
+            if (err instanceof TypeError) {
+                offlineQueue.add(orderPayload)
+                    .then(() => { ui.toast('Connection dropped — order saved, will send to kitchen once back online', 'success'); clearCart(); })
+                    .catch(() => { ui.toast('Could not save order offline on this device. Please note it down manually.', 'error'); });
+            } else {
+                ui.toast('Could not create order. Please try again.', 'error');
+            }
+            resetSendBtn();
+        });
     }
 
     /* ── Print receipt ──────────────────────────────────────────────

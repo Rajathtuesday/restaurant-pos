@@ -1,6 +1,10 @@
 /* ============================================================
    Rasova POS — Service Worker
-   Handles: offline caching, install prompt, order queue
+   Handles: offline caching, install prompt.
+   (Offline order queuing lives in page JS — see offlineQueue in
+   templates/core/base.html — not here. Background Sync API support is
+   unreliable inside the Android app's WebView, so the queue is flushed
+   from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
 const CACHE_VERSION = 'rasova-v3';
@@ -114,54 +118,3 @@ self.addEventListener('fetch', event => {
             )
     );
 });
-
-/* ── Background sync: replay queued orders when back online ── */
-self.addEventListener('sync', event => {
-    if (event.tag === 'sync-orders') {
-        event.waitUntil(replayQueuedOrders());
-    }
-});
-
-async function replayQueuedOrders() {
-    // Orders queued while offline are stored in IndexedDB by the page JS
-    // This fires when connectivity is restored
-    const db = await openDB();
-    const tx = db.transaction('offline_orders', 'readwrite');
-    const store = tx.objectStore('offline_orders');
-    const orders = await store.getAll();
-
-    for (const order of orders) {
-        try {
-            const response = await fetch('/orders/create/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': order.csrf
-                },
-                body: JSON.stringify(order.payload)
-            });
-            if (response.ok) {
-                await store.delete(order.id);
-                // Notify the page
-                const clients = await self.clients.matchAll();
-                clients.forEach(c => c.postMessage({ type: 'ORDER_SYNCED', orderId: order.id }));
-            }
-        } catch (e) {
-            // Will retry on next sync event
-        }
-    }
-}
-
-function openDB() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open('rasova_offline', 1);
-        req.onupgradeneeded = e => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('offline_orders')) {
-                db.createObjectStore('offline_orders', { keyPath: 'id', autoIncrement: true });
-            }
-        };
-        req.onsuccess = e => resolve(e.target.result);
-        req.onerror = () => reject(req.error);
-    });
-}
