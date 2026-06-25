@@ -43,7 +43,7 @@ import time
 from datetime import datetime
 from typing import Optional
 
-HOST = "0.0.0.0"
+HOST = "127.0.0.1"
 PORT = 8765
 VERSION = "1.1.0"
 
@@ -687,7 +687,7 @@ async def main():
 
     async with websockets.serve(
         handle_client, HOST, PORT,
-        origins=None,
+        origins={"https://rasova.net", "https://*.rasova.net"},
         ping_interval=30,
         ping_timeout=10,
     ):

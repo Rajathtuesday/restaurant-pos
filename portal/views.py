@@ -123,9 +123,9 @@ def create_restaurant(request):
             PaymentConfig.for_outlet(outlet, tenant)
         logger.info("Portal %s created '%s' (%s)", request.user.username, name, tenant_type)
         return JsonResponse({"success": True, "tenant_id": tenant.id})
-    except Exception as e:
+    except Exception:
         logger.exception("Error creating restaurant")
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Restaurant could not be created. Please try again."}, status=500)
 
 
 @login_required
