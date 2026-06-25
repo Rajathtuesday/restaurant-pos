@@ -50,6 +50,7 @@ jobs:
       - name: Run Django system check
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          FIELD_ENCRYPTION_KEY: eNV1wu_kL4n1MS11nn0DM2Re1sENgltiRcd3p6s3pNI=
           DEBUG:         "True"
           ALLOWED_HOSTS: "localhost,127.0.0.1"
           DB_ENGINE:     django.db.backends.postgresql
@@ -64,6 +65,7 @@ jobs:
       - name: Run migrations
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          FIELD_ENCRYPTION_KEY: eNV1wu_kL4n1MS11nn0DM2Re1sENgltiRcd3p6s3pNI=
           DEBUG:         "True"
           ALLOWED_HOSTS: "localhost,127.0.0.1"
           DB_ENGINE:     django.db.backends.postgresql
@@ -78,6 +80,7 @@ jobs:
       - name: Collect static files
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          FIELD_ENCRYPTION_KEY: eNV1wu_kL4n1MS11nn0DM2Re1sENgltiRcd3p6s3pNI=
           DEBUG:         "True"
           ALLOWED_HOSTS: "localhost,127.0.0.1"
           DB_ENGINE:     django.db.backends.postgresql
@@ -92,6 +95,7 @@ jobs:
       - name: Run test suite
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
+          FIELD_ENCRYPTION_KEY: eNV1wu_kL4n1MS11nn0DM2Re1sENgltiRcd3p6s3pNI=
           DEBUG:         "True"
           ALLOWED_HOSTS: "localhost,127.0.0.1"
           DB_ENGINE:     django.db.backends.postgresql

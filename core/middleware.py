@@ -2,6 +2,7 @@ import time
 import logging
 
 from django.conf import settings
+from django.shortcuts import render
 from tenants.models import Tenant
 from .log_filters import set_current_tenant_outlet, clear_current_tenant_outlet
 
@@ -45,6 +46,35 @@ class TenantMiddleware:
         
         response = self.get_response(request)
         return response
+
+
+class SubscriptionStatusMiddleware:
+    """
+    Blocks access for tenants whose subscription_status is 'suspended'.
+    Must run after AuthenticationMiddleware (needs request.user) and after
+    TenantMiddleware (needs request.tenant).
+
+    Only gates already-authenticated, non-superuser requests. Anonymous
+    requests pass through untouched — this is deliberate, not an oversight:
+    gating before login too would also block a superuser from reaching the
+    login page on a suspended tenant's subdomain to investigate/support it,
+    since superuser status can't be known until after they've logged in.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        tenant = getattr(request, "tenant", None)
+        if (
+            tenant
+            and tenant.subscription_status == "suspended"
+            and request.user.is_authenticated
+            and not request.user.is_superuser
+            and request.path != "/logout/"
+        ):
+            return render(request, "tenants/suspended.html", {"tenant": tenant}, status=402)
+        return self.get_response(request)
 
 
 class ContextLoggingMiddleware:

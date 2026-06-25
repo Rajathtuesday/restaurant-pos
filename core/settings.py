@@ -43,6 +43,17 @@ if not SECRET_KEY:
         "Generate one with: python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\""
     )
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
+
+# Encrypts at-rest secrets stored in the database (e.g. PaymentConfig's
+# Razorpay key/webhook secrets). Required in every environment, same as
+# SECRET_KEY — a missing key must never silently fall back to plaintext.
+FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY')
+if not FIELD_ENCRYPTION_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "FIELD_ENCRYPTION_KEY environment variable is not set. "
+        "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+    )
 # SECURITY WARNING: don't run with debug turned on in production!
 # Defaults to False — production must explicitly opt in to DEBUG via env var.
 # A missing/misspelled DEBUG var must never silently expose tracebacks + secrets.
@@ -101,6 +112,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     # django-axes must come after AuthenticationMiddleware
     'axes.middleware.AxesMiddleware',
+    # Needs request.user (auth) + request.tenant (TenantMiddleware, above)
+    'core.middleware.SubscriptionStatusMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ContextLoggingMiddleware',

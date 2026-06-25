@@ -1,3 +1,4 @@
+from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 
@@ -159,3 +160,44 @@ class KitchenStationModelTest(TestCase):
             paper_width_mm=58
         )
         self.assertEqual(station.chars_per_line, 32)
+
+
+class RazorpaySecretEncryptionTest(TestCase):
+    """razorpay_key_secret / razorpay_webhook_secret must never sit in the
+    database as plaintext — only razorpay_key_id (a public identifier, not
+    a secret) is allowed to stay readable in a raw row."""
+
+    def setUp(self):
+        self.tenant, self.outlet = _make_tenant("Encryption Test Cafe")
+        self.config = PaymentConfig.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            razorpay_key_id="rzp_test_publicid123",
+            razorpay_key_secret="sk_live_supersecret_value",
+            razorpay_webhook_secret="whsec_supersecret_value",
+        )
+
+    def _raw_row(self):
+        with connection.cursor() as cur:
+            cur.execute(
+                "SELECT razorpay_key_id, razorpay_key_secret, razorpay_webhook_secret "
+                "FROM setup_paymentconfig WHERE id = %s",
+                [self.config.id],
+            )
+            return cur.fetchone()
+
+    def test_secrets_are_not_plaintext_in_the_raw_database_row(self):
+        raw_key_id, raw_key_secret, raw_webhook_secret = self._raw_row()
+        self.assertEqual(raw_key_id, "rzp_test_publicid123")
+        self.assertNotEqual(raw_key_secret, "sk_live_supersecret_value")
+        self.assertNotEqual(raw_webhook_secret, "whsec_supersecret_value")
+
+    def test_orm_read_transparently_decrypts_back_to_the_original_value(self):
+        self.config.refresh_from_db()
+        self.assertEqual(self.config.razorpay_key_secret, "sk_live_supersecret_value")
+        self.assertEqual(self.config.razorpay_webhook_secret, "whsec_supersecret_value")
+
+    def test_blank_secret_is_not_encrypted_or_corrupted(self):
+        self.config.razorpay_key_secret = ""
+        self.config.save()
+        self.config.refresh_from_db()
+        self.assertEqual(self.config.razorpay_key_secret, "")

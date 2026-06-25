@@ -2,6 +2,7 @@
 from django.db import models
 from django.db.models import UniqueConstraint, Q
 from core.models import TenantScopedModel
+from core.fields import EncryptedCharField
 
 
 class KitchenStation(TenantScopedModel):
@@ -83,12 +84,13 @@ class PaymentConfig(TenantScopedModel):
 
     # Razorpay — bring-your-own-keys. Each tenant connects their OWN Razorpay
     # account; money settles to their own bank account, Rasova never holds funds.
-    # Plaintext, matching AggregatorConfig's webhook_secret convention below —
-    # no field-level encryption exists anywhere in this app.
+    # key_id is a public identifier (shown in Razorpay's own dashboard URLs,
+    # not sensitive) and stays plaintext. key_secret/webhook_secret are real
+    # secrets and are encrypted at rest via EncryptedCharField.
     razorpay_enabled = models.BooleanField(default=False)
     razorpay_key_id = models.CharField(max_length=100, blank=True, default="")
-    razorpay_key_secret = models.CharField(max_length=100, blank=True, default="")
-    razorpay_webhook_secret = models.CharField(max_length=100, blank=True, default="")
+    razorpay_key_secret = EncryptedCharField(max_length=255, blank=True, default="")
+    razorpay_webhook_secret = EncryptedCharField(max_length=255, blank=True, default="")
 
     updated_at = models.DateTimeField(auto_now=True)
 

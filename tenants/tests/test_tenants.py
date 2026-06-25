@@ -1,6 +1,8 @@
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
+from django.urls import reverse
 from tenants.models import Tenant, Outlet, PrintProfile, TenantFeatureOverride, TenantFeatureAuditLog
+from accounts.models import User
 from core.features import has_feature
 
 
@@ -299,3 +301,75 @@ class PrintProfileModelTest(TestCase):
         self.assertTrue(p.kot_large_font)
         self.assertTrue(p.kot_show_total)
         self.assertEqual(p.bill_inner_margin, 4)
+
+
+class SubscriptionSuspensionMiddlewareTest(TestCase):
+    """SubscriptionStatusMiddleware (core/middleware.py) — suspended tenants
+    must lose access, except for superusers (support) and logout.
+
+    Tenant resolution here goes through TenantMiddleware's real subdomain
+    path (HTTP_HOST), not the ?tenant= dev fallback — Django's test runner
+    forces settings.DEBUG=False during `manage.py test` regardless of what
+    .env says, so the DEBUG-gated fallback never fires under `test`.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._allowed_hosts_override = override_settings(ALLOWED_HOSTS=["testserver", ".rasova.net"])
+        cls._allowed_hosts_override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._allowed_hosts_override.disable()
+        super().tearDownClass()
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Suspend Test Cafe", subscription_status="suspended")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.owner = User.objects.create_user(
+            username="suspend_owner", password="pass123",
+            role="owner", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.superuser = User.objects.create_superuser(
+            username="suspend_admin", password="pass123", email="admin@rasova.net",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.host = f"{self.tenant.slug}.rasova.net"
+
+    def _get(self, name="setup_wizard"):
+        return self.client.get(reverse(name), HTTP_HOST=self.host)
+
+    def test_suspended_blocks_authenticated_non_superuser(self):
+        self.client.force_login(self.owner)
+        response = self._get()
+        self.assertEqual(response.status_code, 402)
+        self.assertContains(response, "Suspended", status_code=402)
+
+    def test_suspended_allows_superuser(self):
+        self.client.force_login(self.superuser)
+        response = self._get()
+        self.assertEqual(response.status_code, 200)
+
+    def test_active_tenant_is_not_blocked(self):
+        self.tenant.subscription_status = "active"
+        self.tenant.save()
+        self.client.force_login(self.owner)
+        response = self._get()
+        self.assertEqual(response.status_code, 200)
+
+    def test_trial_tenant_is_not_blocked(self):
+        self.tenant.subscription_status = "trial"
+        self.tenant.save()
+        self.client.force_login(self.owner)
+        response = self._get()
+        self.assertEqual(response.status_code, 200)
+
+    def test_anonymous_user_can_still_reach_login(self):
+        response = self.client.get(reverse("login"), HTTP_HOST=self.host)
+        self.assertEqual(response.status_code, 200)
+
+    def test_suspended_user_can_still_logout(self):
+        self.client.force_login(self.owner)
+        response = self._get(name="logout")
+        self.assertIn(response.status_code, [301, 302])
