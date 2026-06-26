@@ -3,9 +3,28 @@ from django.test import TestCase, Client, override_settings
 from decimal import Decimal
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from tenants.models import Tenant, Outlet
 from inventory.models import InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem
+
+
+def _variance_report_url():
+    """
+    inventory_variance defaults to get_business_date(now) when no ?date=
+    is given, which treats anything before 6 AM local time as still
+    yesterday's business day. Orders created via auto_now_add in these
+    tests stamp the real calendar date, so passing that date explicitly
+    bypasses the cutoff — these tests shouldn't pass or fail depending on
+    what time of day they happen to run.
+
+    Must use localtime, not a bare UTC date: Order.created_at__date is
+    evaluated by Django against TIME_ZONE (Asia/Kolkata), so the date
+    that actually matches a just-created order is the local calendar
+    date, not whatever date() a raw UTC `now()` happens to land on.
+    """
+    local_today = timezone.localtime(timezone.now()).date()
+    return reverse("inventory_variance") + f"?date={local_today.isoformat()}"
 
 _NO_MANIFEST = override_settings(STORAGES={
     "default":     {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -357,7 +376,7 @@ class VarianceReportTests(TestCase):
         self.client.force_login(self.manager)
 
     def test_variance_report_loads(self):
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Bacardi Rum")
 
@@ -405,7 +424,7 @@ class VarianceReportTests(TestCase):
             quantity=Decimal("-60.000"), transaction_type="consume",
             reference="Order #1"
         )
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
         self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
@@ -439,7 +458,7 @@ class VarianceReportTests(TestCase):
             total_price=Decimal("300"), status="served"
         )
         # No InventoryTransaction — deduction never fired
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
         self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
@@ -478,7 +497,7 @@ class VarianceReportTests(TestCase):
             quantity=Decimal("-90.000"), transaction_type="consume",
             reference="Order #1"
         )
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
         self.assertEqual(rum_row["recipe_expected"], Decimal("60.000"))
@@ -689,7 +708,7 @@ class VarianceReportBugFixTests(TestCase):
             reference="KOT #1"
         )
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Dark Rum")
 
@@ -739,7 +758,7 @@ class VarianceReportBugFixTests(TestCase):
             reference="KOT #1"
         )
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Dark Rum")
 
@@ -803,7 +822,7 @@ class VarianceReportBugFixTests(TestCase):
             quantity=Decimal("-30.000"), transaction_type="consume", reference="KOT"
         )
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
 
         milk_row = next(r for r in rows if r["item"].name == "Milk")
@@ -860,7 +879,7 @@ class VarianceReportBugFixTests(TestCase):
         self._make_item_with_variance("Warn Item",     recipe_qty=100, txn_qty=106)   # 6%  → warn
         self._make_item_with_variance("Critical Item", recipe_qty=100, txn_qty=115)   # 15% → critical
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         self.assertEqual(resp.context["ok_count"],       1)
         self.assertEqual(resp.context["warn_count"],     1)
         self.assertEqual(resp.context["critical_count"], 1)
@@ -873,7 +892,7 @@ class VarianceReportBugFixTests(TestCase):
         self._make_item_with_variance("Over Deduct",  recipe_qty=100, txn_qty=115)  # +15%
         self._make_item_with_variance("Under Deduct", recipe_qty=100, txn_qty=85)   # -15%
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         self.assertEqual(resp.context["critical_count"], 2)
         self.assertEqual(resp.context["ok_count"],       0)
         self.assertEqual(resp.context["warn_count"],     0)
@@ -885,7 +904,7 @@ class VarianceReportBugFixTests(TestCase):
         """
         self._make_item_with_variance("High Positive", recipe_qty=100, txn_qty=150)  # +50%
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         self.assertEqual(resp.context["ok_count"],       0)
         self.assertEqual(resp.context["critical_count"], 1)
 
@@ -919,7 +938,7 @@ class VarianceReportBugFixTests(TestCase):
             total_price=Decimal("800"), status="voided"
         )
 
-        resp = self.client.get(reverse("inventory_variance"))
+        resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Dark Rum")
 
