@@ -68,11 +68,11 @@ def cancel_order(request, order_id):
                 created_by=request.user
             )
             
-        logger.info(f"User {request.user.username} cancelled Order #{order_id}")
+        logger.info("User %s cancelled Order #%s", request.user.username, order_id)
         return JsonResponse({"success": True})
 
     except Exception as e:
-        logger.error(f"Error cancelling order #{order_id}: {str(e)}", exc_info=True)
+        logger.error("Error cancelling order #%s: %s", order_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
 
 
@@ -118,7 +118,7 @@ def cancel_item(request, item_id):
         return JsonResponse({"success": True, "new_total": float(order.grand_total)})
         
     except Exception as e:
-        logger.error(f"Error cancelling item #{item_id}: {str(e)}", exc_info=True)
+        logger.error("Error cancelling item #%s: %s", item_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
 
 

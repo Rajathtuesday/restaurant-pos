@@ -114,7 +114,7 @@ def pay_order(request, order_id):
                     if order.table:
                         order.table.state = "cleaning"
                         order.table.save(update_fields=["state"])
-                    logger.info(f"Order #{order.id} fully complimentary and closed")
+                    logger.info("Order #%s fully complimentary and closed", order.id)
                     return JsonResponse({"success": True, "message": "Complimentary order closed"})
 
                 if amount == 0:
@@ -153,7 +153,10 @@ def pay_order(request, order_id):
                 payment_result = process_payment(order, method, amount, request.user)
                 change_due = payment_result.get("change_due", Decimal("0.00"))
 
-                logger.info(f"User {request.user.username} recorded {method} payment of Rs.{amount} for order #{order.id}")
+                logger.info(
+                    "User %s recorded %s payment of Rs.%s for order #%s",
+                    request.user.username, method, amount, order.id,
+                )
 
                 OrderEvent.objects.create(
                     tenant=order.tenant, outlet=order.outlet, order=order,
@@ -171,7 +174,7 @@ def pay_order(request, order_id):
                     if order.table:
                         order.table.state = "cleaning"
                         order.table.save(update_fields=["state"])
-                    logger.info(f"Order #{order.id} fully paid and closed")
+                    logger.info("Order #%s fully paid and closed", order.id)
 
                     # Inventory deduction is handled by payment_service._deduct_inventory_for_order()
                     # which runs for all order.source == "counter" orders automatically.
@@ -278,7 +281,10 @@ def refund_payment(request, payment_id):
                 customer_complaint=customer_complaint,
             )
 
-        logger.warning(f"User {request.user.username} issued refund of Rs.{amount} for payment #{payment_id}")
+        logger.warning(
+            "User %s issued refund of Rs.%s for payment #%s",
+            request.user.username, amount, payment_id,
+        )
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
     except Exception as e:

@@ -59,7 +59,7 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
             payments
         ])
         
-    logger.info(f"Orders CSV generated successfully. Rows: {orders.count()}")
+    logger.info("Orders CSV generated successfully. Rows: %s", orders.count())
     return output.getvalue()
 
 
@@ -101,7 +101,7 @@ def generate_items_csv(tenant, outlet, start_date, end_date):
             round(avg_rate, 2)
         ])
         
-    logger.info(f"Items CSV generated successfully. Unique Items: {item_stats.count()}")
+    logger.info("Items CSV generated successfully. Unique Items: %s", item_stats.count())
     return output.getvalue()
 
 
@@ -293,7 +293,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     output = io.BytesIO()
     wb.save(output)
     
-    logger.info(f"GSTR-1 Excel generated successfully. Max Row: {ws.max_row}")
+    logger.info("GSTR-1 Excel generated successfully. Max Row: %s", ws.max_row)
     return output.getvalue()
 
 
@@ -331,7 +331,7 @@ def generate_waiter_csv(tenant, outlet, start_date, end_date):
             round(float(aov), 2)
         ])
         
-    logger.info(f"Waiter Performance CSV generated successfully. Waiters analyzed: {waiter_stats.count()}")
+    logger.info("Waiter Performance CSV generated successfully. Waiters analyzed: %s", waiter_stats.count())
     return output.getvalue()
 
 
@@ -364,5 +364,5 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
             round(float(stat['rev'] or 0), 2)
         ])
         
-    logger.info(f"Category Sales CSV generated successfully. Categories analyzed: {category_stats.count()}")
+    logger.info("Category Sales CSV generated successfully. Categories analyzed: %s", category_stats.count())
     return output.getvalue()

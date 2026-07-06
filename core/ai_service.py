@@ -22,7 +22,7 @@ class AIService:
             try:
                 self.client = genai.Client(api_key=self.api_key)
             except Exception as e:
-                logger.error(f"Failed to initialize AI Client: {e}")
+                logger.error("Failed to initialize AI Client: %s", e)
 
     def _resize_image(self, image_bytes, max_size=(1024, 1024)):
         """Resizes image to speed up upload and AI processing."""
@@ -38,7 +38,7 @@ class AIService:
             img.save(output, format="JPEG", quality=75, optimize=True)
             return output.getvalue()
         except Exception as e:
-            logger.warning(f"Image optimization failed: {e}")
+            logger.warning("Image optimization failed: %s", e)
             return image_bytes
 
     def parse_menu(self, text=None, image_bytes=None, mime_type=None):
@@ -100,7 +100,7 @@ class AIService:
             raw_json = res_text.strip().replace("```json", "").replace("```", "")
             return json.loads(raw_json)
         except Exception as e:
-            logger.error(f"In-build AI API Error: {e}")
+            logger.error("In-build AI API Error: %s", e)
             if text:
                 logger.info("Retrying with manual parser after API error.")
                 return self._manual_text_parse(text)
@@ -160,5 +160,5 @@ class AIService:
             )
             return response.text
         except Exception as e:
-            logger.error(f"AI pricing suggestion error: {e}")
+            logger.error("AI pricing suggestion error: %s", e)
             return None

@@ -141,7 +141,7 @@ def mark_table_cleaned(request, table_id):
         table = Table.objects.get(id=table_id, tenant=request.user.tenant, outlet=request.user.outlet)
         table.state = "free"
         table.save(update_fields=["state"])
-        logger.info(f"User {request.user.username} marked table {table.name} as cleaned")
+        logger.info("User %s marked table %s as cleaned", request.user.username, table.name)
         return JsonResponse({"success": True})
     except Table.DoesNotExist:
         return JsonResponse({"error": "Table not found"}, status=404)
@@ -178,7 +178,7 @@ def merge_tables_view(request):
     data = json.loads(request.body)
     from orders.services.table_merge_service import merge_tables
     merge = merge_tables(request.user, data.get("primary_table"), data.get("tables"))
-    logger.info(f"User {request.user.username} merged tables")
+    logger.info("User %s merged tables", request.user.username)
     return JsonResponse({"success": True, "merge_id": merge.id})
 
 
@@ -195,7 +195,7 @@ def unmerge_tables_view(request, primary_id):
     if not merge:
         return JsonResponse({"error": "Merge not found"}, status=404)
     unmerge_tables(request.user, merge.id)
-    logger.info(f"User {request.user.username} unmerged table group {primary_id}")
+    logger.info("User %s unmerged table group %s", request.user.username, primary_id)
     return JsonResponse({"success": True})
 
 
@@ -258,7 +258,11 @@ def transfer_table_view(request):
                 metadata={"from_table_id": old_table.id if old_table else None, "to_table_id": new_table.id},
                 created_by=request.user
             )
-            logger.info(f"User {request.user.username} transferred order #{order.id} from {old_table.name if old_table else '?'} to {new_table.name}")
+            logger.info(
+                "User %s transferred order #%s from %s to %s",
+                request.user.username, order.id,
+                old_table.name if old_table else '?', new_table.name,
+            )
 
         return JsonResponse({"success": True, "order_id": order.id})
 

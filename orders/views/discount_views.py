@@ -68,7 +68,10 @@ def apply_discount(request, order_id):
             order.save(update_fields=["discount_type", "discount_value"])
             order.recalculate_totals()
 
-            logger.warning(f"User {request.user.username} applied {discount_type} discount of {value} to order #{order_id}")
+            logger.warning(
+                "User %s applied %s discount of %s to order #%s",
+                request.user.username, discount_type, value, order_id,
+            )
 
             OrderEvent.objects.create(
                 tenant=order.tenant, outlet=order.outlet, order=order,
@@ -109,7 +112,7 @@ def make_item_complimentary(request, item_id):
         item.is_complimentary = True
         item.save(update_fields=["is_complimentary"])
         item.order.recalculate_totals()
-        logger.warning(f"User {request.user.username} marked item #{item_id} as complimentary")
+        logger.warning("User %s marked item #%s as complimentary", request.user.username, item_id)
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
@@ -150,7 +153,7 @@ def apply_item_discount(request, item_id):
                 created_by=request.user
             )
 
-        logger.warning(f"User {request.user.username} applied {discount_pct}% discount to item #{item_id}")
+        logger.warning("User %s applied %s%% discount to item #%s", request.user.username, discount_pct, item_id)
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
     except Exception:

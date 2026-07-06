@@ -79,7 +79,7 @@ def restock_item(request, item_id):
         return JsonResponse({"error": "Item not found"}, status=404)
 
     item.add_stock(quantity)
-    logger.info(f"{request.user.username} restocked '{item.name}' +{quantity}. Now: {item.stock}")
+    logger.info("%s restocked '%s' +%s. Now: %s", request.user.username, item.name, quantity, item.stock)
 
     return JsonResponse({"success": True, "new_stock": float(item.stock)})
 
@@ -136,7 +136,7 @@ def create_inventory_item(request):
         reorder_quantity=reorder_qty,
         preferred_supplier=supplier,
     )
-    logger.info(f"{request.user.username} created inventory item '{name}'")
+    logger.info("%s created inventory item '%s'", request.user.username, name)
     return JsonResponse({"success": True, "id": item.id})
 
 
@@ -189,7 +189,7 @@ def update_inventory_item(request, item_id):
             item.preferred_supplier = None
 
     item.save(update_fields=["name", "low_stock_threshold", "cost_price", "reorder_quantity", "preferred_supplier", "updated_at"])
-    logger.info(f"{request.user.username} updated inventory item '{item.name}'")
+    logger.info("%s updated inventory item '%s'", request.user.username, item.name)
     return JsonResponse({"success": True})
 
 
@@ -419,7 +419,7 @@ def create_purchase_order(request):
                 unit_price=unit_price,
             )
 
-    logger.info(f"{request.user.username} created PO {po.po_number} from {supplier.name}")
+    logger.info("%s created PO %s from %s", request.user.username, po.po_number, supplier.name)
     return JsonResponse({
         "success": True,
         "po_id": po.id,
@@ -486,10 +486,10 @@ def receive_purchase_order(request, po_id):
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({"error": "Purchase order not found"}, status=404)
     except Exception as e:
-        logger.error(f"PO receive failed for PO {po_id}: {e}")
+        logger.error("PO receive failed for PO %s: %s", po_id, e)
         return JsonResponse({"error": str(e)}, status=500)
 
-    logger.info(f"{request.user.username} received PO {po.po_number}")
+    logger.info("%s received PO %s", request.user.username, po.po_number)
     return JsonResponse({"success": True, "status": "received"})
 
 

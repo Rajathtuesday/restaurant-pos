@@ -6,7 +6,7 @@ Listens on TCP 9100 — the ESC/POS standard port.
 Set any Kitchen Station → Printer IP = 127.0.0.1 in Rasova setup.
 Every print job appears in this terminal window.
 
-Run:  python virtual_printer.py
+Run:  python scripts/virtual_printer.py
 Stop: Ctrl+C
 """
 

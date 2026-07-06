@@ -220,6 +220,13 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Set AWS_STORAGE_BUCKET_NAME in env to enable S3 storage.
 # Falls back to local disk for development.
 # -------------------------------------------------------
+_is_test_run = len(__import__('sys').argv) > 1 and __import__('sys').argv[1] == 'test'
+_static_backend = (
+    "django.contrib.staticfiles.storage.StaticFilesStorage"  # no manifest needed in tests
+    if _is_test_run
+    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
 _AWS_BUCKET = os.getenv("AWS_STORAGE_BUCKET_NAME", "")
 if _AWS_BUCKET:
     STORAGES = {
@@ -227,7 +234,7 @@ if _AWS_BUCKET:
             "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": _static_backend,
         },
     }
     AWS_STORAGE_BUCKET_NAME = _AWS_BUCKET
@@ -249,11 +256,6 @@ if _AWS_BUCKET:
     else:
         MEDIA_URL = f"https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/"
 else:
-    _static_backend = (
-        "django.contrib.staticfiles.storage.StaticFilesStorage"  # no manifest needed in tests
-        if (len(__import__('sys').argv) > 1 and __import__('sys').argv[1] == 'test')
-        else "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    )
     STORAGES = {
         "default": {
             "BACKEND": "django.core.files.storage.FileSystemStorage",

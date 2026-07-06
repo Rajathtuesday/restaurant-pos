@@ -38,7 +38,7 @@ def generate_bill(request, order_id):
         order.save(update_fields=["status"])
         order.recalculate_totals()
 
-    logger.info(f"User {request.user.username} generated bill for order #{order.id}")
+    logger.info("User %s generated bill for order #%s", request.user.username, order.id)
     return JsonResponse({
         "success": True,
         "order_id": order.id,

@@ -26,7 +26,7 @@ class GemmaService:
                 return response.json().get("response")
             return f"Error: Local AI returned {response.status_code}"
         except Exception as e:
-            logger.error(f"Local AI (Gemma) connection failed: {e}")
+            logger.error("Local AI (Gemma) connection failed: %s", e)
             return "Local AI is currently offline. Please ensure Ollama is running."
 
     def simplify_text(self, text):

@@ -8,7 +8,7 @@ from orders.models import OrderItem, KOTBatch
 logger = logging.getLogger("pos.reports")
 
 def kitchen_performance(tenant, outlet=None, start_date=None, end_date=None):
-    logger.debug(f"Fetching kitchen_performance for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
+    logger.debug("Fetching kitchen_performance for %s | Outlet: %s | %s to %s", tenant, outlet, start_date, end_date)
     if not start_date:
         start_date = timezone.localdate()
     if not end_date:
@@ -46,7 +46,7 @@ def kitchen_performance(tenant, outlet=None, start_date=None, end_date=None):
     }
 
 def top_kitchen_items(tenant, outlet=None, start_date=None, end_date=None):
-    logger.debug(f"Fetching top_kitchen_items for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
+    logger.debug("Fetching top_kitchen_items for %s | Outlet: %s | %s to %s", tenant, outlet, start_date, end_date)
     if not start_date: start_date = timezone.localdate()
     if not end_date: end_date = timezone.localdate()
 

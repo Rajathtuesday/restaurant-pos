@@ -18,7 +18,7 @@ from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderItem, Payment, OrderEvent, Refund
 
 logger = logging.getLogger("pos.orders")
@@ -359,11 +359,9 @@ def order_detail_api(request, order_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 def export_orders_csv(request):
     user = request.user
-
-    if user.role not in ("owner", "manager"):
-        return HttpResponseForbidden("Only owners and managers can export order history.")
 
     qs, is_restricted = _base_queryset(request)
     qs = _apply_filters(qs, request.GET, is_restricted)

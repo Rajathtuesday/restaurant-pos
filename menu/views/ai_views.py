@@ -9,7 +9,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required, feature_required
+from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuCategory, MenuItem
 
 logger = logging.getLogger("pos.menu")
@@ -124,15 +124,13 @@ def _run_sync(request, text, image_b64, mime_type):
 @login_required
 @tenant_required
 @feature_required("multi_outlet")
+@role_required("owner")
 @require_POST
 def sync_menu_to_outlets(request):
     """Push categories, items and recipes from this outlet to all other outlets in the tenant."""
     from tenants.models import Outlet
     from inventory.models import InventoryItem
     from menu.models import Recipe
-
-    if request.user.role != "owner":
-        return JsonResponse({"error": "Only owners can sync menus"}, status=403)
 
     tenant        = request.user.tenant
     source_outlet = request.user.outlet

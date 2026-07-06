@@ -174,7 +174,7 @@ class MenuItem(TenantScopedModel):
                 filename = self.image.name.rsplit('.', 1)[0] + '.webp'
                 self.image.save(filename, ContentFile(output.read()), save=False)
             except Exception as e:
-                logger.error(f"Image compression failed for {self.name}: {e}")
+                logger.error("Image compression failed for %s: %s", self.name, e)
 
         super().save(*args, **kwargs)
 

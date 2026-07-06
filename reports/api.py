@@ -7,7 +7,7 @@ from datetime import timedelta
 from django.core.serializers.json import DjangoJSONEncoder
 
 from tenants.models import Outlet
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from reports.services.sales_reports import daily_sales, hourly_sales
 from reports.services.item_reports import top_items
 from reports.services.table_reports import table_turnover
@@ -17,10 +17,8 @@ from reports.services.kitchen_reports import kitchen_performance, top_kitchen_it
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 def api_dashboard(request):
-    if request.user.role not in ["owner", "manager"]:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     tenant = request.user.tenant
     date_filter = request.GET.get("date_filter", "today")
     
@@ -86,10 +84,8 @@ def api_dashboard(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 def api_kitchen_dashboard(request):
-    if request.user.role not in ["owner", "manager"]:
-        return JsonResponse({"error": "Permission denied"}, status=403)
-
     tenant = request.user.tenant
     date_filter = request.GET.get("date_filter", "today")
     

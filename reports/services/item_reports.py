@@ -8,7 +8,7 @@ from django.utils import timezone
 logger = logging.getLogger("pos.reports")
 
 def top_items(tenant, outlet=None, start_date=None, end_date=None):
-    logger.debug(f"Fetching top_items for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
+    logger.debug("Fetching top_items for %s | Outlet: %s | %s to %s", tenant, outlet, start_date, end_date)
 
 
     query = OrderItem.objects.filter(

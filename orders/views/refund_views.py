@@ -42,7 +42,7 @@ def approve_refund_view(request, refund_id):
     """
     try:
         approve_refund(refund_id, request.user)
-        logger.info(f"User {request.user.username} approved refund #{refund_id}")
+        logger.info("User %s approved refund #%s", request.user.username, refund_id)
         return JsonResponse({"success": True, "message": "Refund approved and audit logged"})
     except Exception as e:
         logger.exception("Error approving refund #%s", refund_id)
@@ -62,7 +62,7 @@ def reject_refund_view(request, refund_id):
         data = json.loads(request.body)
         reason = data.get("reason", "")
         reject_refund(refund_id, request.user, reason=reason)
-        logger.info(f"User {request.user.username} rejected refund #{refund_id}")
+        logger.info("User %s rejected refund #%s", request.user.username, refund_id)
         return JsonResponse({"success": True, "message": "Refund rejected"})
     except Exception as e:
         logger.exception("Error rejecting refund #%s", refund_id)

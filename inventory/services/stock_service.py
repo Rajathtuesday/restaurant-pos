@@ -22,6 +22,6 @@ def deduct_stock_for_item(order_item):
                 reference=f"Order #{order_item.order.order_number} | {menu_item.name}"
             )
         except Exception as e:
-            logger.error(f"Failed to deduct stock for {recipe.inventory_item.name}: {e}")
+            logger.error("Failed to deduct stock for %s: %s", recipe.inventory_item.name, e)
             # In a real POS, we might want to flag this to the manager
             # but we don't block the order flow usually unless strict mode is on.

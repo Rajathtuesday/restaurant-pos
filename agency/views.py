@@ -16,29 +16,26 @@ def agency_performance_dashboard(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden("Only administrators can view this report.")
     
-    # Get all users with agent role
-    agents = User.objects.filter(role='agent')
-    
-    agent_stats = []
-    for agent in agents:
-        clients = Tenant.objects.filter(sales_agent=agent)
-        client_count = clients.count()
-        
-        # Calculate revenue from those clients across all time
-        rev_data = Order.objects.filter(
-            tenant__in=clients,
-            status__in=['closed', 'paid']
-        ).aggregate(total=Sum('grand_total'))
-        
-        total_revenue = rev_data['total'] or 0
-        
-        agent_stats.append({
+    # Get all users with agent role, with client count + revenue computed
+    # in a single annotated query instead of two extra queries per agent.
+    agents = User.objects.filter(role='agent').annotate(
+        client_count=Count('tenants_sold', distinct=True),
+        revenue=Sum(
+            'tenants_sold__order__grand_total',
+            filter=Q(tenants_sold__order__status__in=['closed', 'paid']),
+        ),
+    )
+
+    agent_stats = [
+        {
             'id': agent.id,
             'agent': agent.username,
             'full_name': f"{agent.first_name} {agent.last_name}" if agent.first_name else agent.username,
-            'client_count': client_count,
-            'revenue': total_revenue,
-        })
+            'client_count': agent.client_count,
+            'revenue': agent.revenue or 0,
+        }
+        for agent in agents
+    ]
 
     # Sort by revenue descending
     agent_stats = sorted(agent_stats, key=lambda x: x['revenue'], reverse=True)
@@ -67,15 +64,20 @@ def agency_stats_api(request):
     if not request.user.is_superuser:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
-    agents = User.objects.filter(role='agent')
-    data = []
-    for agent in agents:
-        clients = Tenant.objects.filter(sales_agent=agent)
-        rev = Order.objects.filter(tenant__in=clients, status='paid').aggregate(t=Sum('grand_total'))['t'] or 0
-        data.append({
+    agents = User.objects.filter(role='agent').annotate(
+        client_count=Count('tenants_sold', distinct=True),
+        revenue=Sum(
+            'tenants_sold__order__grand_total',
+            filter=Q(tenants_sold__order__status='paid'),
+        ),
+    )
+    data = [
+        {
             "agent": agent.username,
-            "clients": clients.count(),
-            "revenue": float(rev)
-        })
-    
+            "clients": agent.client_count,
+            "revenue": float(agent.revenue or 0),
+        }
+        for agent in agents
+    ]
+
     return JsonResponse({"status": "success", "data": data})

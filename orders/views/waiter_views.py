@@ -49,7 +49,7 @@ def resolve_waiter_call(request, call_id):
         call.is_resolved = True
         call.save(update_fields=["is_resolved"])
 
-        logger.info(f"User {request.user.username} resolved waiter call #{call_id} for table {call.table.name}")
+        logger.info("User %s resolved waiter call #%s for table %s", request.user.username, call_id, call.table.name)
         return JsonResponse({"success": True})
 
     except WaiterCall.DoesNotExist:
@@ -70,7 +70,7 @@ def resolve_kitchen_message(request, message_id):
         msg.is_resolved = True
         msg.save(update_fields=["is_resolved"])
 
-        logger.info(f"User {request.user.username} read kitchen message #{message_id}")
+        logger.info("User %s read kitchen message #%s", request.user.username, message_id)
         return JsonResponse({"success": True})
 
     except KitchenMessage.DoesNotExist:

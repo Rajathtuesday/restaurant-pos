@@ -1,4 +1,4 @@
-from core.decorators import tenant_required, feature_required
+from core.decorators import tenant_required, feature_required, role_required
 # reports/views.py
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -22,11 +22,8 @@ from reports.services.pl_reports import gross_margin_report
 @login_required
 @tenant_required
 @feature_required("reports")
+@role_required("owner", "manager", "agent")
 def dashboard(request):
-    # Allow Owners, Managers, Agents, and Superusers
-    if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
-        return HttpResponseForbidden()
-
     # Determine which tenant we are viewing
     tenant = request.user.tenant
     
@@ -195,10 +192,8 @@ def dashboard(request):
 @login_required
 @tenant_required
 @feature_required("reports", "kitchen_display")
+@role_required("owner", "manager")
 def kitchen_dashboard(request):
-    if request.user.role not in ["owner", "manager"]:
-        return HttpResponseForbidden()
-
     tenant = request.user.tenant
 
     # date filter
@@ -269,16 +264,13 @@ def kitchen_dashboard(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 def inspection_report(request):
     """
     Government / tax inspection view — hardcoded to TODAY only.
     No date controls. No history. Owner shows this screen to the inspector.
     Accessible to owner and manager only.
     """
-    if request.user.role not in ["owner", "manager"] and not request.user.is_superuser:
-        from django.http import HttpResponseForbidden
-        return HttpResponseForbidden()
-
     from decimal import Decimal
     from django.db.models import Sum, Count
     from orders.models import Order, Payment
@@ -363,10 +355,8 @@ def inspection_report(request):
 @login_required
 @tenant_required
 @feature_required("reports")
+@role_required("owner", "manager", "agent")
 def inventory_report(request):
-    if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
-        return HttpResponseForbidden()
-
     from reports.services.inventory_reports import inventory_usage, inventory_wastage, inventory_cost, stock_ledger, production_capacity, closing_stock
     from inventory.models import InventoryItem
 
@@ -437,14 +427,12 @@ def inventory_report(request):
 @login_required
 @tenant_required
 @feature_required("reports")
+@role_required("owner", "manager", "agent")
 def export_reports(request):
     """
     Handles CSV and Excel exports.
     Types: 'orders', 'items', 'gstr1'
     """
-    if request.user.role not in ["owner", "manager", "agent"] and not request.user.is_superuser:
-        return HttpResponseForbidden()
-
     tenant = request.user.tenant
     outlet_id = request.GET.get("outlet")
     export_type = request.GET.get("type", "orders")

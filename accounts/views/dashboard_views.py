@@ -1,10 +1,10 @@
 """Owner/manager dashboard and metrics."""
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.cache import never_cache
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from notifications.models import Notification
 from reports.services.dashboard_metrics import owner_dashboard_metrics
 from menu.models import MenuItem
@@ -13,10 +13,8 @@ from menu.models import MenuItem
 @never_cache
 @login_required
 @tenant_required
+@role_required("owner", "manager", "cashier")
 def owner_dashboard(request):
-    if request.user.role not in ["owner", "manager", "cashier"]:
-        return HttpResponseForbidden()
-
     metrics       = owner_dashboard_metrics(request.user)
     notifications = Notification.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet, is_read=False

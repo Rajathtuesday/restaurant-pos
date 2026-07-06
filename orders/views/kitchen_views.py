@@ -42,7 +42,7 @@ def send_to_kitchen(request, order_id):
             from orders.services.kot_service import create_kot
             kots = create_kot(request.user, order)
 
-            logger.info(f"User {request.user.username} sent order #{order.id} to kitchen")
+            logger.info("User %s sent order #%s to kitchen", request.user.username, order.id)
 
             OrderEvent.objects.create(
                 tenant=order.tenant,

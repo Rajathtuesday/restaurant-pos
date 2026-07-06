@@ -175,7 +175,7 @@ def api_ingest_order(request):
     Validates HMAC signature and IP Allowlist (HIGH-4).
     """
     if not is_ip_allowed(request):
-        logger.warning(f"Rejected ingest attempt from unauthorized IP: {request.META.get('REMOTE_ADDR')}")
+        logger.warning("Rejected ingest attempt from unauthorized IP: %s", request.META.get('REMOTE_ADDR'))
         return JsonResponse({"error": "Unauthorized IP"}, status=403)
 
     try:

@@ -72,7 +72,7 @@ def deduct_inventory_for_items(order_items):
 
     for inv_id, required_qty in required_qty_map.items():
         if inv_id not in locked_items:
-            logger.error(f"[INVENTORY ERROR] Inventory item {inv_id} missing")
+            logger.error("[INVENTORY ERROR] Inventory item %s missing", inv_id)
             continue
             
         inv_item = locked_items[inv_id]
@@ -84,7 +84,7 @@ def deduct_inventory_for_items(order_items):
         else:
             qty_to_reduce = inv_item.stock
             shortage = required_qty - inv_item.stock
-            logger.error(f"[STOCK CRITICAL] {inv_item.name} shortage: {shortage} units. Draining to 0.")
+            logger.error("[STOCK CRITICAL] %s shortage: %s units. Draining to 0.", inv_item.name, shortage)
 
         if qty_to_reduce > 0:
             # FIX: Calculate new_stock BEFORE the F() update.
@@ -140,7 +140,7 @@ def deduct_inventory_for_items(order_items):
                     try:
                         item.trigger_reorder()
                     except Exception as e:
-                        logger.error(f"Failed to auto-reorder {item.name}: {e}")
+                        logger.error("Failed to auto-reorder %s: %s", item.name, e)
 
         transaction.on_commit(trigger_low_stock_alerts)
 

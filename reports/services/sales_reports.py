@@ -23,7 +23,7 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     if start_date is None: start_date = timezone.localdate()
     if end_date is None:   end_date   = timezone.localdate()
 
-    logger.debug(f"Fetching daily_sales for {tenant} | Outlet: {outlet} | {start_date} to {end_date}")
+    logger.debug("Fetching daily_sales for %s | Outlet: %s | %s to %s", tenant, outlet, start_date, end_date)
 
     # ----------------------------
     # PAYMENTS (SOURCE OF TRUTH)
@@ -136,7 +136,7 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
         try:
             tz = zoneinfo.ZoneInfo(tenant.timezone or "UTC")
         except zoneinfo.ZoneInfoNotFoundError:
-            logger.warning(f"Unknown timezone {tenant.timezone} for tenant {tenant.id}, falling back to UTC")
+            logger.warning("Unknown timezone %s for tenant %s, falling back to UTC", tenant.timezone, tenant.id)
             tz = zoneinfo.ZoneInfo("UTC")
 
         payments = payments.annotate(hour=ExtractHour("paid_at", tzinfo=tz))

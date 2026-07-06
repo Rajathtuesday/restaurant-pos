@@ -107,7 +107,7 @@ def running_order_items(request):
         })
 
     except Exception as e:
-        logger.error(f"running_order_items error: {str(e)}")
+        logger.error("running_order_items error: %s", e)
         return JsonResponse({"items": [], "order_id": None})
 
 
@@ -179,14 +179,14 @@ def approve_items(request, order_id):
                 from orders.services.kot_service import create_kot
                 create_kot(request.user, order)
             except Exception as kot_err:
-                logger.error(f"KOT Creation failed during approval: {kot_err}")
+                logger.error("KOT Creation failed during approval: %s", kot_err)
                 # We don't fail the whole request, but we log it
             
             log_event(order, "status_changed", request.user, {"action": "items_approved", "count": count})
             
-            logger.info(f"User {request.user.username} approved {count} items for order #{order_id}")
+            logger.info("User %s approved %s items for order #%s", request.user.username, count, order_id)
             
         return JsonResponse({"success": True, "count": count})
     except Exception as e:
-        logger.error(f"approve_items error: {str(e)}")
+        logger.error("approve_items error: %s", e)
         return JsonResponse({"error": str(e)}, status=400)
