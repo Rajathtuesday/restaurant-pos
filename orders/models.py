@@ -712,6 +712,24 @@ class Payment(models.Model):
             models.Index(fields=["paid_at"],           name="payment_paid_at"),
             models.Index(fields=["order", "method"],   name="payment_order_method"),
         ]
+        constraints = [
+            # Enforces payment-gateway idempotency at the database level.
+            # A gateway (Razorpay, etc.) may retry the same webhook; the view-level
+            # `.exists()` check before creating a Payment closes that race in the
+            # common case, but is a plain SELECT-then-INSERT with no atomicity
+            # guarantee of its own — two near-simultaneous deliveries could both
+            # pass the check before either commits. This constraint is the real
+            # backstop: the second INSERT fails at the database instead of silently
+            # recording a duplicate payment. Scoped to non-blank references only —
+            # manual cash/card payments leave `reference` null, and blank ("")
+            # values (e.g. an aggregator payment with no aggregator_id) are excluded
+            # too, since those are legitimately non-unique.
+            models.UniqueConstraint(
+                fields=["reference"],
+                condition=~models.Q(reference=None) & ~models.Q(reference=""),
+                name="unique_nonblank_payment_reference",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.method} - {self.amount}"

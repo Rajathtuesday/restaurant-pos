@@ -258,7 +258,7 @@ def api_ingest_order(request):
                 order=order,
                 method=payment_method,
                 amount=order.grand_total,
-                reference=aggregator_id or "",
+                reference=aggregator_id or None,
                 created_by=None,
             )
 

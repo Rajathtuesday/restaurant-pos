@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 import requests
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -172,83 +172,95 @@ def razorpay_webhook(request):
 
     webhook_amount = paise_to_decimal(int(webhook_amount_paise))
 
-    with transaction.atomic():
-        paid_total = order.payments.exclude(method="refund").aggregate(
-            total=Sum("amount")
-        )["total"] or Decimal("0.00")
-        current_remaining = order.grand_total - paid_total
+    # The .exists() check above closes the common case (retries seconds/minutes
+    # apart), but is a plain SELECT-then-INSERT with no atomicity of its own —
+    # two near-simultaneous deliveries could both pass it before either commits.
+    # The real backstop is the database-level unique constraint on
+    # Payment.reference: if it fires anywhere below, Postgres aborts this whole
+    # atomic block (rolling back any partial OrderEvent/QR-status writes too),
+    # and we treat it exactly like the idempotency check catching a duplicate.
+    try:
+        with transaction.atomic():
+            paid_total = order.payments.exclude(method="refund").aggregate(
+                total=Sum("amount")
+            )["total"] or Decimal("0.00")
+            current_remaining = order.grand_total - paid_total
 
-        # Validate against current state, not the QR's stale original quote —
-        # the order may have changed (discount, added item) since the QR was shown.
-        if current_remaining <= 0:
-            # Reconciliation path: the order was already closed by another means
-            # (e.g. cashier took cash) while this UPI payment was in flight.
-            # The money is real and sitting in the restaurant's Razorpay account —
-            # it must leave an audit trail, never silently disappear.
-            Payment.objects.create(
-                order=order, method="upi", amount=webhook_amount, reference=razorpay_payment_id,
-            )
-            OrderEvent.objects.create(
-                tenant=order.tenant, outlet=order.outlet, order=order,
-                event_type="razorpay_overpaid_reconciliation",
-                amount=webhook_amount,
-                metadata={"razorpay_payment_id": razorpay_payment_id, "reason": "order already fully paid"},
-            )
-            logger.error(
-                "Razorpay payment %s for order #%s arrived after the order was already "
-                "fully paid by another method — recorded for manual reconciliation/refund.",
-                razorpay_payment_id, order.id,
-            )
+            # Validate against current state, not the QR's stale original quote —
+            # the order may have changed (discount, added item) since the QR was shown.
+            if current_remaining <= 0:
+                # Reconciliation path: the order was already closed by another means
+                # (e.g. cashier took cash) while this UPI payment was in flight.
+                # The money is real and sitting in the restaurant's Razorpay account —
+                # it must leave an audit trail, never silently disappear.
+                Payment.objects.create(
+                    order=order, method="upi", amount=webhook_amount, reference=razorpay_payment_id,
+                )
+                OrderEvent.objects.create(
+                    tenant=order.tenant, outlet=order.outlet, order=order,
+                    event_type="razorpay_overpaid_reconciliation",
+                    amount=webhook_amount,
+                    metadata={"razorpay_payment_id": razorpay_payment_id, "reason": "order already fully paid"},
+                )
+                logger.error(
+                    "Razorpay payment %s for order #%s arrived after the order was already "
+                    "fully paid by another method — recorded for manual reconciliation/refund.",
+                    razorpay_payment_id, order.id,
+                )
+                RazorpayQRCode.objects.filter(
+                    order=order, tenant=outlet.tenant, outlet=outlet, status="active"
+                ).update(status="closed")
+                return JsonResponse({"ok": True, "reconciliation_needed": True})
+
+            amount_to_record = min(webhook_amount, current_remaining)
+            if amount_to_record != webhook_amount:
+                OrderEvent.objects.create(
+                    tenant=order.tenant, outlet=order.outlet, order=order,
+                    event_type="razorpay_amount_mismatch",
+                    amount=webhook_amount,
+                    metadata={
+                        "razorpay_payment_id": razorpay_payment_id,
+                        "webhook_amount": str(webhook_amount),
+                        "recorded_amount": str(amount_to_record),
+                    },
+                )
+                logger.warning(
+                    "Razorpay webhook amount %s exceeds order #%s remaining %s — recorded %s, flagged.",
+                    webhook_amount, order.id, current_remaining, amount_to_record,
+                )
+
+            try:
+                result = process_payment(order, "upi", amount_to_record, user=None, reference=razorpay_payment_id)
+                if result["order_closed"] and order.table:
+                    # Mirrors pay_order's behaviour (payment_views.py) — process_payment
+                    # itself doesn't know about tables, so every caller that closes an
+                    # order is responsible for this transition.
+                    order.table.state = "cleaning"
+                    order.table.save(update_fields=["state"])
+            except ValidationError:
+                # Lost the race between this check and process_payment's own lock —
+                # treat it the same as the already-fully-paid case above.
+                Payment.objects.create(
+                    order=order, method="upi", amount=amount_to_record, reference=razorpay_payment_id,
+                )
+                OrderEvent.objects.create(
+                    tenant=order.tenant, outlet=order.outlet, order=order,
+                    event_type="razorpay_overpaid_reconciliation",
+                    amount=amount_to_record,
+                    metadata={"razorpay_payment_id": razorpay_payment_id, "reason": "race with process_payment lock"},
+                )
+                logger.error(
+                    "Razorpay payment %s for order #%s lost the payment-lock race — "
+                    "recorded for manual reconciliation/refund.",
+                    razorpay_payment_id, order.id,
+                )
+
             RazorpayQRCode.objects.filter(
                 order=order, tenant=outlet.tenant, outlet=outlet, status="active"
-            ).update(status="closed")
-            return JsonResponse({"ok": True, "reconciliation_needed": True})
-
-        amount_to_record = min(webhook_amount, current_remaining)
-        if amount_to_record != webhook_amount:
-            OrderEvent.objects.create(
-                tenant=order.tenant, outlet=order.outlet, order=order,
-                event_type="razorpay_amount_mismatch",
-                amount=webhook_amount,
-                metadata={
-                    "razorpay_payment_id": razorpay_payment_id,
-                    "webhook_amount": str(webhook_amount),
-                    "recorded_amount": str(amount_to_record),
-                },
-            )
-            logger.warning(
-                "Razorpay webhook amount %s exceeds order #%s remaining %s — recorded %s, flagged.",
-                webhook_amount, order.id, current_remaining, amount_to_record,
-            )
-
-        try:
-            result = process_payment(order, "upi", amount_to_record, user=None, reference=razorpay_payment_id)
-            if result["order_closed"] and order.table:
-                # Mirrors pay_order's behaviour (payment_views.py) — process_payment
-                # itself doesn't know about tables, so every caller that closes an
-                # order is responsible for this transition.
-                order.table.state = "cleaning"
-                order.table.save(update_fields=["state"])
-        except ValidationError:
-            # Lost the race between this check and process_payment's own lock —
-            # treat it the same as the already-fully-paid case above.
-            Payment.objects.create(
-                order=order, method="upi", amount=amount_to_record, reference=razorpay_payment_id,
-            )
-            OrderEvent.objects.create(
-                tenant=order.tenant, outlet=order.outlet, order=order,
-                event_type="razorpay_overpaid_reconciliation",
-                amount=amount_to_record,
-                metadata={"razorpay_payment_id": razorpay_payment_id, "reason": "race with process_payment lock"},
-            )
-            logger.error(
-                "Razorpay payment %s for order #%s lost the payment-lock race — "
-                "recorded for manual reconciliation/refund.",
-                razorpay_payment_id, order.id,
-            )
-
-        RazorpayQRCode.objects.filter(
-            order=order, tenant=outlet.tenant, outlet=outlet, status="active"
-        ).update(status="paid")
+            ).update(status="paid")
+    except IntegrityError:
+        # The unique constraint on Payment.reference caught a genuine
+        # simultaneous-delivery race the .exists() check above missed.
+        return JsonResponse({"ok": True, "already_recorded": True})
 
     return JsonResponse({"ok": True})
