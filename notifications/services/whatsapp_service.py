@@ -127,8 +127,11 @@ def _build_message(order, bill_url: str) -> str:
     try:
         for item in order.items.select_related("menu_item").all():
             lines.append(f"  {item.quantity}x {item.menu_item.name}  ₹{item.total_price:.0f}")
-    except Exception:
-        pass
+    except Exception as e:
+        # Still send the receipt without an itemized list rather than block
+        # the message entirely — but log it, so a missing item list is
+        # discoverable instead of silently, permanently invisible.
+        logger.warning("WhatsApp receipt: failed to build item list for order %s: %s", order.id, e)
 
     lines += [
         "",

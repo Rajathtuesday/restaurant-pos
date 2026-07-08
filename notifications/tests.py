@@ -1,8 +1,11 @@
 # notifications/tests.py
+from unittest.mock import MagicMock, patch
+
 from django.test import TestCase
 from tenants.models import Tenant, Outlet
 from notifications.models import Notification
 from notifications.services.notification_service import create_notification
+from notifications.services.whatsapp_service import _build_message
 
 
 class NotificationModelTests(TestCase):
@@ -147,3 +150,46 @@ class UnreadNotificationsViewTest(TestCase):
     def test_unauthenticated_redirected(self):
         response = self.client.get("/api/notifications/unread/")
         self.assertIn(response.status_code, [301, 302])
+
+
+class WhatsAppBuildMessageTest(TestCase):
+    """_build_message() must never raise — a broken item list should still
+    produce a sendable receipt, but the failure must be logged, not silently
+    swallowed."""
+
+    def _mock_order(self):
+        order = MagicMock()
+        order.tenant.name = "Test Cafe"
+        order.order_number = "INV-1"
+        order.id = 42
+        order.subtotal = 100
+        order.tax_amount = 5
+        order.grand_total = 105
+        return order
+
+    def test_normal_message_includes_items(self):
+        order = self._mock_order()
+        item = MagicMock()
+        item.quantity = 2
+        item.menu_item.name = "Butter Naan"
+        item.total_price = 60
+        order.items.select_related.return_value.all.return_value = [item]
+
+        msg = _build_message(order, "")
+        self.assertIn("Butter Naan", msg)
+        self.assertIn("Total", msg)
+
+    @patch("notifications.services.whatsapp_service.logger")
+    def test_broken_item_list_logs_and_still_builds_message(self, mock_logger):
+        order = self._mock_order()
+        order.items.select_related.return_value.all.side_effect = Exception("db hiccup")
+
+        msg = _build_message(order, "")  # must not raise
+
+        self.assertIn("Total", msg)
+        self.assertNotIn("x  Butter Naan", msg)
+
+        mock_logger.warning.assert_called_once()
+        args = mock_logger.warning.call_args[0]
+        self.assertIn("order %s", args[0])
+        self.assertEqual(args[1], 42)

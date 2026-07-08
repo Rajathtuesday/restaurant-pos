@@ -8,8 +8,9 @@ from django.db.models import Prefetch, Q
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.conf import settings
+from django.utils import timezone
 
 from core.decorators import tenant_required
 from notifications.models import Notification
@@ -209,78 +210,101 @@ def api_ingest_order(request):
         if not hmac.compare_digest(expected_sig, signature):
             return JsonResponse({"error": "Invalid signature"}, status=401)
         
-        with transaction.atomic():
-            # Check if order already ingested
-            if aggregator_id and Order.objects.filter(tenant=tenant, outlet=outlet, aggregator_order_id=aggregator_id).exists():
-                return JsonResponse({"error": "Order already exists"}, status=400)
-                
-            # Create Order
-            order = Order.objects.create(
-                tenant=tenant,
-                outlet=outlet,
-                source=source,
-                aggregator_order_id=aggregator_id,
-                status="paid",  # Aggregator orders usually come pre-paid
-            )
-            
-            # Add Items
-            for i in items:
-                menu_item_id = i.get("menu_item_id")
-                try:
-                    menu_item = MenuItem.objects.get(id=menu_item_id, tenant=tenant, outlet=outlet)
-                except MenuItem.DoesNotExist:
-                    return JsonResponse(
-                        {"error": f"Menu item id={menu_item_id} not found or not available at this outlet"},
-                        status=422
+        # Validate every item BEFORE any writes happen. A `return` from inside
+        # `transaction.atomic()` does NOT roll back — atomic() only rolls back
+        # on an exception propagating out of the block, and a plain `return`
+        # is a normal exit, not an exception. Bailing out mid-loop after the
+        # Order (and some OrderItems) were already created used to commit a
+        # broken, half-built, status="paid" order while telling the caller
+        # the request had failed. Resolving every menu item up front means
+        # any early return here happens before a single row is written, so
+        # there's nothing left half-done to roll back.
+        menu_items_by_id = {}
+        for i in items:
+            menu_item_id = i.get("menu_item_id")
+            try:
+                menu_items_by_id[menu_item_id] = MenuItem.objects.get(
+                    id=menu_item_id, tenant=tenant, outlet=outlet
+                )
+            except MenuItem.DoesNotExist:
+                return JsonResponse(
+                    {"error": f"Menu item id={menu_item_id} not found or not available at this outlet"},
+                    status=422
+                )
+
+        try:
+            with transaction.atomic():
+                # Check if order already ingested
+                if aggregator_id and Order.objects.filter(tenant=tenant, outlet=outlet, aggregator_order_id=aggregator_id).exists():
+                    return JsonResponse({"error": "Order already exists"}, status=400)
+
+                # Create Order
+                order = Order.objects.create(
+                    tenant=tenant,
+                    outlet=outlet,
+                    source=source,
+                    aggregator_order_id=aggregator_id,
+                    status="paid",  # Aggregator orders usually come pre-paid
+                )
+
+                # Add Items — every menu_item_id was already resolved above.
+                for i in items:
+                    menu_item = menu_items_by_id[i.get("menu_item_id")]
+                    qty = i.get("quantity", 1)
+                    order_item = OrderItem.objects.create(
+                        order=order,
+                        menu_item=menu_item,
+                        quantity=qty,
+                        price=menu_item.price,
+                        gst_percentage=menu_item.gst_percentage,
+                        total_price=menu_item.price * qty,
+                        status="sent" # Send to kitchen automatically
                     )
-                qty = i.get("quantity", 1)
-                
-                # Create item
-                order_item = OrderItem.objects.create(
+
+                # Re-calculate
+                order.recalculate_totals()
+
+                # FIX: Create a Payment row so revenue appears in daily_sales reports.
+                # Aggregator orders arrive pre-paid — the platform has already collected
+                # the money. We record it as a single payment at the order's grand_total
+                # using a method name that matches the aggregator source.
+                payment_method = source if source in ("zomato", "swiggy", "uber_eats", "web") else "cash"
+                Payment.objects.create(
                     order=order,
-                    menu_item=menu_item,
-                    quantity=qty,
-                    price=menu_item.price,
-                    gst_percentage=menu_item.gst_percentage,
-                    total_price=menu_item.price * qty,
-                    status="sent" # Send to kitchen automatically
-                )
-                
-            # Re-calculate
-            order.recalculate_totals()
-
-            # FIX: Create a Payment row so revenue appears in daily_sales reports.
-            # Aggregator orders arrive pre-paid — the platform has already collected
-            # the money. We record it as a single payment at the order's grand_total
-            # using a method name that matches the aggregator source.
-            payment_method = source if source in ("zomato", "swiggy", "uber_eats", "web") else "cash"
-            Payment.objects.create(
-                order=order,
-                method=payment_method,
-                amount=order.grand_total,
-                reference=aggregator_id or None,
-                created_by=None,
-            )
-
-            # Auto KOT Gen
-            if config.auto_accept_orders:
-                from orders.services.kitchen_service import send_order_to_kitchen
-                send_order_to_kitchen(order, user=None)
-
-            # Assign online token if tenant uses token_system
-            from core.features import has_feature
-            if has_feature(tenant, "token_system"):
-                from orders.views.token_views import assign_online_token
-                from core.utils import get_business_date
-                business_date = get_business_date(timezone.now(), outlet)
-                tok = assign_online_token(order, outlet, tenant, business_date)
-                logger.info(
-                    "Online token %s assigned to order %s (source=%s)",
-                    tok.display_number, order.id, source,
+                    method=payment_method,
+                    amount=order.grand_total,
+                    reference=aggregator_id or None,
+                    created_by=None,
                 )
 
-        return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number})
-        
+                # Auto KOT Gen
+                if config.auto_accept_orders:
+                    from orders.services.kitchen_service import send_order_to_kitchen
+                    send_order_to_kitchen(order, user=None)
+
+                # Assign online token if tenant uses token_system
+                from core.features import has_feature
+                if has_feature(tenant, "token_system"):
+                    from orders.views.token_views import assign_online_token
+                    from core.utils import get_business_date
+                    business_date = get_business_date(timezone.now(), outlet)
+                    tok = assign_online_token(order, outlet, tenant, business_date)
+                    logger.info(
+                        "Online token %s assigned to order %s (source=%s)",
+                        tok.display_number, order.id, source,
+                    )
+
+            return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number})
+
+        except IntegrityError:
+            # A genuine simultaneous-delivery race: two webhook deliveries for
+            # the same aggregator order both passed the .exists() check above
+            # before either committed. The database-level unique constraint on
+            # (outlet, aggregator_order_id) caught what that check-then-act
+            # pattern missed — without this, the caller got a raw 500 instead
+            # of the same clean "already exists" response as the normal path.
+            return JsonResponse({"error": "Order already exists"}, status=400)
+
     except Exception as e:
         logger.exception("Failed to ingest order via API")
         return JsonResponse({"error": "Internal Server Error"}, status=500)
