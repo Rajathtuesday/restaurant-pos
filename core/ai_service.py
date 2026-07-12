@@ -63,6 +63,85 @@ class AIService:
         img.save(output, format="JPEG", quality=80, optimize=True)
         return output.getvalue()
 
+    # -------------------------------------------------------
+    # FILE ROUTING — turn any uploaded file into something Gemini can read
+    # -------------------------------------------------------
+
+    def _file_to_content(self, file_bytes, mime_type):
+        """Return a Gemini content item for an uploaded menu file.
+
+        - Images  -> re-encoded JPEG Part
+        - PDFs    -> PDF Part (Gemini reads text AND scanned/image PDFs natively)
+        - Word    -> extracted text
+        - Excel   -> extracted text
+        - text/csv-> decoded text
+        Raises a friendly error for anything unreadable.
+        """
+        mt = (mime_type or "").lower()
+
+        # PDF — sniff the magic bytes too, in case the browser sent no mime type
+        if mt == "application/pdf" or file_bytes[:5] == b"%PDF-":
+            return types.Part.from_bytes(data=file_bytes, mime_type="application/pdf")
+
+        # Word (.docx / .doc)
+        if "wordprocessingml" in mt or mt == "application/msword":
+            return "Menu text extracted from a Word document:\n" + self._extract_docx(file_bytes)
+
+        # Excel (.xlsx / .xls)
+        if "spreadsheetml" in mt or "ms-excel" in mt:
+            return "Menu text extracted from a spreadsheet:\n" + self._extract_xlsx(file_bytes)
+
+        # Plain text / CSV
+        if mt.startswith("text/"):
+            return "Menu text:\n" + file_bytes.decode("utf-8", errors="replace")
+
+        # Otherwise assume it's a photo (explicit image/* or unknown type).
+        try:
+            return types.Part.from_bytes(
+                data=self._resize_image(file_bytes), mime_type="image/jpeg"
+            )
+        except Exception as e:
+            logger.warning("Unreadable upload (mime=%s): %s", mime_type, e)
+            raise Exception(
+                "Couldn't read that file. Please upload a photo (JPG/PNG), a PDF, "
+                "a Word document (.docx), an Excel sheet (.xlsx), or plain text/CSV. "
+                "(iPhone HEIC photos aren't supported — screenshot the menu instead.)"
+            )
+
+    def _extract_docx(self, file_bytes):
+        """Pull all paragraph + table text out of a .docx."""
+        try:
+            from docx import Document
+        except ImportError:
+            raise Exception(
+                "Word import isn't available on the server yet. Save the menu as "
+                "a PDF or take a screenshot, and upload that instead."
+            )
+        doc = Document(io.BytesIO(file_bytes))
+        lines = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
+        for table in doc.tables:
+            for row in table.rows:
+                cells = [c.text.strip() for c in row.cells if c.text.strip()]
+                if cells:
+                    lines.append("  ".join(cells))
+        return "\n".join(lines)
+
+    def _extract_xlsx(self, file_bytes):
+        """Flatten every non-empty cell of every sheet into text (openpyxl is
+        already a dependency for the GSTR-1 export)."""
+        import openpyxl
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
+        lines = []
+        try:
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    cells = [str(c).strip() for c in row if c is not None and str(c).strip()]
+                    if cells:
+                        lines.append("  ".join(cells))
+        finally:
+            wb.close()
+        return "\n".join(lines)
+
     def parse_menu(self, text=None, image_bytes=None, mime_type=None):
         """
         Parses menu from text or image. 
@@ -100,22 +179,11 @@ class AIService:
             contents.append(f"Here is the menu text:\n{text}")
         
         if image_bytes:
-            # Optimize + re-encode to a real JPEG before sending to Google.
-            try:
-                optimized_bytes = self._resize_image(image_bytes)
-            except Exception as e:
-                logger.warning("Could not decode uploaded menu image: %s", e)
-                raise Exception(
-                    "Couldn't read that photo. Please upload a clear JPG or PNG. "
-                    "(iPhone HEIC photos aren't supported — set the camera to "
-                    "'Most Compatible', or take a screenshot of the menu first.)"
-                )
-            contents.append(
-                types.Part.from_bytes(
-                    data=optimized_bytes,
-                    mime_type="image/jpeg"  # _resize_image always outputs JPEG
-                )
-            )
+            # `image_bytes` is really "the uploaded file" — could be an image, a
+            # PDF, a Word doc, an Excel sheet or plain text. _file_to_content
+            # routes each to the right thing (a Gemini Part for images/PDFs, or
+            # extracted text for Office docs).
+            contents.append(self._file_to_content(image_bytes, mime_type))
 
         try:
             response = self.client.models.generate_content(
