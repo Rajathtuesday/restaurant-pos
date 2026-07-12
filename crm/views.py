@@ -195,8 +195,12 @@ def reservation_list(request):
 def create_reservation(request):
     """API to create a new reservation."""
     from .models import Reservation, Guest
+    from orders.models import Table
     from django.utils import timezone
     from datetime import datetime
+
+    if request.user.role not in ("manager", "owner", "cashier") and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:
         data = json.loads(request.body)
@@ -208,6 +212,17 @@ def create_reservation(request):
 
         if not phone or not res_time_str:
             return JsonResponse({"error": "Phone and Time are required"}, status=400)
+
+        # Validate the client-supplied table_id belongs to THIS outlet before
+        # trusting it. Otherwise a crafted request could cross-link a
+        # reservation to another tenant's Table (FK integrity is satisfied,
+        # tenant isolation is not).
+        if table_id:
+            table_ok = Table.objects.filter(
+                id=table_id, tenant=request.user.tenant, outlet=request.user.outlet
+            ).exists()
+            if not table_ok:
+                return JsonResponse({"error": "Invalid table"}, status=400)
 
         guest, _ = Guest.objects.get_or_create(
             tenant=request.user.tenant,

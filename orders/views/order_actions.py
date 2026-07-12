@@ -6,13 +6,14 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderItem, OrderEvent
 
 logger = logging.getLogger("pos.orders")
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "cashier")
 @require_POST
 def cancel_order(request, order_id):
     """
@@ -78,6 +79,7 @@ def cancel_order(request, order_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "cashier")
 @require_POST
 def cancel_item(request, item_id):
     """

@@ -154,8 +154,12 @@ def bump_kot(request, kot_id):
     from orders.models import KOTBatch
     from orders.services.kitchen_service import set_item_ready
     try:
+        # Scope by outlet as well as tenant — without order__outlet a multi-outlet
+        # tenant's kitchen staff at outlet A could bump outlet B's KOT by id.
         kot = KOTBatch.objects.select_related("order").get(
-            id=kot_id, order__tenant=request.user.tenant
+            id=kot_id,
+            order__tenant=request.user.tenant,
+            order__outlet=request.user.outlet,
         )
         bumped = 0
         for item in kot.items.filter(status__in=["sent", "preparing"]):

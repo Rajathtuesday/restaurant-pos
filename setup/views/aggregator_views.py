@@ -30,8 +30,16 @@ def aggregator_setup(request):
         config.uber_eats_enabled = request.POST.get("uber_eats_enabled") == "on"
         config.auto_accept_orders = request.POST.get("auto_accept_orders") == "on"
 
-        config.zomato_webhook_secret = request.POST.get("zomato_webhook_secret")
-        config.swiggy_webhook_secret = request.POST.get("swiggy_webhook_secret")
+        # Only overwrite a secret when a non-blank value is posted. This lets
+        # the form render a masked/blank field without wiping the stored secret
+        # on every save ("leave blank to keep"), matching how the Razorpay
+        # secrets are handled in setup_payment_methods.
+        zomato_secret = (request.POST.get("zomato_webhook_secret") or "").strip()
+        swiggy_secret = (request.POST.get("swiggy_webhook_secret") or "").strip()
+        if zomato_secret:
+            config.zomato_webhook_secret = zomato_secret
+        if swiggy_secret:
+            config.swiggy_webhook_secret = swiggy_secret
         config.save()
 
         messages.success(request, "Aggregator configuration saved.")

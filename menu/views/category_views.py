@@ -6,7 +6,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from menu.models import MenuCategory
 
 logger = logging.getLogger("pos.menu")
@@ -14,6 +14,7 @@ logger = logging.getLogger("pos.menu")
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def create_category(request):
     try:
@@ -33,6 +34,7 @@ def create_category(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def delete_category(request, category_id):
     try:

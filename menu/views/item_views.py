@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required, feature_required
+from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuCategory, MenuItem
 from setup.models import KitchenStation
 from inventory.models import InventoryItem, Recipe
@@ -17,6 +17,7 @@ logger = logging.getLogger("pos.menu")
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def create_menu_item(request):
     try:
@@ -61,8 +62,11 @@ def create_menu_item(request):
         parcel_charge = Decimal("0")
         try:
             parcel_charge = Decimal(str(data.get("parcel_charge", 0) if request.content_type == "application/json" else request.POST.get("parcel_charge", 0) or 0))
+            # Clamp negatives — a negative parcel charge would act as a stealth
+            # per-item discount on every order. (update_menu_item already clamps.)
+            parcel_charge = max(Decimal("0"), parcel_charge)
         except Exception:
-            pass
+            parcel_charge = Decimal("0")
 
         MenuItem.objects.create(
             tenant=request.user.tenant, outlet=request.user.outlet,
@@ -83,6 +87,7 @@ def create_menu_item(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def update_menu_item(request, item_id):
     try:
@@ -145,6 +150,7 @@ def update_menu_item(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def delete_menu_item(request, item_id):
     item = get_object_or_404(
@@ -159,6 +165,7 @@ def delete_menu_item(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def update_price(request, item_id):
     try:
@@ -183,6 +190,7 @@ def update_price(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "cashier")
 @require_POST
 def toggle_item(request, item_id):
     item = get_object_or_404(
@@ -196,6 +204,7 @@ def toggle_item(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "cashier")
 @feature_required("platform_sync")
 @require_POST
 def toggle_platform_availability(request, item_id):
@@ -222,6 +231,7 @@ def toggle_platform_availability(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def update_station(request, item_id):
     try:
@@ -248,6 +258,7 @@ def update_station(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @require_POST
 def add_recipe(request):
     try:

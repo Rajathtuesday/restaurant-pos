@@ -129,7 +129,7 @@ def create_batch(request):
         for idx, row in enumerate(items_data):
             try:
                 inv_item = InventoryItem.objects.get(
-                    id=row["item_id"], tenant=tenant
+                    id=row["item_id"], tenant=tenant, outlet=outlet
                 )
                 qty = float(row.get("quantity", 0))
                 if qty <= 0:
@@ -209,7 +209,7 @@ def add_batch_item(request, batch_id):
     try:
         data     = json.loads(request.body)
         inv_item = InventoryItem.objects.get(
-            id=data["item_id"], tenant=request.user.tenant
+            id=data["item_id"], tenant=request.user.tenant, outlet=request.user.outlet
         )
         qty = float(data.get("quantity", 0))
         if qty <= 0:
@@ -418,21 +418,32 @@ def confirm_receive(request, transfer_id):
     tenant   = request.user.tenant
     outlet   = request.user.outlet
 
-    transfer = get_object_or_404(
+    # 404 first (clean not-found), but the real guard against a double-receive
+    # is inside the transaction below — a plain read here is a check-then-act
+    # race: two concurrent "Confirm Receive" taps could both pass it and both
+    # add stock, doubling the received quantity.
+    get_object_or_404(
         BatchTransfer,
         id=transfer_id,
         tenant=tenant,
         destination_outlet=outlet,
     )
 
-    if transfer.status == "received":
-        return JsonResponse({
-            "success": True,
-            "message": "Already received — no changes made.",
-            "already_done": True,
-        })
-
     with transaction.atomic():
+        # Lock the transfer row and re-read status under the lock. The second
+        # concurrent request blocks here, then sees status="received" and bails.
+        transfer = (
+            BatchTransfer.objects
+            .select_for_update()
+            .get(id=transfer_id, tenant=tenant, destination_outlet=outlet)
+        )
+        if transfer.status == "received":
+            return JsonResponse({
+                "success": True,
+                "message": "Already received — no changes made.",
+                "already_done": True,
+            })
+
         items = transfer.batch.items.select_related("inventory_item").all()
         stock_updates = []
 

@@ -5,7 +5,7 @@ from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required, feature_required
+from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuItem, MenuItemModifierGroup, ModifierGroup, Modifier
 from inventory.models import InventoryItem, ModifierRecipe
 
@@ -64,6 +64,7 @@ def menu_item_modifiers(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def create_modifier_group(request):
@@ -85,6 +86,7 @@ def create_modifier_group(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def delete_modifier_group(request, group_id):
@@ -97,6 +99,7 @@ def delete_modifier_group(request, group_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def add_modifier(request):
@@ -116,6 +119,7 @@ def add_modifier(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def delete_modifier(request, modifier_id):
@@ -129,6 +133,7 @@ def delete_modifier(request, modifier_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def link_modifier_group(request):
@@ -146,6 +151,7 @@ def link_modifier_group(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def unlink_modifier_group(request):
@@ -165,6 +171,7 @@ def unlink_modifier_group(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def add_modifier_recipe(request, modifier_id):
@@ -197,6 +204,7 @@ def add_modifier_recipe(request, modifier_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 @feature_required("modifiers")
 @require_POST
 def delete_modifier_recipe(request, modifier_id):
