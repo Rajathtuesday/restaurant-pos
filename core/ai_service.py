@@ -18,11 +18,30 @@ class AIService:
         import os
         self.api_key = os.getenv("GOOGLE_API_KEY")
         self.client = None
-        if self.api_key and HAS_GENAI:
-            try:
-                self.client = genai.Client(api_key=self.api_key)
-            except Exception as e:
-                logger.error("Failed to initialize AI Client: %s", e)
+
+        # Log the SPECIFIC reason the client can't be built, so the server logs
+        # say exactly what to fix instead of a generic "no AI key". The #1 cause
+        # in practice is a stale process: .env was updated but the worker that
+        # runs the import (celery for image import, gunicorn for the sync
+        # fallback) was never restarted, so it still has the old environment.
+        if not HAS_GENAI:
+            logger.warning(
+                "AI disabled: the 'google-genai' package is not installed in this "
+                "environment. Run: pip install -r requirements.txt"
+            )
+            return
+        if not self.api_key:
+            logger.warning(
+                "AI disabled: GOOGLE_API_KEY is not set in THIS process's environment. "
+                "Set it in .env, then RESTART the service that runs the import "
+                "(celery for image import, gunicorn for the sync fallback)."
+            )
+            return
+        try:
+            self.client = genai.Client(api_key=self.api_key)
+            logger.info("AI client initialized (key ...%s).", self.api_key[-4:])
+        except Exception as e:
+            logger.error("Failed to initialize AI client — check the key is valid: %s", e)
 
     def _resize_image(self, image_bytes, max_size=(1024, 1024)):
         """Resizes image to speed up upload and AI processing."""
