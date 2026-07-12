@@ -59,15 +59,21 @@ def process_refund(order, payment_id, amount, user, reason="", customer_complain
     return refund
 
 @transaction.atomic
-def approve_refund(refund_id, approver):
+def approve_refund(refund_id, approver, tenant, outlet):
     """
     Approves a pending refund.
     - Owner only (stricter control)
+    - Scoped to the approver's tenant/outlet: without this filter a refund
+      could be fetched by raw id across tenants (an owner at Tenant A could
+      approve Tenant B's refund and create a negative Payment against B's
+      order). The tenant/outlet join is the isolation boundary.
     """
     if approver.role != "owner" and not approver.is_superuser:
         raise PermissionDenied("Only owners can approve refunds")
 
-    refund = Refund.objects.select_for_update().get(id=refund_id)
+    refund = Refund.objects.select_for_update().get(
+        id=refund_id, order__tenant=tenant, order__outlet=outlet
+    )
     if refund.status != "pending":
         raise ValidationError("Refund is not in pending status")
 
@@ -97,14 +103,18 @@ def approve_refund(refund_id, approver):
     return refund
 
 @transaction.atomic
-def reject_refund(refund_id, rejecter, reason=""):
+def reject_refund(refund_id, rejecter, tenant, outlet, reason=""):
     """
     Rejects a pending refund.
+    Scoped to the rejecter's tenant/outlet — same cross-tenant isolation
+    boundary as approve_refund().
     """
     if rejecter.role not in ("manager", "owner") and not rejecter.is_superuser:
         raise PermissionDenied("Insufficient permissions to reject refund")
 
-    refund = Refund.objects.select_for_update().get(id=refund_id)
+    refund = Refund.objects.select_for_update().get(
+        id=refund_id, order__tenant=tenant, order__outlet=outlet
+    )
     if refund.status != "pending":
         raise ValidationError("Refund is not in pending status")
 

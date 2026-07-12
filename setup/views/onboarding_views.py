@@ -19,7 +19,15 @@ from tenants.models import Tenant, RESERVED_SLUGS
 # -------------------------------------------------
 
 @login_required
+@tenant_required
 def onboarding_wizard(request):
+    # Owner/manager only. Every POST step here mutates tenant-critical state —
+    # the restaurant name, the subdomain slug, GST/FSSAI numbers, new staff
+    # accounts, and the UPI VPA printed on customer bills. Without this gate a
+    # waiter/cashier could rewrite any of it (and Step 3 could mint an owner).
+    if request.user.role not in ("owner", "manager"):
+        return redirect("/dashboard/")
+
     tenant = request.user.tenant
     outlet = request.user.outlet
     step   = int(request.GET.get("step", 1))
@@ -87,6 +95,9 @@ def onboarding_wizard(request):
             lname = request.POST.get("last_name", "").strip()
             role  = request.POST.get("role", "cashier")
             pwd   = request.POST.get("password", "").strip()
+            # Reject any role outside the assignable set (never "owner"/"agent").
+            if role not in User.ASSIGNABLE_STAFF_ROLES:
+                role = "cashier"
             if uname and pwd:
                 try:
                     if not User.objects.filter(username=uname, tenant=tenant).exists():

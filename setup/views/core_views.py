@@ -12,7 +12,7 @@ from orders.models import Table
 from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet
 from setup.models import KitchenStation, PaymentConfig
-from core.decorators import tenant_required
+from core.decorators import tenant_required, role_required
 from accounts.models import User
 
 
@@ -22,6 +22,9 @@ from accounts.models import User
 
 @login_required
 def setup_wizard(request):
+
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/dashboard/")
 
     tenant = request.user.tenant
     outlet = request.user.outlet
@@ -67,6 +70,9 @@ def setup_wizard(request):
 @login_required
 @transaction.atomic
 def setup_tables(request):
+
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/dashboard/")
 
     tenant = request.user.tenant
     outlet = request.user.outlet
@@ -128,6 +134,9 @@ def setup_tables(request):
 @transaction.atomic
 def setup_menu(request):
 
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/dashboard/")
+
     tenant = request.user.tenant
     outlet = request.user.outlet
 
@@ -179,6 +188,9 @@ def setup_menu(request):
 
 @login_required
 def setup_kitchen_stations(request):
+
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/dashboard/")
 
     stations = KitchenStation.objects.filter(
         tenant=request.user.tenant,
@@ -246,6 +258,7 @@ def setup_kitchen_stations(request):
 # -------------------------------------------------
 
 @login_required
+@role_required("owner", "manager")
 @require_POST
 def update_printer_config(request, station_id):
     station = get_object_or_404(
@@ -282,6 +295,7 @@ def update_printer_config(request, station_id):
 
 
 @login_required
+@role_required("owner", "manager")
 @require_POST
 def test_print_station(request, station_id):
     station = get_object_or_404(
@@ -317,7 +331,15 @@ def setup_payment_methods(request):
     """
     Persists payment method configuration per outlet to the database.
     Replaces the old session-based approach.
+
+    Owner/manager only: this view writes the tenant's Razorpay credentials
+    and UPI VPA. Without a role gate, any authenticated staff account
+    (default role is cashier) could swap in attacker-owned payment
+    credentials and silently redirect every card/UPI transaction.
     """
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/dashboard/")
+
     tenant = request.user.tenant
     outlet = request.user.outlet
 
@@ -402,6 +424,13 @@ def setup_staff(request):
 
             return redirect("setup_staff")
 
+        # Never trust the posted role. Without this, a manager (or any
+        # owner/manager) could create a brand-new "owner" account and
+        # escalate privilege through a form that looks access-controlled.
+        if role not in User.ASSIGNABLE_STAFF_ROLES:
+            messages.error(request, "Invalid role selected.")
+            return redirect("setup_staff")
+
         if User.objects.filter(username=username).exists():
 
             messages.error(request, "Username already exists")
@@ -437,6 +466,7 @@ def setup_staff(request):
 
 
 @login_required
+@role_required("owner", "manager")
 @require_POST
 def set_default_station(request, station_id):
 
@@ -461,6 +491,7 @@ def set_default_station(request, station_id):
 
 
 @login_required
+@role_required("owner", "manager")
 @require_POST
 def set_print_mode(request, mode):
     """
@@ -479,6 +510,7 @@ def set_print_mode(request, mode):
 
 
 @login_required
+@role_required("owner", "manager")
 @require_POST
 def delete_station(request, station_id):
     """
@@ -554,6 +586,7 @@ def delete_station(request, station_id):
 
 
 @login_required
+@role_required("owner", "manager")
 @require_POST
 def rename_table(request, table_id):
     try:

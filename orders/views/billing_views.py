@@ -197,15 +197,26 @@ def create_order(request):
                     business_date = get_business_date(timezone.now(), outlet)
                     assign_counter_token(order, outlet, tenant, business_date)
 
-            # Allow discount application during creation for aggregators or staff
-            if (source != "dine_in" or (user and user.role in ["owner", "manager", "cashier"])):
+            # Discounts may ONLY be applied by an authenticated staff member.
+            # `source` is fully client-controlled, so it must not appear in this
+            # gate — a QR guest could send source="takeaway" to unlock it and
+            # then post discount_value="999999" to drive the total to zero
+            # (recalculate_totals clamps the discount to the subtotal → free
+            # food). Guests have user=None and never reach this branch.
+            if user and user.role in ["owner", "manager", "cashier"]:
                 d_type = data.get("discount_type")
                 d_val = data.get("discount_value")
                 if d_type in ["percentage", "amount"]:
-                    from decimal import InvalidOperation
                     try:
+                        d_val = Decimal(str(d_val or 0))
+                        # Reject negatives (would be an upcharge) and cap a
+                        # percentage at 100 so a discount can never exceed the bill.
+                        if d_val < 0:
+                            d_val = Decimal("0")
+                        if d_type == "percentage" and d_val > 100:
+                            d_val = Decimal("100")
                         order.discount_type = d_type
-                        order.discount_value = Decimal(str(d_val or 0))
+                        order.discount_value = d_val
                     except (ValueError, TypeError, InvalidOperation):
                         pass
 

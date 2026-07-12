@@ -41,7 +41,7 @@ def approve_refund_view(request, refund_id):
     from bulk-approving fraudulent refund requests.
     """
     try:
-        approve_refund(refund_id, request.user)
+        approve_refund(refund_id, request.user, request.user.tenant, request.user.outlet)
         logger.info("User %s approved refund #%s", request.user.username, refund_id)
         return JsonResponse({"success": True, "message": "Refund approved and audit logged"})
     except Exception as e:
@@ -61,7 +61,7 @@ def reject_refund_view(request, refund_id):
     try:
         data = json.loads(request.body)
         reason = data.get("reason", "")
-        reject_refund(refund_id, request.user, reason=reason)
+        reject_refund(refund_id, request.user, request.user.tenant, request.user.outlet, reason=reason)
         logger.info("User %s rejected refund #%s", request.user.username, refund_id)
         return JsonResponse({"success": True, "message": "Refund rejected"})
     except Exception as e:
