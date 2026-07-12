@@ -42,17 +42,17 @@ class RefundApprovalTest(TestCase):
     def test_manager_cannot_approve_refund(self):
         refund = process_refund(self.order, self.payment.id, 100, self.manager)
         with self.assertRaises(PermissionDenied):
-            approve_refund(refund.id, self.manager)
+            approve_refund(refund.id, self.manager, self.tenant, self.outlet)
 
     def test_owner_can_approve_refund(self):
         refund = process_refund(self.order, self.payment.id, 100, self.manager)
-        approve_refund(refund.id, self.owner)
+        approve_refund(refund.id, self.owner, self.tenant, self.outlet)
         refund.refresh_from_db()
         self.assertEqual(refund.status, "approved")
 
     def test_manager_can_reject_refund(self):
         refund = process_refund(self.order, self.payment.id, 100, self.manager)
-        reject_refund(refund.id, self.manager, reason="Mistake")
+        reject_refund(refund.id, self.manager, self.tenant, self.outlet, reason="Mistake")
         refund.refresh_from_db()
         self.assertEqual(refund.status, "rejected")
         self.assertIn("Rejected: Mistake", refund.reason)
