@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 
 from celery import shared_task
+from celery.exceptions import SoftTimeLimitExceeded
 from django.core.cache import cache
 
 logger = logging.getLogger("pos.menu")
@@ -9,7 +10,11 @@ logger = logging.getLogger("pos.menu")
 CACHE_TTL = 600  # 10 minutes — enough for any reasonable import
 
 
-@shared_task(bind=True, max_retries=0)
+# The global Celery limit is 30s soft / 60s hard — right for fast tasks like
+# printing, but a Gemini PDF/photo call routinely takes longer, especially on a
+# small server. Give THIS task its own generous limit (not the global one) so a
+# menu import isn't killed mid-call, while other tasks keep the short leash.
+@shared_task(bind=True, max_retries=0, soft_time_limit=180, time_limit=200)
 def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
     """
     Runs Gemini menu parsing in a Celery worker so gunicorn workers are free.
@@ -72,6 +77,14 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
             "status": "done",
             "message": f"AI imported {imported_count} items.",
             "count": imported_count,
+        }, CACHE_TTL)
+
+    except SoftTimeLimitExceeded:
+        logger.warning("AI import timed out (soft limit)")
+        cache.set(cache_key, {
+            "status": "error",
+            "error": "The menu took too long to read. Try a smaller or clearer file — "
+                     "for a big PDF, split it into a few pages and import them one at a time.",
         }, CACHE_TTL)
 
     except Exception as e:
