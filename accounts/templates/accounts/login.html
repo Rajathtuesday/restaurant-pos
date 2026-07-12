@@ -88,7 +88,11 @@
     }
     .left-diamond {
       width: 28px; height: 28px;
-      background: var(--gold);
+      /* Hollow gold-diamond frame to match the official logo (static/icon-512.svg),
+         not a solid fill. Transparent centre shows the panel behind it, so it
+         works on both the dark left panel and either theme. */
+      border: 6px solid var(--gold);
+      background: transparent;
       transform: rotate(45deg);
       flex-shrink: 0;
     }
@@ -189,7 +193,10 @@
     }
     .rasova-diamond {
       width: 24px; height: 24px;
-      background: var(--gold); transform: rotate(45deg);
+      /* Hollow gold-diamond frame to match the official logo (static/icon-512.svg). */
+      border: 5px solid var(--gold);
+      background: transparent;
+      transform: rotate(45deg);
     }
     .rasova-name {
       font-family: 'DM Serif Display', serif;
