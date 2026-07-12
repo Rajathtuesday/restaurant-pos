@@ -553,12 +553,29 @@ class ModifierRecipe(models.Model):
 # -------------------------------------------------------
 
 class ProductionBatch(TenantScopedModel):
+    BATCH_TYPE = (
+        # New goods cooked/assembled from ingredients (e.g. "Gravy Base").
+        # The finished good is created fresh; nothing is debited on dispatch.
+        ("produce", "Produced — new goods from ingredients"),
+        # Existing stock the central kitchen already holds is physically moved
+        # to a branch. Dispatch DEBITS the kitchen's own stock so total
+        # tenant-wide inventory stays constant across the transfer.
+        ("move", "Moved — existing kitchen stock leaves"),
+    )
+
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     batch_number = models.CharField(max_length=50)
+    batch_type = models.CharField(
+        max_length=10, choices=BATCH_TYPE, default="produce",
+        help_text=(
+            "'move' debits the central kitchen's own stock when the batch is "
+            "dispatched; 'produce' does not (the goods are newly made)."
+        ),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True)
     source_outlet = models.ForeignKey(
-        "tenants.Outlet", 
+        "tenants.Outlet",
         on_delete=models.CASCADE,
         related_name='batches_sent'
     )
@@ -615,6 +632,15 @@ class BatchTransfer(TenantScopedModel):
     class Meta:
         indexes = [
             models.Index(fields=["tenant", "destination_outlet", "status"]),
+        ]
+        constraints = [
+            # create_transfers relies on get_or_create to avoid duplicate
+            # transfers for the same batch+destination; back it with a real DB
+            # constraint so a concurrent double-submit can't create two.
+            models.UniqueConstraint(
+                fields=["tenant", "batch", "destination_outlet"],
+                name="unique_transfer_per_batch_destination",
+            )
         ]
 
     def __str__(self):

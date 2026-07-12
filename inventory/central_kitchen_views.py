@@ -102,6 +102,10 @@ def create_batch(request):
     outlet = request.user.outlet
 
     notes = request.POST.get("notes", "").strip()
+    # 'move' debits the kitchen's own stock on dispatch; 'produce' does not.
+    batch_type = request.POST.get("batch_type", "produce")
+    if batch_type not in ("produce", "move"):
+        batch_type = "produce"
 
     # Auto-generate batch number: BATCH-YYYYMMDD-NNN
     today_str = timezone.localdate().strftime("%Y%m%d")
@@ -117,6 +121,7 @@ def create_batch(request):
             source_outlet=outlet,
             created_by=request.user,
             notes=notes,
+            batch_type=batch_type,
         )
 
         # Items passed as JSON array: [{item_id, quantity, unit}]
@@ -301,18 +306,44 @@ def create_transfers(request, batch_id):
 @role_required("owner", "manager")
 @require_POST
 def dispatch_batch(request, batch_id):
-    """Mark all pending transfers for this batch as in_transit."""
+    """Mark all pending transfers for this batch as in_transit.
+
+    For a 'move' batch, the goods physically leave the central kitchen, so we
+    also DEBIT the kitchen's own stock here (once per batch, when it's actually
+    dispatched). 'produce' batches are newly-made goods and are not debited.
+    """
+    from django.core.exceptions import ValidationError
+
     batch = get_object_or_404(
         ProductionBatch, id=batch_id, tenant=request.user.tenant
     )
-    now      = timezone.now()
-    updated  = BatchTransfer.objects.filter(
-        batch=batch, status="pending"
-    ).update(status="in_transit", dispatched_at=now)
+    now = timezone.now()
+
+    try:
+        with transaction.atomic():
+            updated = BatchTransfer.objects.filter(
+                batch=batch, status="pending"
+            ).update(status="in_transit", dispatched_at=now)
+
+            # Only debit if something was actually dispatched. Letting
+            # reduce_stock's ValidationError propagate out of this atomic rolls
+            # back the status update too, so dispatch is all-or-nothing.
+            if updated and batch.batch_type == "move":
+                for bi in batch.items.select_related("inventory_item"):
+                    bi.inventory_item.reduce_stock(
+                        bi.quantity,
+                        reference=f"Dispatched batch {batch.batch_number}",
+                    )
+    except ValidationError as e:
+        msg = e.messages[0] if getattr(e, "messages", None) else str(e)
+        return JsonResponse(
+            {"error": f"Cannot dispatch — not enough stock at the kitchen to move this batch. {msg}"},
+            status=400,
+        )
 
     logger.info(
-        "User %s dispatched batch %s to %d outlets",
-        request.user.username, batch.batch_number, updated
+        "User %s dispatched batch %s (%s) to %d outlets",
+        request.user.username, batch.batch_number, batch.batch_type, updated
     )
     return JsonResponse({
         "success": True,
