@@ -104,14 +104,18 @@ def apply_discount(request, order_id):
 def make_item_complimentary(request, item_id):
 
     try:
-        item = (
-            OrderItem.objects.select_related("order")
-            .get(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
-        )
-        validate_order_editable(item.order)
-        item.is_complimentary = True
-        item.save(update_fields=["is_complimentary"])
-        item.order.recalculate_totals()
+        # Lock the item's order row for the read-modify-recalculate, matching
+        # apply_item_discount. Without the lock a concurrent discount/void/
+        # payment on the same order can race with this write and lose an update.
+        with transaction.atomic():
+            item = (
+                OrderItem.objects.select_for_update().select_related("order")
+                .get(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
+            )
+            validate_order_editable(item.order)
+            item.is_complimentary = True
+            item.save(update_fields=["is_complimentary"])
+            item.order.recalculate_totals()
         logger.warning("User %s marked item #%s as complimentary", request.user.username, item_id)
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:

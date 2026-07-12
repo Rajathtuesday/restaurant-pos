@@ -10,10 +10,17 @@ from django.shortcuts import redirect
 
 
 def role_required(*roles):
-    """Restricts a view to users with one of the listed roles."""
+    """Restricts a view to users with one of the listed roles.
+
+    Apply after @login_required. The explicit is_authenticated guard means that
+    if this is ever stacked without @login_required, an AnonymousUser (which has
+    no `.role`) gets a clean 403 instead of an AttributeError 500.
+    """
     def decorator(view_func):
         @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return JsonResponse({"error": "Authentication required"}, status=403)
             if request.user.role not in roles and not request.user.is_superuser:
                 return JsonResponse({"error": "Permission denied"}, status=403)
             return view_func(request, *args, **kwargs)

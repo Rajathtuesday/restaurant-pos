@@ -126,6 +126,7 @@ def promo_create(request):
 
 
 @login_required
+@tenant_required
 @require_POST
 def promo_toggle(request, promo_id):
     """Toggle is_active on a promo."""
@@ -145,6 +146,7 @@ def promo_toggle(request, promo_id):
 
 
 @login_required
+@tenant_required
 @require_POST
 def promo_delete(request, promo_id):
     """Hard-delete a promo."""

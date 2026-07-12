@@ -301,6 +301,11 @@ def manage_table_view(request):
             if section: table.section = section
             table.save()
             return JsonResponse({"success": True})
-            
+
+        # Any other action falls through here. Without this explicit return the
+        # function returns None, which Django turns into a 500 ("didn't return
+        # an HttpResponse") instead of a clean 400.
+        return JsonResponse({"error": f"Unknown action: {action}"}, status=400)
+
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
