@@ -131,6 +131,35 @@ class PartialOrderRegressionTest(AggregatorIngestBase):
         self.assertEqual(Order.objects.count(), 0)
 
 
+class AutoAcceptKotTest(AggregatorIngestBase):
+    """C5 regression: with auto_accept_orders=True, api_ingest_order used to call
+    a nonexistent send_order_to_kitchen() and 500 (rolling back the whole order).
+    It must now create the order AND a KOT successfully."""
+
+    def setUp(self):
+        super().setUp()
+        self.config.auto_accept_orders = True
+        self.config.save(update_fields=["auto_accept_orders"])
+
+    def test_auto_accept_order_creates_kot_and_succeeds(self):
+        from orders.models import KOTBatch
+
+        resp = self._post({
+            "tenant_id": self.tenant.id,
+            "outlet_id": self.outlet.id,
+            "source": "zomato",
+            "aggregator_order_id": "AGG-AUTOKOT-1",
+            "items": [{"menu_item_id": self.menu_item.id, "quantity": 2}],
+        })
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertTrue(resp.json()["success"])
+
+        order = Order.objects.get(aggregator_order_id="AGG-AUTOKOT-1")
+        # A KOT was generated and the items were transitioned out of "pending".
+        self.assertTrue(KOTBatch.objects.filter(order=order).exists())
+        self.assertFalse(order.items.filter(status="pending").exists())
+
+
 class DuplicateOrderTest(AggregatorIngestBase):
     def test_duplicate_order_returns_400_not_500(self):
         payload = {
