@@ -149,7 +149,10 @@ def update_shift_tips(request, shift_id):
     """Manager can update tips for any shift."""
     try:
         data = json.loads(request.body)
-        shift = Shift.objects.get(id=shift_id, tenant=request.user.tenant)
+        # Scope by outlet — a manager at outlet A must not edit outlet B's shift.
+        shift = Shift.objects.get(
+            id=shift_id, tenant=request.user.tenant, outlet=request.user.outlet
+        )
         shift.tips = data.get("tips", 0)
         shift.save(update_fields=["tips"])
         return JsonResponse({"success": True})
@@ -227,7 +230,7 @@ def open_cash_session(request):
 def close_cash_session(request):
     """Close active session and reconcile totals."""
     from .models import CashSession
-    from orders.models import Payment, Order
+    from orders.models import Payment, Order, Refund
     from django.db.models import Sum
 
     try:
@@ -255,7 +258,35 @@ def close_cash_session(request):
             paid_at__lte=close_time
         ).aggregate(total=Sum("amount"))["total"] or 0
 
-        expected_cash = Decimal(str(session.opening_balance)) + Decimal(str(cash_payments or 0))
+        # A cash refund physically leaves the drawer, but approve_refund records
+        # the reversing entry as method="refund" (never "cash") so the sum above
+        # doesn't subtract it — which used to manufacture a phantom shortfall the
+        # cashier got blamed for. Find the refund reversing entries in this
+        # window, then subtract only those whose ORIGINAL payment was cash
+        # (a refund against a card/UPI sale didn't come out of the drawer).
+        window_refund_refs = Payment.objects.filter(
+            order__tenant=request.user.tenant,
+            order__outlet=request.user.outlet,
+            method="refund",
+            paid_at__gte=session.opened_at,
+            paid_at__lte=close_time,
+        ).values_list("reference", flat=True)
+        refund_ids = [
+            ref.split("REFUND-")[1]
+            for ref in window_refund_refs
+            if ref and ref.startswith("REFUND-")
+        ]
+        cash_refund_total = Decimal("0")
+        if refund_ids:
+            cash_refund_total = Refund.objects.filter(
+                id__in=refund_ids, payment__method="cash",
+            ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+        expected_cash = (
+            Decimal(str(session.opening_balance))
+            + Decimal(str(cash_payments or 0))
+            - Decimal(str(cash_refund_total or 0))
+        )
 
         # 2. Calculate Digital Payments
         digital_payments = Payment.objects.filter(
@@ -539,8 +570,10 @@ def create_schedule_entry(request):
     template = None
     if template_id:
         try:
+            # Scope by outlet — otherwise another outlet's template (different
+            # pay rate / hours) could be applied to this outlet's schedule.
             template = ShiftTemplate.objects.get(
-                id=template_id, tenant=request.user.tenant
+                id=template_id, tenant=request.user.tenant, outlet=request.user.outlet
             )
         except ShiftTemplate.DoesNotExist:
             return JsonResponse({"error": "Shift template not found"}, status=404)

@@ -202,7 +202,8 @@ def log_bypass(request, order_id):
                     return JsonResponse({"error": "Daily payment bypass limit (3) reached. Contact owner."}, status=403)
 
             logger.warning(
-                f"User {request.user.username} bypassed payment gate for order #{order_id}"
+                "User %s bypassed payment gate for order #%s",
+                request.user.username, order_id,
             )
 
             # Actually close the order

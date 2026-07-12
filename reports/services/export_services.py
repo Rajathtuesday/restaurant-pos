@@ -72,16 +72,22 @@ def generate_items_csv(tenant, outlet, start_date, end_date):
         'Item Name', 'Category', 'Quantity Sold', 'Gross Revenue', 'Average Rate'
     ])
     
+    # Match the canonical "sold item" definition used by the dashboard
+    # (Order.recalculate_totals / item_reports.top_items): only paid/closed
+    # orders, exclude voided and complimentary items. The old filter counted
+    # items from any order status and included complimentary items, so this
+    # export never matched the dashboard's numbers for the same period.
     items = OrderItem.objects.filter(
         order__tenant=tenant,
         order__created_at__date__gte=start_date,
         order__created_at__date__lte=end_date,
-        status__in=['sent', 'preparing', 'ready', 'served']
-    )
-    
+        order__status__in=['paid', 'closed'],
+        is_complimentary=False,
+    ).exclude(status="voided")
+
     if outlet:
         items = items.filter(order__outlet=outlet)
-        
+
     item_stats = items.values(
         'menu_item__name', 'menu_item__category__name'
     ).annotate(
@@ -342,16 +348,19 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
     
     writer.writerow(['Category Name', 'Items Sold', 'Total Revenue'])
     
+    # Same canonical "sold item" definition as the dashboard — exclude voided
+    # and complimentary items so this export agrees with the on-screen numbers.
     items = OrderItem.objects.filter(
         order__tenant=tenant,
         order__created_at__date__gte=start_date,
         order__created_at__date__lte=end_date,
-        order__status__in=['paid', 'closed']
-    )
-    
+        order__status__in=['paid', 'closed'],
+        is_complimentary=False,
+    ).exclude(status="voided")
+
     if outlet:
         items = items.filter(order__outlet=outlet)
-        
+
     category_stats = items.values('menu_item__category__name').annotate(
         qty=Sum('quantity'),
         rev=Sum('total_price')

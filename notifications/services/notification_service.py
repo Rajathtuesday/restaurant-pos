@@ -15,10 +15,8 @@ def create_notification(tenant, outlet, type, message):
     )
 
     logger.info(
-        f"[NOTIFICATION] tenant={tenant.id} "
-        f"outlet={outlet.id} "
-        f"type={type} "
-        f"message={message}"
+        "[NOTIFICATION] tenant=%s outlet=%s type=%s message=%s",
+        tenant.id, outlet.id, type, message,
     )
 
     return notification

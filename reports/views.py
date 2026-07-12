@@ -20,10 +20,15 @@ from reports.services.comparison_reports import period_comparison
 from reports.services.pl_reports import gross_margin_report
 
 @login_required
-@tenant_required
 @feature_required("reports")
 @role_required("owner", "manager", "agent")
 def dashboard(request):
+    # NOTE: @tenant_required is deliberately NOT applied here. Sales agents are
+    # modelled via Tenant.sales_agent and have User.tenant = None, so
+    # tenant_required would 403 them before the agent tenant-resolution logic
+    # below ever runs — making the dashboard dead code for its intended users.
+    # This view instead resolves the tenant itself and hard-403s if none is
+    # found. Owners/managers still only ever see their own request.user.tenant.
     # Determine which tenant we are viewing
     tenant = request.user.tenant
     

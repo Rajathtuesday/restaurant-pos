@@ -64,11 +64,13 @@ def agency_stats_api(request):
     if not request.user.is_superuser:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
+    # Use the same status set as the HTML dashboard (['closed', 'paid']) so the
+    # chart/API and the page never show different revenue for the same agent.
     agents = User.objects.filter(role='agent').annotate(
         client_count=Count('tenants_sold', distinct=True),
         revenue=Sum(
             'tenants_sold__order__grand_total',
-            filter=Q(tenants_sold__order__status='paid'),
+            filter=Q(tenants_sold__order__status__in=['closed', 'paid']),
         ),
     )
     data = [

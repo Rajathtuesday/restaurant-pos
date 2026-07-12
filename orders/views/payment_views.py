@@ -399,8 +399,8 @@ def split_pay(request, order_id):
                     order.table.save(update_fields=["state"])
 
         logger.info(
-            f"User {request.user.username} split order #{order_id} "
-            f"across {people} people via {method}"
+            "User %s split order #%s across %s people via %s",
+            request.user.username, order_id, people, method,
         )
         return JsonResponse({
             "success": True,
