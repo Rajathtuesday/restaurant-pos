@@ -23,8 +23,12 @@ KillMode=mixed
 TimeoutStopSec=30
 Restart=always
 RestartSec=5
-StandardOutput=append:/home/ubuntu/rasova/logs/gunicorn_access.log
-StandardError=append:/home/ubuntu/rasova/logs/gunicorn_error.log
+# NOTE: gunicorn already writes access/error to the two files above via its own
+# --access-logfile/--error-logfile flags (as user ubuntu). Do NOT also add
+# StandardOutput=append:/StandardError=append: for the SAME files — systemd
+# (root) opens those first and creates them root-owned, after which gunicorn
+# (ubuntu) can't write and crash-loops. gunicorn's own console output goes to
+# journald (journalctl -u gunicorn), which is fine.
 
 [Install]
 WantedBy=multi-user.target
