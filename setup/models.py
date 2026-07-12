@@ -140,9 +140,13 @@ class AggregatorConfig(TenantScopedModel):
     swiggy_enabled = models.BooleanField(default=False)
     uber_eats_enabled = models.BooleanField(default=False)
     
-    # Store aggregator sync API keys or webhook secrets
-    zomato_webhook_secret = models.CharField(max_length=255, null=True, blank=True)
-    swiggy_webhook_secret = models.CharField(max_length=255, null=True, blank=True)
+    # Store aggregator sync API keys or webhook secrets.
+    # These are genuine secrets — used to validate inbound Zomato/Swiggy
+    # webhook signatures — so they are encrypted at rest, exactly like the
+    # Razorpay secrets above. Previously plaintext CharFields, which meant a DB
+    # dump leaked them and let an attacker forge order webhooks.
+    zomato_webhook_secret = EncryptedCharField(max_length=255, null=True, blank=True)
+    swiggy_webhook_secret = EncryptedCharField(max_length=255, null=True, blank=True)
 
     auto_accept_orders = models.BooleanField(
         default=True, 

@@ -9,7 +9,7 @@ logger = logging.getLogger("pos.orders")
 
 from orders.models import KOTBatch, OrderItem, DailyKOTCounter
 from orders.services.inventory_service import deduct_inventory_for_items
-from setup.services.station_service import get_default_station
+from setup.services.station_service import get_default_station_for
 
 
 @transaction.atomic
@@ -17,7 +17,14 @@ def create_kot(user, order, print_on_create=True):
     """
     print_on_create=False: create KOT records but skip queuing print tasks.
     Used by pay_order() in auto-KOT mode — print_bill_task handles everything.
+
+    `user` may be None (e.g. aggregator/webhook order ingestion, where there
+    is no logged-in staff member). Tenant/outlet are taken from the order
+    itself, not the user — the KOT belongs to the order's outlet regardless of
+    who triggered it, which is also strictly more correct for the staff path.
     """
+    tenant = order.tenant
+    outlet = order.outlet
 
     # -----------------------------------------
     # LOCK ORDER ITEMS + LOAD RELATIONS IN ONE QUERY
@@ -52,12 +59,12 @@ def create_kot(user, order, print_on_create=True):
     # DAILY KOT COUNTER LOCK
     # -----------------------------------------
     from core.utils import get_business_date
-    business_date = get_business_date(timezone.now(), order.outlet)
+    business_date = get_business_date(timezone.now(), outlet)
 
     counter, _ = (
         DailyKOTCounter.objects
         .select_for_update()
-        .get_or_create(date=business_date, tenant=user.tenant, outlet=user.outlet)
+        .get_or_create(date=business_date, tenant=tenant, outlet=outlet)
     )
 
     created_kots = []
@@ -73,7 +80,7 @@ def create_kot(user, order, print_on_create=True):
     def _default_station():
         nonlocal _default_station_cache
         if _default_station_cache is None:
-            _default_station_cache = get_default_station(user)
+            _default_station_cache = get_default_station_for(tenant, outlet)
         return _default_station_cache
 
     for station_id, group_items in station_groups.items():
@@ -89,8 +96,8 @@ def create_kot(user, order, print_on_create=True):
             station = _default_station()
 
         kot = KOTBatch.objects.create(
-            tenant=user.tenant,
-            outlet=user.outlet,
+            tenant=tenant,
+            outlet=outlet,
             order=order,
             kot_number=kot_number,
             station=station,

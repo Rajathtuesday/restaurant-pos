@@ -17,14 +17,14 @@ def api_categories(request):
         tenant=request.user.tenant,
         outlet=request.user.outlet,
         is_active=True
-    ).order_by('order')
+    ).order_by('display_order')
 
     data = [
         {
             "id": cat.id,
             "name": cat.name,
             "is_active": cat.is_active,
-            "order": cat.order
+            "order": cat.display_order
         } for cat in categories
     ]
     
@@ -41,7 +41,7 @@ def api_items(request):
         tenant=request.user.tenant,
         outlet=request.user.outlet,
         is_active=True
-    ).prefetch_related('items').order_by('order')
+    ).prefetch_related('items').order_by('display_order')
 
     data = []
     for cat in categories:
@@ -56,8 +56,7 @@ def api_items(request):
                 "name": item.name,
                 "description": item.description,
                 "price": item.price,
-                "dietary_preference": item.dietary_preference,
-                "spice_level": item.spice_level,
+                "is_veg": item.is_veg,
                 "image_url": item.image.url if item.image else None,
             })
             

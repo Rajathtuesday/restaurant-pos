@@ -112,7 +112,9 @@ def create_requisition(request):
         )
         for row in items:
             try:
-                inv = InventoryItem.objects.get(id=row["item_id"], tenant=tenant)
+                # Scope by outlet too — an item id from another outlet must not
+                # be pullable into this outlet's requisition (IDOR).
+                inv = InventoryItem.objects.get(id=row["item_id"], tenant=tenant, outlet=outlet)
                 qty = float(row.get("quantity", 0))
                 if qty <= 0:
                     continue
@@ -394,8 +396,20 @@ def convert_to_po(request, req_id):
         supplier_groups[key]["items"].append(item)
 
     created_pos = []
+    created_po_objects = []
+    skipped_no_supplier = 0
     with transaction.atomic():
         for key, group in supplier_groups.items():
+            supplier = group["supplier"]
+            # A vendor PO requires a supplier. PurchaseOrder.supplier is a
+            # non-nullable PROTECT FK, so creating one with supplier=None would
+            # raise IntegrityError. Items whose InventoryItem has no
+            # preferred_supplier simply can't be ordered — skip them and report
+            # the count instead of crashing the whole request.
+            if supplier is None:
+                skipped_no_supplier += len(group["items"])
+                continue
+
             # Auto-generate PO number
             today_str = timezone.localdate().strftime("%Y%m%d")
             existing  = PurchaseOrder.objects.filter(
@@ -403,40 +417,57 @@ def convert_to_po(request, req_id):
             ).count()
             po_number = f"PO-{today_str}-{existing + 1:03d}"
 
+            # NOTE: PurchaseOrder has no created_by field, and PurchaseOrderItem's
+            # FK to InventoryItem is named `item` (not `inventory_item`) and has
+            # no `unit` field. The previous code used all three nonexistent names
+            # and raised TypeError on every call — this view had never run.
             po = PurchaseOrder.objects.create(
                 tenant=req.tenant,
                 outlet=outlet,
-                supplier=group["supplier"],
+                supplier=supplier,
                 po_number=po_number,
                 status="draft",
-                created_by=request.user,
                 notes=f"From Requisition #{req.id}",
             )
             for req_item in group["items"]:
                 PurchaseOrderItem.objects.create(
                     purchase_order=po,
-                    inventory_item=req_item.inventory_item,
+                    item=req_item.inventory_item,
                     quantity=req_item.effective_quantity,
-                    unit=req_item.unit,
                     unit_price=req_item.inventory_item.cost_price or 0,
                 )
+            created_po_objects.append(po)
             created_pos.append({"po_id": po.id, "po_number": po_number})
 
-        req.purchase_order = PurchaseOrder.objects.filter(
-            tenant=req.tenant, notes__contains=f"Requisition #{req.id}"
-        ).first()
+        if not created_po_objects:
+            # Nothing was ordered (no item had a preferred supplier). No rows
+            # were written, so returning here leaves the DB untouched.
+            return JsonResponse(
+                {"error": "No items have a preferred supplier set — nothing to order. "
+                          "Set a preferred supplier on the items first."},
+                status=400,
+            )
+
+        # The requisition FK holds exactly one PO. Link the first one we
+        # created. (The old code used notes__contains="Requisition #1", which
+        # also matches "Requisition #10", "#11", … — a substring collision.)
+        req.purchase_order = created_po_objects[0]
         req.status = "ordered"
         req.save(update_fields=["purchase_order", "status"])
 
     logger.info(
-        "Requisition #%s converted to %d PO(s) by %s",
-        req_id, len(created_pos), request.user.username,
+        "Requisition #%s converted to %d PO(s) by %s (%d item(s) skipped, no supplier)",
+        req_id, len(created_pos), request.user.username, skipped_no_supplier,
     )
+    msg = f"{len(created_pos)} PO(s) created from requisition #{req_id}."
+    if skipped_no_supplier:
+        msg += f" {skipped_no_supplier} item(s) skipped (no preferred supplier)."
     return JsonResponse({
         "success":     True,
         "pos_created": len(created_pos),
         "pos":         created_pos,
-        "message":     f"{len(created_pos)} PO(s) created from requisition #{req_id}.",
+        "skipped":     skipped_no_supplier,
+        "message":     msg,
     })
 
 

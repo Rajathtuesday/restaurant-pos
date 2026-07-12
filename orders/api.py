@@ -247,6 +247,14 @@ def api_ingest_order(request):
                     status="paid",  # Aggregator orders usually come pre-paid
                 )
 
+                # When auto-KOT is on we route items through create_kot below,
+                # which only picks up status="pending" items and transitions
+                # them to "sent" itself (while deducting inventory + printing).
+                # Creating them as "sent" up front would make create_kot find
+                # nothing to do. When auto-KOT is off, mark them "sent" directly.
+                auto_kot = config.auto_accept_orders
+                initial_item_status = "pending" if auto_kot else "sent"
+
                 # Add Items — every menu_item_id was already resolved above.
                 for i in items:
                     menu_item = menu_items_by_id[i.get("menu_item_id")]
@@ -258,7 +266,7 @@ def api_ingest_order(request):
                         price=menu_item.price,
                         gst_percentage=menu_item.gst_percentage,
                         total_price=menu_item.price * qty,
-                        status="sent" # Send to kitchen automatically
+                        status=initial_item_status,
                     )
 
                 # Re-calculate
@@ -277,10 +285,13 @@ def api_ingest_order(request):
                     created_by=None,
                 )
 
-                # Auto KOT Gen
-                if config.auto_accept_orders:
-                    from orders.services.kitchen_service import send_order_to_kitchen
-                    send_order_to_kitchen(order, user=None)
+                # Auto KOT Gen — create the kitchen ticket, deduct inventory,
+                # and queue printing. create_kot() takes user=None here (there
+                # is no logged-in staff member for a webhook order) and derives
+                # tenant/outlet from the order itself.
+                if auto_kot:
+                    from orders.services.kot_service import create_kot
+                    create_kot(None, order)
 
                 # Assign online token if tenant uses token_system
                 from core.features import has_feature

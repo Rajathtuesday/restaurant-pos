@@ -129,8 +129,10 @@ def _run_sync(request, text, image_b64, mime_type):
 def sync_menu_to_outlets(request):
     """Push categories, items and recipes from this outlet to all other outlets in the tenant."""
     from tenants.models import Outlet
-    from inventory.models import InventoryItem
-    from menu.models import Recipe
+    # Recipe lives in inventory.models, NOT menu.models. The old
+    # `from menu.models import Recipe` raised ImportError on every call, so this
+    # entire multi-outlet sync feature was dead on arrival.
+    from inventory.models import InventoryItem, Recipe
 
     tenant        = request.user.tenant
     source_outlet = request.user.outlet
