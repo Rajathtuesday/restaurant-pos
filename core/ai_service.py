@@ -44,21 +44,24 @@ class AIService:
             logger.error("Failed to initialize AI client — check the key is valid: %s", e)
 
     def _resize_image(self, image_bytes, max_size=(1024, 1024)):
-        """Resizes image to speed up upload and AI processing."""
-        try:
-            img = Image.open(io.BytesIO(image_bytes))
-            # Convert RGBA to RGB if necessary
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
+        """Re-encode any image to a clean, right-sized RGB JPEG.
 
-            img.thumbnail(max_size, Image.Resampling.LANCZOS)
-
-            output = io.BytesIO()
-            img.save(output, format="JPEG", quality=75, optimize=True)
-            return output.getvalue()
-        except Exception as e:
-            logger.warning("Image optimization failed: %s", e)
-            return image_bytes
+        Raises if the bytes aren't a readable image (e.g. an iPhone HEIC, or a
+        corrupt upload). The old version swallowed that and returned the ORIGINAL
+        bytes while still labelling them image/jpeg — so Gemini received
+        non-JPEG data claiming to be JPEG and replied with the opaque
+        "Unable to process input image" 400. Better to fail here and let the
+        caller show a "use a JPG/PNG" message.
+        """
+        from PIL import ImageOps
+        img = Image.open(io.BytesIO(image_bytes))
+        img = ImageOps.exif_transpose(img)          # honor phone-camera rotation
+        if img.mode != "RGB":
+            img = img.convert("RGB")                # JPEG needs RGB (handles P/RGBA/CMYK/LA/…)
+        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        output = io.BytesIO()
+        img.save(output, format="JPEG", quality=80, optimize=True)
+        return output.getvalue()
 
     def parse_menu(self, text=None, image_bytes=None, mime_type=None):
         """
@@ -97,12 +100,20 @@ class AIService:
             contents.append(f"Here is the menu text:\n{text}")
         
         if image_bytes:
-            # Optimize image size before sending to Google
-            optimized_bytes = self._resize_image(image_bytes)
+            # Optimize + re-encode to a real JPEG before sending to Google.
+            try:
+                optimized_bytes = self._resize_image(image_bytes)
+            except Exception as e:
+                logger.warning("Could not decode uploaded menu image: %s", e)
+                raise Exception(
+                    "Couldn't read that photo. Please upload a clear JPG or PNG. "
+                    "(iPhone HEIC photos aren't supported — set the camera to "
+                    "'Most Compatible', or take a screenshot of the menu first.)"
+                )
             contents.append(
                 types.Part.from_bytes(
                     data=optimized_bytes,
-                    mime_type="image/jpeg" # We convert to JPEG in _resize_image
+                    mime_type="image/jpeg"  # _resize_image always outputs JPEG
                 )
             )
 
