@@ -21,8 +21,10 @@ sudo systemctl restart gunicorn || {
 echo "=== Restarting Celery ==="
 sudo systemctl restart celery 2>/dev/null || {
     echo "systemctl not set up — starting manually"
-    pkill -f 'celery worker' 2>/dev/null || true
-    sleep 1
+    # Match the REAL command line so old workers actually die (the old
+    # 'celery worker' pattern never matched 'celery -A core worker').
+    pkill -9 -f 'celery -A core worker' 2>/dev/null || true
+    sleep 2
     setsid nohup celery -A core worker \
       --queues=default,printing --concurrency=2 --loglevel=warning \
       >> /home/ubuntu/rasova/logs/celery.log 2>&1 &

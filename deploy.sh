@@ -64,8 +64,11 @@ sudo systemctl start redis 2>/dev/null || true
 
 # celery — try systemd, fall back to nohup
 if ! sudo systemctl restart celery 2>/dev/null; then
-    pkill -f 'celery worker' 2>/dev/null || true
-    sleep 1
+    # Match the REAL command line ('celery -A core worker'); the old pattern
+    # 'celery worker' never matched, so workers piled up on every deploy and
+    # ate all the RAM. -9 to be sure the whole worker group dies.
+    pkill -9 -f 'celery -A core worker' 2>/dev/null || true
+    sleep 2
     setsid nohup celery -A core worker \
         --queues=default,printing --concurrency=2 --loglevel=warning \
         >> $APP_DIR/logs/celery.log 2>&1 &
