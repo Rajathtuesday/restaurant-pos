@@ -77,6 +77,63 @@ def call_waiter(request, qr_token):
     return JsonResponse({"success": True})
 
 
+def order_status(request, order_id):
+    """
+    Public, read-only status poll for a guest who just placed a QR order.
+    No login required — a guest has no account. Deliberately returns only
+    non-sensitive fields (item names/quantities/status, a plain-English stage)
+    and NOTHING financial (no prices, totals, or payment info), since the
+    order_id alone is not treated as a secret.
+    """
+    from orders.models import Order
+
+    order = get_object_or_404(Order, id=order_id)
+
+    items = list(order.items.exclude(status="voided").select_related("menu_item"))
+
+    # Collapse per-item statuses into one plain-English stage for the customer.
+    # Mirrors the staff-facing priority order in orders/views/table_views.py
+    # (needs_approval > ordering > preparing > ready > served) but worded for
+    # a guest rather than staff.
+    statuses = {i.status for i in items}
+    if not items:
+        stage, label = "placed", "Order received"
+    elif "review" in statuses:
+        stage, label = "waiting_confirmation", "Waiting for the restaurant to confirm your order"
+    elif statuses & {"sent", "preparing"}:
+        stage, label = "preparing", "Your food is being prepared"
+    elif "ready" in statuses:
+        stage, label = "ready", "Your food is ready!"
+    elif statuses and statuses == {"served"}:
+        stage, label = "served", "Enjoy your meal!"
+    elif "pending" in statuses:
+        stage, label = "confirmed", "Order confirmed — sending to the kitchen"
+    else:
+        stage, label = "placed", "Order received"
+
+    return JsonResponse({
+        "order_id": order.id,
+        "table": order.table.name if order.table else "Takeaway",
+        # Order-level lifecycle status (open/billing/paid/closed/cancelled) —
+        # NOT item stage. Lets the guest's page know when to stop polling and
+        # stop offering "add more items" (billing_views.create_order already
+        # refuses to merge into anything that isn't open/billing server-side;
+        # this just lets the frontend match that instead of guessing).
+        "order_status": order.status,
+        "can_add_more": order.status in ("open", "billing"),
+        "stage": stage,
+        "label": label,
+        "items": [
+            {
+                "name": i.menu_item.name if i.menu_item else "Item",
+                "quantity": i.quantity,
+                "status": i.status,
+            }
+            for i in items
+        ],
+    })
+
+
 def digital_menu(request):
     """Customer-facing self-order menu with category tabs and cart."""
     from core.features import has_feature

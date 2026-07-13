@@ -18,6 +18,7 @@ from .views import (
     ai_import_status,
     delete_category,
     digital_menu,
+    order_status,
     modifier_management,
     create_modifier_group,
     delete_modifier_group,
@@ -54,6 +55,7 @@ urlpatterns = [
     path("toggle-platform/<int:item_id>/", toggle_platform_availability, name="toggle_platform"),
     path("digital-menu/", digital_menu, name="digital_menu"),
     path("qr/", digital_menu, name="menu_qr"),
+    path("order-status/<int:order_id>/", order_status, name="order_status"),
     path("sync-outlets/", sync_menu_to_outlets, name="sync_menu_to_outlets"),
     
     path("update-station/<int:item_id>/", update_station, name="update_station"),

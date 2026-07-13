@@ -158,6 +158,23 @@ def create_order(request):
                 if not order:
                     return JsonResponse({"error": "Order not found"}, status=404)
 
+                # Guest (QR, no login) reordering more items into their table's
+                # existing open order. A guest is only ever trusted for the ONE
+                # table they scanned — without this check, a guest could pass
+                # ANY order_id in this tenant/outlet (e.g. by guessing a nearby
+                # number) and silently add items to a different table's bill.
+                # Staff (user is not None) are already scoped to their own
+                # outlet by the tenant/outlet filter above and may edit any
+                # order in it, matching how running-order editing already works.
+                if user is None and (not table or order.table_id != table.id):
+                    return JsonResponse({"error": "That order does not belong to this table."}, status=403)
+
+                if order.status not in ("open", "billing"):
+                    return JsonResponse(
+                        {"error": "This order has already been billed. Please call a waiter for more items."},
+                        status=409,
+                    )
+
                 order.source = source
                 if aggregator_id: order.aggregator_order_id = aggregator_id
                 if cust_name: order.customer_name = cust_name

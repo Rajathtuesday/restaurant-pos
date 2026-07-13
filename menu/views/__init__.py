@@ -10,7 +10,7 @@ Split by concern:
   gst_views        — GST rate management
   ai_views         — AI photo importer, multi-outlet sync
 """
-from .customer_views import menu_view, call_waiter, digital_menu
+from .customer_views import menu_view, call_waiter, digital_menu, order_status
 from .management_views import menu_management
 from .item_views import (
     create_menu_item, update_menu_item, delete_menu_item,
@@ -29,7 +29,7 @@ from .gst_views import gst_management, update_item_gst, update_category_gst
 from .ai_views import ai_menu_importer, ai_import_status, sync_menu_to_outlets
 
 __all__ = [
-    "menu_view", "call_waiter", "digital_menu",
+    "menu_view", "call_waiter", "digital_menu", "order_status",
     "menu_management",
     "create_menu_item", "update_menu_item", "delete_menu_item",
     "toggle_item", "toggle_platform_availability",

@@ -434,6 +434,36 @@
             font-weight: 600; font-size: 0.95rem; text-transform: uppercase;
         }
         .cart-modifier-names { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+        /* ORDER STATUS BANNER — shown once a guest has placed at least one
+           order for this table, polls order-status and reflects the stage. */
+        .order-status-banner {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 0.75rem; margin: 0.5rem 1rem 0; padding: 0.65rem 1rem;
+            background: var(--panel-bg); border: 1px solid var(--accent-gold);
+            border-radius: 12px; cursor: pointer; transition: var(--transition-smooth);
+        }
+        .order-status-banner.hidden { display: none; }
+        .order-status-row { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 0.9rem; }
+        .order-status-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: var(--accent-gold);
+            flex-shrink: 0; animation: statusPulse 1.6s ease-in-out infinite;
+        }
+        .order-status-dot.done { animation: none; background: var(--veg-color); }
+        @keyframes statusPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+        .order-status-toggle { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; }
+        .order-status-detail {
+            margin: 0 1rem; padding: 0 1rem; background: var(--panel-bg);
+            border: 1px solid var(--border-color); border-top: none;
+            border-radius: 0 0 12px 12px; overflow: hidden;
+            max-height: 0; transition: var(--transition-smooth);
+        }
+        .order-status-detail.open { max-height: 300px; padding: 0.75rem 1rem; }
+        .order-status-item-row {
+            display: flex; justify-content: space-between; font-size: 0.85rem;
+            padding: 0.3rem 0; color: var(--text-muted);
+        }
+        .order-status-item-row .name { color: var(--text-main); }
     </style>
 </head>
 <body>
@@ -456,6 +486,16 @@
             {% endif %}
         </div>
     </header>
+
+    <!-- ORDER STATUS — hidden until this table has a placed order -->
+    <div class="order-status-banner hidden" id="orderStatusBanner" onclick="toggleOrderStatusDetail()">
+        <div class="order-status-row">
+            <span class="order-status-dot" id="orderStatusDot"></span>
+            <span id="orderStatusLabel">Order received</span>
+        </div>
+        <i class="bi bi-chevron-down" id="orderStatusChevron"></i>
+    </div>
+    <div class="order-status-detail" id="orderStatusDetail"></div>
 
     <!-- SEARCH -->
     <div class="search-container">
@@ -878,11 +918,29 @@
         document.getElementById('billTotal').innerText = total.toFixed(2);
     }
 
+    // --- Order tracking (lets a guest add a SECOND round of items to the
+    // SAME table bill instead of it silently failing, and shows live status).
+    // Scoped to this table's QR token so a different table's browser session
+    // never sees or reuses this table's order.
+    const _tableToken = "{{ table.qr_token|default:'' }}";
+    const _orderStorageKey = _tableToken ? `rasova_order_${_tableToken}` : null;
+
+    function getStoredOrderId() {
+        if (!_orderStorageKey) return null;
+        return localStorage.getItem(_orderStorageKey);
+    }
+    function setStoredOrderId(id) {
+        if (_orderStorageKey) localStorage.setItem(_orderStorageKey, id);
+    }
+    function clearStoredOrderId() {
+        if (_orderStorageKey) localStorage.removeItem(_orderStorageKey);
+    }
+
     // --- Submit Order ---
     function submitOrder() {
         const tableId = "{{ table.id|default:'' }}";
-        const tableToken = "{{ table.qr_token|default:'' }}";
-        
+        const tableToken = _tableToken;
+
         if(!tableToken && !tableId) {
             alert("No table detected. Please scan a valid table QR.");
             return;
@@ -900,6 +958,19 @@
         }));
 
         const instructions = document.getElementById('specialInstructions').value;
+        const existingOrderId = getStoredOrderId();
+
+        const payload = {
+            cart: cartArray,
+            table_id: tableId,
+            table_token: tableToken,
+            source: "web",
+            notes: instructions
+        };
+        // If we already have an order for this table (an earlier round this
+        // visit), send it back so the server MERGES these items into the same
+        // bill instead of creating a second, separate order for the table.
+        if (existingOrderId) payload.order_id = parseInt(existingOrderId, 10);
 
         fetch("{% url 'create-order' %}", {
             method: "POST",
@@ -907,26 +978,28 @@
                 "Content-Type": "application/json",
                 "X-CSRFToken": "{{ csrf_token }}"
             },
-            body: JSON.stringify({
-                cart: cartArray,
-                table_id: tableId,
-                table_token: tableToken,
-                source: "web",
-                notes: instructions
-            })
+            body: JSON.stringify(payload)
         })
-        .then(r => r.json())
-        .then(data => {
-            if(data.success) {
-                // Success animation
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+            if(ok && data.success) {
+                setStoredOrderId(data.order_id);
                 btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> ORDER SENT!';
                 btn.style.background = '#16a34a';
-                setTimeout(() => {
-                    alert("Order placed successfully! Waiter will confirm shortly.");
-                    location.reload();
-                }, 1500);
+                setTimeout(() => location.reload(), 1200);
+            } else if (!ok && (data.error || '').includes('does not belong')) {
+                // Very rare: stale/mismatched stored id — drop it and retry once.
+                clearStoredOrderId();
+                alert("Starting a new order for this table — please tap Place Order again.");
+                btn.disabled = false;
+                btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
+            } else if (!ok && (data.error || '').includes('already been billed')) {
+                clearStoredOrderId();
+                alert("Your table's bill is already being prepared — please ask a waiter for more items.");
+                btn.disabled = false;
+                btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
             } else {
-                alert("Error: " + data.error);
+                alert("Error: " + (data.error || "Could not place order."));
                 btn.disabled = false;
                 btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
             }
@@ -938,6 +1011,57 @@
             btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
         });
     }
+
+    // --- Order status banner (poll while this table has an active order) ---
+    let _statusPollTimer = null;
+
+    function toggleOrderStatusDetail() {
+        const detail = document.getElementById('orderStatusDetail');
+        const chevron = document.getElementById('orderStatusChevron');
+        const isOpen = detail.classList.toggle('open');
+        chevron.classList.toggle('bi-chevron-down', !isOpen);
+        chevron.classList.toggle('bi-chevron-up', isOpen);
+    }
+
+    function renderOrderStatus(data) {
+        const banner = document.getElementById('orderStatusBanner');
+        const dot = document.getElementById('orderStatusDot');
+        const label = document.getElementById('orderStatusLabel');
+        const detail = document.getElementById('orderStatusDetail');
+
+        banner.classList.remove('hidden');
+        label.textContent = data.label;
+        dot.classList.toggle('done', data.stage === 'ready' || data.stage === 'served');
+
+        detail.innerHTML = (data.items || []).map(i => `
+            <div class="order-status-item-row">
+                <span class="name">${i.quantity}x ${i.name}</span>
+                <span>${i.status}</span>
+            </div>
+        `).join('') || '<div class="order-status-item-row"><span>No items yet</span></div>';
+    }
+
+    async function pollOrderStatus() {
+        const orderId = getStoredOrderId();
+        if (!orderId) return;
+        try {
+            const res = await fetch(`/menu/order-status/${orderId}/`);
+            if (!res.ok) { clearStoredOrderId(); return; } // order gone/invalid — stop tracking it
+            const data = await res.json();
+            renderOrderStatus(data);
+            // Once the order is no longer open/billing (paid, closed, cancelled),
+            // stop treating it as "the active order for this table" — the next
+            // Place Order press should start a fresh one, not try to merge in.
+            if (!data.can_add_more) clearStoredOrderId();
+        } catch (e) { /* network blip — try again next tick */ }
+    }
+
+    function startOrderStatusPolling() {
+        if (!getStoredOrderId()) return;
+        pollOrderStatus();
+        _statusPollTimer = setInterval(pollOrderStatus, 6000);
+    }
+    document.addEventListener('DOMContentLoaded', startOrderStatusPolling);
 
     // --- Utility Features ---
     /* THEME MANAGEMENT */
