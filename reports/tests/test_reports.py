@@ -501,3 +501,45 @@ class ExportReportsViewTest(TestCase):
         self.client.logout()
         response = self._get_export("orders")
         self.assertIn(response.status_code, [302, 403])
+
+
+# ---------------------------------------------------------------------------
+# P&L / GROSS MARGIN REPORT — refund-netting regression test
+#
+# gross_margin_report used to sum Order.grand_total, which never changes after
+# a refund (approve_refund records the refund as a separate negative Payment
+# instead). That overstated "Gross Revenue" by the refunded amount and
+# disagreed with the Sales Dashboard (daily_sales), which already nets
+# refunds. Fixed to sum actual Payment rows for the order instead.
+# ---------------------------------------------------------------------------
+
+class GrossMarginReportRefundTest(TestCase):
+    def setUp(self):
+        self.tenant, self.outlet, self.user, self.item = create_base_fixtures()
+
+    def test_gross_revenue_nets_a_refund(self):
+        from reports.services.pl_reports import gross_margin_report
+
+        order = create_paid_order(self.tenant, self.outlet, self.user, self.item, grand_total=500)
+        # A partial refund against that same order — recorded as its own
+        # negative Payment row, exactly like approve_refund does in production.
+        Payment.objects.create(
+            order=order, method="refund", amount=Decimal("-150.00"),
+            reference="REFUND-1", created_by=self.user,
+        )
+
+        today = timezone.localdate()
+        result = gross_margin_report(self.tenant, self.outlet, today, today)
+
+        # 500 collected - 150 refunded = 350 net, NOT 500.
+        self.assertEqual(result["gross_revenue"], 350.0)
+
+    def test_gross_revenue_matches_full_payment_with_no_refund(self):
+        from reports.services.pl_reports import gross_margin_report
+
+        create_paid_order(self.tenant, self.outlet, self.user, self.item, grand_total=500)
+
+        today = timezone.localdate()
+        result = gross_margin_report(self.tenant, self.outlet, today, today)
+
+        self.assertEqual(result["gross_revenue"], 500.0)

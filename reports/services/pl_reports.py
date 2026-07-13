@@ -22,7 +22,7 @@ from decimal import Decimal
 
 from django.db.models import Sum, Count
 
-from orders.models import Order, OrderItem
+from orders.models import Order, OrderItem, Payment
 from inventory.models import Recipe
 
 
@@ -47,15 +47,23 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     non_comp_qs = order_qs.filter(outlet__is_composition_scheme=False)
 
     # ── Revenue totals ──────────────────────────────────────────
+    # Gross revenue is summed from actual Payment rows for these orders, NOT
+    # Order.grand_total. grand_total is the order's original billed amount and
+    # never changes after a refund (approve_refund records the refund as a
+    # separate negative Payment instead) — so summing grand_total overstated
+    # revenue by the refunded amount and disagreed with the Sales Dashboard
+    # (reports/services/sales_reports.py:daily_sales), which already nets
+    # refunds this same way. Order scope (which orders count as "in period")
+    # is unchanged — still order.created_at, not payment date.
     totals2 = order_qs.aggregate(
-        gross_revenue = Sum("grand_total"),
-        discounts     = Sum("discount_total"),
-        order_count   = Count("id"),
+        discounts   = Sum("discount_total"),
+        order_count = Count("id"),
     )
+    revenue_agg = Payment.objects.filter(order__in=order_qs).aggregate(gross_revenue=Sum("amount"))
     # GST only from non-composition-scheme outlets
     gst_agg = non_comp_qs.aggregate(gst_collected=Sum("gst_total"))
 
-    gross_revenue = float(totals2["gross_revenue"] or 0)
+    gross_revenue = float(revenue_agg["gross_revenue"] or 0)
     gst_collected = float(gst_agg["gst_collected"] or 0)
     discounts     = float(totals2["discounts"]     or 0)
     order_count   = totals2["order_count"] or 0

@@ -11,6 +11,33 @@ from openpyxl.styles import Font, Alignment
 
 logger = logging.getLogger("pos.reports")
 
+# Official GST state/UT codes — the first 2 digits of any GSTIN.
+# Reference: https://www.gstn.org.in (public, fixed government table).
+GST_STATE_CODES = {
+    "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab",
+    "04": "Chandigarh", "05": "Uttarakhand", "06": "Haryana", "07": "Delhi",
+    "08": "Rajasthan", "09": "Uttar Pradesh", "10": "Bihar", "11": "Sikkim",
+    "12": "Arunachal Pradesh", "13": "Nagaland", "14": "Manipur", "15": "Mizoram",
+    "16": "Tripura", "17": "Meghalaya", "18": "Assam", "19": "West Bengal",
+    "20": "Jharkhand", "21": "Odisha", "22": "Chhattisgarh", "23": "Madhya Pradesh",
+    "24": "Gujarat", "25": "Daman and Diu", "26": "Dadra and Nagar Haveli",
+    "27": "Maharashtra", "28": "Andhra Pradesh (Old)", "29": "Karnataka",
+    "30": "Goa", "31": "Lakshadweep", "32": "Kerala", "33": "Tamil Nadu",
+    "34": "Puducherry", "35": "Andaman and Nicobar Islands", "36": "Telangana",
+    "37": "Andhra Pradesh", "38": "Ladakh", "97": "Other Territory",
+}
+
+
+def _place_of_supply(outlet):
+    """Real state name derived from the outlet's own GSTIN prefix, instead of
+    a hardcoded placeholder. Falls back to a labeled placeholder (not a value
+    that reads as real) if the outlet has no GSTIN on file."""
+    if outlet and outlet.gst_no and len(outlet.gst_no) >= 2:
+        code = outlet.gst_no[:2]
+        if code in GST_STATE_CODES:
+            return GST_STATE_CODES[code]
+    return "Unknown — set outlet GSTIN"
+
 def generate_orders_csv(tenant, outlet, start_date, end_date):
     """Generates a detailed CSV of all orders in the given date range."""
     output = io.StringIO()
@@ -239,8 +266,28 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     total_central = Decimal("0.0")
     total_state = Decimal("0.0")
 
-    # Assuming place of supply is local state. You would normally read from tenant's state.
-    pos_state = "Local"
+    # Real place of supply, derived from the outlet's own GSTIN — not a
+    # hardcoded placeholder. If the report spans multiple outlets that don't
+    # share one state, don't guess: this report only computes CGST/SGST
+    # (intra-state), never IGST, so mixing states into one "Local" row would
+    # be silently wrong for whichever outlet isn't actually local. Proper
+    # multi-state GSTR-1 (with real IGST math) is a larger, separate piece of
+    # work — this only fixes the misleading placeholder value.
+    if outlet:
+        pos_state = _place_of_supply(outlet)
+    else:
+        outlet_states = {o.gst_no[:2] for o in tenant.outlets.all() if o.gst_no and len(o.gst_no) >= 2}
+        if len(outlet_states) == 1:
+            pos_state = _place_of_supply(tenant.outlets.filter(gst_no__startswith=next(iter(outlet_states))).first())
+        elif len(outlet_states) > 1:
+            pos_state = "Multiple states — export per outlet"
+            logger.warning(
+                "GSTR-1 export for tenant %s spans outlets in multiple states (%s); "
+                "this report only computes CGST/SGST, not IGST. Export per outlet instead.",
+                tenant.id, outlet_states,
+            )
+        else:
+            pos_state = "Unknown — set outlet GSTIN"
     
     for rate, data in sorted(gst_groups.items()):
         taxable = data['taxable']
