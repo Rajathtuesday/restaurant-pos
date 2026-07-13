@@ -51,6 +51,20 @@ def notification_api(request):
         tenant=tenant, outlet=outlet, is_read=False
     ).order_by('-created_at')[:50]
 
+    # 4. QR orders awaiting staff approval (guest-placed items land as
+    # status="review" — see orders/services/order_service.py). Distinct order
+    # count, not item count, so one order with 5 review items shows as "1".
+    qr_orders_qs = (
+        Order.objects.filter(
+            tenant=tenant, outlet=outlet, items__status="review"
+        )
+        .distinct()
+        .select_related("table")
+        .order_by("-created_at")
+    )
+    qr_count = qr_orders_qs.count()
+    qr_orders = qr_orders_qs[:20]
+
     return JsonResponse({
         "waiter_calls": {
             "count": wc_count,
@@ -63,6 +77,13 @@ def notification_api(request):
                 "table": m.order.table.name if m.order.table else "Takeaway",
                 "message": m.message
             } for m in kitchen_msgs]
+        },
+        "qr_orders": {
+            "count": qr_count,
+            "items": [{
+                "id": o.id,
+                "table": o.table.name if o.table else "Takeaway",
+            } for o in qr_orders]
         },
         "notifications": [
             {"id": n.id, "message": n.message} for n in unread_system
