@@ -1,8 +1,6 @@
 # orders/urls.py
 from django.urls import path
 
-from orders.services.table_transfer_service import transfer_table
-
 from .views.order_actions import cancel_order, cancel_item, toggle_parcel
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view

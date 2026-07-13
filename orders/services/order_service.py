@@ -5,7 +5,7 @@ from django.db import transaction, IntegrityError
 from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
 
-from orders.exceptions import OrderError, CartError, InventoryError, MenuItemError, ModifierError
+from orders.exceptions import OrderError, CartError, MenuItemError, ModifierError
 from orders.services.event_service import log_event
 from orders.services.inventory_service import check_inventory_availability
 
@@ -110,10 +110,13 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             raise CartError("Quantity must be greater than zero.")
 
         # -------------------------------------------------
-        # INVENTORY CHECK
+        # INVENTORY CHECK — warn-only by design (see check_inventory_availability's
+        # docstring): it always returns True and only logs a warning, matching the
+        # soft-drain-to-0 behavior at KOT time. The `raise InventoryError` this used
+        # to have here could never fire and was misleading — removed rather than
+        # left as dead code implying orders get blocked on low stock, which they don't.
         # -------------------------------------------------
-        if not check_inventory_availability(menu_item, quantity):
-            raise InventoryError(f"Insufficient inventory for '{menu_item.name}'.")
+        check_inventory_availability(menu_item, quantity)
 
         base_price = menu_item.price * Decimal(quantity)
 
