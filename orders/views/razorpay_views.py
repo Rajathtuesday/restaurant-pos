@@ -44,8 +44,27 @@ def create_razorpay_qr(request, order_id):
     except PaymentConfig.DoesNotExist:
         return JsonResponse({"error": "Payment methods not configured for this outlet."}, status=400)
 
-    if not config.razorpay_enabled or not config.razorpay_key_id or not config.razorpay_key_secret:
-        return JsonResponse({"error": "Razorpay is not connected for this outlet yet."}, status=400)
+    if not config.razorpay_enabled:
+        return JsonResponse(
+            {"error": "Razorpay is turned off for this outlet. Enable it in Setup → Payment Methods."},
+            status=400,
+        )
+    if not config.razorpay_key_id or not config.razorpay_key_secret:
+        # Tell the owner EXACTLY which credential is missing rather than a
+        # blanket "not connected" — Razorpay hides the Key Secret behind a
+        # separate "reveal" action in their dashboard, so it's a genuinely
+        # easy field to miss when copying credentials in. A generic message
+        # here just produces a confused "but I did connect it!" support ping.
+        missing = []
+        if not config.razorpay_key_id:
+            missing.append("Key ID")
+        if not config.razorpay_key_secret:
+            missing.append("Key Secret")
+        return JsonResponse(
+            {"error": f"Razorpay is missing its {' and '.join(missing)}. "
+                      f"Add it in Setup → Payment Methods, then try again."},
+            status=400,
+        )
 
     try:
         qr = create_qr_payment(order, config)
