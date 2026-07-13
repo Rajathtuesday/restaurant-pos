@@ -275,6 +275,18 @@ if not DEBUG:
     _raw_csrf_origins = os.environ.get('CSRF_TRUSTED_ORIGINS', 'https://*.rasova.net,https://rasova.net')
     CSRF_TRUSTED_ORIGINS = [o.strip() for o in _raw_csrf_origins.split(',') if o.strip()]
 
+    # Without an explicit cookie domain, a cookie is scoped to the EXACT host
+    # that set it. auth_views.py redirects a user from the apex/login host to
+    # their tenant's own subdomain (tenant-slug.rasova.net) after login — a
+    # user who authenticates anywhere other than that exact subdomain (the
+    # apex domain, or a host TenantMiddleware didn't resolve) would silently
+    # not have their session cookie sent to the subdomain they're redirected
+    # to. The leading dot makes the cookie valid for the base domain AND every
+    # tenant subdomain, matching CSRF_TRUSTED_ORIGINS's wildcard above.
+    _cookie_domain = os.environ.get('SESSION_COOKIE_DOMAIN', '.rasova.net')
+    SESSION_COOKIE_DOMAIN = _cookie_domain
+    CSRF_COOKIE_DOMAIN = _cookie_domain
+
     # Tell Django the real scheme when running behind nginx or any reverse proxy.
     # Without this, Django sees all requests as HTTP and HTTPS-detection breaks.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
