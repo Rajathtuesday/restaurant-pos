@@ -114,7 +114,11 @@
 
             <div id="zomato_secret_div" style="display:{% if config.zomato_enabled %}block{% else %}none{% endif %};padding:1rem 0;margin-bottom:1rem;border-bottom:1px solid var(--border-color);">
                 <label class="form-label">Zomato Secret Key</label>
-                <input type="text" class="form-control" name="zomato_webhook_secret" value="{{ config.zomato_webhook_secret|default:'' }}" placeholder="ZOM-SECRET-1234">
+                {# Masked, and the decrypted value is never echoed into the page — matches the
+                   Razorpay secret fields. Leaving this blank on save keeps the existing secret
+                   (see setup/views/aggregator_views.py:aggregator_setup). #}
+                <input type="password" class="form-control" name="zomato_webhook_secret"
+                       placeholder="{% if config.zomato_webhook_secret %}•••••••••• (saved — leave blank to keep){% else %}ZOM-SECRET-1234{% endif %}">
             </div>
 
             <div class="switch-wrapper">
@@ -131,7 +135,8 @@
 
             <div id="swiggy_secret_div" style="display:{% if config.swiggy_enabled %}block{% else %}none{% endif %};padding:1rem 0;margin-bottom:1rem;border-bottom:1px solid var(--border-color);">
                 <label class="form-label">Swiggy App ID</label>
-                <input type="text" class="form-control" name="swiggy_webhook_secret" value="{{ config.swiggy_webhook_secret|default:'' }}" placeholder="SWG-APP-ID">
+                <input type="password" class="form-control" name="swiggy_webhook_secret"
+                       placeholder="{% if config.swiggy_webhook_secret %}•••••••••• (saved — leave blank to keep){% else %}SWG-APP-ID{% endif %}">
             </div>
 
             <div class="switch-wrapper">

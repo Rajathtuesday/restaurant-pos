@@ -365,6 +365,10 @@ def export_orders_csv(request):
 
     qs, is_restricted = _base_queryset(request)
     qs = _apply_filters(qs, request.GET, is_restricted)
+    # Annotate the item count in the same query instead of calling
+    # order.items.count() per row below — that was one extra query per CSV
+    # row, up to EXPORT_LIMIT (2000) round trips for a single export.
+    qs = qs.annotate(item_count=Count("items"))
 
     # Cap at 2000 rows to prevent timeout
     EXPORT_LIMIT = 2000

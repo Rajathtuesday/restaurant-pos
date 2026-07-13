@@ -9,12 +9,13 @@ account context.
 import logging
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import Count
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
-from tenants.models import Tenant, Outlet, TenantFeatureOverride
+from tenants.models import Tenant, Outlet, TenantFeatureOverride, TenantFeatureAuditLog
 from setup.models import KitchenStation, PaymentConfig
 
 logger = logging.getLogger("pos.superuser")
@@ -75,16 +76,22 @@ def superuser_panel(request):
         .order_by("-created_at")
     )
 
+    # One query for every tenant's user count instead of one query PER
+    # tenant in the loop below.
+    user_counts = {
+        row["tenant_id"]: row["c"]
+        for row in User.objects.values("tenant_id").annotate(c=Count("id"))
+    }
+
     # Annotate each tenant with outlet + user count for display
     tenant_data = []
     for t in tenants:
         outlets = list(t.outlets.all())
         outlet  = outlets[0] if outlets else None
-        user_count = User.objects.filter(tenant=t).count()
         tenant_data.append({
             "tenant":     t,
             "outlet":     outlet,
-            "user_count": user_count,
+            "user_count": user_counts.get(t.id, 0),
         })
 
     return render(request, "accounts/superuser_panel.html", {
@@ -276,15 +283,27 @@ def apply_preset(request, tenant_id):
         return JsonResponse({"error": "Unknown preset"}, status=400)
 
     with transaction.atomic():
+        # Same append-only audit trail as a single toggle_feature_flag call
+        # (accounts/views/feature_views.py) — without this, a bulk preset
+        # silently wiped out "who turned on X for this tenant, and when" for
+        # every feature it touched.
         for feature in preset.get("enable", []):
             TenantFeatureOverride.objects.update_or_create(
                 tenant=tenant, feature=feature,
                 defaults={"enabled": True},
             )
+            TenantFeatureAuditLog.objects.create(
+                tenant=tenant, feature=feature, enabled=True, source=f"preset:{preset_key}",
+                changed_by=request.user, notes=f"Applied by {request.user.username} via preset '{preset_key}'",
+            )
         for feature in preset.get("disable", []):
             TenantFeatureOverride.objects.update_or_create(
                 tenant=tenant, feature=feature,
                 defaults={"enabled": False},
+            )
+            TenantFeatureAuditLog.objects.create(
+                tenant=tenant, feature=feature, enabled=False, source=f"preset:{preset_key}",
+                changed_by=request.user, notes=f"Applied by {request.user.username} via preset '{preset_key}'",
             )
 
     logger.info("SU %s applied preset '%s' to tenant '%s'", request.user.username, preset_key, tenant.name)
