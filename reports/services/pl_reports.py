@@ -24,6 +24,10 @@ from django.db.models import Sum, Count
 
 from orders.models import Order, OrderItem, Payment
 from inventory.models import Recipe
+from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
+import logging
+
+logger = logging.getLogger("pos.reports")
 
 
 def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
@@ -91,8 +95,21 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
         if recipes:
             items_with_recipe += 1
             for recipe in recipes:
-                cost = recipe.inventory_item.cost_price
-                qty  = item.quantity * recipe.quantity_required
+                cost = recipe.inventory_item.cost_price  # Rs per inventory-item unit
+                qty_recipe_unit = item.quantity * recipe.quantity_required
+                try:
+                    # cost_price is per the INVENTORY ITEM's unit, so the
+                    # quantity must be in that same unit before multiplying —
+                    # a recipe in grams against an item costed per kilogram
+                    # would otherwise overstate COGS by 1000x.
+                    qty = convert_quantity(qty_recipe_unit, recipe.unit, recipe.inventory_item.unit)
+                except IncompatibleUnitsError as e:
+                    logger.warning(
+                        "[UNIT MISMATCH] Recipe %s -> '%s': %s. Excluding this "
+                        "recipe line from COGS rather than compute a wrong cost.",
+                        recipe.id, recipe.inventory_item.name, e,
+                    )
+                    continue
                 cogs += Decimal(str(cost)) * Decimal(str(qty))
         else:
             items_without_recipe += 1

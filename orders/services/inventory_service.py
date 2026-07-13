@@ -8,6 +8,7 @@ logger = logging.getLogger("pos.inventory")
 from django.core.exceptions import ObjectDoesNotExist
 
 from inventory.models import InventoryItem
+from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
 
 
 def deduct_inventory_for_items(order_items):
@@ -27,12 +28,28 @@ def deduct_inventory_for_items(order_items):
     item_references = defaultdict(list)
 
     # 1a. Base recipe deductions (menu item → ingredient)
+    # select_related("inventory_item") so recipe.inventory_item.unit below is
+    # free — it was already being fetched implicitly via .inventory_item_id.
     for order_item in order_items:
         recipes_manager = getattr(order_item.menu_item, "recipes", None)
         if recipes_manager is None:
             continue
-        for recipe in recipes_manager.all():
-            req_qty = Decimal(str(recipe.quantity_required)) * Decimal(str(order_item.quantity))
+        for recipe in recipes_manager.select_related("inventory_item").all():
+            req_qty_recipe_unit = Decimal(str(recipe.quantity_required)) * Decimal(str(order_item.quantity))
+            try:
+                req_qty = convert_quantity(req_qty_recipe_unit, recipe.unit, recipe.inventory_item.unit)
+            except IncompatibleUnitsError as e:
+                # Fail safe: skip this line and log loudly rather than deduct
+                # a meaningless number (e.g. treating grams as pieces). This
+                # is a data problem (recipe unit doesn't match the ingredient
+                # it points at) that needs fixing in the recipe, not silently
+                # corrupting stock.
+                logger.error(
+                    "[UNIT MISMATCH] Recipe %s (menu item '%s') -> inventory item '%s': %s. "
+                    "Skipping this deduction — fix the recipe's unit.",
+                    recipe.id, order_item.menu_item.name, recipe.inventory_item.name, e,
+                )
+                continue
             required_qty_map[recipe.inventory_item_id] += req_qty
             item_references[recipe.inventory_item_id].append(f"Order #{order_item.order_id}")
 
@@ -54,7 +71,17 @@ def deduct_inventory_for_items(order_items):
     if modifier_qty_map:
         for mr in ModifierRecipe.objects.filter(modifier_id__in=modifier_qty_map).select_related("inventory_item"):
             for qty, label in modifier_qty_map[mr.modifier_id]:
-                required_qty_map[mr.inventory_item_id] += Decimal(str(mr.quantity_required)) * qty
+                req_qty_mr_unit = Decimal(str(mr.quantity_required)) * qty
+                try:
+                    req_qty = convert_quantity(req_qty_mr_unit, mr.unit, mr.inventory_item.unit)
+                except IncompatibleUnitsError as e:
+                    logger.error(
+                        "[UNIT MISMATCH] ModifierRecipe %s -> inventory item '%s': %s. "
+                        "Skipping this deduction — fix the modifier recipe's unit.",
+                        mr.id, mr.inventory_item.name, e,
+                    )
+                    continue
+                required_qty_map[mr.inventory_item_id] += req_qty
                 item_references[mr.inventory_item_id].append(label)
 
     if not required_qty_map:

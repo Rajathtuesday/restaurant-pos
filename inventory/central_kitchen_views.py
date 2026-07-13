@@ -26,6 +26,7 @@ from core.decorators import tenant_required, feature_required, role_required
 from inventory.models import (
     BatchItem, BatchTransfer, InventoryItem, ProductionBatch,
 )
+from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
 from tenants.models import Outlet
 
 logger = logging.getLogger("pos.inventory")
@@ -330,14 +331,26 @@ def dispatch_batch(request, batch_id):
             # back the status update too, so dispatch is all-or-nothing.
             if updated and batch.batch_type == "move":
                 for bi in batch.items.select_related("inventory_item"):
+                    # bi.inventory_item is an EXISTING kitchen stock item, so
+                    # its unit may differ from the batch line's own unit (e.g.
+                    # the kitchen tracks it in kg, this batch was entered in g).
+                    qty_to_debit = convert_quantity(bi.quantity, bi.unit, bi.inventory_item.unit)
                     bi.inventory_item.reduce_stock(
-                        bi.quantity,
+                        qty_to_debit,
                         reference=f"Dispatched batch {batch.batch_number}",
                     )
     except ValidationError as e:
         msg = e.messages[0] if getattr(e, "messages", None) else str(e)
         return JsonResponse(
             {"error": f"Cannot dispatch — not enough stock at the kitchen to move this batch. {msg}"},
+            status=400,
+        )
+    except IncompatibleUnitsError as e:
+        # All-or-nothing: fail the whole dispatch rather than silently debit
+        # some lines and skip others, which would break the "total inventory
+        # stays constant" guarantee a 'move' batch exists to provide.
+        return JsonResponse(
+            {"error": f"Cannot dispatch — a batch item's unit doesn't match its inventory item. {e}"},
             status=400,
         )
 
@@ -491,15 +504,37 @@ def confirm_receive(request, transfer_id):
                     "low_stock_threshold": batch_item.inventory_item.low_stock_threshold,
                 }
             )
+            # A freshly-created item's unit is set FROM batch_item.unit above,
+            # so it always matches — no conversion needed. An item that
+            # already existed at this outlet has its own established unit,
+            # which may differ from the batch's unit (e.g. this outlet tracks
+            # the item in kg, the batch shipped it labelled in g).
+            qty_to_add = batch_item.quantity
+            if not created:
+                try:
+                    qty_to_add = convert_quantity(batch_item.quantity, batch_item.unit, inv_item.unit)
+                except IncompatibleUnitsError as e:
+                    logger.error(
+                        "[UNIT MISMATCH] Transfer %s item '%s': %s. Received as 0 — "
+                        "fix the batch item's unit and re-receive manually.",
+                        transfer.id, inv_item.name, e,
+                    )
+                    stock_updates.append({
+                        "item": inv_item.name, "added": 0, "unit": batch_item.unit,
+                        "new_stock": float(inv_item.stock), "created": created,
+                        "error": str(e),
+                    })
+                    continue
+
             # Add the received stock
             inv_item.add_stock(
-                batch_item.quantity,
+                qty_to_add,
                 reference=f"Transfer from {transfer.batch.source_outlet.name} — {transfer.batch.batch_number}"
             )
             stock_updates.append({
                 "item":     inv_item.name,
-                "added":    float(batch_item.quantity),
-                "unit":     batch_item.unit,
+                "added":    float(qty_to_add),
+                "unit":     inv_item.unit,
                 "new_stock": float(inv_item.stock),
                 "created":  created,
             })

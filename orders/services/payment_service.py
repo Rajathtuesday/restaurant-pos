@@ -27,6 +27,7 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from orders.models import Payment
+from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
 
 logger = logging.getLogger("pos.orders")
 
@@ -155,7 +156,16 @@ def _deduct_inventory_for_order(order):
             continue
         recipes = order_item.menu_item.recipes.select_related("inventory_item").all()
         for recipe in recipes:
-            qty_to_deduct = recipe.quantity_required * Decimal(str(order_item.quantity))
+            qty_recipe_unit = recipe.quantity_required * Decimal(str(order_item.quantity))
+            try:
+                qty_to_deduct = convert_quantity(qty_recipe_unit, recipe.unit, recipe.inventory_item.unit)
+            except IncompatibleUnitsError as e:
+                logger.error(
+                    "[UNIT MISMATCH] Recipe %s (menu item '%s') -> inventory item '%s': %s. "
+                    "Skipping this deduction — fix the recipe's unit.",
+                    recipe.id, order_item.menu_item.name, recipe.inventory_item.name, e,
+                )
+                continue
             try:
                 recipe.inventory_item.reduce_stock(
                     qty_to_deduct,

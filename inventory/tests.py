@@ -945,3 +945,252 @@ class VarianceReportBugFixTests(TestCase):
         self.assertEqual(rum_row["recipe_expected"], Decimal("0"))
         self.assertEqual(rum_row["txn_consumed"],   Decimal("0"))
         self.assertEqual(rum_row["variance"],       Decimal("0"))
+
+
+# ---------------------------------------------------------------------------
+# UNIT CONVERSION
+#
+# Recipe/ModifierRecipe/BatchItem each store their own `unit`, independent of
+# the InventoryItem they point at. A recipe entered in grams against an item
+# tracked in kilograms used to be treated as a raw number — off by 1000x.
+# ---------------------------------------------------------------------------
+
+class UnitConversionUtilTests(TestCase):
+    """Pure tests of inventory.unit_conversion — no DB involved."""
+
+    def test_grams_to_kilograms(self):
+        from inventory.unit_conversion import convert_quantity
+        self.assertEqual(convert_quantity(Decimal("500"), "g", "kg"), Decimal("0.5"))
+
+    def test_kilograms_to_grams(self):
+        from inventory.unit_conversion import convert_quantity
+        self.assertEqual(convert_quantity(Decimal("2"), "kg", "g"), Decimal("2000"))
+
+    def test_millilitres_to_litres(self):
+        from inventory.unit_conversion import convert_quantity
+        self.assertEqual(convert_quantity(Decimal("250"), "ml", "l"), Decimal("0.25"))
+
+    def test_same_unit_is_a_no_op(self):
+        from inventory.unit_conversion import convert_quantity
+        self.assertEqual(convert_quantity(Decimal("42"), "kg", "kg"), Decimal("42"))
+
+    def test_weight_to_volume_is_incompatible(self):
+        from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
+        with self.assertRaises(IncompatibleUnitsError):
+            convert_quantity(Decimal("100"), "g", "ml")
+
+    def test_pieces_to_weight_is_incompatible(self):
+        from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
+        with self.assertRaises(IncompatibleUnitsError):
+            convert_quantity(Decimal("3"), "pcs", "kg")
+
+    def test_units_compatible_true_within_family(self):
+        from inventory.unit_conversion import units_compatible
+        self.assertTrue(units_compatible("g", "kg"))
+        self.assertTrue(units_compatible("ml", "l"))
+        self.assertTrue(units_compatible("pcs", "pcs"))
+
+    def test_units_compatible_false_across_families(self):
+        from inventory.unit_conversion import units_compatible
+        self.assertFalse(units_compatible("g", "pcs"))
+        self.assertFalse(units_compatible("l", "kg"))
+
+
+class RecipeDeductionUnitConversionTests(TestCase):
+    """deduct_inventory_for_items (the real KOT-time deduction path) must
+    convert a recipe's unit into the inventory item's own unit before
+    touching stock, and must fail safe — skip and log, never guess — when
+    the two units can't be converted at all."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Unit Conv Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        # Tracked in KILOGRAMS.
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Flour", unit="kg", stock=Decimal("10.000"),
+        )
+
+    def _order_item_with_recipe(self, recipe_qty, recipe_unit, order_qty=1):
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat,
+            name="Naan", price=Decimal("60"),
+        )
+        Recipe.objects.create(
+            menu_item=item, inventory_item=self.flour,
+            quantity_required=Decimal(str(recipe_qty)), unit=recipe_unit,
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="open")
+        oi = OrderItem.objects.create(
+            order=order, menu_item=item, quantity=order_qty,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="confirmed",
+        )
+        return list(OrderItem.objects.filter(order=order).select_related("menu_item"))
+
+    def test_recipe_in_grams_deducts_correctly_from_kg_tracked_item(self):
+        """Recipe: 500g flour per Naan. Item tracked in kg. Must deduct 0.5kg, not 500kg."""
+        from orders.services.inventory_service import deduct_inventory_for_items
+
+        order_items = self._order_item_with_recipe(recipe_qty=500, recipe_unit="g")
+        deduct_inventory_for_items(order_items)
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("10.000") - Decimal("0.5"))
+
+    def test_recipe_in_same_unit_as_item_still_works(self):
+        from orders.services.inventory_service import deduct_inventory_for_items
+
+        order_items = self._order_item_with_recipe(recipe_qty=Decimal("1.5"), recipe_unit="kg")
+        deduct_inventory_for_items(order_items)
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("10.000") - Decimal("1.5"))
+
+    def test_incompatible_unit_recipe_is_skipped_not_corrupted(self):
+        """Recipe accidentally set to 'pcs' against a kg-tracked item — must
+        NOT deduct a meaningless number. Stock stays untouched."""
+        from orders.services.inventory_service import deduct_inventory_for_items
+
+        order_items = self._order_item_with_recipe(recipe_qty=2, recipe_unit="pcs")
+        deduct_inventory_for_items(order_items)  # must not raise
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("10.000"))  # unchanged
+
+
+class AddRecipeUnitDefaultTests(TestCase):
+    """add_recipe (menu/views/item_views.py) previously had no unit field at
+    all and every recipe silently got the model's hardcoded unit='g' default
+    — wrong for anything not tracked in grams. Now defaults to the inventory
+    item's own unit, and rejects an explicitly incompatible one."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Recipe Unit Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="recipe_owner", password="pwd",
+            role="owner", tenant=self.tenant, outlet=self.outlet,
+        )
+        from menu.models import MenuItem, MenuCategory
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Mains")
+        self.menu_item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat,
+            name="Chicken Curry", price=Decimal("250"),
+        )
+        # Tracked in PIECES, not weight — the case that used to be silently
+        # broken (recipe defaulted to unit="g" regardless).
+        self.eggs = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Eggs", unit="pcs", stock=Decimal("100"),
+        )
+
+    def test_recipe_without_unit_defaults_to_inventory_items_unit(self):
+        from inventory.models import Recipe
+        client = Client()
+        client.force_login(self.user)
+        resp = client.post(
+            reverse("add_recipe"),
+            data={"menu_item": self.menu_item.id, "inventory_item": self.eggs.id, "quantity": "2"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        recipe = Recipe.objects.get(menu_item=self.menu_item, inventory_item=self.eggs)
+        self.assertEqual(recipe.unit, "pcs")  # NOT the old hardcoded "g" default
+
+    def test_recipe_with_incompatible_unit_is_rejected(self):
+        from inventory.models import Recipe
+        client = Client()
+        client.force_login(self.user)
+        resp = client.post(
+            reverse("add_recipe"),
+            data={
+                "menu_item": self.menu_item.id, "inventory_item": self.eggs.id,
+                "quantity": "2", "unit": "kg",  # eggs are tracked in pcs, not weight
+            },
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Recipe.objects.filter(menu_item=self.menu_item, inventory_item=self.eggs).exists())
+
+    def test_updating_quantity_only_does_not_reset_a_custom_unit(self):
+        """A recipe deliberately entered in grams against a kg-tracked item
+        must keep that unit when only the quantity is later updated."""
+        from inventory.models import Recipe
+        flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Flour2", unit="kg", stock=Decimal("5"),
+        )
+        Recipe.objects.create(
+            menu_item=self.menu_item, inventory_item=flour,
+            quantity_required=Decimal("500"), unit="g",
+        )
+        client = Client()
+        client.force_login(self.user)
+        resp = client.post(
+            reverse("add_recipe"),
+            data={"menu_item": self.menu_item.id, "inventory_item": flour.id, "quantity": "750"},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        recipe = Recipe.objects.get(menu_item=self.menu_item, inventory_item=flour)
+        self.assertEqual(recipe.unit, "g")  # unchanged
+        self.assertEqual(recipe.quantity_required, Decimal("750"))
+
+
+class GrossMarginCogsUnitConversionTests(TestCase):
+    """gross_margin_report's COGS calculation multiplies recipe quantity by
+    the inventory item's cost_price (Rs per inventory-item unit) — the
+    quantity must be converted into that unit first."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="COGS Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            username="cogs_owner", password="pwd",
+            role="owner", tenant=self.tenant, outlet=self.outlet,
+        )
+        # Costed at Rs 100 per KILOGRAM.
+        self.sugar = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Sugar", unit="kg", stock=Decimal("50"), cost_price=Decimal("100.00"),
+        )
+
+    def test_cogs_converts_gram_recipe_against_kg_costed_item(self):
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+        from reports.services.pl_reports import gross_margin_report
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Desserts")
+        item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat,
+            name="Gulab Jamun", price=Decimal("120"),
+        )
+        # 200g of sugar per plate — item is costed per KG.
+        Recipe.objects.create(
+            menu_item=item, inventory_item=self.sugar,
+            quantity_required=Decimal("200"), unit="g",
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed",
+            subtotal=Decimal("120"), gst_total=Decimal("0"), grand_total=Decimal("120"),
+        )
+        OrderItem.objects.create(
+            order=order, menu_item=item, quantity=1,
+            price=Decimal("120"), gst_percentage=Decimal("0"),
+            total_price=Decimal("120"), status="served",
+        )
+
+        today = timezone.localdate()
+        result = gross_margin_report(self.tenant, self.outlet, today, today)
+
+        # 200g = 0.2kg * Rs 100/kg = Rs 20 COGS. The old bug would have
+        # computed 200 * 100 = Rs 20,000 (1000x too high).
+        self.assertEqual(result["cogs"], 20.0)
