@@ -148,8 +148,31 @@ def _deduct_inventory_for_order(order):
     deduction failure doesn't roll back the payment record.
     """
     from django.core.exceptions import ValidationError as DjangoValidationError
+    from inventory.models import ModifierRecipe
+    from orders.models import OrderItemModifier
 
-    items = order.items.exclude(status="voided").select_related("menu_item")
+    items = list(order.items.exclude(status="voided").select_related("menu_item"))
+
+    def _deduct(inv_item, qty_to_deduct, label):
+        try:
+            inv_item.reduce_stock(
+                qty_to_deduct,
+                reference=f"Order #{order.id} — Token #{getattr(getattr(order, 'token', None), 'token_number', '?')}"
+            )
+            logger.info(
+                "Inventory | deducted %.3f %s of '%s' for Order #%s (%s)",
+                float(qty_to_deduct), inv_item.unit, inv_item.name, order.id, label,
+            )
+        except DjangoValidationError as e:
+            logger.warning(
+                "Inventory | insufficient stock for '%s' on Order #%s: %s",
+                inv_item.name, order.id, e
+            )
+        except Exception as e:
+            logger.error(
+                "Inventory | unexpected error deducting '%s' on Order #%s: %s",
+                inv_item.name, order.id, e
+            )
 
     for order_item in items:
         if not order_item.menu_item:
@@ -166,25 +189,24 @@ def _deduct_inventory_for_order(order):
                     recipe.id, order_item.menu_item.name, recipe.inventory_item.name, e,
                 )
                 continue
-            try:
-                recipe.inventory_item.reduce_stock(
-                    qty_to_deduct,
-                    reference=f"Order #{order.id} — Token #{getattr(getattr(order, 'token', None), 'token_number', '?')}"
-                )
-                logger.info(
-                    "Inventory | deducted %.3f %s of '%s' for Order #%s",
-                    float(qty_to_deduct),
-                    recipe.inventory_item.unit,
-                    recipe.inventory_item.name,
-                    order.id,
-                )
-            except DjangoValidationError as e:
-                logger.warning(
-                    "Inventory | insufficient stock for '%s' on Order #%s: %s",
-                    recipe.inventory_item.name, order.id, e
-                )
-            except Exception as e:
-                logger.error(
-                    "Inventory | unexpected error deducting '%s' on Order #%s: %s",
-                    recipe.inventory_item.name, order.id, e
-                )
+            _deduct(recipe.inventory_item, qty_to_deduct, "recipe")
+
+        # Modifier-linked inventory (e.g. "Extra Cheese") — this used to be
+        # skipped entirely on the QSR/counter deduction path, unlike the
+        # fine-dining KOT path, so a paid modifier's ingredient was never
+        # deducted for any counter-billing order.
+        for oim in OrderItemModifier.objects.filter(order_item=order_item).select_related("modifier"):
+            if not oim.modifier:
+                continue
+            for mr in ModifierRecipe.objects.filter(modifier=oim.modifier).select_related("inventory_item"):
+                qty_mr_unit = mr.quantity_required * Decimal(str(order_item.quantity))
+                try:
+                    qty_to_deduct = convert_quantity(qty_mr_unit, mr.unit, mr.inventory_item.unit)
+                except IncompatibleUnitsError as e:
+                    logger.error(
+                        "[UNIT MISMATCH] ModifierRecipe %s (modifier '%s') -> inventory item '%s': %s. "
+                        "Skipping this deduction — fix the modifier recipe's unit.",
+                        mr.id, oim.modifier.name, mr.inventory_item.name, e,
+                    )
+                    continue
+                _deduct(mr.inventory_item, qty_to_deduct, f"+{oim.modifier.name}")

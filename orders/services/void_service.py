@@ -68,39 +68,83 @@ def _restore_inventory_for_void(item):
     """
     Reverse the inventory deduction made when the KOT was sent.
     Called only when the item had already been dispatched to the kitchen.
-    Uses the same recipe linkage that deduct_inventory_for_items uses.
-    """
-    from inventory.models import InventoryItem, InventoryTransaction
+    Uses the same recipe/modifier linkage and unit conversion that
+    deduct_inventory_for_items (orders/services/inventory_service.py) uses —
+    this used to restore the raw recipe quantity with no conversion and no
+    modifier handling at all, so a recipe in grams against a kg-tracked item
+    over/under-restored stock by 1000x, and any modifier-driven deduction
+    (e.g. "Extra Cheese") was never reversed on void at all.
 
-    recipes = list(
-        getattr(item.menu_item, "recipes", item.menu_item.recipes if item.menu_item else None).all()
-        if item.menu_item else []
-    )
-    if not recipes:
+    Note: deduct_inventory_for_items soft-drains to 0 rather than going
+    negative when stock was already short, so a void can restore slightly
+    more than was actually taken in that edge case — a pre-existing
+    limitation of recomputing from the recipe formula rather than recording
+    the exact deducted amount per KOT line; out of scope for this fix.
+    """
+    from inventory.models import InventoryItem, InventoryTransaction, ModifierRecipe
+    from inventory.unit_conversion import recipe_expected_quantity
+    from orders.models import OrderItemModifier
+
+    if not item.menu_item:
         return
 
-    # Sort by inventory_item_id for consistent lock ordering (deadlock prevention)
-    recipes = sorted(recipes, key=lambda r: r.inventory_item_id)
-    inv_ids = [r.inventory_item_id for r in recipes]
+    recipes = list(item.menu_item.recipes.select_related("inventory_item").all())
+    modifier_links = [
+        (oim.modifier, mr)
+        for oim in OrderItemModifier.objects.filter(order_item=item).select_related("modifier")
+        if oim.modifier
+        for mr in ModifierRecipe.objects.filter(modifier=oim.modifier).select_related("inventory_item")
+    ]
+    if not recipes and not modifier_links:
+        return
 
+    restore_map = {}   # {inventory_item_id: (inv, qty_to_restore)}
+
+    for recipe in recipes:
+        qty = recipe_expected_quantity(
+            recipe.quantity_required, recipe.unit, recipe.inventory_item,
+            logger=logger, context=f"Void restore: Recipe {recipe.id} (menu item '{item.menu_item.name}')",
+        )
+        if qty is None:
+            continue
+        qty_to_restore = qty * Decimal(str(item.quantity))
+        inv = recipe.inventory_item
+        prev = restore_map.get(inv.id, (inv, Decimal("0")))
+        restore_map[inv.id] = (inv, prev[1] + qty_to_restore)
+
+    for modifier, mod_recipe in modifier_links:
+        qty = recipe_expected_quantity(
+            mod_recipe.quantity_required, mod_recipe.unit, mod_recipe.inventory_item,
+            logger=logger, context=f"Void restore: ModifierRecipe {mod_recipe.id} (modifier '{modifier.name}')",
+        )
+        if qty is None:
+            continue
+        qty_to_restore = qty * Decimal(str(item.quantity))
+        inv = mod_recipe.inventory_item
+        prev = restore_map.get(inv.id, (inv, Decimal("0")))
+        restore_map[inv.id] = (inv, prev[1] + qty_to_restore)
+
+    if not restore_map:
+        return
+
+    # Lock in a consistent order (by ID) to prevent deadlocks, same as the
+    # deduction path.
+    inv_ids = sorted(restore_map.keys())
     locked = {
         inv.id: inv
         for inv in InventoryItem.objects.select_for_update().filter(id__in=inv_ids)
     }
 
     txns = []
-    for recipe in recipes:
-        inv = locked.get(recipe.inventory_item_id)
+    for inv_id in inv_ids:
+        inv = locked.get(inv_id)
         if not inv:
-            logger.error(
-                "Void restore: inventory item %s not found for recipe on %s",
-                recipe.inventory_item_id, item.menu_item.name,
-            )
+            logger.error("Void restore: inventory item %s not found", inv_id)
             continue
-
-        qty_to_restore = Decimal(str(recipe.quantity_required)) * Decimal(str(item.quantity))
+        _, qty_to_restore = restore_map[inv_id]
+        if qty_to_restore <= 0:
+            continue
         InventoryItem.objects.filter(pk=inv.id).update(stock=F("stock") + qty_to_restore)
-
         txns.append(
             InventoryTransaction(
                 item=inv,

@@ -1521,3 +1521,102 @@ class GrossMarginCogsUnitConversionTests(TestCase):
         # 200g = 0.2kg * Rs 100/kg = Rs 20 COGS. The old bug would have
         # computed 200 * 100 = Rs 20,000 (1000x too high).
         self.assertEqual(result["cogs"], 20.0)
+
+    def test_modifier_recipe_included_in_cogs(self):
+        """COGS previously only summed base Recipe links — a paid modifier's
+        inventory link (e.g. Extra Cheese) was silently excluded, undercosting
+        (and overstating margin on) any dish sold with it."""
+        from inventory.models import ModifierRecipe
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+        from reports.services.pl_reports import gross_margin_report
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Desserts")
+        item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat,
+            name="Plain Toast", price=Decimal("50"),
+        )
+        # No base recipe at all — only a modifier link, same as a real
+        # "Extra X" add-on with no base ingredient cost of its own.
+        group = ModifierGroup.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extras")
+        mod = Modifier.objects.create(group=group, name="Extra Sugar", price=Decimal("5"))
+        ModifierRecipe.objects.create(
+            modifier=mod, inventory_item=self.sugar,
+            quantity_required=Decimal("200"), unit="g",  # item costed per kg
+        )
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed",
+            subtotal=Decimal("55"), gst_total=Decimal("0"), grand_total=Decimal("55"),
+        )
+        oi = OrderItem.objects.create(
+            order=order, menu_item=item, quantity=1,
+            price=Decimal("50"), gst_percentage=Decimal("0"),
+            total_price=Decimal("55"), status="served",
+        )
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod, name=mod.name, price=mod.price)
+
+        today = timezone.localdate()
+        result = gross_margin_report(self.tenant, self.outlet, today, today)
+
+        # 200g sugar = 0.2kg * Rs 100/kg = Rs 20 — previously Rs 0 (excluded).
+        self.assertEqual(result["cogs"], 20.0)
+        self.assertEqual(result["items_with_recipe"], 1)
+
+
+class ProductionCapacityUnitConversionTests(TestCase):
+    """production_capacity() (reports/services/inventory_reports.py) divides
+    stock by recipe.quantity_required to say how many portions can be made —
+    must convert into the inventory item's own unit first, same bug class as
+    the consumption/variance reports and COGS."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="ProdCap Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Flour", unit="kg", stock=Decimal("10.000"),
+        )
+
+    def test_capacity_converts_gram_recipe_against_kg_item(self):
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from reports.services.inventory_reports import production_capacity
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        # 500g per Naan, item tracked in kg — 10kg stock should support 20 Naans,
+        # not 10/500 = 0 (the pre-fix bug, treating grams as if already kg).
+        Recipe.objects.create(
+            menu_item=naan, inventory_item=self.flour,
+            quantity_required=Decimal("500"), unit="g",
+        )
+
+        results = production_capacity(self.tenant, self.outlet)
+        naan_row = next(r for r in results if r["menu_item"] == "Naan")
+
+        self.assertEqual(naan_row["max_portions"], 20)
+        self.assertEqual(naan_row["bottleneck"], "Flour")
+
+    def test_incompatible_unit_treated_as_zero_capacity(self):
+        """A recipe with a genuinely incompatible unit is a data problem, not
+        a stock shortage — but must still show as 0, not silently excluded,
+        since the dish's real deduction is unreliable either way."""
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from reports.services.inventory_reports import production_capacity
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        Recipe.objects.create(
+            menu_item=naan, inventory_item=self.flour,
+            quantity_required=Decimal("2"), unit="pcs",  # incompatible with kg
+        )
+
+        results = production_capacity(self.tenant, self.outlet)
+        naan_row = next(r for r in results if r["menu_item"] == "Naan")
+
+        self.assertEqual(naan_row["max_portions"], 0)

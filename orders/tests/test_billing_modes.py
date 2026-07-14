@@ -339,6 +339,43 @@ class InventoryDeductionTest(CounterBillingBase):
         # 2 idlis × 0.1 kg = 0.2 kg deducted — counter orders ALWAYS deduct
         self.assertAlmostEqual(float(batter.stock), initial_stock - 0.2, places=2)
 
+    def test_modifier_recipe_deducted_on_qsr_counter_payment(self):
+        """The QSR/counter deduction path (_deduct_inventory_for_order) used
+        to only look at base recipes — a paid modifier's inventory link (e.g.
+        Extra Chutney) was silently never deducted at all on counter orders,
+        unlike the fine-dining KOT path which already handled it."""
+        from inventory.models import InventoryItem, ModifierRecipe
+        from menu.models import ModifierGroup, Modifier
+        from orders.models import OrderItemModifier
+
+        chutney = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Chutney", unit="ml", stock=Decimal("1000"),
+        )
+        group = ModifierGroup.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extras")
+        mod = Modifier.objects.create(group=group, name="Extra Chutney", price=Decimal("10"))
+        ModifierRecipe.objects.create(
+            modifier=mod, inventory_item=chutney,
+            quantity_required=Decimal("50"), unit="ml",
+        )
+
+        order = self._make_order([(self.idli, 1)])
+        OrderItemModifier.objects.create(
+            order_item=order.items.first(), modifier=mod, name=mod.name, price=mod.price,
+        )
+        order.recalculate_totals()
+        order.status = "billing"
+        order.save(update_fields=["status"])
+
+        self.client.post(
+            f"/pay/{order.id}/",
+            data='{"method":"cash","amount":"' + str(order.grand_total) + '"}',
+            content_type="application/json",
+        )
+
+        chutney.refresh_from_db()
+        self.assertEqual(chutney.stock, Decimal("950"))  # 1000 - 50ml, not left at 1000
+
 
 # ── 5. Feature Gating ─────────────────────────────────────────────────────────
 

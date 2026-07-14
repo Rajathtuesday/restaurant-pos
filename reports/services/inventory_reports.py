@@ -1,6 +1,9 @@
 # reports/services/inventory_reports.py
+import logging
 from django.db.models import Sum
 from inventory.models import InventoryTransaction
+
+logger = logging.getLogger("pos.reports")
 
 
 def inventory_usage(tenant, outlet, start_date=None, end_date=None):
@@ -80,6 +83,7 @@ def production_capacity(tenant, outlet):
     """
     from menu.models import MenuItem
     from inventory.models import Recipe
+    from inventory.unit_conversion import recipe_expected_quantity
 
     menu_items = (
         MenuItem.objects
@@ -97,15 +101,27 @@ def production_capacity(tenant, outlet):
         lines = []
         for r in recipes:
             inv = r.inventory_item
-            if r.quantity_required and r.quantity_required > 0:
-                can_make = inv.stock / r.quantity_required
+            # A recipe's unit doesn't have to match the inventory item's own
+            # unit (e.g. a recipe in grams against a kg-tracked item) — must
+            # convert before dividing, same as KOT-time deduction does, or
+            # "how many can I make" is off by whatever the unit ratio is.
+            required_per = recipe_expected_quantity(
+                r.quantity_required, r.unit, inv,
+                logger=logger, context=f"Recipe {r.id} (menu item '{mi.name}')",
+            )
+            if required_per and required_per > 0:
+                can_make = inv.stock / required_per
             else:
+                # None (incompatible units) or zero/blank — treat as a hard
+                # stop rather than silently excluding the line, since a
+                # broken recipe line here means this dish's stock deduction
+                # is unreliable, not just untracked for this report.
                 can_make = 0
             lines.append({
                 "ingredient": inv.name,
                 "stock": inv.stock,
                 "unit": inv.unit,
-                "required_per": r.quantity_required,
+                "required_per": required_per if required_per is not None else r.quantity_required,
                 "can_make": can_make,
                 "is_low": inv.stock <= inv.low_stock_threshold,
             })

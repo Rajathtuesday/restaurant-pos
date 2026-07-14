@@ -73,11 +73,14 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     order_count   = totals2["order_count"] or 0
     net_revenue   = gross_revenue - gst_collected
 
-    # ── COGS from recipes ────────────────────────────────────────
+    # ── COGS from recipes AND modifiers ────────────────────────────
     # OrderItems in closed orders in the period with a linked recipe
-    item_qs = OrderItem.objects.filter(
-        order__in=order_qs,
-    ).exclude(status="voided").select_related("menu_item")
+    item_qs = (
+        OrderItem.objects.filter(order__in=order_qs)
+        .exclude(status="voided")
+        .select_related("menu_item")
+        .prefetch_related("modifiers__modifier__inventory_links__inventory_item")
+    )
 
     cogs = Decimal("0")
     items_with_recipe = 0
@@ -90,9 +93,18 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     ).select_related("inventory_item"):
         recipe_map.setdefault(recipe.menu_item_id, []).append(recipe)
 
-    for item in item_qs.iterator():
+    for item in item_qs.iterator(chunk_size=200):
         recipes = recipe_map.get(item.menu_item_id, [])
-        if recipes:
+        # Modifier-linked inventory (e.g. "Extra Cheese") contributes to COGS
+        # too — previously only base recipes were counted here, silently
+        # undercosting (and overstating margin on) any dish sold with a
+        # costed modifier.
+        modifier_links = [
+            (oim.modifier, mr)
+            for oim in item.modifiers.all() if oim.modifier
+            for mr in oim.modifier.inventory_links.all()
+        ]
+        if recipes or modifier_links:
             items_with_recipe += 1
             for recipe in recipes:
                 cost = recipe.inventory_item.cost_price  # Rs per inventory-item unit
@@ -108,6 +120,19 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
                         "[UNIT MISMATCH] Recipe %s -> '%s': %s. Excluding this "
                         "recipe line from COGS rather than compute a wrong cost.",
                         recipe.id, recipe.inventory_item.name, e,
+                    )
+                    continue
+                cogs += Decimal(str(cost)) * Decimal(str(qty))
+            for modifier, mod_recipe in modifier_links:
+                cost = mod_recipe.inventory_item.cost_price
+                qty_recipe_unit = item.quantity * mod_recipe.quantity_required
+                try:
+                    qty = convert_quantity(qty_recipe_unit, mod_recipe.unit, mod_recipe.inventory_item.unit)
+                except IncompatibleUnitsError as e:
+                    logger.warning(
+                        "[UNIT MISMATCH] ModifierRecipe %s -> '%s': %s. Excluding "
+                        "this line from COGS rather than compute a wrong cost.",
+                        mod_recipe.id, mod_recipe.inventory_item.name, e,
                     )
                     continue
                 cogs += Decimal(str(cost)) * Decimal(str(qty))
