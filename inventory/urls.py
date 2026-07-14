@@ -11,6 +11,11 @@ from .requisition_views import (
     requisition_detail, approve_requisition,
     convert_to_batch, convert_to_po, cancel_requisition,
 )
+from .recipe_import_views import (
+    recipe_import_start, recipe_import_status, recipe_import_review,
+    recipe_import_update_line, recipe_import_add_line,
+    recipe_import_confirm, recipe_import_discard,
+)
 
 urlpatterns = [
     # Inventory board + reports
@@ -58,4 +63,13 @@ urlpatterns = [
     path("central-kitchen/receive/",                      receive_page,              name="ck-receive"),
     path("central-kitchen/scan/",                         scan_barcode,              name="ck-scan"),
     path("central-kitchen/receive/<int:transfer_id>/confirm/", confirm_receive,      name="ck-confirm-receive"),
+
+    # AI Recipe Import
+    path("recipe-import/start/",                    recipe_import_start,       name="recipe-import-start"),
+    path("recipe-import/<int:job_id>/status/",       recipe_import_status,      name="recipe-import-status"),
+    path("recipe-import/<int:job_id>/review/",       recipe_import_review,      name="recipe-import-review"),
+    path("recipe-import/line/<int:line_id>/update/", recipe_import_update_line, name="recipe-import-update-line"),
+    path("recipe-import/<int:job_id>/add-line/",     recipe_import_add_line,    name="recipe-import-add-line"),
+    path("recipe-import/<int:job_id>/confirm/",      recipe_import_confirm,     name="recipe-import-confirm"),
+    path("recipe-import/<int:job_id>/discard/",      recipe_import_discard,     name="recipe-import-discard"),
 ]

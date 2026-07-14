@@ -1,0 +1,241 @@
+{% extends 'core/base.html' %}
+{% block title %}Recipe Import Review | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .review-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  .review-title { font-family: 'DM Serif Display', serif; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-main); }
+  .review-subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+
+  .banner { border: 1px solid var(--border-color); padding: 0.9rem 1.2rem; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-main); }
+  .banner-info { border-left: 3px solid var(--accent-gold); }
+  .banner-warn { border-left: 3px solid #ef4444; color: #ef4444; }
+
+  .line-table { width: 100%; border-collapse: collapse; }
+  .line-table th { text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border-color); }
+  .line-table td { padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--border-color); vertical-align: top; }
+  .line-row.needs-attention td { background: rgba(239,68,68,0.05); }
+  .raw-text { font-family: 'Space Mono', monospace; font-size: 0.8rem; color: var(--text-main); }
+  .raw-qty { color: var(--text-muted); font-size: 0.75rem; }
+
+  .luxury-badge-sm { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; padding: 2px 6px; border-radius: 0; display: inline-block; margin-bottom: 4px; }
+  .badge-exact  { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid #22c55e; }
+  .badge-fuzzy  { background: rgba(197,160,89,0.12); color: var(--accent-gold); border: 1px solid var(--accent-gold); }
+  .badge-ai     { background: rgba(59,130,246,0.12); color: #3b82f6; border: 1px solid #3b82f6; }
+  .badge-new    { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; }
+  .badge-manual { background: rgba(148,163,184,0.12); color: var(--text-muted); border: 1px solid var(--border-color); }
+
+  .line-select, .line-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 0.85rem; padding: 0.3rem 0; }
+  .line-input.qty-missing { border-bottom-color: #ef4444; }
+  .unit-cell { width: 90px; }
+  .qty-cell { width: 100px; }
+  .include-cell { width: 50px; text-align: center; }
+
+  .review-actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-wrap">
+  <a href="{% url 'menu_management' %}" class="text-muted small" style="text-decoration:none;"><i class="bi bi-arrow-left me-1"></i>Back to Menu</a>
+  <h3 class="review-title mt-2">Recipe Import Review</h3>
+  <p class="review-subtitle">{{ job.menu_item.name }} — nothing here is saved until you click "Save Recipe" below.</p>
+
+  {% if job.status == "processing" %}
+    <div class="banner banner-info">Still processing — this page was opened before the import finished. Refresh in a moment.</div>
+  {% elif job.status == "failed" %}
+    <div class="banner banner-warn">Import failed: {{ job.error_message }}</div>
+  {% elif job.status == "discarded" %}
+    <div class="banner banner-info">This import was discarded. No recipe changes were made.</div>
+  {% else %}
+    {% if job.status == "confirmed" %}
+      <div class="banner banner-info">This import was already confirmed on {{ job.confirmed_at }}. Shown below read-only.</div>
+    {% endif %}
+    {% if existing_recipe_count > 0 %}
+      <div class="banner banner-info">"{{ job.menu_item.name }}" already has {{ existing_recipe_count }} recipe ingredient{{ existing_recipe_count|pluralize }} — confirming will add to or update them, not replace them wholesale.</div>
+    {% endif %}
+    <div class="banner banner-info">Enter quantities for <strong>one serving</strong> of this dish.</div>
+
+    <table class="line-table">
+      <thead>
+        <tr>
+          <th>As Written</th>
+          <th>Match</th>
+          <th class="qty-cell">Quantity</th>
+          <th class="unit-cell">Unit</th>
+          <th class="include-cell">Use</th>
+        </tr>
+      </thead>
+      <tbody id="lineTableBody">
+        {% for line in lines %}
+        <tr class="line-row {% if line.needs_manual_quantity or line.is_new_ingredient %}needs-attention{% endif %}" data-line-id="{{ line.id }}">
+          <td>
+            <div class="raw-text">{{ line.raw_ingredient_name|default:"(manual)" }}</div>
+            {% if line.raw_quantity_text %}<div class="raw-qty">"{{ line.raw_quantity_text }}"</div>{% endif %}
+          </td>
+          <td>
+            {% if line.match_method == "exact" %}<span class="luxury-badge-sm badge-exact">Exact</span>
+            {% elif line.match_method == "fuzzy" %}<span class="luxury-badge-sm badge-fuzzy">Fuzzy {% widthratio line.match_confidence 1 100 %}%</span>
+            {% elif line.match_method == "ai" %}<span class="luxury-badge-sm badge-ai">AI</span>
+            {% elif line.match_method == "manual" %}<span class="luxury-badge-sm badge-manual">Manual</span>
+            {% else %}<span class="luxury-badge-sm badge-new">No Match</span>
+            {% endif %}
+            <select class="line-select match-select" {% if job.status != "ready_for_review" %}disabled{% endif %}>
+              <option value="">— none —</option>
+              {% for item in inventory_items %}
+              <option value="{{ item.id }}" data-unit="{{ item.unit }}" {% if line.resolved_inventory_item_id == item.id %}selected{% endif %}>{{ item.name }} ({{ item.unit }})</option>
+              {% endfor %}
+              <option value="__new__">+ New ingredient…</option>
+            </select>
+          </td>
+          <td class="qty-cell">
+            <input type="text" class="line-input qty-input {% if line.needs_manual_quantity and not line.final_quantity %}qty-missing{% endif %}"
+                   value="{{ line.final_quantity|default_if_none:'' }}" placeholder="{% if line.needs_manual_quantity %}required{% else %}0.00{% endif %}"
+                   {% if job.status != "ready_for_review" %}disabled{% endif %}>
+          </td>
+          <td class="unit-cell">
+            <select class="line-select unit-select" {% if job.status != "ready_for_review" %}disabled{% endif %}>
+              <option value="">—</option>
+              {% for code, label in unit_choices %}
+              <option value="{{ code }}" {% if line.final_unit == code %}selected{% endif %}>{{ code }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="include-cell">
+            <input type="checkbox" class="include-checkbox" {% if line.include_in_recipe %}checked{% endif %} {% if job.status != "ready_for_review" %}disabled{% endif %}>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No ingredients were extracted from this document.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if job.status == "ready_for_review" %}
+    <div class="mt-3">
+      <button class="btn-luxury" style="border:1px solid var(--border-color);background:transparent;color:var(--text-main);" onclick="addIngredientRow()">
+        <i class="bi bi-plus-lg me-1"></i>Add ingredient
+      </button>
+    </div>
+
+    <div class="review-actions">
+      <button class="btn-luxury btn-gold flex-grow-1 justify-content-center" id="confirmBtn" onclick="confirmImport()">Save Recipe</button>
+      <button class="btn-luxury flex-grow-1 justify-content-center" style="border:1px solid var(--border-color);background:transparent;color:var(--text-main);" onclick="discardImport()">Discard</button>
+    </div>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const JOB_ID = {{ job.id }};
+
+  function csrfHeaders(extra) {
+    return Object.assign({ "X-CSRFToken": apiClient.getCsrf() }, extra || {});
+  }
+
+  function rowFromEl(el) { return el.closest(".line-row"); }
+
+  function collectLinePayload(row) {
+    const select = row.querySelector(".match-select");
+    const qtyInput = row.querySelector(".qty-input");
+    const unitSelect = row.querySelector(".unit-select");
+    const includeBox = row.querySelector(".include-checkbox");
+    const invId = select.value && select.value !== "__new__" ? select.value : null;
+    return {
+      resolved_inventory_item_id: invId,
+      final_quantity: qtyInput.value || null,
+      final_unit: unitSelect.value || null,
+      include_in_recipe: includeBox.checked,
+    };
+  }
+
+  function saveLine(row) {
+    const lineId = row.dataset.lineId;
+    fetch(`/inventory/recipe-import/line/${lineId}/update/`, {
+      method: "POST",
+      headers: csrfHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(collectLinePayload(row)),
+    }).then(r => r.json()).then(d => {
+      if (d.error) alert(d.error);
+    });
+  }
+
+  document.getElementById("lineTableBody")?.addEventListener("change", function (e) {
+    const row = rowFromEl(e.target);
+    if (!row) return;
+
+    if (e.target.classList.contains("match-select") && e.target.value === "__new__") {
+      const name = prompt("New ingredient name:");
+      if (!name) { e.target.value = ""; return; }
+      const unit = (prompt("Unit — one of: pcs, g, kg, ml, l", "g") || "").trim().toLowerCase();
+      if (!["pcs", "g", "kg", "ml", "l"].includes(unit)) { alert("Invalid unit."); e.target.value = ""; return; }
+      fetch("{% url 'create_inventory_item' %}", {
+        method: "POST",
+        headers: csrfHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ name, unit }),
+      }).then(r => r.json()).then(d => {
+        if (d.error) { alert(d.error); e.target.value = ""; return; }
+        document.querySelectorAll(".match-select").forEach(sel => {
+          const opt = document.createElement("option");
+          opt.value = d.id; opt.dataset.unit = unit; opt.textContent = `${name} (${unit})`;
+          sel.insertBefore(opt, sel.lastElementChild);
+        });
+        e.target.value = d.id;
+        const unitSelect = row.querySelector(".unit-select");
+        if (unitSelect && !unitSelect.value) unitSelect.value = unit;
+        saveLine(row);
+      });
+      return;
+    }
+
+    if (e.target.classList.contains("match-select")) {
+      const opt = e.target.selectedOptions[0];
+      const unitSelect = row.querySelector(".unit-select");
+      if (opt && opt.dataset.unit && unitSelect && !unitSelect.value) unitSelect.value = opt.dataset.unit;
+    }
+
+    saveLine(row);
+  });
+
+  function addIngredientRow() {
+    fetch(`/inventory/recipe-import/${JOB_ID}/add-line/`, {
+      method: "POST", headers: csrfHeaders(),
+    }).then(r => r.json()).then(d => {
+      if (d.error) { alert(d.error); return; }
+      location.reload();
+    });
+  }
+
+  function confirmImport() {
+    const rows = document.querySelectorAll(".line-row");
+    for (const row of rows) {
+      const p = collectLinePayload(row);
+      if (p.include_in_recipe && (!p.resolved_inventory_item_id || !p.final_quantity || !p.final_unit)) {
+        alert("Every included row needs a matched ingredient, quantity, and unit before saving.");
+        return;
+      }
+    }
+    const btn = document.getElementById("confirmBtn");
+    btn.disabled = true; btn.innerText = "Saving…";
+    fetch(`/inventory/recipe-import/${JOB_ID}/confirm/`, {
+      method: "POST", headers: csrfHeaders(),
+    }).then(r => r.json()).then(d => {
+      if (d.error) { alert(d.error); btn.disabled = false; btn.innerText = "Save Recipe"; return; }
+      alert(`Saved ${d.count} recipe ingredient${d.count === 1 ? "" : "s"}.`);
+      window.location.href = "{% url 'menu_management' %}";
+    });
+  }
+
+  function discardImport() {
+    if (!confirm("Discard this import? No recipe changes will be made.")) return;
+    fetch(`/inventory/recipe-import/${JOB_ID}/discard/`, {
+      method: "POST", headers: csrfHeaders(),
+    }).then(r => r.json()).then(d => {
+      if (d.error) { alert(d.error); return; }
+      window.location.href = "{% url 'menu_management' %}";
+    });
+  }
+</script>
+{% endblock %}

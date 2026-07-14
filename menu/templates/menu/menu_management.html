@@ -230,6 +230,9 @@
                 <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{ item.id }}', name:'{{ item.name|escapejs }}', price:'{{ item.price }}', description:'{{ item.description|escapejs }}', category:'{{ item.category.id }}', station:'{% if item.station %}{{ item.station.id }}{% endif %}', prepTime:{{ item.estimated_prep_time }}, isVeg:{{ item.is_veg|lower }}, parcelCharge:'{{ item.parcel_charge }}'})"><i class="bi bi-pencil-square"></i></button>
                 <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem('{{ item.id }}')"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
                 <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal('{{ item.id }}')"><i class="bi bi-journal-text"></i></button>
+                {% if 'ai_recipe_import' in tenant_features %}
+                <button class="btn-action-icon" title="Import Recipe with AI" onclick="openRecipeImportModal('{{ item.id }}', '{{ item.name|escapejs }}')"><i class="bi bi-stars"></i></button>
+                {% endif %}
                 <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem('{{ item.id }}')"><i class="bi bi-trash"></i></button>
               </div>
             </div>
@@ -398,6 +401,33 @@
     </div>
   </div>
 </div>
+
+{% if 'ai_recipe_import' in tenant_features %}
+<!-- RECIPE IMPORT MODAL -->
+<div class="modal fade" id="recipeImportModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-stars me-2"></i>Import Recipe with AI — <span id="recipeImportItemName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">Upload a photo, PDF, Word or Excel file of this dish's recipe, <strong>or paste it as text</strong>. You'll review every ingredient and quantity before anything is saved.</p>
+        <div class="mb-3">
+          <label class="stat-label">Upload recipe file</label>
+          <input type="file" id="recipeImportFile" class="form-control"
+                 accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain">
+        </div>
+        <div class="text-center my-2 text-muted small">— OR PASTE TEXT —</div>
+        <textarea id="recipeImportText" class="form-control form-input-luxury" rows="6" placeholder="Example:&#10;2 cups Basmati Rice&#10;500g Chicken&#10;1 tbsp Ginger Garlic Paste&#10;Salt to taste"></textarea>
+      </div>
+      <div class="modal-footer pt-0 border-0">
+        <button class="btn-luxury btn-gold w-100 justify-content-center" id="recipeImportBtn" onclick="runRecipeImport()">Extract Ingredients</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
@@ -510,6 +540,70 @@
           // still "processing" — keep polling
         })
         .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Process with Smart AI"; });
+    }, 2000);
+  }
+
+  let recipeImportItemId = null;
+
+  function openRecipeImportModal(itemId, itemName) {
+    recipeImportItemId = itemId;
+    document.getElementById("recipeImportItemName").textContent = itemName;
+    document.getElementById("recipeImportFile").value = "";
+    document.getElementById("recipeImportText").value = "";
+    new bootstrap.Modal(document.getElementById("recipeImportModal")).show();
+  }
+
+  function runRecipeImport() {
+    const text      = document.getElementById("recipeImportText").value;
+    const fileInput = document.getElementById("recipeImportFile");
+    const btn       = document.getElementById("recipeImportBtn");
+    if (!text.trim() && !fileInput.files[0]) { alert("Please provide text or upload a file."); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading…';
+
+    const formData = new FormData();
+    formData.append("menu_item", recipeImportItemId);
+    if (fileInput.files[0]) formData.append("file", fileInput.files[0]);
+    formData.append("text", text);
+
+    fetch("/inventory/recipe-import/start/", {
+      method: "POST",
+      headers: { "X-CSRFToken": apiClient.getCsrf() },
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        alert(data.error);
+        btn.disabled = false; btn.innerText = "Extract Ingredients";
+        return;
+      }
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI is reading the recipe…';
+      pollRecipeImport(data.job_id, btn);
+    })
+    .catch(() => {
+      alert("Error connecting to AI service");
+      btn.disabled = false; btn.innerText = "Extract Ingredients";
+    });
+  }
+
+  function pollRecipeImport(jobId, btn) {
+    const interval = setInterval(() => {
+      fetch(`/inventory/recipe-import/${jobId}/status/`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === "ready_for_review") {
+            clearInterval(interval);
+            window.location.href = `/inventory/recipe-import/${jobId}/review/`;
+          } else if (data.status === "failed") {
+            clearInterval(interval);
+            alert("Recipe import failed: " + (data.error || "unknown error"));
+            btn.disabled = false; btn.innerText = "Extract Ingredients";
+          }
+          // still "processing" — keep polling
+        })
+        .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Extract Ingredients"; });
     }, 2000);
   }
 

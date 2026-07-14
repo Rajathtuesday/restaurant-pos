@@ -244,6 +244,129 @@ class AIService:
             structured.append(current_category)
         return structured
 
+    def parse_recipe(self, text=None, image_bytes=None, mime_type=None):
+        """
+        Extracts a flat ingredient list from a recipe document/photo: each
+        line is the ingredient name and the quantity exactly as written
+        ("1 cup", "a pinch", "200g") — no unit conversion, no inventory
+        matching. Those are separate, independently-debuggable steps done by
+        inventory/recipe_unit_table.py and match_ingredients() below, so a
+        bad extraction and a bad match/conversion never get tangled together
+        in one opaque failure.
+
+        Unlike parse_menu, there is no manual-regex fallback — a recipe's
+        prose/format varies far more than a price list, so without AI this
+        just raises a clear "AI not configured" error rather than guessing.
+        """
+        if not self.client:
+            raise Exception(
+                "AI recipe import requires an AI activation key. Please add it to your configuration."
+            )
+        if not (text and text.strip()) and not image_bytes:
+            raise Exception("No recipe document provided to parse.")
+
+        prompt = """
+        You are extracting the ingredient list from a recipe document for ONE dish.
+        The document may be messy: handwritten, split into sections (e.g. "For the
+        marinade:", "For the gravy:"), or written as prose rather than a clean list.
+        Read the whole thing and pull out every ingredient, from every section.
+
+        Ignore preparation steps, cooking instructions, serving suggestions, and
+        anything that isn't an ingredient with a quantity.
+
+        Format your response as a valid JSON list of objects, one per ingredient:
+        1. "ingredient": String — the ingredient name only (e.g. "Onion", not "2 medium onions")
+        2. "quantity_text": String — the quantity EXACTLY as written in the source,
+           unmodified (e.g. "1 cup", "2 medium", "a pinch", "200g", "1/2 tsp").
+           Do not convert, round, or normalize it — copy it verbatim.
+
+        If the same ingredient appears more than once (e.g. once in a marinade and
+        once as a garnish), output it as two separate entries rather than combining them.
+
+        Output ONLY the raw JSON list. No markdown, no backticks, no commentary.
+        """
+
+        contents = [prompt]
+        if text and text.strip():
+            contents.append(f"Here is the recipe text:\n{text}")
+        if image_bytes:
+            contents.append(self._file_to_content(image_bytes, mime_type))
+
+        import json
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-flash-latest',
+                contents=contents
+            )
+            res_text = response.text or ""
+            raw_json = res_text.strip().replace("```json", "").replace("```", "")
+            parsed = json.loads(raw_json)
+            if not isinstance(parsed, list):
+                raise ValueError("Expected a JSON list of ingredients")
+            return parsed
+        except Exception as e:
+            logger.error("AI recipe extraction error: %s", e)
+            raise Exception("Couldn't read that recipe. Try a clearer photo or a text/PDF export.")
+
+    def match_ingredients(self, unmatched_names, inventory_names):
+        """
+        One batched call resolving every ingredient name rapidfuzz couldn't
+        confidently match, against this tenant+outlet's real inventory item
+        names. Deliberately a single call for the whole leftover list (not
+        one call per ingredient) to keep cost/latency bounded.
+
+        Returns {ingredient_name: matched_inventory_name_or_None}. Any name
+        missing from the response (bad JSON, Gemini omitted it, etc.) is
+        treated as unmatched by the caller — never assumed matched.
+        """
+        import json
+
+        if not unmatched_names:
+            return {}
+        if not self.client or not inventory_names:
+            return {name: None for name in unmatched_names}
+
+        prompt = f"""
+        You are matching recipe ingredient names to a restaurant's existing
+        inventory item names. For each ingredient below, pick the inventory
+        item name that refers to the SAME real-world ingredient (matching
+        synonyms/variants is fine, e.g. "cream" -> "Heavy Cream"), or null if
+        none of the inventory items are actually the same ingredient. Do not
+        pick a loosely related item just because no better option exists —
+        null is the correct answer when unsure.
+
+        Ingredients to match: {json.dumps(unmatched_names)}
+
+        Inventory item names to match against: {json.dumps(inventory_names)}
+
+        Respond with ONLY a raw JSON object mapping each ingredient name (exactly
+        as given above) to either a matching inventory item name (exactly as
+        given above) or null. No markdown, no backticks, no commentary.
+        """
+
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-flash-latest',
+                contents=[prompt]
+            )
+            res_text = response.text or ""
+            raw_json = res_text.strip().replace("```json", "").replace("```", "")
+            parsed = json.loads(raw_json)
+            if not isinstance(parsed, dict):
+                raise ValueError("Expected a JSON object")
+            # Only trust names that were actually offered, matched to names
+            # that actually exist in inventory — anything else falls back to
+            # unmatched rather than trusting an AI-invented name.
+            inventory_set = set(inventory_names)
+            result = {}
+            for name in unmatched_names:
+                match = parsed.get(name)
+                result[name] = match if match in inventory_set else None
+            return result
+        except Exception as e:
+            logger.error("AI ingredient matching error: %s", e)
+            return {name: None for name in unmatched_names}
+
     def suggest_pricing(self, dish_name, ingredients_with_costs):
         """
         Suggests pricing for a dish based on ingredient costs and 30% food cost target.

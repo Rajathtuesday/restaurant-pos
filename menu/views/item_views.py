@@ -10,8 +10,8 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuCategory, MenuItem
 from setup.models import KitchenStation
-from inventory.models import InventoryItem, Recipe
-from inventory.unit_conversion import units_compatible
+from inventory.models import InventoryItem
+from inventory.recipe_service import RecipeUnitMismatchError, upsert_recipe
 
 logger = logging.getLogger("pos.menu")
 
@@ -267,13 +267,8 @@ def add_recipe(request):
         item_id      = data.get("menu_item")
         inventory_id = data.get("inventory_item")
         quantity     = data.get("quantity")
-        # No unit field previously existed here at all, so every recipe
-        # silently defaulted to the model's hardcoded unit="g" regardless of
-        # what the ingredient is actually tracked in — a recipe against an
-        # item tracked in "pcs" or "l" was wrong from the moment it was
-        # created. Default to the inventory item's own unit instead (the
-        # overwhelmingly common case), while still allowing the frontend to
-        # send an explicit unit later (e.g. "50g" against a kg-tracked item).
+        # None keeps an existing row's unit unchanged, or defaults to the
+        # inventory item's own unit for a new row — see recipe_service.
         unit = data.get("unit")
 
         if not quantity:
@@ -288,28 +283,11 @@ def add_recipe(request):
             tenant=request.user.tenant, outlet=request.user.outlet
         )
 
-        if unit and not units_compatible(unit, inventory.unit):
-            return JsonResponse(
-                {"error": f"'{unit}' can't be converted to '{inventory.unit}' "
-                          f"({inventory.name}'s tracked unit) — they measure different things."},
-                status=400,
-            )
+        try:
+            upsert_recipe(menu_item, inventory, quantity, unit)
+        except RecipeUnitMismatchError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
-        existing = Recipe.objects.filter(menu_item=menu_item, inventory_item=inventory).first()
-        if existing:
-            # Only overwrite the unit if one was explicitly posted — otherwise
-            # keep whatever was already set (don't stomp a deliberate "50g
-            # against a kg-tracked item" recipe just because this update only
-            # meant to change the quantity).
-            existing.quantity_required = quantity
-            if unit:
-                existing.unit = unit
-            existing.save(update_fields=["quantity_required", "unit"])
-        else:
-            Recipe.objects.create(
-                menu_item=menu_item, inventory_item=inventory,
-                quantity_required=quantity, unit=unit or inventory.unit,
-            )
         return JsonResponse({"success": True})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

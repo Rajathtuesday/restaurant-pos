@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuItem, MenuItemModifierGroup, ModifierGroup, Modifier
 from inventory.models import InventoryItem, ModifierRecipe
-from inventory.unit_conversion import units_compatible
+from inventory.recipe_service import RecipeUnitMismatchError, upsert_modifier_recipe
 
 
 @login_required
@@ -181,10 +181,8 @@ def add_modifier_recipe(request, modifier_id):
         data        = json.loads(request.body)
         inv_item_id = data.get("inventory_item_id")
         quantity    = data.get("quantity")
-        # Was previously data.get("unit", "ml") — a bare quantity-only edit
-        # that didn't resend the unit would silently reset it back to "ml",
-        # stomping a deliberately different unit. Only use an explicit unit
-        # if one was actually posted.
+        # None keeps an existing row's unit unchanged — a bare quantity-only
+        # edit must never silently reset a deliberately different unit.
         unit        = data.get("unit")
 
         if not all([inv_item_id, quantity]):
@@ -199,26 +197,10 @@ def add_modifier_recipe(request, modifier_id):
             tenant=request.user.tenant, outlet=request.user.outlet,
         )
 
-        if unit and not units_compatible(unit, inv_item.unit):
-            return JsonResponse(
-                {"error": f"'{unit}' can't be converted to '{inv_item.unit}' "
-                          f"({inv_item.name}'s tracked unit) — they measure different things."},
-                status=400,
-            )
-
-        existing = ModifierRecipe.objects.filter(modifier=modifier, inventory_item=inv_item).first()
-        if existing:
-            existing.quantity_required = quantity
-            if unit:
-                existing.unit = unit
-            existing.save(update_fields=["quantity_required", "unit"])
-            created = False
-        else:
-            ModifierRecipe.objects.create(
-                modifier=modifier, inventory_item=inv_item,
-                quantity_required=quantity, unit=unit or inv_item.unit,
-            )
-            created = True
+        try:
+            _, created = upsert_modifier_recipe(modifier, inv_item, quantity, unit)
+        except RecipeUnitMismatchError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         return JsonResponse({"success": True, "created": created})
     except Exception as e:

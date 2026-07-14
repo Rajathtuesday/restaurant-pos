@@ -129,6 +129,10 @@ FEATURE_GROUPS = {
     ],
     'Menu': [
         'ai_menu_import',
+        # Custom-only, unlike ai_menu_import — a wrong ingredient match
+        # silently corrupts stock deduction/COGS on every future order of
+        # that dish, so this ships opt-in per tenant rather than default-on.
+        'ai_recipe_import',
     ],
     'Payments & Notifications': [
         # Custom-only — deliberately absent from every TENANT_FEATURES list.

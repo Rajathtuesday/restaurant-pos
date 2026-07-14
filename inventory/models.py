@@ -785,3 +785,100 @@ class RequisitionItem(models.Model):
     def effective_quantity(self):
         """Approved quantity if set, otherwise requested."""
         return self.quantity_approved if self.quantity_approved is not None else self.quantity_requested
+
+
+# -------------------------------------------------------
+# AI RECIPE IMPORT
+#
+# Staging tables for AI-extracted recipes. Nothing here ever gets read by the
+# order/KOT/COGS pipeline — those only ever read the real Recipe table.
+# A RecipeImportJob's lines are proposals; Recipe rows are only created when a
+# human explicitly confirms via recipe_service.upsert_recipe. See
+# inventory/recipe_import_views.py and inventory/tasks.py:ai_import_recipe.
+# -------------------------------------------------------
+
+RECIPE_IMPORT_STATUS = [
+    ("processing",       "Processing"),
+    ("ready_for_review", "Ready for Review"),
+    ("confirmed",        "Confirmed"),
+    ("discarded",        "Discarded"),
+    ("failed",           "Failed"),
+]
+
+MATCH_METHOD = [
+    ("exact",  "Exact name match"),
+    ("fuzzy",  "Fuzzy match"),
+    ("ai",     "AI-resolved"),
+    ("new",    "No match — new ingredient"),
+    ("manual", "Manually added by reviewer"),
+]
+
+
+class RecipeImportJob(TenantScopedModel):
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    menu_item = models.ForeignKey(
+        "menu.MenuItem", on_delete=models.CASCADE, related_name="recipe_import_jobs"
+    )
+    status = models.CharField(max_length=20, choices=RECIPE_IMPORT_STATUS, default="processing")
+    source_filename = models.CharField(max_length=255, blank=True)
+    # Gemini's raw structured output, kept for debugging a bad extraction —
+    # never read by anything that writes to Recipe.
+    raw_extraction = models.JSONField(null=True, blank=True)
+    error_message = models.TextField(blank=True)
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["tenant", "outlet", "status"])]
+
+    def __str__(self):
+        return f"RecipeImportJob({self.menu_item.name}, {self.status})"
+
+
+class RecipeImportLine(models.Model):
+    job = models.ForeignKey(RecipeImportJob, on_delete=models.CASCADE, related_name="lines")
+    # Preserves source-document order in the review UI. Also used to mark a
+    # manually-added row (see the review UI's "+ Add ingredient"): those get
+    # order values appended after every extracted line.
+    order = models.PositiveIntegerField(default=0)
+
+    # --- as extracted — immutable audit trail of what Gemini/the reviewer said.
+    # Blank for a manually-added row (match_method="manual").
+    raw_ingredient_name = models.CharField(max_length=255, blank=True)
+    raw_quantity_text = models.CharField(max_length=100, blank=True)  # e.g. "1 cup", "a pinch"
+
+    # --- deterministic/AI-resolved quantity. Null if genuinely ambiguous —
+    # never a guess (see inventory/recipe_unit_table.py).
+    extracted_quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    extracted_unit = models.CharField(max_length=10, choices=UNIT_CHOICES, null=True, blank=True)
+    needs_manual_quantity = models.BooleanField(default=False)
+
+    # --- matching ---
+    match_method = models.CharField(max_length=10, choices=MATCH_METHOD)
+    match_confidence = models.FloatField(null=True, blank=True)  # 0-1, fuzzy layer only
+    # What the AI/fuzzy layer proposed. Deliberately never the write target —
+    # confirm() only ever reads resolved_inventory_item below, so a bug that
+    # fails to populate the human-owned fields can't fall back to writing an
+    # unreviewed suggestion into Recipe.
+    suggested_inventory_item = models.ForeignKey(
+        InventoryItem, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    is_new_ingredient = models.BooleanField(default=False)
+
+    # --- human-owned final state, edited during review. confirm() reads ONLY
+    # these fields. ---
+    resolved_inventory_item = models.ForeignKey(
+        InventoryItem, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    final_quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    final_unit = models.CharField(max_length=10, choices=UNIT_CHOICES, null=True, blank=True)
+    include_in_recipe = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.raw_ingredient_name or '(manual)'} (job {self.job_id})"
