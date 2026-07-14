@@ -277,7 +277,7 @@ class InventoryDeductionTest(CounterBillingBase):
         Recipe.objects.create(
             menu_item=self.idli,
             inventory_item=self.batter,
-            quantity_required=Decimal("0.1"),  # 100g per idli
+            quantity_required=Decimal("0.1"), unit="kg",  # 100g per idli, batter is tracked in kg
         )
 
     def test_inventory_deducts_on_payment_for_counter_billing(self):
