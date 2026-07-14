@@ -1,4 +1,5 @@
 #inventory/tests.py
+import json
 from django.test import TestCase, Client, override_settings
 from decimal import Decimal
 from django.urls import reverse
@@ -945,6 +946,332 @@ class VarianceReportBugFixTests(TestCase):
         self.assertEqual(rum_row["recipe_expected"], Decimal("0"))
         self.assertEqual(rum_row["txn_consumed"],   Decimal("0"))
         self.assertEqual(rum_row["variance"],       Decimal("0"))
+
+
+def _consumption_report_url():
+    """Same business-date reasoning as _variance_report_url() — consumption_report
+    also defaults to get_business_date(now) when no ?date= is given."""
+    local_today = timezone.localtime(timezone.now()).date()
+    return reverse("inventory_consumption") + f"?date={local_today.isoformat()}"
+
+
+class VarianceReportRecipeUnitConversionTests(TestCase):
+    """recipe_map (the 'expected consumption' side of the variance report) must
+    convert a recipe's unit into the inventory item's own unit before summing
+    — the exact same conversion deduct_inventory_for_items already applies at
+    KOT time. Before this fix, recipe_map used the raw recipe quantity, so a
+    recipe in grams against a kg-tracked item made recipe_expected wildly
+    different from txn_consumed (which WAS correctly converted), showing a
+    fake variance for a perfectly healthy item."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Variance Unit Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="varunit_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        # Tracked in KG — recipe will be written in grams.
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Flour", unit="kg", stock=Decimal("10.000"),
+        )
+        self.client.force_login(self.manager)
+
+    def _sell_naan(self, recipe_qty, recipe_unit, order_qty=2):
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        Recipe.objects.create(
+            menu_item=naan, inventory_item=self.flour,
+            quantity_required=Decimal(str(recipe_qty)), unit=recipe_unit,
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="closed")
+        OrderItem.objects.create(
+            order=order, menu_item=naan, quantity=order_qty,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="served",
+        )
+        return naan
+
+    def test_recipe_in_grams_against_kg_item_shows_zero_variance_when_healthy(self):
+        """Recipe: 500g flour per Naan (0.5kg), item tracked in kg. 2 Naans sold
+        → expected 1.0kg. If the real KOT deduction also converted correctly
+        (1.0kg consumed), variance must be 0 — not a false +999kg from
+        comparing an unconverted 1000g against a converted 1.0kg."""
+        from inventory.models import InventoryTransaction
+
+        self._sell_naan(recipe_qty=500, recipe_unit="g", order_qty=2)
+        InventoryTransaction.objects.create(
+            item=self.flour, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-1.000"), transaction_type="consume", reference="KOT #1",
+        )
+
+        resp = self.client.get(_variance_report_url())
+        rows = resp.context["rows"]
+        flour_row = next(r for r in rows if r["item"].name == "Flour")
+
+        self.assertEqual(flour_row["recipe_expected"], Decimal("1.000"))
+        self.assertEqual(flour_row["txn_consumed"], Decimal("1.000"))
+        self.assertEqual(flour_row["variance"], Decimal("0.000"))
+
+    def test_incompatible_recipe_unit_is_skipped_not_counted(self):
+        """Recipe accidentally set to 'pcs' against a kg-tracked item — must be
+        excluded from recipe_expected entirely, never treated as a raw number."""
+        self._sell_naan(recipe_qty=2, recipe_unit="pcs", order_qty=3)
+
+        resp = self.client.get(_variance_report_url())
+        rows = resp.context["rows"]
+        flour_row = next(r for r in rows if r["item"].name == "Flour")
+
+        self.assertEqual(flour_row["recipe_expected"], Decimal("0"))
+
+    def test_modifier_recipe_unit_conversion_in_recipe_expected(self):
+        """Same conversion requirement for ModifierRecipe as for Recipe."""
+        from inventory.models import ModifierRecipe, InventoryTransaction
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        group = ModifierGroup.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extras")
+        mod = Modifier.objects.create(group=group, name="Extra Flour Dusting", price=Decimal("10"))
+        ModifierRecipe.objects.create(
+            modifier=mod, inventory_item=self.flour,
+            quantity_required=Decimal("200"), unit="g",  # 200g, item tracked in kg
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="closed")
+        oi = OrderItem.objects.create(
+            order=order, menu_item=naan, quantity=1,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="served",
+        )
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod, name=mod.name, price=mod.price)
+        InventoryTransaction.objects.create(
+            item=self.flour, tenant=self.tenant, outlet=self.outlet,
+            quantity=Decimal("-0.200"), transaction_type="consume", reference="KOT #1",
+        )
+
+        resp = self.client.get(_variance_report_url())
+        rows = resp.context["rows"]
+        flour_row = next(r for r in rows if r["item"].name == "Flour")
+
+        self.assertEqual(flour_row["recipe_expected"], Decimal("0.200"))
+        self.assertEqual(flour_row["variance"], Decimal("0.000"))
+
+
+class ConsumptionReportBugFixTests(TestCase):
+    """consumption_report had two real bugs: (1) it used recipe.quantity_required
+    raw, without converting to the inventory item's unit, same class of bug as
+    variance_report above; (2) it only ever looked at base Recipe links,
+    silently ignoring anything consumed through a modifier (e.g. Extra Cheese)."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Consumption Unit Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="consunit_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            name="Flour", unit="kg", stock=Decimal("10.000"),
+        )
+        self.client.force_login(self.manager)
+
+    def test_recipe_quantity_converted_to_item_unit(self):
+        """500g flour per Naan, item tracked in kg, 4 sold → consumed must be
+        2.000 (kg), not 2000 (treating grams as if they were already kg)."""
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        Recipe.objects.create(
+            menu_item=naan, inventory_item=self.flour,
+            quantity_required=Decimal("500"), unit="g",
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="closed")
+        OrderItem.objects.create(
+            order=order, menu_item=naan, quantity=4,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="served",
+        )
+
+        resp = self.client.get(_consumption_report_url())
+        rows = resp.context["report_rows"]
+        flour_row = next(r for r in rows if r["item"].name == "Flour")
+
+        self.assertEqual(flour_row["consumed"], Decimal("2.000"))
+
+    def test_incompatible_recipe_unit_is_skipped_not_shown_as_garbage(self):
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        Recipe.objects.create(
+            menu_item=naan, inventory_item=self.flour,
+            quantity_required=Decimal("2"), unit="pcs",  # incompatible with kg
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="closed")
+        OrderItem.objects.create(
+            order=order, menu_item=naan, quantity=1,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="served",
+        )
+
+        resp = self.client.get(_consumption_report_url())
+        rows = resp.context["report_rows"]
+        self.assertFalse(any(r["item"].name == "Flour" for r in rows))
+
+    def test_modifier_consumption_now_included(self):
+        """Previously: modifier-linked inventory consumption was invisible on
+        this report entirely — only base recipes were summed."""
+        from inventory.models import ModifierRecipe
+        from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
+        from orders.models import Order, OrderItem, OrderItemModifier
+
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        # No base Recipe at all — only a modifier link.
+        group = ModifierGroup.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extras")
+        mod = Modifier.objects.create(group=group, name="Extra Flour Dusting", price=Decimal("10"))
+        ModifierRecipe.objects.create(
+            modifier=mod, inventory_item=self.flour,
+            quantity_required=Decimal("100"), unit="g",
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="closed")
+        oi = OrderItem.objects.create(
+            order=order, menu_item=naan, quantity=3,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="served",
+        )
+        OrderItemModifier.objects.create(order_item=oi, modifier=mod, name=mod.name, price=mod.price)
+
+        resp = self.client.get(_consumption_report_url())
+        rows = resp.context["report_rows"]
+        flour_row = next((r for r in rows if r["item"].name == "Flour"), None)
+
+        self.assertIsNotNone(flour_row, "Modifier-driven consumption must appear in the report")
+        self.assertEqual(flour_row["consumed"], Decimal("0.300"))  # 100g × 3, in kg
+
+    def test_usage_bar_width_reflects_consumed_over_total(self):
+        """The Usage column's bar width used to be set to raw remaining stock
+        used directly as a CSS percentage (e.g. 'width:500%'), not an actual
+        consumed/total ratio. 50 consumed + 50 remaining should render 50%."""
+        from inventory.models import Recipe
+        from menu.models import MenuItem, MenuCategory
+        from orders.models import Order, OrderItem
+
+        self.flour.stock = Decimal("50.000")
+        self.flour.save(update_fields=["stock"])
+        cat = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Breads")
+        naan = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
+        )
+        Recipe.objects.create(
+            menu_item=naan, inventory_item=self.flour,
+            quantity_required=Decimal("50"), unit="kg",
+        )
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="closed")
+        OrderItem.objects.create(
+            order=order, menu_item=naan, quantity=1,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="served",
+        )
+
+        resp = self.client.get(_consumption_report_url())
+        self.assertContains(resp, "width:50%")
+
+
+class InventoryItemCategoryTests(TestCase):
+    """Free-text category field — lightweight grouping/filtering aid, no
+    separate model. Covers persistence, clearing, and truncation."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Category Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="cat_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def test_create_with_category(self):
+        resp = self.client.post(
+            reverse("create_inventory_item"),
+            data=json.dumps({"name": "Cabbage", "unit": "g", "category": "Vegetables"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        item = InventoryItem.objects.get(id=resp.json()["id"])
+        self.assertEqual(item.category, "Vegetables")
+
+    def test_create_without_category_defaults_blank(self):
+        resp = self.client.post(
+            reverse("create_inventory_item"),
+            data=json.dumps({"name": "Salt", "unit": "g"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        item = InventoryItem.objects.get(id=resp.json()["id"])
+        self.assertEqual(item.category, "")
+
+    def test_update_sets_category(self):
+        item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Onion", unit="g",
+        )
+        resp = self.client.post(
+            reverse("update_inventory_item", args=[item.id]),
+            data=json.dumps({"category": "Vegetables"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.category, "Vegetables")
+
+    def test_update_can_clear_category(self):
+        item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Onion", unit="g", category="Vegetables",
+        )
+        resp = self.client.post(
+            reverse("update_inventory_item", args=[item.id]),
+            data=json.dumps({"category": ""}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.category, "")
+
+    def test_category_is_truncated_and_stripped(self):
+        resp = self.client.post(
+            reverse("create_inventory_item"),
+            data=json.dumps({"name": "Ginger", "unit": "g", "category": "  " + "x" * 150}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        item = InventoryItem.objects.get(id=resp.json()["id"])
+        self.assertEqual(len(item.category), 100)
+        self.assertFalse(item.category.startswith(" "))
 
 
 # ---------------------------------------------------------------------------

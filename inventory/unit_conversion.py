@@ -76,3 +76,26 @@ def units_compatible(unit_a: str, unit_b: str) -> bool:
     fam_a = UNIT_FAMILY.get(unit_a)
     fam_b = UNIT_FAMILY.get(unit_b)
     return fam_a is not None and fam_a == fam_b
+
+
+def recipe_expected_quantity(quantity_required, recipe_unit, inventory_item, *, logger=None, context=""):
+    """
+    Converts a Recipe/ModifierRecipe quantity into the inventory item's own
+    unit — the same "what should this recipe line actually deduct" question
+    orders.services.inventory_service.deduct_inventory_for_items answers at
+    KOT time, needed again anywhere a report recomputes expected consumption
+    from the recipe formula (consumption_report, variance_report) instead of
+    reading it back from an already-converted transaction.
+
+    Returns None (and logs, if a logger is given) rather than a meaningless
+    number when the units are incompatible — fail safe, never guess.
+    """
+    try:
+        return convert_quantity(Decimal(str(quantity_required)), recipe_unit, inventory_item.unit)
+    except IncompatibleUnitsError as e:
+        if logger:
+            logger.error(
+                "[UNIT MISMATCH] %s -> inventory item '%s': %s. Skipping this line.",
+                context, inventory_item.name, e,
+            )
+        return None

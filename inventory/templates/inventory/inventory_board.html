@@ -124,12 +124,19 @@
                oninput="filterInventory(this.value)">
     </div>
 
+    <datalist id="categoryOptions">
+        {% for c in categories %}
+        <option value="{{ c }}">
+        {% endfor %}
+    </datalist>
+
     <div class="inventory-card">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
                         <th>Ingredient</th>
+                        <th>Category</th>
                         <th>Cost / Unit</th>
                         <th>Current Stock</th>
                         <th>Unit</th>
@@ -143,6 +150,7 @@
                     {% for item in items %}
                     <tr>
                         <td class="fw-semibold">{{ item.name }}</td>
+                        <td class="text-muted" style="font-size:0.85rem;">{{ item.category|default:"—" }}</td>
                         <td class="stock-val text-muted">₹{{ item.cost_price }}</td>
                         <td id="stock{{ item.id }}" class="stock-val">{{ item.stock }}</td>
                         <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{ item.unit }}</td>
@@ -164,14 +172,14 @@
                             </div>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}')">
+                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}')">
                                 <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
                             </button>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
+                        <td colspan="9" class="text-center py-5 text-muted">No inventory items found. Add ingredients to track stock.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -192,6 +200,10 @@
                 <div class="mb-3">
                     <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
                     <input id="invName" class="form-control" placeholder="e.g. Flour, Tomatoes, Olive Oil">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Category (optional)</label>
+                    <input id="invCategory" class="form-control" list="categoryOptions" placeholder="e.g. Vegetables, Dairy, Spices">
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
@@ -240,6 +252,10 @@
                 <div class="mb-3">
                     <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
                     <input id="editName" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Category (optional)</label>
+                    <input id="editCategory" class="form-control" list="categoryOptions" placeholder="e.g. Vegetables, Dairy, Spices">
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
@@ -361,6 +377,7 @@ function openAddInventoryModal() {
 
 function createInventoryItem() {
     const name = document.getElementById('invName').value;
+    const category = document.getElementById('invCategory').value;
     const unit = document.getElementById('invUnit').value;
     const stock = document.getElementById('invStock').value;
     const threshold = document.getElementById('invThreshold').value;
@@ -369,15 +386,16 @@ function createInventoryItem() {
     fetch('/inventory/create/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ name, unit, stock: parseFloat(stock) || 0, threshold: parseFloat(threshold) || 0, cost_price: parseFloat(costPrice) || 0 })
+        body: JSON.stringify({ name, category, unit, stock: parseFloat(stock) || 0, threshold: parseFloat(threshold) || 0, cost_price: parseFloat(costPrice) || 0 })
     })
     .then(r => r.json())
     .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to create ingredient.'); } });
 }
 
-function openEditModal(id, name, costPrice, threshold, reorderQty, supplierId) {
+function openEditModal(id, name, category, costPrice, threshold, reorderQty, supplierId) {
     document.getElementById('editId').value = id;
     document.getElementById('editName').value = name;
+    document.getElementById('editCategory').value = category;
     document.getElementById('editCostPrice').value = costPrice;
     document.getElementById('editThreshold').value = threshold;
     document.getElementById('editReorderQty').value = reorderQty;
@@ -388,6 +406,7 @@ function openEditModal(id, name, costPrice, threshold, reorderQty, supplierId) {
 function updateInventoryItem() {
     const id = document.getElementById('editId').value;
     const name = document.getElementById('editName').value;
+    const category = document.getElementById('editCategory').value;
     const costPrice = document.getElementById('editCostPrice').value;
     const threshold = document.getElementById('editThreshold').value;
     const reorderQty = document.getElementById('editReorderQty').value;
@@ -396,7 +415,7 @@ function updateInventoryItem() {
     fetch(`/inventory/update/${id}/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify({ name, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null })
+        body: JSON.stringify({ name, category, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null })
     })
     .then(r => r.json())
     .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to update ingredient.'); } });

@@ -47,6 +47,13 @@
 .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: .78rem; }
 .legend span { display: flex; align-items: center; gap: .4rem; color: var(--text-muted); }
 .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+.filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.search-input, .category-select { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
+              padding: .55rem .85rem; font-size: .85rem; font-family: inherit; outline: none; }
+.search-input { min-width: 220px; }
+.search-input:focus, .category-select:focus { border-color: var(--accent-gold); }
+.table tr.row-hidden { display: none; }
 </style>
 {% endblock %}
 
@@ -114,11 +121,23 @@
     <span style="border-left:1px solid var(--border-color);padding-left:1rem;">Negative = deduction short vs orders &nbsp;·&nbsp; Positive = excess deduction (spillage / recipe drift)</span>
   </div>
 
+  <div class="filter-row">
+    <input type="text" id="itemSearch" class="search-input" placeholder="Search ingredients…" oninput="filterVarianceRows()">
+    <select id="categoryFilter" class="category-select" onchange="filterVarianceRows()">
+      <option value="">All Categories</option>
+      {% for c in categories %}
+      <option value="{{ c }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+    <span id="filterCount" style="font-size:.78rem;color:var(--text-muted);"></span>
+  </div>
+
   <div style="overflow-x:auto;">
   <table class="table">
     <thead>
       <tr>
         <th style="text-align:left;">Item</th>
+        <th style="text-align:left;">Category</th>
         <th>Unit</th>
         <th>Recipe Expected</th>
         <th>Txn Consumed</th>
@@ -131,8 +150,9 @@
     </thead>
     <tbody>
       {% for r in rows %}
-      <tr>
+      <tr data-name="{{ r.item.name|lower }}" data-category="{{ r.item.category }}">
         <td>{{ r.item.name }}</td>
+        <td style="color:var(--text-muted);font-size:.8rem;">{{ r.item.category|default:"—" }}</td>
         <td style="color:var(--text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:1px;">{{ r.item.unit }}</td>
         <td style="color:var(--text-muted);">{{ r.recipe_expected|floatformat:2 }}</td>
         <td>{{ r.txn_consumed|floatformat:2 }}</td>
@@ -175,4 +195,25 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function filterVarianceRows() {
+    const term = document.getElementById('itemSearch').value.trim().toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    let visible = 0;
+    document.querySelectorAll('.table tbody tr').forEach(row => {
+      const name = row.dataset.name || '';
+      const rowCategory = row.dataset.category || '';
+      const matchesSearch = !term || name.includes(term);
+      const matchesCategory = !category || rowCategory === category;
+      const show = matchesSearch && matchesCategory;
+      row.classList.toggle('row-hidden', !show);
+      if (show) visible++;
+    });
+    const countEl = document.getElementById('filterCount');
+    if (countEl) countEl.textContent = (term || category) ? `${visible} matching` : '';
+  }
+</script>
 {% endblock %}

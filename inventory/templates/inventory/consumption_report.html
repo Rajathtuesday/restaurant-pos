@@ -41,6 +41,13 @@
 
 .empty { text-align: center; padding: 3rem; color: var(--text-muted); font-size: .85rem; }
 .empty i { font-size: 2rem; display: block; margin-bottom: .75rem; }
+
+.filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.search-input, .category-select { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
+              padding: .55rem .85rem; font-size: .85rem; font-family: inherit; outline: none; }
+.search-input { min-width: 220px; }
+.search-input:focus, .category-select:focus { border-color: var(--accent-gold); }
+.table tr.row-hidden { display: none; }
 </style>
 {% endblock %}
 
@@ -92,10 +99,22 @@
     </div>
   </div>
 
+  <div class="filter-row">
+    <input type="text" id="itemSearch" class="search-input" placeholder="Search ingredients…" oninput="filterConsumptionRows()">
+    <select id="categoryFilter" class="category-select" onchange="filterConsumptionRows()">
+      <option value="">All Categories</option>
+      {% for c in categories %}
+      <option value="{{ c }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+    <span id="filterCount" style="font-size:.78rem;color:var(--text-muted);"></span>
+  </div>
+
   <table class="table">
     <thead>
       <tr>
         <th>Ingredient</th>
+        <th>Category</th>
         <th>Consumed Today</th>
         <th>Remaining</th>
         <th>Usage</th>
@@ -105,8 +124,9 @@
     <tbody>
       {% for row in report_rows %}
       {% with item=row.item consumed=row.consumed %}
-      <tr>
+      <tr data-name="{{ item.name|lower }}" data-category="{{ item.category }}">
         <td style="font-weight:600;">{{ item.name }}</td>
+        <td style="color:var(--text-muted);font-size:.8rem;">{{ item.category|default:"—" }}</td>
         <td style="font-family:'Space Mono',monospace;color:var(--accent-gold);">
           {{ consumed|floatformat:3 }}
         </td>
@@ -118,14 +138,14 @@
           {% endif %}
         </td>
         <td>
-          {% if item.stock > 0 or consumed > 0 %}
           {% with total=consumed|add:item.stock %}
-          <span class="bar-wrap">
+          {% if total > 0 %}
+          <span class="bar-wrap" title="{{ consumed|floatformat:2 }} used of {{ total|floatformat:2 }} on hand today">
             <span class="bar-fill {% if item.stock <= item.low_stock_threshold %}low{% else %}ok{% endif %}"
-                  style="width:{% if total > 0 %}{{ item.stock|floatformat:0 }}{% else %}0{% endif %}%"></span>
+                  style="width:{% widthratio consumed total 100 %}%"></span>
           </span>
-          {% endwith %}
           {% endif %}
+          {% endwith %}
         </td>
         <td style="color:var(--text-muted);font-size:.78rem;">{{ item.unit }}</td>
       </tr>
@@ -144,4 +164,25 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function filterConsumptionRows() {
+    const term = document.getElementById('itemSearch').value.trim().toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    let visible = 0;
+    document.querySelectorAll('.table tbody tr').forEach(row => {
+      const name = row.dataset.name || '';
+      const rowCategory = row.dataset.category || '';
+      const matchesSearch = !term || name.includes(term);
+      const matchesCategory = !category || rowCategory === category;
+      const show = matchesSearch && matchesCategory;
+      row.classList.toggle('row-hidden', !show);
+      if (show) visible++;
+    });
+    const countEl = document.getElementById('filterCount');
+    if (countEl) countEl.textContent = (term || category) ? `${visible} matching` : '';
+  }
+</script>
 {% endblock %}

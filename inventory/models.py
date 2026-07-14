@@ -42,6 +42,12 @@ class InventoryItem(TenantScopedModel):
 
     name = models.CharField(max_length=255)
 
+    # Free-text, not a separate model — restaurants group ingredients very
+    # differently (Veggies/Dairy/Spices vs Bar/Kitchen/Dry Store), so a
+    # rigid choices list or a full CRUD-able category model would fight
+    # whatever convention each tenant already uses. Blank means "unfiled".
+    category = models.CharField(max_length=100, blank=True, default="")
+
     unit = models.CharField(
         max_length=10,
         choices=UNIT_CHOICES

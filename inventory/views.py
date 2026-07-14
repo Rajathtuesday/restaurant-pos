@@ -42,9 +42,12 @@ def inventory_board(request):
         is_active=True
     ).order_by("name")
 
+    categories = sorted({i.category for i in items if i.category})
+
     return render(request, "inventory/inventory_board.html", {
         "items": items,
         "suppliers": suppliers,
+        "categories": categories,
     })
 
 
@@ -98,6 +101,7 @@ def create_inventory_item(request):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     name = data.get("name", "").strip()
+    category = data.get("category", "").strip()[:100]
     unit = data.get("unit", "").strip()
 
     if not name:
@@ -129,6 +133,7 @@ def create_inventory_item(request):
         tenant=request.user.tenant,
         outlet=request.user.outlet,
         name=name,
+        category=category,
         unit=unit,
         stock=stock,
         low_stock_threshold=threshold,
@@ -166,6 +171,9 @@ def update_inventory_item(request, item_id):
     if name:
         item.name = name
 
+    if "category" in data:
+        item.category = (data.get("category") or "").strip()[:100]
+
     try:
         if "threshold" in data:
             item.low_stock_threshold = Decimal(str(data["threshold"]))
@@ -188,7 +196,7 @@ def update_inventory_item(request, item_id):
         else:
             item.preferred_supplier = None
 
-    item.save(update_fields=["name", "low_stock_threshold", "cost_price", "reorder_quantity", "preferred_supplier", "updated_at"])
+    item.save(update_fields=["name", "category", "low_stock_threshold", "cost_price", "reorder_quantity", "preferred_supplier", "updated_at"])
     logger.info("%s updated inventory item '%s'", request.user.username, item.name)
     return JsonResponse({"success": True})
 
@@ -563,6 +571,7 @@ def consumption_report(request):
     from decimal import Decimal
     from orders.models import OrderItem
     from inventory.models import Recipe
+    from inventory.unit_conversion import recipe_expected_quantity
     from core.utils import get_business_date
 
     tenant = request.user.tenant
@@ -589,23 +598,51 @@ def consumption_report(request):
         )
         .exclude(status="voided")
         .select_related("menu_item")
+        .prefetch_related("modifiers__modifier__inventory_links__inventory_item")
     )
 
-    # Aggregate consumption per inventory item via recipes
-    consumption: dict = {}  # {inventory_item_id: {"item": obj, "qty": Decimal}}
+    # Aggregate consumption per inventory item via recipes AND modifiers —
+    # this used to only look at base recipes, silently missing anything
+    # deducted through a modifier link (e.g. "Extra Cheese").
+    consumption: dict = {}  # {inventory_item_id: {"item": obj, "consumed": Decimal}}
+
+    def _add(inv, qty):
+        if inv.id not in consumption:
+            inv.refresh_from_db()
+            consumption[inv.id] = {"item": inv, "consumed": Decimal("0")}
+        consumption[inv.id]["consumed"] += qty
+
     for order_item in sold_items:
         if not order_item.menu_item:
             continue
         for recipe in order_item.menu_item.recipes.select_related("inventory_item").all():
-            inv = recipe.inventory_item
-            qty = recipe.quantity_required * Decimal(str(order_item.quantity))
-            if inv.id not in consumption:
-                inv.refresh_from_db()
-                consumption[inv.id] = {"item": inv, "consumed": Decimal("0")}
-            consumption[inv.id]["consumed"] += qty
+            # A recipe's unit doesn't have to match the inventory item's own
+            # unit (e.g. a recipe in grams against a kg-tracked item) — must
+            # convert before multiplying, same as the actual KOT deduction
+            # does, or this silently shows a number 1000x off.
+            qty = recipe_expected_quantity(
+                recipe.quantity_required, recipe.unit, recipe.inventory_item,
+                logger=logger, context=f"Recipe {recipe.id} (menu item '{order_item.menu_item.name}')",
+            )
+            if qty is None:
+                continue
+            _add(recipe.inventory_item, qty * Decimal(str(order_item.quantity)))
+
+        for oim in order_item.modifiers.all():
+            if not oim.modifier:
+                continue
+            for mod_recipe in oim.modifier.inventory_links.all():
+                qty = recipe_expected_quantity(
+                    mod_recipe.quantity_required, mod_recipe.unit, mod_recipe.inventory_item,
+                    logger=logger, context=f"ModifierRecipe {mod_recipe.id} (modifier '{oim.modifier.name}')",
+                )
+                if qty is None:
+                    continue
+                _add(mod_recipe.inventory_item, qty * Decimal(str(order_item.quantity)))
 
     # Sort by consumed (most used first)
     report_rows = sorted(consumption.values(), key=lambda x: x["consumed"], reverse=True)
+    categories = sorted({r["item"].category for r in report_rows if r["item"].category})
 
     # CSV export
     if request.GET.get("export") == "csv":
@@ -614,10 +651,11 @@ def consumption_report(request):
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="consumption_{report_date}.csv"'
         writer = csv.writer(response)
-        writer.writerow(["Ingredient", "Unit", "Consumed Today", "Remaining Stock"])
+        writer.writerow(["Ingredient", "Category", "Unit", "Consumed Today", "Remaining Stock"])
         for row in report_rows:
             writer.writerow([
                 row["item"].name,
+                row["item"].category,
                 row["item"].unit,
                 f"{row['consumed']:.3f}",
                 f"{row['item'].stock:.3f}",
@@ -627,6 +665,7 @@ def consumption_report(request):
     return render(request, "inventory/consumption_report.html", {
         "report_date": report_date,
         "report_rows": report_rows,
+        "categories": categories,
         "outlet": outlet,
     })
 
@@ -702,6 +741,7 @@ def variance_report(request):
     from core.utils import get_business_date
     from orders.models import OrderItem
     from .models import InventoryTransaction
+    from .unit_conversion import recipe_expected_quantity
 
     tenant = request.user.tenant
     outlet = request.user.outlet
@@ -735,17 +775,30 @@ def variance_report(request):
         if not oi.menu_item:
             continue
         for recipe in oi.menu_item.recipes.all():
-            qty = recipe.quantity_required * Decimal(str(oi.quantity))
+            # Convert into the inventory item's own unit before multiplying —
+            # a recipe entered in grams against a kg-tracked item would
+            # otherwise inflate "expected" by 1000x and show a fake variance.
+            qty = recipe_expected_quantity(
+                recipe.quantity_required, recipe.unit, recipe.inventory_item,
+                logger=logger, context=f"Recipe {recipe.id} (menu item '{oi.menu_item.name}')",
+            )
+            if qty is None:
+                continue
             recipe_map[recipe.inventory_item_id] = (
-                recipe_map.get(recipe.inventory_item_id, Decimal("0")) + qty
+                recipe_map.get(recipe.inventory_item_id, Decimal("0")) + qty * Decimal(str(oi.quantity))
             )
         for oim in oi.modifiers.all():
             if not oim.modifier:
                 continue
             for mod_recipe in oim.modifier.inventory_links.all():
-                qty = mod_recipe.quantity_required * Decimal(str(oi.quantity))
+                qty = recipe_expected_quantity(
+                    mod_recipe.quantity_required, mod_recipe.unit, mod_recipe.inventory_item,
+                    logger=logger, context=f"ModifierRecipe {mod_recipe.id} (modifier '{oim.modifier.name}')",
+                )
+                if qty is None:
+                    continue
                 recipe_map[mod_recipe.inventory_item_id] = (
-                    recipe_map.get(mod_recipe.inventory_item_id, Decimal("0")) + qty
+                    recipe_map.get(mod_recipe.inventory_item_id, Decimal("0")) + qty * Decimal(str(oi.quantity))
                 )
 
     # Step 2 — per item: compare recipe vs transaction
@@ -780,16 +833,17 @@ def variance_report(request):
     ok_count       = sum(1 for r in rows if r["variance_pct"] is not None and abs(r["variance_pct"]) <= 3)
     warn_count     = sum(1 for r in rows if r["variance_pct"] is not None and 3 < abs(r["variance_pct"]) <= 8)
     critical_count = sum(1 for r in rows if r["variance_pct"] is not None and abs(r["variance_pct"]) > 8)
+    categories     = sorted({r["item"].category for r in rows if r["item"].category})
 
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="variance_{report_date}.csv"'
         writer = csv.writer(response)
-        writer.writerow(["Item", "Unit", "Recipe Expected", "Txn Consumed",
+        writer.writerow(["Item", "Category", "Unit", "Recipe Expected", "Txn Consumed",
                          "Variance", "Variance %", "Wastage", "Restocked", "Current Stock"])
         for r in rows:
             writer.writerow([
-                r["item"].name, r["item"].unit,
+                r["item"].name, r["item"].category, r["item"].unit,
                 f"{r['recipe_expected']:.3f}", f"{r['txn_consumed']:.3f}",
                 f"{r['variance']:.3f}",
                 f"{r['variance_pct']:.1f}" if r["variance_pct"] is not None else "—",
@@ -805,4 +859,5 @@ def variance_report(request):
         "ok_count":       ok_count,
         "warn_count":     warn_count,
         "critical_count": critical_count,
+        "categories":     categories,
     })
