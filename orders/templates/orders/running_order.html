@@ -187,12 +187,24 @@
 
     function serveItem(id){
         fetch("{% url 'serve-item' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-        .then(() => refreshRunningOrder())
+        .then(res => res.json().catch(() => ({}))
+            .then(data => {
+                if (res.ok && data.success !== false) refreshRunningOrder();
+                else alert(data.error || `Failed to serve item (HTTP ${res.status}).`);
+            })
+        )
+        .catch(() => alert("Network error — couldn't reach the server to serve this item."));
     }
 
     function makeComplimentary(id){
         fetch("{% url 'make-complimentary' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") } })
-        .then(() => refreshRunningOrder())
+        .then(res => res.json().catch(() => ({}))
+            .then(data => {
+                if (res.ok && data.success !== false) refreshRunningOrder();
+                else alert(data.error || `Failed to mark complimentary (HTTP ${res.status}).`);
+            })
+        )
+        .catch(() => alert("Network error — couldn't reach the server."));
     }
 
     function refreshRunningOrder(){
