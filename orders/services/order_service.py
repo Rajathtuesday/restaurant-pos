@@ -200,10 +200,36 @@ def update_table_state(order):
     if not table:
         return
 
-    items = order.items.all()
+    # "billing"/"cleaning" are owned by the billing & payment flows
+    # (billing_core.py, payment_views.py, razorpay_views.py,
+    # discount_views.py) — never overwrite them from item-status churn,
+    # e.g. a manager voiding an already-served item mid-bill-review must not
+    # silently bounce the table back out of "billing".
+    if table.state in ("billing", "cleaning"):
+        return
 
-    if items.filter(status__in=["pending", "sent", "preparing"]).exists():
+    # Lock the Order row so two staff cancelling different items on the same
+    # table serialize correctly instead of racing on table.state.
+    order = Order.objects.select_for_update().get(id=order.id)
+
+    # Voided items are inert — they must never keep a table looking active.
+    # This is the fix for the "table stuck on Ordering after everything gets
+    # cancelled" bug: previously order.items.all() included voided items,
+    # so a fully-voided order fell through every branch below into the
+    # catch-all "ordering" instead of "free".
+    items = order.items.exclude(status="voided")
+
+    if not items.exists():
+        table.state = "free"
+
+    elif items.filter(status__in=["sent", "preparing"]).exists():
         table.state = "preparing"
+
+    # "review" (QR guest items awaiting staff approval) gets its own branch
+    # rather than folding into sent/preparing — nothing is actually cooking
+    # yet, so "preparing" would be a misleading label for the kitchen.
+    elif items.filter(status__in=["review", "pending"]).exists():
+        table.state = "ordering"
 
     elif items.filter(status="ready").exists():
         table.state = "ready"

@@ -9,6 +9,7 @@ from django.db import transaction
 from orders.models import Order, OrderItem
 from orders.exceptions import OrderError
 from orders.services.event_service import log_event
+from orders.services.order_service import update_table_state
 
 logger = logging.getLogger("pos.orders")
 
@@ -47,12 +48,17 @@ def void_order_item(user, item_id, reason):
     # ── Restore inventory if KOT was already sent ──────────────────────────
     # Only "sent" / "preparing" / "ready" / "served" statuses mean the KOT
     # was dispatched and inventory was deducted. "pending" = not yet sent.
-    if pre_void_status not in ("pending",) and item.menu_item:
+    # "review" (QR guest item awaiting staff approval) has never even been
+    # "pending" yet, so it's never had inventory deducted either — without
+    # excluding it here too, voiding a review-status item would incorrectly
+    # add phantom stock that was never actually taken.
+    if pre_void_status not in ("pending", "review") and item.menu_item:
         _restore_inventory_for_void(item)
 
     # Lock the Order row before recalculating totals.
     order = Order.objects.select_for_update().get(id=item.order_id)
     order.recalculate_totals()
+    update_table_state(order)
 
     log_event(
         order,

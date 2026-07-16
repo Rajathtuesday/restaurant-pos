@@ -16,7 +16,7 @@ from accounts.models import User
 from tenants.models import Tenant, Outlet
 from menu.models import MenuCategory, MenuItem, ModifierGroup, Modifier
 from inventory.models import InventoryItem, Recipe, ModifierRecipe
-from orders.models import Order, OrderItem, OrderItemModifier
+from orders.models import Order, OrderItem, OrderItemModifier, Table
 from orders.services.void_service import void_order_item
 
 
@@ -142,3 +142,36 @@ class VoidInventoryRestoreTests(TestCase):
 
         bad_item.refresh_from_db()
         self.assertEqual(bad_item.stock, Decimal("5"))  # unchanged, not corrupted
+
+    def test_voiding_last_item_updates_table_state(self):
+        """void_order_item previously never touched table state at all —
+        voiding the last active item on a table must free it."""
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, table=table, status="open")
+        item = OrderItem.objects.create(
+            order=order, menu_item=self.naan, quantity=1,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("60"), status="sent",
+        )
+
+        void_order_item(self.manager, item.id, "test")
+
+        table.refresh_from_db()
+        self.assertEqual(table.state, "free")
+
+    def test_voiding_review_item_does_not_restore_inventory(self):
+        """A "review" item (QR guest item awaiting staff approval) has never
+        been sent to the kitchen, so it's never had inventory deducted —
+        voiding it must not add phantom stock that was never taken."""
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="open")
+        item = OrderItem.objects.create(
+            order=order, menu_item=self.naan, quantity=2,
+            price=Decimal("60"), gst_percentage=Decimal("0"),
+            total_price=Decimal("120"), status="review",
+        )
+        stock_before = self.flour.stock
+
+        void_order_item(self.manager, item.id, "rejected")
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, stock_before)

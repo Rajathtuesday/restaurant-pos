@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderItem, OrderEvent
+from orders.exceptions import OrderError
 
 logger = logging.getLogger("pos.orders")
 
@@ -17,58 +18,64 @@ logger = logging.getLogger("pos.orders")
 @require_POST
 def cancel_order(request, order_id):
     """
-    Cancels an entire order entirely. Voids all non-served items,
-    updates order status to cancelled, and frees up the table.
+    Cancels an entire order entirely. Voids all non-served items via
+    void_service.void_order_item (restores inventory — this used to void
+    items inline with zero inventory restoration), updates order status to
+    cancelled, and frees up the table.
+
+    Already-served items are deliberately left un-voided, matching prior
+    behavior — this can strand a served-but-unbilled item once the order is
+    marked cancelled (cancelled orders are excluded from every active-order
+    query), a known, separate issue not fixed by this pass.
     """
+    from orders.services.void_service import void_order_item
+
     try:
         tenant = request.user.tenant
         outlet = request.user.outlet
-        
+
         with transaction.atomic():
             order = Order.objects.select_for_update().filter(
                 id=order_id, tenant=tenant, outlet=outlet
             ).first()
-            
+
             if not order:
                 return JsonResponse({"error": "Order not found"}, status=404)
-                
+
             if order.status in ["paid", "closed", "cancelled"]:
                 return JsonResponse({"error": f"Cannot cancel order in {order.status} state"}, status=400)
-                
-            # Iterate through items and void them
-            items_to_update = []
-            for item in order.items.all():
-                if item.status not in ["voided", "served"]:
-                    item.status = "voided"
-                    item.void_reason = "Order Cancelled"
-                    item.voided_by = request.user
-                    item.voided_at = timezone.now()
-                    items_to_update.append(item)
-            
-            if items_to_update:
-                OrderItem.objects.bulk_update(items_to_update, ["status", "void_reason", "voided_by", "voided_at"])
-            
-            # Update order status
+
+            for item in list(order.items.exclude(status__in=["voided", "served"])):
+                try:
+                    void_order_item(request.user, item.id, "Order Cancelled")
+                except OrderError:
+                    # Voided/served by a concurrent action since the list
+                    # above was built — skip rather than fail the whole cancel.
+                    continue
+
+            order.refresh_from_db()
             order.status = "cancelled"
             order.closed_at = timezone.now()
             order.save(update_fields=["status", "closed_at"])
-            
-            # Recalculate totals (should become zero if all voided)
             order.recalculate_totals()
-            
-            # Free up the table
+
+            # Cancelled orders are excluded from every active-order query, so
+            # this table can never be billed through this order again
+            # regardless of what update_table_state would compute — free it
+            # unconditionally rather than risk it reading "ready" and
+            # misleading staff into thinking stranded served items are
+            # still billable.
             if order.table:
                 order.table.state = "free"
                 order.table.save(update_fields=["state"])
-                
-            # Log event
+
             OrderEvent.objects.create(
                 tenant=tenant, outlet=outlet, order=order,
                 event_type="order_cancelled",
                 metadata={"reason": "Manual cancellation"},
                 created_by=request.user
             )
-            
+
         logger.info("User %s cancelled Order #%s", request.user.username, order_id)
         return JsonResponse({"success": True})
 
@@ -83,42 +90,27 @@ def cancel_order(request, order_id):
 @require_POST
 def cancel_item(request, item_id):
     """
-    Voids a specific order item.
+    Voids a specific order item. Delegates to void_service.void_order_item
+    for inventory restoration (unit-converted, includes modifier-linked
+    inventory) and table-state recalculation — this used to duplicate that
+    logic inline without either of those, so a cancelled item after KOT-send
+    never returned its deducted stock and never updated the table.
     """
+    from orders.services.void_service import void_order_item
+
     try:
-        tenant = request.user.tenant
-        outlet = request.user.outlet
-        
-        with transaction.atomic():
-            item = OrderItem.objects.select_related("order").select_for_update().filter(
-                id=item_id, order__tenant=tenant, order__outlet=outlet
-            ).first()
-            
-            if not item:
-                return JsonResponse({"error": "Item not found"}, status=404)
-                
-            if item.status in ["voided", "served"]:
-                return JsonResponse({"error": f"Cannot cancel item in {item.status} state"}, status=400)
-                
-            item.status = "voided"
-            item.void_reason = "Manual Item Cancellation"
-            item.voided_by = request.user
-            item.voided_at = timezone.now()
-            item.save(update_fields=["status", "void_reason", "voided_by", "voided_at"])
-            
-            order = item.order
-            order.recalculate_totals()
-            
-            # Log event
-            OrderEvent.objects.create(
-                tenant=tenant, outlet=outlet, order=order,
-                event_type="item_voided",
-                metadata={"item_id": item.id, "item_name": item.menu_item.name if item.menu_item else "Unknown"},
-                created_by=request.user
-            )
-            
-        return JsonResponse({"success": True, "new_total": float(order.grand_total)})
-        
+        item = void_order_item(request.user, item_id, "Manual Item Cancellation")
+        # void_order_item recalculates totals on its own freshly-locked Order
+        # object, not item.order (held before the call) — re-fetch, don't
+        # trust the stale one.
+        new_total = Order.objects.get(id=item.order_id).grand_total
+        logger.info("User %s cancelled item #%s", request.user.username, item_id)
+        return JsonResponse({"success": True, "new_total": float(new_total)})
+
+    except OrderItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    except OrderError as e:
+        return JsonResponse({"error": str(e)}, status=400)
     except Exception as e:
         logger.error("Error cancelling item #%s: %s", item_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)

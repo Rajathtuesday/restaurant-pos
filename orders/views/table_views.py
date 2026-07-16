@@ -86,11 +86,13 @@ def tables_data(request):
                 elif order.status == "billing":
                     status = "billing"
                 else:
-                    # Convert to list to use prefetch cache
-                    items_list = list(order.items.all())
-                    
+                    # Convert to list to use prefetch cache. Voided items are
+                    # excluded — they're inert and must never keep a table
+                    # looking active (same fix as update_table_state).
+                    items_list = [i for i in order.items.all() if i.status != "voided"]
+
                     if not items_list:
-                        status = "ordering"
+                        status = "free"
                     elif any(i.status == "review" for i in items_list):
                         status = "needs_approval"
                     elif any(i.status == "pending" for i in items_list):
