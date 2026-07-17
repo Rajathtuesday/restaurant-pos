@@ -32,6 +32,13 @@
     .role-badge.manager, .role-badge.owner { border-color: var(--accent-gold); color: var(--accent-gold); }
     .role-badge.chef { border-color: #f59e0b; color: #f59e0b; }
     .role-badge.waiter { border-color: #60a5fa; color: #60a5fa; }
+
+    .btn-reset-pw {
+        background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px;
+        cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-reset-pw:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
 </style>
 {% endblock %}
 
@@ -110,6 +117,7 @@
                     <th>Name</th>
                     <th>Role</th>
                     <th>Outlet</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -118,10 +126,11 @@
                     <td>{{ member.username }}</td>
                     <td><span class="role-badge {{ member.role }}">{{ member.get_role_display }}</span></td>
                     <td style="color:var(--text-muted);font-size:0.75rem;">{{ member.outlet.name|default:"-" }}</td>
+                    <td><button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button></td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" style="color:var(--text-muted);font-size:0.8rem;padding-top:1.5rem;">No staff accounts yet.</td>
+                    <td colspan="4" style="color:var(--text-muted);font-size:0.8rem;padding-top:1.5rem;">No staff accounts yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -129,4 +138,36 @@
     </div>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function resetPassword(userId, username) {
+    const { value: password } = await Swal.fire({
+        title: `Reset password for ${username}`,
+        input: 'password',
+        inputLabel: 'New password (min 8 characters)',
+        inputPlaceholder: 'Enter a new password',
+        showCancelButton: true,
+        confirmButtonText: 'Reset Password',
+        confirmButtonColor: 'var(--accent-gold)',
+        cancelButtonColor: 'var(--text-muted)',
+        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
+        color: 'var(--text-main)',
+        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
+        inputValidator: (value) => {
+            if (!value || value.length < 8) return 'Password must be at least 8 characters.';
+        }
+    });
+
+    if (!password) return;
+
+    try {
+        const data = await apiClient.post(`/setup/staff/${userId}/reset-password/`, { password });
+        ui.toast(data.message || 'Password reset.', 'success');
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+</script>
 {% endblock %}

@@ -468,6 +468,46 @@ def setup_staff(request):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+def reset_staff_password(request, user_id):
+    """
+    Owner/manager resets a staff member's password directly, without needing
+    server/SSH access. Also clears any axes lockout on that account, since a
+    forgotten password and a lockout from repeated wrong guesses usually
+    happen together and both need clearing for the person to actually get
+    back in.
+    """
+    # Scoped to this tenant and excludes role="owner", matching the same
+    # boundary the staff list itself already uses — a manager (or another
+    # owner from this same tenant-scoped list) can't reach an account
+    # outside their tenant by guessing an id, and can't touch an owner
+    # account through this endpoint.
+    target = get_object_or_404(
+        User, id=user_id, tenant=request.user.tenant
+    )
+    if target.role == "owner":
+        return JsonResponse({"error": "Owner passwords can't be reset here."}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    new_password = (data.get("password") or "").strip()
+    if len(new_password) < 8:
+        return JsonResponse({"error": "Password must be at least 8 characters."}, status=400)
+
+    target.set_password(new_password)
+    target.save(update_fields=["password"])
+
+    from axes.utils import reset as axes_reset
+    axes_reset(username=target.username)
+
+    return JsonResponse({"success": True, "message": f"Password reset for {target.username}."})
+
+
+@login_required
+@role_required("owner", "manager")
+@require_POST
 def set_default_station(request, station_id):
 
     station = KitchenStation.objects.get(
