@@ -343,6 +343,26 @@ AXES_RESET_ON_SUCCESS = True  # clear failure count on successful login
 AXES_USERNAME_FORM_FIELD = "username"
 AXES_ENABLE_ADMIN = False  # don't lock admin separately
 
+# Behind Cloudflare -> Nginx, request.META['REMOTE_ADDR'] is always Nginx's
+# own loopback connection (127.0.0.1), never the real visitor. Without this,
+# axes recorded every failed login on this server under the same IP, which
+# also meant IP-based lockout signal was useless for telling a genuine
+# brute-force attempt apart from an ordinary mistyped password. Nginx already
+# forwards the real chain correctly (nginx_rasova.conf); CF-Connecting-IP is
+# checked first since Cloudflare sets it itself and it can't be spoofed by
+# the client, falling back to X-Forwarded-For with 1 trusted proxy (Nginx).
+AXES_IPWARE_META_PRECEDENCE_ORDER = (
+    "HTTP_CF_CONNECTING_IP",
+    "HTTP_X_FORWARDED_FOR",
+    "REMOTE_ADDR",
+)
+AXES_IPWARE_PROXY_COUNT = 1
+
+# django-ratelimit's key="ip" has the identical REMOTE_ADDR problem — the
+# 20/min create_order limit and the 10/min login limit were effectively
+# shared across every visitor to the server, not scoped per real client.
+RATELIMIT_IP_META_KEY = "core.utils.get_client_ip"
+
 
 _LOG_DIR = BASE_DIR / "logs"
 _LOG_DIR.mkdir(exist_ok=True)
