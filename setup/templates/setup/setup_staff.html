@@ -107,7 +107,13 @@
 
     <!-- RIGHT: CURRENT STAFF -->
     <div>
-        <p class="page-eyebrow" style="opacity:0;margin-bottom:0.5rem;">—</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+            <p class="page-eyebrow" style="opacity:0;margin-bottom:0;">—</p>
+            <label style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-muted);cursor:pointer;user-select:none;">
+                <input type="checkbox" id="showInactiveToggle" onchange="toggleInactiveVisibility()">
+                Show inactive
+            </label>
+        </div>
         <h2 class="page-title" style="font-size:1.2rem;">Current Team</h2>
         <div class="divider"></div>
 
@@ -122,11 +128,14 @@
             </thead>
             <tbody>
                 {% for member in staff %}
-                <tr>
-                    <td>{{ member.username }}</td>
+                <tr id="staff-row-{{ member.id }}" class="{% if not member.is_active %}inactive-row{% endif %}" style="{% if not member.is_active %}display:none;opacity:0.5;{% endif %}">
+                    <td>{{ member.username }}{% if not member.is_active %} <span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1px;color:#ef4444;">Inactive</span>{% endif %}</td>
                     <td><span class="role-badge {{ member.role }}">{{ member.get_role_display }}</span></td>
                     <td style="color:var(--text-muted);font-size:0.75rem;">{{ member.outlet.name|default:"-" }}</td>
-                    <td><button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button></td>
+                    <td style="display:flex;gap:6px;">
+                        <button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button>
+                        <button class="btn-reset-pw" id="toggle-btn-{{ member.id }}" onclick="toggleActive({{ member.id }}, '{{ member.username|escapejs }}', {{ member.is_active|yesno:"true,false" }})">{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -142,6 +151,13 @@
 
 {% block extra_js %}
 <script>
+function toggleInactiveVisibility() {
+    const show = document.getElementById('showInactiveToggle').checked;
+    document.querySelectorAll('.inactive-row').forEach(row => {
+        row.style.display = show ? '' : 'none';
+    });
+}
+
 async function resetPassword(userId, username) {
     const { value: password } = await Swal.fire({
         title: `Reset password for ${username}`,
@@ -165,6 +181,26 @@ async function resetPassword(userId, username) {
     try {
         const data = await apiClient.post(`/setup/staff/${userId}/reset-password/`, { password });
         ui.toast(data.message || 'Password reset.', 'success');
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+
+async function toggleActive(userId, username, isCurrentlyActive) {
+    const action = isCurrentlyActive ? 'Deactivate' : 'Reactivate';
+    const result = await ui.confirm(
+        `${action} ${username}?`,
+        isCurrentlyActive
+            ? `${username} will no longer be able to log in. Their orders, shifts, and history stay exactly as they are, and this can be undone any time.`
+            : `${username} will be able to log in again.`,
+        `Yes, ${action.toLowerCase()}`
+    );
+    if (!result.isConfirmed) return;
+
+    try {
+        const data = await apiClient.post(`/setup/staff/${userId}/toggle-active/`, {});
+        ui.toast(data.message || 'Updated.', 'success');
+        setTimeout(() => location.reload(), 700);
     } catch (err) {
         // apiClient already shows a toast on failure
     }

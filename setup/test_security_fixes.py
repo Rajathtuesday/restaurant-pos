@@ -186,3 +186,111 @@ class ResetStaffPasswordTest(_Base):
         resp = self._post(client, self.waiter.id, "brand-new-password")
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(AccessAttempt.objects.filter(username=self.waiter.username).exists())
+
+
+class ToggleStaffActiveTest(_Base):
+    """
+    Regression tests for toggle_staff_active — deactivation was chosen over
+    hard delete specifically because StaffSchedule.staff and
+    CashSession.opened_by both CASCADE on the user FK.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.waiter = User.objects.create_user(
+            username="waiter1", password="pw", role="waiter",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.other_tenant = Tenant.objects.create(name="Other Tenant", slug="other-tenant")
+        self.other_outlet = Outlet.objects.create(tenant=self.other_tenant, name="Other Main")
+        self.other_waiter = User.objects.create_user(
+            username="other_waiter", password="pw", role="waiter",
+            tenant=self.other_tenant, outlet=self.other_outlet,
+        )
+
+    def _toggle(self, client, user_id):
+        return client.post(
+            reverse("toggle_staff_active", args=[user_id]),
+            content_type="application/json",
+        )
+
+    def test_owner_can_deactivate_and_reactivate(self):
+        client = Client()
+        client.force_login(self.owner)
+
+        resp = self._toggle(client, self.waiter.id)
+        self.assertEqual(resp.status_code, 200)
+        self.waiter.refresh_from_db()
+        self.assertFalse(self.waiter.is_active)
+
+        resp = self._toggle(client, self.waiter.id)
+        self.assertEqual(resp.status_code, 200)
+        self.waiter.refresh_from_db()
+        self.assertTrue(self.waiter.is_active)
+
+    def test_cashier_cannot_toggle(self):
+        client = Client()
+        client.force_login(self.cashier)
+        resp = self._toggle(client, self.waiter.id)
+        self.assertEqual(resp.status_code, 403)
+        self.waiter.refresh_from_db()
+        self.assertTrue(self.waiter.is_active)
+
+    def test_cannot_deactivate_owner(self):
+        client = Client()
+        client.force_login(self.owner)
+        second_owner = User.objects.create_user(
+            username="owner2", password="pw", role="owner",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        resp = self._toggle(client, second_owner.id)
+        self.assertEqual(resp.status_code, 403)
+        second_owner.refresh_from_db()
+        self.assertTrue(second_owner.is_active)
+
+    def test_cannot_toggle_across_tenants(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._toggle(client, self.other_waiter.id)
+        self.assertEqual(resp.status_code, 404)
+        self.other_waiter.refresh_from_db()
+        self.assertTrue(self.other_waiter.is_active)
+
+    def test_deactivation_kills_active_session(self):
+        # The waiter logs in for real (creates an actual session), then the
+        # owner deactivates them — that session must die immediately, not
+        # just block future logins.
+        staff_client = Client()
+        logged_in = staff_client.login(username="waiter1", password="pw")
+        self.assertTrue(logged_in)
+
+        # Confirm the session actually works before deactivation. waiter
+        # isn't owner/manager so setup_wizard redirects to /dashboard/, not
+        # to login — that redirect target is what proves the session (as
+        # opposed to the role) is what's being checked here.
+        resp = staff_client.get(reverse("setup_wizard"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/dashboard/", resp["Location"])
+
+        owner_client = Client()
+        owner_client.force_login(self.owner)
+        self._toggle(owner_client, self.waiter.id)
+
+        # Same session cookie, now must be logged out.
+        resp = staff_client.get(reverse("setup_wizard"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("login", resp["Location"])
+
+    def test_deactivated_user_cannot_log_in(self):
+        # Client.login() shortcuts around the real login view and doesn't
+        # pass a request into authenticate(), which axes' backend requires —
+        # POSTing to the actual login view is what a real browser attempt
+        # looks like, and is what actually needs to reject this.
+        self.waiter.is_active = False
+        self.waiter.save(update_fields=["is_active"])
+
+        client = Client()
+        client.post(reverse("login"), data={"username": "waiter1", "password": "pw"})
+        resp = client.get(reverse("setup_wizard"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("login", resp["Location"])

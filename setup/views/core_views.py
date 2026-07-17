@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from orders.models import Table
@@ -503,6 +504,52 @@ def reset_staff_password(request, user_id):
     axes_reset(username=target.username)
 
     return JsonResponse({"success": True, "message": f"Password reset for {target.username}."})
+
+
+@login_required
+@role_required("owner", "manager")
+@require_POST
+def toggle_staff_active(request, user_id):
+    """
+    Deactivate/reactivate a staff account, rather than deleting it.
+
+    A hard delete would cascade into real business history — shift
+    schedules (StaffSchedule.staff) and cash sessions
+    (CashSession.opened_by) both CASCADE on the user FK, and several
+    other tables (orders, inventory transfers, requisitions) reference
+    the user for audit purposes. Deactivating preserves every one of
+    those records exactly as they were, blocks the account from
+    logging in again (Django rejects is_active=False at authenticate()),
+    and is reversible if it turns out to be a mistake.
+    """
+    target = get_object_or_404(
+        User, id=user_id, tenant=request.user.tenant
+    )
+    if target.role == "owner":
+        return JsonResponse({"error": "Owner accounts can't be deactivated here."}, status=403)
+
+    target.is_active = not target.is_active
+    target.save(update_fields=["is_active"])
+
+    if not target.is_active:
+        # is_active flipping to False does NOT invalidate a session that was
+        # already established before this change — Django only checks
+        # is_active during authenticate() at login time, not on every
+        # subsequent request. Without this, a staff member deactivated
+        # mid-shift could keep using the app until their session expired
+        # on its own (default: two weeks).
+        from django.contrib.sessions.models import Session
+        for session in Session.objects.filter(expire_date__gte=timezone.now()):
+            data = session.get_decoded()
+            if str(data.get("_auth_user_id")) == str(target.id):
+                session.delete()
+
+    action = "deactivated" if not target.is_active else "reactivated"
+    return JsonResponse({
+        "success": True,
+        "is_active": target.is_active,
+        "message": f"{target.username} {action}.",
+    })
 
 
 @login_required
