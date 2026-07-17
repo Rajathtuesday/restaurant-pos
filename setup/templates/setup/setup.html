@@ -29,6 +29,14 @@
     .card-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 1.2rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
     .status-done { color: #22c55e; }
     .status-pending { color: var(--text-muted); }
+
+    @media (max-width: 600px) {
+        .hero { padding: 2.25rem 1.1rem 1.5rem; }
+        .hero-title { font-size: 1.9rem; }
+        .setup-grid { padding: 0 1.1rem 3rem; gap: 1.1rem; }
+        .setup-card { padding: 1.5rem; }
+        .upload-card { margin: 0 1.1rem 2.25rem; padding: 1.25rem; }
+    }
 </style>
 {% endblock %}
 

@@ -39,6 +39,14 @@
         cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
     .btn-reset-pw:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+    .staff-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    @media (max-width: 640px) {
+        .page-body { padding: 2rem 1.1rem; gap: 2.5rem; }
+        .btn-reset-pw { padding: 10px 12px; min-height: 44px; }
+        .staff-table { min-width: 480px; }
+    }
 </style>
 {% endblock %}
 
@@ -117,6 +125,7 @@
         <h2 class="page-title" style="font-size:1.2rem;">Current Team</h2>
         <div class="divider"></div>
 
+        <div class="staff-table-scroll">
         <table class="staff-table">
             <thead>
                 <tr>
@@ -144,6 +153,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 
 </div>

@@ -46,6 +46,8 @@
 
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     @media(max-width:480px) { .field-row { grid-template-columns: 1fr; } }
+    .onboard-menu-choice { grid-template-columns: 1fr 1fr; }
+    @media(max-width:480px) { .onboard-menu-choice { grid-template-columns: 1fr; } }
 
     /* Item rows */
     .item-row { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; margin-bottom: 0.75rem; align-items: end; }
@@ -339,7 +341,7 @@
         <h2 class="wiz-title">First Menu Items</h2>
         <p class="wiz-sub">Choose how you'd like to add your menu.</p>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:2rem;">
+        <div class="onboard-menu-choice" style="display:grid;gap:1rem;margin-bottom:2rem;">
             <div id="ai-import-box" style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.2s;" onclick="document.getElementById('ai-file-input').click()">
                 <div style="font-size:1.5rem;margin-bottom:0.4rem;">📷</div>
                 <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">AI Import</div>

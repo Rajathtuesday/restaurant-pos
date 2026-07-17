@@ -33,8 +33,15 @@
     input:checked + .slider { background-color: rgba(197,160,89,0.3); border: 1px solid var(--accent-gold); }
     input:checked + .slider:before { transform: translateX(20px); background-color: var(--accent-gold); }
 
-    .btn-gold { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.8rem 2rem; cursor: pointer; transition: 0.2s; font-weight: 600; }
+    .btn-gold { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.8rem 2rem; cursor: pointer; transition: 0.2s; font-weight: 600; min-height: 48px; }
     .btn-gold:hover { background: var(--accent-gold); color: #000; }
+
+    @media (max-width: 600px) {
+        .setup-container { padding: 1.25rem 1.1rem 3rem; }
+        .panel-card { padding: 1.25rem; }
+        .switch-wrapper { gap: 1rem; }
+        .btn-gold { width: 100%; }
+    }
 </style>
 {% endblock %}
 

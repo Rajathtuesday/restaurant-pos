@@ -38,6 +38,10 @@
 
     .layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
     @media(max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+    @media(max-width: 480px) {
+        .two { grid-template-columns: 1fr; }
+        .tbl-btn { padding: .55rem .7rem; min-height: 40px; font-size: .74rem; }
+    }
 
     .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     .card-hdr { padding: .9rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .5rem; }
