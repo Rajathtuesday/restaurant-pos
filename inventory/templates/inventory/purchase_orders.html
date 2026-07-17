@@ -251,7 +251,7 @@
 
 {% block extra_js %}
 <script>
-const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken=')).split('=')[1];
+const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken2=')).split('=')[1];
 const ITEMS = [{% for item in inventory_items %}{ id:{{ item.id }}, name:"{{ item.name|escapejs }}", unit:"{{ item.unit }}", cost:{{ item.cost_price }} }{% if not forloop.last %},{% endif %}{% endfor %}];
 let lineCount = 0;
 

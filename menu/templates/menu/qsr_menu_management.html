@@ -369,7 +369,7 @@
     function updateStation(itemId, stationId) {
         fetch("{% url 'update_station' 0 %}".replace('/0/', '/' + itemId + '/'), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
             body: JSON.stringify({ station: stationId })
         }).then(r => r.json()).then(d => {
             showToast(d.success ? (stationId ? 'KOT routed to ' + (d.station_name || 'station') : 'Routed to default station') : (d.error || 'Failed'), d.success ? 'success' : 'error');
@@ -422,7 +422,7 @@
     function createCategory() {
         fetch("{% url 'create_category' %}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
             body: JSON.stringify({ name: document.getElementById("categoryName").value })
         }).then(() => location.reload());
     }
@@ -436,7 +436,7 @@
         fd.append("is_veg", document.getElementById("itemIsVeg").value);
         fd.append("estimated_prep_time", 10);
         const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";
-        fetch(url, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }, body: fd })
+        fetch(url, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }, body: fd })
             .then(r => r.json())
             .then(d => { if (d.success) location.reload(); else showToast(d.error || "Failed to save item.", 'error'); })
             .catch(() => location.reload());
@@ -445,14 +445,14 @@
     function deleteItem(id) {
         if (!confirm("Erase this menu item permanently?")) return;
         fetch("{% url 'delete_menu_item' 0 %}".replace('0', id), {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }
+            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
         }).then(() => location.reload());
     }
 
     function deleteCategory(id, name) {
         if (!confirm(`DANGER: This will permanently delete the category "${name}" and ALL its menu items. Continue?`)) return;
         fetch("{% url 'delete_category' 0 %}".replace('0', id), {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }
+            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
         }).then(() => location.reload());
     }
 
@@ -461,7 +461,7 @@
         const badge = document.getElementById(`badge-${id}`);
         const isAvailable = checkbox.checked;
         fetch("{% url 'toggle_item' 0 %}".replace('0', id), {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }
+            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
         }).then(res => res.json()).then(data => {
             if (data.success) {
                 badge.style.display = isAvailable ? 'none' : 'inline-block';
@@ -479,7 +479,7 @@
         if (!inventory || !qty) { showToast("Please select an ingredient and enter a quantity.", "error"); return; }
         fetch("{% url 'add_recipe' %}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
             body: JSON.stringify({ menu_item: currentMenuItem, inventory_item: inventory, quantity: qty })
         }).then(r => r.json()).then(data => {
             if (data.success) { showToast("Ingredient added to recipe.", "success"); location.reload(); }
@@ -512,7 +512,7 @@
         fd.append("text", text);
 
         fetch("/inventory/recipe-import/start/", {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }, body: fd
+            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }, body: fd
         }).then(r => r.json()).then(data => {
             if (data.error) {
                 showToast(data.error, "error");
@@ -550,7 +550,7 @@
         if (!confirm("Push this menu to all branches? This will instantly sync all categories, items, prices, and recipe ingredients.")) return;
         showToast("Syncing across branches...", "");
         fetch("{% url 'sync_menu_to_outlets' %}", {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken") }
+            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
         }).then(res => res.json()).then(data => {
             if (data.success) alert(`Sync Complete!\nCreated: ${data.stats.categories_created} categories, ${data.stats.items_created} items, ${data.stats.recipes_created} recipes across ${data.stats.outlets_updated} branches.`);
             else showToast(data.error || "Sync failed", "error");

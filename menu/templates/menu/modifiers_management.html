@@ -257,7 +257,7 @@ function createGroup() {
     const max_select = document.getElementById('groupMax').value;
     fetch("{% url 'create_modifier_group' %}", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ name, is_required, max_select })
     }).then(() => location.reload());
 }
@@ -265,7 +265,7 @@ function createGroup() {
 function deleteGroup(id) {
     if (!confirm('Erase this group and all its modifiers?')) return;
     fetch("{% url 'delete_modifier_group' 0 %}".replace('0', id), {
-        method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken2') }
     }).then(() => location.reload());
 }
 
@@ -274,14 +274,14 @@ function addModifier(groupId) {
     const price = document.getElementById(`modPrice-${groupId}`).value;
     fetch("{% url 'add_modifier' %}", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ group_id: groupId, name, price })
     }).then(() => location.reload());
 }
 
 function deleteModifier(id) {
     fetch("{% url 'delete_modifier' 0 %}".replace('0', id), {
-        method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken2') }
     }).then(() => location.reload());
 }
 
@@ -290,7 +290,7 @@ function linkGroup() {
     const group_id = document.getElementById('linkGroup').value;
     fetch("{% url 'link_modifier_group' %}", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ item_id, group_id })
     }).then(() => location.reload());
 }
@@ -298,7 +298,7 @@ function linkGroup() {
 function unlinkGroup(itemId, groupId) {
     fetch("{% url 'unlink_modifier_group' %}", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ item_id: itemId, group_id: groupId })
     }).then(() => location.reload());
 }
@@ -338,7 +338,7 @@ function saveInventoryLink() {
     if (!inventory_item_id || !quantity) { alert('Select an ingredient and enter a quantity.'); return; }
     fetch(`/menu/modifiers/${_currentModifierId}/inventory/add/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ inventory_item_id, quantity, unit })
     })
     .then(r => r.json())
@@ -351,7 +351,7 @@ function saveInventoryLink() {
 function removeInventoryLink(inventoryItemId) {
     fetch(`/menu/modifiers/${_currentModifierId}/inventory/delete/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ inventory_item_id: inventoryItemId })
     }).then(() => location.reload());
 }

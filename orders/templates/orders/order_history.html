@@ -593,7 +593,7 @@ function submitRefund() {
 
   fetch(`/refund/${_activePaymentId}/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
     body: JSON.stringify({ amount, customer_complaint, reason })
   })
   .then(r => r.json())
@@ -614,7 +614,7 @@ function approveRefund(refundId) {
   if (!confirm("Approve this refund?")) return;
   fetch(`/refund/approve/${refundId}/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
     body: "{}"
   })
   .then(r => r.json())
@@ -632,7 +632,7 @@ function rejectRefund(refundId) {
   if (reason === null) return; // user cancelled
   fetch(`/refund/reject/${refundId}/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken") },
+    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
     body: JSON.stringify({ reason })
   })
   .then(r => r.json())

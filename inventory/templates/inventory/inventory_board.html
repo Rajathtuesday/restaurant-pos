@@ -358,7 +358,7 @@ function restock(id) {
     if (!qty || qty <= 0) { alert('Please enter a valid quantity.'); return; }
     fetch(`/inventory/restock/${id}/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ quantity: qty })
     })
     .then(r => r.json())
@@ -385,7 +385,7 @@ function createInventoryItem() {
     if (!name) { alert('Please enter an ingredient name.'); return; }
     fetch('/inventory/create/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ name, category, unit, stock: parseFloat(stock) || 0, threshold: parseFloat(threshold) || 0, cost_price: parseFloat(costPrice) || 0 })
     })
     .then(r => r.json())
@@ -414,7 +414,7 @@ function updateInventoryItem() {
     if (!name) { alert('Please enter an ingredient name.'); return; }
     fetch(`/inventory/update/${id}/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ name, category, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null })
     })
     .then(r => r.json())
@@ -439,7 +439,7 @@ function submitWastage() {
     if (!qty || parseFloat(qty) <= 0) { alert('Enter a valid quantity.'); return; }
     fetch(`/inventory/wastage/${id}/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
         body: JSON.stringify({ quantity: qty, reason, notes })
     })
     .then(r => r.json())

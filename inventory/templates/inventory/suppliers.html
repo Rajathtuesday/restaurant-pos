@@ -164,7 +164,7 @@
 
 {% block extra_js %}
 <script>
-const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken=')).split('=')[1];
+const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken2=')).split('=')[1];
 
 function filterSuppliers() {
     const q = (document.getElementById('searchInput')?.value || document.getElementById('searchInputMobile')?.value || '').toLowerCase();
