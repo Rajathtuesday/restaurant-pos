@@ -2,8 +2,26 @@
 import logging
 from django.db.models import Sum
 from inventory.models import InventoryTransaction
+from core.utils import get_business_date_range
 
 logger = logging.getLogger("pos.reports")
+
+
+def _business_range_filter(qs, outlet, start_date, end_date):
+    """
+    Applies business-day-aware date bounds to an InventoryTransaction
+    queryset. A plain created_at__date__gte/lte comparison would silently
+    drop a transaction recorded after midnight but before the outlet's
+    cutoff hour — e.g. a 2 AM wastage entry belongs to the previous
+    business day, not the new calendar day.
+    """
+    if start_date:
+        range_start, _ = get_business_date_range(start_date, outlet)
+        qs = qs.filter(created_at__gte=range_start)
+    if end_date:
+        _, range_end = get_business_date_range(end_date, outlet)
+        qs = qs.filter(created_at__lt=range_end)
+    return qs
 
 
 def inventory_usage(tenant, outlet, start_date=None, end_date=None):
@@ -13,10 +31,7 @@ def inventory_usage(tenant, outlet, start_date=None, end_date=None):
         outlet=outlet,
         transaction_type="consume",
     )
-    if start_date:
-        qs = qs.filter(created_at__date__gte=start_date)
-    if end_date:
-        qs = qs.filter(created_at__date__lte=end_date)
+    qs = _business_range_filter(qs, outlet, start_date, end_date)
     return list(
         qs.values("item__name", "item__unit")
           .annotate(total_qty=Sum("quantity"))
@@ -31,10 +46,7 @@ def inventory_wastage(tenant, outlet, start_date=None, end_date=None):
         outlet=outlet,
         transaction_type="wastage",
     )
-    if start_date:
-        qs = qs.filter(created_at__date__gte=start_date)
-    if end_date:
-        qs = qs.filter(created_at__date__lte=end_date)
+    qs = _business_range_filter(qs, outlet, start_date, end_date)
     return list(
         qs.values("item__name", "item__unit")
           .annotate(total_qty=Sum("quantity"))
@@ -50,10 +62,7 @@ def inventory_cost(tenant, outlet, start_date=None, end_date=None):
         outlet=outlet,
         transaction_type="consume",
     )
-    if start_date:
-        qs = qs.filter(created_at__date__gte=start_date)
-    if end_date:
-        qs = qs.filter(created_at__date__lte=end_date)
+    qs = _business_range_filter(qs, outlet, start_date, end_date)
     rows = list(
         qs.values("item__name", "item__unit", "item__cost_price")
           .annotate(total_qty=Sum("quantity"))
@@ -151,10 +160,7 @@ def stock_ledger(tenant, outlet, start_date=None, end_date=None, item_id=None):
         tenant=tenant,
         outlet=outlet,
     ).select_related("item")
-    if start_date:
-        qs = qs.filter(created_at__date__gte=start_date)
-    if end_date:
-        qs = qs.filter(created_at__date__lte=end_date)
+    qs = _business_range_filter(qs, outlet, start_date, end_date)
     if item_id:
         qs = qs.filter(item_id=item_id)
     return qs.order_by("-created_at")[:500]

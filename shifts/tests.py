@@ -415,3 +415,94 @@ class PaymentCashSessionGateTests(TestCase):
         self.assertTrue(
             CashSession.objects.filter(tenant=tenant, outlet=outlet, status="open").exists()
         )
+
+
+# ---------------------------------------------------------------------------
+# export_z_report business-date tests
+#
+# Previously the report filtered orders by created_at__date, payments by
+# paid_at__date, and sessions by opened_at__date — three plain calendar-date
+# filters that ignored the outlet's business-day cutoff entirely. A cashier
+# closing out at, say, 4 AM (a realistic time after a late dinner service)
+# would see timezone.localdate() return the *new* calendar day, and the
+# report would only pick up the handful of post-midnight orders, silently
+# missing the entire prior evening's revenue that actually belongs to the
+# same business day.
+# ---------------------------------------------------------------------------
+
+from datetime import datetime as _dt
+
+from orders.models import Order, Payment
+
+
+class ZReportBusinessDateTest(TestCase):
+
+    def setUp(self):
+        self.tenant, self.outlet = _tenant("ZReport Cafe")
+        self.owner = _user(self.tenant, self.outlet, role="owner", suffix="zr")
+
+    def _order_at(self, naive_dt, subtotal):
+        # auto_now_add fires at INSERT time regardless of what created_at
+        # ends up being set to afterward, so the mocked timezone.now() must
+        # already be a real datetime before create() runs, not just before
+        # the assertions — it's overwritten immediately below anyway.
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="paid",
+            subtotal=Decimal(subtotal), grand_total=Decimal(subtotal),
+        )
+        aware = timezone.make_aware(naive_dt, timezone.get_current_timezone())
+        Order.objects.filter(id=order.id).update(created_at=aware)
+        Payment.objects.create(order=order, method="cash", amount=Decimal(subtotal))
+        return order
+
+    @patch("django.utils.timezone.now")
+    def test_late_night_order_not_dropped_from_next_morning_report(self, mock_now):
+        mock_now.return_value = timezone.make_aware(
+            _dt(2026, 7, 17, 21, 0), timezone.get_current_timezone()
+        )
+        # Prior evening's dinner service — clearly "yesterday" by any measure.
+        evening_order = self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        # Same business day, but past midnight — the exact case the old
+        # created_at__date filter got wrong.
+        late_order = self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        # Cashier closes out at 4 AM, still before the 6 AM cutoff, so this
+        # whole window (evening_order + late_order) is one business day.
+        mock_now.return_value = timezone.make_aware(
+            _dt(2026, 7, 18, 4, 0), timezone.get_current_timezone()
+        )
+
+        client = Client()
+        client.force_login(self.owner)
+        resp = client.get(reverse("export-z-report"))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+
+        # Business date in the filename/header must be the 17th (the
+        # business day both orders belong to), not the 18th.
+        self.assertIn("z_report_2026-07-17.csv", resp["Content-Disposition"])
+
+        # Both orders' revenue must be present — under the old bug, only
+        # the 2 AM order would have survived a created_at__date filter
+        # evaluated at report-run time.
+        self.assertIn("1250.00", content.replace(",", ""))  # combined subtotal
+
+    @patch("django.utils.timezone.now")
+    def test_orders_and_payments_derive_from_the_same_set(self, mock_now):
+        mock_now.return_value = timezone.make_aware(
+            _dt(2026, 7, 17, 20, 0), timezone.get_current_timezone()
+        )
+        # A single order — the point here is that Payment totals must come
+        # from this exact order set (order__in=orders_qs), not an
+        # independently paid_at-filtered query that could silently diverge.
+        order = self._order_at(_dt(2026, 7, 17, 20, 0), "500.00")
+
+        mock_now.return_value = timezone.make_aware(
+            _dt(2026, 7, 18, 3, 0), timezone.get_current_timezone()
+        )
+
+        client = Client()
+        client.force_login(self.owner)
+        resp = client.get(reverse("export-z-report"))
+        content = resp.content.decode()
+        self.assertIn("500.00", content.replace(",", ""))

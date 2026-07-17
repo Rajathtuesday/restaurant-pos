@@ -325,20 +325,40 @@ def export_z_report(request):
     from .models import CashSession
     from orders.models import Payment, Order
 
-    today = timezone.localdate()
+    from core.utils import get_business_date, get_business_date_range
+
+    outlet = request.user.outlet
+    business_date = get_business_date(timezone.now(), outlet)
+    start, end = get_business_date_range(business_date, outlet)
+
+    # All three queries below key off this ONE order set instead of each
+    # independently re-deriving "today" — previously orders were filtered
+    # by created_at__date, payments by paid_at__date, and sessions by
+    # opened_at__date, three different fields on three different plain
+    # calendar-date filters that (a) ignored the outlet's business-day
+    # cutoff entirely, so anything placed after midnight but before the
+    # cutoff hour landed on the wrong day's report, and (b) weren't even
+    # guaranteed to represent the same set of transactions as each other
+    # (an order created just before midnight but paid just after would be
+    # "today" in one query and "yesterday" in the other).
+    orders_qs = Order.objects.filter(
+        tenant=request.user.tenant,
+        outlet=outlet,
+        created_at__gte=start,
+        created_at__lt=end,
+        status__in=["paid", "closed"]
+    )
+
     sessions = CashSession.objects.filter(
         tenant=request.user.tenant,
-        outlet=request.user.outlet,
-        opened_at__date=today
+        outlet=outlet,
+        opened_at__gte=start,
+        opened_at__lt=end,
     ).order_by('opened_at')
 
     # Calculate Daily Summary
-    payments = Payment.objects.filter(
-        order__tenant=request.user.tenant,
-        order__outlet=request.user.outlet,
-        paid_at__date=today
-    )
-    
+    payments = Payment.objects.filter(order__in=orders_qs)
+
     summary = payments.aggregate(
         total=Sum("amount"),
         cash=Sum("amount", filter=Q(method="cash")),
@@ -346,12 +366,7 @@ def export_z_report(request):
         refunds=Sum("amount", filter=Q(method="refund"))
     )
 
-    orders = Order.objects.filter(
-        tenant=request.user.tenant,
-        outlet=request.user.outlet,
-        created_at__date=today,
-        status__in=["paid", "closed"]
-    ).aggregate(
+    orders = orders_qs.aggregate(
         subtotal=Sum("subtotal"),
         discount=Sum("discount_total"),
         gst=Sum("gst_total"),
@@ -359,11 +374,11 @@ def export_z_report(request):
     )
 
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="z_report_{today}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="z_report_{business_date}.csv"'
 
     writer = csv.writer(response)
-    
-    writer.writerow(['DAILY Z-REPORT SUMMARY', today.strftime('%d %b %Y')])
+
+    writer.writerow(['DAILY Z-REPORT SUMMARY', business_date.strftime('%d %b %Y')])
     writer.writerow(['Outlet', request.user.outlet.name])
     writer.writerow([])
     
@@ -386,10 +401,7 @@ def export_z_report(request):
     from orders.models import OrderItem
     
     item_sales = OrderItem.objects.filter(
-        order__tenant=request.user.tenant,
-        order__outlet=request.user.outlet,
-        order__created_at__date=today,
-        order__status__in=["paid", "closed"]
+        order__in=orders_qs
     ).annotate(
         line_rev=ExpressionWrapper(
             F('total_price') * (1 - F('item_discount_pct') / 100),

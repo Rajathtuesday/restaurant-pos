@@ -543,3 +543,64 @@ class GrossMarginReportRefundTest(TestCase):
         result = gross_margin_report(self.tenant, self.outlet, today, today)
 
         self.assertEqual(result["gross_revenue"], 500.0)
+
+
+# ---------------------------------------------------------------------------
+# owner_dashboard_metrics business-date tests
+#
+# Same bug class as the Z-report fix — a single created_at__date= filter
+# against timezone.localdate() ignores the outlet's business-day cutoff,
+# so any order placed after midnight but before the cutoff hour would
+# vanish from the live dashboard until the calendar caught up.
+# ---------------------------------------------------------------------------
+
+from datetime import datetime as _dt
+from unittest.mock import patch
+
+
+class OwnerDashboardMetricsBusinessDateTest(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Dashboard BD Tenant")
+        self.outlet = Outlet.objects.create(
+            tenant=self.tenant, name="Main", business_day_start_hour=6
+        )
+        self.owner = User.objects.create_user(
+            username="dash_owner", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="owner",
+        )
+
+    def _order_at(self, naive_dt, amount):
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="paid",
+            subtotal=Decimal(amount), grand_total=Decimal(amount),
+        )
+        aware = timezone.make_aware(naive_dt, timezone.get_current_timezone())
+        Order.objects.filter(id=order.id).update(created_at=aware)
+        Payment.objects.create(order=order, method="cash", amount=Decimal(amount))
+        return order
+
+    @patch("django.utils.timezone.now")
+    def test_late_night_order_counted_on_dashboard(self, mock_now):
+        from reports.services.dashboard_metrics import owner_dashboard_metrics
+
+        mock_now.return_value = timezone.make_aware(
+            _dt(2026, 7, 17, 21, 0), timezone.get_current_timezone()
+        )
+        evening_order = self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        # Past midnight, before the 6 AM cutoff — same business day.
+        late_order = self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        # Owner checks the dashboard at 4 AM, still the same business day
+        # as both orders above.
+        mock_now.return_value = timezone.make_aware(
+            _dt(2026, 7, 18, 4, 0), timezone.get_current_timezone()
+        )
+
+        results = owner_dashboard_metrics(self.owner)
+        self.assertEqual(len(results), 1)
+        # Under the old bug, a plain created_at__date filter evaluated at
+        # 4 AM would only find the 2 AM order (₹250), dropping the whole
+        # prior evening's ₹1000.
+        self.assertEqual(float(results[0]["revenue"]), 1250.0)
+        self.assertEqual(results[0]["orders"], 2)

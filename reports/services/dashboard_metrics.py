@@ -1,49 +1,47 @@
 # reports/services/dashboard_metrics.py
 from django.core.cache import cache
 from django.db.models import Sum, Count, F
-from django.utils.timezone import localdate
+from django.utils import timezone
 
 from orders.models import Order, Payment, Table
 from inventory.models import InventoryItem
 from tenants.models import Outlet
+from core.utils import get_business_date, get_business_date_range
 
 
 def owner_dashboard_metrics(user):
     tenant = user.tenant
-    today = localdate()
-
-    cache_key = f"dashboard_metrics_{tenant.id}_{user.outlet_id}_{today}"
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
 
     if user.role == "owner":
         outlets = list(Outlet.objects.filter(tenant=tenant))
     else:
         outlets = list(Outlet.objects.filter(id=user.outlet.id))
 
+    # Each outlet can have its own business_day_start_hour, so "today" isn't
+    # one shared date across a multi-outlet tenant — outlet A might already
+    # be on the next business day while outlet B (opened later, or on a
+    # later cutoff) is still on the previous one. A single shared
+    # `today = localdate()` used for every outlet, and a plain
+    # created_at__date= filter, meant any order placed after midnight but
+    # before an outlet's cutoff hour vanished from that outlet's own
+    # dashboard until the calendar caught up — the exact bug already found
+    # and fixed in the Z-report, live here on the page an owner actually
+    # watches all day.
+    business_dates = {o.id: get_business_date(timezone.now(), o) for o in outlets}
+    ranges = {o.id: get_business_date_range(business_dates[o.id], o) for o in outlets}
+
+    cache_key = f"dashboard_metrics_{tenant.id}_{user.outlet_id}_" + "_".join(
+        f"{oid}:{d}" for oid, d in sorted(business_dates.items())
+    )
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    # Low stock and kitchen queue are point-in-time, not "today" scoped —
+    # still fine to batch across outlets. Everything "today"-scoped is
+    # computed per-outlet below since each has its own business-day window.
     outlet_ids = [o.id for o in outlets]
 
-    # Revenue — paid payments today (exclude refunds)
-    revenue_qs = (
-        Payment.objects
-        .filter(order__tenant=tenant, order__outlet_id__in=outlet_ids, paid_at__date=today)
-        .exclude(method="refund")
-        .values("order__outlet_id")
-        .annotate(total=Sum("amount"))
-    )
-    revenue_map = {r["order__outlet_id"]: r["total"] or 0 for r in revenue_qs}
-
-    # Completed orders today
-    orders_qs = (
-        Order.objects
-        .filter(tenant=tenant, outlet_id__in=outlet_ids, created_at__date=today, status__in=["closed", "paid"])
-        .values("outlet_id")
-        .annotate(count=Count("id"))
-    )
-    orders_map = {o["outlet_id"]: o["count"] for o in orders_qs}
-
-    # Active tables (ordering / preparing / ready)
     active_tables_qs = (
         Table.objects
         .filter(tenant=tenant, outlet_id__in=outlet_ids, state__in=["ordering", "preparing", "ready"])
@@ -52,7 +50,6 @@ def owner_dashboard_metrics(user):
     )
     tables_map = {t["outlet_id"]: t["count"] for t in active_tables_qs}
 
-    # Kitchen queue — open orders with at least one item still in kitchen
     kitchen_qs = (
         Order.objects
         .filter(
@@ -66,7 +63,6 @@ def owner_dashboard_metrics(user):
     )
     kitchen_map = {k["outlet_id"]: k["count"] for k in kitchen_qs}
 
-    # Low stock items
     low_stock_qs = (
         InventoryItem.objects
         .filter(tenant=tenant, outlet_id__in=outlet_ids, stock__lte=F("low_stock_threshold"))
@@ -75,30 +71,30 @@ def owner_dashboard_metrics(user):
     )
     stock_map = {s["outlet_id"]: s["count"] for s in low_stock_qs}
 
-    # Voids today — cancelled orders
-    voids_qs = (
-        Order.objects
-        .filter(tenant=tenant, outlet_id__in=outlet_ids, created_at__date=today, status="cancelled")
-        .values("outlet_id")
-        .annotate(count=Count("id"))
-    )
-    voids_map = {v["outlet_id"]: v["count"] for v in voids_qs}
-
-    # Discounts today — orders with a discount applied, sum of discount amount
-    discounts_qs = (
-        Order.objects
-        .filter(tenant=tenant, outlet_id__in=outlet_ids, created_at__date=today, discount_total__gt=0)
-        .values("outlet_id")
-        .annotate(total=Sum("discount_total"), count=Count("id"))
-    )
-    discounts_map = {d["outlet_id"]: {"amount": d["total"] or 0, "count": d["count"]} for d in discounts_qs}
-
-    # Assemble
+    # Assemble — each outlet queried with its own business-day window.
     results = []
     for outlet in outlets:
-        rev = revenue_map.get(outlet.id, 0)
-        orders = orders_map.get(outlet.id, 0)
-        disc = discounts_map.get(outlet.id, {"amount": 0, "count": 0})
+        start, end = ranges[outlet.id]
+
+        rev = (
+            Payment.objects
+            .filter(order__tenant=tenant, order__outlet_id=outlet.id, paid_at__gte=start, paid_at__lt=end)
+            .exclude(method="refund")
+            .aggregate(total=Sum("amount"))["total"] or 0
+        )
+        orders = Order.objects.filter(
+            tenant=tenant, outlet_id=outlet.id, created_at__gte=start, created_at__lt=end,
+            status__in=["closed", "paid"],
+        ).count()
+        voids = Order.objects.filter(
+            tenant=tenant, outlet_id=outlet.id, created_at__gte=start, created_at__lt=end,
+            status="cancelled",
+        ).count()
+        disc = Order.objects.filter(
+            tenant=tenant, outlet_id=outlet.id, created_at__gte=start, created_at__lt=end,
+            discount_total__gt=0,
+        ).aggregate(total=Sum("discount_total"), count=Count("id"))
+
         results.append({
             "outlet":          outlet.name,
             "revenue":         rev,
@@ -107,9 +103,9 @@ def owner_dashboard_metrics(user):
             "active_tables":   tables_map.get(outlet.id, 0),
             "kitchen_orders":  kitchen_map.get(outlet.id, 0),
             "low_stock":       stock_map.get(outlet.id, 0),
-            "voids_today":     voids_map.get(outlet.id, 0),
-            "discounts_amount": disc["amount"],
-            "discounts_count":  disc["count"],
+            "voids_today":     voids,
+            "discounts_amount": disc["total"] or 0,
+            "discounts_count":  disc["count"] or 0,
         })
 
     cache.set(cache_key, results, 60)  # 60-second TTL

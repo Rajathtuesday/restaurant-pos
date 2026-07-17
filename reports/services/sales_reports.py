@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.db.models import Sum
 from django.db.models.functions import ExtractHour, TruncDate
 from orders.models import Order, Payment
+from core.utils import get_business_date, get_business_date_range
 
 logger = logging.getLogger("pos.reports")
 
@@ -20,17 +21,24 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     - Orders count is based on orders that actually have payments
     """
 
-    if start_date is None: start_date = timezone.localdate()
-    if end_date is None:   end_date   = timezone.localdate()
+    if start_date is None: start_date = get_business_date(timezone.now(), outlet)
+    if end_date is None:   end_date   = get_business_date(timezone.now(), outlet)
 
     logger.debug("Fetching daily_sales for %s | Outlet: %s | %s to %s", tenant, outlet, start_date, end_date)
+
+    # Business-day bounds, not plain calendar dates — a payment at 2 AM on
+    # what looks like "the next day" still belongs to the previous business
+    # day if it's before the outlet's cutoff hour. Using date__gte/lte
+    # against a calendar date would silently drop it from the report.
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
 
     # ----------------------------
     # PAYMENTS (SOURCE OF TRUTH)
     # ----------------------------
     payments = Payment.objects.filter(
         order__tenant=tenant,
-        paid_at__date__gte=start_date, paid_at__date__lte=end_date
+        paid_at__gte=range_start, paid_at__lt=range_end
     )
 
     if outlet:
@@ -103,14 +111,19 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     Previously used order__created_at which caused daily totals and the hourly
     chart to disagree on split-midnight orders.
     """
-    if start_date is None: start_date = timezone.localdate()
-    if end_date is None:   end_date   = timezone.localdate()
+    if start_date is None: start_date = get_business_date(timezone.now(), outlet)
+    if end_date is None:   end_date   = get_business_date(timezone.now(), outlet)
+
+    # Business-day bounds, same reasoning as daily_sales() above — keeps
+    # the two reports agreeing on which payments count as "today".
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
 
     # Always filter by paid_at — consistent with daily_sales()
     payments = Payment.objects.filter(
         order__tenant=tenant,
-        paid_at__date__gte=start_date,
-        paid_at__date__lte=end_date
+        paid_at__gte=range_start,
+        paid_at__lt=range_end
     )
 
     if outlet:

@@ -8,6 +8,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from tenants.models import Outlet
 from core.decorators import tenant_required, role_required
+from core.utils import get_business_date
 from reports.services.sales_reports import daily_sales, hourly_sales
 from reports.services.item_reports import top_items
 from reports.services.table_reports import table_turnover
@@ -21,9 +22,28 @@ from reports.services.kitchen_reports import kitchen_performance, top_kitchen_it
 def api_dashboard(request):
     tenant = request.user.tenant
     date_filter = request.GET.get("date_filter", "today")
-    
-    start_date = timezone.now().date()
-    end_date = timezone.now().date()
+
+    # Outlet must be resolved BEFORE the "today" default below — each
+    # outlet can have its own business_day_start_hour, so which calendar
+    # date "today" actually is depends on which outlet (or None, for the
+    # cross-outlet default) we're asking about.
+    outlet_id = request.GET.get("outlet")
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        if outlet_id:
+            outlet = outlets.filter(id=outlet_id).first()
+            if not outlet:
+                return JsonResponse({"error": "Invalid outlet"}, status=400)
+        else:
+            outlet = None
+    else:
+        outlet = request.user.outlet
+        outlets = [outlet]
+
+    selected_outlet = outlet
+
+    start_date = get_business_date(timezone.now(), selected_outlet)
+    end_date = get_business_date(timezone.now(), selected_outlet)
 
     if date_filter == "yesterday":
         start_date = start_date - timedelta(days=1)
@@ -42,21 +62,6 @@ def api_dashboard(request):
                 end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
             except ValueError:
                 pass
-
-    outlet_id = request.GET.get("outlet")
-    if request.user.role == "owner":
-        outlets = Outlet.objects.filter(tenant=tenant)
-        if outlet_id:
-            outlet = outlets.filter(id=outlet_id).first()
-            if not outlet:
-                return JsonResponse({"error": "Invalid outlet"}, status=400)
-        else:
-            outlet = None
-    else:
-        outlet = request.user.outlet
-        outlets = [outlet]
-
-    selected_outlet = outlet
 
     sales = daily_sales(tenant, selected_outlet, start_date, end_date)
     items = top_items(tenant, selected_outlet, start_date, end_date)
@@ -88,9 +93,26 @@ def api_dashboard(request):
 def api_kitchen_dashboard(request):
     tenant = request.user.tenant
     date_filter = request.GET.get("date_filter", "today")
-    
-    start_date = timezone.now().date()
-    end_date = timezone.now().date()
+
+    # Same ordering fix as api_dashboard — resolve outlet first, since its
+    # business_day_start_hour determines what "today" even means.
+    outlet_id = request.GET.get("outlet")
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        if outlet_id:
+            outlet = outlets.filter(id=outlet_id).first()
+            if not outlet:
+                return JsonResponse({"error": "Invalid outlet"}, status=400)
+        else:
+            outlet = None
+    else:
+        outlet = request.user.outlet
+        outlets = [outlet]
+
+    selected_outlet = outlet
+
+    start_date = get_business_date(timezone.now(), selected_outlet)
+    end_date = get_business_date(timezone.now(), selected_outlet)
 
     if date_filter == "yesterday":
         start_date = start_date - timedelta(days=1)
@@ -109,21 +131,6 @@ def api_kitchen_dashboard(request):
                 end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
             except ValueError:
                 pass
-
-    outlet_id = request.GET.get("outlet")
-    if request.user.role == "owner":
-        outlets = Outlet.objects.filter(tenant=tenant)
-        if outlet_id:
-            outlet = outlets.filter(id=outlet_id).first()
-            if not outlet:
-                return JsonResponse({"error": "Invalid outlet"}, status=400)
-        else:
-            outlet = None
-    else:
-        outlet = request.user.outlet
-        outlets = [outlet]
-
-    selected_outlet = outlet
 
     k_perf = kitchen_performance(tenant, selected_outlet, start_date, end_date)
     k_items = top_kitchen_items(tenant, selected_outlet, start_date, end_date)

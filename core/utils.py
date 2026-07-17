@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime, time
 from django.utils import timezone
 
 
@@ -44,5 +44,30 @@ def get_business_date(dt=None, outlet=None):
         
     if local_dt.hour < cutoff_hour:
         return local_dt.date() - timedelta(days=1)
-    
+
     return local_dt.date()
+
+
+def get_business_date_range(business_date, outlet=None):
+    """
+    Returns the (start, end) timezone-aware datetime bounds of a business
+    day: from the outlet's cutoff hour on business_date to the same cutoff
+    hour the next calendar day.
+
+    Any "today's sales" style report that filters on a plain
+    `created_at__date=` will silently misattribute orders placed after
+    midnight but before the cutoff (e.g. 1 AM at a restaurant open past
+    midnight) to the wrong business day — they'd count as "tomorrow" on a
+    calendar-date filter, while get_business_date() correctly treats them
+    as still belonging to the previous business day. Use this range with
+    `created_at__gte=start, created_at__lt=end` to match that.
+    """
+    cutoff_hour = 6
+    if outlet and hasattr(outlet, 'business_day_start_hour'):
+        cutoff_hour = outlet.business_day_start_hour
+
+    naive_start = datetime.combine(business_date, time(hour=cutoff_hour))
+    current_tz = timezone.get_current_timezone()
+    start = timezone.make_aware(naive_start, current_tz)
+    end = start + timedelta(days=1)
+    return start, end

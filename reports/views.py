@@ -51,31 +51,10 @@ def dashboard(request):
     if not tenant:
         return HttpResponseForbidden("No tenant context found.")
 
-    # date filter
+    # outlet selection — resolved BEFORE the date default below, since each
+    # outlet can have its own business_day_start_hour and "today" depends
+    # on which one (or None, for the cross-outlet default) is in scope.
     date_filter = request.GET.get("date_filter", "today")
-    
-    start_date = timezone.localdate()
-    end_date = timezone.localdate()
-
-    if date_filter == "yesterday":
-        start_date = start_date - timedelta(days=1)
-        end_date = start_date
-    elif date_filter == "weekly":
-        start_date = start_date - timedelta(days=7)
-    elif date_filter == "monthly":
-        start_date = start_date - timedelta(days=30)
-    elif date_filter == "custom":
-        custom_start = request.GET.get("start_date")
-        custom_end = request.GET.get("end_date")
-        if custom_start and custom_end:
-            from datetime import datetime
-            try:
-                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
-                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
-            except ValueError:
-                pass # fallback to today
-
-    # outlet selection
     outlet_id = request.GET.get("outlet")
 
     if request.user.role == "owner":
@@ -95,6 +74,28 @@ def dashboard(request):
         outlets = [outlet]
 
     selected_outlet = outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), selected_outlet)
+    end_date = get_business_date(timezone.now(), selected_outlet)
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass # fallback to today
 
     sales      = daily_sales(tenant, selected_outlet, start_date, end_date)
     items      = top_items(tenant, selected_outlet, start_date, end_date)
@@ -201,11 +202,28 @@ def dashboard(request):
 def kitchen_dashboard(request):
     tenant = request.user.tenant
 
-    # date filter
+    # outlet selection — resolved before the date default, same reasoning
+    # as dashboard() above.
     date_filter = request.GET.get("date_filter", "today")
-    
-    start_date = timezone.now().date()
-    end_date = timezone.now().date()
+    outlet_id = request.GET.get("outlet")
+
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        if outlet_id:
+            outlet = outlets.filter(id=outlet_id).first()
+            if not outlet:
+                return HttpResponseForbidden("Invalid outlet")
+        else:
+            outlet = None
+    else:
+        outlet = request.user.outlet
+        outlets = [outlet]
+
+    selected_outlet = outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), selected_outlet)
+    end_date = get_business_date(timezone.now(), selected_outlet)
 
     if date_filter == "yesterday":
         start_date = start_date - timedelta(days=1)
@@ -224,23 +242,6 @@ def kitchen_dashboard(request):
                 end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
             except ValueError:
                 pass
-
-    # outlet selection
-    outlet_id = request.GET.get("outlet")
-
-    if request.user.role == "owner":
-        outlets = Outlet.objects.filter(tenant=tenant)
-        if outlet_id:
-            outlet = outlets.filter(id=outlet_id).first()
-            if not outlet:
-                return HttpResponseForbidden("Invalid outlet")
-        else:
-            outlet = None
-    else:
-        outlet = request.user.outlet
-        outlets = [outlet]
-
-    selected_outlet = outlet
 
     k_perf = kitchen_performance(tenant, selected_outlet, start_date, end_date)
     k_items = top_kitchen_items(tenant, selected_outlet, start_date, end_date)
@@ -280,17 +281,19 @@ def inspection_report(request):
     from django.db.models import Sum, Count
     from orders.models import Order, Payment
     from reports.services.item_reports import top_items
+    from core.utils import get_business_date, get_business_date_range
 
     tenant = request.user.tenant
     outlet = request.user.outlet
-    today  = timezone.localdate()
+    today  = get_business_date(timezone.now(), outlet)
+    range_start, range_end = get_business_date_range(today, outlet)
 
     orders = (
         Order.objects
         .filter(
             tenant=tenant,
             outlet=outlet,
-            created_at__date=today,
+            created_at__gte=range_start, created_at__lt=range_end,
             status__in=["paid", "closed"],
         )
         .order_by("created_at")
@@ -368,8 +371,17 @@ def inventory_report(request):
     tenant = request.user.tenant
 
     date_filter = request.GET.get("date_filter", "today")
-    start_date = timezone.localdate()
-    end_date = timezone.localdate()
+    outlet_id = request.GET.get("outlet")
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else outlets.first()
+    else:
+        outlets = Outlet.objects.filter(id=request.user.outlet_id)
+        outlet = request.user.outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), outlet)
+    end_date = get_business_date(timezone.now(), outlet)
 
     if date_filter == "yesterday":
         start_date = start_date - timedelta(days=1)
@@ -388,14 +400,6 @@ def inventory_report(request):
                 end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
             except ValueError:
                 pass
-
-    outlet_id = request.GET.get("outlet")
-    if request.user.role == "owner":
-        outlets = Outlet.objects.filter(tenant=tenant)
-        outlet = outlets.filter(id=outlet_id).first() if outlet_id else outlets.first()
-    else:
-        outlets = Outlet.objects.filter(id=request.user.outlet_id)
-        outlet = request.user.outlet
 
     item_id = request.GET.get("item") or None
 
@@ -441,10 +445,19 @@ def export_reports(request):
     tenant = request.user.tenant
     outlet_id = request.GET.get("outlet")
     export_type = request.GET.get("type", "orders")
-    
+
     date_filter = request.GET.get("date_filter", "today")
-    start_date = timezone.localdate()
-    end_date = timezone.localdate()
+
+    outlet = None
+    if request.user.role == "owner":
+        if outlet_id:
+            outlet = Outlet.objects.filter(tenant=tenant, id=outlet_id).first()
+    else:
+        outlet = request.user.outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), outlet)
+    end_date = get_business_date(timezone.now(), outlet)
 
     if date_filter == "yesterday":
         start_date = start_date - timedelta(days=1)
@@ -463,13 +476,6 @@ def export_reports(request):
                 end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
             except ValueError:
                 pass
-
-    outlet = None
-    if request.user.role == "owner":
-        if outlet_id:
-            outlet = Outlet.objects.filter(tenant=tenant, id=outlet_id).first()
-    else:
-        outlet = request.user.outlet
 
     from .services.export_services import (
         generate_orders_csv, 

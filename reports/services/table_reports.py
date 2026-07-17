@@ -2,14 +2,20 @@
 from django.db.models import Count
 from orders.models import Order, OrderItem
 from django.utils import timezone
+from core.utils import get_business_date, get_business_date_range
 
 
 def table_turnover(tenant, outlet=None, start_date=None, end_date=None):
+    start_date = start_date or get_business_date(timezone.now(), outlet)
+    end_date = end_date or get_business_date(timezone.now(), outlet)
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
+
     query = Order.objects.filter(
         tenant=tenant,
         status__in=["closed", "paid"],
         table__isnull=False,
-        created_at__date__gte=start_date if start_date else timezone.localdate(), created_at__date__lte=end_date if end_date else timezone.localdate()
+        created_at__gte=range_start, created_at__lt=range_end
     )
 
     if outlet:
