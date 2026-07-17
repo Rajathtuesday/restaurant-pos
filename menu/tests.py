@@ -298,3 +298,51 @@ class MenuItemMutationTests(TestCase):
         item = MenuItem.objects.filter(name="Paneer Tikka").first()
         self.assertIsNotNone(item)
         self.assertTrue(item.is_veg)
+
+
+class DigitalMenuTableTokenTest(TestCase):
+    """
+    Regression coverage for the QR menu security fix — digital_menu() used
+    to accept a plain ?table=<id> as an alternative to ?table_token=<uuid>,
+    with no auth check. Table ids are small sequential integers, so that
+    path let anyone enumerate them and get the page to hand back that
+    table's real, secret qr_token, bypassing the "must physically scan the
+    QR code" guarantee entirely. Confirmed dead code (no real caller
+    anywhere in the app) before removing it outright.
+    """
+
+    def setUp(self):
+        from orders.models import Table
+
+        self.tenant = Tenant.objects.create(name="QR Test Tenant", tenant_type="fine_dining")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Outlet")
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+
+    def test_table_token_still_works(self):
+        resp = self.client.get(
+            reverse("digital_menu"), {"table_token": str(self.table.qr_token)}
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context["table"].id, self.table.id)
+
+    def test_plain_table_id_no_longer_resolves_a_table(self):
+        resp = self.client.get(reverse("digital_menu"), {"table": self.table.id})
+        # No token, no logged-in user with a tenant — falls through to the
+        # "no valid table token provided" 404, exactly like a request with
+        # no table info at all. Never resolves self.table or leaks its
+        # qr_token into the rendered page.
+        self.assertEqual(resp.status_code, 404)
+
+    def test_plain_table_id_does_not_leak_qr_token_even_for_logged_in_staff(self):
+        # A logged-in staff member hitting ?table=<id> must not have it
+        # silently resolve someone else's table either — it should just
+        # fall back to their own tenant/outlet context, same as visiting
+        # the page with no table info at all.
+        staff = User.objects.create_user(
+            username="qr_staff", password="pw", role="owner",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(staff)
+        resp = self.client.get(reverse("digital_menu"), {"table": self.table.id})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsNone(resp.context["table"])

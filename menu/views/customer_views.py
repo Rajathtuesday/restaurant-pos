@@ -138,13 +138,19 @@ def digital_menu(request):
     """Customer-facing self-order menu with category tabs and cart."""
     from core.features import has_feature
 
+    # Deliberately table_token only. A `?table=<id>` fallback used to exist
+    # here, resolving a table by its plain integer id with no auth check —
+    # table ids are small sequential integers, so that path let anyone
+    # enumerate them and have the page hand back that table's real,
+    # secret qr_token, completely bypassing the "must physically scan the
+    # QR code" guarantee for the whole tenant. Confirmed dead code before
+    # removing it: no template or view anywhere links to
+    # /menu/digital-menu/?table=, staff's own "preview menu" link
+    # (reports/dashboard.html) uses no query params at all.
     table_token = request.GET.get("table_token")
-    table_id    = request.GET.get("table")
     table = None
     if table_token:
         table = Table.objects.filter(qr_token=table_token).first()
-    elif table_id:
-        table = Table.objects.filter(id=table_id).first()
 
     if table:
         tenant, outlet = table.tenant, table.outlet
