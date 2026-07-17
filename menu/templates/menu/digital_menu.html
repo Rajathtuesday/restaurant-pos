@@ -464,6 +464,53 @@
             padding: 0.3rem 0; color: var(--text-muted);
         }
         .order-status-item-row .name { color: var(--text-main); }
+
+        /* CALL WAITER BUTTON */
+        .call-waiter-btn {
+            display: flex; align-items: center; gap: 0.4rem;
+            background: transparent;
+            color: var(--accent-gold);
+            border: 1.5px solid var(--accent-gold);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            transition: var(--transition-smooth);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .call-waiter-btn i { font-size: 0.85rem; }
+        .call-waiter-btn:hover:not(:disabled) { background: var(--accent-gold); color: #fff; }
+        .call-waiter-btn:active:not(:disabled) { transform: scale(0.96); }
+        .call-waiter-btn:disabled { cursor: default; opacity: 0.85; }
+        .call-waiter-btn.notified {
+            background: var(--veg-color); border-color: var(--veg-color); color: #fff; opacity: 1;
+        }
+        .call-waiter-btn.ringing i { animation: bellRing 0.5s ease-in-out 2; }
+        @keyframes bellRing {
+            0%, 100% { transform: rotate(0deg); }
+            20% { transform: rotate(15deg); }
+            40% { transform: rotate(-15deg); }
+            60% { transform: rotate(10deg); }
+            80% { transform: rotate(-10deg); }
+        }
+
+        /* MINI TOAST */
+        .mini-toast {
+            position: fixed; top: 76px; left: 50%; z-index: 1080;
+            transform: translateX(-50%) translateY(-16px);
+            background: var(--text-main); color: var(--bg-color);
+            padding: 0.7rem 1.25rem; border-radius: 30px;
+            font-size: 0.82rem; font-weight: 600;
+            display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;
+            box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .mini-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .mini-toast.error { background: var(--nonveg-color); color: #fff; }
     </style>
 </head>
 <body>
@@ -480,12 +527,14 @@
         <div class="branch-info d-flex justify-content-center align-items-center gap-2 mt-2">
             <span>{{ outlet.name }} &middot; {% if table %}Table {{ table.name }}{% else %}Takeaway{% endif %}</span>
             {% if table %}
-            <button class="btn btn-sm btn-outline-dark" id="callWaiterBtn" onclick="callWaiter()" style="font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; border-color: var(--border-color); color: var(--text-main);">
-                <i class="bi bi-bell"></i> Call Waiter
+            <button class="call-waiter-btn" id="callWaiterBtn" onclick="callWaiter()">
+                <i class="bi bi-bell"></i><span id="callWaiterLabel">Call Waiter</span>
             </button>
             {% endif %}
         </div>
     </header>
+
+    <div class="mini-toast" id="miniToast"></div>
 
     <!-- ORDER STATUS — hidden until this table has a placed order -->
     <div class="order-status-banner hidden" id="orderStatusBanner" onclick="toggleOrderStatusDetail()">
@@ -1093,13 +1142,30 @@
         }
     }
 
+    let miniToastTimer = null;
+    function showMiniToast(msg, isError) {
+        const toast = document.getElementById("miniToast");
+        clearTimeout(miniToastTimer);
+        toast.innerHTML = `<i class="bi ${isError ? 'bi-exclamation-circle' : 'bi-check-circle'}"></i> ${msg}`;
+        toast.classList.toggle("error", !!isError);
+        toast.classList.add("show");
+        miniToastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+    }
+
+    function setWaiterBtnState(btn, label, opts = {}) {
+        document.getElementById("callWaiterLabel").textContent = label;
+        btn.classList.toggle("notified", !!opts.notified);
+        btn.querySelector("i").className = opts.icon || "bi bi-bell";
+    }
+
     function callWaiter() {
         const tableToken = "{{ table.qr_token|default:'' }}";
         if(!tableToken) return;
 
         const btn = document.getElementById("callWaiterBtn");
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width: 0.8rem; height: 0.8rem;"></span>';
+        btn.classList.add("ringing");
+        setWaiterBtnState(btn, "Calling…");
 
         fetch(`/menu/call-waiter/${tableToken}/`, {
             method: "POST",
@@ -1109,22 +1175,26 @@
         })
         .then(r => r.json())
         .then(data => {
+            btn.classList.remove("ringing");
             if(data.success) {
-                alert("A waiter has been notified!");
+                setWaiterBtnState(btn, "Notified", { notified: true, icon: "bi bi-check-circle-fill" });
+                showMiniToast("A waiter has been notified");
                 setTimeout(() => {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-bell"></i> Call Waiter';
+                    setWaiterBtnState(btn, "Call Waiter");
                 }, 60000);
             } else {
-                alert(data.error || "Could not call waiter.");
+                setWaiterBtnState(btn, "Call Waiter");
+                showMiniToast(data.error || "Could not call waiter", true);
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-bell"></i> Call Waiter';
             }
         })
         .catch(err => {
             console.error(err);
+            btn.classList.remove("ringing");
+            setWaiterBtnState(btn, "Call Waiter");
+            showMiniToast("Network error, please try again", true);
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-bell"></i> Call Waiter';
         });
     }
     function fixStickyNav() {
