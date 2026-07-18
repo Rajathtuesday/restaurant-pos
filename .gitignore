@@ -36,7 +36,6 @@ Thumbs.db
 pos.log
 logs/*
 pos.log.*
-*.md
 
 # Build artifacts — never commit zips
 *.zip
