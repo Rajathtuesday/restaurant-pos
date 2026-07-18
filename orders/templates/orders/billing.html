@@ -1081,6 +1081,29 @@
     if (!amount || amount <= 0) { showToast("Enter amount"); return; }
 
     const payBtn = document.getElementById("qsrPayBtn");
+
+    // Offline: only cash can be confirmed without a live gateway
+    // round-trip — same reasoning as recordPay() in bill.html.
+    if (!navigator.onLine) {
+      if (_qsrMethod !== 'cash') {
+        showToast("You are offline. Only cash payments can be taken right now.");
+        return;
+      }
+      try {
+        await offlinePaymentQueue.add(qsrPendingOrderId, amount.toFixed(2));
+        ui.toast('Offline — cash payment saved, will sync when back online. Print the slip manually for now.', 'success');
+        const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
+        if (modal) modal.hide();
+        clearCart();
+        qsrPendingOrderId = null;
+        _qsrMethod = null;
+        _qsrTotal = 0;
+      } catch (e) {
+        showToast("Could not save payment offline on this device. Please note it down manually.");
+      }
+      return;
+    }
+
     payBtn.disabled = true;
     payBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing…';
 
@@ -1131,7 +1154,25 @@
         payBtn.innerHTML = '<i class="bi bi-printer me-2"></i>CONFIRM & PRINT SLIP';
       }
     } catch (e) {
-      showToast("Network error during payment");
+      // Connection dropped mid-request — same TypeError heuristic used
+      // elsewhere. Only cash is safe to queue after the fact.
+      if (e instanceof TypeError && _qsrMethod === 'cash') {
+        try {
+          await offlinePaymentQueue.add(qsrPendingOrderId, amount.toFixed(2));
+          ui.toast('Connection dropped — cash payment saved, will sync once back online.', 'success');
+          const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
+          if (modal) modal.hide();
+          clearCart();
+          qsrPendingOrderId = null;
+          _qsrMethod = null;
+          _qsrTotal = 0;
+          return;
+        } catch (queueErr) {
+          showToast("Could not save payment offline on this device. Please note it down manually.");
+        }
+      } else {
+        showToast("Network error during payment");
+      }
       payBtn.disabled = false;
       payBtn.innerHTML = '<i class="bi bi-printer me-2"></i>CONFIRM & PRINT SLIP';
     }

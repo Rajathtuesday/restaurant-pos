@@ -660,6 +660,27 @@
     async function recordPay(method, amountOverride = null) {
         const amtEl  = document.getElementById('payAmount');
         const amount = amountOverride !== null ? amountOverride : (amtEl ? amtEl.value : 0);
+
+        // Offline: only cash can be confirmed without a live gateway
+        // round-trip (UPI/card verification can't happen without one — see
+        // offlinePaymentQueue's own comment in base.html). Queue it and
+        // stop here; the print/redirect flow below all depends on the
+        // payment actually existing server-side, which it doesn't yet.
+        if (!navigator.onLine) {
+            if (method !== 'cash') {
+                ui.toast('You are offline. Only cash payments can be taken right now.', 'error');
+                return;
+            }
+            try {
+                await offlinePaymentQueue.add({{ order.id }}, amount);
+                ui.toast('Offline — cash payment saved, will sync when back online. Print the receipt manually for now.', 'success');
+                window.onbeforeunload = null;
+            } catch (e) {
+                ui.toast('Could not save payment offline on this device. Please note it down manually.', 'error');
+            }
+            return;
+        }
+
         try {
             const data = await apiClient.post('{% url "pay-order" order.id %}', { method, amount });
             if (data.success) {
@@ -717,6 +738,22 @@
                 ui.toast(data.error || 'Payment failed', 'error');
             }
         } catch(e) {
+            // Connection dropped between the navigator.onLine check above and
+            // this request actually landing — same TypeError heuristic
+            // apiClient.request() and the order queue already use elsewhere.
+            // Only cash is safe to queue after the fact for the same reason
+            // as the upfront offline check.
+            if (e instanceof TypeError && method === 'cash') {
+                try {
+                    await offlinePaymentQueue.add({{ order.id }}, amount);
+                    ui.toast('Connection dropped — cash payment saved, will sync once back online.', 'success');
+                    window.onbeforeunload = null;
+                } catch (queueErr) {
+                    ui.toast('Could not save payment offline on this device. Please note it down manually.', 'error');
+                }
+                return;
+            }
+
             // apiClient already surfaced the real server message as a toast and
             // re-threw it. Don't bury it under a generic "Connection error".
             const msg = (e && e.message) || '';

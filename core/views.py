@@ -4,9 +4,38 @@ import logging
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.db import connection
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 
 logger = logging.getLogger("pos.core")
+
+
+def csrf_failure(request, reason=""):
+    """
+    Custom CSRF_FAILURE_VIEW. Django's built-in one is a bare, unstyled
+    403 page with no recovery action — someone hitting a stale CSRF token
+    (the exact class of bug fixed elsewhere this session) had no way to
+    tell what happened or what to do about it.
+
+    apiClient (templates/core/base.html) always sends
+    Content-Type: application/json on every POST/PUT/DELETE, so that's a
+    reliable, already-true-today signal for "this was a fetch() call, not
+    real page navigation" — those get a clean JSON error the frontend's
+    existing toast/alert handling can show directly, instead of trying to
+    render an HTML error page inside a JSON parser and failing silently.
+    Everything else (a real page load, or an old-style plain form POST)
+    gets the friendly reload page.
+    """
+    is_api = (
+        request.content_type == "application/json"
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in request.META.get("HTTP_ACCEPT", "")
+    )
+    if is_api:
+        return JsonResponse(
+            {"error": "Your session needs a refresh. Please reload the page and try again."},
+            status=403,
+        )
+    return render(request, "csrf_failure.html", status=403)
 
 
 def landing(request):

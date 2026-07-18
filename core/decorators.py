@@ -33,11 +33,25 @@ def tenant_required(view_func):
     Ensures the request user has a tenant and outlet assigned,
     and that any subdomain matches the user's assigned tenant.
     Apply after @login_required.
+
+    Superusers bypass every check below, same as feature_required — a
+    platform superuser normally has tenant=None (they aren't scoped to any
+    one restaurant), so the "must have a tenant/outlet" and "subdomain must
+    match your tenant" checks would otherwise lock them out of any view
+    stacked with this decorator, including views that already have their
+    own explicit superuser tenant-selection logic (e.g. reports.dashboard's
+    ?tenant_id=). Views that need real tenant/outlet data for a superuser
+    to actually do anything must resolve that themselves, same as they
+    already do today — this decorator's job is only "don't block the
+    superuser," not "guess which tenant they mean."
     """
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect("login")
+
+        if request.user.is_superuser:
+            return view_func(request, *args, **kwargs)
 
         if not request.user.tenant:
             raise PermissionDenied(

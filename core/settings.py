@@ -363,6 +363,12 @@ AXES_IPWARE_PROXY_COUNT = 1
 # shared across every visitor to the server, not scoped per real client.
 RATELIMIT_IP_META_KEY = "core.utils.get_client_ip"
 
+# Friendly recovery page instead of Django's bare default 403 on a CSRF
+# failure (stale token after the tab's been open a while, the exact class
+# of bug the csrftoken2 rename fixed the recurring case of). Returns clean
+# JSON for fetch()/apiClient calls, an HTML reload page for real navigation.
+CSRF_FAILURE_VIEW = "core.views.csrf_failure"
+
 
 _LOG_DIR = BASE_DIR / "logs"
 _LOG_DIR.mkdir(exist_ok=True)

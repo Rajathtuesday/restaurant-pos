@@ -268,6 +268,7 @@
         window.addEventListener('online',  () => {
             ui.toast('Connection restored', 'success');
             offlineQueue.flush();
+            offlinePaymentQueue.flush();
         });
         window.addEventListener('offline', () => {
             ui.toast('You are offline. Please check your connection.', 'error');
@@ -362,33 +363,49 @@
             delete(endpoint) { return this.request(endpoint, { method: 'DELETE' }); }
         };
 
-        // --- 4b. Offline Order Queue (IndexedDB) ---
-        // Real offline support for order *creation* only — see plan notes. Orders
-        // queued here are created, then sent to kitchen, the moment connectivity
-        // returns. Does not depend on the Background Sync API (unreliable inside
-        // the Android app's WebView) — flushes from page JS on 'online' and on load.
-        let _flushing = false; // guards against overlapping flush() calls (e.g. an
-                                // 'online' event firing while the page-load flush is
-                                // still in progress on a flaky connection)
+        // --- 4b. Offline Queues (IndexedDB) ---
+        // Real offline support for order *creation* and, as of this version,
+        // cash payment closure — see plan notes. Records queued here are
+        // replayed against the real endpoint the moment connectivity
+        // returns. Does not depend on the Background Sync API (unreliable
+        // inside the Android app's WebView) — flushes from page JS on
+        // 'online' and on load.
+        //
+        // UPI/card payments are deliberately NOT queueable offline — both
+        // require a live round-trip to a payment gateway to actually verify
+        // money moved, no client-side queue can fake that verification
+        // without accepting an unconfirmed payment claim as real, which is
+        // a fraud risk, not a feature. Cash is the one payment method that
+        // genuinely can be confirmed locally (the cashier physically has
+        // the money in hand), which is also exactly the payment method a
+        // restaurant naturally falls back to when the internet or a card
+        // machine is down anyway.
+        let _flushing = false;        // guards offlineQueue.flush() overlap
+        let _flushingPayments = false; // same guard, separate for offlinePaymentQueue
+
+        const OFFLINE_DB_VERSION = 2; // v2 adds the offline_payments store
+        function openOfflineDB() {
+            return new Promise((resolve, reject) => {
+                if (!('indexedDB' in window)) { reject(new Error('IndexedDB unsupported')); return; }
+                const req = indexedDB.open('rasova_offline', OFFLINE_DB_VERSION);
+                req.onupgradeneeded = e => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('offline_orders')) {
+                        db.createObjectStore('offline_orders', { keyPath: 'id', autoIncrement: true });
+                    }
+                    if (!db.objectStoreNames.contains('offline_payments')) {
+                        db.createObjectStore('offline_payments', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror   = () => reject(req.error);
+            });
+        }
 
         const offlineQueue = {
-            DB_NAME: 'rasova_offline',
             STORE: 'offline_orders',
 
-            openDB() {
-                return new Promise((resolve, reject) => {
-                    if (!('indexedDB' in window)) { reject(new Error('IndexedDB unsupported')); return; }
-                    const req = indexedDB.open(this.DB_NAME, 1);
-                    req.onupgradeneeded = e => {
-                        const db = e.target.result;
-                        if (!db.objectStoreNames.contains('offline_orders')) {
-                            db.createObjectStore('offline_orders', { keyPath: 'id', autoIncrement: true });
-                        }
-                    };
-                    req.onsuccess = e => resolve(e.target.result);
-                    req.onerror   = () => reject(req.error);
-                });
-            },
+            openDB() { return openOfflineDB(); },
 
             async add(payload) {
                 const db = await this.openDB();
@@ -480,18 +497,116 @@
             }
         };
 
+        // --- 4c. Offline Payment Queue (cash only — see note above) ---
+        // Same shape as offlineQueue, deliberately not shared code with it —
+        // the two have different failure semantics (an order can always be
+        // safely re-created if the server rejects it; a payment must never
+        // be silently retried against a *different* order than the one the
+        // cashier actually closed, so this stays a separate, explicit path
+        // rather than a generic "queue any POST" abstraction).
+        const offlinePaymentQueue = {
+            STORE: 'offline_payments',
+
+            openDB() { return openOfflineDB(); },
+
+            async add(orderId, amount) {
+                const db = await this.openDB();
+                const id = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(this.STORE, 'readwrite');
+                    const req = tx.objectStore(this.STORE).add({
+                        order_id: orderId, amount, queued_at: Date.now()
+                    });
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror   = () => reject(req.error);
+                });
+                await updateOfflineBanner();
+                return id;
+            },
+
+            async all() {
+                const db = await this.openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(this.STORE, 'readonly');
+                    const req = tx.objectStore(this.STORE).getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror   = () => reject(req.error);
+                });
+            },
+
+            async remove(id) {
+                const db = await this.openDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(this.STORE, 'readwrite');
+                    tx.objectStore(this.STORE).delete(id);
+                    tx.oncomplete = () => resolve();
+                    tx.onerror    = () => reject(tx.error);
+                });
+            },
+
+            async flush() {
+                if (_flushingPayments) return;
+                if (!navigator.onLine) return;
+                let records;
+                try { records = await this.all(); } catch (e) { return; }
+
+                if (!records.length) return;
+                _flushingPayments = true;
+                try {
+                    for (const record of records) {
+                        let payResp;
+                        try {
+                            payResp = await fetch("/pay/" + record.order_id + "/", {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
+                                body: JSON.stringify({ method: 'cash', amount: record.amount })
+                            });
+                        } catch (networkErr) {
+                            // Connection dropped again mid-flush — stop, leave the
+                            // rest queued, retry on next online/load. Never guess
+                            // whether a payment we couldn't confirm went through.
+                            break;
+                        }
+
+                        let data;
+                        try { data = await payResp.json(); } catch (e) { break; }
+
+                        if (!payResp.ok || !data.success) {
+                            // The order itself may have changed state while this
+                            // device was offline (e.g. another device already
+                            // closed or cancelled it) — don't retry forever on a
+                            // request that will never succeed, but this is real
+                            // money, so this never gets silently dropped like a
+                            // re-creatable order can be. Surface it clearly and
+                            // leave it for the cashier to resolve by hand.
+                            ui.toast('Offline cash payment for order #' + record.order_id + ' could not be synced (' + (data && data.error ? data.error : 'server rejected it') + '). Please check this order manually.', 'error');
+                            await this.remove(record.id);
+                            continue;
+                        }
+
+                        await this.remove(record.id);
+                        ui.toast('Cash payment for order #' + record.order_id + ' synced', 'success');
+                    }
+                } finally {
+                    _flushingPayments = false;
+                    updateOfflineBanner();
+                }
+            }
+        };
+
         async function updateOfflineBanner() {
             const banner = document.getElementById('offline-banner');
             if (!banner) return;
-            let count = 0;
-            try { count = (await offlineQueue.all()).length; } catch (e) { /* IndexedDB unavailable — treat as 0 queued */ }
+            let orderCount = 0, paymentCount = 0;
+            try { orderCount = (await offlineQueue.all()).length; } catch (e) { /* IndexedDB unavailable — treat as 0 queued */ }
+            try { paymentCount = (await offlinePaymentQueue.all()).length; } catch (e) { /* IndexedDB unavailable — treat as 0 queued */ }
+            const count = orderCount + paymentCount;
 
             if (!navigator.onLine) {
                 banner.innerHTML = '<i class="bi bi-wifi-off me-2"></i>You are currently offline.'
-                    + (count ? ' ' + count + ' order' + (count > 1 ? 's' : '') + ' saved, will sync when reconnected.' : ' Actions may not be saved.');
+                    + (count ? ' ' + count + ' item' + (count > 1 ? 's' : '') + ' saved, will sync when reconnected.' : ' Actions may not be saved.');
                 banner.style.display = 'block';
             } else if (count) {
-                banner.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Syncing ' + count + ' saved order' + (count > 1 ? 's' : '') + '...';
+                banner.innerHTML = '<i class="bi bi-arrow-repeat me-2"></i>Syncing ' + count + ' saved item' + (count > 1 ? 's' : '') + '...';
                 banner.style.display = 'block';
             } else {
                 banner.style.display = 'none';
@@ -502,7 +617,7 @@
         // chance to sync (app closed while offline) still get flushed on next load.
         document.addEventListener('DOMContentLoaded', () => {
             updateOfflineBanner();
-            if (navigator.onLine) offlineQueue.flush();
+            if (navigator.onLine) { offlineQueue.flush(); offlinePaymentQueue.flush(); }
         });
     </script>
     
@@ -707,8 +822,9 @@
     <script>
     (function() {
         // Register service worker (static-asset caching only — offline order
-        // queuing/sync happens in page JS via offlineQueue, not the service
-        // worker, so there's no postMessage listener to wire up here).
+        // and cash-payment queuing/sync happens in page JS via offlineQueue
+        // and offlinePaymentQueue, not the service worker, so there's no
+        // postMessage listener to wire up here).
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
