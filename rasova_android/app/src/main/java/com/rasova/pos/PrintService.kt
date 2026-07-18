@@ -21,6 +21,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.OutputStream
+import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.concurrent.TimeUnit
 
@@ -180,8 +181,15 @@ class PrintService : Service() {
         return try {
             // Base64 → raw bytes: this is the ESC/POS receipt data
             val bytes: ByteArray = Base64.decode(dataB64, Base64.DEFAULT)
-            // Open a raw TCP socket to the printer (port 9100 is the universal ESC/POS port)
-            Socket(host, port).use { socket ->
+            // Open a raw TCP socket to the printer (port 9100 is the universal ESC/POS port).
+            // Socket(host, port) has NO connect timeout — if a printer is powered off in a
+            // way that silently drops packets (unplugged, wrong IP) rather than actively
+            // refusing the connection, this can hang far longer than 5s, stalling every
+            // other queued job behind it. Socket() + connect(address, timeoutMs) caps the
+            // connect step itself, matching rasova_agent.py's s.settimeout(10) before
+            // s.connect(...).
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress(host, port), 10_000)
                 socket.soTimeout = 5_000
                 val out: OutputStream = socket.getOutputStream()
                 out.write(bytes)
