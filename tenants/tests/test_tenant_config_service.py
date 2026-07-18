@@ -73,6 +73,20 @@ class TenantConfigServiceUnitTest(TestCase):
         self.assertTrue(self.outlet.split_bill_by_category)
         self.assertEqual(self.outlet.gst_no, "29ABCDE1234F1Z5")
 
+    def test_unparseable_parcel_charge_leaves_value_unchanged_and_logs(self):
+        from django.http import QueryDict
+
+        original = self.outlet.parcel_charge_amount
+        post = QueryDict(mutable=True)
+        post.update({"parcel_charge_amount": "not-a-number"})
+
+        with self.assertLogs("pos.tenants", level="WARNING") as cm:
+            tcs.update_outlet_from_post(self.outlet, post)
+
+        self.outlet.refresh_from_db()
+        self.assertEqual(self.outlet.parcel_charge_amount, original)
+        self.assertTrue(any("parcel_charge_amount" in msg for msg in cm.output))
+
     def test_apply_preset_to_tenant_applies_outlet_overrides(self):
         # The superuser copy of apply_preset never applied a preset's
         # "outlet" field overrides at all — this proves the shared

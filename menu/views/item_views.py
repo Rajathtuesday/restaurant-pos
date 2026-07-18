@@ -136,7 +136,10 @@ def update_menu_item(request, item_id):
             try:
                 item.parcel_charge = max(Decimal("0"), Decimal(str(parcel_charge)))
             except Exception:
-                pass
+                logger.warning(
+                    "Could not parse parcel_charge=%r for item %s — left unchanged",
+                    parcel_charge, item.id,
+                )
 
         if image:
             item.image = image

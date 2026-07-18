@@ -20,11 +20,14 @@ feature, edited independently, silently disagreeing.
 Everything here is now the one place that logic lives. Both views call
 into these functions and only differ in which template they render.
 """
+import logging
 from decimal import Decimal
 
 from accounts.models import User
 from setup.models import KitchenStation, PaymentConfig
 from tenants.models import TenantFeatureOverride, TenantFeatureAuditLog
+
+logger = logging.getLogger("pos.tenants")
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +134,13 @@ def update_outlet_from_post(outlet, post):
     try:
         outlet.parcel_charge_amount = Decimal(post.get("parcel_charge_amount", "0") or "0")
     except Exception:
-        pass
+        # Bad input (e.g. non-numeric) silently leaves the field at its
+        # previous value instead of erroring — that's an intentional
+        # best-effort default, but it was invisible when it happened.
+        logger.warning(
+            "Could not parse parcel_charge_amount=%r for outlet %s — left unchanged",
+            post.get("parcel_charge_amount"), outlet.id,
+        )
     outlet.save()
 
 

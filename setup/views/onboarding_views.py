@@ -1,4 +1,6 @@
 # setup/views/onboarding_views.py
+import logging
+
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -11,6 +13,8 @@ from setup.models import PaymentConfig
 from core.decorators import tenant_required
 from accounts.models import User
 from tenants.models import Tenant, RESERVED_SLUGS
+
+logger = logging.getLogger("pos.setup")
 
 
 # -------------------------------------------------
@@ -83,7 +87,14 @@ def onboarding_wizard(request):
                                 defaults={"price": Decimal(iprice), "is_available": True}
                             )
                         except Exception:
-                            pass
+                            # Wizard still redirects to the next step on
+                            # failure (a bad price shouldn't block onboarding),
+                            # but that used to mean the item silently never
+                            # got created with zero trace of why.
+                            logger.warning(
+                                "Onboarding: could not create menu item %r "
+                                "(price=%r) for tenant %s", iname, iprice, tenant.id,
+                            )
             return redirect(f"/setup/onboard/?step=3")
 
     # ── STEP 3: First staff member ───────────────
@@ -107,7 +118,14 @@ def onboarding_wizard(request):
                             tenant=tenant, outlet=outlet, role=role
                         )
                 except Exception:
-                    pass
+                    # Same as the menu-item case above: the wizard proceeds
+                    # to the next step regardless, so a failure here used to
+                    # leave a restaurant owner thinking they'd added a staff
+                    # account when nothing was actually created.
+                    logger.warning(
+                        "Onboarding: could not create staff user %r for tenant %s",
+                        uname, tenant.id,
+                    )
             return redirect(f"/setup/onboard/?step=4")
 
     # ── STEP 4: Tables (skip for QSR/Café) ──────

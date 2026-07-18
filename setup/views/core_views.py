@@ -1,5 +1,6 @@
 # setup/views/core_views.py
 import json
+import logging
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -15,6 +16,8 @@ from tenants.models import Outlet
 from setup.models import KitchenStation, PaymentConfig
 from core.decorators import tenant_required, role_required
 from accounts.models import User
+
+logger = logging.getLogger("pos.setup")
 
 
 # -------------------------------------------------
@@ -853,7 +856,10 @@ def outlet_settings(request):
             from decimal import Decimal
             outlet.parcel_charge_amount = Decimal(request.POST.get("parcel_charge_amount", "0") or "0")
         except Exception:
-            pass
+            logger.warning(
+                "Could not parse parcel_charge_amount=%r for outlet %s — left unchanged",
+                request.POST.get("parcel_charge_amount"), outlet.id,
+            )
 
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):

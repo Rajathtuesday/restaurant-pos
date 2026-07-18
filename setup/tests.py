@@ -1,9 +1,10 @@
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 
 from tenants.models import Tenant, Outlet
 from accounts.models import User
+from menu.models import MenuCategory, MenuItem
 from setup.models import PaymentConfig, KitchenStation
 
 
@@ -79,6 +80,98 @@ class ChecklistStatusTest(TestCase):
     def test_unauthenticated_redirected_from_checklist(self):
         response = self.client.get(reverse("setup_checklist"))
         self.assertIn(response.status_code, [301, 302])
+
+
+class OutletSettingsParcelChargeTest(TestCase):
+    """
+    outlet_settings silently left parcel_charge_amount unchanged on bad
+    input with zero trace of why - this confirms that behavior is
+    preserved (no 500, no data corruption) and is now logged.
+    """
+
+    def setUp(self):
+        self.tenant, self.outlet = _make_tenant("Parcel Charge Cafe")
+        self.owner = _make_user(self.tenant, self.outlet, role="owner", username="parcel_owner")
+        self.client.force_login(self.owner)
+
+    def test_unparseable_parcel_charge_amount_logs_a_warning(self):
+        original = self.outlet.parcel_charge_amount
+        with self.assertLogs("pos.setup", level="WARNING") as cm:
+            response = self.client.post(reverse("outlet_settings"), {
+                "outlet_name": self.outlet.name,
+                "parcel_charge_amount": "not-a-number",
+            })
+        self.assertEqual(response.status_code, 302)
+        self.outlet.refresh_from_db()
+        self.assertEqual(self.outlet.parcel_charge_amount, original)
+        self.assertTrue(any("parcel_charge_amount" in msg for msg in cm.output))
+
+
+class OnboardingWizardSilentFailureTest(TestCase):
+    """
+    Steps 2 and 3 of the onboarding wizard always redirect to the next
+    step regardless of whether the item/staff account inside them was
+    actually created - a bad price or a username collision used to fail
+    completely silently, leaving an owner who just finished "setup"
+    thinking they'd added something that was never actually saved.
+    """
+
+    def setUp(self):
+        self.tenant, self.outlet = _make_tenant("Onboarding Cafe")
+        self.owner = _make_user(self.tenant, self.outlet, role="owner", username="onboard_owner")
+        self.client.force_login(self.owner)
+
+    def test_step2_unparseable_item_price_logs_a_warning_and_creates_nothing(self):
+        with self.assertLogs("pos.setup", level="WARNING") as cm:
+            response = self.client.post(
+                reverse("onboarding_wizard") + "?step=2",
+                {"category": "Mains", "item_1_name": "Burger", "item_1_price": "free"},
+            )
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(MenuItem.objects.filter(tenant=self.tenant, name="Burger").exists())
+        self.assertTrue(any("menu item" in msg for msg in cm.output))
+
+
+class OnboardingWizardUsernameCollisionTest(TransactionTestCase):
+    """
+    User.username is globally unique (Django's default AbstractUser field),
+    but onboarding step 3 only checks for a collision WITHIN the current
+    tenant before calling create_user() - a username already taken by a
+    DIFFERENT tenant's staff account raises IntegrityError, previously
+    swallowed with zero trace.
+
+    Uses TransactionTestCase (not TestCase) because a caught IntegrityError
+    on Postgres poisons the rest of an open transaction - the plain
+    TestCase's outer atomic-wrapped-test would make every ORM call AFTER
+    the swallowed exception raise TransactionManagementError, which is a
+    test-isolation artifact, not something that happens in production
+    (views here aren't wrapped in transaction.atomic()/ATOMIC_REQUESTS).
+    """
+
+    def setUp(self):
+        self.tenant, self.outlet = _make_tenant("Onboarding Collision Cafe")
+        self.owner = _make_user(self.tenant, self.outlet, role="owner", username="collision_owner")
+        self.client.force_login(self.owner)
+
+    def test_step3_username_collision_across_tenants_logs_a_warning(self):
+        other_tenant, other_outlet = _make_tenant("Other Tenant")
+        User.objects.create_user(
+            username="taken_name", password="pw", tenant=other_tenant, outlet=other_outlet,
+            role="cashier",
+        )
+
+        with self.assertLogs("pos.setup", level="WARNING") as cm:
+            response = self.client.post(
+                reverse("onboarding_wizard") + "?step=3",
+                {"username": "taken_name", "password": "pw", "role": "cashier"},
+            )
+        self.assertEqual(response.status_code, 302)
+        # Must not have silently attached a second, same-username account
+        # under THIS tenant.
+        self.assertFalse(
+            User.objects.filter(username="taken_name", tenant=self.tenant).exists()
+        )
+        self.assertTrue(any("staff user" in msg for msg in cm.output))
 
 
 class PaymentConfigModelTest(TestCase):
