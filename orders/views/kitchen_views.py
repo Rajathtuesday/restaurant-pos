@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django.db import transaction
 
-from core.decorators import tenant_required, feature_required
+from core.decorators import tenant_required, feature_required, role_required
 from orders.models import Order, OrderItem, OrderEvent, KitchenMessage
 from setup.models import KitchenStation
 
@@ -17,6 +17,7 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager", "cashier", "waiter")
 @feature_required("kot_system")
 def send_to_kitchen(request, order_id):
     """
@@ -66,6 +67,7 @@ def send_to_kitchen(request, order_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def kitchen_view(request):
     """
@@ -82,6 +84,7 @@ def kitchen_view(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def kitchen_data(request):
     """
@@ -100,6 +103,7 @@ def kitchen_data(request):
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def start_preparing(request, item_id):
     from orders.services.kitchen_service import set_item_preparing
@@ -115,6 +119,7 @@ def start_preparing(request, item_id):
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def mark_ready(request, item_id):
     from orders.services.kitchen_service import set_item_ready
@@ -130,6 +135,7 @@ def mark_ready(request, item_id):
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen", "waiter", "cashier")
 @feature_required("kitchen_display")
 def serve_item(request, item_id):
     """
@@ -148,6 +154,7 @@ def serve_item(request, item_id):
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def bump_kot(request, kot_id):
     """Mark all pending/preparing items in a KOT as ready in one tap."""
@@ -166,8 +173,12 @@ def bump_kot(request, kot_id):
             try:
                 set_item_ready(request.user, item.id)
                 bumped += 1
-            except Exception:
-                pass
+            except Exception as e:
+                # Partial success is by design (one bad item shouldn't block
+                # the rest), but a failure here used to be completely
+                # invisible — kitchen staff just saw a lower bumped count
+                # with no way to tell why.
+                logger.warning("bump_kot: could not mark item %s ready: %s", item.id, e)
         logger.info("KOT #%s bumped - %d items marked ready by %s", kot.kot_number, bumped, request.user.username)
         return JsonResponse({"success": True, "bumped": bumped})
     except KOTBatch.DoesNotExist:
@@ -177,6 +188,7 @@ def bump_kot(request, kot_id):
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager", "chef", "kitchen", "waiter", "cashier")
 @feature_required("kitchen_display")
 def send_kitchen_message(request, order_id):
     """
