@@ -3,6 +3,31 @@ from django.db import transaction
 from orders.models import Order, Table, TableMerge
 
 
+def resolve_primary_table(table, tenant, outlet):
+    """
+    If `table` is currently a secondary member of an active TableMerge,
+    return the merge's primary table instead. Otherwise return `table`
+    unchanged.
+
+    Every order-creation entry point must call this before attaching an
+    order to a table — the waiter-side flows (billing_core.py, order_views.py)
+    each independently reimplement this same lookup inline, but the QR
+    guest-ordering path (billing_views.py::create_order) never did, so a
+    guest scanning the QR code physically stuck to a merged secondary table
+    got an order created against that table alone instead of the merged
+    group.
+    """
+    if not table:
+        return table
+    merge = (
+        TableMerge.objects
+        .filter(tenant=tenant, outlet=outlet, is_active=True, tables__id=table.id)
+        .select_related("primary_table")
+        .first()
+    )
+    return merge.primary_table if merge else table
+
+
 @transaction.atomic
 def merge_tables(user, primary_table_id, table_ids):
 

@@ -135,6 +135,14 @@ def create_order(request):
         # 3. Unauthorized: No token and no user
         return JsonResponse({"error": "Unauthorized. Please scan a QR code."}, status=401)
 
+    if table:
+        # A QR code (or a staff-picked table) may point at a table that's
+        # currently merged into another one — attach the order to the
+        # merge's primary table so it lands in the same place a waiter's
+        # order for this physical table would.
+        from orders.services.table_merge_service import resolve_primary_table
+        table = resolve_primary_table(table, tenant, outlet)
+
     # Validate phone BEFORE opening the transaction so a bad number returns a
     # clean 400 instead of a DB truncation error (which would leak column names).
     from core.validators import normalize_phone
