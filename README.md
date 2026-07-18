@@ -287,7 +287,7 @@ python manage.py reset_pos                # clear POS data (dev only)
 
 ## Tests
 
-**792+ tests across the codebase. All passing.**
+**797+ tests across the codebase. All passing.**
 
 ```bash
 python manage.py test --keepdb                           # all tests
@@ -352,12 +352,13 @@ Business logic lives in `orders/services/` - 14 service modules, none of which k
 - [x] Order history with audit trail and CSV export
 - [x] SAC code (GST compliance) on all bills
 - [x] AI menu import (Gemini)
-- [x] 792+ passing tests (financial, security, concurrency, business-date accuracy)
+- [x] 797+ passing tests (financial, security, concurrency, business-date accuracy)
 - [x] GitHub Actions CI/CD
 - [x] Razorpay UPI QR - dynamic QR on the bill screen, auto-confirms via webhook, configured per outlet in Payment Methods setup
 - [x] Offline write queue - orders placed during connectivity loss sync when back online (IndexedDB, `offlineQueue` in `templates/core/base.html`); extended to cash payment closure too (`offlinePaymentQueue`) - a bill can now be closed and paid in cash with no connection, and syncs once back online. UPI/card intentionally excluded - both require a live gateway round-trip to actually verify payment, which no client-side queue can fake without accepting an unconfirmed claim as real.
 - [x] Real unit conversion across production capacity, COGS, inventory restore, and QSR deduction - previously four separate, silently-drifting implementations
-- [x] Business-day-accurate reporting - every report (Z-report, owner dashboard, sales/item/category/table/kitchen/waiter breakdowns, inventory usage/wastage/cost, the tax-inspection view, CSV/Excel exports) now uses the outlet's actual business-day cutoff instead of a plain calendar date. A restaurant open past midnight no longer loses an entire evening's revenue from "today's" numbers.
+- [x] Business-day-accurate reporting - every report (Z-report, owner dashboard, sales/item/category/table/kitchen/waiter breakdowns, inventory usage/wastage/cost, the tax-inspection view) now uses the outlet's actual business-day cutoff instead of a plain calendar date. A restaurant open past midnight no longer loses an entire evening's revenue from "today's" numbers.
+- [x] Same fix applied separately to the actual CSV/Excel export layer (`export_services.py`) - a different module with its own independent date-filtering, missed in the first pass and caught by specifically re-auditing GSTR-1 for accuracy. GSTR-1 gets filed with the government, so this one mattered more than an internal report being off. 5 export functions fixed, each with a test proving the old code dropped a full evening's data.
 - [x] Self-service staff account management - owner/manager can reset a locked-out staff member's password or deactivate/reactivate an account directly from the Staff page, no server access required. Deactivation force-ends any already-open session and preserves all historical shift/cash-session/order records rather than deleting them.
 - [x] Mobile-responsive setup pages
 
