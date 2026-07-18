@@ -604,3 +604,118 @@ class OwnerDashboardMetricsBusinessDateTest(TestCase):
         # prior evening's ₹1000.
         self.assertEqual(float(results[0]["revenue"]), 1250.0)
         self.assertEqual(results[0]["orders"], 2)
+
+
+# ---------------------------------------------------------------------------
+# export_services.py business-date tests
+#
+# A separate module from the report *services* fixed earlier — this file
+# has its own independent date-filtering, missed in the first sweep, found
+# by specifically re-checking GSTR-1 for accuracy. Same bug, same fix,
+# applied here across every generate_*_csv/excel function, GSTR-1 included
+# since it's the one that actually gets filed with the government.
+# ---------------------------------------------------------------------------
+
+class ExportServicesBusinessDateTest(TestCase):
+
+    def setUp(self):
+        self.tenant, self.outlet, self.user, self.item = create_base_fixtures()
+        self.outlet.business_day_start_hour = 6
+        self.outlet.save(update_fields=["business_day_start_hour"])
+
+    def _order_at(self, naive_dt, amount):
+        order = create_paid_order(self.tenant, self.outlet, self.user, self.item, grand_total=amount)
+        aware = timezone.make_aware(naive_dt, timezone.get_current_timezone())
+        Order.objects.filter(id=order.id).update(created_at=aware)
+        return order
+
+    def test_gstr1_includes_late_night_order_in_correct_business_day(self):
+        from datetime import date
+        from reports.services.export_services import generate_gstr1_excel
+        from openpyxl import load_workbook
+
+        # 9 PM order (business day = the 17th) and a 2 AM order the *next*
+        # calendar day that's still the same business day under a 6 AM
+        # cutoff — the exact case a plain created_at__date filter drops.
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        business_date = date(2026, 7, 17)
+        result = generate_gstr1_excel(self.tenant, self.outlet, business_date, business_date)
+
+        wb = load_workbook(io.BytesIO(result))
+        ws = wb.active
+        total_row = [row for row in ws.iter_rows(values_only=True) if row and row[0] == "TOTAL"][0]
+        taxable_total = total_row[3]
+
+        # create_paid_order's fixture item always carries a fixed
+        # total_price of 400 regardless of the order's grand_total — so
+        # both orders' item lines (400 + 400 = 800) must be present. Under
+        # the old bug, only the 2 AM order's line (400) would show up.
+        self.assertEqual(taxable_total, 800.0)
+
+    def test_orders_csv_includes_late_night_order_in_correct_business_day(self):
+        from datetime import date
+        from reports.services.export_services import generate_orders_csv
+
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        business_date = date(2026, 7, 17)
+        result = generate_orders_csv(self.tenant, self.outlet, business_date, business_date)
+        reader = csv.reader(io.StringIO(result))
+        rows = list(reader)[1:]  # skip header
+
+        self.assertEqual(len(rows), 2)
+
+    def test_items_csv_includes_late_night_order_in_correct_business_day(self):
+        from datetime import date
+        from reports.services.export_services import generate_items_csv
+
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        business_date = date(2026, 7, 17)
+        result = generate_items_csv(self.tenant, self.outlet, business_date, business_date)
+        reader = csv.reader(io.StringIO(result))
+        rows = list(reader)[1:]  # skip header
+
+        # Both orders share the same fixture item, so this collapses into
+        # one row — quantity should reflect both orders (2 each = 4), not
+        # just the 2 AM one.
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(int(rows[0][2]), 4)  # Quantity Sold column
+
+    def test_waiter_csv_includes_late_night_order_in_correct_business_day(self):
+        from datetime import date
+        from reports.services.export_services import generate_waiter_csv
+
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        business_date = date(2026, 7, 17)
+        result = generate_waiter_csv(self.tenant, self.outlet, business_date, business_date)
+        reader = csv.reader(io.StringIO(result))
+        rows = list(reader)[1:]  # skip header
+
+        # Both orders were created_by the same fixture user, so this
+        # collapses into one row — 2 orders, not just the 2 AM one.
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(int(rows[0][1]), 2)  # Total Orders Handled column
+
+    def test_category_csv_includes_late_night_order_in_correct_business_day(self):
+        from datetime import date
+        from reports.services.export_services import generate_category_csv
+
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+
+        business_date = date(2026, 7, 17)
+        result = generate_category_csv(self.tenant, self.outlet, business_date, business_date)
+        reader = csv.reader(io.StringIO(result))
+        rows = list(reader)[1:]  # skip header
+
+        # Same fixture item/category on both orders — one row, revenue
+        # from both orders' item lines (400 + 400), not just the 2 AM one.
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(float(rows[0][2]), 800.0)  # Total Revenue column

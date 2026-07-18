@@ -6,6 +6,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Sum, F
 from django.utils import timezone
 from orders.models import Order, OrderItem
+from core.utils import get_business_date_range
 import openpyxl
 from openpyxl.styles import Font, Alignment
 
@@ -58,15 +59,17 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
         'Round Off', 'Grand Total', 'Payment Methods'
     ])
     
+    range_start, range_end = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
     orders = Order.objects.filter(
         tenant=tenant,
-        created_at__date__gte=start_date,
-        created_at__date__lte=end_date
+        created_at__gte=range_start,
+        created_at__lt=range_end
     ).prefetch_related('payments', 'outlet').order_by('-created_at')
-    
+
     if outlet:
         orders = orders.filter(outlet=outlet)
-        
+
     for order in orders:
         payments = ", ".join([p.method for p in order.payments.all()])
         writer.writerow([
@@ -104,10 +107,12 @@ def generate_items_csv(tenant, outlet, start_date, end_date):
     # orders, exclude voided and complimentary items. The old filter counted
     # items from any order status and included complimentary items, so this
     # export never matched the dashboard's numbers for the same period.
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
     items = OrderItem.objects.filter(
         order__tenant=tenant,
-        order__created_at__date__gte=start_date,
-        order__created_at__date__lte=end_date,
+        order__created_at__gte=range_start,
+        order__created_at__lt=range_end,
         order__status__in=['paid', 'closed'],
         is_complimentary=False,
     ).exclude(status="voided")
@@ -175,17 +180,6 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         cell = ws.cell(row=4, column=col)
         cell.font = Font(bold=True)
         
-    # Get order items and calculate taxes grouped by GST rate
-    items = OrderItem.objects.filter(
-        order__tenant=tenant,
-        order__created_at__date__gte=start_date,
-        order__created_at__date__lte=end_date,
-        order__status__in=['paid', 'closed']
-    )
-    
-    if outlet:
-        items = items.filter(order__outlet=outlet)
-        
     # We group by the menu item's GST percentage
     # To handle order-level discounts, we calculate an approximation:
     # Taxable Value = Sum(total_price)
@@ -193,10 +187,12 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     # For a perfect GSTR-1, we will re-calculate item-level taxable amounts accounting for order discounts
     
     # Let's fetch the actual orders to iterate through their items to be perfectly accurate with order discounts
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
     orders = Order.objects.filter(
         tenant=tenant,
-        created_at__date__gte=start_date,
-        created_at__date__lte=end_date,
+        created_at__gte=range_start,
+        created_at__lt=range_end,
         status__in=['paid', 'closed']
     ).prefetch_related('items', 'items__menu_item')
     
@@ -357,10 +353,12 @@ def generate_waiter_csv(tenant, outlet, start_date, end_date):
     
     writer.writerow(['Staff Name', 'Total Orders Handled', 'Total Revenue Handled', 'Average Order Value'])
     
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
     orders = Order.objects.filter(
         tenant=tenant,
-        created_at__date__gte=start_date,
-        created_at__date__lte=end_date,
+        created_at__gte=range_start,
+        created_at__lt=range_end,
         status__in=['paid', 'closed'],
         created_by__isnull=False
     )
@@ -397,10 +395,12 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
     
     # Same canonical "sold item" definition as the dashboard — exclude voided
     # and complimentary items so this export agrees with the on-screen numbers.
+    range_start, _ = get_business_date_range(start_date, outlet)
+    _, range_end = get_business_date_range(end_date, outlet)
     items = OrderItem.objects.filter(
         order__tenant=tenant,
-        order__created_at__date__gte=start_date,
-        order__created_at__date__lte=end_date,
+        order__created_at__gte=range_start,
+        order__created_at__lt=range_end,
         order__status__in=['paid', 'closed'],
         is_complimentary=False,
     ).exclude(status="voided")
