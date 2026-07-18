@@ -206,7 +206,7 @@
                 <span class="item-name">
                     {{ item.menu_item.name }}
                     <span style="color:var(--text-muted)"> × {{ item.quantity }}</span>
-                    {% if request.user.role in "owner,manager,cashier" and order.status != 'paid' and order.status != 'closed' %}
+                    {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
                     <button onclick="promptItemDiscount({{ item.id }}, '{{ item.menu_item.name|escapejs }}', {{ item.item_discount_pct }})"
                             style="background:transparent;border:none;color:var(--accent-gold);cursor:pointer;padding:0 4px;font-size:0.7rem;">
                         <i class="bi bi-tag"></i>
@@ -330,7 +330,7 @@
         </div>
 
         <!-- Discount section (managers/cashiers, unpaid only) -->
-        {% if request.user.role in "owner,manager,cashier" and order.status != 'paid' and order.status != 'closed' %}
+        {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
         <div class="discount-section no-print">
             <div class="discount-title">Apply Discount</div>
             <div style="margin-bottom:0.75rem;">

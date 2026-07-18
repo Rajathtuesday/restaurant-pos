@@ -221,7 +221,7 @@ class UserSchemaReviewTest(TestCase):
 
     def test_all_expected_roles_present(self):
         role_values = [r[0] for r in User.ROLE_CHOICES]
-        for role in ("owner", "manager", "agent", "cashier", "waiter", "chef", "kitchen"):
+        for role in ("owner", "manager", "agent", "cashier", "captain", "waiter", "chef", "kitchen"):
             self.assertIn(role, role_values)
 
     def test_outlet_index_present(self):
@@ -240,6 +240,66 @@ class UserSchemaReviewTest(TestCase):
             role="kitchen", tenant=tenant, outlet=outlet
         )
         self.assertEqual(user.role, "kitchen")
+
+    def test_captain_role_in_choices(self):
+        role_values = [r[0] for r in User.ROLE_CHOICES]
+        self.assertIn("captain", role_values)
+
+    def test_captain_in_assignable_staff_roles(self):
+        self.assertIn("captain", User.ASSIGNABLE_STAFF_ROLES)
+        # Owner/agent must never be self-assignable through a staff form.
+        self.assertNotIn("owner", User.ASSIGNABLE_STAFF_ROLES)
+        self.assertNotIn("agent", User.ASSIGNABLE_STAFF_ROLES)
+
+    def test_captain_user_can_be_created(self):
+        tenant = Tenant.objects.create(name="Captain Test")
+        outlet = Outlet.objects.create(tenant=tenant, name="Main")
+        user = User.objects.create_user(
+            username="captain1", password="pass",
+            role="captain", tenant=tenant, outlet=outlet
+        )
+        self.assertEqual(user.role, "captain")
+
+
+class CaptainLoginRedirectTest(TestCase):
+    """_role_path() must route captain like a floor-service role, not fall
+    through to whatever the chain's default happens to be today."""
+
+    def setUp(self):
+        self.fine_dining_tenant = Tenant.objects.create(
+            name="Fine Dining Captain Test", tenant_type="fine_dining"
+        )
+        self.fine_dining_outlet = Outlet.objects.create(
+            tenant=self.fine_dining_tenant, name="Main"
+        )
+        self.franchise_tenant = Tenant.objects.create(
+            name="Franchise Captain Test", tenant_type="franchise"
+        )
+        self.franchise_outlet = Outlet.objects.create(
+            tenant=self.franchise_tenant, name="Main"
+        )
+
+    def test_captain_redirects_to_tables_for_fine_dining(self):
+        User.objects.create_user(
+            username="captain_fd", password="testpass123", role="captain",
+            tenant=self.fine_dining_tenant, outlet=self.fine_dining_outlet,
+        )
+        response = self.client.post(
+            reverse("login"), {"username": "captain_fd", "password": "testpass123"}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith("/tables/"))
+
+    def test_captain_redirects_to_token_for_franchise(self):
+        User.objects.create_user(
+            username="captain_fr", password="testpass123", role="captain",
+            tenant=self.franchise_tenant, outlet=self.franchise_outlet,
+        )
+        response = self.client.post(
+            reverse("login"), {"username": "captain_fr", "password": "testpass123"}
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith("/token/"))
 
 
 # ---------------------------------------------------------------------------

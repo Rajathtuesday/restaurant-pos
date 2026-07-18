@@ -23,7 +23,7 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @tenant_required
 @require_POST
-@role_required("manager", "cashier", "owner")
+@role_required("manager", "cashier", "captain", "owner")
 def apply_discount(request, order_id):
 
     try:
@@ -100,7 +100,7 @@ def apply_discount(request, order_id):
 @login_required
 @tenant_required
 @require_POST
-@role_required("manager", "owner")
+@role_required("manager", "captain", "owner")
 def make_item_complimentary(request, item_id):
 
     try:
@@ -129,7 +129,7 @@ def make_item_complimentary(request, item_id):
 @login_required
 @tenant_required
 @require_POST
-@role_required("manager", "cashier", "owner")
+@role_required("manager", "cashier", "captain", "owner")
 def apply_item_discount(request, item_id):
     try:
         data = json.loads(request.body)

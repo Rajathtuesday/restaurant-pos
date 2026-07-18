@@ -22,6 +22,7 @@ class User(AbstractUser):
         ("manager", "Manager"),
         ("agent",   "Agent"),
         ("cashier", "Cashier"),
+        ("captain", "Captain"),
         ("waiter",  "Waiter"),
         ("chef",    "Chef"),
         ("kitchen", "Kitchen Staff"),
@@ -34,7 +35,7 @@ class User(AbstractUser):
     # Rasova-internal sales role, not a restaurant staff role). Any role value
     # posted to a staff form MUST be validated against this set — otherwise a
     # low-privilege account can mint itself an owner.
-    ASSIGNABLE_STAFF_ROLES = frozenset({"manager", "cashier", "waiter", "chef", "kitchen"})
+    ASSIGNABLE_STAFF_ROLES = frozenset({"manager", "cashier", "captain", "waiter", "chef", "kitchen"})
 
     class Meta:
         indexes = [

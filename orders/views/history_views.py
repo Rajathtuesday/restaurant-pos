@@ -4,6 +4,7 @@ Order History — searchable, filterable, role-scoped list of all past orders.
 Role access:
   owner   / manager → all orders, any date, full audit trail, CSV export
   cashier           → all outlet orders, last 30 days, no audit trail
+  captain           → all outlet orders, last 7 days, no audit trail
   waiter            → only orders they created, today only
   chef              → no access (403)
 """
@@ -65,7 +66,18 @@ def _base_queryset(request):
         base   = base.filter(created_at__date__gte=cutoff)
         return base, True
 
-    # owner / manager — everything
+    if role == "captain":
+        # All outlet orders (captain supervises multiple waiters, not just
+        # their own tickets) but a tighter window than cashier's 30 days —
+        # a middle tier between waiter (own orders, today) and cashier.
+        cutoff = today - timedelta(days=7)
+        base   = base.filter(created_at__date__gte=cutoff)
+        return base, True
+
+    # owner / manager — everything. NOTE: this is a fail-open default —
+    # any role not explicitly handled above (e.g. "agent", "kitchen") lands
+    # here with full, unrestricted access. Not fixing that pre-existing gap
+    # here; just don't add a new role above without remembering that.
     return base, False
 
 

@@ -83,8 +83,15 @@ def _popular_items(tenant, outlet, top_n=12):
 logger = logging.getLogger("pos.orders")
 
 # ── role constants ──────────────────────────────────────────────────────────
-_STAFF_CAN_CREATE = {"owner", "manager", "cashier"}
-_STAFF_CAN_DISCOUNT = {"owner", "manager"}
+_STAFF_CAN_CREATE = {"owner", "manager", "cashier", "captain"}
+# Cashier is deliberately excluded here (unlike discount_views.py's
+# apply_discount, which does allow cashier) - confirmed by an existing test,
+# test_qsr_upgrade.py::test_can_discount_false_for_cashier, that this is
+# intentional for the QSR token flow, not drift. Originally assumed this was
+# a bug and "fixed" it by adding cashier too; that broke the test above and
+# was reverted. Captain gets discount authority here regardless, per the
+# scope confirmed for this role.
+_STAFF_CAN_DISCOUNT = {"owner", "manager", "captain"}
 
 
 # ------------------------------------------------------------------

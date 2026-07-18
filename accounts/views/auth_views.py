@@ -13,7 +13,7 @@ def _role_path(user):
         return "/dashboard/"
     if user.role == "agent":
         return "/sales/"
-    if user.role == "waiter":
+    if user.role in ("waiter", "captain"):
         return "/tables/" if tenant_type == "fine_dining" else "/token/"
     if user.role == "chef":
         return "/kitchen/"

@@ -16,7 +16,7 @@ POINTS_PER_RUPEE = 0.1
 @tenant_required
 def crm_dashboard(request):
     """Guest list searchable by name/phone."""
-    if request.user.role not in ("manager", "owner", "cashier") and not request.user.is_superuser:
+    if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
@@ -156,7 +156,7 @@ def link_guest_to_order(request, order_id):
 @tenant_required
 def reservation_list(request):
     """View to list and manage table bookings."""
-    if request.user.role not in ("manager", "owner", "cashier") and not request.user.is_superuser:
+    if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
@@ -199,7 +199,7 @@ def create_reservation(request):
     from django.utils import timezone
     from datetime import datetime
 
-    if request.user.role not in ("manager", "owner", "cashier") and not request.user.is_superuser:
+    if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
         return JsonResponse({"error": "Permission denied"}, status=403)
 
     try:

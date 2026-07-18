@@ -17,7 +17,7 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @require_POST
 @tenant_required
-@role_required("owner", "manager", "cashier", "waiter")
+@role_required("owner", "manager", "cashier", "captain", "waiter")
 @feature_required("kot_system")
 def send_to_kitchen(request, order_id):
     """
@@ -135,7 +135,7 @@ def mark_ready(request, item_id):
 @login_required
 @require_POST
 @tenant_required
-@role_required("owner", "manager", "chef", "kitchen", "waiter", "cashier")
+@role_required("owner", "manager", "chef", "kitchen", "captain", "waiter", "cashier")
 @feature_required("kitchen_display")
 def serve_item(request, item_id):
     """
@@ -188,7 +188,7 @@ def bump_kot(request, kot_id):
 @login_required
 @require_POST
 @tenant_required
-@role_required("owner", "manager", "chef", "kitchen", "waiter", "cashier")
+@role_required("owner", "manager", "chef", "kitchen", "captain", "waiter", "cashier")
 @feature_required("kitchen_display")
 def send_kitchen_message(request, order_id):
     """

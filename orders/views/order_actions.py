@@ -14,7 +14,7 @@ logger = logging.getLogger("pos.orders")
 
 @login_required
 @tenant_required
-@role_required("owner", "manager", "cashier")
+@role_required("owner", "manager", "cashier", "captain")
 @require_POST
 def cancel_order(request, order_id):
     """
@@ -86,7 +86,7 @@ def cancel_order(request, order_id):
 
 @login_required
 @tenant_required
-@role_required("owner", "manager", "cashier")
+@role_required("owner", "manager", "cashier", "captain")
 @require_POST
 def cancel_item(request, item_id):
     """
