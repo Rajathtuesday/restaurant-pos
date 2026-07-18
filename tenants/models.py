@@ -514,7 +514,12 @@ class TenantFeatureAuditLog(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="feature_audit_log")
     feature = models.CharField(max_length=50)
     enabled = models.BooleanField()
-    source = models.CharField(max_length=20, help_text="'override' or 'default' (reset to type default)")
+    # 50, not 20 — "preset:<key>" needs to fit any real preset key.
+    # "preset:counter_billing" alone is 23 characters; the original 20-char
+    # limit meant applying that specific preset would crash with a
+    # DataError the moment anyone actually did it, this had just never
+    # been exercised by a test before.
+    source = models.CharField(max_length=50, help_text="'override' or 'default' (reset to type default), or 'preset:<key>'")
     changed_by = models.ForeignKey("accounts.User", null=True, on_delete=models.SET_NULL)
     changed_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True)

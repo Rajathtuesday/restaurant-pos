@@ -15,44 +15,20 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
-from tenants.models import Tenant, Outlet, TenantFeatureOverride, TenantFeatureAuditLog
+from tenants.models import Tenant, Outlet
 from setup.models import KitchenStation, PaymentConfig
+from tenants.services import tenant_config_service as tcs
 
 logger = logging.getLogger("pos.superuser")
 
-# Feature presets — what each restaurant type gets enabled/disabled
-PRESETS = {
-    "qsr_no_kds": {
-        "label": "QSR — no kitchen screen (print strip)",
-        "enable":  ["token_system", "kot_system", "inventory", "reports",
-                    "ai_menu_import", "direct_billing_mode"],
-        "disable": ["kitchen_display", "floor_plan", "waiter_call",
-                    "split_bill", "merge_tables", "crm", "reservations"],
-    },
-    "qsr_kds": {
-        "label": "QSR — with kitchen display",
-        "enable":  ["token_system", "kot_system", "kitchen_display",
-                    "inventory", "reports", "ai_menu_import", "direct_billing_mode"],
-        "disable": ["floor_plan", "waiter_call", "split_bill",
-                    "merge_tables", "crm", "reservations"],
-    },
-    "fine_dining": {
-        "label": "Fine Dining — full table service",
-        "enable":  ["floor_plan", "waiter_call", "kitchen_display", "kot_system",
-                    "merge_tables", "split_bill", "qr_menu", "running_order",
-                    "inventory", "reports", "ai_menu_import", "crm"],
-        "disable": ["token_system", "simple_billing", "direct_billing_mode",
-                    "barcode_transfer"],
-    },
-    "cafe": {
-        "label": "Café — mixed counter + tables",
-        "enable":  ["token_system", "floor_plan", "qr_menu", "waiter_call",
-                    "kot_system", "kitchen_display", "inventory", "reports",
-                    "ai_menu_import"],
-        "disable": ["merge_tables", "split_bill", "crm", "reservations",
-                    "barcode_transfer"],
-    },
-}
+# Canonical preset library now lives in tenants/services/tenant_config_service.py,
+# shared with portal/views.py — this used to be its own independent, less
+# complete copy (missing the "counter_billing" preset entirely, and every
+# shared preset was missing parcel_charge/composition_scheme/outlet
+# overrides that the portal copy had), so applying the "same" preset from
+# the two admin panels didn't actually produce the same result. Aliased
+# here so every existing reference in this file keeps working unchanged.
+PRESETS = tcs.PRESETS
 
 
 def _su_only(request):
@@ -184,74 +160,30 @@ def tenant_config(request, tenant_id):
     stations = KitchenStation.objects.filter(tenant=tenant, outlet=outlet)
     staff    = User.objects.filter(tenant=tenant, outlet=outlet).order_by("role", "username")
     config, _ = PaymentConfig.for_outlet(outlet, tenant)
-
-    # Current feature state
-    from core.features import TENANT_FEATURES
-    overrides       = {o.feature: o.enabled for o in TenantFeatureOverride.objects.filter(tenant=tenant)}
-    default_features = set(TENANT_FEATURES.get(tenant.tenant_type, []))
-
-    def feat_on(key):
-        if key in overrides:
-            return overrides[key]
-        return key in default_features
-
-    key_features = [
-        "token_system", "floor_plan", "kitchen_display", "kot_system",
-        "inventory", "waiter_call", "qr_menu", "direct_billing_mode",
-    ]
-    feature_summary = [
-        {"key": k, "on": feat_on(k)} for k in key_features
-    ]
+    feature_summary = tcs.get_feature_summary(tenant)
 
     if request.method == "POST":
         action = request.POST.get("action")
 
         if action == "update_printer":
-            station_id = request.POST.get("station_id")
-            station    = get_object_or_404(KitchenStation, id=station_id, tenant=tenant)
-            station.printer_ip   = request.POST.get("printer_ip", "").strip() or None
-            station.printer_port = int(request.POST.get("printer_port") or 9100)
-            station.paper_width_mm = int(request.POST.get("paper_width_mm") or 80)
-            station.cut_type     = request.POST.get("cut_type", "partial")
-            station.save()
+            station = tcs.update_printer_from_post(tenant, request.POST)
             logger.info("SU %s updated printer for station %s (tenant %s)", request.user.username, station.name, tenant.name)
             return redirect(f"/superuser/tenant/{tenant_id}/")
 
         if action == "add_station":
-            sname = request.POST.get("station_name", "").strip()
-            if sname:
-                KitchenStation.objects.create(
-                    tenant=tenant, outlet=outlet, name=sname, is_default=False,
-                )
+            tcs.add_station_from_post(tenant, outlet, request.POST)
             return redirect(f"/superuser/tenant/{tenant_id}/")
 
         if action == "update_payment":
-            config.cash_enabled = "cash" in request.POST.getlist("methods")
-            config.upi_enabled  = "upi"  in request.POST.getlist("methods")
-            config.card_enabled = "card" in request.POST.getlist("methods")
-            config.upi_id       = request.POST.get("upi_id", "").strip().lower()
-            config.save()
+            tcs.update_payment_from_post(config, request.POST)
             return redirect(f"/superuser/tenant/{tenant_id}/")
 
         if action == "add_staff":
-            uname = request.POST.get("username", "").strip()
-            role  = request.POST.get("role", "cashier")
-            pwd   = request.POST.get("password", "").strip()
-            if uname and pwd and not User.objects.filter(username=uname).exists():
-                User.objects.create_user(
-                    username=uname, password=pwd,
-                    tenant=tenant, outlet=outlet, role=role,
-                )
+            tcs.add_staff_from_post(tenant, outlet, request.POST)
             return redirect(f"/superuser/tenant/{tenant_id}/")
 
         if action == "update_outlet":
-            outlet.phone        = request.POST.get("phone",    "").strip() or None
-            outlet.gst_no       = request.POST.get("gst_no",   "").strip().upper() or None
-            outlet.fssai_no     = request.POST.get("fssai_no", "").strip() or None
-            outlet.address      = request.POST.get("address",  "").strip()
-            outlet.sac_code     = request.POST.get("sac_code", "996331").strip() or "996331"
-            outlet.gst_inclusive = request.POST.get("gst_inclusive") == "true"
-            outlet.save()
+            tcs.update_outlet_from_post(outlet, request.POST)
             return redirect(f"/superuser/tenant/{tenant_id}/")
 
     return render(request, "accounts/superuser_tenant.html", {
@@ -261,7 +193,7 @@ def tenant_config(request, tenant_id):
         "staff":           staff,
         "config":          config,
         "feature_summary": feature_summary,
-        "presets":         PRESETS,
+        "presets":         tcs.PRESETS,
     })
 
 
@@ -275,36 +207,14 @@ def apply_preset(request, tenant_id):
     if (denied := _su_only(request)):
         return denied
 
-    tenant    = get_object_or_404(Tenant, id=tenant_id)
+    tenant     = get_object_or_404(Tenant, id=tenant_id)
     preset_key = request.POST.get("preset")
-    preset    = PRESETS.get(preset_key)
+
+    with transaction.atomic():
+        preset = tcs.apply_preset_to_tenant(tenant, preset_key, request.user)
 
     if not preset:
         return JsonResponse({"error": "Unknown preset"}, status=400)
-
-    with transaction.atomic():
-        # Same append-only audit trail as a single toggle_feature_flag call
-        # (accounts/views/feature_views.py) — without this, a bulk preset
-        # silently wiped out "who turned on X for this tenant, and when" for
-        # every feature it touched.
-        for feature in preset.get("enable", []):
-            TenantFeatureOverride.objects.update_or_create(
-                tenant=tenant, feature=feature,
-                defaults={"enabled": True},
-            )
-            TenantFeatureAuditLog.objects.create(
-                tenant=tenant, feature=feature, enabled=True, source=f"preset:{preset_key}",
-                changed_by=request.user, notes=f"Applied by {request.user.username} via preset '{preset_key}'",
-            )
-        for feature in preset.get("disable", []):
-            TenantFeatureOverride.objects.update_or_create(
-                tenant=tenant, feature=feature,
-                defaults={"enabled": False},
-            )
-            TenantFeatureAuditLog.objects.create(
-                tenant=tenant, feature=feature, enabled=False, source=f"preset:{preset_key}",
-                changed_by=request.user, notes=f"Applied by {request.user.username} via preset '{preset_key}'",
-            )
 
     logger.info("SU %s applied preset '%s' to tenant '%s'", request.user.username, preset_key, tenant.name)
     return JsonResponse({"success": True, "applied": preset_key, "label": preset["label"]})
