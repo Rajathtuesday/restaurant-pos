@@ -27,6 +27,17 @@
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.min.css" rel="stylesheet">
 
+    <!-- Set the dark/light class BEFORE the theme CSS loads, synchronously, so the
+         browser never paints the light-mode default first. themeManager.init() at
+         the bottom of <body> used to be responsible for this, but by the time a
+         <script> at the end of <body> runs, the page has already painted once with
+         the wrong theme (a flash of light mode on every load for dark-mode users). -->
+    <script>
+        if (localStorage.getItem("dark") === "true") {
+            document.documentElement.classList.add("dark");
+        }
+    </script>
+
     <!-- Theme CSS (luxury by default — superuser can change per tenant) -->
     <link rel="stylesheet" href="{% static 'css/themes/' %}{{ request.user.tenant.theme|default:'luxury' }}.css">
 
@@ -248,10 +259,12 @@
         // --- 1. Theme Management (toggles on <html> so html.dark CSS selector works) ---
         const themeManager = {
             init() {
-                const isDark = localStorage.getItem("dark") === "true";
-                document.documentElement.classList.toggle("dark", isDark);
+                // The dark/light class itself is already set by the inline <head>
+                // script (before the theme CSS loads, to prevent a flash of the
+                // wrong theme) - this only syncs the toggle icon, which can't run
+                // until the icon element exists in the DOM.
                 const icon = document.getElementById("themeIcon");
-                if (icon) icon.className = isDark ? "bi bi-sun" : "bi bi-moon";
+                if (icon) icon.className = this.isDark() ? "bi bi-sun" : "bi bi-moon";
             },
             toggle() {
                 const isDark = document.documentElement.classList.toggle("dark");
@@ -262,7 +275,7 @@
             },
             isDark() { return document.documentElement.classList.contains("dark"); }
         };
-        themeManager.init(); // Run before first paint to prevent flash
+        themeManager.init(); // Syncs the toggle icon to the already-applied theme
 
         // --- 2. Network State Management (Edge Case: WiFi Drops) ---
         window.addEventListener('online',  () => {
