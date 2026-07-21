@@ -144,6 +144,15 @@ systemctl daemon-reload
 systemctl enable --now gunicorn celery
 
 # ── 9. nginx reverse proxy ──────────────────────────────────────────────────────
+# Proxies EVERYTHING to gunicorn, including /static/ — WhiteNoise (running
+# inside the Django app) serves static files with proper cache headers and
+# manifest-hashed filenames. No nginx alias for /static/ or /media/: this
+# used to alias both directly to disk, which drifted from what's actually
+# running in production and, for /media/, is flat-out stale — uploaded media
+# lives on Cloudflare R2 now (MEDIA_URL points at R2 directly whenever
+# AWS_STORAGE_BUCKET_NAME is set), so nothing ever requests /media/ on the
+# app's own domain. Confirmed by diffing this against the live server's
+# actual /etc/nginx/sites-available/rasova before fixing it here.
 log "9/9  nginx"
 cat > /etc/nginx/sites-available/rasova <<EOF
 server {
@@ -151,15 +160,14 @@ server {
     server_name ${DOMAIN:-_};
     client_max_body_size 20M;
 
-    location /static/ { alias $APP_DIR/staticfiles/; }
-    location /media/  { alias $APP_DIR/media/; }
-
     location / {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host              \$host;
         proxy_set_header X-Real-IP         \$remote_addr;
         proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_read_timeout 120s;
+        proxy_connect_timeout 10s;
     }
 }
 EOF
