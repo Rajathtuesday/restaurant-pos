@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <meta name="description" content="Explore our curated selection of gourmet dishes. Order online from your table at {{ tenant.name }}.">
     <meta name="robots" content="index, follow">
+    {% if tenant.logo %}
+    <link rel="icon" href="{{ tenant.logo.url }}">
+    <link rel="apple-touch-icon" href="{{ tenant.logo.url }}">
+    {% else %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    <link rel="apple-touch-icon" href="{% static 'icon-512.svg' %}">
+    {% endif %}
 
     <!-- Open Graph / Social Media / AI Previews -->
     <meta property="og:type" content="website">
@@ -615,7 +623,7 @@
         </div>
         {% endfor %}
         <div class="text-center mt-5 text-muted small">
-            <p>Scroll for more ↓</p>
+            <p><i class="bi bi-check2-circle text-accent-gold me-1"></i>You've reached the end of the menu</p>
         </div>
     </div>
 
