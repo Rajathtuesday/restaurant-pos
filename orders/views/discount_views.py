@@ -75,7 +75,7 @@ def apply_discount(request, order_id):
 
             OrderEvent.objects.create(
                 tenant=order.tenant, outlet=order.outlet, order=order,
-                event_type="status_changed",
+                event_type="discount_applied",
                 metadata={"action": "discount_applied", "type": discount_type, "value": str(value)},
                 created_by=request.user
             )
@@ -116,6 +116,12 @@ def make_item_complimentary(request, item_id):
             item.is_complimentary = True
             item.save(update_fields=["is_complimentary"])
             item.order.recalculate_totals()
+            OrderEvent.objects.create(
+                tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
+                event_type="item_complimentary",
+                metadata={"item_id": item.id},
+                created_by=request.user
+            )
         logger.warning("User %s marked item #%s as complimentary", request.user.username, item_id)
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
@@ -152,8 +158,8 @@ def apply_item_discount(request, item_id):
 
             OrderEvent.objects.create(
                 tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
-                event_type="item_updated",
-                metadata={"item_id": item.id, "discount_pct": str(discount_pct)},
+                event_type="item_discount_applied",
+                metadata={"action": "item_discount_applied", "item_id": item.id, "discount_pct": str(discount_pct)},
                 created_by=request.user
             )
 

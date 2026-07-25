@@ -2,7 +2,7 @@
 import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required
@@ -264,3 +264,58 @@ def create_reservation(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+# A reservation's status is a small state machine, not a free-for-all field --
+# this is the only map that may move it, so an invalid jump (e.g. reopening a
+# cancelled booking) fails loudly instead of silently corrupting the timeline.
+RESERVATION_TRANSITIONS = {
+    "pending":   {"confirmed", "cancelled"},
+    "confirmed": {"seated", "cancelled", "no_show"},
+    "seated":    set(),
+    "cancelled": set(),
+    "no_show":   set(),
+}
+
+
+@login_required
+@tenant_required
+@require_POST
+def update_reservation_status(request, reservation_id):
+    """Moves a reservation through pending -> confirmed -> seated (or
+    cancelled/no_show), the lifecycle the model already promises via
+    STATUS_CHOICES but that, until now, had no endpoint to drive it."""
+    from .models import Reservation
+
+    if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    reservation = get_object_or_404(
+        Reservation, id=reservation_id,
+        tenant=request.user.tenant, outlet=request.user.outlet,
+    )
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    new_status = data.get("status")
+    allowed_next = RESERVATION_TRANSITIONS.get(reservation.status, set())
+    if new_status not in allowed_next:
+        return JsonResponse(
+            {"error": f"Can't move from {reservation.status} to {new_status}."},
+            status=400,
+        )
+
+    reservation.status = new_status
+    reservation.save(update_fields=["status"])
+
+    if new_status == "seated" and reservation.table_id:
+        # Best-effort convenience nudge, not authoritative -- never clobber a
+        # table that's already mid-service from an unrelated walk-in. The
+        # reservation's own status field is the source of truth either way.
+        from orders.models import Table
+        Table.objects.filter(id=reservation.table_id, state="free").update(state="ordering")
+
+    return JsonResponse({"success": True, "status": reservation.status})

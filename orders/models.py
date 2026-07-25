@@ -882,6 +882,11 @@ class OrderEvent(TenantScopedModel):
         ("item_added", "Item Added"),
         ("item_updated", "Item Updated"),
         ("item_voided", "Item Voided"),
+        ("item_discount_applied", "Item Discount Applied"),
+        ("item_complimentary", "Item Marked Complimentary"),
+
+        # Discounts
+        ("discount_applied", "Discount Applied"),
 
         # Kitchen
         ("kot_sent", "KOT Sent"),

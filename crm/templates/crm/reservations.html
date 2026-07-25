@@ -14,6 +14,8 @@
     .status-pending   { background: #fff3cd; color: #856404; }
     .status-confirmed { background: #d4edda; color: #155724; }
     .status-seated    { background: #d1ecf1; color: #0c5460; }
+    .status-cancelled { background: #f8d7da; color: #721c24; }
+    .status-no_show   { background: #e2e3e5; color: #383d41; }
     .modal-content { border-radius: 0; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-main); }
     .form-control { border-radius: 0; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); }
     .form-control:focus { border-color: var(--accent-gold); box-shadow: none; background: transparent; color: var(--text-main); }
@@ -64,7 +66,14 @@
                         <td>{{ res.number_of_guests }} pax</td>
                         <td><span class="status-badge status-{{ res.status }}">{{ res.status }}</span></td>
                         <td>
-                            <button class="btn-icon" onclick="seatGuest('{{ res.id }}')"><i class="bi bi-box-arrow-in-right"></i></button>
+                            {% if res.status == "pending" %}
+                            <button class="btn-icon" title="Confirm" onclick="updateReservationStatus('{{ res.id }}', 'confirmed')"><i class="bi bi-check-lg"></i></button>
+                            <button class="btn-icon" title="Cancel" onclick="updateReservationStatus('{{ res.id }}', 'cancelled')"><i class="bi bi-x-lg"></i></button>
+                            {% elif res.status == "confirmed" %}
+                            <button class="btn-icon" title="Seat Guest" onclick="seatGuest('{{ res.id }}')"><i class="bi bi-box-arrow-in-right"></i></button>
+                            <button class="btn-icon" title="No Show" onclick="updateReservationStatus('{{ res.id }}', 'no_show')"><i class="bi bi-person-dash"></i></button>
+                            <button class="btn-icon" title="Cancel" onclick="updateReservationStatus('{{ res.id }}', 'cancelled')"><i class="bi bi-x-lg"></i></button>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}
@@ -138,6 +147,23 @@ async function saveBooking() {
     });
     if (res.ok) { window.location.reload(); }
     else { alert('Error saving booking'); }
+}
+
+async function updateReservationStatus(reservationId, newStatus) {
+    const res = await fetch(`/crm/reservations/${reservationId}/status/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ status: newStatus })
+    });
+    if (res.ok) { window.location.reload(); }
+    else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Could not update reservation.');
+    }
+}
+
+function seatGuest(reservationId) {
+    updateReservationStatus(reservationId, 'seated');
 }
 </script>
 {% endblock %}

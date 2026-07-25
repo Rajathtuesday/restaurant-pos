@@ -18,7 +18,7 @@ from django.urls import reverse
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, OrderItem, Payment, Refund, Table
+from orders.models import Order, OrderEvent, OrderItem, Payment, Refund, Table
 from tenants.models import Tenant, Outlet
 
 
@@ -105,6 +105,81 @@ class StaffDiscountBoundsTest(_Base):
         self.assertEqual(resp.status_code, 200)
         order = Order.objects.get(id=resp.json()["order_id"])
         self.assertEqual(order.discount_value, Decimal("0"))
+
+
+class OrderEventDiscountLoggingTest(_Base):
+    """
+    Regression tests for the OrderEvent write-side fixes: order-level
+    discounts now log a dedicated event_type instead of the generic
+    "status_changed", item-level discounts get their own event_type instead
+    of being indistinguishable from any other "item_updated" event, and
+    marking an item complimentary now creates an audit event at all (it
+    previously created none).
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.manager = User.objects.create_user(
+            username="mgr1", password="pw", role="manager",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=self.table,
+            created_by=self.manager, status="open",
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order, menu_item=self.item,
+            quantity=1, price=self.item.price, gst_percentage=self.item.gst_percentage,
+            total_price=self.item.price, status="pending",
+        )
+
+    def test_apply_discount_logs_dedicated_event_type(self):
+        client = Client()
+        client.force_login(self.manager)
+        resp = client.post(
+            reverse("apply-discount", args=[self.order.id]),
+            data=json.dumps({"type": "percentage", "value": "10"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        event = OrderEvent.objects.filter(order=self.order, event_type="discount_applied").first()
+        self.assertIsNotNone(event)
+        self.assertEqual(event.metadata["action"], "discount_applied")
+        self.assertEqual(event.metadata["value"], "10")
+        self.assertEqual(event.created_by, self.manager)
+        self.order.refresh_from_db()
+        # Item price 200.00, 10% -> 20.00 discount, confirms the value actually applied.
+        self.assertEqual(self.order.discount_total, Decimal("20.00"))
+
+    def test_apply_item_discount_logs_dedicated_event_type(self):
+        client = Client()
+        client.force_login(self.manager)
+        resp = client.post(
+            reverse("item-discount", args=[self.order_item.id]),
+            data=json.dumps({"percent": "20"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        # Before this fix, item discounts logged event_type="item_updated" with
+        # no "action" key -- indistinguishable from any other item_updated event.
+        event = OrderEvent.objects.filter(order=self.order, event_type="item_discount_applied").first()
+        self.assertIsNotNone(event)
+        self.assertEqual(event.metadata["action"], "item_discount_applied")
+        self.assertEqual(event.created_by, self.manager)
+
+    def test_make_complimentary_now_creates_an_audit_event(self):
+        self.assertEqual(
+            OrderEvent.objects.filter(order=self.order, event_type="item_complimentary").count(), 0
+        )
+        client = Client()
+        client.force_login(self.manager)
+        resp = client.post(reverse("make-complimentary", args=[self.order_item.id]))
+        self.assertEqual(resp.status_code, 200)
+        # Previously this action created ZERO OrderEvent rows -- only a log line.
+        events = OrderEvent.objects.filter(order=self.order, event_type="item_complimentary")
+        self.assertEqual(events.count(), 1)
+        self.assertEqual(events.first().created_by, self.manager)
+        self.assertEqual(events.first().metadata["item_id"], self.order_item.id)
 
 
 class RefundCrossTenantIDORTest(TestCase):

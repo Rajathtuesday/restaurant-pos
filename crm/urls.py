@@ -9,4 +9,5 @@ urlpatterns = [
     path("link/<int:order_id>/", views.link_guest_to_order, name="link-guest"),
     path("reservations/", views.reservation_list, name="reservation-list"),
     path("reservations/create/", views.create_reservation, name="create-reservation"),
+    path("reservations/<int:reservation_id>/status/", views.update_reservation_status, name="update-reservation-status"),
 ]
