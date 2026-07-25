@@ -462,10 +462,18 @@ def setup_staff(request):
 
         return redirect("setup_staff")
 
+    # Authoritative role list for the edit-role modal — built from
+    # ASSIGNABLE_STAFF_ROLES rather than copied from the create-account
+    # dropdown above, so it can't drift from what's actually assignable.
+    role_choices = [
+        (value, label) for value, label in User.ROLE_CHOICES
+        if value in User.ASSIGNABLE_STAFF_ROLES
+    ]
+
     return render(
         request,
         "setup/setup_staff.html",
-        {"staff": staff, "outlets": outlets}
+        {"staff": staff, "outlets": outlets, "role_choices": role_choices}
     )
 
 
@@ -552,6 +560,54 @@ def toggle_staff_active(request, user_id):
         "success": True,
         "is_active": target.is_active,
         "message": f"{target.username} {action}.",
+    })
+
+
+@login_required
+@role_required("owner", "manager")
+@require_POST
+def edit_staff_role(request, user_id):
+    """
+    Changes an existing staff member's role. Unlike is_active (only checked
+    at login), role_required reads request.user.role fresh from the DB on
+    every request, so the new role takes effect on their very next click —
+    no forced logout or session invalidation needed.
+    """
+    target = get_object_or_404(
+        User, id=user_id, tenant=request.user.tenant
+    )
+    if target.role == "owner":
+        return JsonResponse({"error": "Owner's role can't be changed here."}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    new_role = data.get("role")
+    # Never trust the posted role — same boundary as staff creation above:
+    # without this, a manager could post role="owner" and escalate someone
+    # (or themselves, via a second account) straight to full ownership.
+    if new_role not in User.ASSIGNABLE_STAFF_ROLES:
+        return JsonResponse({"error": "Invalid role selected."}, status=400)
+
+    if new_role == target.role:
+        return JsonResponse({"error": "That's already their role."}, status=400)
+
+    old_role = target.role
+    target.role = new_role
+    target.save(update_fields=["role"])
+
+    logger.info(
+        "Role changed for user '%s' (tenant %s): %s -> %s, by '%s'",
+        target.username, request.user.tenant_id, old_role, new_role, request.user.username,
+    )
+
+    return JsonResponse({
+        "success": True,
+        "message": f"{target.username}'s role changed to {target.get_role_display()}.",
+        "role": new_role,
+        "role_display": target.get_role_display(),
     })
 
 

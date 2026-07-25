@@ -143,6 +143,7 @@
                     <td><span class="role-badge {{ member.role }}">{{ member.get_role_display }}</span></td>
                     <td style="color:var(--text-muted);font-size:0.75rem;">{{ member.outlet.name|default:"-" }}</td>
                     <td style="display:flex;gap:6px;">
+                        <button class="btn-reset-pw" onclick="editRole({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.role }}')">Edit Role</button>
                         <button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button>
                         <button class="btn-reset-pw" id="toggle-btn-{{ member.id }}" onclick="toggleActive({{ member.id }}, '{{ member.username|escapejs }}', {{ member.is_active|yesno:"true,false" }})">{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
                     </td>
@@ -161,7 +162,41 @@
 {% endblock %}
 
 {% block extra_js %}
+<script id="role-choices-data" type="application/json">
+{
+    {% for value, label in role_choices %}"{{ value }}": "{{ label|escapejs }}"{% if not forloop.last %},{% endif %}
+    {% endfor %}
+}
+</script>
 <script>
+const ROLE_CHOICES = JSON.parse(document.getElementById('role-choices-data').textContent);
+
+async function editRole(userId, username, currentRole) {
+    const { value: newRole } = await Swal.fire({
+        title: `Change role for ${username}`,
+        input: 'select',
+        inputOptions: ROLE_CHOICES,
+        inputValue: currentRole,
+        showCancelButton: true,
+        confirmButtonText: 'Save Role',
+        confirmButtonColor: 'var(--accent-gold)',
+        cancelButtonColor: 'var(--text-muted)',
+        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
+        color: 'var(--text-main)',
+        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
+    });
+
+    if (!newRole || newRole === currentRole) return;
+
+    try {
+        const data = await apiClient.post(`/setup/staff/${userId}/edit-role/`, { role: newRole });
+        ui.toast(data.message || 'Role updated.', 'success');
+        setTimeout(() => location.reload(), 700);
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+
 function toggleInactiveVisibility() {
     const show = document.getElementById('showInactiveToggle').checked;
     document.querySelectorAll('.inactive-row').forEach(row => {

@@ -294,3 +294,122 @@ class ToggleStaffActiveTest(_Base):
         resp = client.get(reverse("setup_wizard"))
         self.assertEqual(resp.status_code, 302)
         self.assertIn("login", resp["Location"])
+
+
+class EditStaffRoleTest(_Base):
+    """
+    Regression tests for edit_staff_role — role was previously set-once at
+    account creation with no way to change it later short of direct DB/admin
+    access.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.waiter = User.objects.create_user(
+            username="waiter1", password="pw", role="waiter",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.other_tenant = Tenant.objects.create(name="Other Tenant", slug="other-tenant")
+        self.other_outlet = Outlet.objects.create(tenant=self.other_tenant, name="Other Main")
+        self.other_owner = User.objects.create_user(
+            username="other_owner", password="pw", role="owner",
+            tenant=self.other_tenant, outlet=self.other_outlet,
+        )
+        self.other_waiter = User.objects.create_user(
+            username="other_waiter", password="pw", role="waiter",
+            tenant=self.other_tenant, outlet=self.other_outlet,
+        )
+
+    def _post(self, client, user_id, role):
+        import json
+        return client.post(
+            reverse("edit_staff_role", args=[user_id]),
+            data=json.dumps({"role": role}),
+            content_type="application/json",
+        )
+
+    def test_owner_can_change_waiter_to_captain(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, "captain")
+        self.assertEqual(resp.status_code, 200)
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.role, "captain")
+
+    def test_cashier_cannot_edit_role(self):
+        client = Client()
+        client.force_login(self.cashier)
+        resp = self._post(client, self.waiter.id, "captain")
+        self.assertEqual(resp.status_code, 403)  # role_required (decorator) blocks with 403
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.role, "waiter")
+
+    def test_cannot_set_role_to_owner(self):
+        # Same privilege-escalation boundary as staff creation — role must
+        # come from ASSIGNABLE_STAFF_ROLES, never trusted verbatim from POST.
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, "owner")
+        self.assertEqual(resp.status_code, 400)
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.role, "waiter")
+
+    def test_cannot_set_role_to_agent(self):
+        # "agent" is a Rasova-internal sales role, not assignable by a tenant.
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, "agent")
+        self.assertEqual(resp.status_code, 400)
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.role, "waiter")
+
+    def test_cannot_edit_owner_role(self):
+        client = Client()
+        client.force_login(self.owner)
+        second_owner = User.objects.create_user(
+            username="owner2", password="pw", role="owner",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        resp = self._post(client, second_owner.id, "manager")
+        self.assertEqual(resp.status_code, 403)
+        second_owner.refresh_from_db()
+        self.assertEqual(second_owner.role, "owner")
+
+    def test_cannot_edit_role_across_tenants(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.other_waiter.id, "manager")
+        self.assertEqual(resp.status_code, 404)
+        self.other_waiter.refresh_from_db()
+        self.assertEqual(self.other_waiter.role, "waiter")
+
+    def test_setting_same_role_rejected(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, "waiter")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_role_change_takes_effect_on_next_request_without_relogin(self):
+        # Unlike is_active, role isn't checked at authenticate() — it's read
+        # fresh from the DB on every request via role_required, so a demoted
+        # manager should lose access on their very next click, no forced
+        # logout needed the way toggle_staff_active needs one.
+        manager = User.objects.create_user(
+            username="manager1", password="pw", role="manager",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        manager_client = Client()
+        self.assertTrue(manager_client.login(username="manager1", password="pw"))
+
+        resp = manager_client.get(reverse("setup_payment_methods"))
+        self.assertEqual(resp.status_code, 200)
+
+        owner_client = Client()
+        owner_client.force_login(self.owner)
+        resp = self._post(owner_client, manager.id, "waiter")
+        self.assertEqual(resp.status_code, 200)
+
+        # Same session cookie as before, no re-login — role gate now blocks.
+        resp = manager_client.get(reverse("setup_payment_methods"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/dashboard/", resp["Location"])
