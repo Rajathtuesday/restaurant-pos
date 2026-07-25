@@ -413,3 +413,97 @@ class EditStaffRoleTest(_Base):
         resp = manager_client.get(reverse("setup_payment_methods"))
         self.assertEqual(resp.status_code, 302)
         self.assertIn("/dashboard/", resp["Location"])
+
+
+class EditStaffOutletTest(_Base):
+    """
+    Regression tests for edit_staff_outlet — moving a staff member between
+    a tenant's outlets previously required direct DB/admin access; outlet was
+    only ever set once, at account creation.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.second_outlet = Outlet.objects.create(tenant=self.tenant, name="Second Branch")
+        self.waiter = User.objects.create_user(
+            username="waiter1", password="pw", role="waiter",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.other_tenant = Tenant.objects.create(name="Other Tenant", slug="other-tenant-2")
+        self.other_outlet = Outlet.objects.create(tenant=self.other_tenant, name="Other Main")
+        self.other_owner = User.objects.create_user(
+            username="other_owner", password="pw", role="owner",
+            tenant=self.other_tenant, outlet=self.other_outlet,
+        )
+        self.other_waiter = User.objects.create_user(
+            username="other_waiter", password="pw", role="waiter",
+            tenant=self.other_tenant, outlet=self.other_outlet,
+        )
+
+    def _post(self, client, user_id, outlet_id):
+        import json
+        return client.post(
+            reverse("edit_staff_outlet", args=[user_id]),
+            data=json.dumps({"outlet_id": outlet_id}),
+            content_type="application/json",
+        )
+
+    def test_owner_can_move_waiter_to_second_outlet(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, self.second_outlet.id)
+        self.assertEqual(resp.status_code, 200)
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.outlet_id, self.second_outlet.id)
+
+    def test_cashier_cannot_edit_outlet(self):
+        client = Client()
+        client.force_login(self.cashier)
+        resp = self._post(client, self.waiter.id, self.second_outlet.id)
+        self.assertEqual(resp.status_code, 403)  # role_required (decorator) blocks with 403
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.outlet_id, self.outlet.id)
+
+    def test_cannot_move_to_another_tenants_outlet(self):
+        # Same privilege boundary as edit_staff_role: the posted outlet_id
+        # must belong to the acting user's own tenant, never trusted verbatim.
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, self.other_outlet.id)
+        self.assertEqual(resp.status_code, 400)
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.outlet_id, self.outlet.id)
+
+    def test_cannot_edit_owner_outlet(self):
+        client = Client()
+        client.force_login(self.owner)
+        second_owner = User.objects.create_user(
+            username="owner2", password="pw", role="owner",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        resp = self._post(client, second_owner.id, self.second_outlet.id)
+        self.assertEqual(resp.status_code, 403)
+        second_owner.refresh_from_db()
+        self.assertEqual(second_owner.outlet_id, self.outlet.id)
+
+    def test_cannot_edit_outlet_across_tenants(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.other_waiter.id, self.second_outlet.id)
+        self.assertEqual(resp.status_code, 404)
+        self.other_waiter.refresh_from_db()
+        self.assertEqual(self.other_waiter.outlet_id, self.other_outlet.id)
+
+    def test_setting_same_outlet_rejected(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, self.outlet.id)
+        self.assertEqual(resp.status_code, 400)
+
+    def test_invalid_outlet_id_rejected(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = self._post(client, self.waiter.id, "not-a-real-id")
+        self.assertEqual(resp.status_code, 400)
+        self.waiter.refresh_from_db()
+        self.assertEqual(self.waiter.outlet_id, self.outlet.id)

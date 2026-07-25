@@ -614,6 +614,56 @@ def edit_staff_role(request, user_id):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+def edit_staff_outlet(request, user_id):
+    """
+    Reassigns an existing staff member to a different outlet within the same
+    tenant. Scoped by tenant only (not the acting manager's own outlet),
+    matching reset_staff_password/toggle_staff_active/edit_staff_role above —
+    an owner managing several outlets moves people between them from any of
+    their outlets' staff pages, not just the destination one.
+    """
+    target = get_object_or_404(
+        User, id=user_id, tenant=request.user.tenant
+    )
+    if target.role == "owner":
+        return JsonResponse({"error": "Owner's outlet can't be changed here."}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    outlet_id = data.get("outlet_id")
+    # Never trust the posted outlet_id without checking tenant ownership —
+    # otherwise a crafted request could reassign staff onto another tenant's
+    # outlet (FK integrity is satisfied, tenant isolation is not).
+    try:
+        new_outlet = Outlet.objects.get(id=outlet_id, tenant=request.user.tenant)
+    except (Outlet.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({"error": "Invalid outlet selected."}, status=400)
+
+    if target.outlet_id == new_outlet.id:
+        return JsonResponse({"error": "Staff member is already at that outlet."}, status=400)
+
+    target.outlet = new_outlet
+    target.save(update_fields=["outlet"])
+
+    logger.info(
+        "Outlet changed for user '%s' (tenant %s): -> '%s', by '%s'",
+        target.username, request.user.tenant_id, new_outlet.name, request.user.username,
+    )
+
+    return JsonResponse({
+        "success": True,
+        "message": f"{target.username} moved to {new_outlet.name}.",
+        "outlet_id": new_outlet.id,
+        "outlet_name": new_outlet.name,
+    })
+
+
+@login_required
+@role_required("owner", "manager")
+@require_POST
 def set_default_station(request, station_id):
 
     station = KitchenStation.objects.get(

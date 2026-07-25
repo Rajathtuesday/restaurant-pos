@@ -144,6 +144,7 @@
                     <td style="color:var(--text-muted);font-size:0.75rem;">{{ member.outlet.name|default:"-" }}</td>
                     <td style="display:flex;gap:6px;">
                         <button class="btn-reset-pw" onclick="editRole({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.role }}')">Edit Role</button>
+                        <button class="btn-reset-pw" onclick="editOutlet({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.outlet_id|default_if_none:"" }}')">Edit Location</button>
                         <button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button>
                         <button class="btn-reset-pw" id="toggle-btn-{{ member.id }}" onclick="toggleActive({{ member.id }}, '{{ member.username|escapejs }}', {{ member.is_active|yesno:"true,false" }})">{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
                     </td>
@@ -168,8 +169,41 @@
     {% endfor %}
 }
 </script>
+<script id="outlet-choices-data" type="application/json">
+{
+    {% for o in outlets %}"{{ o.id }}": "{{ o.name|escapejs }}"{% if not forloop.last %},{% endif %}
+    {% endfor %}
+}
+</script>
 <script>
 const ROLE_CHOICES = JSON.parse(document.getElementById('role-choices-data').textContent);
+const OUTLET_CHOICES = JSON.parse(document.getElementById('outlet-choices-data').textContent);
+
+async function editOutlet(userId, username, currentOutletId) {
+    const { value: newOutletId } = await Swal.fire({
+        title: `Move ${username} to a different location`,
+        input: 'select',
+        inputOptions: OUTLET_CHOICES,
+        inputValue: currentOutletId,
+        showCancelButton: true,
+        confirmButtonText: 'Save Location',
+        confirmButtonColor: 'var(--accent-gold)',
+        cancelButtonColor: 'var(--text-muted)',
+        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
+        color: 'var(--text-main)',
+        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
+    });
+
+    if (!newOutletId || newOutletId === currentOutletId) return;
+
+    try {
+        const data = await apiClient.post(`/setup/staff/${userId}/edit-outlet/`, { outlet_id: newOutletId });
+        ui.toast(data.message || 'Location updated.', 'success');
+        setTimeout(() => location.reload(), 700);
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
 
 async function editRole(userId, username, currentRole) {
     const { value: newRole } = await Swal.fire({
