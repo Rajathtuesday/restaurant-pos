@@ -118,6 +118,9 @@ urlpatterns = [
     # crm module
     path('crm/', include('crm.urls')),
 
+    # finance module
+    path('finance/', include('finance.urls')),
+
     # agency module
     path('agency/', include('agency.urls')),
 

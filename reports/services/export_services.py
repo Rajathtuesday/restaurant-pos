@@ -422,3 +422,53 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
         
     logger.info("Category Sales CSV generated successfully. Categories analyzed: %s", category_stats.count())
     return output.getvalue()
+
+
+def generate_pl_csv(tenant, outlet, start_date, end_date):
+    """Generates the Net Profit / P&L CSV — revenue, COGS, operating
+    expenses, net profit, and the expense category breakdown."""
+    from reports.services.pl_reports import net_profit_report
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    report = net_profit_report(tenant, outlet, start_date, end_date)
+
+    writer.writerow(['NET PROFIT REPORT', f'Period: {start_date} to {end_date}'])
+    writer.writerow([])
+    writer.writerow(['Gross Revenue', report['gross_revenue']])
+    writer.writerow(['GST Collected', report['gst_collected']])
+    writer.writerow(['Net Revenue', report['net_revenue']])
+    writer.writerow(['Discounts Given', report['discounts']])
+    writer.writerow(['COGS', report['cogs']])
+    writer.writerow(['Gross Profit', report['gross_profit']])
+    writer.writerow(['Gross Margin %', report['gross_margin_pct']])
+    writer.writerow(['Operating Expenses', report['operating_expenses']])
+    writer.writerow(['NET PROFIT', report['net_profit']])
+    writer.writerow(['Net Margin %', report['net_margin_pct']])
+    writer.writerow([])
+    writer.writerow(['EXPENSE BREAKDOWN BY CATEGORY'])
+    writer.writerow(['Category', 'Amount'])
+    for row in report['expense_breakdown']:
+        writer.writerow([row['category'], float(row['total'])])
+
+    return output.getvalue()
+
+
+def generate_menu_engineering_csv(tenant, outlet, start_date, end_date):
+    """Generates the Menu Engineering (stars/dogs quadrant) CSV."""
+    from reports.services.menu_engineering import menu_engineering_report
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    rows = menu_engineering_report(tenant, outlet, start_date, end_date)
+
+    writer.writerow(['Item', 'Quantity Sold', 'Revenue', 'COGS', 'Margin %', 'Quadrant', 'Cost Known'])
+    for row in rows["items"]:
+        writer.writerow([
+            row['name'], row['qty'], row['revenue'],
+            row['cogs'] if row['cogs_known'] else 'unknown',
+            row['margin_pct'] if row['cogs_known'] else '',
+            row['quadrant'], 'yes' if row['cogs_known'] else 'no',
+        ])
+
+    return output.getvalue()

@@ -17,7 +17,8 @@ from django.http import HttpResponse, JsonResponse
 
 from reports.services.kitchen_reports import kitchen_performance, top_kitchen_items
 from reports.services.comparison_reports import period_comparison
-from reports.services.pl_reports import gross_margin_report
+from reports.services.pl_reports import gross_margin_report, net_profit_report
+from core.features import has_feature
 
 @login_required
 @feature_required("reports")
@@ -105,6 +106,10 @@ def dashboard(request):
     waiters    = waiter_performance(tenant, selected_outlet, start_date, end_date)
     comparison = period_comparison(tenant, selected_outlet, start_date, end_date)
     pl         = gross_margin_report(tenant, selected_outlet, start_date, end_date)
+    net_pl     = (
+        net_profit_report(tenant, selected_outlet, start_date, end_date)
+        if has_feature(tenant, "advanced_reports") else None
+    )
 
     if request.GET.get("export") == "csv":
         response = HttpResponse(content_type='text/csv')
@@ -186,6 +191,7 @@ def dashboard(request):
         "waiters":        waiters if not is_limited_view else [],
         "comparison":     comparison if not is_limited_view else {},
         "pl":             pl         if not is_limited_view else {},
+        "net_pl":         net_pl     if not is_limited_view else None,
         "outlets":        outlets,
         "current_outlet": outlet,
         "date_filter":    date_filter,
@@ -478,11 +484,13 @@ def export_reports(request):
                 pass
 
     from .services.export_services import (
-        generate_orders_csv, 
-        generate_items_csv, 
+        generate_orders_csv,
+        generate_items_csv,
         generate_gstr1_excel,
         generate_waiter_csv,
-        generate_category_csv
+        generate_category_csv,
+        generate_pl_csv,
+        generate_menu_engineering_csv,
     )
     
     if export_type == "orders":
@@ -514,7 +522,81 @@ def export_reports(request):
         response = HttpResponse(excel_data, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
         response['Content-Disposition'] = f'attachment; filename="gstr1_b2cs_{start_date}_to_{end_date}.xlsx"'
         return response
-        
+
+    elif export_type == "pl":
+        if not has_feature(tenant, "advanced_reports"):
+            return HttpResponseForbidden("Feature not enabled")
+        csv_data = generate_pl_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="net_profit_{start_date}_to_{end_date}.csv"'
+        return response
+
+    elif export_type == "menu_engineering":
+        if not has_feature(tenant, "advanced_reports"):
+            return HttpResponseForbidden("Feature not enabled")
+        csv_data = generate_menu_engineering_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="menu_engineering_{start_date}_to_{end_date}.csv"'
+        return response
+
     return HttpResponseForbidden("Invalid export type")
+
+
+@login_required
+@tenant_required
+@feature_required("advanced_reports")
+@role_required("owner", "manager")
+def menu_engineering_report_view(request):
+    """
+    Popularity x profitability quadrant per menu item (stars/plowhorses/
+    puzzles/dogs). Owner/manager only, no agent -- per-item cost/margin data
+    is at least as sensitive as the agent-suppressed items/waiters sections
+    on the main dashboard.
+    """
+    from reports.services.menu_engineering import menu_engineering_report
+
+    tenant = request.user.tenant
+    date_filter = request.GET.get("date_filter", "today")
+    outlet_id = request.GET.get("outlet")
+
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else None
+    else:
+        outlets = Outlet.objects.filter(id=request.user.outlet_id)
+        outlet = request.user.outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), outlet)
+    end_date = get_business_date(timezone.now(), outlet)
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+    report = menu_engineering_report(tenant, outlet, start_date, end_date)
+
+    return render(request, "reports/menu_engineering.html", {
+        "report": report,
+        "outlets": outlets,
+        "current_outlet": outlet,
+        "date_filter": date_filter,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
 
 

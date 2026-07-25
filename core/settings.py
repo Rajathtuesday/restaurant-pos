@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'setup',
     'shifts',
     'crm',
+    'finance',
     'agency',
     'portal',
     'django_celery_results',

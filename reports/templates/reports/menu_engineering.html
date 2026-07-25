@@ -1,0 +1,145 @@
+{% extends 'core/base.html' %}
+{% block title %}Menu Engineering | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .report-subnav {
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; flex-wrap: wrap;
+  }
+  .report-subnav-left  { display: flex; align-items: center; gap: 0; }
+  .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
+  .report-tab {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s; display: inline-block;
+  }
+  .report-tab:hover   { color: var(--text-main); }
+  .report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
+  .subnav-select {
+    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
+    color: var(--text-main); font-size: 0.82rem; font-family: inherit;
+    padding: 0.3rem 1.2rem 0.3rem 0; cursor: pointer; outline: none;
+  }
+  .subnav-select:focus { border-color: var(--accent-gold); }
+
+  .page-wrap { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .section-title {
+    font-size: 1.2rem; color: var(--text-main); margin-bottom: 0.5rem;
+    text-transform: uppercase; letter-spacing: 3px; text-align: center;
+  }
+  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2.5rem; }
+
+  .quadrant-legend { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--text-muted); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  .menu-eng-table { width: 100%; border-collapse: collapse; }
+  .menu-eng-table th {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
+    font-weight: 600; padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-color); text-align: left;
+  }
+  .menu-eng-table td { padding: 0.9rem 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+  .menu-eng-table td.num { text-align: right; font-family: 'Space Mono', monospace; }
+
+  .quadrant-badge {
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px;
+    padding: 3px 9px; border-radius: 20px; font-weight: 600;
+  }
+  .quadrant-Star      { background: rgba(16,185,129,0.12); color: #10b981; }
+  .quadrant-Plowhorse { background: rgba(59,130,246,0.12); color: #3b82f6; }
+  .quadrant-Puzzle    { background: rgba(249,115,22,0.12); color: #f97316; }
+  .quadrant-Dog       { background: rgba(239,68,68,0.12);  color: #ef4444; }
+  .quadrant-Unknown   { background: var(--border-color);   color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<a href="/dashboard/" class="brand-title">
+  <i class="bi bi-diamond-half"></i>
+  <span>{{ request.user.tenant.name }}</span>
+</a>
+<p class="brand-subtitle"><i class="bi bi-geo-alt me-1"></i>{{ request.user.outlet.name }}</p>
+{% endblock %}
+
+{% block header_right %}
+<a href="/dashboard/" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme"><i class="bi bi-moon" id="themeIcon"></i></button>
+<a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+{% endblock %}
+
+{% block content %}
+<nav class="report-subnav">
+  <div class="report-subnav-left">
+    <a href="/reports/dashboard/" class="report-tab">Sales</a>
+    <a href="/reports/kitchen/" class="report-tab">Kitchen KPIs</a>
+    <a href="/reports/inventory/" class="report-tab">Inventory</a>
+    <a href="/reports/menu-engineering/" class="report-tab active">Menu Engineering</a>
+  </div>
+  <div class="report-subnav-right">
+    <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
+      {% if request.user.role == "owner" and outlets|length > 1 %}
+      <select name="outlet" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
+        <option value="">All Branches</option>
+        {% for o in outlets %}
+        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="date_filter" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
+        <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
+        <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
+      </select>
+    </form>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <h1 class="section-title">Menu Engineering</h1>
+  <p class="section-sub">Popularity vs. profitability, split at the median of each — {{ start_date }} to {{ end_date }}</p>
+
+  <div class="quadrant-legend">
+    <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Star — popular &amp; profitable</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Plowhorse — popular, low margin</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>Puzzle — profitable, low volume</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Dog — neither</div>
+  </div>
+
+  {% if report.items_with_unknown_cost %}
+  <div style="font-size:0.78rem;color:var(--text-muted);padding:0.75rem 1rem;border-left:2px solid var(--border-color);margin-bottom:1.5rem;">
+    <i class="bi bi-info-circle me-1"></i>
+    {{ report.items_with_unknown_cost }} item{{ report.items_with_unknown_cost|pluralize }} have no recipe linked, so their cost — and quadrant — can't be determined.
+    Link a recipe in <a href="/menu/" style="color:var(--accent-gold);">Menu Management</a> to include them.
+  </div>
+  {% endif %}
+
+  <table class="menu-eng-table">
+    <thead>
+      <tr>
+        <th>Item</th><th class="num">Qty Sold</th><th class="num">Revenue</th>
+        <th class="num">COGS</th><th class="num">Margin %</th><th>Quadrant</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in report.items %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td class="num">{{ item.qty }}</td>
+        <td class="num">₹{{ item.revenue|floatformat:0 }}</td>
+        <td class="num">{% if item.cogs_known %}₹{{ item.cogs|floatformat:0 }}{% else %}<span style="color:var(--text-muted);">unknown</span>{% endif %}</td>
+        <td class="num">{% if item.cogs_known %}{{ item.margin_pct }}%{% else %}—{% endif %}</td>
+        <td><span class="quadrant-badge quadrant-{{ item.quadrant }}">{{ item.quadrant }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:3rem 0;">No items sold in this period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

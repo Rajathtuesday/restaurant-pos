@@ -1,30 +1,31 @@
 """
 Gross Margin / P&L report.
 
-What we CAN calculate (data exists):
-  Revenue            = sum of Order.grand_total (closed orders in period)
+gross_margin_report() -- what it calculates:
+  Revenue            = sum of Payment rows for closed orders in period
   GST collected      = sum of Order.gst_total
   Net revenue        = Revenue - GST
   Discounts given    = sum of Order.discount_total
   COGS               = sum over sold OrderItems of
-                       (item.quantity × recipe.quantity_required × inventory_item.cost_price)
-                       NOTE: only items WITH linked recipes contribute to COGS.
-                       Items without recipes show COGS = 0 (unknown cost).
+                       (item.quantity × recipe.quantity_required × inventory_item.cost_price),
+                       computed per menu item by cogs.item_cogs_map().
+                       NOTE: only items WITH linked recipes/modifiers contribute.
+                       Items without either show COGS = 0 (unknown cost) --
+                       see recipe_coverage_pct / cogs_note.
   Gross profit       = Net revenue - COGS
   Gross margin %     = (Gross profit / Net revenue) × 100
 
-What we CANNOT calculate (data not tracked):
-  Operating expenses (rent, salaries, utilities, marketing) — no model
-  Net profit (would need operating expenses)
-  → We call this "Revenue & Gross Margin" not "P&L" for accuracy.
+net_profit_report() -- gross_margin_report() plus finance.models.Expense for
+the period, giving a real net profit number (Gross profit - operating
+expenses). Gated behind the "advanced_reports" feature flag, since it needs
+a tenant to actually be entering expenses for the number to mean anything.
 """
 from decimal import Decimal
 
 from django.db.models import Sum, Count
 
 from orders.models import Order, OrderItem, Payment
-from inventory.models import Recipe
-from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
+from reports.services.cogs import item_cogs_map
 import logging
 
 logger = logging.getLogger("pos.reports")
@@ -78,66 +79,12 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     item_qs = (
         OrderItem.objects.filter(order__in=order_qs)
         .exclude(status="voided")
-        .select_related("menu_item")
-        .prefetch_related("modifiers__modifier__inventory_links__inventory_item")
     )
 
-    cogs = Decimal("0")
-    items_with_recipe = 0
-    items_without_recipe = 0
-
-    # Pre-fetch all recipes for efficiency
-    recipe_map = {}
-    for recipe in Recipe.objects.filter(
-        menu_item__in=item_qs.values("menu_item_id")
-    ).select_related("inventory_item"):
-        recipe_map.setdefault(recipe.menu_item_id, []).append(recipe)
-
-    for item in item_qs.iterator(chunk_size=200):
-        recipes = recipe_map.get(item.menu_item_id, [])
-        # Modifier-linked inventory (e.g. "Extra Cheese") contributes to COGS
-        # too — previously only base recipes were counted here, silently
-        # undercosting (and overstating margin on) any dish sold with a
-        # costed modifier.
-        modifier_links = [
-            (oim.modifier, mr)
-            for oim in item.modifiers.all() if oim.modifier
-            for mr in oim.modifier.inventory_links.all()
-        ]
-        if recipes or modifier_links:
-            items_with_recipe += 1
-            for recipe in recipes:
-                cost = recipe.inventory_item.cost_price  # Rs per inventory-item unit
-                qty_recipe_unit = item.quantity * recipe.quantity_required
-                try:
-                    # cost_price is per the INVENTORY ITEM's unit, so the
-                    # quantity must be in that same unit before multiplying —
-                    # a recipe in grams against an item costed per kilogram
-                    # would otherwise overstate COGS by 1000x.
-                    qty = convert_quantity(qty_recipe_unit, recipe.unit, recipe.inventory_item.unit)
-                except IncompatibleUnitsError as e:
-                    logger.warning(
-                        "[UNIT MISMATCH] Recipe %s -> '%s': %s. Excluding this "
-                        "recipe line from COGS rather than compute a wrong cost.",
-                        recipe.id, recipe.inventory_item.name, e,
-                    )
-                    continue
-                cogs += Decimal(str(cost)) * Decimal(str(qty))
-            for modifier, mod_recipe in modifier_links:
-                cost = mod_recipe.inventory_item.cost_price
-                qty_recipe_unit = item.quantity * mod_recipe.quantity_required
-                try:
-                    qty = convert_quantity(qty_recipe_unit, mod_recipe.unit, mod_recipe.inventory_item.unit)
-                except IncompatibleUnitsError as e:
-                    logger.warning(
-                        "[UNIT MISMATCH] ModifierRecipe %s -> '%s': %s. Excluding "
-                        "this line from COGS rather than compute a wrong cost.",
-                        mod_recipe.id, mod_recipe.inventory_item.name, e,
-                    )
-                    continue
-                cogs += Decimal(str(cost)) * Decimal(str(qty))
-        else:
-            items_without_recipe += 1
+    # Per-item breakdown lives in cogs.py (shared with menu_engineering.py) —
+    # this function only needs the total and the coverage counts.
+    cogs_map, items_with_recipe, items_without_recipe = item_cogs_map(item_qs)
+    cogs = sum(cogs_map.values(), Decimal("0"))
 
     cogs_float    = float(cogs)
     gross_profit  = net_revenue - cogs_float
@@ -177,4 +124,45 @@ def _empty():
         "gross_margin_pct": 0, "order_count": 0, "avg_order_value": 0,
         "recipe_coverage_pct": 0, "items_with_recipe": 0,
         "items_without_recipe": 0, "cogs_note": "",
+    }
+
+
+def net_profit_report(tenant, outlet=None, start_date=None, end_date=None):
+    """
+    gross_margin_report() plus operating expenses -- the piece that turns
+    "gross margin" into an actual net profit number. Kept as a separate
+    function (rather than folded into gross_margin_report itself) so every
+    existing caller of gross_margin_report keeps its exact current output;
+    this is additive, not a replacement.
+    """
+    from django.db.models import Q
+    from finance.models import Expense
+
+    gm = gross_margin_report(tenant, outlet, start_date, end_date)
+    if not start_date or not end_date:
+        return {**gm, "operating_expenses": 0, "net_profit": 0, "net_margin_pct": 0, "expense_breakdown": []}
+
+    expense_qs = Expense.objects.filter(
+        tenant=tenant, expense_date__gte=start_date, expense_date__lte=end_date,
+    )
+    if outlet:
+        # A tenant-wide expense (outlet=None) counts against every outlet's
+        # report, not just one -- it's real money spent regardless of which
+        # outlet's numbers are being viewed.
+        expense_qs = expense_qs.filter(Q(outlet=outlet) | Q(outlet__isnull=True))
+
+    operating_expenses = expense_qs.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    operating_expenses = float(operating_expenses)
+
+    net_profit = gm["gross_profit"] - operating_expenses
+    net_margin_pct = round(net_profit / gm["net_revenue"] * 100, 1) if gm["net_revenue"] > 0 else 0
+
+    return {
+        **gm,
+        "operating_expenses": round(operating_expenses, 2),
+        "net_profit": round(net_profit, 2),
+        "net_margin_pct": net_margin_pct,
+        "expense_breakdown": list(
+            expense_qs.values("category").annotate(total=Sum("amount")).order_by("-total")
+        ),
     }

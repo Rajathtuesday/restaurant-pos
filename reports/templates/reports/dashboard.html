@@ -158,6 +158,9 @@
     <a href="/reports/inventory/" class="report-tab {% if 'inventory' in request.path %}active{% endif %}">
       Inventory
     </a>
+    <a href="/reports/menu-engineering/" class="report-tab {% if 'menu-engineering' in request.path %}active{% endif %}">
+      Menu Engineering
+    </a>
   </div>
 
   <!-- Right: filters + actions -->
@@ -208,6 +211,10 @@
         <li><a class="dropdown-item" href="#" onclick="triggerExport('items')">Items Sales</a></li>
         <li><a class="dropdown-item" href="#" onclick="triggerExport('categories')">Category Breakdown</a></li>
         <li><a class="dropdown-item" href="#" onclick="triggerExport('waiters')">Staff Performance</a></li>
+        {% if net_pl %}
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('pl')">Net Profit</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('menu_engineering')">Menu Engineering</a></li>
+        {% endif %}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">Compliance</h6></li>
         <li><a class="dropdown-item" href="#" onclick="triggerExport('gstr1')"><i class="bi bi-file-earmark-excel me-2" style="color:#107c41;"></i>GSTR-1 B2CS</a></li>
@@ -449,9 +456,37 @@
     </div>
     {% endif %}
 
-    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.75rem;">
-      * This is gross margin only. Operating expenses (rent, salaries, utilities) are not tracked in Rasova.
+    {% if net_pl %}
+    <div style="border-top:1px solid var(--border-color);margin-top:1.25rem;padding-top:1.25rem;">
+      <h5 class="section-title" style="text-align:left;margin-bottom:1rem;font-size:1rem;">Operating Expenses &amp; Net Profit</h5>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;">
+        <div style="padding:0.75rem;border-left:3px solid #f97316;">
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Operating Expenses</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#f97316;">₹{{ net_pl.operating_expenses|floatformat:0 }}</div>
+        </div>
+        <div style="padding:0.75rem;border-left:3px solid {% if net_pl.net_profit >= 0 %}#10b981{% else %}#ef4444{% endif %};background:{% if net_pl.net_profit >= 0 %}rgba(16,185,129,0.05){% else %}rgba(239,68,68,0.05){% endif %};">
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Net Profit</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;font-weight:700;color:{% if net_pl.net_profit >= 0 %}#10b981{% else %}#ef4444{% endif %};">₹{{ net_pl.net_profit|floatformat:0 }}</div>
+        </div>
+        <div style="padding:0.75rem;border-left:3px solid var(--border-color);">
+          <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Net Margin</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;">{{ net_pl.net_margin_pct }}%</div>
+        </div>
+      </div>
+      {% if net_pl.expense_breakdown %}
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.75rem;">
+        {% for row in net_pl.expense_breakdown %}<span style="margin-right:1rem;">{{ row.category|capfirst }}: ₹{{ row.total|floatformat:0 }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.75rem;">
+        <a href="/finance/expenses/" style="color:var(--accent-gold);">Manage expenses →</a>
+      </div>
     </div>
+    {% else %}
+    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.75rem;">
+      * This is gross margin only, not net profit — operating expenses aren't factored in here. Ask your admin to enable the Net Profit report to track rent, salaries, and other costs against gross margin.
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 

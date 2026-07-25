@@ -1,0 +1,168 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Expenses | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-body { max-width: 1000px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 3rem; align-items: start; }
+    @media(max-width: 720px) { .page-body { grid-template-columns: 1fr; } }
+
+    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+    .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+
+    .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+    .setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+    .setup-input:focus { border-bottom-color: var(--accent-gold); }
+    .form-select { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.85rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+    .form-check { margin-bottom: 1.5rem; font-size: 0.8rem; color: var(--text-muted); }
+
+    .btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+    .btn-create:hover { background: var(--accent-hover); }
+
+    .expense-table { width: 100%; border-collapse: collapse; }
+    .expense-table th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
+    .expense-table td { padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+    .expense-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    .category-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
+
+    .btn-del {
+        background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px;
+        cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-del:hover { border-color: #ef4444; color: #ef4444; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Expenses — {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+
+    <!-- LEFT: RECORD FORM -->
+    <div>
+        <p class="page-eyebrow">Finance</p>
+        <h1 class="page-title">Record Expense</h1>
+        <div class="divider"></div>
+        <p class="page-sub">Operating costs (rent, salaries, utilities...) feed into the Net Profit report — gross margin alone can't tell you if the outlet is actually profitable.</p>
+
+        <form id="expenseForm" onsubmit="return false;">
+            <label class="form-label">Category</label>
+            <select id="exp-category" class="form-select">
+                {% for value, label in categories %}
+                <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+
+            <label class="form-label">Amount (₹)</label>
+            <input type="number" id="exp-amount" class="setup-input" step="0.01" min="0.01" placeholder="0.00">
+
+            <label class="form-label">Date</label>
+            <input type="date" id="exp-date" class="setup-input">
+
+            <label class="form-label">Outlet</label>
+            <select id="exp-outlet" class="form-select">
+                <option value="">All outlets (tenant-wide)</option>
+                {% for o in outlets %}
+                <option value="{{ o.id }}">{{ o.name }}</option>
+                {% endfor %}
+            </select>
+
+            <label class="form-label">Notes</label>
+            <input type="text" id="exp-notes" class="setup-input" placeholder="Optional">
+
+            <label class="form-check">
+                <input type="checkbox" id="exp-recurring"> Recurring monthly expense
+            </label>
+
+            <button type="submit" class="btn-create" onclick="createExpense()">Record Expense</button>
+        </form>
+    </div>
+
+    <!-- RIGHT: LEDGER -->
+    <div>
+        <p class="page-eyebrow" style="opacity:0;">—</p>
+        <h2 class="page-title" style="font-size:1.2rem;">Recent Expenses</h2>
+        <div class="divider"></div>
+
+        <div class="expense-table-scroll">
+        <table class="expense-table">
+            <thead>
+                <tr>
+                    <th>Date</th><th>Category</th><th>Outlet</th><th>Amount</th><th></th>
+                </tr>
+            </thead>
+            <tbody id="expenseRows">
+                {% for e in expenses %}
+                <tr id="expense-row-{{ e.id }}">
+                    <td style="color:var(--text-muted);font-size:0.8rem;">{{ e.expense_date|date:"d M Y" }}</td>
+                    <td><span class="category-badge">{{ e.get_category_display }}</span></td>
+                    <td style="color:var(--text-muted);font-size:0.8rem;">{{ e.outlet.name|default:"All outlets" }}</td>
+                    <td>₹{{ e.amount }}</td>
+                    <td><button class="btn-del" onclick="deleteExpense({{ e.id }})">Delete</button></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" style="color:var(--text-muted);font-size:0.8rem;padding-top:1.5rem;">No expenses recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function createExpense() {
+    const payload = {
+        category: document.getElementById('exp-category').value,
+        amount: document.getElementById('exp-amount').value,
+        expense_date: document.getElementById('exp-date').value,
+        outlet_id: document.getElementById('exp-outlet').value,
+        notes: document.getElementById('exp-notes').value,
+        is_recurring: document.getElementById('exp-recurring').checked,
+    };
+    try {
+        const data = await apiClient.post('/finance/expenses/create/', payload);
+        ui.toast(data.message || 'Expense recorded.', 'success');
+        setTimeout(() => location.reload(), 700);
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+
+async function deleteExpense(expenseId) {
+    const result = await ui.confirm('Delete this expense?', 'This cannot be undone.', 'Delete');
+    if (!result.isConfirmed) return;
+    try {
+        await apiClient.post(`/finance/expenses/${expenseId}/delete/`, {});
+        document.getElementById(`expense-row-${expenseId}`).remove();
+        ui.toast('Expense deleted.', 'success');
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+</script>
+{% endblock %}
