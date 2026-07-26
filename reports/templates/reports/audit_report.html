@@ -1,0 +1,148 @@
+{% extends 'core/base.html' %}
+{% block title %}Discount/Void Audit | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .report-subnav {
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.75rem; flex-wrap: wrap;
+  }
+  .report-subnav-left  { display: flex; align-items: center; gap: 0; }
+  .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
+  .report-tab {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
+    border-bottom: 2px solid transparent; white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s; display: inline-block;
+  }
+  .report-tab:hover   { color: var(--text-main); }
+  .report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
+  .subnav-select {
+    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
+    color: var(--text-main); font-size: 0.82rem; font-family: inherit;
+    padding: 0.3rem 1.2rem 0.3rem 0; cursor: pointer; outline: none;
+  }
+  .subnav-select:focus { border-color: var(--accent-gold); }
+
+  .page-wrap { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .section-title {
+    font-size: 1.2rem; color: var(--text-main); margin-bottom: 0.5rem;
+    text-transform: uppercase; letter-spacing: 3px; text-align: center;
+  }
+  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2.5rem; }
+
+  .audit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+  .audit-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.25rem 1.5rem; }
+  .audit-card h3 {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold);
+    margin-bottom: 1rem;
+  }
+  .audit-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color); font-size: 0.85rem; }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-row .count { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
+  .audit-empty { color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; }
+  .coverage-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.75rem; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<a href="/dashboard/" class="brand-title">
+  <i class="bi bi-diamond-half"></i>
+  <span>{{ request.user.tenant.name }}</span>
+</a>
+<p class="brand-subtitle"><i class="bi bi-geo-alt me-1"></i>{{ request.user.outlet.name }}</p>
+{% endblock %}
+
+{% block header_right %}
+<a href="/dashboard/" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme"><i class="bi bi-moon" id="themeIcon"></i></button>
+<a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+{% endblock %}
+
+{% block content %}
+<nav class="report-subnav">
+  <div class="report-subnav-left">
+    <a href="/reports/dashboard/" class="report-tab">Sales</a>
+    <a href="/reports/kitchen/" class="report-tab">Kitchen KPIs</a>
+    <a href="/reports/inventory/" class="report-tab">Inventory</a>
+    <a href="/reports/menu-engineering/" class="report-tab">Menu Engineering</a>
+    <a href="/reports/labor/" class="report-tab">Labor Cost</a>
+    <a href="/reports/audit/" class="report-tab active">Discount/Void Audit</a>
+  </div>
+  <div class="report-subnav-right">
+    <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
+      {% if request.user.role == "owner" and outlets|length > 1 %}
+      <select name="outlet" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
+        <option value="">All Branches</option>
+        {% for o in outlets %}
+        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="date_filter" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
+        <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
+        <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
+      </select>
+    </form>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <h1 class="section-title">Discount / Void Audit</h1>
+  <p class="section-sub">Who's discounting, comping, and voiding — {{ start_date }} to {{ end_date }}</p>
+
+  <div class="audit-grid">
+    <div class="audit-card">
+      <h3>Order-Level Discounts</h3>
+      {% for row in report.discounts %}
+      <div class="audit-row"><span>{{ row.created_by__username|default:"Unknown" }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No order-level discounts in this period.</div>
+      {% endfor %}
+    </div>
+
+    <div class="audit-card">
+      <h3>Item-Level Discounts</h3>
+      {% for row in report.item_discounts %}
+      <div class="audit-row"><span>{{ row.created_by__username|default:"Unknown" }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No item-level discounts in this period.</div>
+      {% endfor %}
+      <div class="coverage-note"><i class="bi bi-info-circle me-1"></i>Tracked from 26 Jul 2026 onward only.</div>
+    </div>
+
+    <div class="audit-card">
+      <h3>Complimentary Items</h3>
+      {% for row in report.comps %}
+      <div class="audit-row"><span>{{ row.created_by__username|default:"Unknown" }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No complimentary items in this period.</div>
+      {% endfor %}
+      <div class="coverage-note"><i class="bi bi-info-circle me-1"></i>Tracked from 26 Jul 2026 onward only.</div>
+    </div>
+
+    <div class="audit-card">
+      <h3>Item Voids</h3>
+      {% for row in report.voids %}
+      <div class="audit-row"><span>{{ row.created_by__username|default:"Unknown" }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No item voids in this period.</div>
+      {% endfor %}
+    </div>
+
+    <div class="audit-card">
+      <h3>Void Reasons</h3>
+      {% for row in report.void_reasons %}
+      <div class="audit-row"><span>{{ row.metadata__reason|default:"Unspecified" }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No item voids in this period.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

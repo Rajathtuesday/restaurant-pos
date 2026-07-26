@@ -664,6 +664,62 @@ def edit_staff_outlet(request, user_id):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+def edit_pay_rate(request, user_id):
+    """
+    Sets or updates how a staff member is paid -- monthly salary or hourly
+    rate -- feeding reports/services/labor_reports.py. Same tenant-scoping
+    and owner-account boundary as edit_staff_role/edit_staff_outlet above.
+    """
+    from shifts.models import StaffPayRate
+
+    target = get_object_or_404(
+        User, id=user_id, tenant=request.user.tenant
+    )
+    if target.role == "owner":
+        return JsonResponse({"error": "Owner's pay rate can't be set here."}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    pay_type = data.get("pay_type")
+    if pay_type not in ("monthly", "hourly"):
+        return JsonResponse({"error": "Invalid pay type."}, status=400)
+
+    from decimal import Decimal, InvalidOperation
+    try:
+        amount = Decimal(str(data.get("amount", "")))
+    except InvalidOperation:
+        return JsonResponse({"error": "Invalid amount."}, status=400)
+    if amount <= 0:
+        return JsonResponse({"error": "Amount must be positive."}, status=400)
+
+    defaults = {
+        "pay_type": pay_type,
+        "monthly_salary": amount if pay_type == "monthly" else None,
+        "hourly_rate": amount if pay_type == "hourly" else None,
+        "updated_by": request.user,
+    }
+    rate, created = StaffPayRate.objects.update_or_create(
+        tenant=request.user.tenant, staff=target, defaults=defaults,
+    )
+
+    logger.info(
+        "Pay rate %s for user '%s' (tenant %s): %s -> %s, by '%s'",
+        "set" if created else "updated",
+        target.username, request.user.tenant_id, pay_type, amount, request.user.username,
+    )
+
+    return JsonResponse({
+        "success": True,
+        "message": f"{target.username}'s pay rate set to ₹{amount} ({rate.get_pay_type_display()}).",
+    })
+
+
+@login_required
+@role_required("owner", "manager")
+@require_POST
 def set_default_station(request, station_id):
 
     station = KitchenStation.objects.get(

@@ -472,3 +472,98 @@ def generate_menu_engineering_csv(tenant, outlet, start_date, end_date):
         ])
 
     return output.getvalue()
+
+
+def generate_labor_csv(tenant, outlet, start_date, end_date):
+    """Generates the Labor Cost CSV -- per-staff hours, tips, and cost."""
+    from reports.services.labor_reports import labor_cost_report
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    report = labor_cost_report(tenant, outlet, start_date, end_date)
+
+    writer.writerow(['LABOR COST REPORT', f'Period: {start_date} to {end_date}'])
+    writer.writerow(['Total Labor Cost', report['total_labor_cost']])
+    writer.writerow(['Revenue', report.get('revenue', 0)])
+    writer.writerow(['Labor Cost %', report['labor_cost_pct']])
+    writer.writerow([])
+    writer.writerow(['Staff', 'Pay Type', 'Hours', 'Tips', 'Cost'])
+    for row in report['rows']:
+        writer.writerow([
+            row['username'], row['pay_type'] or 'unknown', row['hours'], row['tips'],
+            row['cost'] if row['cost_known'] else 'unknown',
+        ])
+
+    return output.getvalue()
+
+
+def generate_audit_csv(tenant, outlet, start_date, end_date):
+    """Generates the Discount/Void Staff Audit CSV."""
+    from reports.services.audit_reports import discount_void_audit
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    report = discount_void_audit(tenant, outlet, start_date, end_date)
+
+    writer.writerow(['DISCOUNT / VOID STAFF AUDIT', f'Period: {start_date} to {end_date}'])
+    writer.writerow([])
+
+    writer.writerow(['ORDER-LEVEL DISCOUNTS'])
+    writer.writerow(['Staff', 'Count'])
+    for row in report['discounts']:
+        writer.writerow([row['created_by__username'] or 'Unknown', row['count']])
+    writer.writerow([])
+
+    writer.writerow(['ITEM-LEVEL DISCOUNTS (from rollout date onward)'])
+    writer.writerow(['Staff', 'Count'])
+    for row in report['item_discounts']:
+        writer.writerow([row['created_by__username'] or 'Unknown', row['count']])
+    writer.writerow([])
+
+    writer.writerow(['COMPLIMENTARY ITEMS (from rollout date onward)'])
+    writer.writerow(['Staff', 'Count'])
+    for row in report['comps']:
+        writer.writerow([row['created_by__username'] or 'Unknown', row['count']])
+    writer.writerow([])
+
+    writer.writerow(['ITEM VOIDS'])
+    writer.writerow(['Staff', 'Count'])
+    for row in report['voids']:
+        writer.writerow([row['created_by__username'] or 'Unknown', row['count']])
+    writer.writerow([])
+
+    writer.writerow(['VOID REASONS'])
+    writer.writerow(['Reason', 'Count'])
+    for row in report['void_reasons']:
+        writer.writerow([row['metadata__reason'] or 'Unspecified', row['count']])
+
+    return output.getvalue()
+
+
+def generate_crm_analytics_csv(tenant, outlet, start_date, end_date):
+    """Generates the CRM/Loyalty Analytics CSV."""
+    from reports.services.crm_reports import crm_analytics_report
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    report = crm_analytics_report(tenant, outlet, start_date, end_date)
+
+    writer.writerow(['CRM / LOYALTY ANALYTICS', f'Period: {start_date} to {end_date}'])
+    writer.writerow(['Repeat Customer Rate %', report['repeat_rate_pct']])
+    writer.writerow(['Repeat Guests', report['repeat_guests']])
+    writer.writerow(['Active Guests', report['active_guests']])
+    writer.writerow(['Average Rating', report['avg_rating'] if report['avg_rating'] is not None else 'n/a'])
+    writer.writerow([])
+
+    writer.writerow(['LOYALTY TREND'])
+    writer.writerow(['Date', 'Type', 'Points', 'Count'])
+    for row in report['loyalty_trend']:
+        writer.writerow([row['day'], row['transaction_type'], row['points'], row['count']])
+    writer.writerow([])
+
+    writer.writerow(['FEEDBACK TREND'])
+    writer.writerow(['Date', 'Avg Rating', 'Count'])
+    for row in report['feedback_trend']:
+        writer.writerow([row['day'], round(row['avg_rating'], 2), row['count']])
+
+    return output.getvalue()

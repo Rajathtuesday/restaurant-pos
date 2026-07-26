@@ -206,3 +206,44 @@ class CashSession(TenantScopedModel):
 
     def __str__(self):
         return f"Session {self.id} ({self.status}) - {self.opened_at.date()}"
+
+
+class StaffPayRate(TenantScopedModel):
+    """
+    How a staff member is actually paid -- a flat monthly salary (the
+    common case for Indian restaurant staff) or an hourly rate. Deliberately
+    NOT derived from ShiftTemplate.base_pay: that's a flat amount per shift
+    *template*, with no link to actual clocked hours, so it can't answer
+    "what did this person cost this period" for either pay type on its own.
+    One active row per staff member; no rate history in v1 -- editing this
+    changes the rate going forward, past reports already computed keep
+    whatever numbers they showed.
+    """
+    PAY_TYPE_CHOICES = (
+        ("monthly", "Monthly Salary"),
+        ("hourly", "Hourly Rate"),
+    )
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    staff = models.OneToOneField(
+        "accounts.User", on_delete=models.CASCADE, related_name="pay_rate"
+    )
+
+    pay_type = models.CharField(max_length=10, choices=PAY_TYPE_CHOICES)
+    monthly_salary = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["tenant", "staff"]),
+        ]
+
+    def __str__(self):
+        if self.pay_type == "monthly":
+            return f"{self.staff.username} — ₹{self.monthly_salary}/month"
+        return f"{self.staff.username} — ₹{self.hourly_rate}/hour"

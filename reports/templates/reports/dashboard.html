@@ -161,6 +161,13 @@
     <a href="/reports/menu-engineering/" class="report-tab {% if 'menu-engineering' in request.path %}active{% endif %}">
       Menu Engineering
     </a>
+    <a href="/reports/labor/" class="report-tab {% if 'labor' in request.path %}active{% endif %}">
+      Labor Cost
+    </a>
+    <a href="/reports/audit/" class="report-tab {% if 'audit' in request.path %}active{% endif %}">
+      Discount/Void Audit
+    </a>
+    <a href="/reports/crm-analytics/" class="report-tab">CRM Analytics</a>
   </div>
 
   <!-- Right: filters + actions -->
@@ -214,6 +221,9 @@
         {% if net_pl %}
         <li><a class="dropdown-item" href="#" onclick="triggerExport('pl')">Net Profit</a></li>
         <li><a class="dropdown-item" href="#" onclick="triggerExport('menu_engineering')">Menu Engineering</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('labor')">Labor Cost</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('audit')">Discount/Void Audit</a></li>
+        <li><a class="dropdown-item" href="#" onclick="triggerExport('crm_analytics')">CRM Analytics</a></li>
         {% endif %}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">Compliance</h6></li>

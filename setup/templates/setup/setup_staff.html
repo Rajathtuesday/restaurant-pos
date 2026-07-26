@@ -145,6 +145,7 @@
                     <td style="display:flex;gap:6px;">
                         <button class="btn-reset-pw" onclick="editRole({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.role }}')">Edit Role</button>
                         <button class="btn-reset-pw" onclick="editOutlet({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.outlet_id|default_if_none:"" }}')">Edit Location</button>
+                        <button class="btn-reset-pw" onclick="editPayRate({{ member.id }}, '{{ member.username|escapejs }}')">Edit Pay Rate</button>
                         <button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button>
                         <button class="btn-reset-pw" id="toggle-btn-{{ member.id }}" onclick="toggleActive({{ member.id }}, '{{ member.username|escapejs }}', {{ member.is_active|yesno:"true,false" }})">{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
                     </td>
@@ -200,6 +201,43 @@ async function editOutlet(userId, username, currentOutletId) {
         const data = await apiClient.post(`/setup/staff/${userId}/edit-outlet/`, { outlet_id: newOutletId });
         ui.toast(data.message || 'Location updated.', 'success');
         setTimeout(() => location.reload(), 700);
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+
+async function editPayRate(userId, username) {
+    const { value: formValues } = await Swal.fire({
+        title: `Set pay rate for ${username}`,
+        html:
+            `<select id="swal-pay-type" class="swal2-select" style="display:block;width:100%;margin-bottom:10px;">
+                <option value="monthly">Monthly Salary</option>
+                <option value="hourly">Hourly Rate</option>
+            </select>
+            <input id="swal-pay-amount" type="number" min="0.01" step="0.01" class="swal2-input" placeholder="Amount (₹)" style="margin:0;">`,
+        showCancelButton: true,
+        confirmButtonText: 'Save Pay Rate',
+        confirmButtonColor: 'var(--accent-gold)',
+        cancelButtonColor: 'var(--text-muted)',
+        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
+        color: 'var(--text-main)',
+        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
+        preConfirm: () => {
+            const payType = document.getElementById('swal-pay-type').value;
+            const amount = document.getElementById('swal-pay-amount').value;
+            if (!amount || parseFloat(amount) <= 0) {
+                Swal.showValidationMessage('Enter an amount greater than 0');
+                return false;
+            }
+            return { pay_type: payType, amount: amount };
+        },
+    });
+
+    if (!formValues) return;
+
+    try {
+        const data = await apiClient.post(`/setup/staff/${userId}/edit-pay-rate/`, formValues);
+        ui.toast(data.message || 'Pay rate updated.', 'success');
     } catch (err) {
         // apiClient already shows a toast on failure
     }

@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% block title %}Menu Engineering | {{ request.user.tenant.name }}{% endblock %}
+{% block title %}Labor Cost | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -27,34 +27,30 @@
   }
   .subnav-select:focus { border-color: var(--accent-gold); }
 
-  .page-wrap { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .page-wrap { max-width: 1000px; margin: 0 auto; padding: 2.5rem 2rem; }
   .section-title {
     font-size: 1.2rem; color: var(--text-main); margin-bottom: 0.5rem;
     text-transform: uppercase; letter-spacing: 3px; text-align: center;
   }
-  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2.5rem; }
+  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2rem; }
 
-  .quadrant-legend { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--text-muted); }
-  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+  .stat-card { padding: 0.9rem; border-left: 3px solid var(--accent-gold); background: var(--panel-bg); }
+  .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-top: 0.2rem; }
 
-  .menu-eng-table { width: 100%; border-collapse: collapse; }
-  .menu-eng-table th {
+  .labor-table { width: 100%; border-collapse: collapse; }
+  .labor-table th {
     font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
     font-weight: 600; padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-color); text-align: left;
   }
-  .menu-eng-table td { padding: 0.9rem 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
-  .menu-eng-table td.num { text-align: right; font-family: 'Space Mono', monospace; }
-
-  .quadrant-badge {
+  .labor-table td { padding: 0.9rem 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+  .labor-table td.num { text-align: right; font-family: 'Space Mono', monospace; }
+  .pay-type-badge {
     font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px;
     padding: 3px 9px; border-radius: 20px; font-weight: 600;
+    background: var(--border-color); color: var(--text-muted);
   }
-  .quadrant-Star      { background: rgba(16,185,129,0.12); color: #10b981; }
-  .quadrant-Plowhorse { background: rgba(59,130,246,0.12); color: #3b82f6; }
-  .quadrant-Puzzle    { background: rgba(249,115,22,0.12); color: #f97316; }
-  .quadrant-Dog       { background: rgba(239,68,68,0.12);  color: #ef4444; }
-  .quadrant-Unknown   { background: var(--border-color);   color: var(--text-muted); }
 </style>
 {% endblock %}
 
@@ -78,8 +74,8 @@
     <a href="/reports/dashboard/" class="report-tab">Sales</a>
     <a href="/reports/kitchen/" class="report-tab">Kitchen KPIs</a>
     <a href="/reports/inventory/" class="report-tab">Inventory</a>
-    <a href="/reports/menu-engineering/" class="report-tab active">Menu Engineering</a>
-    <a href="/reports/labor/" class="report-tab">Labor Cost</a>
+    <a href="/reports/menu-engineering/" class="report-tab">Menu Engineering</a>
+    <a href="/reports/labor/" class="report-tab active">Labor Cost</a>
     <a href="/reports/audit/" class="report-tab">Discount/Void Audit</a>
     <a href="/reports/crm-analytics/" class="report-tab">CRM Analytics</a>
   </div>
@@ -104,43 +100,51 @@
 </nav>
 
 <div class="page-wrap">
-  <h1 class="section-title">Menu Engineering</h1>
-  <p class="section-sub">Popularity vs. profitability, split at the median of each — {{ start_date }} to {{ end_date }}</p>
+  <h1 class="section-title">Labor Cost</h1>
+  <p class="section-sub">Staff cost vs. revenue — {{ start_date }} to {{ end_date }}</p>
 
-  <div class="quadrant-legend">
-    <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Star — popular &amp; profitable</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Plowhorse — popular, low margin</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>Puzzle — profitable, low volume</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Dog — neither</div>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Labor Cost</div>
+      <div class="stat-value">₹{{ report.total_labor_cost|floatformat:0 }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Labor Cost %</div>
+      <div class="stat-value">{{ report.labor_cost_pct }}%</div>
+    </div>
+    {% if report.staff_with_unknown_cost %}
+    <div class="stat-card" style="border-left-color:var(--text-muted);">
+      <div class="stat-label">Staff Missing Pay Rate</div>
+      <div class="stat-value" style="color:var(--text-muted);">{{ report.staff_with_unknown_cost }}</div>
+    </div>
+    {% endif %}
   </div>
 
-  {% if report.items_with_unknown_cost %}
+  {% if report.staff_with_unknown_cost %}
   <div style="font-size:0.78rem;color:var(--text-muted);padding:0.75rem 1rem;border-left:2px solid var(--border-color);margin-bottom:1.5rem;">
     <i class="bi bi-info-circle me-1"></i>
-    {{ report.items_with_unknown_cost }} item{{ report.items_with_unknown_cost|pluralize }} have no recipe linked, so their cost — and quadrant — can't be determined.
-    Link a recipe in <a href="/menu/" style="color:var(--accent-gold);">Menu Management</a> to include them.
+    {{ report.staff_with_unknown_cost }} staff member{{ report.staff_with_unknown_cost|pluralize }} clocked a shift this period with no pay rate on file, so their cost is excluded from the total above.
+    Set it from <a href="/setup/staff/" style="color:var(--accent-gold);">Setup → Staff</a> (Edit Pay Rate).
   </div>
   {% endif %}
 
-  <table class="menu-eng-table">
+  <table class="labor-table">
     <thead>
       <tr>
-        <th>Item</th><th class="num">Qty Sold</th><th class="num">Revenue</th>
-        <th class="num">COGS</th><th class="num">Margin %</th><th>Quadrant</th>
+        <th>Staff</th><th>Pay Type</th><th class="num">Hours</th><th class="num">Tips</th><th class="num">Cost</th>
       </tr>
     </thead>
     <tbody>
-      {% for item in report.items %}
+      {% for row in report.rows %}
       <tr>
-        <td>{{ item.name }}</td>
-        <td class="num">{{ item.qty }}</td>
-        <td class="num">₹{{ item.revenue|floatformat:0 }}</td>
-        <td class="num">{% if item.cogs_known %}₹{{ item.cogs|floatformat:0 }}{% else %}<span style="color:var(--text-muted);">unknown</span>{% endif %}</td>
-        <td class="num">{% if item.cogs_known %}{{ item.margin_pct }}%{% else %}—{% endif %}</td>
-        <td><span class="quadrant-badge quadrant-{{ item.quadrant }}">{{ item.quadrant }}</span></td>
+        <td>{{ row.username }}</td>
+        <td>{% if row.pay_type %}<span class="pay-type-badge">{{ row.pay_type }}</span>{% else %}<span style="color:var(--text-muted);font-size:0.78rem;">not set</span>{% endif %}</td>
+        <td class="num">{{ row.hours }}</td>
+        <td class="num">₹{{ row.tips|floatformat:0 }}</td>
+        <td class="num">{% if row.cost_known %}₹{{ row.cost|floatformat:0 }}{% else %}<span style="color:var(--text-muted);">unknown</span>{% endif %}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:3rem 0;">No items sold in this period.</td></tr>
+      <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:3rem 0;">No shifts clocked in this period.</td></tr>
       {% endfor %}
     </tbody>
   </table>

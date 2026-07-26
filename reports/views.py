@@ -491,6 +491,9 @@ def export_reports(request):
         generate_category_csv,
         generate_pl_csv,
         generate_menu_engineering_csv,
+        generate_labor_csv,
+        generate_audit_csv,
+        generate_crm_analytics_csv,
     )
     
     if export_type == "orders":
@@ -537,6 +540,30 @@ def export_reports(request):
         csv_data = generate_menu_engineering_csv(tenant, outlet, start_date, end_date)
         response = HttpResponse(csv_data, content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename="menu_engineering_{start_date}_to_{end_date}.csv"'
+        return response
+
+    elif export_type == "labor":
+        if not has_feature(tenant, "advanced_reports"):
+            return HttpResponseForbidden("Feature not enabled")
+        csv_data = generate_labor_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="labor_cost_{start_date}_to_{end_date}.csv"'
+        return response
+
+    elif export_type == "audit":
+        if not has_feature(tenant, "advanced_reports"):
+            return HttpResponseForbidden("Feature not enabled")
+        csv_data = generate_audit_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="discount_void_audit_{start_date}_to_{end_date}.csv"'
+        return response
+
+    elif export_type == "crm_analytics":
+        if not has_feature(tenant, "advanced_reports"):
+            return HttpResponseForbidden("Feature not enabled")
+        csv_data = generate_crm_analytics_csv(tenant, outlet, start_date, end_date)
+        response = HttpResponse(csv_data, content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="crm_analytics_{start_date}_to_{end_date}.csv"'
         return response
 
     return HttpResponseForbidden("Invalid export type")
@@ -591,6 +618,180 @@ def menu_engineering_report_view(request):
     report = menu_engineering_report(tenant, outlet, start_date, end_date)
 
     return render(request, "reports/menu_engineering.html", {
+        "report": report,
+        "outlets": outlets,
+        "current_outlet": outlet,
+        "date_filter": date_filter,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+
+@login_required
+@tenant_required
+@feature_required("advanced_reports")
+@role_required("owner", "manager")
+def labor_report_view(request):
+    """
+    Labor cost vs revenue, per staff member. Owner/manager only, no agent,
+    no cashier/captain -- this is the most personally sensitive of the new
+    reports (coworkers' pay), heavier than the money-only reports above.
+    """
+    from reports.services.labor_reports import labor_cost_report
+
+    tenant = request.user.tenant
+    date_filter = request.GET.get("date_filter", "today")
+    outlet_id = request.GET.get("outlet")
+
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else None
+    else:
+        outlets = Outlet.objects.filter(id=request.user.outlet_id)
+        outlet = request.user.outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), outlet)
+    end_date = get_business_date(timezone.now(), outlet)
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+    report = labor_cost_report(tenant, outlet, start_date, end_date)
+
+    return render(request, "reports/labor_report.html", {
+        "report": report,
+        "outlets": outlets,
+        "current_outlet": outlet,
+        "date_filter": date_filter,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+
+@login_required
+@tenant_required
+@feature_required("advanced_reports")
+@role_required("owner", "manager")
+def audit_report_view(request):
+    """
+    Discount/void staff audit -- who is discounting, comping, and voiding.
+    Owner/manager only, no agent -- this is a staff-conduct report, at least
+    as sensitive as the financial reports above it.
+    """
+    from reports.services.audit_reports import discount_void_audit
+
+    tenant = request.user.tenant
+    date_filter = request.GET.get("date_filter", "today")
+    outlet_id = request.GET.get("outlet")
+
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else None
+    else:
+        outlets = Outlet.objects.filter(id=request.user.outlet_id)
+        outlet = request.user.outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), outlet)
+    end_date = get_business_date(timezone.now(), outlet)
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+    report = discount_void_audit(tenant, outlet, start_date, end_date)
+
+    return render(request, "reports/audit_report.html", {
+        "report": report,
+        "outlets": outlets,
+        "current_outlet": outlet,
+        "date_filter": date_filter,
+        "start_date": start_date,
+        "end_date": end_date,
+    })
+
+
+@login_required
+@tenant_required
+@feature_required("advanced_reports", "crm")
+@role_required("owner", "manager", "agent")
+def crm_analytics_report_view(request):
+    """
+    Repeat-customer rate, loyalty trend, feedback trend. Unlike the other new
+    reports, agent CAN see this one -- loyalty-program health is a reasonable
+    thing for a support agent to check, unlike money or individual staff pay.
+    """
+    from reports.services.crm_reports import crm_analytics_report
+
+    tenant = request.user.tenant
+    date_filter = request.GET.get("date_filter", "today")
+    outlet_id = request.GET.get("outlet")
+
+    if request.user.role == "owner":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else None
+    elif request.user.role == "agent":
+        outlets = Outlet.objects.filter(tenant=tenant)
+        outlet = outlets.filter(id=outlet_id).first() if outlet_id else None
+    else:
+        outlets = Outlet.objects.filter(id=request.user.outlet_id)
+        outlet = request.user.outlet
+
+    from core.utils import get_business_date
+    start_date = get_business_date(timezone.now(), outlet)
+    end_date = get_business_date(timezone.now(), outlet)
+
+    if date_filter == "yesterday":
+        start_date = start_date - timedelta(days=1)
+        end_date = start_date
+    elif date_filter == "weekly":
+        start_date = start_date - timedelta(days=7)
+    elif date_filter == "monthly":
+        start_date = start_date - timedelta(days=30)
+    elif date_filter == "custom":
+        custom_start = request.GET.get("start_date")
+        custom_end = request.GET.get("end_date")
+        if custom_start and custom_end:
+            from datetime import datetime
+            try:
+                start_date = datetime.strptime(custom_start, "%Y-%m-%d").date()
+                end_date = datetime.strptime(custom_end, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+    report = crm_analytics_report(tenant, outlet, start_date, end_date)
+
+    return render(request, "reports/crm_analytics.html", {
         "report": report,
         "outlets": outlets,
         "current_outlet": outlet,

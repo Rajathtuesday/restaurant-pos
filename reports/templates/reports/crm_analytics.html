@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% block title %}Menu Engineering | {{ request.user.tenant.name }}{% endblock %}
+{% block title %}CRM Analytics | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -27,34 +27,27 @@
   }
   .subnav-select:focus { border-color: var(--accent-gold); }
 
-  .page-wrap { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem; }
+  .page-wrap { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem; }
   .section-title {
     font-size: 1.2rem; color: var(--text-main); margin-bottom: 0.5rem;
     text-transform: uppercase; letter-spacing: 3px; text-align: center;
   }
-  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2.5rem; }
+  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2rem; }
 
-  .quadrant-legend { display: flex; justify-content: center; gap: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--text-muted); }
-  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+  .stat-card { padding: 0.9rem; border-left: 3px solid var(--accent-gold); background: var(--panel-bg); }
+  .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-top: 0.2rem; }
 
-  .menu-eng-table { width: 100%; border-collapse: collapse; }
-  .menu-eng-table th {
+  .trend-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
+  .trend-table th {
     font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
     font-weight: 600; padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-color); text-align: left;
   }
-  .menu-eng-table td { padding: 0.9rem 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
-  .menu-eng-table td.num { text-align: right; font-family: 'Space Mono', monospace; }
-
-  .quadrant-badge {
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px;
-    padding: 3px 9px; border-radius: 20px; font-weight: 600;
-  }
-  .quadrant-Star      { background: rgba(16,185,129,0.12); color: #10b981; }
-  .quadrant-Plowhorse { background: rgba(59,130,246,0.12); color: #3b82f6; }
-  .quadrant-Puzzle    { background: rgba(249,115,22,0.12); color: #f97316; }
-  .quadrant-Dog       { background: rgba(239,68,68,0.12);  color: #ef4444; }
-  .quadrant-Unknown   { background: var(--border-color);   color: var(--text-muted); }
+  .trend-table td { padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+  .trend-table td.num { text-align: right; font-family: 'Space Mono', monospace; }
+  .earn-badge { color: #10b981; } .redeem-badge { color: #ef4444; } .adjust-badge { color: var(--text-muted); }
+  .schema-note { font-size: 0.72rem; color: var(--text-muted); padding: 0.75rem 1rem; border-left: 2px solid var(--border-color); margin-bottom: 1.5rem; }
 </style>
 {% endblock %}
 
@@ -78,10 +71,10 @@
     <a href="/reports/dashboard/" class="report-tab">Sales</a>
     <a href="/reports/kitchen/" class="report-tab">Kitchen KPIs</a>
     <a href="/reports/inventory/" class="report-tab">Inventory</a>
-    <a href="/reports/menu-engineering/" class="report-tab active">Menu Engineering</a>
+    <a href="/reports/menu-engineering/" class="report-tab">Menu Engineering</a>
     <a href="/reports/labor/" class="report-tab">Labor Cost</a>
     <a href="/reports/audit/" class="report-tab">Discount/Void Audit</a>
-    <a href="/reports/crm-analytics/" class="report-tab">CRM Analytics</a>
+    <a href="/reports/crm-analytics/" class="report-tab active">CRM Analytics</a>
   </div>
   <div class="report-subnav-right">
     <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
@@ -104,43 +97,56 @@
 </nav>
 
 <div class="page-wrap">
-  <h1 class="section-title">Menu Engineering</h1>
-  <p class="section-sub">Popularity vs. profitability, split at the median of each — {{ start_date }} to {{ end_date }}</p>
+  <h1 class="section-title">CRM Analytics</h1>
+  <p class="section-sub">Repeat customers, loyalty activity, feedback — {{ start_date }} to {{ end_date }}</p>
 
-  <div class="quadrant-legend">
-    <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Star — popular &amp; profitable</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Plowhorse — popular, low margin</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>Puzzle — profitable, low volume</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Dog — neither</div>
-  </div>
-
-  {% if report.items_with_unknown_cost %}
-  <div style="font-size:0.78rem;color:var(--text-muted);padding:0.75rem 1rem;border-left:2px solid var(--border-color);margin-bottom:1.5rem;">
+  <div class="schema-note">
     <i class="bi bi-info-circle me-1"></i>
-    {{ report.items_with_unknown_cost }} item{{ report.items_with_unknown_cost|pluralize }} have no recipe linked, so their cost — and quadrant — can't be determined.
-    Link a recipe in <a href="/menu/" style="color:var(--accent-gold);">Menu Management</a> to include them.
+    Repeat rate and loyalty trend are tenant-wide (the loyalty program isn't tracked per outlet). Only feedback below is filtered to the selected branch.
   </div>
-  {% endif %}
 
-  <table class="menu-eng-table">
-    <thead>
-      <tr>
-        <th>Item</th><th class="num">Qty Sold</th><th class="num">Revenue</th>
-        <th class="num">COGS</th><th class="num">Margin %</th><th>Quadrant</th>
-      </tr>
-    </thead>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Repeat Customer Rate</div>
+      <div class="stat-value">{{ report.repeat_rate_pct }}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Active Guests</div>
+      <div class="stat-value">{{ report.active_guests }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Average Rating</div>
+      <div class="stat-value">{% if report.avg_rating %}{{ report.avg_rating }}★{% else %}—{% endif %}</div>
+    </div>
+  </div>
+
+  <table class="trend-table">
+    <thead><tr><th>Date</th><th>Type</th><th class="num">Points</th><th class="num">Count</th></tr></thead>
     <tbody>
-      {% for item in report.items %}
+      {% for row in report.loyalty_trend %}
       <tr>
-        <td>{{ item.name }}</td>
-        <td class="num">{{ item.qty }}</td>
-        <td class="num">₹{{ item.revenue|floatformat:0 }}</td>
-        <td class="num">{% if item.cogs_known %}₹{{ item.cogs|floatformat:0 }}{% else %}<span style="color:var(--text-muted);">unknown</span>{% endif %}</td>
-        <td class="num">{% if item.cogs_known %}{{ item.margin_pct }}%{% else %}—{% endif %}</td>
-        <td><span class="quadrant-badge quadrant-{{ item.quadrant }}">{{ item.quadrant }}</span></td>
+        <td>{{ row.day|date:"d M" }}</td>
+        <td class="{{ row.transaction_type }}-badge">{{ row.transaction_type|capfirst }}</td>
+        <td class="num">{{ row.points }}</td>
+        <td class="num">{{ row.count }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:3rem 0;">No items sold in this period.</td></tr>
+      <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem 0;">No loyalty activity in this period.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="trend-table">
+    <thead><tr><th>Date</th><th class="num">Avg Rating</th><th class="num">Count</th></tr></thead>
+    <tbody>
+      {% for row in report.feedback_trend %}
+      <tr>
+        <td>{{ row.day|date:"d M" }}</td>
+        <td class="num">{{ row.avg_rating|floatformat:2 }}★</td>
+        <td class="num">{{ row.count }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem 0;">No feedback in this period.</td></tr>
       {% endfor %}
     </tbody>
   </table>
