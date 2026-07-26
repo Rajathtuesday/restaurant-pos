@@ -7,6 +7,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required
+from core.features import has_feature
 from tenants.models import Outlet
 from ..models import ScheduledReportSubscription
 
@@ -26,6 +27,11 @@ def report_subscriptions(request):
     return render(request, "setup/report_subscriptions.html", {
         "subscriptions": subscriptions,
         "outlets": outlets,
+        # Drives the "what you'll actually receive" panel -- reflects this
+        # tenant's real feature flags, same checks reports/tasks.py itself
+        # makes, so the page can never claim a section the email won't send.
+        "has_advanced_reports": has_feature(request.user.tenant, "advanced_reports"),
+        "has_crm": has_feature(request.user.tenant, "crm"),
     })
 
 

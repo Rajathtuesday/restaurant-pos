@@ -84,6 +84,7 @@
     <a href="/reports/crm-analytics/" class="report-tab">CRM Analytics</a>
   </div>
   <div class="report-subnav-right">
+    <a href="/setup/report-subscriptions/" class="report-tab" title="Daily digest email settings" style="padding:0.5rem 0.6rem;"><i class="bi bi-envelope"></i></a>
     <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
       {% if request.user.role == "owner" and outlets|length > 1 %}
       <select name="outlet" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
