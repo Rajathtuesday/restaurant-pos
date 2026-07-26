@@ -11,8 +11,9 @@ Coverage:
   - gst_breakdown_cache populated by recalculate_totals, property reads from it
   - gst_breakdown property returns Decimal values (not strings)
   - Order.save() still generates order_number correctly without @transaction.atomic
-  - Promo.validate_and_use() is atomic and updates in-memory usage_count
-  - Promo.validate_and_use() respects all validation rules
+
+(Promo.validate_and_use() coverage moved to promos/tests.py along with the
+model itself, Phase 0 of the orders app split.)
 """
 from decimal import Decimal
 
@@ -30,7 +31,6 @@ from orders.models import (
     OrderEvent,
     OrderItem,
     Payment,
-    Promo,
 )
 from tenants.models import Tenant, Outlet
 
@@ -314,78 +314,5 @@ class TestOrderSaveNoTopLevelAtomic(TestCase):
         order.refresh_from_db()
         self.assertEqual(order.order_number, original)
 
-
-# ---------------------------------------------------------------------------
-# Promo.validate_and_use() tests
-# ---------------------------------------------------------------------------
-
-class TestPromoValidateAndUse(TestCase):
-
-    def setUp(self):
-        self.tenant, self.outlet = _tenant("PromoCafe")
-        self.promo = Promo.objects.create(
-            tenant=self.tenant,
-            name="10% Off",
-            discount_type="percentage",
-            discount_value=Decimal("10"),
-            min_order_value=Decimal("0"),
-            max_uses=5,
-            is_active=True,
-        )
-
-    def test_validate_and_use_returns_true_on_valid_promo(self):
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertTrue(ok)
-        self.assertEqual(error, "")
-
-    def test_validate_and_use_increments_usage_count(self):
-        self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 1)
-
-    def test_validate_and_use_updates_in_memory_count(self):
-        self.promo.validate_and_use(self.outlet, Decimal("500"))
-        # No refresh_from_db — in-memory should already reflect the increment
-        self.assertEqual(self.promo.usage_count, 1)
-
-    def test_validate_and_use_blocks_when_exhausted(self):
-        Promo.objects.filter(pk=self.promo.pk).update(usage_count=5)
-        self.promo.refresh_from_db()
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertFalse(ok)
-        self.assertIn("limit", error.lower())
-
-    def test_validate_and_use_does_not_increment_on_invalid(self):
-        # Set min_order to something higher than the passed amount
-        self.promo.min_order_value = Decimal("1000")
-        self.promo.save(update_fields=["min_order_value"])
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("100"))
-        self.assertFalse(ok)
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 0)
-
-    def test_validate_and_use_respects_inactive_promo(self):
-        self.promo.is_active = False
-        self.promo.save(update_fields=["is_active"])
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertFalse(ok)
-        self.assertEqual(self.promo.usage_count, 0)
-
-    def test_multiple_sequential_uses_count_correctly(self):
-        for _ in range(3):
-            self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 3)
-
-    def test_exhausted_after_max_uses(self):
-        for _ in range(5):
-            self.promo.validate_and_use(self.outlet, Decimal("500"))
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertFalse(ok)
-
-    def test_promo_without_max_uses_is_unlimited(self):
-        self.promo.max_uses = None
-        self.promo.save(update_fields=["max_uses"])
-        for _ in range(10):
-            ok, _ = self.promo.validate_and_use(self.outlet, Decimal("500"))
-            self.assertTrue(ok)
+# Promo.validate_and_use() tests moved to promos/tests.py (Phase 0 of the
+# orders app split).

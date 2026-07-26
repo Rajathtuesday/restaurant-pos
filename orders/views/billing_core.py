@@ -126,7 +126,7 @@ def bill_view(request, order_id):
         remaining = order.grand_total - total_paid
 
         # Available promos
-        from orders.models import Promo
+        from promos.models import Promo
         promos = Promo.objects.filter(
             tenant=request.user.tenant,
             is_active=True

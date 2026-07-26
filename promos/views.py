@@ -1,4 +1,4 @@
-# orders/views/promo_views.py
+# promos/views.py
 import json
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 from django.utils.timezone import localdate
 
 from core.decorators import tenant_required, role_required
-from orders.models import Promo
+from promos.models import Promo
 
 
 @login_required

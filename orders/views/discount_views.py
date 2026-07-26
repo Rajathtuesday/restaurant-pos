@@ -50,7 +50,7 @@ def apply_discount(request, order_id):
                 return JsonResponse({"error": "Order is already paid, closed, or cancelled."}, status=400)
 
             if promo_id:
-                from orders.models import Promo
+                from promos.models import Promo
                 try:
                     promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
                     ok, err = promo.validate_and_use(order.outlet, order.subtotal)

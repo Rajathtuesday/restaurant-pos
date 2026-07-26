@@ -98,7 +98,8 @@ urlpatterns = [
     # apps
     path('', include('accounts.urls')),
     path('', include('orders.urls')),
-    
+    path('', include('promos.urls')),
+
     
     # menu module
     path('menu/', include('menu.urls')),

@@ -6,7 +6,6 @@ from .views.billing_views import refund_payment, apply_item_discount, log_bypass
 from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view
 from .views.public_views import public_bill, submit_feedback
 from .views.razorpay_views import create_razorpay_qr, razorpay_qr_status, razorpay_webhook
-from .views.promo_views import list_active_promos, create_promo, toggle_promo, delete_promo
 from .views.print_queue import print_queue_add, print_queue_poll, print_queue_done, print_queue_failed
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 
@@ -149,11 +148,7 @@ urlpatterns = [
     path("api/active/", api_active_orders, name="api-active-orders"),
     path("api/aggregator/webhook/", api_ingest_order, name="api-ingest-order"),
 
-    # Promo routes
-    path("promos/", list_active_promos, name="list-promos"),
-    path("promos/create/", create_promo, name="create-promo"),
-    path("promos/<int:promo_id>/toggle/", toggle_promo, name="toggle-promo"),
-    path("promos/<int:promo_id>/delete/", delete_promo, name="delete-promo"),
+    # Promo routes moved to promos/urls.py (Phase 0 of the orders app split)
 
     # Public, login-free bill link (WhatsApp receipt)
     path("bill/public/<str:signed_token>/", public_bill, name="public-bill"),

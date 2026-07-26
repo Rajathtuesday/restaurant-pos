@@ -23,7 +23,7 @@ def setup_promos(request):
     if request.user.role not in ["owner", "manager"]:
         return redirect("/setup/")
 
-    from orders.models import Promo
+    from promos.models import Promo
     from tenants.models import Outlet
 
     tenant = request.user.tenant
@@ -51,7 +51,7 @@ def promo_create(request):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
-    from orders.models import Promo
+    from promos.models import Promo
     from tenants.models import Outlet
     from decimal import Decimal, InvalidOperation
     from django.db import IntegrityError
@@ -134,7 +134,7 @@ def promo_toggle(request, promo_id):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
-    from orders.models import Promo
+    from promos.models import Promo
     try:
         promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
     except Promo.DoesNotExist:
@@ -154,7 +154,7 @@ def promo_delete(request, promo_id):
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
-    from orders.models import Promo
+    from promos.models import Promo
     try:
         promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
     except Promo.DoesNotExist:
