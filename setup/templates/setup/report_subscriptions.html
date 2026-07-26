@@ -1,0 +1,154 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Report Subscriptions | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 3rem; align-items: start; }
+    @media(max-width: 720px) { .page-body { grid-template-columns: 1fr; } }
+
+    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+    .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+
+    .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+    .setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+    .setup-input:focus { border-bottom-color: var(--accent-gold); }
+    .form-select { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.85rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+
+    .btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+    .btn-create:hover { background: var(--accent-hover); }
+
+    .sub-table { width: 100%; border-collapse: collapse; }
+    .sub-table th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
+    .sub-table td { padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+    .sub-table-scroll { overflow-x: auto; }
+
+    .btn-reset-pw {
+        background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px;
+        cursor: pointer; font-family: inherit; transition: all 0.2s;
+    }
+    .btn-reset-pw:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Setup — Report Subscriptions</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/setup/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Setup Area</a>
+<a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+
+    <!-- LEFT: ADD SUBSCRIPTION -->
+    <div>
+        <p class="page-eyebrow">Automation</p>
+        <h1 class="page-title">Daily Digest</h1>
+        <div class="divider"></div>
+        <p class="page-sub">A short daily email — today's sales, net profit (if enabled), and labor cost % — sent automatically every morning to whoever's subscribed here.</p>
+
+        <form id="subForm" onsubmit="return false;">
+            <label class="form-label">Recipient Emails (comma-separated)</label>
+            <input type="text" id="sub-emails" class="setup-input" placeholder="owner@example.com, manager@example.com">
+
+            <label class="form-label">Outlet</label>
+            <select id="sub-outlet" class="form-select">
+                <option value="">All outlets (tenant-wide digest)</option>
+                {% for o in outlets %}
+                <option value="{{ o.id }}">{{ o.name }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" class="btn-create" onclick="createSubscription()">Add Subscription</button>
+        </form>
+    </div>
+
+    <!-- RIGHT: CURRENT SUBSCRIPTIONS -->
+    <div>
+        <p class="page-eyebrow" style="opacity:0;">—</p>
+        <h2 class="page-title" style="font-size:1.2rem;">Active Subscriptions</h2>
+        <div class="divider"></div>
+
+        <div class="sub-table-scroll">
+        <table class="sub-table">
+            <thead>
+                <tr><th>Recipients</th><th>Outlet</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="subRows">
+                {% for s in subscriptions %}
+                <tr id="sub-row-{{ s.id }}">
+                    <td style="max-width:220px;overflow-wrap:break-word;">{{ s.recipient_emails }}</td>
+                    <td style="color:var(--text-muted);font-size:0.8rem;">{{ s.outlet.name|default:"All outlets" }}</td>
+                    <td>{% if s.is_active %}<span style="color:#10b981;">Active</span>{% else %}<span style="color:var(--text-muted);">Paused</span>{% endif %}</td>
+                    <td style="display:flex;gap:6px;">
+                        <button class="btn-reset-pw" onclick="toggleSubscription({{ s.id }})">{% if s.is_active %}Pause{% else %}Resume{% endif %}</button>
+                        <button class="btn-reset-pw" onclick="deleteSubscription({{ s.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="color:var(--text-muted);font-size:0.8rem;padding-top:1.5rem;">No subscriptions yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function createSubscription() {
+    const payload = {
+        recipient_emails: document.getElementById('sub-emails').value,
+        outlet_id: document.getElementById('sub-outlet').value,
+    };
+    try {
+        await apiClient.post('/setup/report-subscriptions/create/', payload);
+        ui.toast('Subscription added.', 'success');
+        setTimeout(() => location.reload(), 700);
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+
+async function toggleSubscription(subId) {
+    try {
+        await apiClient.post(`/setup/report-subscriptions/${subId}/toggle/`, {});
+        setTimeout(() => location.reload(), 300);
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+
+async function deleteSubscription(subId) {
+    const result = await ui.confirm('Delete this subscription?', 'This cannot be undone.', 'Delete');
+    if (!result.isConfirmed) return;
+    try {
+        await apiClient.post(`/setup/report-subscriptions/${subId}/delete/`, {});
+        document.getElementById(`sub-row-${subId}`).remove();
+        ui.toast('Subscription deleted.', 'success');
+    } catch (err) {
+        // apiClient already shows a toast on failure
+    }
+}
+</script>
+{% endblock %}

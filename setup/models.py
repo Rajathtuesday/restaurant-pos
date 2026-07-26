@@ -171,3 +171,31 @@ class AggregatorConfig(TenantScopedModel):
     def __str__(self):
         return f"Aggregator Config for {self.outlet}"
 
+
+class ScheduledReportSubscription(TenantScopedModel):
+    """
+    Who gets the daily report-digest email. Lives here (not in `reports`,
+    which is architecturally model-less -- a pure aggregation layer) because
+    this is tenant *configuration*, the same shape as PaymentConfig/
+    AggregatorConfig above, not a report itself.
+    """
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    # Null = tenant-wide digest (all outlets rolled into one email), matching
+    # finance.Expense's outlet=None convention for "applies everywhere".
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE, null=True, blank=True)
+
+    # Comma-separated, matching the plain-field style already used for
+    # config values in this file (no JSONField precedent here to follow instead).
+    recipient_emails = models.CharField(max_length=1000)
+    is_active = models.BooleanField(default=True)
+
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def recipient_list(self):
+        return [e.strip() for e in self.recipient_emails.split(",") if e.strip()]
+
+    def __str__(self):
+        return f"Report digest for {self.tenant.name} ({'active' if self.is_active else 'paused'})"
+

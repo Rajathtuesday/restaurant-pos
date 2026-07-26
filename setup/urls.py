@@ -31,6 +31,10 @@ from .views import (
     checklist_status,
     check_slug_available,
     setup_qr_codes,
+    report_subscriptions,
+    report_subscription_create,
+    report_subscription_toggle,
+    report_subscription_delete,
 )
 
 urlpatterns = [
@@ -73,4 +77,10 @@ urlpatterns = [
     path("sample-menu/", sample_menu, name="setup_sample_menu"),
     path("checklist/", checklist_status, name="setup_checklist"),
     path("check-slug/", check_slug_available, name="check_slug"),
+
+    # Scheduled report subscriptions
+    path("report-subscriptions/", report_subscriptions, name="report_subscriptions"),
+    path("report-subscriptions/create/", report_subscription_create, name="report_subscription_create"),
+    path("report-subscriptions/<int:subscription_id>/toggle/", report_subscription_toggle, name="report_subscription_toggle"),
+    path("report-subscriptions/<int:subscription_id>/delete/", report_subscription_delete, name="report_subscription_delete"),
 ]

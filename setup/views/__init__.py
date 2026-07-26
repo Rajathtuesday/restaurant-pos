@@ -44,6 +44,13 @@ from .aggregator_views import (
     toggle_aggregator,
 )
 
+from .report_subscription_views import (
+    report_subscriptions,
+    report_subscription_create,
+    report_subscription_toggle,
+    report_subscription_delete,
+)
+
 __all__ = [
     # core
     "setup_wizard",
@@ -79,4 +86,9 @@ __all__ = [
     # aggregators
     "aggregator_setup",
     "toggle_aggregator",
+    # report subscriptions
+    "report_subscriptions",
+    "report_subscription_create",
+    "report_subscription_toggle",
+    "report_subscription_delete",
 ]

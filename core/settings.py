@@ -704,3 +704,17 @@ CELERY_TASK_REJECT_ON_WORKER_LOST = True
 # Discard tasks queued more than 30 minutes ago — stale print jobs from a
 # previous session should not print when the worker restarts.
 CELERY_TASK_EXPIRES = 1800  # seconds
+
+# Scheduled tasks (celery beat). Hardcoded rather than django_celery_beat --
+# nothing here needs a per-tenant custom schedule *time*, only per-tenant
+# recipients/opt-in, which is what setup.ScheduledReportSubscription is for.
+# "Daily at 7am" against CELERY_TIMEZONE (Asia/Kolkata, above) works because
+# every tenant today is India-based; revisit if that ever stops being true.
+from celery.schedules import crontab  # noqa: E402
+
+CELERY_BEAT_SCHEDULE = {
+    "daily-report-digest": {
+        "task": "reports.tasks.send_daily_digest_email",
+        "schedule": crontab(hour=7, minute=0),
+    },
+}
