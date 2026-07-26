@@ -48,7 +48,8 @@ from django.test import Client, TestCase
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, OrderItem, PrintJob
+from orders.models import Order, OrderItem
+from printing.models import PrintJob
 from setup.models import KitchenStation, PaymentConfig
 from tenants.models import Outlet, Tenant
 
@@ -847,7 +848,7 @@ class RedisGatedPollTests(PrintQueueBase):
         from unittest.mock import patch
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
-        with patch("orders.views.print_queue.cache.get",
+        with patch("printing.views.cache.get",
                    side_effect=Exception("redis down")):
             ids = [j["id"] for j in self._poll().json()["jobs"]]
         self.assertIn(job_id, ids, "a cache outage must not drop a print job")
@@ -873,3 +874,27 @@ class RedisGatedPollTests(PrintQueueBase):
         self.assertTrue(cache.get(PrintJob.pending_flag_key(self.outlet.id)))
         # …but a different outlet id has its own, independent (unset) flag.
         self.assertIsNone(cache.get(PrintJob.pending_flag_key(self.outlet.id + 9999)))
+
+
+class CrossAppPrintJobFromSetupTest(PrintQueueBase):
+    """
+    Cross-app proof: setup/views/core_views.py::printer_test_print imports
+    printing.models.PrintJob directly (a stale `from orders.models import
+    PrintJob` left behind by the move would break this at request time, not
+    at manage.py check time, since the import happens inside the function
+    body). Reuses PrintQueueBase's fixture -- it already has a KitchenStation
+    with printer_ip set, which printer_test_print requires.
+    """
+
+    def test_printer_test_print_queues_a_real_printjob_row(self):
+        from django.urls import reverse
+
+        before = PrintJob.objects.filter(outlet=self.outlet).count()
+
+        resp = self.client.post(reverse("printer_test_print"))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(PrintJob.objects.filter(outlet=self.outlet).count(), before + 1)
+        job = PrintJob.objects.filter(outlet=self.outlet).latest("created_at")
+        self.assertEqual(job.payload["network_host"], self.station.printer_ip)
+        self.assertEqual(job.status, PrintJob.PENDING)

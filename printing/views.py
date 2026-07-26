@@ -25,7 +25,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from core.decorators import tenant_required
-from orders.models import Order, PrintJob
+from orders.models import Order
+from printing.models import PrintJob
 from tenants.models import Outlet
 
 logger = logging.getLogger("pos.orders")

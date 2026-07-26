@@ -925,7 +925,7 @@ def printer_test_print(request):
         return JsonResponse({"error": "Not allowed"}, status=403)
 
     from setup.services.station_service import get_default_station
-    from orders.models import PrintJob
+    from printing.models import PrintJob
 
     station = get_default_station(request.user)
     if not station.printer_ip:

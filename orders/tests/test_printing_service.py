@@ -17,7 +17,7 @@ from django.test import TestCase
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import KOTBatch, Order, OrderItem
-from orders.views.print_queue import _build_receipt_b64
+from printing.views import _build_receipt_b64
 from orders.services.printing_service import PrintingService
 from setup.models import KitchenStation, PaymentConfig
 from tenants.models import Outlet, PrintProfile, Tenant

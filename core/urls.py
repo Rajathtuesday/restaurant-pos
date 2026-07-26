@@ -99,6 +99,7 @@ urlpatterns = [
     path('', include('accounts.urls')),
     path('', include('orders.urls')),
     path('', include('promos.urls')),
+    path('', include('printing.urls')),
 
     
     # menu module

@@ -6,7 +6,6 @@ from .views.billing_views import refund_payment, apply_item_discount, log_bypass
 from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view
 from .views.public_views import public_bill, submit_feedback
 from .views.razorpay_views import create_razorpay_qr, razorpay_qr_status, razorpay_webhook
-from .views.print_queue import print_queue_add, print_queue_poll, print_queue_done, print_queue_failed
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 
 
@@ -159,9 +158,6 @@ urlpatterns = [
     path("razorpay/qr-status/<str:qr_code_id>/", razorpay_qr_status, name="razorpay-qr-status"),
     path("api/razorpay/webhook/", razorpay_webhook, name="razorpay-webhook"),
 
-    # Print queue — polling architecture for Android agent
-    path("orders/agent/add-job/", print_queue_add, name="print-queue-add"),
-    path("orders/agent/<uuid:agent_key>/jobs/", print_queue_poll, name="print-queue-poll"),
-    path("orders/agent/<uuid:agent_key>/done/<int:job_id>/", print_queue_done, name="print-queue-done"),
-    path("orders/agent/<uuid:agent_key>/failed/<int:job_id>/", print_queue_failed, name="print-queue-failed"),
+    # Print queue routes moved to printing/urls.py (Phase 1 of the orders app
+    # split) -- same exact paths, real agents poll these URLs directly.
 ]

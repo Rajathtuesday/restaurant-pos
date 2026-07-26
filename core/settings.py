@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'crm',
     'finance',
     'promos',
+    'printing',
     'agency',
     'portal',
     'django_celery_results',
