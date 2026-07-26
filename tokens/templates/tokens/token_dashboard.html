@@ -196,6 +196,31 @@
         {% endfor %}
     </div>
 
+    <!-- Order Pickup -->
+    {% if pickup_tokens %}
+    <div class="section-header" style="margin-top:2.5rem;">
+        <h2>Order Pickup <span class="section-tag counter" style="background:rgba(34,197,94,0.12);color:var(--success);">Ready Board</span></h2>
+    </div>
+    <div class="token-grid" id="pickupGrid">
+        {% for token in pickup_tokens %}
+        <div class="token-wrap" id="pickup-wrap-{{ token.id }}">
+            <div class="token-card {% if token.is_online %}is-online{% endif %}" style="cursor:default;">
+                <div class="token-number" style="color:{% if token.is_online %}var(--online){% else %}var(--accent-gold){% endif %};">{{ token.display_number }}</div>
+                <div class="token-badge {% if token.ready_at %}paid{% else %}billing{% endif %}">
+                    {% if token.ready_at %}Ready{% else %}Preparing{% endif %}
+                </div>
+                <div class="token-time">{{ token.order.created_at|date:"g:i A" }}</div>
+                {% if token.ready_at %}
+                <button class="btn-luxury btn-lux-primary" style="margin-top:0.75rem;width:100%;" onclick="markCollected({{ token.id }})">Picked Up</button>
+                {% else %}
+                <button class="btn-luxury" style="margin-top:0.75rem;width:100%;" onclick="markReady({{ token.id }})">Mark Ready</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Online Tokens -->
     {% if online_tokens or aggregator.zomato_enabled or aggregator.swiggy_enabled %}
     <div class="online-section">
@@ -300,6 +325,23 @@
                 ui.toast(`${platform.toUpperCase()} ${enable ? 'ON' : 'OFF'}`, 'success');
                 setTimeout(() => window.location.reload(), 500);
             }
+        } catch (e) { /* apiClient already showed error toast */ }
+    }
+
+    const READY_URL_TPL = "{% url 'mark-token-ready' 0 %}";
+    const COLLECTED_URL_TPL = "{% url 'mark-token-collected' 0 %}";
+
+    async function markReady(tokenId) {
+        try {
+            const data = await apiClient.post(READY_URL_TPL.replace('0', tokenId), {});
+            if (data.success) window.location.reload();
+        } catch (e) { /* apiClient already showed error toast */ }
+    }
+
+    async function markCollected(tokenId) {
+        try {
+            const data = await apiClient.post(COLLECTED_URL_TPL.replace('0', tokenId), {});
+            if (data.success) window.location.reload();
         } catch (e) { /* apiClient already showed error toast */ }
     }
 

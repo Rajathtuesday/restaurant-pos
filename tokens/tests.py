@@ -1342,3 +1342,139 @@ class AggregatorIngestOnlineTokenTest(TestCase):
             DailyOnlineTokenCounter.objects.get(outlet=self.outlet, date=get_business_date(timezone.now(), self.outlet)).value,
             1,
         )
+
+
+# ======================================================================
+#  QSR "Order Ready" feature: pickup readiness + public display board
+# ======================================================================
+
+class PickupReadinessTest(TestCase, TokenFixtureMixin):
+    """mark_token_ready / mark_token_collected: role gating + state transitions."""
+
+    def setUp(self):
+        self._build_franchise_fixtures()
+        self.client = Client()
+        self.client.login(username="cashier1", password="pass")
+
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="paid",
+        )
+        self.token = TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=self.order,
+            token_number=1, date=timezone.now().date(), is_online=False,
+        )
+
+    def test_mark_ready_sets_timestamp(self):
+        resp = self.client.post(reverse("mark-token-ready", args=[self.token.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.token.refresh_from_db()
+        self.assertIsNotNone(self.token.ready_at)
+        self.assertIsNone(self.token.collected_at)
+
+    def test_mark_collected_sets_timestamp(self):
+        self.token.ready_at = timezone.now()
+        self.token.save(update_fields=["ready_at"])
+
+        resp = self.client.post(reverse("mark-token-collected", args=[self.token.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.token.refresh_from_db()
+        self.assertIsNotNone(self.token.collected_at)
+
+    def test_waiter_cannot_mark_ready(self):
+        User.objects.create_user(
+            username="waiter1", password="pass",
+            tenant=self.tenant, outlet=self.outlet, role="waiter",
+        )
+        self.client.logout()
+        self.client.login(username="waiter1", password="pass")
+        resp = self.client.post(reverse("mark-token-ready", args=[self.token.id]))
+        self.assertEqual(resp.status_code, 403)
+        self.token.refresh_from_db()
+        self.assertIsNone(self.token.ready_at)
+
+    def test_cannot_mark_ready_for_another_tenants_token(self):
+        other_tenant = Tenant.objects.create(name="Other Franchise", tenant_type="franchise")
+        other_outlet = Outlet.objects.create(tenant=other_tenant, name="Other Outlet")
+        other_order = Order.objects.create(tenant=other_tenant, outlet=other_outlet, status="paid")
+        other_token = TokenOrder.objects.create(
+            tenant=other_tenant, outlet=other_outlet, order=other_order,
+            token_number=1, date=timezone.now().date(), is_online=False,
+        )
+        resp = self.client.post(reverse("mark-token-ready", args=[other_token.id]))
+        self.assertEqual(resp.status_code, 404)
+
+
+class DisplayBoardDataTest(TestCase, TokenFixtureMixin):
+    """
+    display_data: the public polling endpoint behind the "Now Serving" TV
+    board. Must return only ready, uncollected, non-stale tokens for the
+    right outlet -- no prices or customer names.
+    """
+
+    def setUp(self):
+        self._build_franchise_fixtures()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
+
+    def _make_token(self, token_number, ready_at="now", collected_at=None, status="paid"):
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status=status)
+        return TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=order,
+            token_number=token_number, date=self.today, is_online=False,
+            ready_at=timezone.now() if ready_at == "now" else ready_at,
+            collected_at=collected_at,
+        )
+
+    def test_ready_uncollected_token_appears(self):
+        self._make_token(1)
+        resp = self.client.get(reverse("display-data", args=[self.outlet.display_token]))
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(len(data["tokens"]), 1)
+        self.assertEqual(data["tokens"][0]["display"], "#1")
+
+    def test_not_yet_ready_token_absent(self):
+        self._make_token(2, ready_at=None)
+        resp = self.client.get(reverse("display-data", args=[self.outlet.display_token]))
+        self.assertEqual(len(resp.json()["tokens"]), 0)
+
+    def test_collected_token_absent(self):
+        self._make_token(3, collected_at=timezone.now())
+        resp = self.client.get(reverse("display-data", args=[self.outlet.display_token]))
+        self.assertEqual(len(resp.json()["tokens"]), 0)
+
+    def test_stale_ready_token_absent(self):
+        self._make_token(4, ready_at=timezone.now() - timedelta(minutes=30))
+        resp = self.client.get(reverse("display-data", args=[self.outlet.display_token]))
+        self.assertEqual(len(resp.json()["tokens"]), 0)
+
+    def test_scoped_to_correct_outlet_only(self):
+        other_tenant = Tenant.objects.create(name="Other Franchise2", tenant_type="franchise")
+        other_outlet = Outlet.objects.create(tenant=other_tenant, name="Other Outlet2")
+        other_order = Order.objects.create(tenant=other_tenant, outlet=other_outlet, status="paid")
+        TokenOrder.objects.create(
+            tenant=other_tenant, outlet=other_outlet, order=other_order,
+            token_number=1, date=self.today, is_online=False, ready_at=timezone.now(),
+        )
+        self._make_token(5)
+
+        resp = self.client.get(reverse("display-data", args=[self.outlet.display_token]))
+        data = resp.json()
+        self.assertEqual(len(data["tokens"]), 1)
+        self.assertEqual(data["tokens"][0]["display"], "#5")
+
+    def test_no_prices_or_customer_names_leaked(self):
+        self._make_token(6)
+        resp = self.client.get(reverse("display-data", args=[self.outlet.display_token]))
+        body = json.dumps(resp.json())
+        self.assertNotIn("price", body.lower())
+        self.assertNotIn("customer", body.lower())
+
+    def test_display_board_page_renders(self):
+        resp = self.client.get(reverse("display-board", args=[self.outlet.display_token]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_invalid_display_token_404s(self):
+        import uuid as _uuid
+        resp = self.client.get(reverse("display-data", args=[_uuid.uuid4()]))
+        self.assertEqual(resp.status_code, 404)

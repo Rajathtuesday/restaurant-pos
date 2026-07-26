@@ -43,6 +43,11 @@
 <a href="/setup/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">
     <i class="bi bi-arrow-left me-1"></i> Back
 </a>
+{% if display_board_url %}
+<a href="{{ display_board_url }}" target="_blank" class="btn-luxury text-decoration-none d-none d-sm-inline-flex" title="Open on the TV/monitor at your pickup counter">
+    <i class="bi bi-tv me-1"></i> Display Board
+</a>
+{% endif %}
 <button onclick="window.print()" class="btn-luxury">
     <i class="bi bi-printer me-1"></i> Print All
 </button>

@@ -143,6 +143,20 @@ def token_dashboard(request):
         outlet=outlet, date=today, order__status__in=["closed", "paid"]
     ).count()
 
+    # Paid, not-yet-collected tokens -- the "Order Pickup" board section,
+    # where staff mark ready/collected. Distinct from closed_tokens above,
+    # which is just a completed-count stat card.
+    pickup_tokens = (
+        TokenOrder.objects
+        .filter(
+            outlet=outlet, date=today,
+            order__status__in=["paid", "closed"],
+            collected_at__isnull=True,
+        )
+        .select_related("order")
+        .order_by("token_number")
+    )
+
     cancelled_tokens = TokenOrder.objects.filter(
         outlet=outlet, date=today, order__status="cancelled"
     ).count()
@@ -183,6 +197,7 @@ def token_dashboard(request):
         "today_revenue":      today_revenue,
         "closed_tokens":      closed_tokens,
         "cancelled_tokens":   cancelled_tokens,
+        "pickup_tokens":      pickup_tokens,
         "today":              today,
         "aggregator":         aggregator_config,
         "can_create":         can_create,
@@ -531,4 +546,102 @@ def token_billing(request, order_id):
         # role gates
         "can_discount":   can_discount,
         "can_bypass":     can_bypass,
+    })
+
+
+# ------------------------------------------------------------------
+# PICKUP READINESS (QSR "Order Ready" display board)
+# ------------------------------------------------------------------
+# QSR outlets run with kitchen_display OFF (strip-mode auto-KOT at payment
+# instead of a KDS screen -- see orders/views/payment_views.py::pay_order),
+# so there is no per-item "ready" tracking to read here. ready_at/collected_at
+# on TokenOrder are staff-set directly instead.
+
+_READY_STALE_MINUTES = 20  # auto-clear safety net if nobody taps "Picked Up"
+
+
+@login_required
+@tenant_required
+@feature_required("token_system")
+@require_POST
+def mark_token_ready(request, token_id):
+    """Staff mark a paid token ready for pickup -- this is what makes it
+    appear on the public display board and the guest's own phone."""
+    if request.user.role not in _STAFF_CAN_CREATE and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+    try:
+        token = TokenOrder.objects.get(
+            id=token_id, tenant=request.user.tenant, outlet=request.user.outlet,
+        )
+    except TokenOrder.DoesNotExist:
+        return JsonResponse({"error": "Token not found"}, status=404)
+    token.ready_at = timezone.now()
+    token.save(update_fields=["ready_at"])
+    return JsonResponse({"success": True})
+
+
+@login_required
+@tenant_required
+@feature_required("token_system")
+@require_POST
+def mark_token_collected(request, token_id):
+    """Staff confirm the customer has physically picked up the order --
+    clears it off the display board."""
+    if request.user.role not in _STAFF_CAN_CREATE and not request.user.is_superuser:
+        return JsonResponse({"error": "Permission denied"}, status=403)
+    try:
+        token = TokenOrder.objects.get(
+            id=token_id, tenant=request.user.tenant, outlet=request.user.outlet,
+        )
+    except TokenOrder.DoesNotExist:
+        return JsonResponse({"error": "Token not found"}, status=404)
+    token.collected_at = timezone.now()
+    token.save(update_fields=["collected_at"])
+    return JsonResponse({"success": True})
+
+
+# ------------------------------------------------------------------
+# PUBLIC "NOW SERVING" DISPLAY BOARD (e.g. a TV at the pickup counter)
+# ------------------------------------------------------------------
+
+def display_board(request, display_token):
+    """
+    Public, unauthenticated big-screen page. No login -- the outlet's
+    display_token (a permanent secret UUID, same pattern as Table.qr_token)
+    is the only "auth", meant to sit open in a browser tab indefinitely.
+    """
+    from django.shortcuts import get_object_or_404
+    from tenants.models import Outlet
+    outlet = get_object_or_404(Outlet, display_token=display_token)
+    return render(request, "tokens/display_board.html", {"outlet": outlet})
+
+
+def display_data(request, display_token):
+    """
+    Polling JSON endpoint for display_board -- ready, uncollected,
+    non-stale tokens for today's business date at this outlet. No prices or
+    customer names, matching the privacy stance menu.views.customer_views
+    already established for guest-facing surfaces.
+    """
+    from django.shortcuts import get_object_or_404
+    from tenants.models import Outlet
+    outlet = get_object_or_404(Outlet, display_token=display_token)
+    today = get_business_date(timezone.now(), outlet)
+    stale_cutoff = timezone.now() - timedelta(minutes=_READY_STALE_MINUTES)
+
+    tokens = (
+        TokenOrder.objects
+        .filter(
+            outlet=outlet, date=today,
+            order__status__in=["paid", "closed"],
+            ready_at__isnull=False, ready_at__gte=stale_cutoff,
+            collected_at__isnull=True,
+        )
+        .order_by("ready_at")
+    )
+    return JsonResponse({
+        "tokens": [
+            {"display": t.display_number, "ready_at": t.ready_at.isoformat()}
+            for t in tokens
+        ]
     })

@@ -159,3 +159,132 @@ class OrderStatusEndpointTest(_Base):
 
         resp = self.client.get(reverse("order_status", args=[order_id]))
         self.assertFalse(resp.json()["can_add_more"])
+
+
+# ---------------------------------------------------------------------------
+# QSR "Order Ready" feature: a QR-guest order for a franchise/cafe tenant
+# must be assigned a token (previously skipped entirely -- see
+# orders/views/billing_views.py::create_order, the token-assignment block
+# used to require table is None, but a QR scan always resolves a table).
+# ---------------------------------------------------------------------------
+
+class _FranchiseBase(TestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(
+            name="QSR Tenant", slug="qsr-tenant", tenant_type="franchise",
+        )
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.category = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Mains"
+        )
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=self.category,
+            name="Burger", price=Decimal("100.00"),
+        )
+        self.table = Table.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="T1", is_active=True
+        )
+
+    def _place(self, item, qty=1, order_id=None):
+        payload = {
+            "table_token": str(self.table.qr_token),
+            "cart": [{"id": item.id, "quantity": qty}],
+            "source": "web",
+        }
+        if order_id:
+            payload["order_id"] = order_id
+        return self.client.post(
+            reverse("create-order"),
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+
+class QRGuestOrderTokenAssignmentTest(_FranchiseBase):
+    def test_qr_order_for_franchise_tenant_gets_a_token(self):
+        from tokens.models import TokenOrder
+
+        resp = self._place(self.item)
+        self.assertEqual(resp.status_code, 200)
+        order_id = resp.json()["order_id"]
+
+        token = TokenOrder.objects.filter(order_id=order_id).first()
+        self.assertIsNotNone(token, "QR order for a franchise tenant must get a token")
+        self.assertFalse(token.is_online)
+        self.assertEqual(token.token_number, 1)
+
+    def test_second_round_does_not_assign_a_second_token(self):
+        from tokens.models import TokenOrder
+
+        first = self._place(self.item)
+        order_id = first.json()["order_id"]
+
+        second = self._place(self.item, order_id=order_id)
+        self.assertEqual(second.status_code, 200)
+
+        self.assertEqual(
+            TokenOrder.objects.filter(order_id=order_id).count(), 1,
+            "Merging more items into the same order must not create a second token",
+        )
+
+    def test_fine_dining_qr_order_still_gets_no_token(self):
+        # Regression guard: the fix must stay scoped to franchise/cafe only.
+        from tokens.models import TokenOrder
+
+        self.tenant.tenant_type = "fine_dining"
+        self.tenant.save(update_fields=["tenant_type"])
+
+        resp = self._place(self.item)
+        self.assertEqual(resp.status_code, 200)
+        order_id = resp.json()["order_id"]
+
+        self.assertFalse(TokenOrder.objects.filter(order_id=order_id).exists())
+
+
+class OrderStatusTokenFieldsTest(_FranchiseBase):
+    def test_token_fields_absent_when_no_token(self):
+        # Fine-dining-style order with no table -- e.g. a takeaway placed by
+        # staff, never gets a token, order_status must degrade gracefully.
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet)
+        resp = self.client.get(reverse("order_status", args=[order.id]))
+        data = resp.json()
+        self.assertIsNone(data["token_display"])
+        self.assertFalse(data["token_ready"])
+        self.assertFalse(data["token_collected"])
+
+    def test_token_display_present_not_ready_before_staff_marks_it(self):
+        first = self._place(self.item)
+        order_id = first.json()["order_id"]
+
+        resp = self.client.get(reverse("order_status", args=[order_id]))
+        data = resp.json()
+        self.assertEqual(data["token_display"], "#1")
+        self.assertFalse(data["token_ready"])
+        self.assertFalse(data["token_collected"])
+
+    def test_token_ready_true_once_marked_ready(self):
+        from tokens.models import TokenOrder
+        from django.utils import timezone
+
+        first = self._place(self.item)
+        order_id = first.json()["order_id"]
+        TokenOrder.objects.filter(order_id=order_id).update(ready_at=timezone.now())
+
+        resp = self.client.get(reverse("order_status", args=[order_id]))
+        data = resp.json()
+        self.assertTrue(data["token_ready"])
+        self.assertFalse(data["token_collected"])
+
+    def test_token_ready_false_once_collected(self):
+        from tokens.models import TokenOrder
+        from django.utils import timezone
+
+        first = self._place(self.item)
+        order_id = first.json()["order_id"]
+        now = timezone.now()
+        TokenOrder.objects.filter(order_id=order_id).update(ready_at=now, collected_at=now)
+
+        resp = self.client.get(reverse("order_status", args=[order_id]))
+        data = resp.json()
+        self.assertFalse(data["token_ready"])
+        self.assertTrue(data["token_collected"])

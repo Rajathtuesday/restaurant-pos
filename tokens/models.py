@@ -75,6 +75,13 @@ class TokenOrder(TenantScopedModel):
         help_text="True for aggregator (Zomato/Swiggy/web) orders; False for walk-in counter orders.",
     )
 
+    # ── Pickup-readiness lifecycle (QSR "Order Ready" display board) ────
+    # Set by staff, not inferred from per-item kitchen-display tracking —
+    # QSR outlets run with kitchen_display OFF (strip-mode auto-KOT
+    # instead), so there is no per-item ready state to read here.
+    ready_at = models.DateTimeField(null=True, blank=True)
+    collected_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         db_table = "orders_tokenorder"
         # Counter tokens: unique per outlet + token_number + date + is_online=False

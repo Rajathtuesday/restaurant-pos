@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Now Serving | {{ outlet.name }}</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        background: #0a0a0a;
+        color: #f5f5f5;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2.5rem 1.5rem;
+    }
+    .board-header { text-align: center; margin-bottom: 2.5rem; }
+    .board-title { font-size: 1.6rem; text-transform: uppercase; letter-spacing: 4px; color: #c5a059; }
+    .board-sub { font-size: 1rem; color: #888; margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 2px; }
+
+    .token-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 2rem;
+        width: 100%;
+        max-width: 1400px;
+    }
+    .token-tile {
+        background: #161616;
+        border: 2px solid #c5a059;
+        border-radius: 12px;
+        text-align: center;
+        padding: 2.5rem 1rem;
+        animation: pop 0.4s ease-out;
+    }
+    .token-tile .num {
+        font-size: 5rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1;
+    }
+    .token-tile .label {
+        margin-top: 0.75rem;
+        font-size: 0.9rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #c5a059;
+    }
+    @keyframes pop {
+        from { transform: scale(0.85); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+    }
+
+    .empty-state {
+        text-align: center;
+        color: #555;
+        margin-top: 4rem;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+</style>
+</head>
+<body>
+
+<div class="board-header">
+    <div class="board-title">Now Serving</div>
+    <div class="board-sub">{{ outlet.name }}</div>
+</div>
+
+<div class="token-grid" id="tokenGrid"></div>
+<div class="empty-state" id="emptyState" style="display:none;">Waiting for orders to be ready…</div>
+
+<script>
+    const DATA_URL = "{% url 'display-data' outlet.display_token %}";
+    let knownTokens = new Set();
+
+    async function refresh() {
+        try {
+            const res = await fetch(DATA_URL);
+            const data = await res.json();
+            const grid = document.getElementById('tokenGrid');
+            const empty = document.getElementById('emptyState');
+            const tokens = data.tokens || [];
+
+            if (tokens.length === 0) {
+                grid.innerHTML = '';
+                empty.style.display = 'block';
+                knownTokens = new Set();
+                return;
+            }
+            empty.style.display = 'none';
+
+            const currentDisplays = new Set(tokens.map(t => t.display));
+            grid.innerHTML = tokens.map(t => `
+                <div class="token-tile">
+                    <div class="num">${t.display}</div>
+                    <div class="label">Ready for pickup</div>
+                </div>
+            `).join('');
+            knownTokens = currentDisplays;
+        } catch (e) {
+            // Network hiccup on an unattended TV -- just try again next tick.
+        }
+    }
+
+    refresh();
+    setInterval(refresh, 4000);
+</script>
+
+</body>
+</html>

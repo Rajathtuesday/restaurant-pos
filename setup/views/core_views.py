@@ -1077,8 +1077,19 @@ def setup_qr_codes(request):
         base_url += "/"
     menu_base_url = f"{base_url}menu/"
 
+    # QSR-only: link to the public "Now Serving" display board (see
+    # tokens/views.py::display_board) -- fine-dining tenants don't use
+    # tokens, so there's nothing to display.
+    display_board_url = None
+    if tenant.tenant_type in ["franchise", "cafe"]:
+        from django.urls import reverse
+        display_board_url = base_url.rstrip("/") + reverse(
+            "display-board", args=[outlet.display_token]
+        )
+
     return render(request, "setup/setup_qr_codes.html", {
         "tables":       tables,
         "menu_base_url": menu_base_url,
         "outlet":       outlet,
+        "display_board_url": display_board_url,
     })

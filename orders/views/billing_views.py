@@ -214,7 +214,11 @@ def create_order(request):
             # Franchise / Cafe Token Generation
             # Uses the row-locked DailyTokenCounter helper — NEVER MAX()+1,
             # which produces duplicate token numbers under concurrent load.
-            if tenant and tenant.tenant_type in ['franchise', 'cafe'] and table is None:
+            # Every order gets a token for these tenants, not just table-less
+            # ones — a QR scan always resolves a table, so restricting this to
+            # table is None silently skipped every guest QR self-order, which
+            # never showed up on the token dashboard or got a pickup number.
+            if tenant and tenant.tenant_type in ['franchise', 'cafe']:
                 from django.utils import timezone
                 from core.utils import get_business_date
                 from tokens.views import assign_counter_token

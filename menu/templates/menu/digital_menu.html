@@ -993,6 +993,14 @@
         if (_orderStorageKey) localStorage.removeItem(_orderStorageKey);
     }
 
+    // Separate from the stored order id above: that key controls whether new
+    // items MERGE into an existing order (cleared as soon as it's billed).
+    // Status polling needs to keep going well past that point for QSR orders
+    // -- payment happens, then the kitchen preps, then it's marked ready, all
+    // while can_add_more is already false -- so it's tracked independently
+    // here rather than piggybacking on the mergeable-order key.
+    let _pollingOrderId = null;
+
     // --- Submit Order ---
     function submitOrder() {
         const tableId = "{{ table.id|default:'' }}";
@@ -1087,8 +1095,12 @@
         const detail = document.getElementById('orderStatusDetail');
 
         banner.classList.remove('hidden');
-        label.textContent = data.label;
-        dot.classList.toggle('done', data.stage === 'ready' || data.stage === 'served');
+        // QSR token ready-for-pickup overrides the generic per-item label --
+        // matches the wording on the public "Now Serving" display board.
+        label.textContent = data.token_ready
+            ? `Order ${data.token_display} is ready for pickup!`
+            : data.label;
+        dot.classList.toggle('done', data.stage === 'ready' || data.stage === 'served' || data.token_ready);
 
         detail.innerHTML = (data.items || []).map(i => `
             <div class="order-status-item-row">
@@ -1099,22 +1111,33 @@
     }
 
     async function pollOrderStatus() {
-        const orderId = getStoredOrderId();
-        if (!orderId) return;
+        if (!_pollingOrderId) return;
         try {
-            const res = await fetch(`/menu/order-status/${orderId}/`);
-            if (!res.ok) { clearStoredOrderId(); return; } // order gone/invalid — stop tracking it
+            const res = await fetch(`/menu/order-status/${_pollingOrderId}/`);
+            if (!res.ok) { _pollingOrderId = null; clearStoredOrderId(); if (_statusPollTimer) clearInterval(_statusPollTimer); return; } // order gone/invalid
             const data = await res.json();
             renderOrderStatus(data);
             // Once the order is no longer open/billing (paid, closed, cancelled),
             // stop treating it as "the active order for this table" — the next
             // Place Order press should start a fresh one, not try to merge in.
+            // Polling itself keeps going for QSR orders (token_display set)
+            // until the token is actually collected, or the order was
+            // cancelled — payment and kitchen prep both happen after
+            // can_add_more already flips false.
             if (!data.can_add_more) clearStoredOrderId();
+            const done = data.order_status === 'cancelled'
+                || (!data.token_display && !data.can_add_more)
+                || (data.token_display && data.token_collected);
+            if (done) {
+                _pollingOrderId = null;
+                if (_statusPollTimer) clearInterval(_statusPollTimer);
+            }
         } catch (e) { /* network blip — try again next tick */ }
     }
 
     function startOrderStatusPolling() {
-        if (!getStoredOrderId()) return;
+        _pollingOrderId = getStoredOrderId();
+        if (!_pollingOrderId) return;
         pollOrderStatus();
         _statusPollTimer = setInterval(pollOrderStatus, 6000);
     }

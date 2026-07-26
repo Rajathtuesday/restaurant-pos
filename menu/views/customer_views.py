@@ -111,9 +111,16 @@ def order_status(request, order_id):
     else:
         stage, label = "placed", "Order received"
 
+    token = getattr(order, "token", None)
+
     return JsonResponse({
         "order_id": order.id,
         "table": order.table.name if order.table else "Takeaway",
+        # QSR only -- lets the guest's own page show "Your order #12 is
+        # ready!" matching the public display board (tokens/views.py::display_board).
+        "token_display": token.display_number if token else None,
+        "token_ready": bool(token and token.ready_at and not token.collected_at),
+        "token_collected": bool(token and token.collected_at),
         # Order-level lifecycle status (open/billing/paid/closed/cancelled) —
         # NOT item stage. Lets the guest's page know when to stop polling and
         # stop offering "add more items" (billing_views.create_order already

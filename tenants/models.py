@@ -268,6 +268,16 @@ class Outlet(models.Model):
         help_text="FSSAI License Number (14 digits)"
     )
 
+    display_token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        help_text=(
+            "Permanent secret used in the public 'Now Serving' display board "
+            "URL (a TV/monitor at the pickup counter) -- same pattern as "
+            "Table.qr_token, never regenerated."
+        )
+    )
+
     sac_code = models.CharField(
         max_length=8,
         default="996331",
