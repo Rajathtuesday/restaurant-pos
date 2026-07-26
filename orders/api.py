@@ -317,7 +317,7 @@ def api_ingest_order(request):
                 # Assign online token if tenant uses token_system
                 from core.features import has_feature
                 if has_feature(tenant, "token_system"):
-                    from orders.views.token_views import assign_online_token
+                    from tokens.views import assign_online_token
                     from core.utils import get_business_date
                     business_date = get_business_date(timezone.now(), outlet)
                     tok = assign_online_token(order, outlet, tenant, business_date)

@@ -32,7 +32,7 @@ def owner_dashboard(request):
 
     active_token_count = 0
     if is_qsr:
-        from orders.models import TokenOrder
+        from tokens.models import TokenOrder
         from core.utils import get_business_date
         from django.utils import timezone
         today = get_business_date(timezone.now(), request.user.outlet)

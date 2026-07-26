@@ -52,20 +52,11 @@ from .views import (
     export_orders_csv,
 )
 
-from .views.token_views import (
-    token_dashboard,
-    create_token_order,
-    create_and_go_to_billing,
-    token_billing,
-)
 
 urlpatterns = [
 
-    # Token System - Franchise and Cafe
-    path("token/", token_dashboard, name="token-dashboard"),
-    path("token/new/", create_token_order, name="create-token-order"),
-    path("token/go/", create_and_go_to_billing, name="create-and-bill"),
-    path("token/<int:order_id>/bill/", token_billing, name="token-bill"),
+    # Token System routes moved to tokens/urls.py (Phase 2 of the orders app
+    # split) -- same exact paths.
 
     path("billing/", billing_view ,name="billing-view"),
 

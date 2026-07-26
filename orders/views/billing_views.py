@@ -217,7 +217,7 @@ def create_order(request):
             if tenant and tenant.tenant_type in ['franchise', 'cafe'] and table is None:
                 from django.utils import timezone
                 from core.utils import get_business_date
-                from orders.views.token_views import assign_counter_token
+                from tokens.views import assign_counter_token
                 if not hasattr(order, 'token'):
                     business_date = get_business_date(timezone.now(), outlet)
                     assign_counter_token(order, outlet, tenant, business_date)

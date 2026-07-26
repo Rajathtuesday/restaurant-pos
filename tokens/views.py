@@ -40,9 +40,8 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, feature_required
 from core.utils import get_business_date
 from menu.models import MenuCategory, MenuItem
-from orders.models import (
-    Order, DailyTokenCounter, DailyOnlineTokenCounter, TokenOrder
-)
+from orders.models import Order
+from tokens.models import DailyTokenCounter, DailyOnlineTokenCounter, TokenOrder
 from setup.models import PaymentConfig
 
 
@@ -174,7 +173,7 @@ def token_dashboard(request):
 
     can_create = request.user.role in _STAFF_CAN_CREATE or request.user.is_superuser
 
-    return render(request, "orders/token_dashboard.html", {
+    return render(request, "tokens/token_dashboard.html", {
         "counter_tokens":     counter_tokens,
         "online_tokens":      online_tokens,
         # keep for backward-compat with any template that checks active_tokens
@@ -517,7 +516,7 @@ def token_billing(request, order_id):
     can_discount = request.user.role in _STAFF_CAN_DISCOUNT or request.user.is_superuser
     can_bypass   = request.user.role == "owner" or request.user.is_superuser
 
-    return render(request, "orders/token_billing.html", {
+    return render(request, "tokens/token_billing.html", {
         "order":          order,
         "token":          token,
         "categories":     categories,

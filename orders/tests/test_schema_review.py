@@ -6,14 +6,14 @@ Coverage:
   - OrderItem has (order), (order, status), (kot) indexes
   - KOTBatch has (tenant, outlet, status) index
   - Payment has (paid_at) and (order, method) indexes
-  - DailyTokenCounter / DailyOnlineTokenCounter have no redundant index
   - OrderEvent has (order, event_type) composite index
   - gst_breakdown_cache populated by recalculate_totals, property reads from it
   - gst_breakdown property returns Decimal values (not strings)
   - Order.save() still generates order_number correctly without @transaction.atomic
 
-(Promo.validate_and_use() coverage moved to promos/tests.py along with the
-model itself, Phase 0 of the orders app split.)
+(Promo.validate_and_use() coverage moved to promos/tests.py, Phase 0 of the
+orders app split. DailyTokenCounter/DailyOnlineTokenCounter's no-redundant-
+index coverage moved to tokens/tests.py, Phase 2.)
 """
 from decimal import Decimal
 
@@ -24,8 +24,6 @@ from django.core.exceptions import ValidationError
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import (
-    DailyOnlineTokenCounter,
-    DailyTokenCounter,
     KOTBatch,
     Order,
     OrderEvent,
@@ -171,19 +169,6 @@ class TestOrderEventIndexes(TestCase):
 
     def test_tenant_type_composite_present(self):
         self.assertIn("orderevent_tenant_type_idx", _index_names(OrderEvent))
-
-
-class TestDailyCounterNoRedundantIndex(TestCase):
-
-    def test_daily_token_counter_no_duplicate_index(self):
-        field_sets = _field_names_in_indexes(DailyTokenCounter)
-        self.assertNotIn(("outlet", "date"), field_sets,
-                         "unique_together already creates this index — explicit one is redundant")
-
-    def test_daily_online_token_counter_no_duplicate_index(self):
-        field_sets = _field_names_in_indexes(DailyOnlineTokenCounter)
-        self.assertNotIn(("outlet", "date"), field_sets,
-                         "unique_together already creates this index — explicit one is redundant")
 
 
 # ---------------------------------------------------------------------------
