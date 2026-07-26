@@ -82,12 +82,29 @@ def tables_data(request):
                 elif table.state == "cleaning":
                     status = "cleaning"
                 elif not order:
-                    # Respect a manually-set table.state (e.g. a seated
-                    # reservation nudges the table to "ordering" before any
-                    # Order exists) instead of hardcoding "free" -- table.state
-                    # already defaults to and is reset to "free" by every
-                    # other no-order flow, so this is a no-op everywhere else.
-                    status = table.state
+                    if table.state == "ordering":
+                        # A seated reservation nudges the table here before
+                        # any Order exists (crm's update_reservation_status) --
+                        # the only non-"free" state that's legitimate with no
+                        # order behind it.
+                        status = "ordering"
+                    elif table.state == "free":
+                        status = "free"
+                    else:
+                        # Any other state (billing/preparing/ready/served)
+                        # implies an Order should exist. With none, it's stale
+                        # -- most commonly bill_view() sets table.state =
+                        # "billing" on every page load (not just on payment),
+                        # so a cashier who opens a bill and navigates away
+                        # without paying or cancelling leaves the table stuck
+                        # showing "Billing"/"Pay Bill" indefinitely, with no
+                        # order to actually pay. Self-heal rather than surface
+                        # a misleading label -- matches the self-heal pattern
+                        # already used for a missing DailyOnlineTokenCounter
+                        # row in tokens/views.py::assign_online_token.
+                        table.state = "free"
+                        table.save(update_fields=["state"])
+                        status = "free"
                 elif order.status == "billing":
                     status = "billing"
                 else:
