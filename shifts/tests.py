@@ -506,3 +506,92 @@ class ZReportBusinessDateTest(TestCase):
         resp = client.get(reverse("export-z-report"))
         content = resp.content.decode()
         self.assertIn("500.00", content.replace(",", ""))
+
+
+class ClockOutMalformedBodyTest(TestCase):
+    """
+    Regression test: clock_out used to swallow ANY error while parsing the
+    request body (bare `except Exception: pass`), so a malformed JSON body
+    silently fell back to tips=0/notes="" and still returned 200 -- a client
+    bug (e.g. a broken tip-entry payload) would clock someone out with a
+    wrong (zero) tip total instead of surfacing an error. Flagged twice in
+    review before this fix.
+    """
+
+    def setUp(self):
+        self.tenant, self.outlet = _tenant("ClockOutCafe")
+        self.staff = _user(self.tenant, self.outlet, role="waiter")
+
+    def _clock_in(self):
+        client = Client()
+        client.force_login(self.staff)
+        client.post(reverse("clock-in"))
+        return client
+
+    def test_malformed_json_body_returns_400_not_500_or_silent_success(self):
+        client = self._clock_in()
+        resp = client.post(
+            reverse("clock-out"),
+            data="{not valid json",
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        shift = Shift.objects.get(staff=self.staff)
+        # Must still be clocked in -- the old code proceeded to clock out
+        # with tips silently defaulted to 0 instead of rejecting the request.
+        self.assertIsNone(shift.clocked_out_at)
+        self.assertEqual(shift.tips, Decimal("0"))
+
+    def test_empty_body_still_works_with_default_tips(self):
+        # No body at all is a legitimate "no tips given" case (the JS client
+        # always sends {tips}, but this must not regress into a 400 for any
+        # caller that posts with no body) -- distinct from a malformed body.
+        client = self._clock_in()
+        resp = client.post(reverse("clock-out"), data=b"", content_type="application/json")
+        self.assertEqual(resp.status_code, 200)
+        shift = Shift.objects.get(staff=self.staff)
+        self.assertIsNotNone(shift.clocked_out_at)
+        self.assertEqual(shift.tips, Decimal("0"))
+
+    def test_valid_tips_are_recorded(self):
+        client = self._clock_in()
+        resp = client.post(
+            reverse("clock-out"),
+            data=json.dumps({"tips": "150.50"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        shift = Shift.objects.get(staff=self.staff)
+        self.assertEqual(shift.tips, Decimal("150.50"))
+
+
+class ZReportFinancialFormattingTest(TestCase):
+    """
+    Regression test for consistent .2f formatting on every financial line
+    in the Z-report CSV. The two zero-orders lines are the backend-
+    independent proof: `orders['subtotal'] or 0` falls back to a plain int
+    0 whenever there's no data for the day, which renders as "0" not "0.00"
+    regardless of how any given DB backend happens to stringify a nonzero
+    Decimal -- an inconsistent-looking financial report an owner would
+    actually print and read.
+    """
+
+    def setUp(self):
+        self.tenant, self.outlet = _tenant("ZFormat Cafe")
+        self.owner = _user(self.tenant, self.outlet, role="owner", suffix="zfmt")
+
+    def test_zero_orders_day_still_shows_two_decimal_places(self):
+        client = Client()
+        client.force_login(self.owner)
+
+        resp = client.get(reverse("export-z-report"))
+
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode()
+        self.assertIn("Gross Subtotal,0.00", content)
+        self.assertIn("NET REVENUE,0.00", content)
+        self.assertIn("Cash,0.00", content)
+        self.assertIn("Digital (UPI/Card),0.00", content)
+        # The old bare-int fallback would have rendered exactly this instead.
+        self.assertNotIn("Gross Subtotal,0\r\n", content)
+        self.assertNotIn("NET REVENUE,0\r\n", content)

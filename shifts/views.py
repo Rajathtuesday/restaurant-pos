@@ -102,11 +102,10 @@ def clock_out(request):
     if not shift:
         return JsonResponse({"error": "No active shift found"}, status=400)
 
-    data = {}
     try:
-        data = json.loads(request.body)
-    except Exception:
-        pass
+        data = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid request."}, status=400)
 
     shift.clocked_out_at = timezone.now()
     shift.tips = data.get("tips", 0) or 0
@@ -383,17 +382,17 @@ def export_z_report(request):
     writer.writerow([])
     
     writer.writerow(['FINANCIAL TOTALS'])
-    writer.writerow(['Gross Subtotal', orders['subtotal'] or 0])
-    writer.writerow(['Total Discount', orders['discount'] or 0])
-    writer.writerow(['GST Collected', orders['gst'] or 0])
-    writer.writerow(['Round Off', orders['round_off'] or 0])
-    writer.writerow(['Net Refunds', abs(summary['refunds'] or 0)])
-    writer.writerow(['NET REVENUE', summary['total'] or 0])
+    writer.writerow(['Gross Subtotal', f"{orders['subtotal'] or 0:.2f}"])
+    writer.writerow(['Total Discount', f"{orders['discount'] or 0:.2f}"])
+    writer.writerow(['GST Collected', f"{orders['gst'] or 0:.2f}"])
+    writer.writerow(['Round Off', f"{orders['round_off'] or 0:.2f}"])
+    writer.writerow(['Net Refunds', f"{abs(summary['refunds'] or 0):.2f}"])
+    writer.writerow(['NET REVENUE', f"{summary['total'] or 0:.2f}"])
     writer.writerow([])
 
     writer.writerow(['PAYMENT BREAKDOWN'])
-    writer.writerow(['Cash', summary['cash'] or 0])
-    writer.writerow(['Digital (UPI/Card)', summary['digital'] or 0])
+    writer.writerow(['Cash', f"{summary['cash'] or 0:.2f}"])
+    writer.writerow(['Digital (UPI/Card)', f"{summary['digital'] or 0:.2f}"])
     writer.writerow([])
 
     # Detailed Item Sales for the Day

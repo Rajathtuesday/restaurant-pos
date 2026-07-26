@@ -12,6 +12,8 @@ Covers:
 Run: python manage.py test setup.test_security_fixes
 """
 from django.test import TestCase, Client
+from django.test.utils import CaptureQueriesContext
+from django.db import connection
 from django.urls import reverse
 
 from accounts.models import User
@@ -507,3 +509,40 @@ class EditStaffOutletTest(_Base):
         self.assertEqual(resp.status_code, 400)
         self.waiter.refresh_from_db()
         self.assertEqual(self.waiter.outlet_id, self.outlet.id)
+
+
+class SetupStaffQueryCountTest(_Base):
+    """
+    Regression test for the confirmed N+1 in setup_staff: the page template
+    renders member.outlet.name per row, and without select_related("outlet")
+    each additional staff member would cost one more query. The query count
+    for the GET request must stay flat as staff count grows, not scale with
+    it -- so this compares query counts at two different staff counts rather
+    than asserting one hardcoded number (which would be fragile against
+    unrelated middleware/session query changes).
+    """
+
+    def _query_count(self):
+        client = Client()
+        client.force_login(self.owner)
+        with CaptureQueriesContext(connection) as ctx:
+            resp = client.get(reverse("setup_staff"))
+        self.assertEqual(resp.status_code, 200)
+        return len(ctx.captured_queries)
+
+    def test_query_count_does_not_scale_with_staff_count(self):
+        baseline = self._query_count()
+
+        for i in range(10):
+            User.objects.create_user(
+                username=f"extra_staff_{i}", password="pw", role="waiter",
+                tenant=self.tenant, outlet=self.outlet,
+            )
+
+        with_more_staff = self._query_count()
+
+        self.assertEqual(
+            baseline, with_more_staff,
+            "setup_staff query count grew with staff count -- the "
+            "select_related(\"outlet\") N+1 fix appears to have regressed."
+        )

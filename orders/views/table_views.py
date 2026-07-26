@@ -82,7 +82,12 @@ def tables_data(request):
                 elif table.state == "cleaning":
                     status = "cleaning"
                 elif not order:
-                    status = "free"
+                    # Respect a manually-set table.state (e.g. a seated
+                    # reservation nudges the table to "ordering" before any
+                    # Order exists) instead of hardcoding "free" -- table.state
+                    # already defaults to and is reset to "free" by every
+                    # other no-order flow, so this is a no-op everywhere else.
+                    status = table.state
                 elif order.status == "billing":
                     status = "billing"
                 else:

@@ -35,8 +35,11 @@ def crm_analytics_report(tenant, outlet=None, start_date=None, end_date=None):
     # THIS period, what fraction have >=2 -- doesn't count history from
     # before the report window (Guest.visit_count is a lifetime total and
     # would conflate "ever a repeat customer" with "repeated in this window").
-    per_guest_counts = earn_qs.values("guest_id").annotate(n=Count("id"))
-    active_guests = per_guest_counts.count()
+    # Evaluate once into a list -- .count() on the queryset directly would
+    # run its own COUNT(*) query, then iterating the queryset again for
+    # repeat_guests would re-run the full GROUP BY a second time.
+    per_guest_counts = list(earn_qs.values("guest_id").annotate(n=Count("id")))
+    active_guests = len(per_guest_counts)
     repeat_guests = sum(1 for row in per_guest_counts if row["n"] >= 2)
     repeat_rate_pct = round(repeat_guests / active_guests * 100, 1) if active_guests else 0
 

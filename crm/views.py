@@ -1,12 +1,15 @@
 # crm/views.py
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 
-from core.decorators import tenant_required
+from core.decorators import tenant_required, feature_required
 from .models import Guest, LoyaltyTransaction
+
+logger = logging.getLogger("pos.crm")
 
 # 1 point per ₹10 spent
 POINTS_PER_RUPEE = 0.1
@@ -14,6 +17,7 @@ POINTS_PER_RUPEE = 0.1
 
 @login_required
 @tenant_required
+@feature_required("crm")
 def crm_dashboard(request):
     """Guest list searchable by name/phone."""
     if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
@@ -30,6 +34,7 @@ def crm_dashboard(request):
 
 @login_required
 @tenant_required
+@feature_required("crm")
 def guest_profile(request, guest_id):
     """Detailed guest loyalty history."""
     try:
@@ -43,6 +48,7 @@ def guest_profile(request, guest_id):
 
 @login_required
 @tenant_required
+@feature_required("crm")
 def guest_lookup(request):
     """API: Look up a guest by phone — used in the billing/bill modal."""
     phone = request.GET.get("phone", "").strip()
@@ -65,6 +71,7 @@ def guest_lookup(request):
 
 @login_required
 @tenant_required
+@feature_required("crm")
 @require_POST
 def link_guest_to_order(request, order_id):
     """
@@ -148,12 +155,16 @@ def link_guest_to_order(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "Invalid redeem_points value."}, status=400)
+    except Exception:
+        logger.exception("Error linking guest to order #%s", order_id)
+        return JsonResponse({"error": "Could not link guest to this order. Please try again."}, status=500)
 
 
 @login_required
 @tenant_required
+@feature_required("reservations")
 def reservation_list(request):
     """View to list and manage table bookings."""
     if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
@@ -191,13 +202,15 @@ def reservation_list(request):
 
 @login_required
 @tenant_required
+@feature_required("reservations")
 @require_POST
 def create_reservation(request):
     """API to create a new reservation."""
     from .models import Reservation, Guest
     from orders.models import Table
+    from django.db import transaction
     from django.utils import timezone
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
         return JsonResponse({"error": "Permission denied"}, status=403)
@@ -213,16 +226,7 @@ def create_reservation(request):
         if not phone or not res_time_str:
             return JsonResponse({"error": "Phone and Time are required"}, status=400)
 
-        # Validate the client-supplied table_id belongs to THIS outlet before
-        # trusting it. Otherwise a crafted request could cross-link a
-        # reservation to another tenant's Table (FK integrity is satisfied,
-        # tenant isolation is not).
-        if table_id:
-            table_ok = Table.objects.filter(
-                id=table_id, tenant=request.user.tenant, outlet=request.user.outlet
-            ).exists()
-            if not table_ok:
-                return JsonResponse({"error": "Invalid table"}, status=400)
+        res_time = timezone.make_aware(datetime.strptime(res_time_str, "%Y-%m-%dT%H:%M"))
 
         guest, _ = Guest.objects.get_or_create(
             tenant=request.user.tenant,
@@ -230,40 +234,66 @@ def create_reservation(request):
             defaults={"name": name}
         )
 
-        res_time = timezone.make_aware(datetime.strptime(res_time_str, "%Y-%m-%dT%H:%M"))
-        from datetime import timedelta
-        
-        if table_id:
-            conflict = Reservation.objects.filter(
+        with transaction.atomic():
+            if table_id:
+                # Lock the table row itself to serialize concurrent
+                # reservation attempts for the same table -- select_for_update()
+                # on the conflict-check query alone wouldn't close this race:
+                # if zero rows currently conflict, there's nothing to lock, so
+                # two concurrent requests could both pass the .exists() check
+                # below before either commits (the same structural TOCTOU bug
+                # as the Razorpay webhook double-payment race, just for table
+                # bookings instead of money). Locking the Table row -- which
+                # always exists once validated -- forces a second concurrent
+                # request for the same table to wait for the first to finish,
+                # the same pattern shifts/views.py::open_cash_session already
+                # uses for CashSession. This get() also does the "table
+                # belongs to this tenant/outlet" validation the old separate
+                # .exists() check did -- a crafted table_id 404s the same way.
+                try:
+                    table = Table.objects.select_for_update().get(
+                        id=table_id, tenant=request.user.tenant, outlet=request.user.outlet
+                    )
+                except Table.DoesNotExist:
+                    return JsonResponse({"error": "Invalid table"}, status=400)
+
+                conflict = Reservation.objects.filter(
+                    tenant=request.user.tenant,
+                    outlet=request.user.outlet,
+                    table_id=table.id,
+                    status__in=["pending", "confirmed"],
+                    reservation_time__range=(
+                        res_time - timedelta(hours=1),
+                        res_time + timedelta(hours=1)
+                    )
+                ).exists()
+                if conflict:
+                    return JsonResponse(
+                        {"error": "Table already booked around this time"},
+                        status=409
+                    )
+
+            reservation = Reservation.objects.create(
                 tenant=request.user.tenant,
                 outlet=request.user.outlet,
+                guest=guest,
                 table_id=table_id,
-                status__in=["pending", "confirmed"],
-                reservation_time__range=(
-                    res_time - timedelta(hours=1),
-                    res_time + timedelta(hours=1)
-                )
-            ).exists()
-            if conflict:
-                return JsonResponse(
-                    {"error": "Table already booked around this time"}, 
-                    status=409
-                )
-
-        reservation = Reservation.objects.create(
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-            guest=guest,
-            table_id=table_id,
-            reservation_time=res_time,
-            number_of_guests=guests_count,
-            created_by=request.user
-        )
+                reservation_time=res_time,
+                number_of_guests=guests_count,
+                created_by=request.user
+            )
 
         return JsonResponse({"success": True, "reservation_id": reservation.id})
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except (ValueError, TypeError):
+        # A malformed reservation_time or non-numeric guests count is a bad
+        # request from the client, not a server failure -- keep that a 400,
+        # separate from the catch-all below, rather than flattening every
+        # exception into the same generic 500.
+        return JsonResponse({"error": "Invalid reservation time or guest count."}, status=400)
+    except Exception:
+        logger.exception("Error creating reservation")
+        return JsonResponse({"error": "Reservation could not be created. Please try again."}, status=500)
 
 
 # A reservation's status is a small state machine, not a free-for-all field --
@@ -280,6 +310,7 @@ RESERVATION_TRANSITIONS = {
 
 @login_required
 @tenant_required
+@feature_required("reservations")
 @require_POST
 def update_reservation_status(request, reservation_id):
     """Moves a reservation through pending -> confirmed -> seated (or

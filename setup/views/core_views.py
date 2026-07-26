@@ -410,9 +410,11 @@ def setup_staff(request):
     tenant = request.user.tenant
     outlet = request.user.outlet
 
+    # select_related("outlet") -- setup_staff.html renders member.outlet.name
+    # per row; without it, that's one extra query per staff member.
     staff = User.objects.filter(
         tenant=tenant
-    ).exclude(role="owner")
+    ).exclude(role="owner").select_related("outlet")
 
     outlets = Outlet.objects.filter(tenant=tenant)
 

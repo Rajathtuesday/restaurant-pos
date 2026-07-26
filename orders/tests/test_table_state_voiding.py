@@ -168,3 +168,24 @@ class TablesDataVoidingTests(TestCase):
         row = next(r for r in resp.json()["tables"] if r["id"] == self.table.id)
 
         self.assertEqual(row["status"], "served")
+
+    def test_table_state_respected_when_no_order_exists(self):
+        """A table can carry a non-"free" state with no Order at all -- e.g.
+        a seated reservation nudges Table.state to "ordering" before any
+        Order exists (crm/views.py::update_reservation_status). Previously
+        the "no order" branch hardcoded "free", silently discarding this."""
+        self.table.state = "ordering"
+        self.table.save(update_fields=["state"])
+
+        resp = self.client.get("/tables-data/")
+        row = next(r for r in resp.json()["tables"] if r["id"] == self.table.id)
+
+        self.assertEqual(row["status"], "ordering")
+
+    def test_free_table_with_no_order_still_reads_free(self):
+        """Locks in the untouched common case -- the fix must not flip a
+        genuinely free, order-less table to anything else."""
+        resp = self.client.get("/tables-data/")
+        row = next(r for r in resp.json()["tables"] if r["id"] == self.table.id)
+
+        self.assertEqual(row["status"], "free")
