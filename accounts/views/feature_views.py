@@ -33,6 +33,7 @@ _FEATURE_META = {
     "crm":                 {"label": "CRM / Guests",          "icon": "bi-people",                   "desc": "Guest profiles, visit history, and spend.",               "group": "CRM & Loyalty"},
     "reservations":        {"label": "Reservations",          "icon": "bi-calendar-check",           "desc": "Table booking with date, time, guest count.",             "group": "CRM & Loyalty"},
     "loyalty_points":      {"label": "Loyalty Points",        "icon": "bi-star",                     "desc": "Earn and redeem points per order.",                       "group": "CRM & Loyalty"},
+    "guest_feedback":      {"label": "Guest Feedback",        "icon": "bi-chat-heart",               "desc": "Post-visit star rating + comment, collected via a link on the digital bill.", "group": "CRM & Loyalty"},
     "ai_menu_import":      {"label": "AI Menu Import",        "icon": "bi-stars",                    "desc": "Photograph any menu — AI imports all items in 60s.",      "group": "Menu"},
     "ai_recipe_import":    {"label": "AI Recipe Import",      "icon": "bi-journal-richtext",         "desc": "Upload a recipe — AI matches ingredients to inventory, human reviews before saving.", "group": "Menu"},
     "multi_outlet":        {"label": "Multi-Outlet",          "icon": "bi-building",                 "desc": "Multiple branch management and menu sync.",               "group": "Operations"},

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback — {{ tenant.name }}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e8e2d8;
+    font-family: -apple-system, 'Segoe UI', Inter, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 2.5rem 1rem 4rem;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: #111;
+    border: 1px solid #232323;
+    padding: 2rem 1.6rem;
+    text-align: center;
+  }
+  .logo { font-family: 'Georgia', serif; font-size: 1.6rem; color: #c5a059; margin-bottom: .3rem; }
+  .sub { font-size: .78rem; color: #8a8278; margin-bottom: 1.6rem; }
+
+  .stars { display: flex; justify-content: center; gap: .4rem; margin-bottom: 1.4rem; direction: rtl; }
+  .stars input { display: none; }
+  .stars label {
+    font-size: 2.2rem; color: #2a2a2a; cursor: pointer; line-height: 1;
+    transition: color .15s;
+  }
+  .stars input:checked ~ label,
+  .stars label:hover,
+  .stars label:hover ~ label { color: #c5a059; }
+
+  .field { text-align: left; margin-bottom: 1.1rem; }
+  .field label { display: block; font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; color: #6a655e; margin-bottom: .4rem; }
+  .field input, .field textarea {
+    width: 100%; background: transparent; border: 1px solid #232323; color: #e8e2d8;
+    padding: .6rem .7rem; font-size: .88rem; font-family: inherit; outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: #c5a059; }
+  .field textarea { resize: vertical; min-height: 70px; }
+
+  .error { color: #ef4444; font-size: .78rem; margin-bottom: 1rem; }
+
+  .submit-btn {
+    width: 100%; padding: .85rem; background: #c5a059; border: none; color: #0a0a0a;
+    font-size: .78rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;
+    cursor: pointer; margin-top: .4rem;
+  }
+  .submit-btn:hover { background: #d4b06c; }
+
+  .thanks-icon { font-size: 2.4rem; color: #c5a059; margin-bottom: .8rem; }
+  .thanks-msg { font-size: .95rem; color: #d8d2c8; margin-bottom: .3rem; }
+  .thanks-sub { font-size: .78rem; color: #6a655e; }
+
+  .footer { text-align: center; font-size: .65rem; color: #4a463f; margin-top: 1.6rem; letter-spacing: .5px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">{{ tenant.name }}</div>
+
+  {% if not_available %}
+    <p class="sub">Feedback collection isn't available for this restaurant right now.</p>
+
+  {% elif already_submitted %}
+    <div class="thanks-icon">&#9733;</div>
+    <p class="thanks-msg">You already rated this visit {{ feedback.rating }}/5 — thank you!</p>
+
+  {% elif just_submitted %}
+    <div class="thanks-icon">&#10003;</div>
+    <p class="thanks-msg">Thanks for letting us know!</p>
+    <p class="thanks-sub">Your feedback helps {{ tenant.name }} get better.</p>
+
+  {% else %}
+    <p class="sub">How was your visit?</p>
+
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="stars">
+        <input type="radio" name="rating" value="5" id="s5"><label for="s5">&#9733;</label>
+        <input type="radio" name="rating" value="4" id="s4"><label for="s4">&#9733;</label>
+        <input type="radio" name="rating" value="3" id="s3"><label for="s3">&#9733;</label>
+        <input type="radio" name="rating" value="2" id="s2"><label for="s2">&#9733;</label>
+        <input type="radio" name="rating" value="1" id="s1"><label for="s1">&#9733;</label>
+      </div>
+
+      <div class="field">
+        <label>Your Name (optional)</label>
+        <input type="text" name="guest_name" maxlength="100" value="{{ guest_name|default:'' }}">
+      </div>
+
+      <div class="field">
+        <label>Comments (optional)</label>
+        <textarea name="comment">{{ comment|default:'' }}</textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit Feedback</button>
+    </form>
+  {% endif %}
+
+  <div class="footer">Powered by Rasova POS</div>
+</div>
+</body>
+</html>

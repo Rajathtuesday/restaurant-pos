@@ -48,6 +48,13 @@
   .balance .lbl { font-size: .58rem; text-transform: uppercase; letter-spacing: 2px; color: #6a655e; margin-bottom: 4px; }
   .balance .val { font-size: 1.05rem; font-weight: 600; color: #e8e2d8; }
 
+  .feedback-link {
+    display: block; text-align: center; margin-top: 1.2rem; padding: .8rem;
+    border: 1px solid #2a2a2a; color: #c5a059; text-decoration: none;
+    font-size: .8rem; letter-spacing: .5px;
+  }
+  .feedback-link:hover { border-color: #c5a059; }
+
   .footer { text-align: center; font-size: .65rem; color: #4a463f; margin-top: 1.4rem; letter-spacing: .5px; }
 </style>
 </head>
@@ -92,6 +99,10 @@
     <div class="lbl">Status</div>
     <div class="val">Paid in full</div>
   </div>
+  {% endif %}
+
+  {% if show_feedback_link %}
+  <a class="feedback-link" href="{% url 'public-feedback' feedback_token %}">&#9733; Rate Your Experience</a>
   {% endif %}
 
   <div class="footer">Powered by Rasova POS</div>

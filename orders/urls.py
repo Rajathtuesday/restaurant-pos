@@ -4,7 +4,7 @@ from django.urls import path
 from .views.order_actions import cancel_order, cancel_item, toggle_parcel
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view
-from .views.public_views import public_bill
+from .views.public_views import public_bill, submit_feedback
 from .views.razorpay_views import create_razorpay_qr, razorpay_qr_status, razorpay_webhook
 from .views.promo_views import list_active_promos, create_promo, toggle_promo, delete_promo
 from .views.print_queue import print_queue_add, print_queue_poll, print_queue_done, print_queue_failed
@@ -157,6 +157,7 @@ urlpatterns = [
 
     # Public, login-free bill link (WhatsApp receipt)
     path("bill/public/<str:signed_token>/", public_bill, name="public-bill"),
+    path("bill/public/<str:signed_token>/feedback/", submit_feedback, name="public-feedback"),
 
     # Razorpay — UPI QR (BYO-keys)
     path("razorpay/create-qr/<int:order_id>/", create_razorpay_qr, name="razorpay-create-qr"),

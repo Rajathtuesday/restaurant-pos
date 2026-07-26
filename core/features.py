@@ -126,6 +126,7 @@ FEATURE_GROUPS = {
         'crm',
         'reservations',
         'loyalty_points',
+        'guest_feedback',
     ],
     'Menu': [
         'ai_menu_import',
