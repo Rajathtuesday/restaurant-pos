@@ -4,7 +4,8 @@ from datetime import timedelta
 from decimal import Decimal
 from accounts.models import User
 from tenants.models import Tenant, Outlet
-from orders.models import Order, OrderItem, KOTBatch, Table
+from kitchen.models import KOTBatch
+from orders.models import Order, OrderItem, Table
 from menu.models import MenuItem, MenuCategory
 from reports.services.kitchen_reports import kitchen_performance, top_kitchen_items
 

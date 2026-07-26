@@ -478,54 +478,9 @@ class Order(TenantScopedModel):
                                  "gst_breakdown_cache"])
 
 
-# =====================================================
-# KOT
-# =====================================================
-
-class KOTBatch(TenantScopedModel):
-
-    STATUS = (
-        ("confirmed", "Confirmed"),
-        ("preparing", "Preparing"),
-        ("ready", "Ready"),
-    )
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        related_name="kots"
-    )
-
-    kot_number = models.IntegerField()
-
-    station = models.ForeignKey(
-        "setup.KitchenStation",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="kots"
-    )
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS,
-        default="confirmed"
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ("order", "kot_number")
-        indexes = [
-            models.Index(fields=["tenant", "outlet"]),
-            models.Index(fields=["tenant", "outlet", "status"], name="kotbatch_tenant_outlet_status"),
-        ]
-
-    def __str__(self):
-        return f"KOT {self.kot_number}"
+# KOTBatch moved to kitchen/models.py (Phase 3 of the orders app split,
+# state-only migration -- see orders/migrations/0057_delete_kitchen_models_state_only.py).
+# The underlying table is still orders_kotbatch; nothing here changed in the DB.
 
 
 # =====================================================
@@ -609,7 +564,7 @@ class OrderItem(models.Model):
     voided_at = models.DateTimeField(null=True, blank=True)
 
     kot = models.ForeignKey(
-        KOTBatch,
+        "kitchen.KOTBatch",
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -1002,23 +957,9 @@ class OrderLock(models.Model):
         return f"Order {self.order.id} locked by {self.locked_by}"
 
 
-# =====================================================
-# DAILY KOT COUNTER
-# =====================================================
-
-class DailyKOTCounter(TenantScopedModel):
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-    date = models.DateField()
-
-    value = models.IntegerField(default=0)
-
-    class Meta:
-        unique_together = ("tenant", "outlet", "date")
-
-    def __str__(self):
-        return f"{self.date} -> {self.value}"
+# DailyKOTCounter moved to kitchen/models.py (Phase 3 of the orders app
+# split, state-only migration). The underlying table is still
+# orders_dailykotcounter; nothing here changed in the DB.
 
 
 # =====================================================
@@ -1086,34 +1027,9 @@ class TableMerge(TenantScopedModel):
         return f"Merge on {self.primary_table.name} ({self.tables.count()} tables)"
 
 
-# =====================================================
-# KITCHEN MESSAGE
-# =====================================================
-
-class KitchenMessage(TenantScopedModel):
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.CASCADE,
-        related_name="kitchen_messages"
-    )
-
-    message = models.CharField(max_length=255)
-
-    is_resolved = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["tenant", "outlet", "is_resolved"]),
-        ]
-
-    def __str__(self):
-        return f"Message for {self.order.table.name if self.order.table else 'Walk-in'}: {self.message}"
+# KitchenMessage moved to kitchen/models.py (Phase 3 of the orders app
+# split, state-only migration). The underlying table is still
+# orders_kitchenmessage; nothing here changed in the DB.
 
 
 # Promo moved to promos/models.py (Phase 0 of the orders app split, state-only

@@ -3,7 +3,8 @@
 import logging
 from django.utils import timezone
 from django.db.models import Sum, Count, Q
-from orders.models import OrderItem, KOTBatch
+from orders.models import OrderItem
+from kitchen.models import KOTBatch
 from core.utils import get_business_date, get_business_date_range
 
 logger = logging.getLogger("pos.reports")

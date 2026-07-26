@@ -7,7 +7,7 @@ from .payment_views import pay_order, split_pay, refund_payment
 from .discount_views import apply_discount, make_item_complimentary, apply_item_discount, log_bypass
 from .print_views import generate_bill, print_bill_action, print_kot_action, print_split_bill, qz_receipt_data, printer_status, download_pdf_bill, thermal_receipt_view
 from .billing_views import create_order
-from .kitchen_views import kitchen_view, kitchen_data, start_preparing, mark_ready, serve_item, send_to_kitchen, send_kitchen_message, bump_kot
+# kitchen_views moved to kitchen/views.py (Phase 3 of the orders app split)
 from .table_views import table_dashboard, tables_data, mark_table_cleaned, available_tables, merge_tables_view, unmerge_tables_view, transfer_table_view, manage_table_view
 from .order_views import running_order_view, running_order_items, running_order_data, approve_items
 from .waiter_views import waiter_dashboard, resolve_waiter_call, resolve_kitchen_message
@@ -38,15 +38,7 @@ __all__ = [
     "thermal_receipt_view",
     # order creation (still in billing_views shim)
     "create_order",
-    # kitchen
-    "kitchen_view",
-    "kitchen_data",
-    "start_preparing",
-    "mark_ready",
-    "serve_item",
-    "send_to_kitchen",
-    "send_kitchen_message",
-    "bump_kot",
+    # kitchen -- moved to kitchen/views.py (Phase 3 of the orders app split)
     # tables
     "table_dashboard",
     "tables_data",

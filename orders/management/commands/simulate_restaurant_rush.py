@@ -14,7 +14,7 @@ from orders.services.order_service import (
     update_table_state
 )
 
-from orders.services.kot_service import create_kot
+from kitchen.services.kot_service import create_kot
 
 
 class Command(BaseCommand):

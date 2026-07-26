@@ -207,6 +207,13 @@ class CashSession(TenantScopedModel):
     def __str__(self):
         return f"Session {self.id} ({self.status}) - {self.opened_at.date()}"
 
+    @property
+    def cash_sales(self):
+        """total_sales is cash+digital combined; this isolates the cash
+        portion, which is what the Opening/Expected/Actual/Diff columns
+        next to it in the cash-session table are all reconciling."""
+        return self.total_sales - self.total_digital_payments
+
 
 class StaffPayRate(TenantScopedModel):
     """

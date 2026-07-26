@@ -18,7 +18,7 @@ from django.urls import reverse
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import (
-    DailyKOTCounter, Order, OrderItem, Refund, Table, Payment,
+    Order, OrderItem, Refund, Table, Payment,
 )
 from orders.services.order_service import add_items_to_order, get_or_create_open_order
 from tenants.models import Tenant, Outlet
@@ -139,45 +139,8 @@ class RefundDefaultStatusTest(TestCase):
         self.assertNotEqual(refund.status, "approved")
 
 
-# ─────────────────────────────────────────────
-# 3. KOT COUNTER — tenant-isolated (no cross-restaurant collision)
-# ─────────────────────────────────────────────
-
-class KOTCounterTenantIsolationTest(TestCase):
-
-    def setUp(self):
-        self.t1, self.o1 = _make_tenant("KOT Cafe A")
-        self.t2, self.o2 = _make_tenant("KOT Cafe B")
-
-    def test_counter_per_tenant_outlet(self):
-        from django.utils import timezone
-        today = timezone.now().date()
-
-        c1, _ = DailyKOTCounter.objects.get_or_create(
-            tenant=self.t1, outlet=self.o1, date=today
-        )
-        c2, _ = DailyKOTCounter.objects.get_or_create(
-            tenant=self.t2, outlet=self.o2, date=today
-        )
-        c1.value = 5
-        c1.save()
-        c2.refresh_from_db()
-        # Cafe B's counter must NOT be affected by Cafe A's increment
-        self.assertEqual(c2.value, 0, "Counters must be isolated per tenant")
-
-    def test_same_tenant_same_outlet_unique_per_day(self):
-        from django.utils import timezone
-        from django.db import IntegrityError
-        today = timezone.now().date()
-        DailyKOTCounter.objects.get_or_create(
-            tenant=self.t1, outlet=self.o1, date=today
-        )
-        with self.assertRaises(Exception):
-            # duplicate should fail
-            DailyKOTCounter.objects.create(
-                tenant=self.t1, outlet=self.o1, date=today, value=99
-            )
-
+# KOT counter tenant-isolation coverage moved to kitchen/tests.py
+# (Phase 3 of the orders app split).
 
 # ─────────────────────────────────────────────
 # 4. ADD ITEMS — cross-tenant modifier injection blocked

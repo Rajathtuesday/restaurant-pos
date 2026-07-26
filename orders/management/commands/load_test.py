@@ -33,7 +33,7 @@ from orders.models import Order, Table
 from tenants.models import Tenant, Outlet
 
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
-from orders.services.kot_service import create_kot
+from kitchen.services.kot_service import create_kot
 from orders.services.payment_service import process_payment
 
 LOADTEST_SLUG = "loadtest-tenant"

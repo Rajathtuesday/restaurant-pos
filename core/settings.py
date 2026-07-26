@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'promos',
     'printing',
     'tokens',
+    'kitchen',
     'agency',
     'portal',
     'django_celery_results',

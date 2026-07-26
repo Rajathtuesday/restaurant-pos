@@ -100,7 +100,7 @@ def pay_order(request, order_id):
                     pending = order.items.filter(status="pending")
                     if pending.exists():
                         try:
-                            from orders.services.kot_service import create_kot
+                            from kitchen.services.kot_service import create_kot
                             create_kot(request.user, order, print_on_create=False)
                             order.refresh_from_db()
                         except Exception as _ke:

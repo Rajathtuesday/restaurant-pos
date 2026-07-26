@@ -176,7 +176,7 @@ def approve_items(request, order_id):
             
             # Trigger KOT creation for the newly approved items
             try:
-                from orders.services.kot_service import create_kot
+                from kitchen.services.kot_service import create_kot
                 create_kot(request.user, order)
             except Exception as kot_err:
                 logger.error("KOT Creation failed during approval: %s", kot_err)

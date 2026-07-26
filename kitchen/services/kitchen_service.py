@@ -1,6 +1,7 @@
-# orders/services/kitchen_service.py
+# kitchen/services/kitchen_service.py
 from django.db import transaction
-from orders.models import OrderItem, KOTBatch
+from orders.models import OrderItem
+from kitchen.models import KOTBatch
 from notifications.services.notification_service import create_notification
 from orders.services.order_service import update_table_state
 
@@ -100,7 +101,7 @@ def set_item_ready(user, item_id):
     update_table_state(item.order)
 
     # Create KitchenMessage for the waiter dashboard
-    from orders.models import KitchenMessage
+    from kitchen.models import KitchenMessage
     KitchenMessage.objects.create(
         tenant=item.order.tenant,
         outlet=item.order.outlet,

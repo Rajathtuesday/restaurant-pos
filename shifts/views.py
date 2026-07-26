@@ -418,20 +418,20 @@ def export_z_report(request):
     writer.writerow([])
 
     writer.writerow(['CASH SESSION DETAILS'])
-    writer.writerow(['Session ID', 'Status', 'Opened At', 'Closed At', 'Opened By', 'Opening Bal', 'Exp Cash', 'Actual Cash', 'Diff', 'Sales'])
+    writer.writerow(['Session ID', 'Status', 'Opened At', 'Closed At', 'Opened By', 'Opening Bal', 'Exp Cash', 'Actual Cash', 'Diff', 'Cash Sales'])
 
     for s in sessions:
         writer.writerow([
             s.id,
             s.status.upper(),
-            s.opened_at.strftime('%H:%M') if s.opened_at else '',
-            s.closed_at.strftime('%H:%M') if s.closed_at else '-',
+            timezone.localtime(s.opened_at).strftime('%H:%M') if s.opened_at else '',
+            timezone.localtime(s.closed_at).strftime('%H:%M') if s.closed_at else '-',
             s.opened_by.username if s.opened_by else '',
             s.opening_balance,
             s.expected_cash,
             s.actual_cash,
             s.discrepancy,
-            s.total_sales
+            s.cash_sales
         ])
 
     return response

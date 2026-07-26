@@ -6,7 +6,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required
-from orders.models import WaiterCall, KitchenMessage
+from orders.models import WaiterCall
+from kitchen.models import KitchenMessage
 
 logger = logging.getLogger("pos.orders")
 

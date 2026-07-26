@@ -1,10 +1,10 @@
-# orders/tests/test_kitchen_permissions.py
+# kitchen/tests.py
 """
-Bug: orders/views/kitchen_views.py had zero @role_required gates on any of
-its 8 endpoints (every other file under orders/views/ consistently uses
-role_required) - any authenticated staff member of the tenant, including a
-waiter, could hit /kitchen/, mark items preparing/ready, and bump whole
-KOTs, none of which are waiter actions.
+Bug: kitchen/views.py (then orders/views/kitchen_views.py) had zero
+@role_required gates on any of its 8 endpoints (every other file under
+orders/views/ consistently uses role_required) - any authenticated staff
+member of the tenant, including a waiter, could hit /kitchen/, mark items
+preparing/ready, and bump whole KOTs, none of which are waiter actions.
 
 Fix: role_required added per-endpoint, matching who actually performs each
 action:
@@ -15,7 +15,11 @@ action:
   - serve_item,
     send_kitchen_message    -> anyone who can be at a table (adds waiter/cashier)
 
-Run: python manage.py test orders.tests.test_kitchen_permissions
+Also includes (moved from orders/tests/, Phase 3 of the orders app split):
+  - TestKOTBatchIndexes (orders/tests/test_schema_review.py)
+  - KOTCounterTenantIsolationTest (orders/tests/test_critical.py)
+
+Run: python manage.py test kitchen
 """
 import json
 
@@ -25,7 +29,7 @@ from django.urls import reverse
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Table
-from orders.services.kot_service import create_kot
+from kitchen.services.kot_service import create_kot
 from tenants.models import Tenant, Outlet
 
 
@@ -168,3 +172,70 @@ class ServeAndMessagePermissionTest(_Base):
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
+
+
+# ======================================================================
+#  Moved from orders/tests/test_schema_review.py
+# ======================================================================
+
+def _index_names(model):
+    return [idx.name for idx in model._meta.indexes]
+
+
+def _field_names_in_indexes(model):
+    return [tuple(idx.fields) for idx in model._meta.indexes]
+
+
+class TestKOTBatchIndexes(TestCase):
+
+    def test_tenant_outlet_status_composite_present(self):
+        from kitchen.models import KOTBatch
+        self.assertIn("kotbatch_tenant_outlet_status", _index_names(KOTBatch))
+
+    def test_tenant_outlet_base_index_present(self):
+        from kitchen.models import KOTBatch
+        field_sets = _field_names_in_indexes(KOTBatch)
+        self.assertIn(("tenant", "outlet"), field_sets)
+
+
+# ======================================================================
+#  Moved from orders/tests/test_critical.py
+# ======================================================================
+
+class KOTCounterTenantIsolationTest(TestCase):
+
+    def setUp(self):
+        self.t1 = Tenant.objects.create(name="KOT Cafe A")
+        self.o1 = Outlet.objects.create(tenant=self.t1, name="Main")
+        self.t2 = Tenant.objects.create(name="KOT Cafe B")
+        self.o2 = Outlet.objects.create(tenant=self.t2, name="Main")
+
+    def test_counter_per_tenant_outlet(self):
+        from django.utils import timezone
+        from kitchen.models import DailyKOTCounter
+        today = timezone.now().date()
+
+        c1, _ = DailyKOTCounter.objects.get_or_create(
+            tenant=self.t1, outlet=self.o1, date=today
+        )
+        c2, _ = DailyKOTCounter.objects.get_or_create(
+            tenant=self.t2, outlet=self.o2, date=today
+        )
+        c1.value = 5
+        c1.save()
+        c2.refresh_from_db()
+        # Cafe B's counter must NOT be affected by Cafe A's increment
+        self.assertEqual(c2.value, 0, "Counters must be isolated per tenant")
+
+    def test_same_tenant_same_outlet_unique_per_day(self):
+        from django.utils import timezone
+        from kitchen.models import DailyKOTCounter
+        today = timezone.now().date()
+        DailyKOTCounter.objects.get_or_create(
+            tenant=self.t1, outlet=self.o1, date=today
+        )
+        with self.assertRaises(Exception):
+            # duplicate should fail
+            DailyKOTCounter.objects.create(
+                tenant=self.t1, outlet=self.o1, date=today, value=99
+            )

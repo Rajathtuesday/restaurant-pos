@@ -70,7 +70,7 @@
         <table class="table-luxury">
             <thead>
                 <tr>
-                    <th>Date</th><th>Opened</th><th>Closed</th><th>Total Sales</th><th>Discrepancy</th><th>Status</th>
+                    <th>Date</th><th>Opened</th><th>Closed</th><th>Cash Sales</th><th>Discrepancy</th><th>Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -79,7 +79,7 @@
                     <td><strong>{{ s.opened_at|date:"M d, Y" }}</strong></td>
                     <td>{{ s.opened_at|date:"H:i" }} ({{ s.opened_by.username }})</td>
                     <td>{{ s.closed_at|date:"H:i"|default:"—" }}</td>
-                    <td>₹{{ s.total_sales }}</td>
+                    <td>₹{{ s.cash_sales }}</td>
                     <td>
                         <span class="{% if s.discrepancy < 0 %}discrepancy-neg{% else %}discrepancy-pos{% endif %}">
                             {{ s.discrepancy|floatformat:2 }}

@@ -4,7 +4,8 @@ from decimal import Decimal
 
 from tenants.models import Tenant, Outlet
 from accounts.models import User
-from orders.models import Order, OrderItem, Table, KOTBatch
+from orders.models import Order, OrderItem, Table
+from kitchen.models import KOTBatch
 from menu.models import MenuItem
 
 

@@ -71,7 +71,7 @@ def print_bill_action(request, order_id):
       cashier_strip=True → Hotel/one-printer: full bill + KOTs connected strip
       neither            → Fine dining with per-station printers: bill only
     """
-    from orders.models import KOTBatch
+    from kitchen.models import KOTBatch
     from orders.services.printing_service import PrintingService
     from setup.services.station_service import get_default_station
     from core.features import has_feature
@@ -273,7 +273,7 @@ def print_split_bill(request, order_id):
 def print_kot_action(request, kot_id):
     """Re-print a KOT on the station's thermal printer."""
     from orders.services.printing_service import PrintingService
-    from orders.models import KOTBatch
+    from kitchen.models import KOTBatch
     try:
         kot = KOTBatch.objects.select_related("order", "station").get(
             id=kot_id,
@@ -357,7 +357,7 @@ def download_pdf_bill(request, order_id):
 def thermal_receipt_view(request, order_id):
     from django.shortcuts import get_object_or_404, render
     from django.db.models import Sum
-    from orders.models import KOTBatch
+    from kitchen.models import KOTBatch
     from setup.services.station_service import get_default_station
     from core.features import has_feature
 

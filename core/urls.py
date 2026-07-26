@@ -101,6 +101,7 @@ urlpatterns = [
     path('', include('promos.urls')),
     path('', include('printing.urls')),
     path('', include('tokens.urls')),
+    path('', include('kitchen.urls')),
 
     
     # menu module

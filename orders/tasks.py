@@ -42,7 +42,8 @@ def print_kot_task(self, station_id, order_id, kot_id):
 
     Idempotency: Redis key prevents double-printing if task is retried.
     """
-    from orders.models import Order, KOTBatch
+    from orders.models import Order
+    from kitchen.models import KOTBatch
 
     try:
         station = KitchenStation.objects.get(id=station_id)
@@ -136,7 +137,8 @@ def print_bill_task(self, order_id, station_id):
     strip_mode auto-detected: no kitchen_display → QSR strip (one connected
     receipt+KOT chain, single full cut at end). Otherwise fine-dining split.
     """
-    from orders.models import Order, KOTBatch
+    from orders.models import Order
+    from kitchen.models import KOTBatch
     from core.features import has_feature
 
     try:

@@ -4,14 +4,12 @@ from .models import (
     Table,
     Order,
     OrderItem,
-    KOTBatch,
     Payment,
     WaiterCall
 )
 
 
 admin.site.register(Table)
-admin.site.register(KOTBatch)
 admin.site.register(Payment)
 admin.site.register(WaiterCall)
 

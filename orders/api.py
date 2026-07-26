@@ -14,7 +14,8 @@ from django.utils import timezone
 
 from core.decorators import tenant_required
 from notifications.models import Notification
-from orders.models import WaiterCall, KitchenMessage
+from orders.models import WaiterCall
+from kitchen.models import KitchenMessage
 
 @login_required
 @tenant_required
@@ -311,7 +312,7 @@ def api_ingest_order(request):
                 # is no logged-in staff member for a webhook order) and derives
                 # tenant/outlet from the order itself.
                 if auto_kot:
-                    from orders.services.kot_service import create_kot
+                    from kitchen.services.kot_service import create_kot
                     create_kot(None, order)
 
                 # Assign online token if tenant uses token_system

@@ -1,4 +1,4 @@
-# orders/services/kot_service.py
+# kitchen/services/kot_service.py
 import logging
 from collections import defaultdict
 from django.db import transaction
@@ -7,7 +7,8 @@ from django.utils import timezone
 
 logger = logging.getLogger("pos.orders")
 
-from orders.models import KOTBatch, OrderItem, DailyKOTCounter
+from kitchen.models import KOTBatch, DailyKOTCounter
+from orders.models import OrderItem
 from orders.services.inventory_service import deduct_inventory_for_items
 from setup.services.station_service import get_default_station_for
 

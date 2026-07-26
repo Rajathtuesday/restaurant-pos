@@ -4,7 +4,6 @@ Tests for every schema-review fix applied to the orders app.
 Coverage:
   - Order composite indexes replace four single-column indexes
   - OrderItem has (order), (order, status), (kot) indexes
-  - KOTBatch has (tenant, outlet, status) index
   - Payment has (paid_at) and (order, method) indexes
   - OrderEvent has (order, event_type) composite index
   - gst_breakdown_cache populated by recalculate_totals, property reads from it
@@ -13,7 +12,8 @@ Coverage:
 
 (Promo.validate_and_use() coverage moved to promos/tests.py, Phase 0 of the
 orders app split. DailyTokenCounter/DailyOnlineTokenCounter's no-redundant-
-index coverage moved to tokens/tests.py, Phase 2.)
+index coverage moved to tokens/tests.py, Phase 2. KOTBatch index coverage
+moved to kitchen/tests.py, Phase 3.)
 """
 from decimal import Decimal
 
@@ -24,7 +24,6 @@ from django.core.exceptions import ValidationError
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import (
-    KOTBatch,
     Order,
     OrderEvent,
     OrderItem,
@@ -137,16 +136,6 @@ class TestOrderItemIndexes(TestCase):
     def test_no_standalone_status_index(self):
         field_sets = _field_names_in_indexes(OrderItem)
         self.assertNotIn(("status",), field_sets)
-
-
-class TestKOTBatchIndexes(TestCase):
-
-    def test_tenant_outlet_status_composite_present(self):
-        self.assertIn("kotbatch_tenant_outlet_status", _index_names(KOTBatch))
-
-    def test_tenant_outlet_base_index_present(self):
-        field_sets = _field_names_in_indexes(KOTBatch)
-        self.assertIn(("tenant", "outlet"), field_sets)
 
 
 class TestPaymentIndexes(TestCase):

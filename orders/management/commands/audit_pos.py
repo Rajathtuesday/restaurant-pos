@@ -5,7 +5,8 @@ from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
 
-from orders.models import Order, OrderItem, Table, KOTBatch
+from orders.models import Order, OrderItem, Table
+from kitchen.models import KOTBatch
 from inventory.models import InventoryItem
 
 class Command(BaseCommand):

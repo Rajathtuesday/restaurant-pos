@@ -142,7 +142,7 @@ class AutoAcceptKotTest(AggregatorIngestBase):
         self.config.save(update_fields=["auto_accept_orders"])
 
     def test_auto_accept_order_creates_kot_and_succeeds(self):
-        from orders.models import KOTBatch
+        from kitchen.models import KOTBatch
 
         resp = self._post({
             "tenant_id": self.tenant.id,

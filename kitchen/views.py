@@ -1,4 +1,4 @@
-# orders/views/kitchen_views.py
+# kitchen/views.py
 import logging
 import json
 from django.contrib.auth.decorators import login_required
@@ -8,7 +8,8 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 
 from core.decorators import tenant_required, feature_required, role_required
-from orders.models import Order, OrderItem, OrderEvent, KitchenMessage
+from orders.models import Order, OrderItem, OrderEvent
+from kitchen.models import KitchenMessage
 from setup.models import KitchenStation
 
 logger = logging.getLogger("pos.orders")
@@ -40,7 +41,7 @@ def send_to_kitchen(request, order_id):
             if order.status not in ["open", "billing"]:
                 return JsonResponse({"error": f"Order is {order.status} and cannot be sent to kitchen"}, status=400)
 
-            from orders.services.kot_service import create_kot
+            from kitchen.services.kot_service import create_kot
             kots = create_kot(request.user, order)
 
             logger.info("User %s sent order #%s to kitchen", request.user.username, order.id)
@@ -79,7 +80,7 @@ def kitchen_view(request):
         outlet=request.user.outlet,
         is_active=True
     )
-    return render(request, "orders/kitchen.html", {"stations": stations})
+    return render(request, "kitchen/kitchen.html", {"stations": stations})
 
 
 @login_required
@@ -91,7 +92,7 @@ def kitchen_data(request):
     AJAX Polling endpoint for the Kitchen Display System (KDS).
     Returns real-time structured JSON of all active KOTs matching the requested station.
     """
-    from orders.services.kitchen_service import get_kitchen_data
+    from kitchen.services.kitchen_service import get_kitchen_data
     try:
         station_name = request.GET.get("station")
         data = get_kitchen_data(request.user, station_name)
@@ -106,7 +107,7 @@ def kitchen_data(request):
 @role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def start_preparing(request, item_id):
-    from orders.services.kitchen_service import set_item_preparing
+    from kitchen.services.kitchen_service import set_item_preparing
     try:
         set_item_preparing(request.user, item_id)
         return JsonResponse({"success": True})
@@ -122,7 +123,7 @@ def start_preparing(request, item_id):
 @role_required("owner", "manager", "chef", "kitchen")
 @feature_required("kitchen_display")
 def mark_ready(request, item_id):
-    from orders.services.kitchen_service import set_item_ready
+    from kitchen.services.kitchen_service import set_item_ready
     try:
         set_item_ready(request.user, item_id)
         return JsonResponse({"success": True})
@@ -142,7 +143,7 @@ def serve_item(request, item_id):
     Transitions an OrderItem status from 'ready' to 'served'.
     Triggered by waiters when they deliver the food to the customer's table.
     """
-    from orders.services.kitchen_service import set_item_served
+    from kitchen.services.kitchen_service import set_item_served
     try:
         set_item_served(request.user, item_id)
         return JsonResponse({"success": True})
@@ -158,8 +159,8 @@ def serve_item(request, item_id):
 @feature_required("kitchen_display")
 def bump_kot(request, kot_id):
     """Mark all pending/preparing items in a KOT as ready in one tap."""
-    from orders.models import KOTBatch
-    from orders.services.kitchen_service import set_item_ready
+    from kitchen.models import KOTBatch
+    from kitchen.services.kitchen_service import set_item_ready
     try:
         # Scope by outlet as well as tenant — without order__outlet a multi-outlet
         # tenant's kitchen staff at outlet A could bump outlet B's KOT by id.

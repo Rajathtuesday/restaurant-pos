@@ -11,20 +11,12 @@ from .api import api_tables, api_active_orders, api_ingest_order, notification_a
 
 
 from .views import (
-    bump_kot,
     apply_discount,
     available_tables,
     billing_view,
     manage_table_view,
     create_order,
     make_item_complimentary,
-    send_to_kitchen,
-    kitchen_view,
-    kitchen_data,
-    start_preparing,
-    mark_ready,
-    serve_item,
-    send_kitchen_message,
     bill_view,
     pay_order,
     table_dashboard,
@@ -62,17 +54,10 @@ urlpatterns = [
 
     path("create-order/", create_order, name="create-order"),
 
-    path("send-to-kitchen/<int:order_id>/", send_to_kitchen , name="send-to-kitchen"),
-    path("send-kitchen-message/<int:order_id>/", send_kitchen_message, name="send-kitchen-message"),
-
-    path("kitchen/", kitchen_view ,name="kitchen-view"),
-    path("kitchen-data/", kitchen_data, name="kitchen-data"),
-
-    path("item-start/<int:item_id>/", start_preparing,name="item-start"),
-    path("item-ready/<int:item_id>/", mark_ready, name="mark-ready"),
-    path("bump-kot/<int:kot_id>/", bump_kot, name="bump-kot"),
-
-    path("serve-item/<int:item_id>/", serve_item, name="serve-item"),
+    # Kitchen routes (send-to-kitchen, kitchen-view, kitchen-data, item-start,
+    # mark-ready, bump-kot, serve-item, send-kitchen-message) moved to
+    # kitchen/urls.py (Phase 3 of the orders app split) -- same exact paths.
+    # resolve-kitchen-message stays here since it lives in waiter_views.py.
 
     path("bill/<int:order_id>/", bill_view, name="bill-view"),
     path("pay/<int:order_id>/", pay_order, name="pay-order"),

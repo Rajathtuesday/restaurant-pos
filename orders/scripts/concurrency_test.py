@@ -87,7 +87,7 @@ from orders.services.order_service import (
     add_items_to_order
 )
 
-from orders.services.kot_service import create_kot
+from kitchen.services.kot_service import create_kot
 
 
 THREADS = 10

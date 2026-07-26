@@ -22,7 +22,8 @@ class Command(BaseCommand):
                             help="Preview QSR strip mode (token + KOTs all connected, one full cut at end)")
 
     def handle(self, *args, **options):
-        from orders.models import Order, KOTBatch
+        from orders.models import Order
+        from kitchen.models import KOTBatch
         from orders.services.printing_service import PrintingService
 
         if options["list"]:
