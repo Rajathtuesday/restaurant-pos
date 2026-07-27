@@ -591,7 +591,16 @@ def mark_token_ready(request, token_id):
 @require_POST
 def mark_token_collected(request, token_id):
     """Staff confirm the customer has physically picked up the order --
-    clears it off the display board."""
+    clears it off the display board.
+
+    Also marks the order's own items "served" -- a counter/token order has
+    no waiter-delivery step the way dine-in does, so nothing else was ever
+    moving items past "ready". The Kitchen Display only ever hides items
+    once they're "served" or "voided" (kitchen.services.kitchen_service.
+    get_kitchen_data), so without this, a picked-up token order's items
+    sat on the KDS forever -- collection IS the counter equivalent of a
+    waiter serving the table.
+    """
     if request.user.role not in _STAFF_CAN_CREATE and not request.user.is_superuser:
         return JsonResponse({"error": "Permission denied"}, status=403)
     try:
@@ -602,6 +611,13 @@ def mark_token_collected(request, token_id):
         return JsonResponse({"error": "Token not found"}, status=404)
     token.collected_at = timezone.now()
     token.save(update_fields=["collected_at"])
+
+    # Only "ready" items -- anything still mid-flight (pending/preparing,
+    # an edge case if collection is confirmed before everything finished
+    # cooking) is left alone rather than force-closed.
+    from orders.models import OrderItem
+    OrderItem.objects.filter(order=token.order, status="ready").update(status="served")
+
     return JsonResponse({"success": True})
 
 

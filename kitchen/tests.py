@@ -313,6 +313,120 @@ class TokenReadyOnKitchenReadyTest(TestCase):
         self.assertEqual(self.token.ready_at, original)
 
 
+class TokenOrderClearsFromKitchenDisplayTest(TestCase):
+    """
+    A counter/token order has no waiter-delivery step the way dine-in
+    does, so nothing was ever moving its items past "ready" -- they sat
+    on the Kitchen Display forever, even once the customer had physically
+    collected the order. Two fixes, covering the normal case and the
+    forgot-to-tap case:
+
+    1. mark_token_collected ("Picked Up") now marks the order's ready
+       items "served" -- the counter equivalent of a waiter serving a
+       table -- which the KDS already hides via its existing
+       exclude(status__in=["served","voided"]).
+    2. get_kitchen_data now also drops a token order once it's been
+       ready for more than 5 minutes, regardless of whether "Picked Up"
+       was ever tapped -- a safety net for the case staff forget, same
+       cutoff the guest-facing pickup board already uses. Dine-in/table
+       orders are NOT subject to this timeout -- only orders with a
+       TokenOrder attached.
+    """
+
+    def setUp(self):
+        from datetime import date
+        from tokens.models import TokenOrder
+
+        self.tenant = Tenant.objects.create(name="KDS Clear Cafe", tenant_type="cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.cashier = User.objects.create_user(
+            username="cashier1", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="cashier",
+        )
+        self.chef = User.objects.create_user(
+            username="chef1", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="chef",
+        )
+        self.category = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Mains")
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=self.category,
+            name="Burger", price=100,
+        )
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=None, status="paid", source="counter",
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="pending",
+        )
+        self.token = TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=self.order,
+            token_number=1, date=date.today(), is_online=False,
+        )
+        create_kot(self.chef, self.order)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "sent")
+        # Simulate the kitchen having marked it ready.
+        self.order_item.status = "ready"
+        self.order_item.save(update_fields=["status"])
+
+    def _login(self, user):
+        client = Client()
+        client.login(username=user.username, password="pw")
+        return client
+
+    def _kitchen_data(self):
+        resp = self._login(self.chef).get(reverse("kitchen-data"))
+        return resp.json()["kots"]
+
+    def test_picked_up_marks_ready_items_served_and_clears_kds(self):
+        resp = self._login(self.cashier).post(reverse("mark-token-collected", args=[self.token.id]))
+        self.assertEqual(resp.status_code, 200)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "served")
+
+    def test_picked_up_leaves_a_still_preparing_item_alone(self):
+        self.order_item.status = "preparing"
+        self.order_item.save(update_fields=["status"])
+        self._login(self.cashier).post(reverse("mark-token-collected", args=[self.token.id]))
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "preparing")
+
+    def test_stale_ready_token_order_clears_from_kds_even_without_pickup_tap(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        self.token.ready_at = timezone.now() - timedelta(minutes=6)
+        self.token.save(update_fields=["ready_at"])
+        self.assertEqual(self._kitchen_data(), [])
+
+    def test_recently_ready_token_order_still_shows_on_kds(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        self.token.ready_at = timezone.now() - timedelta(minutes=2)
+        self.token.save(update_fields=["ready_at"])
+        data = self._kitchen_data()
+        self.assertEqual(len(data), 1)
+
+    def test_dine_in_order_never_auto_clears_on_a_timer(self):
+        # No TokenOrder attached -- the 5-minute stale rule must not apply
+        # to a plain dine-in ticket just because time passed.
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=table, status="open",
+        )
+        item = OrderItem.objects.create(
+            order=order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="pending",
+        )
+        create_kot(self.chef, order)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "sent")
+
+        data = self._kitchen_data()
+        order_ids = {kot["order_id"] for kot in data}
+        self.assertIn(order.id, order_ids)
+
+
 # ======================================================================
 #  Moved from orders/tests/test_schema_review.py
 # ======================================================================

@@ -1,9 +1,18 @@
 # kitchen/services/kitchen_service.py
+from datetime import timedelta
+
 from django.db import transaction
+from django.utils import timezone
 from orders.models import OrderItem
 from kitchen.models import KOTBatch
 from notifications.services.notification_service import create_notification
 from orders.services.order_service import update_table_state
+
+# Matches tokens/views.py's _READY_STALE_MINUTES (the pickup display
+# board's own auto-clear) -- one "how long is a ready order allowed to
+# sit before we assume it was collected" standard, used in both places.
+_KDS_TOKEN_STALE_MINUTES = 5
+
 
 def get_kitchen_data(user, station_name=None):
     """
@@ -23,6 +32,18 @@ def get_kitchen_data(user, station_name=None):
     `items` list and gets skipped. Cancelled orders are excluded here as
     an explicit belt-and-braces measure (cancel_order already voids their
     non-served items, which the per-item filter would exclude anyway).
+
+    Token orders get one extra rule dine-in orders deliberately don't:
+    mark_token_collected ("Picked Up") already moves their items to
+    "served", which is enough on its own when staff remember to tap it --
+    but if they don't, a token order has no other path off this screen,
+    since there's no waiter-serve step to fall back on. Once an order's
+    been ready for more than _KDS_TOKEN_STALE_MINUTES, it's dropped here
+    as a safety net, same cutoff the guest-facing pickup board already
+    uses to assume "probably collected, stop cluttering the screen". This
+    does NOT apply to dine-in/table orders -- a plated dish waiting under
+    a heat lamp for a waiter isn't on a clock, and shouldn't vanish from
+    the kitchen's own view of it just because time passed.
     """
     kots = KOTBatch.objects.filter(
         order__tenant=user.tenant,
@@ -34,13 +55,19 @@ def get_kitchen_data(user, station_name=None):
 
     kots = (
         kots
-        .select_related("order", "order__table", "station")
+        .select_related("order", "order__table", "station", "order__token")
         .prefetch_related("items", "items__menu_item")
         .order_by("created_at")
     )
 
+    stale_cutoff = timezone.now() - timedelta(minutes=_KDS_TOKEN_STALE_MINUTES)
+
     data = []
     for kot in kots:
+        token = getattr(kot.order, "token", None)
+        if token and token.ready_at and token.ready_at < stale_cutoff:
+            continue
+
         items = []
         for i in kot.items.exclude(status__in=["served", "voided"]):
             items.append({
