@@ -552,10 +552,15 @@ def token_billing(request, order_id):
 # ------------------------------------------------------------------
 # PICKUP READINESS (QSR "Order Ready" display board)
 # ------------------------------------------------------------------
-# QSR outlets run with kitchen_display OFF (strip-mode auto-KOT at payment
-# instead of a KDS screen -- see orders/views/payment_views.py::pay_order),
-# so there is no per-item "ready" tracking to read here. ready_at/collected_at
-# on TokenOrder are staff-set directly instead.
+# Most QSR outlets run with kitchen_display OFF (strip-mode auto-KOT at
+# payment instead of a KDS screen -- see
+# orders/views/payment_views.py::pay_order), so there's no per-item "ready"
+# tracking to read, and staff set ready_at directly via mark_token_ready
+# below. An outlet that DOES run a kitchen display doesn't need staff to
+# also tap this -- kitchen.services.kitchen_service.set_item_ready sets
+# ready_at itself the moment the order's last item is marked ready there.
+# mark_token_ready still exists for outlets without a KDS, or as a manual
+# override.
 
 _READY_STALE_MINUTES = 20  # auto-clear safety net if nobody taps "Picked Up"
 

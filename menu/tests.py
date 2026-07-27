@@ -407,3 +407,12 @@ class CounterMenuQRTest(TestCase):
         outlet = Outlet.objects.create(tenant=franchise, name="Branch 1")
         resp = self.client.get(reverse("menu_view", args=[outlet.qr_token]))
         self.assertEqual(resp.status_code, 404)
+
+    def test_page_exposes_the_outlet_token_for_the_frontend_to_submit_with(self):
+        # Regression: the page used to only ever expose table.qr_token to
+        # its JS, so a tableless counter guest's browser had an empty
+        # token and submitOrder() hard-blocked with "No table detected.
+        # Please scan a valid table QR." before ever reaching the server.
+        resp = self.client.get(reverse("menu_view", args=[self.outlet.qr_token]))
+        self.assertEqual(resp.context["qr_token"], str(self.outlet.qr_token))
+        self.assertContains(resp, str(self.outlet.qr_token))

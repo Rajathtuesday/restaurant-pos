@@ -100,6 +100,23 @@ def set_item_ready(user, item_id):
 
     update_table_state(item.order)
 
+    # If this was the last item on the order still not ready/served/voided,
+    # the whole order is now ready. Most QSR/cafe outlets run auto-KOT at
+    # payment time with kitchen_display OFF, and staff set TokenOrder.ready_at
+    # directly (see tokens/views.py::mark_token_ready) -- but an outlet that
+    # DOES run a kitchen display needs this decided here instead, or the
+    # order never reaches the pickup display board without a second, easily
+    # forgotten manual tap on the Token Dashboard.
+    _still_pending = item.order.items.filter(
+        status__in=["review", "pending", "sent", "preparing"]
+    ).exists()
+    if not _still_pending:
+        token = getattr(item.order, "token", None)
+        if token is not None and token.ready_at is None:
+            from django.utils import timezone as _tz
+            token.ready_at = _tz.now()
+            token.save(update_fields=["ready_at"])
+
     # Create KitchenMessage for the waiter dashboard
     from kitchen.models import KitchenMessage
     KitchenMessage.objects.create(

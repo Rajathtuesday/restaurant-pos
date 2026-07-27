@@ -979,7 +979,11 @@
     // SAME table bill instead of it silently failing, and shows live status).
     // Scoped to this table's QR token so a different table's browser session
     // never sees or reuses this table's order.
-    const _tableToken = "{{ table.qr_token|default:'' }}";
+    // The token this page was reached with -- a Table's qr_token if a table
+    // was scanned, otherwise the Outlet's counter/walk-in token. Never
+    // table.qr_token alone: that's empty for a tableless counter order and
+    // used to block submitOrder() outright ("No table detected").
+    const _tableToken = "{{ qr_token|default:'' }}";
     const _orderStorageKey = _tableToken ? `rasova_order_${_tableToken}` : null;
 
     function getStoredOrderId() {

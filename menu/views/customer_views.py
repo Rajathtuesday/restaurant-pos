@@ -68,6 +68,12 @@ def menu_view(request, qr_token):
         "tenant":              tenant,
         "outlet":              outlet,
         "item_modifier_data":  _build_modifier_data(categories),
+        # The token this page was reached with -- a Table's if one matched,
+        # otherwise the Outlet's counter token. submitOrder() sends this
+        # straight back as table_token; it must never fall back to
+        # table.qr_token alone, or a tableless counter order has nothing to
+        # identify itself with and the frontend blocks submission outright.
+        "qr_token":            str(table.qr_token) if table else str(outlet.qr_token),
     })
 
 
@@ -192,4 +198,5 @@ def digital_menu(request):
     return render(request, "menu/digital_menu.html", {
         "categories": categories, "table": table, "tenant": tenant, "outlet": outlet,
         "item_modifier_data": _build_modifier_data(categories),
+        "qr_token": str(table.qr_token) if table else str(outlet.qr_token),
     })

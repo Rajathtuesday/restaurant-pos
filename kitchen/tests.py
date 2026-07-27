@@ -174,6 +174,95 @@ class ServeAndMessagePermissionTest(_Base):
         self.assertEqual(resp.status_code, 200)
 
 
+class TokenReadyOnKitchenReadyTest(TestCase):
+    """
+    QSR/cafe outlets that run a kitchen display (franchise and cafe both
+    have kitchen_display ON by default, alongside token_system) had no link
+    at all between an item going 'ready' on the KDS and TokenOrder.ready_at
+    -- the pickup display board and the guest's own phone never lit up
+    unless staff ALSO went to the Token Dashboard and tapped "Mark Ready"
+    separately. set_item_ready now sets ready_at itself once every item on
+    the order is ready/served/voided.
+    """
+
+    def setUp(self):
+        from datetime import date
+        from tokens.models import TokenOrder
+
+        self.tenant = Tenant.objects.create(name="KDS Cafe", tenant_type="cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.chef = User.objects.create_user(
+            username="chef1", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="chef",
+        )
+        self.category = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Mains")
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=self.category,
+            name="Burger", price=100,
+        )
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=None, status="open", source="counter",
+        )
+        self.token = TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=self.order,
+            token_number=1, date=date.today(), is_online=False,
+        )
+
+    def _login(self, user):
+        client = Client()
+        client.login(username=user.username, password="pw")
+        return client
+
+    def test_last_item_ready_sets_token_ready_at(self):
+        item1 = OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="preparing",
+        )
+        item2 = OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="preparing",
+        )
+        client = self._login(self.chef)
+
+        client.post(reverse("mark-ready", args=[item1.id]))
+        self.token.refresh_from_db()
+        self.assertIsNone(self.token.ready_at, "still one item preparing -- not ready yet")
+
+        client.post(reverse("mark-ready", args=[item2.id]))
+        self.token.refresh_from_db()
+        self.assertIsNotNone(self.token.ready_at)
+
+    def test_bump_kot_sets_token_ready_at(self):
+        OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="pending",
+        )
+        create_kot(self.chef, self.order)
+        item = self.order.items.first()
+        item.status = "preparing"
+        item.save(update_fields=["status"])
+
+        resp = self._login(self.chef).post(reverse("bump-kot", args=[item.kot_id]))
+        self.assertEqual(resp.status_code, 200)
+        self.token.refresh_from_db()
+        self.assertIsNotNone(self.token.ready_at)
+
+    def test_does_not_overwrite_an_already_set_ready_at(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        original = timezone.now() - timedelta(minutes=5)
+        self.token.ready_at = original
+        self.token.save(update_fields=["ready_at"])
+
+        item = OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="preparing",
+        )
+        self._login(self.chef).post(reverse("mark-ready", args=[item.id]))
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.ready_at, original)
+
+
 # ======================================================================
 #  Moved from orders/tests/test_schema_review.py
 # ======================================================================
