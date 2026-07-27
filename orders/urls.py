@@ -33,6 +33,7 @@ from .views import (
     print_split_bill,
     qz_receipt_data,
     approve_items,
+    approve_item,
     printer_status,
     thermal_receipt_view,
     order_history_view,
@@ -86,6 +87,7 @@ urlpatterns = [
 
     path("generate-bill/<int:order_id>/", generate_bill, name="generate-bill"),
     path("approve-items/<int:order_id>/", approve_items, name="approve-items"),
+    path("approve-item/<int:item_id>/", approve_item, name="approve-item"),
 
     path("apply-discount/<int:order_id>/", apply_discount, name="apply-discount"),
     

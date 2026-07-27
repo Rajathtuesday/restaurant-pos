@@ -597,3 +597,49 @@ class QSRParcelDispatchTests(ParcelBase):
         order = self._make_order([(self.idli, 2)])
         d = self._toggle(order.id).json()
         self.assertEqual(Decimal(str(d["parcel_amount"])), Decimal("24"))  # 2 × ₹12
+
+
+# ── 5. running_order_items carries everything Token Billing's instant token
+#      switch needs (tokens/templates/tokens/token_billing.html::selectToken)
+#      -- token number, human status, and amount still due, so switching
+#      tokens no longer requires a full page reload just to read these off
+#      server-rendered template tags. ─────────────────────────────────────────
+
+class RunningOrderTokenAndBillingStateTests(ParcelBase):
+    def test_token_display_present_for_a_token_order(self):
+        from datetime import date
+        from tokens.models import TokenOrder
+
+        order = self._make_order([(self.idli, 1)])
+        TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=order,
+            token_number=7, date=date.today(), is_online=False,
+        )
+        d = self._running(order_id=order.id).json()
+        self.assertEqual(d["token_display"], "#7")
+
+    def test_token_display_none_for_a_non_token_order(self):
+        order = self._make_order([(self.idli, 1)])
+        d = self._running(order_id=order.id).json()
+        self.assertIsNone(d["token_display"])
+
+    def test_order_status_display_is_human_readable(self):
+        order = self._make_order([(self.idli, 1)], status="billing")
+        d = self._running(order_id=order.id).json()
+        self.assertEqual(d["order_status"], "billing")
+        self.assertEqual(d["order_status_display"], order.get_status_display())
+
+    def test_remaining_is_full_total_with_no_payments(self):
+        order = self._make_order([(self.dosa, 1)])  # ₹60 + 5% GST
+        d = self._running(order_id=order.id).json()
+        self.assertEqual(Decimal(str(d["remaining"])), order.grand_total)
+
+    def test_remaining_drops_by_amount_already_paid(self):
+        from orders.models import Payment
+
+        order = self._make_order([(self.dosa, 1)])
+        Payment.objects.create(
+            order=order, method="cash", amount=Decimal("30.00"),
+        )
+        d = self._running(order_id=order.id).json()
+        self.assertEqual(Decimal(str(d["remaining"])), order.grand_total - Decimal("30.00"))

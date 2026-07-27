@@ -98,13 +98,30 @@ def running_order_items(request):
                 "modifiers": [m.name for m in i.modifiers.all()]
             })
 
+        from django.db.models import Sum
+        token = getattr(order, "token", None)
+        total_paid = (
+            order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
+        remaining = max(0, float(order.grand_total or 0) - float(total_paid))
+
         return JsonResponse({
             "items": items,
             "order_id": order.id,
             "order_status": order.status,
+            "order_status_display": order.get_status_display(),
             "grand_total": float(order.grand_total or 0),
             "parcel_on": float(order.parcel_surcharge or 0) > 0,
             "parcel_amount": float(order.parcel_surcharge or 0),
+            # Everything the Token Billing "Current Order" header/action area
+            # needs to switch to a different order WITHOUT a full page reload
+            # (see tokens/templates/tokens/token_billing.html::selectToken) --
+            # a full navigation there used to re-render the whole menu grid,
+            # popularity sort, and payment config just to show a different
+            # order's items.
+            "token_display": token.display_number if token else None,
+            "remaining": remaining,
         })
 
     except Exception as e:
@@ -190,4 +207,51 @@ def approve_items(request, order_id):
         return JsonResponse({"success": True, "count": count})
     except Exception as e:
         logger.error("approve_items error: %s", e)
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("qr_menu")
+@require_POST
+def approve_item(request, item_id):
+    """
+    Singular sibling of approve_items — lets staff approve one QR-guest
+    item at a time instead of all-or-nothing, with cancel_item (existing,
+    already "review"-safe — see void_service.void_order_item) as the
+    per-item counterpart for rejecting instead of approving.
+    """
+    try:
+        with transaction.atomic():
+            item = (
+                OrderItem.objects
+                .select_for_update()
+                .select_related("order")
+                .get(
+                    id=item_id,
+                    order__tenant=request.user.tenant,
+                    order__outlet=request.user.outlet,
+                )
+            )
+            if item.status != "review":
+                return JsonResponse({"error": "Item is not awaiting approval"}, status=400)
+
+            item.status = "pending"
+            item.save(update_fields=["status"])
+
+            order = item.order
+            try:
+                from kitchen.services.kot_service import create_kot
+                create_kot(request.user, order)
+            except Exception as kot_err:
+                logger.error("KOT creation failed during single-item approval: %s", kot_err)
+
+            log_event(order, "status_changed", request.user, {"action": "item_approved", "item_id": item.id})
+            logger.info("User %s approved item #%s", request.user.username, item_id)
+
+        return JsonResponse({"success": True})
+    except OrderItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    except Exception as e:
+        logger.error("approve_item error: %s", e)
         return JsonResponse({"error": str(e)}, status=400)

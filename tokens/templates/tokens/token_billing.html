@@ -371,6 +371,16 @@
         border: 1px solid var(--border-color);
     }
     .status-ready { border-color: #10b981; color: #10b981; }
+    .review-item-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+    .review-action-btn {
+        width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-color);
+        background: transparent; display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; cursor: pointer; transition: background 0.15s;
+    }
+    .review-action-btn.approve { color: #10b981; border-color: #10b981; }
+    .review-action-btn.approve:hover { background: rgba(16,185,129,0.12); }
+    .review-action-btn.reject { color: #ef4444; border-color: #ef4444; }
+    .review-action-btn.reject:hover { background: rgba(239,68,68,0.12); }
 
     /* ── Modal ────────────────────────────────────────────────────── */
     .modal-content {
@@ -611,29 +621,31 @@
         <!-- Current Order view — scrollable, checkout pinned below -->
         <div class="context-body" id="cartView">
             <div class="text-center mb-3">
-                <div style="font-family:'DM Serif Display',serif; font-size:1.8rem; color:var(--accent-gold); line-height:1;">
+                <div id="orderTokenDisplay" style="font-family:'DM Serif Display',serif; font-size:1.8rem; color:var(--accent-gold); line-height:1;">
                     {% if token %}{{ token.display_number }}{% else %}—{% endif %}
                 </div>
-                <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">
+                <div id="orderStatusDisplay" style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">
                     {{ order.get_status_display }}
                 </div>
             </div>
             <script>window.addEventListener('DOMContentLoaded', () => { currentOrderId = {{ order.id }}; });</script>
             <div id="runningItemsDesktop" class="mb-3"></div>
 
-            {% if order.status == 'billing' %}
-            <a href="/bill/{{ order.id }}/"
-               class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
-               style="background:#10b981;min-height:52px;">
-                <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
-            </a>
-            {% elif order.status == 'paid' or order.status == 'closed' %}
-            <button class="btn-luxury w-100 mb-2"
-                    onclick="printReceipt({{ order.id }})"
-                    style="min-height:52px;">
-                <i class="bi bi-printer me-2"></i>Print Receipt
-            </button>
-            {% endif %}
+            <div id="orderActionButtonDesktop">
+                {% if order.status == 'billing' %}
+                <a href="/bill/{{ order.id }}/"
+                   class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
+                   style="background:#10b981;min-height:52px;">
+                    <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
+                </a>
+                {% elif order.status == 'paid' or order.status == 'closed' %}
+                <button class="btn-luxury w-100 mb-2"
+                        onclick="printReceipt({{ order.id }})"
+                        style="min-height:52px;">
+                    <i class="bi bi-printer me-2"></i>Print Receipt
+                </button>
+                {% endif %}
+            </div>
 
             <div id="cartItemsContainerDesktop" style="min-height:160px;"></div>
         </div>
@@ -644,7 +656,8 @@
                 {% for t in counter_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
                    class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
-                   id="aoi-{{ t.order.id }}">
+                   id="aoi-{{ t.order.id }}" data-order-id="{{ t.order.id }}"
+                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
                     <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
                     <div class="aoi-details">
                         <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
@@ -670,7 +683,8 @@
                 {% for t in online_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
                    class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
-                   id="aoi-{{ t.order.id }}">
+                   id="aoi-{{ t.order.id }}" data-order-id="{{ t.order.id }}"
+                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
                     <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
                     <div class="aoi-details">
                         <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
@@ -741,7 +755,7 @@
 <div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas"
      style="width: min(380px, 100vw);">
     <div class="offcanvas-header">
-        <h5 class="modal-title">
+        <h5 class="modal-title" id="orderTokenDisplayMobileTitle">
             Order {% if token %}{{ token.display_number }}{% endif %}
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
@@ -762,25 +776,27 @@
         <!-- Cart items — scrollable, checkout pinned below -->
         <div class="context-body flex-grow-1" id="cartViewMobile">
             <div class="text-center mb-3">
-                <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent-gold);">
+                <div id="orderTokenDisplayMobile" style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent-gold);">
                     {% if token %}{{ token.display_number }}{% endif %}
                 </div>
             </div>
             <div id="runningItemsMobile" class="mb-3"></div>
 
-            {% if order.status == 'billing' %}
-            <a href="/bill/{{ order.id }}/"
-               class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
-               style="background:#10b981;min-height:52px;">
-                <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
-            </a>
-            {% elif order.status == 'paid' or order.status == 'closed' %}
-            <button class="btn-luxury w-100 mb-2"
-                    onclick="printReceipt({{ order.id }})"
-                    style="min-height:52px;">
-                <i class="bi bi-printer me-2"></i>Print Receipt
-            </button>
-            {% endif %}
+            <div id="orderActionButtonMobile">
+                {% if order.status == 'billing' %}
+                <a href="/bill/{{ order.id }}/"
+                   class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
+                   style="background:#10b981;min-height:52px;">
+                    <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
+                </a>
+                {% elif order.status == 'paid' or order.status == 'closed' %}
+                <button class="btn-luxury w-100 mb-2"
+                        onclick="printReceipt({{ order.id }})"
+                        style="min-height:52px;">
+                    <i class="bi bi-printer me-2"></i>Print Receipt
+                </button>
+                {% endif %}
+            </div>
 
             <div id="cartItemsContainerMobile"></div>
         </div>
@@ -789,7 +805,9 @@
             <div class="active-orders-list">
                 {% for t in counter_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
-                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
+                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
+                   data-order-id="{{ t.order.id }}"
+                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
                     <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
                     <div class="aoi-details">
                         <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
@@ -800,7 +818,9 @@
                 {% endfor %}
                 {% for t in online_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
-                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}">
+                   class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
+                   data-order-id="{{ t.order.id }}"
+                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
                     <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
                     <div class="aoi-details">
                         <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
@@ -1080,11 +1100,45 @@
     }
 
     /* ── Running order ───────────────────────────────────────────────── */
+    function renderOrderActionButton(orderId, status, remaining) {
+        let html = '';
+        if (status === 'billing') {
+            html = `<a href="/bill/${orderId}/" class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2" style="background:#10b981;min-height:52px;">
+                <i class="bi bi-credit-card me-2"></i>Pay Now · ₹${Math.round(remaining || 0)}
+            </a>`;
+        } else if (status === 'paid' || status === 'closed') {
+            html = `<button class="btn-luxury w-100 mb-2" onclick="printReceipt(${orderId})" style="min-height:52px;">
+                <i class="bi bi-printer me-2"></i>Print Receipt
+            </button>`;
+        }
+        ['orderActionButtonDesktop', 'orderActionButtonMobile'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.innerHTML = html;
+        });
+    }
+
+    // Guards against a slower earlier request resolving AFTER a later token
+    // switch and overwriting it with stale data -- fetches aren't guaranteed
+    // to resolve in the order they were sent.
+    let _runningOrderRequestId = 0;
+
     function loadRunningOrder() {
         if (!currentOrderId) return;
-        fetch("{% url 'running-order-items' %}?order=" + currentOrderId)
+        const requestId = ++_runningOrderRequestId;
+        const requestedOrderId = currentOrderId;
+        fetch("{% url 'running-order-items' %}?order=" + requestedOrderId)
             .then(r => r.json())
             .then(d => {
+                if (requestId !== _runningOrderRequestId) return; // superseded by a newer request
+
+                ['orderTokenDisplay', 'orderTokenDisplayMobile'].forEach(id => {
+                    const el = document.getElementById(id); if (el) el.textContent = d.token_display || '—';
+                });
+                const titleEl = document.getElementById('orderTokenDisplayMobileTitle');
+                if (titleEl) titleEl.textContent = 'Order ' + (d.token_display || '');
+                const statusEl = document.getElementById('orderStatusDisplay');
+                if (statusEl) statusEl.textContent = d.order_status_display || '';
+                renderOrderActionButton(requestedOrderId, d.order_status, d.remaining);
+
                 const status = d.order_status || '';
                 let html = '';
 
@@ -1097,16 +1151,34 @@
                         html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">No active items</div>`;
                     }
                 } else {
+                    const statusLabels = { review: 'Needs Approval' };
                     html = d.items.map(i => {
-                        const sc = i.status === 'ready' ? 'status-ready' : (i.status === 'preparing' ? 'border-warning text-warning' : '');
+                        const sc = i.status === 'ready' ? 'status-ready'
+                            : (i.status === 'preparing' ? 'border-warning text-warning'
+                            : (i.status === 'review' ? 'border-danger text-danger' : ''));
+                        // Items added by a guest via QR (counter or table) land
+                        // as "review" until staff act on them individually --
+                        // approve sends just that item to kitchen (approve-item),
+                        // reject voids just that item (cancel-item, already
+                        // review-safe -- see void_service.void_order_item).
+                        // Deliberately per-item, not an "approve all" bulk
+                        // action, so a bad/mistaken item can be rejected on its
+                        // own without forcing the rest through too.
+                        const statusCell = i.status === 'review'
+                            ? `<div class="review-item-actions">
+                                <button class="review-action-btn approve" title="Approve" onclick="approveRunningOrderItem(${i.id})"><i class="bi bi-check-lg"></i></button>
+                                <button class="review-action-btn reject" title="Reject" onclick="cancelRunningOrderItem(${i.id})"><i class="bi bi-x-lg"></i></button>
+                            </div>`
+                            : `<span class="status-badge ${sc}">${statusLabels[i.status] || i.status}</span>`;
                         return `<div class="running-row d-flex flex-column">
-                            <div class="d-flex justify-content-between w-100">
+                            <div class="d-flex justify-content-between align-items-center w-100">
                                 <span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name}</span>
-                                <span class="status-badge ${sc}">${i.status}</span>
+                                ${statusCell}
                             </div>
                             ${i.modifiers && i.modifiers.length ? `<div style="font-size:0.7rem;color:var(--accent-gold);font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
                         </div>`;
                     }).join('');
+
                     // Cancel only makes sense for open orders, not billing/paid
                     if (d.order_id && status === 'open') {
                         html += `<div class="mt-3"><button class="btn-luxury w-100" style="border-color:#ef4444;color:#ef4444;" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Order</button></div>`;
@@ -1117,6 +1189,58 @@
                 });
             }).catch(() => {});
     }
+
+    function showRunningOrderLoading() {
+        // Shown the instant a token is clicked / the page first loads, so
+        // the order-items area is never blank while the fetch is in flight
+        // -- blank there used to look identical to "this order has no
+        // items", right next to the cart's own always-empty-on-load state.
+        const html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">
+            <span class="spinner-border spinner-border-sm me-2"></span>Loading order…
+        </div>`;
+        ['runningItemsDesktop', 'runningItemsMobile'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.innerHTML = html;
+        });
+    }
+
+    function _setCurrentActiveListItem(orderId) {
+        document.querySelectorAll('.active-order-item.current').forEach(el => el.classList.remove('current'));
+        document.querySelectorAll(`.active-order-item[data-order-id="${orderId}"]`).forEach(el => el.classList.add('current'));
+    }
+
+    // Switching tokens used to be a full page reload -- re-rendering the
+    // entire menu grid, popularity sort, and payment config just to show a
+    // different order's items. The menu itself never changes between
+    // tokens, so only the Current Order panel needs to update; this swaps
+    // it via the same running-order-items fetch loadRunningOrder already
+    // uses, and keeps the URL bar in sync with pushState so refresh/back/
+    // bookmark all still land on a real, fully server-rendered page.
+    function selectToken(event, orderId, url) {
+        if (event) event.preventDefault();
+        if (orderId === currentOrderId) { switchTab('cart'); return false; }
+
+        currentOrderId = orderId;
+        if (url) history.pushState({ orderId }, '', url);
+        _setCurrentActiveListItem(orderId);
+        switchTab('cart');
+        clearCart();
+        showRunningOrderLoading();
+        loadRunningOrder();
+        return false;
+    }
+
+    window.addEventListener('popstate', () => {
+        const match = window.location.pathname.match(/\/token\/(\d+)\/bill\//);
+        if (!match) return;
+        const orderId = parseInt(match[1], 10);
+        if (orderId === currentOrderId) return;
+        currentOrderId = orderId;
+        _setCurrentActiveListItem(orderId);
+        switchTab('cart');
+        clearCart();
+        showRunningOrderLoading();
+        loadRunningOrder();
+    });
 
     /* ── Submit order ────────────────────────────────────────────────── */
     function submitOrder() {
@@ -1275,6 +1399,30 @@
         .catch(() => ui.toast('Error generating bill', 'error'));
     }
 
+    function approveRunningOrderItem(itemId) {
+        fetch("{% url 'approve-item' 0 %}".replace('0', itemId), {
+            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) { ui.toast('Item approved & sent to kitchen', 'success'); loadRunningOrder(); }
+            else ui.toast(d.error || 'Approval failed', 'error');
+        })
+        .catch(() => ui.toast('Could not approve item', 'error'));
+    }
+
+    function cancelRunningOrderItem(itemId) {
+        fetch("{% url 'cancel-item' 0 %}".replace('0', itemId), {
+            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) { ui.toast('Item rejected', 'success'); loadRunningOrder(); }
+            else ui.toast(d.error || 'Could not reject item', 'error');
+        })
+        .catch(() => ui.toast('Could not reject item', 'error'));
+    }
+
     function cancelOrder(orderId) {
         ui.confirm('Cancel entire order?', 'This cannot be undone.', 'Yes, cancel it')
             .then(result => {
@@ -1317,6 +1465,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         renderCart();
         syncCardBadges();
+        showRunningOrderLoading();
         loadRunningOrder();
         setInterval(loadRunningOrder, 5000);
         const f1 = document.querySelector('.category-sidebar .category-item'); if (f1) f1.classList.add('active');

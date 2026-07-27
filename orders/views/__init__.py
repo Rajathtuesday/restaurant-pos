@@ -10,7 +10,7 @@ from .billing_views import create_order
 # kitchen_views moved to kitchen/views.py (Phase 3 of the orders app split)
 from .table_views import table_dashboard, tables_data, mark_table_cleaned, available_tables, transfer_table_view, manage_table_view
 # merge_tables_view/unmerge_tables_view moved to tablemerge/views.py (Phase 5 of the split).
-from .order_views import running_order_view, running_order_items, running_order_data, approve_items
+from .order_views import running_order_view, running_order_items, running_order_data, approve_items, approve_item
 # waiter_dashboard/resolve_waiter_call moved to waiter/views.py, resolve_kitchen_message
 # to kitchen/views.py (Phase 4 of the orders app split).
 from .order_actions import cancel_order, cancel_item
@@ -54,6 +54,7 @@ __all__ = [
     "running_order_items",
     "running_order_data",
     "approve_items",
+    "approve_item",
     # waiter_dashboard/resolve_waiter_call moved to waiter/views.py,
     # resolve_kitchen_message to kitchen/views.py (Phase 4 of the split).
     # order actions

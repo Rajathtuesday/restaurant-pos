@@ -453,6 +453,12 @@
         }
         .order-status-banner.hidden { display: none; }
         .order-status-row { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 0.9rem; }
+        .order-status-number {
+            background: var(--accent-gold); color: #fff; font-weight: 700;
+            font-size: 0.8rem; padding: 0.15rem 0.55rem; border-radius: 999px;
+            flex-shrink: 0; letter-spacing: 0.02em;
+        }
+        .order-status-number.hidden { display: none; }
         .order-status-dot {
             width: 10px; height: 10px; border-radius: 50%; background: var(--accent-gold);
             flex-shrink: 0; animation: statusPulse 1.6s ease-in-out infinite;
@@ -548,6 +554,7 @@
     <div class="order-status-banner hidden" id="orderStatusBanner" onclick="toggleOrderStatusDetail()">
         <div class="order-status-row">
             <span class="order-status-dot" id="orderStatusDot"></span>
+            <span class="order-status-number hidden" id="orderStatusNumber"></span>
             <span id="orderStatusLabel">Order received</span>
         </div>
         <i class="bi bi-chevron-down" id="orderStatusChevron"></i>
@@ -1095,15 +1102,26 @@
     function renderOrderStatus(data) {
         const banner = document.getElementById('orderStatusBanner');
         const dot = document.getElementById('orderStatusDot');
+        const number = document.getElementById('orderStatusNumber');
         const label = document.getElementById('orderStatusLabel');
         const detail = document.getElementById('orderStatusDetail');
 
         banner.classList.remove('hidden');
+
+        // token_display only exists for QSR/franchise/cafe orders -- a
+        // fine-dining table order never gets a TokenOrder, so this stays
+        // null there and the badge never shows, with no tenant-type check
+        // needed on the frontend at all.
+        if (data.token_display) {
+            number.textContent = data.token_display;
+            number.classList.remove('hidden');
+        } else {
+            number.classList.add('hidden');
+        }
+
         // QSR token ready-for-pickup overrides the generic per-item label --
         // matches the wording on the public "Now Serving" display board.
-        label.textContent = data.token_ready
-            ? `Order ${data.token_display} is ready for pickup!`
-            : data.label;
+        label.textContent = data.token_ready ? 'Ready for pickup!' : data.label;
         dot.classList.toggle('done', data.stage === 'ready' || data.stage === 'served' || data.token_ready);
 
         detail.innerHTML = (data.items || []).map(i => `
