@@ -1,4 +1,4 @@
-# orders/services/razorpay_gateway.py
+# payments/razorpay_gateway.py
 """
 Razorpay UPI QR integration — bring-your-own-keys.
 
@@ -46,7 +46,7 @@ def create_qr_payment(order, payment_config):
     catch and surface a clean error to the cashier.
     """
     from django.db.models import Sum
-    from orders.models import RazorpayQRCode
+    from payments.models import RazorpayQRCode
 
     paid_total = order.payments.exclude(method="refund").aggregate(
         total=Sum("amount")

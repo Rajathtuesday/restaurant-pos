@@ -18,7 +18,7 @@ from django.urls import reverse
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, OrderEvent, OrderItem, Payment, Refund, Table
+from orders.models import Order, OrderEvent, OrderItem, Table
 from tenants.models import Tenant, Outlet
 
 
@@ -182,56 +182,8 @@ class OrderEventDiscountLoggingTest(_Base):
         self.assertEqual(events.first().metadata["item_id"], self.order_item.id)
 
 
-class RefundCrossTenantIDORTest(TestCase):
-    """An owner in Tenant A must not be able to approve/reject Tenant B's refund."""
-
-    def setUp(self):
-        # Tenant A + owner
-        self.tenant_a = Tenant.objects.create(name="A", slug="tenant-a")
-        self.outlet_a = Outlet.objects.create(tenant=self.tenant_a, name="A-Main")
-        self.owner_a = User.objects.create_user(
-            username="owner_a", password="pw", role="owner",
-            tenant=self.tenant_a, outlet=self.outlet_a,
-        )
-        # Tenant B + an order/payment/refund
-        self.tenant_b = Tenant.objects.create(name="B", slug="tenant-b")
-        self.outlet_b = Outlet.objects.create(tenant=self.tenant_b, name="B-Main")
-        self.order_b = Order.objects.create(
-            tenant=self.tenant_b, outlet=self.outlet_b, status="paid",
-        )
-        self.payment_b = Payment.objects.create(
-            order=self.order_b, method="cash", amount=Decimal("300.00"),
-        )
-        self.refund_b = Refund.objects.create(
-            payment=self.payment_b, order=self.order_b,
-            amount=Decimal("100.00"), status="pending",
-        )
-
-    def test_owner_a_cannot_approve_tenant_b_refund(self):
-        client = Client()
-        client.force_login(self.owner_a)
-        resp = client.post(
-            reverse("approve-refund", args=[self.refund_b.id]),
-            content_type="application/json",
-        )
-        # The view catches the scoped-lookup miss and returns a clean 400 —
-        # crucially the refund must NOT be approved and no negative Payment made.
-        self.refund_b.refresh_from_db()
-        self.assertEqual(self.refund_b.status, "pending")
-        self.assertFalse(
-            Payment.objects.filter(order=self.order_b, method="refund").exists()
-        )
-
-    def test_owner_a_cannot_reject_tenant_b_refund(self):
-        client = Client()
-        client.force_login(self.owner_a)
-        client.post(
-            reverse("reject-refund", args=[self.refund_b.id]),
-            data=json.dumps({"reason": "nope"}),
-            content_type="application/json",
-        )
-        self.refund_b.refresh_from_db()
-        self.assertEqual(self.refund_b.status, "pending")
+# RefundCrossTenantIDORTest moved to payments/tests.py (Phase 6 of the
+# orders app split).
 
 
 class CancelOrderRoleTest(_Base):

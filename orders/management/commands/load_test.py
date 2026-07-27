@@ -43,7 +43,8 @@ def _cleanup_tenant(tenant):
     """Delete a tenant and everything under it, honoring the PROTECT FK chain
     (Payment.order and Order.tenant are both on_delete=PROTECT, so payments must
     go before orders, and orders before the tenant)."""
-    from orders.models import Order, Payment, Refund
+    from orders.models import Order, Payment
+    from payments.models import Refund
     Refund.objects.filter(order__tenant=tenant).delete()
     Payment.objects.filter(order__tenant=tenant).delete()
     Order.objects.filter(tenant=tenant).delete()

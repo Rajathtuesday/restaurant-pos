@@ -104,6 +104,7 @@ urlpatterns = [
     path('', include('kitchen.urls')),
     path('', include('waiter.urls')),
     path('', include('tablemerge.urls')),
+    path('', include('payments.urls')),
 
     
     # menu module

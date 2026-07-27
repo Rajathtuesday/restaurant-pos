@@ -1,8 +1,21 @@
+# payments/tests.py
 """
-Tests for the Razorpay UPI QR gateway: service layer, views, webhook
-handling, idempotency, and the reconciliation/amount-mismatch paths.
+Tests for the payments app (Phase 6 of the orders app split, the final
+phase): RazorpayQRCode (UPI QR gateway) and Refund.
 
-Run: python manage.py test orders.tests.test_razorpay
+Combines, verbatim except for import-path/mock-path fixes:
+  - orders/tests/test_razorpay.py (5 of 6 classes moved -- ProcessPaymentReferenceTest
+    tests orders.services.payment_service.process_payment generically and
+    moved into orders/tests/test_billing_modes.py instead, not here)
+  - orders/tests/test_refunds.py (moved wholesale)
+  - orders/tests/test_critical.py::RefundDefaultStatusTest (moved)
+  - orders/tests/test_security_fixes.py::RefundCrossTenantIDORTest (moved)
+
+Plus one new test closing a gap found during the move: orders' refund_payment
+view (the cashier-facing "request a refund" entry point, a reverse
+dependency -- orders calling into payments) had zero test coverage anywhere.
+
+Run: python manage.py test payments
 """
 import hashlib
 import hmac
@@ -10,18 +23,22 @@ import json
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 
-from django.test import TestCase
+from django.test import TestCase, Client
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
-from orders.models import Payment, OrderEvent, RazorpayQRCode, Table
-from orders.services.razorpay_gateway import (
-    decimal_to_paise, paise_to_decimal, verify_webhook_signature, create_qr_payment,
-)
+from accounts.models import User
+from orders.models import Order, OrderEvent, Payment, Table
 from orders.services.payment_service import process_payment
 from orders.tests.test_billing_modes import CounterBillingBase
+from payments.models import RazorpayQRCode, Refund
+from payments.razorpay_gateway import (
+    decimal_to_paise, paise_to_decimal, verify_webhook_signature, create_qr_payment,
+)
+from payments.refund_service import process_refund, approve_refund, reject_refund
 from setup.models import PaymentConfig
-from tenants.models import TenantFeatureOverride
+from tenants.models import Tenant, Outlet, TenantFeatureOverride
 
 WEBHOOK_SECRET = "test_webhook_secret"
 
@@ -29,6 +46,10 @@ WEBHOOK_SECRET = "test_webhook_secret"
 def _sign(body_str, secret=WEBHOOK_SECRET):
     return hmac.new(secret.encode(), body_str.encode(), hashlib.sha256).hexdigest()
 
+
+# ======================================================================
+#  Moved from orders/tests/test_razorpay.py
+# ======================================================================
 
 class RazorpayGatewayUnitTest(TestCase):
 
@@ -58,19 +79,6 @@ class RazorpayGatewayUnitTest(TestCase):
         self.assertFalse(verify_webhook_signature(body, sig, ""))
 
 
-class ProcessPaymentReferenceTest(CounterBillingBase):
-
-    def test_reference_stored_on_payment(self):
-        order = self._make_order()
-        result = process_payment(order, "upi", order.grand_total, reference="pay_abc123")
-        self.assertEqual(result["payment"].reference, "pay_abc123")
-
-    def test_reference_defaults_to_none(self):
-        order = self._make_order()
-        result = process_payment(order, "cash", order.grand_total)
-        self.assertIsNone(result["payment"].reference)
-
-
 class CreateQRPaymentServiceTest(CounterBillingBase):
 
     def setUp(self):
@@ -82,7 +90,7 @@ class CreateQRPaymentServiceTest(CounterBillingBase):
         self.config.razorpay_webhook_secret = WEBHOOK_SECRET
         self.config.save()
 
-    @patch("orders.services.razorpay_gateway.requests.post")
+    @patch("payments.razorpay_gateway.requests.post")
     def test_create_qr_payment_creates_tracking_row(self, mock_post):
         mock_post.return_value = MagicMock(
             status_code=200,
@@ -98,7 +106,7 @@ class CreateQRPaymentServiceTest(CounterBillingBase):
         self.assertEqual(qr.status, "active")
         self.assertEqual(RazorpayQRCode.objects.count(), 1)
 
-    @patch("orders.services.razorpay_gateway.requests.post")
+    @patch("payments.razorpay_gateway.requests.post")
     def test_create_qr_uses_basic_auth_with_outlet_keys(self, mock_post):
         mock_post.return_value = MagicMock(
             status_code=200,
@@ -141,7 +149,7 @@ class CreateRazorpayQRViewTest(CounterBillingBase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch("orders.views.razorpay_views.create_qr_payment")
+    @patch("payments.razorpay_views.create_qr_payment")
     def test_returns_qr_details_when_enabled(self, mock_create):
         TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
         order = self._make_order()
@@ -372,3 +380,232 @@ class RazorpayQRStatusViewTest(CounterBillingBase):
         response = self.client.get(reverse("razorpay-qr-status", args=[qr.qr_code_id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "active")
+
+
+# ======================================================================
+#  Moved from orders/tests/test_refunds.py
+# ======================================================================
+
+class RefundApprovalTest(TestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Test Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Test Outlet")
+
+        self.owner = User.objects.create_user(
+            username="owner", password="password", tenant=self.tenant, outlet=self.outlet, role="owner"
+        )
+        self.manager = User.objects.create_user(
+            username="manager", password="password", tenant=self.tenant, outlet=self.outlet, role="manager"
+        )
+        self.waiter = User.objects.create_user(
+            username="waiter", password="password", tenant=self.tenant, outlet=self.outlet, role="waiter"
+        )
+
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=self.table, created_by=self.owner, status="closed"
+        )
+        self.payment = Payment.objects.create(
+            order=self.order, method="cash", amount=Decimal("1000.00"), created_by=self.owner
+        )
+
+    def test_waiter_cannot_request_refund(self):
+        with self.assertRaises(PermissionDenied):
+            process_refund(self.order, self.payment.id, 100, self.waiter)
+
+    def test_manager_can_request_refund(self):
+        refund = process_refund(self.order, self.payment.id, 100, self.manager)
+        self.assertEqual(refund.status, "pending")
+        self.assertEqual(refund.amount, Decimal("100.00"))
+
+    def test_manager_cannot_approve_refund(self):
+        refund = process_refund(self.order, self.payment.id, 100, self.manager)
+        with self.assertRaises(PermissionDenied):
+            approve_refund(refund.id, self.manager, self.tenant, self.outlet)
+
+    def test_owner_can_approve_refund(self):
+        refund = process_refund(self.order, self.payment.id, 100, self.manager)
+        approve_refund(refund.id, self.owner, self.tenant, self.outlet)
+        refund.refresh_from_db()
+        self.assertEqual(refund.status, "approved")
+
+    def test_manager_can_reject_refund(self):
+        refund = process_refund(self.order, self.payment.id, 100, self.manager)
+        reject_refund(refund.id, self.manager, self.tenant, self.outlet, reason="Mistake")
+        refund.refresh_from_db()
+        self.assertEqual(refund.status, "rejected")
+        self.assertIn("Rejected: Mistake", refund.reason)
+
+    def test_cannot_refund_more_than_payment(self):
+        with self.assertRaises(ValidationError):
+            process_refund(self.order, self.payment.id, 1100, self.manager)
+
+    def test_cannot_double_refund_pending(self):
+        process_refund(self.order, self.payment.id, 600, self.manager)
+        # 600 is pending, so only 400 left. Requesting 500 should fail.
+        with self.assertRaises(ValidationError):
+            process_refund(self.order, self.payment.id, 500, self.manager)
+
+
+# ======================================================================
+#  Moved from orders/tests/test_critical.py::RefundDefaultStatusTest
+# ======================================================================
+
+class RefundDefaultStatusTest(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Refund Cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Refund Cafe Main")
+        self.user = User.objects.create_user(
+            username="refund_owner", password="testpass123",
+            tenant=self.tenant, outlet=self.outlet, role="owner",
+        )
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            table=table, created_by=self.user, status="open"
+        )
+        self.payment = Payment.objects.create(
+            order=self.order, method="cash",
+            amount=Decimal("100"), created_by=self.user
+        )
+
+    def test_refund_defaults_to_pending(self):
+        refund = Refund.objects.create(
+            payment=self.payment,
+            order=self.order,
+            amount=Decimal("50"),
+            reason="Customer changed mind",
+            refunded_by=self.user
+        )
+        self.assertEqual(refund.status, "pending",
+                         "Refund must default to 'pending', not 'approved'")
+
+    def test_refund_not_auto_approved(self):
+        refund = Refund(
+            payment=self.payment,
+            order=self.order,
+            amount=Decimal("10"),
+            reason="Error",
+            refunded_by=self.user
+        )
+        # Do NOT save — just verify the default field value
+        self.assertNotEqual(refund.status, "approved")
+
+
+# ======================================================================
+#  Moved from orders/tests/test_security_fixes.py::RefundCrossTenantIDORTest
+# ======================================================================
+
+class RefundCrossTenantIDORTest(TestCase):
+    """An owner in Tenant A must not be able to approve/reject Tenant B's refund."""
+
+    def setUp(self):
+        # Tenant A + owner
+        self.tenant_a = Tenant.objects.create(name="A", slug="tenant-a")
+        self.outlet_a = Outlet.objects.create(tenant=self.tenant_a, name="A-Main")
+        self.owner_a = User.objects.create_user(
+            username="owner_a", password="pw", role="owner",
+            tenant=self.tenant_a, outlet=self.outlet_a,
+        )
+        # Tenant B + an order/payment/refund
+        self.tenant_b = Tenant.objects.create(name="B", slug="tenant-b")
+        self.outlet_b = Outlet.objects.create(tenant=self.tenant_b, name="B-Main")
+        self.order_b = Order.objects.create(
+            tenant=self.tenant_b, outlet=self.outlet_b, status="paid",
+        )
+        self.payment_b = Payment.objects.create(
+            order=self.order_b, method="cash", amount=Decimal("300.00"),
+        )
+        self.refund_b = Refund.objects.create(
+            payment=self.payment_b, order=self.order_b,
+            amount=Decimal("100.00"), status="pending",
+        )
+
+    def test_owner_a_cannot_approve_tenant_b_refund(self):
+        client = Client()
+        client.force_login(self.owner_a)
+        resp = client.post(
+            reverse("approve-refund", args=[self.refund_b.id]),
+            content_type="application/json",
+        )
+        # The view catches the scoped-lookup miss and returns a clean 400 —
+        # crucially the refund must NOT be approved and no negative Payment made.
+        self.refund_b.refresh_from_db()
+        self.assertEqual(self.refund_b.status, "pending")
+        self.assertFalse(
+            Payment.objects.filter(order=self.order_b, method="refund").exists()
+        )
+
+    def test_owner_a_cannot_reject_tenant_b_refund(self):
+        client = Client()
+        client.force_login(self.owner_a)
+        client.post(
+            reverse("reject-refund", args=[self.refund_b.id]),
+            data=json.dumps({"reason": "nope"}),
+            content_type="application/json",
+        )
+        self.refund_b.refresh_from_db()
+        self.assertEqual(self.refund_b.status, "pending")
+
+
+# ======================================================================
+#  New: closes a genuinely uncovered path found during the move.
+#  orders/views/payment_views.py::refund_payment is the reverse-dependency
+#  call site (orders -> payments), the cashier-facing "request a refund"
+#  button on the bill screen. It had zero test coverage anywhere.
+# ======================================================================
+
+class RefundPaymentViewTest(TestCase):
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Refund Entry Cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.manager = User.objects.create_user(
+            username="refentry_mgr", password="pw",
+            tenant=self.tenant, outlet=self.outlet, role="manager",
+        )
+        self.waiter = User.objects.create_user(
+            username="refentry_waiter", password="pw",
+            tenant=self.tenant, outlet=self.outlet, role="waiter",
+        )
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet,
+            table=table, created_by=self.manager, status="closed",
+        )
+        self.payment = Payment.objects.create(
+            order=self.order, method="cash", amount=Decimal("500.00"), created_by=self.manager,
+        )
+
+    def _post(self, user, amount=100, reason="Customer complaint"):
+        client = Client()
+        client.force_login(user)
+        return client.post(
+            reverse("refund-payment", args=[self.payment.id]),
+            data=json.dumps({"amount": amount, "reason": reason}),
+            content_type="application/json",
+        )
+
+    def test_manager_can_request_refund_via_http(self):
+        resp = self._post(self.manager)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(
+            Refund.objects.filter(payment=self.payment, order=self.order, status="pending").exists()
+        )
+
+    def test_waiter_cannot_request_refund_via_http(self):
+        resp = self._post(self.waiter)
+        self.assertEqual(resp.status_code, 403)
+        self.assertFalse(Refund.objects.filter(payment=self.payment).exists())
+
+    def test_missing_reason_rejected(self):
+        client = Client()
+        client.force_login(self.manager)
+        resp = client.post(
+            reverse("refund-payment", args=[self.payment.id]),
+            data=json.dumps({"amount": 100}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(Refund.objects.filter(payment=self.payment).exists())

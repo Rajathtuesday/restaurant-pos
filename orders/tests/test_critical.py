@@ -18,7 +18,7 @@ from django.urls import reverse
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import (
-    Order, OrderItem, Refund, Table, Payment,
+    Order, OrderItem, Table,
 )
 from orders.services.order_service import add_items_to_order, get_or_create_open_order
 from tenants.models import Tenant, Outlet
@@ -96,48 +96,8 @@ class LoginViewTests(TestCase):
         self.assertTemplateUsed(resp, "accounts/login.html")
 
 
-# ─────────────────────────────────────────────
-# 2. REFUND MODEL — default status = "pending" (not "approved")
-# ─────────────────────────────────────────────
-
-class RefundDefaultStatusTest(TestCase):
-
-    def setUp(self):
-        self.tenant, self.outlet = _make_tenant("Refund Cafe")
-        self.user = _make_user(self.tenant, self.outlet)
-        item = _make_menu_item(self.tenant, self.outlet)
-        table = _make_table(self.tenant, self.outlet)
-        self.order = Order.objects.create(
-            tenant=self.tenant, outlet=self.outlet,
-            table=table, created_by=self.user, status="open"
-        )
-        self.payment = Payment.objects.create(
-            order=self.order, method="cash",
-            amount=Decimal("100"), created_by=self.user
-        )
-
-    def test_refund_defaults_to_pending(self):
-        refund = Refund.objects.create(
-            payment=self.payment,
-            order=self.order,
-            amount=Decimal("50"),
-            reason="Customer changed mind",
-            refunded_by=self.user
-        )
-        self.assertEqual(refund.status, "pending",
-                         "Refund must default to 'pending', not 'approved'")
-
-    def test_refund_not_auto_approved(self):
-        refund = Refund(
-            payment=self.payment,
-            order=self.order,
-            amount=Decimal("10"),
-            reason="Error",
-            refunded_by=self.user
-        )
-        # Do NOT save — just verify the default field value
-        self.assertNotEqual(refund.status, "approved")
-
+# Refund default-status coverage moved to payments/tests.py::RefundDefaultStatusTest
+# (Phase 6 of the orders app split).
 
 # KOT counter tenant-isolation coverage moved to kitchen/tests.py
 # (Phase 3 of the orders app split).

@@ -1,10 +1,12 @@
-# orders/services/refund_service.py
+# payments/refund_service.py
+# Moved from orders/services/refund_service.py (Phase 6 of the orders app split).
 from django.db import transaction
 from django.db.models import Sum
 from decimal import Decimal
 from django.core.exceptions import PermissionDenied, ValidationError
 
-from orders.models import Payment, Refund, OrderEvent
+from orders.models import Payment, OrderEvent
+from payments.models import Refund
 
 
 @transaction.atomic

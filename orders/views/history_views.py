@@ -20,7 +20,8 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from core.decorators import tenant_required, role_required
-from orders.models import Order, OrderItem, Payment, OrderEvent, Refund
+from orders.models import Order, OrderItem, Payment, OrderEvent
+from payments.models import Refund
 
 logger = logging.getLogger("pos.orders")
 

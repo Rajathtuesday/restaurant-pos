@@ -3,10 +3,11 @@ from django.urls import path
 
 from .views.order_actions import cancel_order, cancel_item, toggle_parcel
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
-from .views.refund_views import approve_refund_view, reject_refund_view, pending_refunds_view
 from .views.public_views import public_bill, submit_feedback
-from .views.razorpay_views import create_razorpay_qr, razorpay_qr_status, razorpay_webhook
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
+# approve_refund_view/reject_refund_view/pending_refunds_view and
+# create_razorpay_qr/razorpay_qr_status/razorpay_webhook moved to
+# payments/urls.py (Phase 6 of the orders app split).
 
 
 
@@ -99,12 +100,11 @@ urlpatterns = [
     path("available-tables/", available_tables ,name="available-tables"),
 
     path("refund/<int:payment_id>/", refund_payment, name="refund-payment"),
-    
+
     path("api/notifications/", notification_api, name="notification-api"),
     path("api/notifications/unread/", notification_api, name="notification-api-unread"),
-    path("refunds/pending/", pending_refunds_view, name="pending-refunds"),
-    path("refund/approve/<int:refund_id>/", approve_refund_view, name="approve-refund"),
-    path("refund/reject/<int:refund_id>/", reject_refund_view, name="reject-refund"),
+    # refunds/pending, refund/approve, refund/reject moved to payments/urls.py
+    # (Phase 6 of the orders app split) -- same exact paths.
     path("item-discount/<int:item_id>/", apply_item_discount, name="item-discount"),
     path("log-bypass/<int:order_id>/", log_bypass, name="log-bypass"),
     path("split-pay/<int:order_id>/", split_pay, name="split-pay"),
@@ -120,10 +120,8 @@ urlpatterns = [
     path("bill/public/<str:signed_token>/", public_bill, name="public-bill"),
     path("bill/public/<str:signed_token>/feedback/", submit_feedback, name="public-feedback"),
 
-    # Razorpay — UPI QR (BYO-keys)
-    path("razorpay/create-qr/<int:order_id>/", create_razorpay_qr, name="razorpay-create-qr"),
-    path("razorpay/qr-status/<str:qr_code_id>/", razorpay_qr_status, name="razorpay-qr-status"),
-    path("api/razorpay/webhook/", razorpay_webhook, name="razorpay-webhook"),
+    # Razorpay routes moved to payments/urls.py (Phase 6 of the orders app
+    # split) -- same exact paths.
 
     # Print queue routes moved to printing/urls.py (Phase 1 of the orders app
     # split) -- same exact paths, real agents poll these URLs directly.

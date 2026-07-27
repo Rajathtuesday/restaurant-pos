@@ -229,7 +229,8 @@ def open_cash_session(request):
 def close_cash_session(request):
     """Close active session and reconcile totals."""
     from .models import CashSession
-    from orders.models import Payment, Order, Refund
+    from orders.models import Payment, Order
+    from payments.models import Refund
     from django.db.models import Sum
 
     try:

@@ -1,4 +1,4 @@
-# orders/views/refund_views.py
+# payments/refund_views.py
 import json
 import logging
 from django.contrib.auth.decorators import login_required
@@ -7,8 +7,8 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from core.decorators import tenant_required, role_required
-from orders.models import Refund
-from orders.services.refund_service import approve_refund, reject_refund
+from payments.models import Refund
+from payments.refund_service import approve_refund, reject_refund
 
 logger = logging.getLogger("pos.orders")
 
@@ -23,7 +23,7 @@ def pending_refunds_view(request):
         .select_related("payment", "order", "refunded_by")
         .order_by("-id")
     )
-    return render(request, "orders/pending_refunds.html", {
+    return render(request, "payments/pending_refunds.html", {
         "refunds": refunds,
         "is_owner": request.user.role == "owner",
     })

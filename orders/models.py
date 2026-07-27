@@ -690,106 +690,11 @@ class Payment(models.Model):
         return f"{self.method} - {self.amount}"
 
 
-# =====================================================
-# RAZORPAY QR CODE — tracking row per generated QR
-# =====================================================
-
-class RazorpayQRCode(TenantScopedModel):
-    """
-    Records "QR X was generated for order Y, expecting amount Z, expires at T."
-
-    Without this, the webhook can't validate a payment's amount against what
-    was actually quoted (the order may have changed since the QR was shown),
-    and the bill UI has no way to show "still pending" across a page reload.
-    """
-    STATUS_CHOICES = (
-        ("active", "Active"),
-        ("paid", "Paid"),
-        ("expired", "Expired"),
-        ("closed", "Closed"),
-    )
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="razorpay_qr_codes")
-
-    qr_code_id = models.CharField(max_length=100, unique=True)
-    image_url = models.URLField()
-    quoted_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["order"]),
-            models.Index(fields=["status"]),
-        ]
-
-    def __str__(self):
-        return f"Razorpay QR {self.qr_code_id} - order #{self.order_id} - {self.status}"
-
-
-# =====================================================
-# REFUND
-# =====================================================
-
-class Refund(models.Model):
-
-    STATUS_CHOICES = (
-        ("pending", "Pending"),
-        ("approved", "Approved"),
-        ("rejected", "Rejected"),
-    )
-
-    payment = models.ForeignKey(
-        Payment,
-        on_delete=models.PROTECT,
-        related_name="refunds"
-    )
-
-    order = models.ForeignKey(
-        Order,
-        on_delete=models.PROTECT,
-        related_name="refunds"
-    )
-
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-
-    customer_complaint = models.CharField(
-        max_length=500, blank=True, default="",
-        help_text="What the customer said — visible to owner"
-    )
-
-    reason = models.CharField(
-        max_length=255,
-        help_text="Manager's internal note for this refund"
-    )
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="pending"
-    )
-
-    refunded_by = models.ForeignKey(
-        "accounts.User",
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name="refunds_issued"
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["order"]),
-            models.Index(fields=["payment"]),
-        ]
-
-    def __str__(self):
-        return f"Refund ₹{self.amount} for Order {self.order_id}"
+# RazorpayQRCode and Refund moved to payments/models.py (Phase 6 of the
+# orders app split, state-only migration -- see
+# orders/migrations/0060_delete_payments_models_state_only.py). The
+# underlying tables are still orders_razorpayqrcode / orders_refund;
+# nothing here changed in the DB.
 
 
 

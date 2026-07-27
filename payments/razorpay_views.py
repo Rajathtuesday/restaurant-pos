@@ -1,4 +1,4 @@
-# orders/views/razorpay_views.py
+# payments/razorpay_views.py
 import json
 import logging
 from decimal import Decimal, InvalidOperation
@@ -16,9 +16,10 @@ from django_ratelimit.decorators import ratelimit
 
 from core.decorators import tenant_required, feature_required
 from core.features import has_feature
-from orders.models import Order, OrderEvent, Payment, RazorpayQRCode
+from orders.models import Order, OrderEvent, Payment
+from payments.models import RazorpayQRCode
 from orders.services.payment_service import process_payment
-from orders.services.razorpay_gateway import create_qr_payment, verify_webhook_signature, paise_to_decimal
+from payments.razorpay_gateway import create_qr_payment, verify_webhook_signature, paise_to_decimal
 from setup.models import PaymentConfig
 from tenants.models import Outlet
 

@@ -414,3 +414,25 @@ class FeatureGatingTest(TestCase):
             tenant=tenant, feature="counter_billing", enabled=True
         )
         self.assertTrue(has_feature(tenant, "counter_billing"))
+
+
+# ── 6. Payment reference field ────────────────────────────────────────────────
+# Moved from orders/tests/test_razorpay.py::ProcessPaymentReferenceTest (Phase 6
+# of the orders app split) -- tests orders.services.payment_service.process_payment's
+# generic `reference` field, nothing razorpay-specific, CounterBillingBase is
+# just the fixture vehicle. Stays here, colocated with that fixture, rather
+# than moving into payments/tests.py with the genuinely razorpay-specific tests.
+
+class ProcessPaymentReferenceTest(CounterBillingBase):
+
+    def test_reference_stored_on_payment(self):
+        from orders.services.payment_service import process_payment
+        order = self._make_order()
+        result = process_payment(order, "upi", order.grand_total, reference="pay_abc123")
+        self.assertEqual(result["payment"].reference, "pay_abc123")
+
+    def test_reference_defaults_to_none(self):
+        from orders.services.payment_service import process_payment
+        order = self._make_order()
+        result = process_payment(order, "cash", order.grand_total)
+        self.assertIsNone(result["payment"].reference)

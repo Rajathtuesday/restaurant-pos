@@ -15,7 +15,7 @@ from core.decorators import tenant_required, role_required, feature_required
 from orders.models import Order, OrderEvent, Payment
 from shifts.models import CashSession
 from orders.services.payment_service import process_payment
-from orders.services.refund_service import process_refund
+from payments.refund_service import process_refund
 from setup.models import PaymentConfig
 
 logger = logging.getLogger("pos.orders")

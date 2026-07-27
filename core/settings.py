@@ -103,6 +103,7 @@ INSTALLED_APPS = [
     'kitchen',
     'waiter',
     'tablemerge',
+    'payments',
     'agency',
     'portal',
     'django_celery_results',
