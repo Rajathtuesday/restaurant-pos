@@ -392,4 +392,42 @@ class ToggleFeatureFlagAuditTest(TestCase):
             }),
             content_type="application/json",
         )
+        self.assertTrue(has_feature(self.tenant, "razorpay_gateway"))
         self.assertFalse(has_feature(tenant2, "razorpay_gateway"))
+
+
+# ---------------------------------------------------------------------------
+# _FEATURE_META completeness — the toggle UI's own list must not drift from
+# the system's real, canonical list of features
+# ---------------------------------------------------------------------------
+
+class FeatureMetaCompletenessTest(TestCase):
+    """
+    core/features.py::get_all_known_features() (flattened from FEATURE_GROUPS)
+    is the canonical list of every feature name the system actually enforces
+    -- it's what core/context_processors.py uses to build `tenant_features`
+    for every template. _FEATURE_META in accounts/views/feature_views.py is a
+    SEPARATE, hand-maintained dict that's supposed to mirror it (adding UI
+    label/icon/desc/group) for the superuser toggle screen at
+    /settings/features/.
+
+    These drifted: parcel_charge, composition_scheme, and counter_billing
+    were all real, actively-enforced features (confirmed via has_feature()
+    call sites and the tenant-config preset system) that were simply absent
+    from _FEATURE_META -- a superuser could bulk-apply a preset that included
+    them, but could never see or individually toggle just one of them on the
+    actual toggle screen. This test would have caught that immediately, and
+    stops it from silently happening again for the next new feature.
+    """
+
+    def test_feature_meta_covers_every_known_feature(self):
+        from accounts.views.feature_views import _FEATURE_META
+        from core.features import get_all_known_features
+
+        missing = get_all_known_features() - set(_FEATURE_META.keys())
+        self.assertEqual(
+            missing, set(),
+            f"_FEATURE_META is missing real feature(s): {missing} -- "
+            "a superuser can't see or toggle these on /settings/features/ "
+            "even though the system enforces them elsewhere."
+        )
