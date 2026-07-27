@@ -14,6 +14,7 @@ urlpatterns = [
     path("item-start/<int:item_id>/", views.start_preparing, name="item-start"),
     path("item-ready/<int:item_id>/", views.mark_ready, name="mark-ready"),
     path("bump-kot/<int:kot_id>/", views.bump_kot, name="bump-kot"),
+    path("kitchen/clear-all/", views.clear_all_kitchen_items, name="clear-all-kitchen"),
     path("serve-item/<int:item_id>/", views.serve_item, name="serve-item"),
 
     # Moved from orders/urls.py (Phase 4 of the orders app split) -- was

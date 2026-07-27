@@ -189,6 +189,25 @@ def bump_kot(request, kot_id):
 @login_required
 @require_POST
 @tenant_required
+@role_required("owner", "manager")
+@feature_required("kitchen_display")
+def clear_all_kitchen_items(request):
+    """
+    Bulk-clear every unresolved ticket off this outlet's own Kitchen
+    Display. Restricted to owner/manager (tighter than the per-item
+    actions, which chef/kitchen can also do) since this is a blunt
+    cleanup tool, not a normal service action -- meant for wiping out
+    stale/orphaned tickets, not for marking real orders complete.
+    """
+    from kitchen.services.kitchen_service import clear_all_active_items
+    count = clear_all_active_items(request.user)
+    logger.info("User %s cleared %d item(s) off the kitchen display", request.user.username, count)
+    return JsonResponse({"success": True, "count": count})
+
+
+@login_required
+@require_POST
+@tenant_required
 @role_required("owner", "manager", "chef", "kitchen", "captain", "waiter", "cashier")
 @feature_required("kitchen_display")
 def send_kitchen_message(request, order_id):

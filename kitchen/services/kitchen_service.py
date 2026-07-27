@@ -202,3 +202,32 @@ def set_item_served(user, item_id):
 
     update_table_state(item.order)
     return item
+
+
+@transaction.atomic
+def clear_all_active_items(user):
+    """
+    Bulk-marks every currently unresolved item on this outlet's Kitchen
+    Display "served" in one shot.
+
+    Deliberately a blunt tool, not a proper per-order completion (it
+    doesn't touch table state or TokenOrder.ready_at/collected_at the way
+    the individual actions above do) -- it exists for clearing out
+    stale/orphaned tickets (old test data, a KOT nobody ever finished
+    tapping through) that have piled up on the screen, not for real
+    service flow. Callers should require an explicit confirm before
+    hitting this; the view itself restricts it to owner/manager.
+    """
+    items = (
+        OrderItem.objects
+        .select_for_update()
+        .filter(
+            order__tenant=user.tenant,
+            order__outlet=user.outlet,
+            status__in=["sent", "preparing", "ready"],
+        )
+        .exclude(order__status="cancelled")
+    )
+    count = items.count()
+    items.update(status="served")
+    return count

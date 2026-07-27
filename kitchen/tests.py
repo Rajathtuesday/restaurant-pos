@@ -224,6 +224,82 @@ class ServeAndMessagePermissionTest(_Base):
         self.assertEqual(resp.status_code, 200)
 
 
+class ClearAllKitchenItemsTest(_Base):
+    """
+    Clear All is a blunt cleanup tool for stale/orphaned tickets (old test
+    data, a KOT nobody ever finished tapping through), not a normal
+    service action -- restricted to owner/manager, tighter than the
+    per-item actions chef/kitchen can also do.
+    """
+
+    def setUp(self):
+        super().setUp()
+        create_kot(self.owner, self.order)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "sent")
+
+    def test_chef_cannot_clear_all(self):
+        resp = self._login(self.chef).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_kitchen_role_cannot_clear_all(self):
+        resp = self._login(self.kitchen).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_owner_can_clear_all(self):
+        resp = self._login(self.owner).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["count"], 1)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "served")
+
+    def test_manager_can_clear_all(self):
+        resp = self._login(self.manager).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_clears_items_across_multiple_orders_and_stations(self):
+        other_table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T2")
+        other_order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=other_table, status="paid",
+        )
+        other_item = OrderItem.objects.create(
+            order=other_order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="pending",
+        )
+        create_kot(self.owner, other_order)
+        other_item.refresh_from_db()
+        self.assertEqual(other_item.status, "sent")
+
+        resp = self._login(self.owner).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.json()["count"], 2)
+        self.order_item.refresh_from_db()
+        other_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "served")
+        self.assertEqual(other_item.status, "served")
+
+    def test_does_not_touch_a_cancelled_orders_items(self):
+        self.order.status = "cancelled"
+        self.order.save(update_fields=["status"])
+        resp = self._login(self.owner).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.json()["count"], 0)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "sent")
+
+    def test_does_not_touch_another_outlets_items(self):
+        other_outlet = Outlet.objects.create(tenant=self.tenant, name="Branch 2")
+        other_order = Order.objects.create(
+            tenant=self.tenant, outlet=other_outlet, status="open",
+        )
+        other_item = OrderItem.objects.create(
+            order=other_order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="sent",
+        )
+        resp = self._login(self.owner).post(reverse("clear-all-kitchen"))
+        self.assertEqual(resp.json()["count"], 1)  # only self.order_item, not other_outlet's
+        other_item.refresh_from_db()
+        self.assertEqual(other_item.status, "sent")
+
+
 class TokenReadyOnKitchenReadyTest(TestCase):
     """
     QSR/cafe outlets that run a kitchen display (franchise and cafe both

@@ -216,6 +216,10 @@
 <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
 <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
 {% endif %}
+{% if request.user.role == 'owner' or request.user.role == 'manager' %}
+<button class="btn-luxury text-decoration-none d-none d-sm-inline-flex" style="border-color:#ef4444;color:#ef4444;" onclick="clearAllKitchen()" title="Clear every ticket off this screen">Clear All</button>
+<button class="btn-icon d-sm-none" style="color:#ef4444;" onclick="clearAllKitchen()" title="Clear All"><i class="bi bi-trash3"></i></button>
+{% endif %}
 <button class="btn-icon" onclick="kitchenToggleTheme()" title="Toggle Light/Dark" id="kitchenThemeBtn">
     <i class="bi bi-sun" id="themeIcon"></i>
 </button>
@@ -239,32 +243,6 @@
         </div>
     </div>
 </div>
-
-<!-- Waiter message modal -->
-<div class="modal fade" id="msgModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title" id="msgModalTitle">Message Waiter</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                    <button class="btn btn-outline-warning btn-sm" onclick="quickMsg('Delayed by 5 mins')">Delayed 5m</button>
-                    <button class="btn btn-outline-warning btn-sm" onclick="quickMsg('Delayed by 15 mins')">Delayed 15m</button>
-                    <button class="btn btn-outline-danger btn-sm" onclick="quickMsg('Ingredient out of stock')">Out of stock</button>
-                </div>
-                <textarea id="customMsgText" class="form-control" rows="3"
-                    style="background:var(--bg-color);color:var(--text-main);border:1px solid var(--border-color);border-radius:0;"
-                    placeholder="Custom message…"></textarea>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-warning" onclick="submitKitchenMessage()"><i class="bi bi-send me-1"></i>Send</button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -274,7 +252,6 @@
 
     let loading = false;
     let currentStation = "";
-    let activeOrderId = null;
     /* Kitchen-specific light toggle (not global themeManager) */
     let kitchenLight = localStorage.getItem('kitchen_light') === 'true';
     function kitchenToggleTheme() {
@@ -350,9 +327,6 @@
                                     <div class="table-name">${kot.table}</div>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="kot-num">KOT #${kot.kot_number}</span>
-                                        <button class="btn btn-outline-warning" style="padding:2px 8px;font-size:0.7rem;border-radius:0;" onclick="openMsg(${kot.order_id}, '${kot.table}')">
-                                            <i class="bi bi-chat-text"></i>
-                                        </button>
                                     </div>
                                 </div>
                                 <div class="timer">${minutes}m</div>
@@ -393,38 +367,22 @@
         }).then(loadKitchen).catch(console.error);
     }
 
-    function openMsg(orderId, tableName) {
-        activeOrderId = orderId;
-        document.getElementById('msgModalTitle').textContent = 'Message Waiter — ' + tableName;
-        new bootstrap.Modal(document.getElementById('msgModal')).show();
-    }
-
-    function quickMsg(text) { document.getElementById('customMsgText').value = text; }
-
-    function submitKitchenMessage() {
-        const text = document.getElementById('customMsgText').value.trim();
-        if (!text || !activeOrderId) return;
-        const sendBtn = document.querySelector('#msgModal .btn-warning');
-        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending…'; }
-        fetch("{% url 'send-kitchen-message' 0 %}".replace('0', activeOrderId), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-            body: JSON.stringify({ message: text })
-        })
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('msgModal'));
-                if (modal) modal.hide();
-                document.getElementById('customMsgText').value = '';
-                ui.toast('Message sent to waiter', 'success');
-            } else {
-                ui.toast(d.error || 'Failed to send', 'error');
-            }
-        })
-        .catch(() => ui.toast('Network error — message not sent', 'error'))
-        .finally(() => {
-            if (sendBtn) { sendBtn.disabled = false; sendBtn.innerHTML = '<i class="bi bi-send me-1"></i>Send'; }
+    function clearAllKitchen() {
+        ui.confirm(
+            'Clear every ticket off this screen?',
+            'This marks every item currently shown as served — for wiping out stale or orphaned tickets, not for real service. This cannot be undone.',
+            'Yes, clear all'
+        ).then(result => {
+            if (!result.isConfirmed) return;
+            fetch("{% url 'clear-all-kitchen' %}", {
+                method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) { ui.toast(`Cleared ${d.count} item(s)`, 'success'); loadKitchen(); }
+                else ui.toast(d.error || 'Could not clear', 'error');
+            })
+            .catch(() => ui.toast('Network error — nothing cleared', 'error'));
         });
     }
 
