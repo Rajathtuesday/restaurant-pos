@@ -227,10 +227,17 @@
         display: flex;
         flex-direction: column;
         flex-shrink: 0;
-        /* Subtract 70px for Android 3-button nav bar on tablets.
+        align-self: flex-start;
+        /* max-height (not height): a short order should only take up as
+           much vertical space as its own content needs, not stretch to
+           fill the full viewport and leave a dead gap between a couple
+           of items and the pinned totals/checkout block at the bottom.
+           Still caps at the same value as before for a long order, where
+           .context-body's own overflow-y:auto takes over as usual.
+           Subtract 70px for Android 3-button nav bar on tablets.
            env(safe-area-inset-bottom) handles gesture nav mode. */
-        height: calc(100vh - var(--header-h) - 70px);
-        height: calc(100dvh - var(--header-h) - max(70px, env(safe-area-inset-bottom, 70px)));
+        max-height: calc(100vh - var(--header-h) - 70px);
+        max-height: calc(100dvh - var(--header-h) - max(70px, env(safe-area-inset-bottom, 70px)));
         overflow: hidden;
     }
     @media (max-width: 991px) { .context-sidebar { display: none !important; } }

@@ -57,8 +57,30 @@ def running_order_items(request):
 
         tenant = request.user.tenant
         outlet = request.user.outlet
-        
+
         order = None
+
+        # Filtering/ordering the items HERE, as part of the Prefetch
+        # queryset, is what actually makes it get cached -- doing
+        # order.items.exclude(...).order_by(...) later (as this used to)
+        # builds a brand new, uncached queryset on the related manager
+        # every time it's touched, silently throwing away the
+        # prefetch_related above it and firing a fresh query per item for
+        # menu_item and modifiers (classic N+1). This endpoint is polled
+        # every 5s by every staff member with Token Billing open, so that
+        # N+1 was real, recurring load on an already memory-constrained
+        # server -- not just theoretical.
+        from django.db.models import Prefetch
+        _items_prefetch = Prefetch(
+            "items",
+            queryset=(
+                OrderItem.objects
+                .exclude(status="voided")
+                .order_by("id")
+                .select_related("menu_item")
+                .prefetch_related("modifiers")
+            ),
+        )
 
         if order_id:
             try:
@@ -66,7 +88,7 @@ def running_order_items(request):
                 order = (
                     Order.objects
                     .filter(id=order_id, tenant=tenant, outlet=outlet)
-                    .prefetch_related("items__menu_item", "items__modifiers")
+                    .prefetch_related(_items_prefetch)
                     .first()
                 )
             except (ValueError, TypeError):
@@ -94,7 +116,7 @@ def running_order_items(request):
                         table_id=table_id,
                         status__in=["open", "billing"]
                     )
-                    .prefetch_related("items__menu_item", "items__modifiers")
+                    .prefetch_related(_items_prefetch)
                     .order_by("-created_at")
                     .first()
                 )
@@ -105,7 +127,7 @@ def running_order_items(request):
             return JsonResponse({"items": [], "order_id": None, "order_status": None})
 
         items = []
-        for i in order.items.exclude(status="voided").order_by("id"):
+        for i in order.items.all():  # already filtered/ordered/prefetched via _items_prefetch above
             item_name = i.menu_item.name if i.menu_item else "Unknown Item"
             items.append({
                 "id": i.id,

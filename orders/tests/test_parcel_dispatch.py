@@ -599,6 +599,69 @@ class QSRParcelDispatchTests(ParcelBase):
         self.assertEqual(Decimal(str(d["parcel_amount"])), Decimal("24"))  # 2 × ₹12
 
 
+# ── 7. running_order_items must not N+1 -- polled every 5s by every staff
+#      member with Token Billing open, on an already memory-constrained
+#      server, so an extra query per item (menu_item, modifiers) for every
+#      poll was real, recurring load, not just theoretical. ─────────────────
+
+class RunningOrderItemsNoNPlusOneTest(ParcelBase):
+    """
+    order.items.exclude(status="voided").order_by("id") -- filtering/
+    ordering the related manager AFTER prefetch_related("items__menu_item",
+    "items__modifiers") was applied -- built a brand new, uncached
+    queryset every time it was touched, silently discarding the prefetch
+    and firing a fresh query per item for menu_item and modifiers. Fixed
+    by filtering/ordering INSIDE a Prefetch() queryset instead, which
+    Django does cache correctly.
+
+    Proven here the way an N+1 fix should be proven: total query count for
+    the view must stay FLAT as item count grows, not scale with it.
+    """
+
+    def _make_order_with_modifiers(self, item_count, modifiers_per_item=2):
+        # table=None (counter/tableless) -- two "open" orders on the same
+        # table would collide with the unique_open_order_per_table
+        # constraint, and which table it's on is irrelevant to this test.
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, created_by=self.owner,
+            source="counter", table=None, status="open",
+        )
+        for n in range(item_count):
+            oi = OrderItem.objects.create(
+                order=order, menu_item=self.idli, quantity=1,
+                price=self.idli.price, gst_percentage=self.idli.gst_percentage,
+                total_price=self.idli.price,
+            )
+            for m in range(modifiers_per_item):
+                oi.modifiers.create(name=f"Extra {m}", price=Decimal("5"))
+        order.recalculate_totals()
+        return order
+
+    def test_query_count_does_not_scale_with_item_count(self):
+        from django.test.utils import CaptureQueriesContext
+        from django.db import connection
+
+        small_order = self._make_order_with_modifiers(item_count=1)
+        with CaptureQueriesContext(connection) as small_ctx:
+            resp = self._running(order_id=small_order.id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()["items"]), 1)
+
+        large_order = self._make_order_with_modifiers(item_count=8)
+        with CaptureQueriesContext(connection) as large_ctx:
+            resp = self._running(order_id=large_order.id)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()["items"]), 8)
+
+        # The whole point: 8x the items must NOT mean meaningfully more
+        # queries. Before the fix, this scaled directly with item count
+        # (one extra query per item for menu_item, another for modifiers).
+        self.assertEqual(
+            len(small_ctx.captured_queries), len(large_ctx.captured_queries),
+            "Query count scaled with item count -- the N+1 regressed."
+        )
+
+
 # ── 5. running_order_items carries everything Token Billing's instant token
 #      switch needs (tokens/templates/tokens/token_billing.html::selectToken)
 #      -- token number, human status, and amount still due, so switching
