@@ -215,3 +215,28 @@ def send_kitchen_message(request, order_id):
         return JsonResponse({"error": "Order not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("kitchen_display")
+@require_POST
+def resolve_kitchen_message(request, message_id):
+    """
+    Moved here from orders/views/waiter_views.py (Phase 4 of the orders app
+    split) -- it only ever operated on KitchenMessage, it just happened to
+    live in the same file as WaiterCall's views historically.
+    """
+    try:
+        msg = KitchenMessage.objects.get(
+            id=message_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+        msg.is_resolved = True
+        msg.save(update_fields=["is_resolved"])
+
+        logger.info("User %s read kitchen message #%s", request.user.username, message_id)
+        return JsonResponse({"success": True})
+    except KitchenMessage.DoesNotExist:
+        return JsonResponse({"error": "Message not found"}, status=404)

@@ -34,7 +34,7 @@ from django.test import Client, TestCase
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, OrderItem, Table, WaiterCall
+from orders.models import Order, OrderItem, Table
 from setup.models import PaymentConfig
 from shifts.models import CashSession
 from tenants.models import Outlet, Tenant
@@ -203,16 +203,8 @@ class POSTestCase(TestCase):
         order_item.refresh_from_db()
         self.assertEqual(order_item.status, "ready")
 
-    # ------------------------------------------------------------------
-    # TEST 6 — waiter call  (unchanged)
-    # ------------------------------------------------------------------
-
-    def test_waiter_call(self):
-
-        WaiterCall.objects.create(
-            tenant=self.tenant, outlet=self.outlet, table=self.table
-        )
-        self.assertEqual(WaiterCall.objects.count(), 1)
+    # TEST 6 (waiter call) moved to waiter/tests.py::WaiterCallFromLegacyFlowTest
+    # (Phase 4 of the orders app split).
 
     # ------------------------------------------------------------------
     # TEST 7 — mark order paid

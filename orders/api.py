@@ -14,8 +14,8 @@ from django.utils import timezone
 
 from core.decorators import tenant_required
 from notifications.models import Notification
-from orders.models import WaiterCall
 from kitchen.models import KitchenMessage
+from waiter.models import WaiterCall
 
 @login_required
 @tenant_required

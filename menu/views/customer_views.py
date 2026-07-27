@@ -5,7 +5,8 @@ from django.http import JsonResponse, Http404
 from django.shortcuts import render, get_object_or_404
 
 from menu.models import MenuCategory
-from orders.models import Table, WaiterCall
+from orders.models import Table
+from waiter.models import WaiterCall
 
 logger = logging.getLogger("pos.menu")
 

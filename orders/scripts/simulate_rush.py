@@ -4,8 +4,9 @@ import time
 from django.contrib.auth import get_user_model
 from tenants.models import Tenant, Outlet
 from menu.models import MenuCategory, MenuItem
-from orders.models import Table, Order, OrderItem, WaiterCall
+from orders.models import Table, Order, OrderItem
 from kitchen.models import KOTBatch
+from waiter.models import WaiterCall
 
 User = get_user_model()
 

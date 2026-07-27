@@ -102,6 +102,7 @@ urlpatterns = [
     path('', include('printing.urls')),
     path('', include('tokens.urls')),
     path('', include('kitchen.urls')),
+    path('', include('waiter.urls')),
 
     
     # menu module

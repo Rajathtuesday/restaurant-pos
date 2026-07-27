@@ -5,13 +5,12 @@ from .models import (
     Order,
     OrderItem,
     Payment,
-    WaiterCall
 )
 
 
 admin.site.register(Table)
 admin.site.register(Payment)
-admin.site.register(WaiterCall)
+# WaiterCall registration moved to waiter/admin.py (Phase 4 of the orders app split).
 
 
 class OrderItemInline(admin.TabularInline):

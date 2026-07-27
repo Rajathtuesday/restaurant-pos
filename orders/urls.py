@@ -29,9 +29,6 @@ from .views import (
     merge_tables_view,
     transfer_table_view,
     unmerge_tables_view,
-    waiter_dashboard,
-    resolve_waiter_call,
-    resolve_kitchen_message,
     print_bill_action,
     print_kot_action,
     print_split_bill,
@@ -55,9 +52,9 @@ urlpatterns = [
     path("create-order/", create_order, name="create-order"),
 
     # Kitchen routes (send-to-kitchen, kitchen-view, kitchen-data, item-start,
-    # mark-ready, bump-kot, serve-item, send-kitchen-message) moved to
-    # kitchen/urls.py (Phase 3 of the orders app split) -- same exact paths.
-    # resolve-kitchen-message stays here since it lives in waiter_views.py.
+    # mark-ready, bump-kot, serve-item, send-kitchen-message, resolve-kitchen-message)
+    # moved to kitchen/urls.py (Phases 3-4 of the orders app split) -- same exact paths.
+    # waiter-dashboard/resolve-waiter moved to waiter/urls.py (Phase 4).
 
     path("bill/<int:order_id>/", bill_view, name="bill-view"),
     path("pay/<int:order_id>/", pay_order, name="pay-order"),
@@ -102,10 +99,6 @@ urlpatterns = [
     path("transfer-table/", transfer_table_view ,name="transfer-table"),
     
     path("available-tables/", available_tables ,name="available-tables"),
-
-    path("waiter-dashboard/", waiter_dashboard, name="waiter-calls"),
-    path("resolve-waiter/<int:call_id>/", resolve_waiter_call, name="resolve-waiter"),
-    path("resolve-kitchen-message/<int:message_id>/", resolve_kitchen_message, name="resolve-kitchen-message"),
 
     path("refund/<int:payment_id>/", refund_payment, name="refund-payment"),
     

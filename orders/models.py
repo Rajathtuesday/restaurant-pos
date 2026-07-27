@@ -793,32 +793,9 @@ class Refund(models.Model):
 
 
 
-# =====================================================
-# WAITER CALL
-# =====================================================
-
-class WaiterCall(TenantScopedModel):
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-
-    table = models.ForeignKey(Table, on_delete=models.CASCADE)
-
-    is_resolved = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["table"],
-                condition=Q(is_resolved=False),
-                name="one_active_waiter_call_per_table"
-            )
-        ]
-
-    def __str__(self):
-        return f"Waiter Call - {self.table.name}"
+# WaiterCall moved to waiter/models.py (Phase 4 of the orders app split,
+# state-only migration -- see orders/migrations/0058_delete_waitercall_model_state_only.py).
+# The underlying table is still orders_waitercall; nothing here changed in the DB.
 
 
 # =====================================================

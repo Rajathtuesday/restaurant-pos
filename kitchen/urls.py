@@ -15,4 +15,9 @@ urlpatterns = [
     path("item-ready/<int:item_id>/", views.mark_ready, name="mark-ready"),
     path("bump-kot/<int:kot_id>/", views.bump_kot, name="bump-kot"),
     path("serve-item/<int:item_id>/", views.serve_item, name="serve-item"),
+
+    # Moved from orders/urls.py (Phase 4 of the orders app split) -- was
+    # colocated with WaiterCall's routes historically, but only ever
+    # operated on KitchenMessage.
+    path("resolve-kitchen-message/<int:message_id>/", views.resolve_kitchen_message, name="resolve-kitchen-message"),
 ]

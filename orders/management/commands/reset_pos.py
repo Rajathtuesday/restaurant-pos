@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
-from orders.models import Order, OrderItem, Payment, WaiterCall, OrderEvent, OrderLock
+from orders.models import Order, OrderItem, Payment, OrderEvent, OrderLock
 from kitchen.models import KOTBatch
+from waiter.models import WaiterCall
 
 
 class Command(BaseCommand):
