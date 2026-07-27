@@ -671,6 +671,19 @@ else:
 # page), but be aware the rate-limit layer is best-effort, not a hard guarantee.
 RATELIMIT_FAIL_OPEN = True
 
+# django-ratelimit's counters live in CACHES["default"], which — unlike the
+# database — is NOT rolled back between individual TestCase methods. A full
+# `manage.py test` run (locally or in CI) shares one cache for its entire
+# process, so hundreds of tests hitting a rate-limited endpoint (create_order
+# is 20/min per IP) across the whole suite exhaust real production limits
+# and start returning spurious 403s to unrelated, later tests — confirmed
+# repeatedly this session (orders.tests.test_qr_reorder passes cleanly
+# in isolation, only fails when run as part of a large combined suite).
+# No test anywhere asserts on an actual rate-limit 403/429 (confirmed by
+# grep), so disabling it under the test runner only is a no-op for coverage
+# and removes a source of CI flakiness that was blocking auto-deploy.
+RATELIMIT_ENABLE = not _TESTING
+
 CELERY_BROKER_URL = REDIS_URL or "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "django-cache"
