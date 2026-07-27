@@ -85,8 +85,18 @@ def pay_order(request, order_id):
                     return JsonResponse({"error": "Order already completed"}, status=400)
 
                 # ── Auto-KOT mode ────────────────────────────────────────────
-                # When tenant has no KDS and no separate kitchen printer,
-                # KOTs are created at payment time so they print with the bill.
+                # Two independent reasons a KOT should fire at payment time
+                # instead of earlier:
+                #   1. Tenant has no KDS and no separate kitchen printer --
+                #      there's nowhere else to send it before the bill anyway.
+                #   2. This is a token order (QSR/cafe counter) -- pay-first,
+                #      cook-after is the whole model there, regardless of
+                #      whether the outlet also happens to run a kitchen
+                #      display. Token Billing's per-item approve action
+                #      (orders/views/order_views.py::approve_item) deliberately
+                #      does NOT create a KOT itself for exactly this reason --
+                #      payment is the one and only KOT-firing moment for a
+                #      token order.
                 from core.features import has_feature
                 from setup.models import KitchenStation as _KS
                 _has_kds = has_feature(order.tenant, "kitchen_display")
@@ -94,7 +104,8 @@ def pay_order(request, order_id):
                     tenant=order.tenant, outlet=order.outlet,
                     is_active=True, is_default=False,
                 ).exclude(printer_ip__isnull=True).exclude(printer_ip="").exists()
-                _auto_kot = not _has_kds and not _has_kt
+                _is_token_order = hasattr(order, "token")
+                _auto_kot = _is_token_order or (not _has_kds and not _has_kt)
 
                 if _auto_kot:
                     pending = order.items.filter(status="pending")

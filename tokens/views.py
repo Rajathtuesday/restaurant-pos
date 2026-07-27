@@ -562,7 +562,7 @@ def token_billing(request, order_id):
 # mark_token_ready still exists for outlets without a KDS, or as a manual
 # override.
 
-_READY_STALE_MINUTES = 20  # auto-clear safety net if nobody taps "Picked Up"
+_READY_STALE_MINUTES = 5  # auto-clear safety net if nobody taps "Picked Up"
 
 
 @login_required

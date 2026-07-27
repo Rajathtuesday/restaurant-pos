@@ -32,8 +32,25 @@ def running_order_view(request, order_id):
 
 @login_required
 @tenant_required
-@feature_required("running_order")
 def running_order_items(request):
+    # Shared by two different screens for two different reasons: fine
+    # dining's Running Order page (feature "running_order") and QSR/cafe's
+    # Token Billing (feature "token_system", which is what actually needs
+    # this data -- franchise/cafe tenants don't get "running_order" at
+    # all by default). feature_required() only supports requiring ALL of
+    # a list of features, not EITHER/OR, so this is checked inline instead
+    # -- gating on "running_order" alone left Token Billing's own item list
+    # silently 403ing (rendered as an unparseable HTML 403 page, not JSON,
+    # since this URL doesn't start with /api/) for any cafe/franchise
+    # tenant without a manual feature override.
+    from core.features import has_feature
+    tenant = getattr(request.user, "tenant", None)
+    if not request.user.is_superuser and not (
+        has_feature(tenant, "running_order") or has_feature(tenant, "token_system")
+    ):
+        return JsonResponse(
+            {"error": "This feature is not available for your account type."}, status=403
+        )
     try:
         table_id = request.GET.get("table")
         order_id = request.GET.get("order")
@@ -95,6 +112,8 @@ def running_order_items(request):
                 "name": item_name,
                 "quantity": i.quantity,
                 "status": i.status,
+                "price": float(i.price),
+                "total": float(i.total_price),
                 "modifiers": [m.name for m in i.modifiers.all()]
             })
 
@@ -220,6 +239,16 @@ def approve_item(request, item_id):
     item at a time instead of all-or-nothing, with cancel_item (existing,
     already "review"-safe — see void_service.void_order_item) as the
     per-item counterpart for rejecting instead of approving.
+
+    Deliberately does NOT create a KOT (unlike approve_items, which does).
+    approve_items is fine-dining's "waiter approves a QR add-on" action --
+    dine-in customers eat before they pay, so kitchen prep starting the
+    moment an item is approved is correct there. This one is used on
+    Token Billing (QSR/cafe counter orders), which is the opposite model:
+    pay first, then the kitchen fires -- see pay_order's _auto_kot, which
+    now fires for every token order regardless of whether the outlet also
+    runs a kitchen display. Approving here just accepts the item onto the
+    bill; the KOT gets created once at payment, not once per approval.
     """
     try:
         with transaction.atomic():
@@ -240,12 +269,6 @@ def approve_item(request, item_id):
             item.save(update_fields=["status"])
 
             order = item.order
-            try:
-                from kitchen.services.kot_service import create_kot
-                create_kot(request.user, order)
-            except Exception as kot_err:
-                logger.error("KOT creation failed during single-item approval: %s", kot_err)
-
             log_event(order, "status_changed", request.user, {"action": "item_approved", "item_id": item.id})
             logger.info("User %s approved item #%s", request.user.username, item_id)
 

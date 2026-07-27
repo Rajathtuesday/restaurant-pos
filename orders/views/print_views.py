@@ -33,6 +33,15 @@ def generate_bill(request, order_id):
     if not order:
         return JsonResponse({"error": "No active order found"}, status=404)
 
+    # recalculate_totals() below only excludes voided items, not "review"
+    # ones -- an unapproved QR-guest item would otherwise get silently
+    # billed to the customer without staff ever having actually accepted
+    # it onto the order.
+    if order.items.filter(status="review").exists():
+        return JsonResponse(
+            {"error": "Approve or reject all items before checkout."}, status=400
+        )
+
     with transaction.atomic():
         order.status = "billing"
         order.save(update_fields=["status"])

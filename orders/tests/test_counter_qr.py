@@ -191,7 +191,10 @@ class ApproveGuestOrderItemsTest(_Base):
 
         approved_item.refresh_from_db()
         other_item.refresh_from_db()
-        self.assertEqual(approved_item.status, "sent")
+        # "pending", not "sent" -- approve_item accepts the item onto the
+        # bill but does NOT create a KOT. The kitchen ticket for a token
+        # order fires exactly once, at payment (pay_order's _auto_kot).
+        self.assertEqual(approved_item.status, "pending")
         self.assertEqual(other_item.status, "review")
 
     def test_approving_an_already_approved_item_errors(self):
