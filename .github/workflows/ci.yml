@@ -106,9 +106,19 @@ jobs:
           DB_PORT:       "5432"
           REDIS_URL:     redis://127.0.0.1:6379/0
         run: |
+          # Every first-party app with test coverage. This used to list only
+          # 7 apps (accounts orders tenants inventory menu setup
+          # notifications) and was never updated when the orders-app-split
+          # carved 7 new satellite apps out of orders (promos, printing,
+          # tokens, kitchen, waiter, tablemerge, payments) -- meaning CI had
+          # been silently not testing any of them (plus crm, finance,
+          # reports, shifts, agency, portal, core, which were never in the
+          # list either), while still gating the auto-deploy job below.
           python manage.py test \
-            accounts orders tenants inventory \
-            menu setup notifications \
+            accounts agency core crm finance inventory \
+            kitchen menu notifications orders payments \
+            portal printing promos reports setup shifts \
+            tablemerge tenants tokens waiter \
             --verbosity=1
 
   deploy:
