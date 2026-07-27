@@ -212,8 +212,19 @@ def create_order(request):
                 if cust_name: order.customer_name = cust_name
                 if cust_phone: order.customer_phone = cust_phone
 
-            # For 3rd party or takeaway, we always create a fresh order to avoid merging
-            elif source != "dine_in" or table is None:
+            # For 3rd party/takeaway/counter orders there's no table to merge
+            # onto, so always create a fresh order. Branch on table, not on
+            # source: a guest scanning a table QR always sends source="web"
+            # (digital_menu.html never sends "dine_in"), so keying this off
+            # source used to send every guest order down this "always fresh"
+            # path even when a real table WAS resolved -- meaning the safe
+            # merge-or-create below (get_or_create_open_order, which retries
+            # on IntegrityError) was never reached for guest orders. A second
+            # guest at the same table, or a staff member manually picking a
+            # non-"dine_in" source with a table selected, would collide with
+            # unique_open_order_per_table and get a bare 400 instead of
+            # landing on the table's existing open order.
+            elif table is None:
                 order = Order.objects.create(
                     tenant=tenant,
                     outlet=outlet,
