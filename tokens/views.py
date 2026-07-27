@@ -610,9 +610,18 @@ def display_board(request, display_token):
     display_token (a permanent secret UUID, same pattern as Table.qr_token)
     is the only "auth", meant to sit open in a browser tab indefinitely.
     """
+    from django.http import Http404
     from django.shortcuts import get_object_or_404
     from tenants.models import Outlet
+    from core.features import has_feature
+
     outlet = get_object_or_404(Outlet, display_token=display_token)
+    if not has_feature(outlet.tenant, "token_system"):
+        # Mirrors menu.views.customer_views.call_waiter's pattern for public,
+        # unauthenticated endpoints -- can't use @feature_required without a
+        # logged-in user, so check inline instead. A fine-dining tenant has
+        # no tokens to show even if this URL were ever guessed/leaked.
+        raise Http404
     return render(request, "tokens/display_board.html", {"outlet": outlet})
 
 
@@ -625,7 +634,11 @@ def display_data(request, display_token):
     """
     from django.shortcuts import get_object_or_404
     from tenants.models import Outlet
+    from core.features import has_feature
+
     outlet = get_object_or_404(Outlet, display_token=display_token)
+    if not has_feature(outlet.tenant, "token_system"):
+        return JsonResponse({"error": "Not available."}, status=403)
     today = get_business_date(timezone.now(), outlet)
     stale_cutoff = timezone.now() - timedelta(minutes=_READY_STALE_MINUTES)
 

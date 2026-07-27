@@ -221,6 +221,9 @@
         </div>
 
         <div class="header-right d-flex align-items-center gap-2">
+            {% if request.user.is_authenticated %}
+            <a href="/shifts/" class="btn-icon" title="Clock In / Out"><i class="bi bi-clock"></i></a>
+            {% endif %}
             {% block header_right %}
             <!-- Default right side buttons -->
             {% if 'waiter_call' in tenant_features %}

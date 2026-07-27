@@ -1478,3 +1478,18 @@ class DisplayBoardDataTest(TestCase, TokenFixtureMixin):
         import uuid as _uuid
         resp = self.client.get(reverse("display-data", args=[_uuid.uuid4()]))
         self.assertEqual(resp.status_code, 404)
+
+    def test_board_404s_for_tenant_without_token_system(self):
+        # Mirrors call_waiter's inline has_feature check for public,
+        # unauthenticated endpoints -- a fine-dining tenant has no tokens
+        # to show even if this outlet's display_token were ever leaked.
+        fd_tenant = Tenant.objects.create(name="FD No Tokens", tenant_type="fine_dining")
+        fd_outlet = Outlet.objects.create(tenant=fd_tenant, name="Main")
+        resp = self.client.get(reverse("display-board", args=[fd_outlet.display_token]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_data_403s_for_tenant_without_token_system(self):
+        fd_tenant = Tenant.objects.create(name="FD No Tokens 2", tenant_type="fine_dining")
+        fd_outlet = Outlet.objects.create(tenant=fd_tenant, name="Main")
+        resp = self.client.get(reverse("display-data", args=[fd_outlet.display_token]))
+        self.assertEqual(resp.status_code, 403)
