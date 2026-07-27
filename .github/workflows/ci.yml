@@ -114,12 +114,20 @@ jobs:
           # been silently not testing any of them (plus crm, finance,
           # reports, shifts, agency, portal, core, which were never in the
           # list either), while still gating the auto-deploy job below.
+          #
+          # --keepdb: with all 22 apps running together for the first time,
+          # the run itself passed clean but the job still failed -- Django's
+          # final DROP DATABASE at teardown hit "database is being accessed
+          # by other users" (2 lingering sessions), unrelated to any test.
+          # The Postgres service container is thrown away at the end of
+          # every CI run regardless, so skipping that drop costs nothing and
+          # sidesteps the race entirely.
           python manage.py test \
             accounts agency core crm finance inventory \
             kitchen menu notifications orders payments \
             portal printing promos reports setup shifts \
             tablemerge tenants tokens waiter \
-            --verbosity=1
+            --verbosity=1 --keepdb
 
   deploy:
     needs: test
