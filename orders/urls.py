@@ -26,9 +26,7 @@ from .views import (
     running_order_view,
     running_order_data,
     generate_bill,
-    merge_tables_view,
     transfer_table_view,
-    unmerge_tables_view,
     print_bill_action,
     print_kot_action,
     print_split_bill,
@@ -93,9 +91,9 @@ urlpatterns = [
     path("complimentary-item/<int:item_id>/", make_item_complimentary, name="make-complimentary"),
     
     
-    path("merge-tables/", merge_tables_view ,name="merge-tables"),
-    path("unmerge-tables/<int:primary_id>/",unmerge_tables_view ,name="unmerge-tables"),
-    
+    # merge-tables/unmerge-tables moved to tablemerge/urls.py (Phase 5 of the
+    # orders app split) -- same exact paths.
+
     path("transfer-table/", transfer_table_view ,name="transfer-table"),
     
     path("available-tables/", available_tables ,name="available-tables"),

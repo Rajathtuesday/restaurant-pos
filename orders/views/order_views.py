@@ -7,7 +7,8 @@ from django.views.decorators.http import require_POST
 
 from django.db import transaction
 from core.decorators import tenant_required, feature_required
-from orders.models import Order, TableMerge, OrderItem
+from orders.models import Order, OrderItem
+from tablemerge.models import TableMerge
 from orders.services.event_service import log_event
 
 logger = logging.getLogger("pos.orders")

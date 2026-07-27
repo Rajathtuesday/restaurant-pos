@@ -8,7 +8,8 @@ from .discount_views import apply_discount, make_item_complimentary, apply_item_
 from .print_views import generate_bill, print_bill_action, print_kot_action, print_split_bill, qz_receipt_data, printer_status, download_pdf_bill, thermal_receipt_view
 from .billing_views import create_order
 # kitchen_views moved to kitchen/views.py (Phase 3 of the orders app split)
-from .table_views import table_dashboard, tables_data, mark_table_cleaned, available_tables, merge_tables_view, unmerge_tables_view, transfer_table_view, manage_table_view
+from .table_views import table_dashboard, tables_data, mark_table_cleaned, available_tables, transfer_table_view, manage_table_view
+# merge_tables_view/unmerge_tables_view moved to tablemerge/views.py (Phase 5 of the split).
 from .order_views import running_order_view, running_order_items, running_order_data, approve_items
 # waiter_dashboard/resolve_waiter_call moved to waiter/views.py, resolve_kitchen_message
 # to kitchen/views.py (Phase 4 of the orders app split).
@@ -45,8 +46,7 @@ __all__ = [
     "tables_data",
     "mark_table_cleaned",
     "available_tables",
-    "merge_tables_view",
-    "unmerge_tables_view",
+    # merge_tables_view/unmerge_tables_view moved to tablemerge/views.py (Phase 5).
     "transfer_table_view",
     "manage_table_view",
     # running order

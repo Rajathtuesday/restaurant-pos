@@ -9,7 +9,8 @@ from django.utils import timezone
 import json
 
 from core.decorators import tenant_required, role_required, feature_required
-from orders.models import Order, OrderEvent, Table, TableMerge
+from orders.models import Order, OrderEvent, Table
+from tablemerge.models import TableMerge
 
 logger = logging.getLogger("pos.orders")
 
@@ -194,33 +195,10 @@ def available_tables(request):
     return JsonResponse({"tables": list(tables)})
 
 
-@login_required
-@tenant_required
-@feature_required("merge_tables")
-@require_POST
-def merge_tables_view(request):
-    data = json.loads(request.body)
-    from orders.services.table_merge_service import merge_tables
-    merge = merge_tables(request.user, data.get("primary_table"), data.get("tables"))
-    logger.info("User %s merged tables", request.user.username)
-    return JsonResponse({"success": True, "merge_id": merge.id})
-
-
-@login_required
-@tenant_required
-@feature_required("merge_tables")
-@require_POST
-def unmerge_tables_view(request, primary_id):
-    from orders.services.table_merge_service import unmerge_tables
-    merge = TableMerge.objects.filter(
-        primary_table_id=primary_id, tenant=request.user.tenant,
-        outlet=request.user.outlet, is_active=True
-    ).first()
-    if not merge:
-        return JsonResponse({"error": "Merge not found"}, status=404)
-    unmerge_tables(request.user, merge.id)
-    logger.info("User %s unmerged table group %s", request.user.username, primary_id)
-    return JsonResponse({"success": True})
+# merge_tables_view/unmerge_tables_view moved to tablemerge/views.py
+# (Phase 5 of the orders app split) -- TableMerge is still imported above
+# because tables_data/available_tables/transfer_table_view below all read
+# it directly.
 
 
 @login_required

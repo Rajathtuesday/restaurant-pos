@@ -103,6 +103,7 @@ urlpatterns = [
     path('', include('tokens.urls')),
     path('', include('kitchen.urls')),
     path('', include('waiter.urls')),
+    path('', include('tablemerge.urls')),
 
     
     # menu module

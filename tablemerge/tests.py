@@ -1,17 +1,12 @@
-# orders/tests/test_qr_merged_table.py
+# tablemerge/tests.py
 """
-Bug: when two tables are merged via the floor plan, a guest scanning the QR
-code stuck on a SECONDARY merged table got an order created against that
-table alone instead of the merged group's primary table — the QR path
-(orders/views/billing_views.py::create_order) never checked for an active
-TableMerge at all, unlike the waiter-side flows (billing_core.py,
-order_views.py), which each already resolved it inline.
+Moved from orders/tests/test_qr_merged_table.py (Phase 5 of the orders app
+split), plus new HTTP-level tests closing a gap found during the move:
+merge_tables_view/unmerge_tables_view had zero test coverage anywhere --
+only the underlying service functions were exercised, indirectly, via the
+QR-ordering tests below.
 
-Fix: orders/services/table_merge_service.py::resolve_primary_table(), called
-from create_order right after the table is identified (both the table_token
-QR branch and the staff table_id branch).
-
-Run: python manage.py test orders.tests.test_qr_merged_table
+Run: python manage.py test tablemerge
 """
 import json
 from decimal import Decimal
@@ -22,7 +17,8 @@ from django.urls import reverse
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
-from orders.services.table_merge_service import merge_tables, unmerge_tables
+from tablemerge.models import TableMerge
+from tablemerge.services import merge_tables, unmerge_tables
 from tenants.models import Tenant, Outlet
 
 
@@ -114,3 +110,78 @@ class QrOrderRespectsTableMergeTest(_Base):
         self.assertEqual(resp.status_code, 200)
         order = Order.objects.get(id=resp.json()["order_id"])
         self.assertEqual(order.table_id, self.table_b.id)
+
+
+# ======================================================================
+#  New: HTTP-level coverage for merge_tables_view / unmerge_tables_view.
+#  Previously zero coverage anywhere -- only the service functions above
+#  were exercised, and only indirectly.
+# ======================================================================
+
+class MergeTablesViewTest(_Base):
+    def _login(self):
+        c = Client()
+        c.login(username="merge_mgr", password="pw")
+        return c
+
+    def test_manager_can_merge_tables(self):
+        resp = self._login().post(
+            reverse("merge-tables"),
+            data=json.dumps({"primary_table": self.table_a.id, "tables": [self.table_b.id]}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        merge_id = resp.json()["merge_id"]
+        merge = TableMerge.objects.get(id=merge_id)
+        self.assertEqual(merge.primary_table_id, self.table_a.id)
+        self.assertIn(self.table_b, merge.tables.all())
+
+    def test_merge_then_unmerge_round_trip_via_http(self):
+        client = self._login()
+        merge_resp = client.post(
+            reverse("merge-tables"),
+            data=json.dumps({"primary_table": self.table_a.id, "tables": [self.table_b.id]}),
+            content_type="application/json",
+        )
+        self.assertEqual(merge_resp.status_code, 200)
+
+        unmerge_resp = client.post(reverse("unmerge-tables", args=[self.table_a.id]))
+        self.assertEqual(unmerge_resp.status_code, 200)
+
+        merge_id = merge_resp.json()["merge_id"]
+        self.assertFalse(TableMerge.objects.get(id=merge_id).is_active)
+
+    def test_unmerge_nonexistent_merge_returns_404(self):
+        resp = self._login().post(reverse("unmerge-tables", args=[999999]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_logged_out_user_redirected_not_merged(self):
+        resp = Client().post(
+            reverse("merge-tables"),
+            data=json.dumps({"primary_table": self.table_a.id, "tables": [self.table_b.id]}),
+            content_type="application/json",
+        )
+        self.assertIn(resp.status_code, (302, 401, 403))
+        self.assertFalse(TableMerge.objects.filter(primary_table=self.table_a).exists())
+
+    def test_tenant_without_merge_tables_feature_is_blocked(self):
+        # franchise/cafe tenants don't get merge_tables by default (confirmed
+        # via core/features.py::TENANT_FEATURES) -- a QSR tenant is the
+        # natural "feature off" fixture, no TenantFeatureOverride needed.
+        qsr_tenant = Tenant.objects.create(name="QSR No Merge", tenant_type="franchise")
+        qsr_outlet = Outlet.objects.create(tenant=qsr_tenant, name="Main")
+        qsr_manager = User.objects.create_user(
+            username="qsr_mgr", password="pw", tenant=qsr_tenant,
+            outlet=qsr_outlet, role="manager",
+        )
+        qsr_table_a = Table.objects.create(tenant=qsr_tenant, outlet=qsr_outlet, name="Q1")
+        qsr_table_b = Table.objects.create(tenant=qsr_tenant, outlet=qsr_outlet, name="Q2")
+
+        c = Client()
+        c.login(username="qsr_mgr", password="pw")
+        resp = c.post(
+            reverse("merge-tables"),
+            data=json.dumps({"primary_table": qsr_table_a.id, "tables": [qsr_table_b.id]}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 403)

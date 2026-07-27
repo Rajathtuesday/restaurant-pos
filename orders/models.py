@@ -967,41 +967,10 @@ class DailyOrderCounter(TenantScopedModel):
         return f"{self.tenant} | {self.outlet} | {self.date} -> {self.value}"
     
 
-# =====================================================
-# TABLE MERGE (for future feature)
-# =====================================================
-
-
-class TableMerge(TenantScopedModel):
-
-    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
-    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
-
-    primary_table = models.ForeignKey(
-        "Table",
-        on_delete=models.CASCADE,
-        related_name="merged_primary"
-    )
-
-    tables = models.ManyToManyField("Table")
-
-    created_by = models.ForeignKey(
-        "accounts.User",
-        on_delete=models.SET_NULL,
-        null=True
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    is_active = models.BooleanField(default=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["tenant", "outlet", "is_active"]),
-        ]
-
-    def __str__(self):
-        return f"Merge on {self.primary_table.name} ({self.tables.count()} tables)"
+# TableMerge moved to tablemerge/models.py (Phase 5 of the orders app split,
+# state-only migration -- see orders/migrations/0059_delete_tablemerge_model_state_only.py).
+# The underlying tables are still orders_tablemerge / orders_tablemerge_tables;
+# nothing here changed in the DB.
 
 
 # KitchenMessage moved to kitchen/models.py (Phase 3 of the orders app

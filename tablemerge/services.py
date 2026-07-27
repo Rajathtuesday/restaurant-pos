@@ -1,6 +1,9 @@
-# orders/services/table_merge_service.py
+# tablemerge/services.py
+# Moved from orders/services/table_merge_service.py (Phase 5 of the orders
+# app split).
 from django.db import transaction
-from orders.models import Order, Table, TableMerge
+from orders.models import Order, Table
+from tablemerge.models import TableMerge
 
 
 def resolve_primary_table(table, tenant, outlet):

@@ -102,6 +102,7 @@ INSTALLED_APPS = [
     'tokens',
     'kitchen',
     'waiter',
+    'tablemerge',
     'agency',
     'portal',
     'django_celery_results',

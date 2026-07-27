@@ -140,7 +140,7 @@ def create_order(request):
         # currently merged into another one — attach the order to the
         # merge's primary table so it lands in the same place a waiter's
         # order for this physical table would.
-        from orders.services.table_merge_service import resolve_primary_table
+        from tablemerge.services import resolve_primary_table
         table = resolve_primary_table(table, tenant, outlet)
 
     # Validate phone BEFORE opening the transaction so a bad number returns a

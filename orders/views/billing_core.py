@@ -10,7 +10,8 @@ from django.views.decorators.cache import never_cache
 
 from core.decorators import tenant_required
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, Table, TableMerge, Payment
+from orders.models import Order, Table, Payment
+from tablemerge.models import TableMerge
 from orders.services.order_lock_service import lock_order
 from setup.models import PaymentConfig
 
