@@ -114,11 +114,20 @@ def create_order(request):
     user = None
 
     if table_token:
-        # 1. QR Guest Case: Identify table and tenant via UUID token
+        # 1. QR Guest Case: Identify table and tenant via UUID token.
+        # Falls back to Outlet.qr_token -- the outlet-wide "Counter /
+        # Walk-in" QR for QSR/cafe outlets with no seating -- which
+        # resolves tenant/outlet with table left as None, same as any
+        # other walk-in order.
         from django.shortcuts import get_object_or_404
-        table = get_object_or_404(Table, qr_token=table_token)
-        tenant = table.tenant
-        outlet = table.outlet
+        from tenants.models import Outlet
+        table = Table.objects.filter(qr_token=table_token).first()
+        if table:
+            tenant = table.tenant
+            outlet = table.outlet
+        else:
+            outlet = get_object_or_404(Outlet, qr_token=table_token)
+            tenant = outlet.tenant
     elif request.user.is_authenticated:
         # 2. Staff Case: Logged in user from POS
         user = request.user
@@ -159,7 +168,14 @@ def create_order(request):
             cust_name = data.get("customer_name")
             order_id = data.get("order_id")
 
-            if order_id:
+            # A tableless guest (counter/walk-in QR, no login, table is None)
+            # has no physical-table boundary to prove order_id ownership
+            # with -- the outlet's counter QR token is shared by every
+            # customer, unlike a table's, so a stored order_id can't be
+            # trusted here. Skip straight to fresh-order creation below
+            # instead of the ownership check further down, same as any
+            # other non-dine_in source.
+            if order_id and not (user is None and table is None):
                 order = Order.objects.filter(
                     id=order_id, tenant=tenant, outlet=outlet
                 ).first()

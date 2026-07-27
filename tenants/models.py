@@ -278,6 +278,17 @@ class Outlet(models.Model):
         )
     )
 
+    qr_token = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        help_text=(
+            "Permanent secret for the outlet-wide 'Counter / Walk-in' menu QR "
+            "-- for QSR/cafe outlets with no seating, so there's no Table to "
+            "hang a per-table QR on. Orders placed via this token get "
+            "table=None, same as a staff-created walk-in order."
+        )
+    )
+
     sac_code = models.CharField(
         max_length=8,
         default="996331",

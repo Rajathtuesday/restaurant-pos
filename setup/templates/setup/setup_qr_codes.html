@@ -59,6 +59,19 @@
 {% block content %}
 <div class="qr-container">
     <div class="qr-grid">
+        {% if counter_qr_url %}
+        <div class="qr-card">
+            <div class="restaurant-name">{{ request.user.tenant.name }}</div>
+            <div class="table-name">Counter / Walk-in</div>
+            <div class="qr-image">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ counter_qr_url }}"
+                     alt="Counter QR for {{ outlet.name }}"
+                     style="width:100%;height:100%;">
+            </div>
+            <div class="qr-hint">One QR for the whole counter &mdash; no table needed. Scan to View Menu &amp; Order</div>
+            <div style="font-size:0.6rem;color:var(--text-muted);margin-top:5px;opacity:0.5;">{{ outlet.qr_token }}</div>
+        </div>
+        {% endif %}
         {% for table in tables %}
         <div class="qr-card">
             <div class="restaurant-name">{{ request.user.tenant.name }}</div>

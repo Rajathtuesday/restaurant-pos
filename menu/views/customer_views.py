@@ -36,23 +36,37 @@ def _build_modifier_data(categories):
 
 
 def menu_view(request, qr_token):
-    """QR-scan entry point. Renders the digital self-order menu."""
-    from core.features import has_feature
+    """QR-scan entry point. Renders the digital self-order menu.
 
-    table = get_object_or_404(Table, qr_token=qr_token)
-    if not has_feature(table.tenant, "qr_menu"):
+    qr_token resolves against Table.qr_token first (dine-in, per-table QR).
+    If nothing matches, it's checked against Outlet.qr_token -- the
+    outlet-wide "Counter / Walk-in" QR for QSR/cafe outlets with no seating
+    to hang a per-table QR on. That path renders the same menu with no
+    table, so an order placed here lands as table=None (a walk-in order).
+    """
+    from core.features import has_feature
+    from tenants.models import Outlet
+
+    table = Table.objects.filter(qr_token=qr_token).first()
+    if table:
+        tenant, outlet = table.tenant, table.outlet
+    else:
+        outlet = get_object_or_404(Outlet, qr_token=qr_token)
+        tenant = outlet.tenant
+
+    if not has_feature(tenant, "qr_menu"):
         raise Http404
 
     categories = list(
         MenuCategory.objects
-        .filter(tenant=table.tenant, outlet=table.outlet, is_active=True)
+        .filter(tenant=tenant, outlet=outlet, is_active=True)
         .prefetch_related("items", "items__modifier_groups__modifier_group__modifiers")
     )
     return render(request, "menu/digital_menu.html", {
         "table":               table,
         "categories":          categories,
-        "tenant":              table.tenant,
-        "outlet":              table.outlet,
+        "tenant":              tenant,
+        "outlet":              outlet,
         "item_modifier_data":  _build_modifier_data(categories),
     })
 

@@ -533,7 +533,7 @@
             </button>
         </div>
         <div class="branch-info d-flex justify-content-center align-items-center gap-2 mt-2">
-            <span>{{ outlet.name }} &middot; {% if table %}Table {{ table.name }}{% else %}Takeaway{% endif %}</span>
+            <span>{{ outlet.name }} &middot; {% if table %}Table {{ table.name }}{% else %}Counter Order{% endif %}</span>
             {% if table %}
             <button class="call-waiter-btn" id="callWaiterBtn" onclick="callWaiter()">
                 <i class="bi bi-bell"></i><span id="callWaiterLabel">Call Waiter</span>

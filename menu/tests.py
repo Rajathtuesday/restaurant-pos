@@ -365,4 +365,45 @@ class DigitalMenuTableTokenTest(TestCase):
         self.client.force_login(staff)
         resp = self.client.get(reverse("digital_menu"), {"table": self.table.id})
         self.assertEqual(resp.status_code, 200)
+
+
+class CounterMenuQRTest(TestCase):
+    """
+    QSR/cafe outlets with no seating have no Table to hang a per-table QR
+    on. menu_view() (the "<uuid:qr_token>/" QR-scan entry point) must also
+    resolve an Outlet.qr_token, landing the guest on the same menu with
+    table=None -- a counter/walk-in order, same as any other tableless
+    order already supported by create_order.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Counter Cafe", tenant_type="cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Outlet")
+
+    def test_outlet_qr_token_renders_menu_with_no_table(self):
+        resp = self.client.get(reverse("menu_view", args=[self.outlet.qr_token]))
+        self.assertEqual(resp.status_code, 200)
         self.assertIsNone(resp.context["table"])
+        self.assertEqual(resp.context["outlet"].id, self.outlet.id)
+        self.assertEqual(resp.context["tenant"].id, self.tenant.id)
+
+    def test_table_qr_token_still_takes_priority(self):
+        from orders.models import Table
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        resp = self.client.get(reverse("menu_view", args=[table.qr_token]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context["table"].id, table.id)
+
+    def test_unknown_token_404s(self):
+        import uuid
+        resp = self.client.get(reverse("menu_view", args=[uuid.uuid4()]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_outlet_qr_respects_qr_menu_feature_gate(self):
+        # franchise doesn't get qr_menu by default (core/features.py) --
+        # confirms the outlet-token path is gated the same as the
+        # table-token path, not a bypass.
+        franchise = Tenant.objects.create(name="Franchise Co", tenant_type="franchise")
+        outlet = Outlet.objects.create(tenant=franchise, name="Branch 1")
+        resp = self.client.get(reverse("menu_view", args=[outlet.qr_token]))
+        self.assertEqual(resp.status_code, 404)
