@@ -18,6 +18,8 @@ the currency symbol, but CP437 is the safe default.
 
 import logging
 
+from django.utils import timezone
+
 logger = logging.getLogger("pos.orders")
 
 
@@ -207,7 +209,7 @@ class PrintingService:
             p.text(self._two_col("Total", self._currency(kot_total)) + "\n")
 
         p.set(align="right", bold=False)
-        p.text(f"{order.created_at.strftime('%d/%m %H:%M')}\n")
+        p.text(f"{timezone.localtime(order.created_at).strftime('%d/%m %H:%M')}\n")
 
     # ------------------------------------------------------------------
     # BILL BODY  (shared by print_bill and print_bill_with_kots)
@@ -383,7 +385,7 @@ class PrintingService:
             p.set(bold=False, double_width=False, double_height=False)
         else:
             p.text(f"Bill : {order.order_number or order.id}\n")
-        p.text(f"Date : {order.created_at.strftime('%d/%m/%Y %H:%M')}\n")
+        p.text(f"Date : {timezone.localtime(order.created_at).strftime('%d/%m/%Y %H:%M')}\n")
         p.text(self._sep() + "\n")
 
         # FULL item list — same as a normal bill (customer needs this for records)
@@ -550,7 +552,7 @@ class PrintingService:
             p.text(self._two_col("Paid", payment.method.upper()) + "\n")
 
         p.set(align="right")
-        p.text(f"{order.created_at.strftime('%d/%m %H:%M')}\n")
+        p.text(f"{timezone.localtime(order.created_at).strftime('%d/%m %H:%M')}\n")
 
     # ------------------------------------------------------------------
     # TOKEN RECEIPT ONLY  (QSR when KOTs already printed at stations)

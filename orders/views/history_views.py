@@ -281,7 +281,7 @@ def order_detail_api(request, order_id):
             payments_data.append({
                 "id": p.id, "method": p.method, "amount": float(p.amount),
                 "reference": p.reference or "",
-                "paid_at": p.paid_at.strftime("%H:%M") if p.paid_at else "",
+                "paid_at": timezone.localtime(p.paid_at).strftime("%H:%M") if p.paid_at else "",
                 "is_refund": True, "refunds": [],
             })
             continue
@@ -299,7 +299,7 @@ def order_detail_api(request, order_id):
         payments_data.append({
             "id": p.id, "method": p.method, "amount": float(p.amount),
             "reference": p.reference or "",
-            "paid_at": p.paid_at.strftime("%H:%M") if p.paid_at else "",
+            "paid_at": timezone.localtime(p.paid_at).strftime("%H:%M") if p.paid_at else "",
             "is_refund": False,
             "refunds": refunds_for_payment,
         })
@@ -315,7 +315,7 @@ def order_detail_api(request, order_id):
                 "type":    ev.event_type,
                 "label":   ev.get_event_type_display(),
                 "by":      by,
-                "at":      ev.created_at.strftime("%H:%M"),
+                "at":      timezone.localtime(ev.created_at).strftime("%H:%M"),
                 "detail":  ev.metadata or {},
             })
 
@@ -350,8 +350,8 @@ def order_detail_api(request, order_id):
         "can_approve_refund": user.role == "owner",
         "source":         order.source,
         "location":       location,
-        "created_at":     order.created_at.strftime("%d %b %Y, %H:%M"),
-        "closed_at":      order.closed_at.strftime("%H:%M") if order.closed_at else None,
+        "created_at":     timezone.localtime(order.created_at).strftime("%d %b %Y, %H:%M"),
+        "closed_at":      timezone.localtime(order.closed_at).strftime("%H:%M") if order.closed_at else None,
         "duration_mins":  duration_mins,
         "waiter":         waiter_name,
         "customer_name":  order.customer_name or "",
@@ -431,10 +431,15 @@ def export_orders_csv(request):
         if order.created_by:
             waiter = order.created_by.get_full_name() or order.created_by.username
 
+        # created_at is stored UTC; strftime() on it directly (unlike the
+        # History page's own template rendering, which auto-localizes)
+        # formats in UTC -- same class of bug as the Z-report CSV export
+        # (shifts/views.py::export_z_report), off by the IST offset.
+        local_created = timezone.localtime(order.created_at)
         writer.writerow([
             order.order_number or order.id,
-            order.created_at.strftime("%d/%m/%Y"),
-            order.created_at.strftime("%H:%M"),
+            local_created.strftime("%d/%m/%Y"),
+            local_created.strftime("%H:%M"),
             location,
             order.source.replace("_", " ").title(),
             waiter,
