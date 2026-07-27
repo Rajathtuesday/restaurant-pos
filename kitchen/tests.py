@@ -150,6 +150,56 @@ class KitchenStateActionsPermissionTest(_Base):
         self.assertTrue(any("bump_kot" in msg for msg in cm.output))
 
 
+class KitchenDataVisibleAfterPaymentTest(_Base):
+    """
+    get_kitchen_data used to filter to order__status__in=["open","billing"]
+    -- correct for fine dining, where kitchen prep always happens before
+    the bill is paid. Token (QSR/cafe) orders are the opposite: pay_order
+    fires the KOT and closes the order in the same request (see
+    payment_views.py's _auto_kot), so by the time anyone loads the kitchen
+    screen the order is already "paid"/"closed" even though nothing has
+    been prepared yet -- the old filter excluded exactly the orders the
+    kitchen most needed to see.
+    """
+
+    def setUp(self):
+        super().setUp()
+        create_kot(self.owner, self.order)
+        self.order_item.refresh_from_db()
+        self.assertEqual(self.order_item.status, "sent")
+
+    def _kitchen_data(self):
+        resp = self._login(self.chef).get(reverse("kitchen-data"))
+        return resp.json()["kots"]
+
+    def test_kot_visible_when_order_is_paid(self):
+        self.order.status = "paid"
+        self.order.save(update_fields=["status"])
+        data = self._kitchen_data()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["order_id"], self.order.id)
+
+    def test_kot_visible_when_order_is_closed(self):
+        self.order.status = "closed"
+        self.order.save(update_fields=["status"])
+        data = self._kitchen_data()
+        self.assertEqual(len(data), 1)
+
+    def test_kot_hidden_when_order_is_cancelled(self):
+        self.order.status = "cancelled"
+        self.order.save(update_fields=["status"])
+        data = self._kitchen_data()
+        self.assertEqual(data, [])
+
+    def test_kot_hidden_once_item_served_regardless_of_order_status(self):
+        self.order.status = "paid"
+        self.order.save(update_fields=["status"])
+        self.order_item.status = "served"
+        self.order_item.save(update_fields=["status"])
+        data = self._kitchen_data()
+        self.assertEqual(data, [])
+
+
 class ServeAndMessagePermissionTest(_Base):
     def setUp(self):
         super().setUp()

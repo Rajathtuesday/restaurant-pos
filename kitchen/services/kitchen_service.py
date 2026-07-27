@@ -8,12 +8,26 @@ from orders.services.order_service import update_table_state
 def get_kitchen_data(user, station_name=None):
     """
     Retrieves and structures the active KOT batches for the kitchen display.
+
+    Deliberately does NOT restrict to order__status__in=["open", "billing"]
+    -- that was correct for fine dining, where kitchen prep always happens
+    before the bill is paid, but token (QSR/cafe) orders are the opposite:
+    pay_order fires the KOT and immediately closes the order in the same
+    request, so by the time anyone loads this screen the order is already
+    "paid"/"closed" even though the kitchen hasn't prepared anything yet.
+    Filtering on order status here excluded exactly the orders the kitchen
+    most needed to see. What actually determines whether a KOT belongs on
+    this screen is whether it still has unresolved items, which the
+    per-item exclude(status__in=["served","voided"]) below already
+    handles -- a KOT whose items are all done naturally produces an empty
+    `items` list and gets skipped. Cancelled orders are excluded here as
+    an explicit belt-and-braces measure (cancel_order already voids their
+    non-served items, which the per-item filter would exclude anyway).
     """
     kots = KOTBatch.objects.filter(
         order__tenant=user.tenant,
         order__outlet=user.outlet,
-        order__status__in=["open", "billing"]
-    )
+    ).exclude(order__status="cancelled")
 
     if station_name:
         kots = kots.filter(station__name=station_name)

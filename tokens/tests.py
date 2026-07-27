@@ -1404,6 +1404,44 @@ class PickupReadinessTest(TestCase, TokenFixtureMixin):
         self.assertEqual(resp.status_code, 404)
 
 
+class TokenDashboardPickupUITest(TestCase, TokenFixtureMixin):
+    """
+    The Order Pickup board's manual "Mark Ready" button is only meaningful
+    for outlets with no Kitchen Display -- for one that has kitchen_display
+    on (franchise/cafe's default), readiness is decided on the kitchen
+    screen itself (set_item_ready sets TokenOrder.ready_at automatically),
+    so a second manual button here with no clear ownership just invites
+    double-taps or staff not knowing which screen is authoritative.
+    """
+
+    def setUp(self):
+        self._build_franchise_fixtures()  # franchise: kitchen_display ON by default
+        self.client = Client()
+        self.client.login(username="cashier1", password="pass")
+
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="paid",
+        )
+        TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=self.order,
+            token_number=9, date=timezone.now().date(), is_online=False,
+        )
+
+    def test_mark_ready_button_hidden_when_kitchen_display_on(self):
+        resp = self.client.get(reverse("token-dashboard"))
+        self.assertNotContains(resp, "Mark Ready")
+        self.assertContains(resp, "Preparing in kitchen")
+
+    def test_mark_ready_button_shown_when_kitchen_display_off(self):
+        from tenants.models import TenantFeatureOverride
+        TenantFeatureOverride.objects.create(
+            tenant=self.tenant, feature="kitchen_display", enabled=False,
+        )
+        resp = self.client.get(reverse("token-dashboard"))
+        self.assertContains(resp, "Mark Ready")
+        self.assertNotContains(resp, "Preparing in kitchen")
+
+
 class DisplayBoardDataTest(TestCase, TokenFixtureMixin):
     """
     display_data: the public polling endpoint behind the "Now Serving" TV

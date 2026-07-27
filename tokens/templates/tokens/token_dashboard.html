@@ -212,6 +212,16 @@
                 <div class="token-time">{{ token.order.created_at|date:"g:i A" }}</div>
                 {% if token.ready_at %}
                 <button class="btn-luxury btn-lux-primary" style="margin-top:0.75rem;width:100%;" onclick="markCollected({{ token.id }})">Picked Up</button>
+                {% elif 'kitchen_display' in tenant_features %}
+                <!-- Kitchen Display is on for this outlet -- readiness is
+                     decided there (kitchen.services.kitchen_service.set_item_ready
+                     sets TokenOrder.ready_at itself once every item on the
+                     order is ready), not here, so a second manual button
+                     with no clear ownership would just invite double-taps
+                     or staff not knowing which screen is authoritative. -->
+                <div style="margin-top:0.75rem;text-align:center;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:0.6rem 0;">
+                    <i class="bi bi-hourglass-split me-1"></i>Preparing in kitchen
+                </div>
                 {% else %}
                 <button class="btn-luxury" style="margin-top:0.75rem;width:100%;" onclick="markReady({{ token.id }})">Mark Ready</button>
                 {% endif %}
