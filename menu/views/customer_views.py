@@ -1,8 +1,10 @@
 """Customer-facing views: QR menu, digital self-order menu, waiter call."""
 import json
 import logging
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404
+from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
 
 from menu.models import MenuCategory
 from orders.models import Table
@@ -35,6 +37,7 @@ def _build_modifier_data(categories):
     return json.dumps(data)
 
 
+@ratelimit(key="ip", rate="30/m", method="GET", block=False)
 def menu_view(request, qr_token):
     """QR-scan entry point. Renders the digital self-order menu.
 
@@ -43,7 +46,17 @@ def menu_view(request, qr_token):
     outlet-wide "Counter / Walk-in" QR for QSR/cafe outlets with no seating
     to hang a per-table QR on. That path renders the same menu with no
     table, so an order placed here lands as table=None (a walk-in order).
+
+    Rate-limited: this is the one public, unauthenticated page every guest
+    lands on, doing a real Postgres join + prefetch per hit -- on the
+    production box (a single t3.micro with thin memory headroom), an
+    unthrottled flood here is the cheapest way to degrade the whole site
+    for every tenant. 30/min is 3x a guest's own ~6s order-status polling
+    cadence, generous enough for a stray reload or a shared café-WiFi IP.
     """
+    if getattr(request, "limited", False):
+        return HttpResponse("Too many requests. Please wait a moment.", status=429)
+
     from core.features import has_feature
     from tenants.models import Outlet
 
@@ -77,8 +90,19 @@ def menu_view(request, qr_token):
     })
 
 
+@ratelimit(key="ip", rate="10/m", method="POST", block=False)
+@require_POST
 def call_waiter(request, qr_token):
-    """Customer taps 'Call Waiter' from the QR menu. Rate-limited to one call/60s."""
+    """Customer taps 'Call Waiter' from the QR menu.
+
+    Two independent checks, not one: the 60s-per-table debounce below stops
+    the same table pinging staff repeatedly, but does nothing to stop many
+    different tables being hit, or a flood from one IP -- the @ratelimit
+    above is the general per-IP guard, checked first.
+    """
+    if getattr(request, "limited", False):
+        return JsonResponse({"error": "Too many requests. Please wait a moment."}, status=429)
+
     from django.utils import timezone
     from datetime import timedelta
     from core.features import has_feature
@@ -98,6 +122,7 @@ def call_waiter(request, qr_token):
     return JsonResponse({"success": True})
 
 
+@ratelimit(key="ip", rate="30/m", method="GET", block=False)
 def order_status(request, order_id):
     """
     Public, read-only status poll for a guest who just placed a QR order.
@@ -105,7 +130,15 @@ def order_status(request, order_id):
     non-sensitive fields (item names/quantities/status, a plain-English stage)
     and NOTHING financial (no prices, totals, or payment info), since the
     order_id alone is not treated as a secret.
+
+    Rate-limited: a guest's own phone polls this every ~6s (10/min steady
+    state) while an order is active -- 30/min gives 3x headroom for a
+    stray reload or a second tab, without meaningfully weakening the limit
+    against a real flood.
     """
+    if getattr(request, "limited", False):
+        return JsonResponse({"error": "Too many requests."}, status=429)
+
     from orders.models import Order
 
     order = get_object_or_404(Order, id=order_id)
@@ -162,8 +195,16 @@ def order_status(request, order_id):
     })
 
 
+@ratelimit(key="ip", rate="30/m", method="GET", block=False)
 def digital_menu(request):
-    """Customer-facing self-order menu with category tabs and cart."""
+    """Customer-facing self-order menu with category tabs and cart.
+
+    Rate-limited: the ?table_token=/staff-preview variant of menu_view,
+    same real DB cost per hit, same reasoning for the limit.
+    """
+    if getattr(request, "limited", False):
+        return HttpResponse("Too many requests. Please wait a moment.", status=429)
+
     from core.features import has_feature
 
     # Deliberately table_token only. A `?table=<id>` fallback used to exist

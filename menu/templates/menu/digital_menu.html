@@ -1132,11 +1132,32 @@
         `).join('') || '<div class="order-status-item-row"><span>No items yet</span></div>';
     }
 
+    // Once polling ends (order gone, or truly done), the status banner used
+    // to just freeze showing whatever it last rendered ("Ready for pickup!",
+    // "Enjoy your meal!") forever in this tab -- a guest who left the tab
+    // open past actual completion would see stale info indefinitely. This
+    // resets the visible UI at the same transitions that already correctly
+    // stop polling; it's not a new localStorage key, and it must never call
+    // localStorage.clear() as a shortcut -- that would also wipe the
+    // unrelated "dark" theme preference.
+    function resetOrderStatusUI() {
+        const banner = document.getElementById('orderStatusBanner');
+        const detail = document.getElementById('orderStatusDetail');
+        if (banner) banner.classList.add('hidden');
+        if (detail) detail.classList.remove('open');
+    }
+
     async function pollOrderStatus() {
         if (!_pollingOrderId) return;
         try {
             const res = await fetch(`/menu/order-status/${_pollingOrderId}/`);
-            if (!res.ok) { _pollingOrderId = null; clearStoredOrderId(); if (_statusPollTimer) clearInterval(_statusPollTimer); return; } // order gone/invalid
+            if (!res.ok) {
+                _pollingOrderId = null;
+                clearStoredOrderId();
+                resetOrderStatusUI();
+                if (_statusPollTimer) clearInterval(_statusPollTimer);
+                return;
+            } // order gone/invalid
             const data = await res.json();
             renderOrderStatus(data);
             // Once the order is no longer open/billing (paid, closed, cancelled),
@@ -1152,6 +1173,7 @@
                 || (data.token_display && data.token_collected);
             if (done) {
                 _pollingOrderId = null;
+                resetOrderStatusUI();
                 if (_statusPollTimer) clearInterval(_statusPollTimer);
             }
         } catch (e) { /* network blip — try again next tick */ }

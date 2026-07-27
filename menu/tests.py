@@ -1,5 +1,6 @@
 # menu/tests.py
-from django.test import TestCase, Client
+from django.core.cache import cache
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from decimal import Decimal
 import json
@@ -416,3 +417,104 @@ class CounterMenuQRTest(TestCase):
         resp = self.client.get(reverse("menu_view", args=[self.outlet.qr_token]))
         self.assertEqual(resp.context["qr_token"], str(self.outlet.qr_token))
         self.assertContains(resp, str(self.outlet.qr_token))
+
+
+@override_settings(RATELIMIT_ENABLE=True)
+class PublicMenuRateLimitTest(TestCase):
+    """
+    RATELIMIT_ENABLE = not _TESTING (core/settings.py) disables rate
+    limiting entirely under the test runner -- these explicitly re-enable
+    it to prove the limits on menu_view/digital_menu/order_status actually
+    reject requests, not just that the decorators are present.
+    django_ratelimit's counters live in the cache, which (unlike the DB)
+    is NOT rolled back between TestCase methods -- cache.clear() is
+    required in setUp/tearDown or one test's hits count toward the next.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.tenant = Tenant.objects.create(name="Rate Limit Cafe", tenant_type="cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_menu_view_rate_limited_after_30_per_minute(self):
+        from orders.models import Table
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        for _ in range(30):
+            resp = self.client.get(reverse("menu_view", args=[table.qr_token]))
+            self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(reverse("menu_view", args=[table.qr_token]))
+        self.assertEqual(resp.status_code, 429)
+
+    def test_digital_menu_rate_limited_after_30_per_minute(self):
+        from orders.models import Table
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        for _ in range(30):
+            resp = self.client.get(reverse("digital_menu"), {"table_token": str(table.qr_token)})
+            self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(reverse("digital_menu"), {"table_token": str(table.qr_token)})
+        self.assertEqual(resp.status_code, 429)
+
+    def test_order_status_rate_limited_after_30_per_minute(self):
+        from orders.models import Order, Table
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=table, status="open",
+        )
+        for _ in range(30):
+            resp = self.client.get(reverse("order_status", args=[order.id]))
+            self.assertEqual(resp.status_code, 200)
+        resp = self.client.get(reverse("order_status", args=[order.id]))
+        self.assertEqual(resp.status_code, 429)
+        self.assertIn("error", resp.json())
+
+    def test_menu_view_guest_polling_cadence_never_trips_the_limit(self):
+        # Sanity check the rate isn't accidentally tight enough to block a
+        # guest's own normal usage -- comfortably under the 30/min cap.
+        from orders.models import Table
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        for _ in range(20):
+            resp = self.client.get(reverse("menu_view", args=[table.qr_token]))
+            self.assertEqual(resp.status_code, 200)
+
+
+@override_settings(RATELIMIT_ENABLE=True)
+class CallWaiterRateLimitTest(TestCase):
+    """
+    call_waiter has two independent checks that guard against different
+    things: the pre-existing 60s-per-table debounce (one table spamming
+    staff repeatedly) and the new per-IP @ratelimit (a flood across many
+    different tables, which the debounce alone never catches). Both need
+    their own coverage.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.tenant = Tenant.objects.create(name="Waiter Call Fine Dining", tenant_type="fine_dining")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_per_table_debounce_still_blocks_a_second_call_within_60s(self):
+        from orders.models import Table
+        table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        first = self.client.post(reverse("call_waiter", args=[table.qr_token]))
+        self.assertEqual(first.status_code, 200)
+        second = self.client.post(reverse("call_waiter", args=[table.qr_token]))
+        self.assertEqual(second.status_code, 429)
+
+    def test_per_ip_limit_blocks_flood_across_many_different_tables(self):
+        from orders.models import Table
+        # 10/min per IP -- 10 different tables should all succeed (the
+        # per-table debounce never applies here, they're all distinct
+        # tables), the 11th should be rejected by the per-IP limit instead.
+        for i in range(10):
+            table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name=f"T{i}")
+            resp = self.client.post(reverse("call_waiter", args=[table.qr_token]))
+            self.assertEqual(resp.status_code, 200)
+        extra_table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extra")
+        resp = self.client.post(reverse("call_waiter", args=[extra_table.qr_token]))
+        self.assertEqual(resp.status_code, 429)

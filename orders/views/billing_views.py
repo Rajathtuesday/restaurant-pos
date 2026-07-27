@@ -72,7 +72,17 @@ __all__ = [
 # Rate-limit BEFORE require_POST so the check runs before any body parsing.
 # 20 requests/minute per IP. Guests hit this via QR; staff calls are authenticated
 # and go through the same endpoint - 20/min is more than enough for either.
-@ratelimit(key="ip", rate="20/m", method="POST", block=True)
+#
+# block=False deliberately, not block=True: with block=True, django_ratelimit
+# raises Ratelimited (a PermissionDenied subclass) BEFORE this view body ever
+# runs, so the manual `request.limited` check below used to be unreachable
+# dead code -- a real rate-limit hit fell through to Django's default
+# PermissionDenied handling (renders 403.html as HTML) instead of the JSON
+# 429 this was clearly meant to return for an API client. block=False lets
+# django_ratelimit just record the hit and continue, so this check is the
+# thing that actually decides the response -- same pattern already proven
+# correct in accounts/views/auth_views.py::login_view.
+@ratelimit(key="ip", rate="20/m", method="POST", block=False)
 @require_POST
 # @tenant_required -- Removed to allow QR guest ordering
 def create_order(request):
@@ -85,8 +95,6 @@ def create_order(request):
     Rate-limited to 20 POST requests per minute per IP address to prevent
     malformed-cart spam from exhausting inventory and DB write capacity.
     """
-    # django-ratelimit sets request.limited=True and raises Ratelimited when block=True,
-    # but we still return a JSON 429 for API clients that expect JSON.
     if getattr(request, "limited", False):
         return JsonResponse(
             {"error": "Too many requests. Please slow down."},
