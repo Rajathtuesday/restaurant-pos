@@ -662,7 +662,10 @@
       mc.innerHTML += html;
     });
     gst = Math.round(gst);
-    const grandTotal = subtotal + gst;
+    // Parcel is a flat surcharge on top, added here so the Total shown
+    // actually matches what checkout will charge once toggled on (see
+    // toggleParcel/_syncParcelUI).
+    const grandTotal = subtotal + gst + (_parcelOn ? _parcelChargeAmount : 0);
     document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + subtotal);
     document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + gst);
     document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + grandTotal);
@@ -675,7 +678,13 @@
   /* ── Parcel charge toggle ───────────────────────────────────── */
   let _parcelOn = false;
   let _parcelAppliedToOrder = null;  // order_id that parcel is currently applied to on the server
-  const _parcelAmount = {{ outlet.parcel_charge_amount|default:0 }};
+  // Real, server-computed charge (qty/mode-aware -- ₹5/item on 3 items is
+  // ₹15, not the flat per-unit rate this starts at). renderCart() below
+  // adds this into the Total whenever _parcelOn is true -- it used to
+  // ignore parcel entirely, so toggling it on left the Subtotal/GST/Total
+  // block showing a Total that didn't match what checkout would actually
+  // charge, even though the real bill was always correct server-side.
+  let _parcelChargeAmount = {{ outlet.parcel_charge_amount|default:0 }};
 
   async function toggleParcel() {
     const orderId = qsrPendingOrderId || currentOrderId;
@@ -692,22 +701,23 @@
       );
       _parcelOn = d.parcel_on;
       _parcelAppliedToOrder = d.parcel_on ? orderId : null;
-      // Update parcel row to show actual calculated amount (not unit price)
-      document.querySelectorAll(".parcel-row span:last-child").forEach(e =>
-        e.textContent = "₹" + Math.round(d.parcel_amount || 0)
-      );
+      _parcelChargeAmount = d.parcel_amount || 0;
+      // _syncParcelUI() -> renderCart() below picks up the new amount and
+      // recomputes the Total from it -- no need to set .view-total here
+      // directly too (that used to get immediately clobbered by
+      // renderCart() anyway, since it never factored parcel in).
       _syncParcelUI();
-      document.querySelectorAll(".view-total").forEach(e =>
-        e.innerText = "₹" + Math.round(d.grand_total)
-      );
     } catch(e) { ui.toast("Could not update parcel charge", "error"); }
   }
 
   function _syncParcelUI() {
-    // Show/hide parcel row
-    document.querySelectorAll(".parcel-row").forEach(el =>
-      el.style.display = _parcelOn ? "flex" : "none"
-    );
+    // Show/hide parcel row, and show the real computed amount on it (not
+    // the flat per-unit rate -- per-item mode multiplies by quantity).
+    document.querySelectorAll(".parcel-row").forEach(el => {
+      el.style.display = _parcelOn ? "flex" : "none";
+      const amountEl = el.querySelector("span:last-child");
+      if (amountEl) amountEl.textContent = "₹" + Math.round(_parcelChargeAmount);
+    });
     // Update button appearance
     document.querySelectorAll(".parcel-btn").forEach(btn => {
       btn.style.borderColor = _parcelOn ? "var(--accent-gold)" : "var(--border-color)";
@@ -717,7 +727,7 @@
     document.querySelectorAll(".parcel-btn-text").forEach(el =>
       el.textContent = _parcelOn
         ? "Parcel Added ✓ (tap to remove)"
-        : `Add Parcel +₹${_parcelAmount}`
+        : `Add Parcel +₹${_parcelChargeAmount}`
     );
     // Update running total in cart
     renderCart();
@@ -742,11 +752,10 @@
           const serverParcelOn = !!d.parcel_on;
           _parcelOn = serverParcelOn;
           _parcelAppliedToOrder = serverParcelOn ? d.order_id : null;
-          if (d.parcel_amount) {
-            document.querySelectorAll(".parcel-row span:last-child").forEach(e =>
-              e.textContent = "₹" + Math.round(d.parcel_amount)
-            );
-          }
+          // _syncParcelUI() below re-renders the parcel-row amount (and the
+          // Total, via renderCart()) FROM _parcelChargeAmount -- it must be
+          // updated here too, or it clobbers this with a stale value.
+          if (d.parcel_amount) _parcelChargeAmount = d.parcel_amount;
         } else {
           // No open order on this table — reset so parcel intent doesn't bleed across tables
           _parcelOn = false;
@@ -804,7 +813,7 @@
         // a duplicate order. Its own .catch() below just stops the spinner;
         // staff can retry kitchen-send manually from the running order screen.
         const afterCreate = () => fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } });
-        const needsParcel = _parcelOn && _parcelAmount > 0 && _parcelAppliedToOrder !== d.order_id;
+        const needsParcel = _parcelOn && _parcelChargeAmount > 0 && _parcelAppliedToOrder !== d.order_id;
         const applyParcel = needsParcel
           ? fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + d.order_id + '/'), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
               .then(r => { if (r.ok) _parcelAppliedToOrder = d.order_id; return r; })
@@ -1010,7 +1019,7 @@
       qsrPendingOrderId = d1.order_id;
 
       // Apply parcel charge if toggled ON before order creation
-      if (_parcelOn && _parcelAmount > 0) {
+      if (_parcelOn && _parcelChargeAmount > 0) {
         await fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + qsrPendingOrderId + '/'), {
           method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
         });

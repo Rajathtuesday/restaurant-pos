@@ -1042,8 +1042,11 @@
         }
 
         gst = Math.round(gst);
-        // Inclusive: GST is already inside subtotal — don't add again
-        const grandTotal = GST_INCLUSIVE ? subtotal : subtotal + gst;
+        // Inclusive: GST is already inside subtotal — don't add again.
+        // Parcel is a flat surcharge on top either way, added here so the
+        // Total shown actually matches what checkout will charge once
+        // parcel is toggled on (see toggleParcel/_syncParcelUI).
+        const grandTotal = (GST_INCLUSIVE ? subtotal : subtotal + gst) + (_parcelOn ? _parcelChargeAmount : 0);
         document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + subtotal);
         document.querySelectorAll('.view-gst').forEach(e => {
             e.textContent = '₹' + gst;
@@ -1377,9 +1380,20 @@
             'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
     }
 
-    /* ── Parcel charge toggle ── */
+    /* ── Parcel charge toggle ──
+       toggle-parcel is server-authoritative about the real total either
+       way (Order.recalculate_totals() already includes parcel_surcharge,
+       so what actually gets charged at payment was always correct) -- the
+       bug was purely a display one: the Subtotal/GST/Total block here is
+       computed entirely client-side from the local unsent `cart`, and
+       never factored the parcel charge in at all, so it kept showing a
+       Total that didn't match what checkout would actually charge once
+       parcel was toggled on. _parcelChargeAmount now holds the REAL
+       amount the server just computed (qty/mode-aware -- ₹5/item on 3
+       items is ₹15, not the flat per-unit rate the button's own label
+       shows), and both the parcel line and the Total re-render from it. */
     let _parcelOn = false;
-    const _parcelAmount = {{ request.user.outlet.parcel_charge_amount|default:0 }};
+    let _parcelChargeAmount = {{ request.user.outlet.parcel_charge_amount|default:0 }};
 
     async function toggleParcel() {
         if (!currentOrderId) {
@@ -1392,6 +1406,7 @@
                 "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + currentOrderId + '/'), {}
             );
             _parcelOn = d.parcel_on;
+            _parcelChargeAmount = d.parcel_amount;
             _syncParcelUI();
         } catch(e) { ui.toast('Could not update parcel charge', 'error'); }
     }
@@ -1399,6 +1414,8 @@
     function _syncParcelUI() {
         document.querySelectorAll('.parcel-row').forEach(el => {
             el.style.display = _parcelOn ? 'flex' : 'none';
+            const amountEl = el.querySelector('span:last-child');
+            if (amountEl) amountEl.textContent = '₹' + _parcelChargeAmount;
         });
         document.querySelectorAll('.parcel-btn').forEach(btn => {
             btn.style.borderColor = _parcelOn ? 'var(--accent-gold)' : 'var(--border-color)';
@@ -1408,8 +1425,12 @@
         document.querySelectorAll('.parcel-btn-text').forEach(el => {
             el.textContent = _parcelOn
                 ? 'Parcel Added ✓ (tap to remove)'
-                : `Add Parcel +₹${_parcelAmount}`;
+                : `Add Parcel +₹${_parcelChargeAmount}`;
         });
+        // The parcel charge isn't part of the local `cart` array renderCart()
+        // sums -- without this, the Total shown here wouldn't match what
+        // checkout actually charges once parcel is toggled on.
+        renderCart();
     }
 
     function resetSendBtn() {
