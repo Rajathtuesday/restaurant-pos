@@ -234,7 +234,13 @@
             {% endif %}
             {% if 'qr_menu' in tenant_features and request.user.role != "chef" %}
             <span class="notif-wrapper">
-                <a href="/tables/" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
+                {# Guest QR items land as "review" regardless of whether the outlet
+                   has tables -- a tableless counter order gets review items too
+                   (see add_items_to_order). Approving them happens on Tables for a
+                   floor-plan tenant, but on Token Billing (which has its own
+                   approve/reject UI) for a tenant without one -- sending those
+                   tenants to /tables/ landed on an empty/inaccessible floor plan. #}
+                <a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
                 <span class="notif-badge hidden" id="notif-badge-qr">0</span>
             </span>
             {% endif %}

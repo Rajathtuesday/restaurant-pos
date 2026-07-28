@@ -66,7 +66,7 @@
             <a href="/reports/dashboard/" class="subnav-btn">Sales</a>
             <a href="/reports/kitchen/" class="subnav-btn active">Kitchen KPIs</a>
             <a href="/reports/inventory/" class="subnav-btn">Inventory</a>
-            <a href="/tables/" class="subnav-btn">POS Dashboard</a>
+            <a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="subnav-btn">POS Dashboard</a>
         </div>
 
         <form id="filterForm" method="GET" class="d-flex gap-2 align-items-center flex-wrap m-0">
