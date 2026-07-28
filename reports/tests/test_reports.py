@@ -20,6 +20,7 @@ from tenants.models import Tenant, Outlet
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Payment
+from core.utils import get_business_date
 
 
 # ---------------------------------------------------------------------------
@@ -262,7 +263,11 @@ class ExportServicesTest(TestCase):
 
     def setUp(self):
         self.tenant, self.outlet, self.user, self.item = create_base_fixtures()
-        self.today = timezone.localdate()
+        # The export services bound their query with get_business_date_range(),
+        # cutoff-aware (default 6 AM), not calendar-date-aware. Plain
+        # timezone.localdate() disagrees with that window for any order
+        # created between midnight and the cutoff.
+        self.today = get_business_date(timezone.now(), self.outlet)
         create_paid_order(self.tenant, self.outlet, self.user, self.item, grand_total=500)
 
     def test_generate_orders_csv_returns_string(self):
@@ -438,7 +443,7 @@ class ExportReportsViewTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.tenant, self.outlet, self.user, self.item = create_base_fixtures()
-        self.today = timezone.localdate().isoformat()
+        self.today = get_business_date(timezone.now(), self.outlet).isoformat()
         create_paid_order(self.tenant, self.outlet, self.user, self.item)
         self.client.login(username="owner_test", password="pass1234")
 

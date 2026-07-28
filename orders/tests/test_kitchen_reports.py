@@ -8,6 +8,7 @@ from kitchen.models import KOTBatch
 from orders.models import Order, OrderItem, Table
 from menu.models import MenuItem, MenuCategory
 from reports.services.kitchen_reports import kitchen_performance, top_kitchen_items
+from core.utils import get_business_date
 
 class KitchenReportsTestCase(TestCase):
     def setUp(self):
@@ -51,14 +52,24 @@ class KitchenReportsTestCase(TestCase):
 
     def test_kitchen_performance_all_outlets(self):
         # We should have 3 KOTs, 6 items prepared (2 burgers+1 pizza voided+1 burger+3 pizzas), 1 total_voided
-        today = timezone.localdate()
+        # kitchen_performance/top_kitchen_items bound their query with
+        # get_business_date_range(), which is cutoff-aware (default 6 AM),
+        # not calendar-date-aware. timezone.localdate() disagrees with that
+        # window for any order created between midnight and the cutoff,
+        # making this test flake specifically in those hours.
+        today = get_business_date(timezone.now())
         perf = kitchen_performance(self.tenant, start_date=today, end_date=today)
         self.assertEqual(perf["total_kots"], 3)
         self.assertEqual(perf["total_items_prepared"], 7)
         self.assertEqual(perf["total_voided"], 1)
 
     def test_kitchen_performance_specific_outlet(self):
-        today = timezone.localdate()
+        # kitchen_performance/top_kitchen_items bound their query with
+        # get_business_date_range(), which is cutoff-aware (default 6 AM),
+        # not calendar-date-aware. timezone.localdate() disagrees with that
+        # window for any order created between midnight and the cutoff,
+        # making this test flake specifically in those hours.
+        today = get_business_date(timezone.now())
         # Outlet 1: 2 KOTs, 2+1+1=4 items, 1 voided
         perf = kitchen_performance(self.tenant, outlet=self.outlet_1, start_date=today, end_date=today)
         self.assertEqual(perf["total_kots"], 2)
@@ -72,7 +83,12 @@ class KitchenReportsTestCase(TestCase):
         self.assertEqual(perf_2["total_voided"], 0)
 
     def test_top_kitchen_items(self):
-        today = timezone.localdate()
+        # kitchen_performance/top_kitchen_items bound their query with
+        # get_business_date_range(), which is cutoff-aware (default 6 AM),
+        # not calendar-date-aware. timezone.localdate() disagrees with that
+        # window for any order created between midnight and the cutoff,
+        # making this test flake specifically in those hours.
+        today = get_business_date(timezone.now())
         top_items = top_kitchen_items(self.tenant, start_date=today, end_date=today)
         # The voided pizza should NOT be counted in top_items
         # Total Burger = 3 (from Outlet 1)
@@ -83,7 +99,12 @@ class KitchenReportsTestCase(TestCase):
         self.assertEqual(items_dict.get("Pizza"), 3)
 
     def test_top_kitchen_items_specific_outlet(self):
-        today = timezone.localdate()
+        # kitchen_performance/top_kitchen_items bound their query with
+        # get_business_date_range(), which is cutoff-aware (default 6 AM),
+        # not calendar-date-aware. timezone.localdate() disagrees with that
+        # window for any order created between midnight and the cutoff,
+        # making this test flake specifically in those hours.
+        today = get_business_date(timezone.now())
         top_items_1 = top_kitchen_items(self.tenant, outlet=self.outlet_1, start_date=today, end_date=today)
         items_dict_1 = {item["menu_item__name"]: item["total_qty"] for item in top_items_1}
         self.assertEqual(items_dict_1.get("Burger"), 3)
