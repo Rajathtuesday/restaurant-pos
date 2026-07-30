@@ -225,13 +225,21 @@ class AIService:
                 current_category = {"category": line.rstrip(':').strip().title(), "items": []}
                 continue
             
-            # Match "Item Name 123.45" or "Item Name - 123"
-            match = re.search(r'(.*?)(?:[:\-\s]+)(\d+(?:\.\d+)?)$', line)
-            if match:
-                name, price = match.groups()
+            # Match "Item Name 123.45" or "Item Name - 123". Deliberately not
+            # a single regex like r'(.*?)(?:[:\-\s]+)(\d+...)$' -- that shape
+            # lets the non-greedy name group and the separator class both
+            # match '-'/whitespace, so the engine can split them ambiguously
+            # in exponentially many ways on a pathological line (e.g. a long
+            # run of dashes/spaces with no trailing digits), which is exactly
+            # the ReDoS CodeQL flagged. A plain trailing-digits match has no
+            # such ambiguity, so peel the price off with that, then take
+            # whatever's left as the name with ordinary string slicing.
+            price_match = re.search(r'(\d+(?:\.\d+)?)$', line)
+            if price_match:
+                name = line[:price_match.start()].strip(' \t:-')
                 current_category["items"].append({
-                    "name": name.strip(),
-                    "price": float(price)
+                    "name": name,
+                    "price": float(price_match.group(1))
                 })
             else:
                 # No price found, add as item with price 0

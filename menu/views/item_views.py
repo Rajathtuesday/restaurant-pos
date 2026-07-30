@@ -81,9 +81,9 @@ def create_menu_item(request):
             request.user.username, name, price, prep_time, category.name,
         )
         return JsonResponse({"success": True})
-    except Exception as e:
-        logger.error("Error creating menu item: %s", e)
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error creating menu item")
+        return JsonResponse({"error": "Could not create the item. Please try again."}, status=500)
 
 
 @login_required
@@ -147,9 +147,9 @@ def update_menu_item(request, item_id):
 
         logger.info("User %s updated item %s '%s'", request.user.username, item_id, name)
         return JsonResponse({"success": True})
-    except Exception as e:
-        logger.error("Error updating menu item: %s", e)
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error updating menu item")
+        return JsonResponse({"error": "Could not update the item. Please try again."}, status=500)
 
 
 @login_required
@@ -188,8 +188,9 @@ def update_price(request, item_id):
         item.price = price
         item.save(update_fields=["price"])
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error updating item price")
+        return JsonResponse({"error": "Could not update the price. Please try again."}, status=500)
 
 
 @login_required
@@ -229,8 +230,9 @@ def toggle_platform_availability(request, item_id):
             return JsonResponse({"error": "Invalid platform"}, status=400)
         item.save()
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error toggling platform availability")
+        return JsonResponse({"error": "Could not update availability. Please try again."}, status=400)
 
 
 @login_required
@@ -256,8 +258,9 @@ def update_station(request, item_id):
             station_name = None
         item.save(update_fields=["station"])
         return JsonResponse({"success": True, "station_name": station_name})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error updating item station")
+        return JsonResponse({"error": "Could not update the station. Please try again."}, status=400)
 
 
 @login_required
@@ -292,5 +295,6 @@ def add_recipe(request):
             return JsonResponse({"error": str(e)}, status=400)
 
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error adding recipe")
+        return JsonResponse({"error": "Could not add the recipe. Please try again."}, status=500)

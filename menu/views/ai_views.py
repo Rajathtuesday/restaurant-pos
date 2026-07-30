@@ -57,9 +57,9 @@ def ai_menu_importer(request):
             logger.warning("Celery unavailable for AI import — running synchronously")
             return _run_sync(request, text, image_b64, mime_type)
 
-    except Exception as e:
+    except Exception:
         logger.exception("AI Import error")
-        return JsonResponse({"error": str(e)}, status=400)
+        return JsonResponse({"error": "Could not import the menu. Please try again."}, status=400)
 
 
 @login_required

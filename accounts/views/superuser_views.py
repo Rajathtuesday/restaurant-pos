@@ -134,9 +134,9 @@ def create_restaurant(request):
         )
         return JsonResponse({"success": True, "tenant_id": tenant.id})
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error creating restaurant")
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Restaurant could not be created. Please try again."}, status=500)
 
 
 # ---------------------------------------------------------------------------
@@ -168,23 +168,23 @@ def tenant_config(request, tenant_id):
         if action == "update_printer":
             station = tcs.update_printer_from_post(tenant, request.POST)
             logger.info("SU %s updated printer for station %s (tenant %s)", request.user.username, station.name, tenant.name)
-            return redirect(f"/superuser/tenant/{tenant_id}/")
+            return redirect("superuser_tenant", tenant_id=tenant_id)
 
         if action == "add_station":
             tcs.add_station_from_post(tenant, outlet, request.POST)
-            return redirect(f"/superuser/tenant/{tenant_id}/")
+            return redirect("superuser_tenant", tenant_id=tenant_id)
 
         if action == "update_payment":
             tcs.update_payment_from_post(config, request.POST)
-            return redirect(f"/superuser/tenant/{tenant_id}/")
+            return redirect("superuser_tenant", tenant_id=tenant_id)
 
         if action == "add_staff":
             tcs.add_staff_from_post(tenant, outlet, request.POST)
-            return redirect(f"/superuser/tenant/{tenant_id}/")
+            return redirect("superuser_tenant", tenant_id=tenant_id)
 
         if action == "update_outlet":
             tcs.update_outlet_from_post(outlet, request.POST)
-            return redirect(f"/superuser/tenant/{tenant_id}/")
+            return redirect("superuser_tenant", tenant_id=tenant_id)
 
     return render(request, "accounts/superuser_tenant.html", {
         "tenant":          tenant,

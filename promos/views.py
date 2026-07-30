@@ -1,5 +1,6 @@
 # promos/views.py
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
@@ -8,6 +9,8 @@ from django.utils.timezone import localdate
 
 from core.decorators import tenant_required, role_required
 from promos.models import Promo
+
+logger = logging.getLogger("pos.promos")
 
 
 @login_required
@@ -86,8 +89,9 @@ def create_promo(request):
         )
         return JsonResponse({"success": True, "id": promo.id, "name": str(promo)})
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error creating promo")
+        return JsonResponse({"error": "Could not create the promo. Please try again."}, status=500)
 
 
 @login_required

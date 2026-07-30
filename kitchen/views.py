@@ -62,8 +62,9 @@ def send_to_kitchen(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error sending order to kitchen")
+        return JsonResponse({"error": "Could not send to kitchen. Please try again."}, status=400)
 
 
 @login_required
@@ -97,8 +98,9 @@ def kitchen_data(request):
         station_name = request.GET.get("station")
         data = get_kitchen_data(request.user, station_name)
         return JsonResponse({"kots": data})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error fetching kitchen data")
+        return JsonResponse({"error": "Could not load the kitchen display. Please try again."}, status=400)
 
 
 @login_required
@@ -232,8 +234,9 @@ def send_kitchen_message(request, order_id):
         return JsonResponse({"success": True})
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error sending kitchen message")
+        return JsonResponse({"error": "Could not send the message. Please try again."}, status=400)
 
 
 @login_required

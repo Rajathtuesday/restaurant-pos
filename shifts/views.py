@@ -1,5 +1,6 @@
 # shifts/views.py
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -9,6 +10,8 @@ from django.contrib import messages
 
 from core.decorators import tenant_required, role_required
 from .models import Shift
+
+logger = logging.getLogger("pos.shifts")
 
 
 @login_required
@@ -219,8 +222,9 @@ def open_cash_session(request):
             )
 
         return JsonResponse({"success": True, "session_id": session.id})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error opening cash session")
+        return JsonResponse({"error": "Could not open the session. Please try again."}, status=400)
 
 
 @login_required
@@ -311,8 +315,9 @@ def close_cash_session(request):
         session.save()
 
         return JsonResponse({"success": True, "discrepancy": float(session.discrepancy)})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error closing cash session")
+        return JsonResponse({"error": "Could not close the session. Please try again."}, status=400)
 
 
 @login_required

@@ -13,7 +13,11 @@ Stop: Ctrl+C
 import socket
 import datetime
 
-HOST = "0.0.0.0"   # accept from localhost or LAN
+HOST = "127.0.0.1"  # local-only, matching the printed banner and setup
+                     # instructions below (Printer IP = 127.0.0.1) -- same
+                     # 0.0.0.0-to-127.0.0.1 lockdown already applied to the
+                     # print agent WebSocket in an earlier hardening pass;
+                     # this dev-only tool had the identical gap.
 PORT = 9100
 W    = 48          # chars per line (matches 80mm paper)
 

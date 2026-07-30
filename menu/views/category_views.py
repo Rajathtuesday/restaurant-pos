@@ -27,9 +27,9 @@ def create_category(request):
         )
         logger.info("User %s created category '%s'", request.user.username, name)
         return JsonResponse({"success": True})
-    except Exception as e:
-        logger.error("Error creating category: %s", e)
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error creating category")
+        return JsonResponse({"error": "Could not create the category. Please try again."}, status=500)
 
 
 @login_required
@@ -46,6 +46,6 @@ def delete_category(request, category_id):
         category.delete()
         logger.warning("User %s deleted category '%s' and all its items", request.user.username, name)
         return JsonResponse({"success": True})
-    except Exception as e:
-        logger.error("Error deleting category: %s", e)
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("Error deleting category")
+        return JsonResponse({"error": "Could not delete the category. Please try again."}, status=500)

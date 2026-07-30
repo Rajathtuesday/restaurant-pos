@@ -493,9 +493,9 @@ def receive_purchase_order(request, po_id):
 
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({"error": "Purchase order not found"}, status=404)
-    except Exception as e:
-        logger.error("PO receive failed for PO %s: %s", po_id, e)
-        return JsonResponse({"error": str(e)}, status=500)
+    except Exception:
+        logger.exception("PO receive failed for PO %s", po_id)
+        return JsonResponse({"error": "Could not receive the PO. Please try again."}, status=500)
 
     logger.info("%s received PO %s", request.user.username, po.po_number)
     return JsonResponse({"success": True, "status": "received"})
@@ -710,8 +710,9 @@ def log_wastage(request, item_id):
 
     try:
         item.record_wastage(quantity, reference=reference or "Manual wastage")
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error logging wastage for item %s", item_id)
+        return JsonResponse({"error": "Could not log the wastage. Please try again."}, status=400)
 
     item.refresh_from_db()  # F() expression; object is stale until refreshed
     logger.info(

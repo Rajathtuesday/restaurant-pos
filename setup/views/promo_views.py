@@ -1,11 +1,14 @@
 # setup/views/promo_views.py
 import json
+import logging
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required
+
+logger = logging.getLogger("pos.setup")
 
 
 # ==================================
@@ -112,10 +115,12 @@ def promo_create(request):
             valid_from      = valid_from or None,
             valid_until     = valid_until or None,
         )
-    except IntegrityError as e:
-        return JsonResponse({"error": f"Database error: {str(e)}"}, status=409)
-    except Exception as e:
-        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+    except IntegrityError:
+        logger.exception("Database error creating promo")
+        return JsonResponse({"error": "That promo code may already be in use."}, status=409)
+    except Exception:
+        logger.exception("Unexpected error creating promo")
+        return JsonResponse({"error": "Could not create the promo. Please try again."}, status=500)
 
     return JsonResponse({
         "success": True,

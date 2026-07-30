@@ -196,8 +196,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun configureWebView() {
         // Allow chrome://inspect remote debugging of this WebView so print/login
-        // issues can be diagnosed from a PC without rebuilding.
-        WebView.setWebContentsDebuggingEnabled(true)
+        // issues can be diagnosed from a PC without rebuilding -- debug builds
+        // only. Left on unconditionally in a release build, anyone with USB
+        // access to a phone running the app could inspect/debug its WebView
+        // content via Chrome DevTools.
+        if (BuildConfig.DEBUG) {
+            WebView.setWebContentsDebuggingEnabled(true)
+        }
 
         val settings: WebSettings = webView.settings
         settings.javaScriptEnabled        = true

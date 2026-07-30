@@ -34,7 +34,7 @@
 {% endblock %}
 
 {% block header_right %}
-<input type="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control d-none d-sm-block" style="width:160px; border-radius:0; background:transparent; border-color:var(--border-color); color:var(--text-main);" onchange="window.location.href='?date='+this.value">
+<input type="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control d-none d-sm-block" style="width:160px; border-radius:0; background:transparent; border-color:var(--border-color); color:var(--text-main);" onchange="window.location.href='?date='+encodeURIComponent(this.value)">
 <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#newBookingModal">New Booking</button>
 <a href="/dashboard/" class="btn-luxury d-none d-sm-inline-flex">Exit</a>
 {{ block.super }}
@@ -45,7 +45,7 @@
 
     <!-- Mobile date picker -->
     <div class="d-sm-none mb-3">
-        <input type="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control w-100" onchange="window.location.href='?date='+this.value">
+        <input type="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control w-100" onchange="window.location.href='?date='+encodeURIComponent(this.value)">
     </div>
 
     <div class="dashboard-card p-0">

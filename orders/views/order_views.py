@@ -246,9 +246,9 @@ def approve_items(request, order_id):
             logger.info("User %s approved %s items for order #%s", request.user.username, count, order_id)
             
         return JsonResponse({"success": True, "count": count})
-    except Exception as e:
-        logger.error("approve_items error: %s", e)
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("approve_items error")
+        return JsonResponse({"error": "Could not approve the items. Please try again."}, status=400)
 
 
 @login_required
@@ -297,6 +297,6 @@ def approve_item(request, item_id):
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
-    except Exception as e:
-        logger.error("approve_item error: %s", e)
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("approve_item error")
+        return JsonResponse({"error": "Could not approve the item. Please try again."}, status=400)

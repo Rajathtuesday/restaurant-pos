@@ -153,8 +153,9 @@ def tables_data(request):
 
         return JsonResponse({"tables": data})
 
-    except Exception as e:
-        return JsonResponse({"error": "tables_data_failed", "message": str(e)}, status=500)
+    except Exception:
+        logger.exception("tables_data failed")
+        return JsonResponse({"error": "tables_data_failed", "message": "Could not load table data. Please try again."}, status=500)
 
 
 @login_required
@@ -268,8 +269,9 @@ def transfer_table_view(request):
 
         return JsonResponse({"success": True, "order_id": order.id})
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error transferring table")
+        return JsonResponse({"error": "Could not transfer the table. Please try again."}, status=400)
 
 
 @login_required
@@ -309,5 +311,6 @@ def manage_table_view(request):
         # an HttpResponse") instead of a clean 400.
         return JsonResponse({"error": f"Unknown action: {action}"}, status=400)
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error managing table")
+        return JsonResponse({"error": "Could not complete that action. Please try again."}, status=400)

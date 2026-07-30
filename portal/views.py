@@ -109,23 +109,23 @@ def tenant_config(request, tenant_id):
 
         if action == "update_outlet":
             tcs.update_outlet_from_post(outlet, request.POST)
-            return redirect(f"/portal/tenant/{tenant_id}/")
+            return redirect("portal:tenant", tenant_id=tenant_id)
 
         if action == "update_printer":
             tcs.update_printer_from_post(tenant, request.POST)
-            return redirect(f"/portal/tenant/{tenant_id}/")
+            return redirect("portal:tenant", tenant_id=tenant_id)
 
         if action == "add_station":
             tcs.add_station_from_post(tenant, outlet, request.POST)
-            return redirect(f"/portal/tenant/{tenant_id}/")
+            return redirect("portal:tenant", tenant_id=tenant_id)
 
         if action == "update_payment":
             tcs.update_payment_from_post(config, request.POST)
-            return redirect(f"/portal/tenant/{tenant_id}/")
+            return redirect("portal:tenant", tenant_id=tenant_id)
 
         if action == "add_staff":
             tcs.add_staff_from_post(tenant, outlet, request.POST)
-            return redirect(f"/portal/tenant/{tenant_id}/")
+            return redirect("portal:tenant", tenant_id=tenant_id)
 
     return render(request, "portal/tenant.html", {
         "tenant": tenant, "outlet": outlet, "stations": stations,

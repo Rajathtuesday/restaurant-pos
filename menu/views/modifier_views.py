@@ -1,5 +1,6 @@
 """Modifier group and modifier CRUD, item linking."""
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, render
@@ -9,6 +10,8 @@ from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuItem, MenuItemModifierGroup, ModifierGroup, Modifier
 from inventory.models import InventoryItem, ModifierRecipe
 from inventory.recipe_service import RecipeUnitMismatchError, upsert_modifier_recipe
+
+logger = logging.getLogger("pos.menu")
 
 
 @login_required
@@ -81,8 +84,9 @@ def create_modifier_group(request):
             name=name, is_required=is_required, max_select=max_select,
         )
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error creating modifier group")
+        return JsonResponse({"error": "Could not create the group. Please try again."}, status=400)
 
 
 @login_required
@@ -114,8 +118,9 @@ def add_modifier(request):
         )
         Modifier.objects.create(group=group, name=name, price=price)
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error adding modifier")
+        return JsonResponse({"error": "Could not add the modifier. Please try again."}, status=400)
 
 
 @login_required
@@ -146,8 +151,9 @@ def link_modifier_group(request):
         group    = get_object_or_404(ModifierGroup, id=group_id, tenant=request.user.tenant, outlet=request.user.outlet)
         MenuItemModifierGroup.objects.get_or_create(menu_item=item, modifier_group=group)
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error linking modifier group")
+        return JsonResponse({"error": "Could not link the group. Please try again."}, status=400)
 
 
 @login_required
@@ -166,8 +172,9 @@ def unlink_modifier_group(request):
         )
         mapping.delete()
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error unlinking modifier group")
+        return JsonResponse({"error": "Could not unlink the group. Please try again."}, status=400)
 
 
 @login_required
@@ -203,8 +210,9 @@ def add_modifier_recipe(request, modifier_id):
             return JsonResponse({"error": str(e)}, status=400)
 
         return JsonResponse({"success": True, "created": created})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error adding modifier recipe")
+        return JsonResponse({"error": "Could not link the recipe. Please try again."}, status=400)
 
 
 @login_required
@@ -226,8 +234,9 @@ def delete_modifier_recipe(request, modifier_id):
         )
         mr.delete()
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error deleting modifier recipe")
+        return JsonResponse({"error": "Could not remove the link. Please try again."}, status=400)
 
 
 @login_required

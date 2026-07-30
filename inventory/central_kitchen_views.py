@@ -238,8 +238,9 @@ def add_batch_item(request, batch_id):
                 "quantity": qty, "unit": item.unit, "barcode": barcode,
             }
         })
-    except (InventoryItem.DoesNotExist, KeyError, ValueError) as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except (InventoryItem.DoesNotExist, KeyError, ValueError):
+        logger.exception("Error adding batch item")
+        return JsonResponse({"error": "Could not add that item — check the item and quantity."}, status=400)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

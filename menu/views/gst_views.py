@@ -56,8 +56,9 @@ def update_item_gst(request, item_id):
             "success": True, "item_id": item.id,
             "gst_percentage": str(gst), "message": f"{item.name} GST updated to {gst}%",
         })
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error updating item GST")
+        return JsonResponse({"error": "Could not update GST. Please try again."}, status=400)
 
 
 @login_required
@@ -86,5 +87,6 @@ def update_category_gst(request, category_id):
             "gst_percentage": str(gst), "updated_count": updated,
             "message": f"{updated} items in {category.name} updated to {gst}%",
         })
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("Error bulk-updating category GST")
+        return JsonResponse({"error": "Could not update GST. Please try again."}, status=400)

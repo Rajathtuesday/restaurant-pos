@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [ main ]
 
+# Default GITHUB_TOKEN permissions are broad (effectively read/write on
+# most of the repo) unless a workflow says otherwise. This workflow only
+# checks out code and runs tests -- it never pushes, comments, or opens
+# anything -- so read-only contents access is all it actually needs.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

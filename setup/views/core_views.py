@@ -853,8 +853,9 @@ def rename_table(request, table_id):
         table.name = new_name
         table.save(update_fields=["name"])
         return JsonResponse({"success": True})
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)})
+    except Exception:
+        logger.exception("Error renaming table")
+        return JsonResponse({"success": False, "error": "Could not rename the table. Please try again."})
 
 # ==================================
 # OUTLET SETTINGS

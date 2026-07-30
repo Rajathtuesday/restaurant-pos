@@ -18,6 +18,14 @@ on:
   pull_request:
     branches: [ good-ui ]
 
+# Default GITHUB_TOKEN permissions are broad unless a workflow says
+# otherwise. Neither job here pushes, comments, or opens anything -- the
+# test job only checks out and runs tests, and deploy only SSHes out to
+# the server via its own secrets -- so read-only contents is all either
+# needs.
+permissions:
+  contents: read
+
 # Fix 1: opt into Node 24 now for all actions in this workflow
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

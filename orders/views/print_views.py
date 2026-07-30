@@ -141,9 +141,9 @@ def print_bill_action(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
+    except Exception:
         logger.exception("Error printing bill for order %s", order_id)
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Could not print. Check the printer and try again."}, status=500)
 
 
 # -------------------------------------------------
@@ -219,9 +219,9 @@ def qz_receipt_data(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
+    except Exception:
         logger.exception("qz_receipt_data error for order %s", order_id)
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Could not prepare the print job. Please try again."}, status=500)
 
 
 @login_required
@@ -266,9 +266,9 @@ def print_split_bill(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
-    except Exception as e:
+    except Exception:
         logger.exception("Error printing split bill for order %s", order_id)
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Could not print. Check the printer and try again."}, status=500)
 
 
 # -------------------------------------------------
@@ -301,9 +301,9 @@ def print_kot_action(request, kot_id):
 
     except KOTBatch.DoesNotExist:
         return JsonResponse({"error": "KOT not found"}, status=404)
-    except Exception as e:
+    except Exception:
         logger.exception("Error printing KOT %s", kot_id)
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": "Could not print the KOT. Check the printer and try again."}, status=500)
 
 
 # -------------------------------------------------
