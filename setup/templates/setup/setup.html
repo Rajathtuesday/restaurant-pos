@@ -18,7 +18,7 @@
     .upload-card input[type=file] { max-width: 100%; margin-bottom: 1rem; color: var(--text-main); font-size: 0.8rem; }
 
     /* ── Setup cards grid ── */
-    .setup-grid { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
+    .setup-grid { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1.5rem; }
     .setup-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; transition: var(--transition-smooth); text-decoration: none; display: block; position: relative; overflow: hidden; box-shadow: var(--shadow-soft); color: var(--text-main); }
     .setup-card:hover { border-color: var(--accent-gold); transform: translateY(-3px); color: var(--text-main); }
     .setup-card::before { content: ''; position: absolute; top: 0; left: 0; width: 0; height: 2px; background: var(--accent-gold); transition: width 0.4s ease; }
@@ -33,7 +33,13 @@
     @media (max-width: 600px) {
         .hero { padding: 2.25rem 1.1rem 1.5rem; }
         .hero-title { font-size: 1.9rem; }
-        .setup-grid { padding: 0 1.1rem 3rem; gap: 1.1rem; }
+        /* Explicit single column, not just a smaller minmax() floor --
+           the min(260px, 100%) fix above stops the grid from forcing
+           overflow, but a phone-width screen still has technically
+           enough room for two very cramped columns at ~170px each
+           once auto-fit fits them; a real setup card (icon + title +
+           2-line description) needs the full width to stay readable. */
+        .setup-grid { grid-template-columns: 1fr; padding: 0 1.1rem 3rem; gap: 1.1rem; }
         .setup-card { padding: 1.5rem; }
         .upload-card { margin: 0 1.1rem 2.25rem; padding: 1.25rem; }
     }
