@@ -15,7 +15,7 @@
 
     /* ── Logo upload card ── */
     .upload-card { max-width: 600px; margin: 0 auto 3rem; background: var(--panel-bg); border: 1px dashed var(--border-color); padding: 1.5rem; text-align: center; border-radius: 8px; }
-    .upload-card input[type=file] { margin-bottom: 1rem; color: var(--text-main); font-size: 0.8rem; }
+    .upload-card input[type=file] { max-width: 100%; margin-bottom: 1rem; color: var(--text-main); font-size: 0.8rem; }
 
     /* ── Setup cards grid ── */
     .setup-grid { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; }
@@ -79,7 +79,7 @@
 <div class="upload-card">
     <p style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:2px;margin-bottom:1rem;">Restaurant Logo</p>
     {% if request.user.tenant.logo %}
-    <img src="{{ request.user.tenant.logo.url }}" alt="Logo" style="max-height:60px;margin-bottom:1rem;">
+    <img src="{{ request.user.tenant.logo.url }}" alt="Logo" style="max-height:60px;max-width:100%;margin-bottom:1rem;">
     {% endif %}
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}

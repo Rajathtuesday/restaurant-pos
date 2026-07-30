@@ -158,12 +158,29 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            flex-wrap: wrap;
+            row-gap: 0.75rem;
             background: var(--panel-bg);
             transition: var(--transition-smooth);
             z-index: 1000;
         }
         @media (min-width: 992px) {
             .pos-header { padding: 1.75rem 3rem; }
+        }
+        /* header-left/header-right had no CSS of their own -- a flex item's
+           default min-width is auto (its content size), so a long tenant
+           name would never shrink or wrap, it would just push the header
+           (and with it, the whole page) wider than the viewport on a
+           phone. min-width:0 lets it wrap instead of overflowing. */
+        .header-left {
+            min-width: 0;
+        }
+        .header-left .brand-title {
+            overflow-wrap: break-word;
+        }
+        .header-right {
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .brand-title {
