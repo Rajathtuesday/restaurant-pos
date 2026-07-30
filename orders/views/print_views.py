@@ -347,7 +347,14 @@ def download_pdf_bill(request, order_id):
     remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
 
     html_string = render_to_string("orders/bill.html", {"order": order, "request": request, "remaining": remaining})
-    pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf()
+    # bill.html renders guest-supplied text (item notes, names) -- explicit
+    # presentational_hints=False (already the library default, made explicit
+    # here) closes GHSA-jhhc-3hcp-qhm5 / CVE-2026-49452, a CSS-injection bug
+    # that only fires when this flag is on. No patched WeasyPrint release
+    # exists yet, so this is the actual fix, not a stopgap for one.
+    pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(
+        presentational_hints=False
+    )
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="bill_{order.id}.pdf"'

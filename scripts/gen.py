@@ -36,7 +36,8 @@ HTML(
     string=html_content,
     base_url=str(BASE_DIR)
 ).write_pdf(
-    str(pdf_file)
+    str(pdf_file),
+    presentational_hints=False  # see orders/views/print_views.py -- GHSA-jhhc-3hcp-qhm5
 )
 
 print("PDF generated successfully!")
