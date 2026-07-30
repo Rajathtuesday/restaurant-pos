@@ -181,7 +181,9 @@
 {% block header_left %}
 <div>
   <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">{{ request.user.outlet.name }}</p>
-  <h1 class="brand-title mb-0"><i class="bi bi-clock-history me-2" style="color:var(--accent-gold);"></i>Order History</h1>
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0"><i class="bi bi-clock-history me-2" style="color:var(--accent-gold);"></i>Order History</h1>
+  </a>
 </div>
 {% endblock %}
 

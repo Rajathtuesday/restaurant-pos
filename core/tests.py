@@ -110,3 +110,92 @@ class CsrfFailureViewTest(TestCase):
         # The custom page, not Django's built-in "Forbidden (403)" default.
         self.assertIn("Reload Page", content)
         self.assertNotIn("CSRF verification failed", content)
+
+
+class NoMultilineDjangoCommentsTest(TestCase):
+    """
+    Django's {# #} comment tag cannot span multiple lines -- unlike most
+    template languages, that's a real, documented Django limitation, not a
+    style nit. A multi-line {# ... #} isn't parsed as a comment at all: it's
+    literal text, output verbatim, delimiters included. Hit this for real in
+    templates/core/base.html (rendered on every authenticated page) and
+    setup/aggregator_config.html (right above a secret-key input field) --
+    both leaked internal review comments straight onto the live page. The
+    fix is always {% comment %}...{% endcomment %}, which does support
+    multiple lines. This scans every template once so the mistake can't
+    silently reappear elsewhere.
+    """
+
+    def test_no_multiline_hash_comments_in_any_template(self):
+        import re
+        from pathlib import Path
+
+        offenders = []
+        pattern = re.compile(r"\{#(.*?)#\}", re.DOTALL)
+        for path in Path(".").rglob("templates/**/*.html"):
+            if ".venv" in path.parts:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            for m in pattern.finditer(text):
+                if "\n" in m.group(1):
+                    line_no = text.count("\n", 0, m.start()) + 1
+                    offenders.append(f"{path}:{line_no}")
+
+        self.assertEqual(
+            offenders, [],
+            "Multi-line {# #} comment(s) found -- Django will NOT strip "
+            "these, they render as literal text. Use {% comment %}...{% "
+            "endcomment %} instead: " + ", ".join(offenders)
+        )
+
+
+class HeaderLeftHasWayBackTest(TestCase):
+    """
+    base.html's default header_left is a link to /dashboard/. Pages that
+    override the block to show a page-specific title need to keep wrapping
+    it in *some* link -- back to /dashboard/, or a breadcrumb to a parent
+    page -- or that title becomes plain unclickable text and the page has
+    no way back to anywhere. Found this for real on Order History and
+    every Shifts page (all converted in the same batch, all missing it) --
+    reported by a user with no way back except the browser back button.
+
+    A handful of pages are correctly exempt: top-level superuser/portal
+    landing pages with no parent to link to, the onboarding wizard
+    (deliberately no exit), and bill.html (its title is a plain "Invoice"
+    label -- it has its own explicit, context-aware back-navigation lower
+    in the page instead).
+    """
+
+    EXEMPT = {
+        "accounts/templates/accounts/superuser_panel.html",
+        "accounts/templates/accounts/feature_flags.html",
+        "portal/templates/portal/home.html",
+        "setup/templates/setup/onboard.html",
+        "orders/templates/orders/bill.html",
+    }
+
+    def test_every_header_left_override_has_a_link_somewhere(self):
+        import re
+        from pathlib import Path
+
+        offenders = []
+        pattern = re.compile(r"\{% block header_left %\}(.*?)\{% endblock", re.DOTALL)
+        for path in Path(".").rglob("templates/**/*.html"):
+            if ".venv" in path.parts:
+                continue
+            posix = path.as_posix()
+            if posix in self.EXEMPT:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            m = pattern.search(text)
+            if not m:
+                continue
+            if "href=" not in m.group(1):
+                offenders.append(posix)
+
+        self.assertEqual(
+            offenders, [],
+            "header_left override with no link at all -- the page title is "
+            "plain unclickable text and there's no way back to anywhere: "
+            + ", ".join(offenders)
+        )

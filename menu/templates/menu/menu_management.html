@@ -112,7 +112,9 @@
 
 {% block header_left %}
 <div class="d-flex flex-column">
-  <h4 class="brand-title mb-0" style="font-family:'DM Serif Display',serif;"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h4>
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h4 class="brand-title mb-0" style="font-family:'DM Serif Display',serif;"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h4>
+  </a>
   <p class="mb-0 text-muted" style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;">Menu Management — {{ request.user.outlet.name }}</p>
 </div>
 {% endblock %}

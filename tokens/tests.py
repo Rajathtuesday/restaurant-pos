@@ -1531,3 +1531,81 @@ class DisplayBoardDataTest(TestCase, TokenFixtureMixin):
         fd_outlet = Outlet.objects.create(tenant=fd_tenant, name="Main")
         resp = self.client.get(reverse("display-data", args=[fd_outlet.display_token]))
         self.assertEqual(resp.status_code, 403)
+
+
+class DisplayBoardStreamTest(TransactionTestCase, TokenFixtureMixin):
+    """
+    display_stream: the SSE endpoint replacing display_data's 4s polling on
+    the "Now Serving" TV board. Same data/gating as DisplayBoardDataTest,
+    just delivered differently -- only consumes the FIRST item the
+    generator yields (real time.sleep() calls between subsequent items
+    would make a test consuming the whole thing take up to
+    _SSE_MAX_MINUTES to finish).
+
+    TransactionTestCase, not TestCase: the view calls connection.close()
+    inside its loop (deliberately, so the stream doesn't pin a DB
+    connection open for its whole duration) -- TestCase wraps each test in
+    one shared atomic transaction on a single connection, so closing that
+    connection breaks the transaction and every later query in the test
+    process fails with "connection already closed". TransactionTestCase
+    doesn't share a transaction across the test this way.
+    """
+
+    def setUp(self):
+        self._build_franchise_fixtures()
+        from core.utils import get_business_date
+        self.today = get_business_date(timezone.now(), self.outlet)
+
+    def _make_token(self, token_number, ready_at="now", collected_at=None, status="paid"):
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status=status)
+        return TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=order,
+            token_number=token_number, date=self.today, is_online=False,
+            ready_at=timezone.now() if ready_at == "now" else ready_at,
+            collected_at=collected_at,
+        )
+
+    def _first_event(self, resp):
+        # resp.streaming_content wraps the view's actual generator in a
+        # fresh map() object on every access -- map has no .close(), so to
+        # explicitly close the real generator (rather than wait for GC,
+        # which left a still-open DB connection idle-in-transaction long
+        # enough to deadlock TransactionTestCase's post-test flush) this
+        # has to reach the raw generator Django stashes as resp._iterator.
+        chunk = next(resp.streaming_content).decode()
+        resp._iterator.close()
+        return chunk
+
+    def test_is_a_streaming_event_source_response(self):
+        resp = self.client.get(reverse("display-stream", args=[self.outlet.display_token]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "text/event-stream")
+        self.assertEqual(resp["X-Accel-Buffering"], "no")
+        self.assertTrue(resp.streaming)
+
+    def test_first_event_contains_ready_token(self):
+        self._make_token(1)
+        resp = self.client.get(reverse("display-stream", args=[self.outlet.display_token]))
+        chunk = self._first_event(resp)
+        self.assertTrue(chunk.startswith("data: "))
+        payload = json.loads(chunk[len("data: "):].strip())
+        self.assertEqual(len(payload["tokens"]), 1)
+        self.assertEqual(payload["tokens"][0]["display"], "#1")
+
+    def test_first_event_omits_not_ready_token(self):
+        self._make_token(2, ready_at=None)
+        resp = self.client.get(reverse("display-stream", args=[self.outlet.display_token]))
+        chunk = self._first_event(resp)
+        payload = json.loads(chunk[len("data: "):].strip())
+        self.assertEqual(len(payload["tokens"]), 0)
+
+    def test_stream_404s_for_tenant_without_token_system(self):
+        fd_tenant = Tenant.objects.create(name="FD No Tokens 3", tenant_type="fine_dining")
+        fd_outlet = Outlet.objects.create(tenant=fd_tenant, name="Main")
+        resp = self.client.get(reverse("display-stream", args=[fd_outlet.display_token]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_invalid_display_token_404s(self):
+        import uuid as _uuid
+        resp = self.client.get(reverse("display-stream", args=[_uuid.uuid4()]))
+        self.assertEqual(resp.status_code, 404)

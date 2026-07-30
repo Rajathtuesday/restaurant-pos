@@ -232,15 +232,20 @@
                 <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
             </span>
             {% endif %}
-            {% if 'qr_menu' in tenant_features and request.user.role != "chef" %}
+            {% if 'qr_menu' in tenant_features and 'floor_plan' in tenant_features and request.user.role != "chef" %}
             <span class="notif-wrapper">
-                {# Guest QR items land as "review" regardless of whether the outlet
-                   has tables -- a tableless counter order gets review items too
-                   (see add_items_to_order). Approving them happens on Tables for a
-                   floor-plan tenant, but on Token Billing (which has its own
-                   approve/reject UI) for a tenant without one -- sending those
-                   tenants to /tables/ landed on an empty/inaccessible floor plan. #}
-                <a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
+                {% comment %}
+                Floor-plan-only: a tenant without floor_plan (QSR/cafe
+                counter, no waiter-run floor) has no use for a "go approve
+                this on the floor" notification -- Token Billing already
+                shows review items inline with its own approve/reject
+                buttons, so this badge is redundant noise for them, not
+                just a broken link. Guest QR items land as "review"
+                regardless of whether the outlet has tables (see
+                add_items_to_order), so the count itself would still be
+                real for those tenants -- it's just the wrong affordance.
+                {% endcomment %}
+                <a href="/tables/" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
                 <span class="notif-badge hidden" id="notif-badge-qr">0</span>
             </span>
             {% endif %}

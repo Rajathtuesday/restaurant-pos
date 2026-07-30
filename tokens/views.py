@@ -646,20 +646,13 @@ def display_board(request, display_token):
     return render(request, "tokens/display_board.html", {"outlet": outlet})
 
 
-def display_data(request, display_token):
+def _display_board_tokens(outlet):
     """
-    Polling JSON endpoint for display_board -- ready, uncollected,
-    non-stale tokens for today's business date at this outlet. No prices or
-    customer names, matching the privacy stance menu.views.customer_views
-    already established for guest-facing surfaces.
+    Ready, uncollected, non-stale tokens for today's business date at this
+    outlet. No prices or customer names, matching the privacy stance
+    menu.views.customer_views already established for guest-facing
+    surfaces. Shared by the JSON polling endpoint and the SSE stream below.
     """
-    from django.shortcuts import get_object_or_404
-    from tenants.models import Outlet
-    from core.features import has_feature
-
-    outlet = get_object_or_404(Outlet, display_token=display_token)
-    if not has_feature(outlet.tenant, "token_system"):
-        return JsonResponse({"error": "Not available."}, status=403)
     today = get_business_date(timezone.now(), outlet)
     stale_cutoff = timezone.now() - timedelta(minutes=_READY_STALE_MINUTES)
 
@@ -673,9 +666,87 @@ def display_data(request, display_token):
         )
         .order_by("ready_at")
     )
-    return JsonResponse({
+    return {
         "tokens": [
             {"display": t.display_number, "ready_at": t.ready_at.isoformat()}
             for t in tokens
         ]
-    })
+    }
+
+
+def display_data(request, display_token):
+    """
+    Polling JSON endpoint for display_board -- kept for now as a fallback;
+    display_board.html itself uses display_stream (SSE) below. Same
+    unauthenticated display_token gate as display_board/display_stream.
+    """
+    from django.shortcuts import get_object_or_404
+    from tenants.models import Outlet
+    from core.features import has_feature
+
+    outlet = get_object_or_404(Outlet, display_token=display_token)
+    if not has_feature(outlet.tenant, "token_system"):
+        return JsonResponse({"error": "Not available."}, status=403)
+    return JsonResponse(_display_board_tokens(outlet))
+
+
+# How often the SSE loop re-queries the DB and, if the result changed,
+# pushes an update. Nginx's proxy_read_timeout is 120s (nginx_rasova.conf)
+# -- every tick sends at least a keep-alive comment, well under that, so
+# the connection is never silently dropped from inactivity.
+_SSE_POLL_SECONDS = 3
+# Self-closes the stream after this long so a TV screen left on
+# indefinitely reconnects periodically (EventSource auto-reconnects on a
+# dropped connection) instead of pinning a gunicorn sync worker forever if
+# something on the client side gets stuck.
+_SSE_MAX_MINUTES = 60
+
+
+def display_stream(request, display_token):
+    """
+    SSE endpoint for display_board -- the client holds one long-lived
+    connection instead of polling every 4s; the server only pushes a new
+    payload when the ready-tokens list actually changes.
+
+    Deliberately a plain generator + StreamingHttpResponse, not Postgres
+    LISTEN/NOTIFY or Channels -- this is one low-cardinality connection per
+    outlet (a single TV screen), not a guest-facing endpoint with many
+    concurrent connections, so holding one sync worker for its duration is
+    an acceptable trade on this box for that specific reason. It would NOT
+    be an acceptable pattern for something like the guest digital menu.
+    """
+    import time
+    from django.db import connection as db_connection
+    from django.http import StreamingHttpResponse, Http404
+    from django.shortcuts import get_object_or_404
+    from tenants.models import Outlet
+    from core.features import has_feature
+
+    outlet = get_object_or_404(Outlet, display_token=display_token)
+    if not has_feature(outlet.tenant, "token_system"):
+        raise Http404
+
+    def event_stream():
+        last_payload = None
+        deadline = time.monotonic() + _SSE_MAX_MINUTES * 60
+        try:
+            while time.monotonic() < deadline:
+                payload = json.dumps(_display_board_tokens(outlet))
+                # Don't hold the DB connection open for the whole stream --
+                # only while actually running this one query.
+                db_connection.close()
+                if payload != last_payload:
+                    yield f"data: {payload}\n\n"
+                    last_payload = payload
+                else:
+                    yield ": keep-alive\n\n"
+                time.sleep(_SSE_POLL_SECONDS)
+        except GeneratorExit:
+            # Client disconnected (tab closed / network drop) -- nothing
+            # to clean up beyond letting the generator end normally.
+            return
+
+    response = StreamingHttpResponse(event_stream(), content_type="text/event-stream")
+    response["Cache-Control"] = "no-cache"
+    response["X-Accel-Buffering"] = "no"  # nginx: stream immediately, don't buffer
+    return response

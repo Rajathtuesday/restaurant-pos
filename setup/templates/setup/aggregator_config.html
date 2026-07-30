@@ -121,9 +121,11 @@
 
             <div id="zomato_secret_div" style="display:{% if config.zomato_enabled %}block{% else %}none{% endif %};padding:1rem 0;margin-bottom:1rem;border-bottom:1px solid var(--border-color);">
                 <label class="form-label">Zomato Secret Key</label>
-                {# Masked, and the decrypted value is never echoed into the page — matches the
-                   Razorpay secret fields. Leaving this blank on save keeps the existing secret
-                   (see setup/views/aggregator_views.py:aggregator_setup). #}
+                {% comment %}
+                Masked, and the decrypted value is never echoed into the page — matches the
+                Razorpay secret fields. Leaving this blank on save keeps the existing secret
+                (see setup/views/aggregator_views.py:aggregator_setup).
+                {% endcomment %}
                 <input type="password" class="form-control" name="zomato_webhook_secret"
                        placeholder="{% if config.zomato_webhook_secret %}•••••••••• (saved — leave blank to keep){% else %}ZOM-SECRET-1234{% endif %}">
             </div>

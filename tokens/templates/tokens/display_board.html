@@ -74,40 +74,56 @@
 <div class="empty-state" id="emptyState" style="display:none;">Waiting for orders to be ready…</div>
 
 <script>
-    const DATA_URL = "{% url 'display-data' outlet.display_token %}";
-    let knownTokens = new Set();
+    const STREAM_URL = "{% url 'display-stream' outlet.display_token %}";
+    const DATA_URL   = "{% url 'display-data' outlet.display_token %}";
 
-    async function refresh() {
-        try {
-            const res = await fetch(DATA_URL);
-            const data = await res.json();
-            const grid = document.getElementById('tokenGrid');
-            const empty = document.getElementById('emptyState');
-            const tokens = data.tokens || [];
+    function render(data) {
+        const grid = document.getElementById('tokenGrid');
+        const empty = document.getElementById('emptyState');
+        const tokens = data.tokens || [];
 
-            if (tokens.length === 0) {
-                grid.innerHTML = '';
-                empty.style.display = 'block';
-                knownTokens = new Set();
-                return;
-            }
-            empty.style.display = 'none';
-
-            const currentDisplays = new Set(tokens.map(t => t.display));
-            grid.innerHTML = tokens.map(t => `
-                <div class="token-tile">
-                    <div class="num">${t.display}</div>
-                    <div class="label">Ready for pickup</div>
-                </div>
-            `).join('');
-            knownTokens = currentDisplays;
-        } catch (e) {
-            // Network hiccup on an unattended TV -- just try again next tick.
+        if (tokens.length === 0) {
+            grid.innerHTML = '';
+            empty.style.display = 'block';
+            return;
         }
+        empty.style.display = 'none';
+        grid.innerHTML = tokens.map(t => `
+            <div class="token-tile">
+                <div class="num">${t.display}</div>
+                <div class="label">Ready for pickup</div>
+            </div>
+        `).join('');
     }
 
-    refresh();
-    setInterval(refresh, 4000);
+    // Fallback for the rare case EventSource itself is unavailable/blocked
+    // (e.g. some locked-down kiosk browsers) -- same 4s poll this page used
+    // before SSE, kept only as a safety net, not the normal path.
+    async function pollOnce() {
+        try {
+            const res = await fetch(DATA_URL);
+            render(await res.json());
+        } catch (e) { /* try again next tick */ }
+    }
+
+    if (typeof EventSource === 'undefined') {
+        pollOnce();
+        setInterval(pollOnce, 4000);
+    } else {
+        // One long-lived connection instead of polling -- the server only
+        // sends a message when the ready-tokens list actually changes, and
+        // self-closes periodically (see _SSE_MAX_MINUTES in tokens/views.py),
+        // which EventSource treats like any dropped connection and
+        // reconnects from automatically, no extra code needed here.
+        const source = new EventSource(STREAM_URL);
+        source.onmessage = (e) => render(JSON.parse(e.data));
+        source.onerror = () => {
+            // EventSource already retries the same URL on its own; this is
+            // just so a genuinely stuck connection doesn't leave the board
+            // frozen indefinitely between retries.
+            pollOnce();
+        };
+    }
 </script>
 
 </body>

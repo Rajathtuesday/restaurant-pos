@@ -752,11 +752,27 @@ class KitchenDashboardPosLinkTest(TestCase):
         self.assertIn('href="/token/"', content)
         self.assertNotIn('href="/tables/"', content)
 
-    def test_header_qr_approval_icon_points_to_token_not_tables(self):
-        # Same base.html header renders on this page too -- the QR-orders
-        # basket icon is gated on qr_menu (which cafe has by default), not
-        # floor_plan, so it used to point at /tables/ regardless.
+    def test_header_qr_approval_icon_absent_for_tenant_without_floor_plan(self):
+        # Same base.html header renders on this page too. The icon is gated
+        # on qr_menu AND floor_plan now -- a cafe without floor_plan has no
+        # waiter-run floor to send this to, and Token Billing already shows
+        # review items inline with its own approve/reject buttons, so the
+        # icon (not just its link) is hidden entirely for this tenant.
         response = self.client.get("/reports/kitchen/")
         content = response.content.decode()
-        self.assertIn('title="QR Orders awaiting approval"', content)
-        self.assertIn('<a href="/token/" class="btn-icon" title="QR Orders awaiting approval">', content)
+        self.assertNotIn('title="QR Orders awaiting approval"', content)
+
+    def test_header_qr_approval_icon_present_for_tenant_with_floor_plan(self):
+        floor_tenant = Tenant.objects.create(name="Floor Plan Cafe", tenant_type="cafe")
+        floor_outlet = Outlet.objects.create(tenant=floor_tenant, name="Main")
+        from tenants.models import TenantFeatureOverride
+        TenantFeatureOverride.objects.create(tenant=floor_tenant, feature="floor_plan", enabled=True)
+        owner = User.objects.create_user(
+            username="floor_owner", password="pw", tenant=floor_tenant,
+            outlet=floor_outlet, role="owner",
+        )
+        client = Client()
+        client.login(username="floor_owner", password="pw")
+        response = client.get("/reports/kitchen/")
+        content = response.content.decode()
+        self.assertIn('<a href="/tables/" class="btn-icon" title="QR Orders awaiting approval">', content)

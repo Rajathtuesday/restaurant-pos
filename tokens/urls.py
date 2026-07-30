@@ -21,4 +21,5 @@ urlpatterns = [
     # pickup counter, keyed by the outlet's permanent display_token secret.
     path("display/<uuid:display_token>/", views.display_board, name="display-board"),
     path("display/<uuid:display_token>/data/", views.display_data, name="display-data"),
+    path("display/<uuid:display_token>/stream/", views.display_stream, name="display-stream"),
 ]
