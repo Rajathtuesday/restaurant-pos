@@ -404,7 +404,9 @@ def scan_barcode(request):
     if not barcode:
         return JsonResponse({"error": "No barcode provided."}, status=400)
 
-    item = BatchItem.objects.filter(barcode=barcode).select_related(
+    item = BatchItem.objects.filter(
+        barcode=barcode, tenant=request.user.tenant,
+    ).select_related(
         "batch", "batch__source_outlet", "inventory_item"
     ).first()
 

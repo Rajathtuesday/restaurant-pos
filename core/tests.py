@@ -149,6 +149,75 @@ class NoMultilineDjangoCommentsTest(TestCase):
         )
 
 
+class UnscopedCallSiteAllowlistTest(TestCase):
+    """
+    .unscoped(reason=...) (core/models.py TenantManager) is the only
+    sanctioned way to bypass tenant auto-scoping. This scans the whole
+    codebase for call sites and asserts they match an exact, hardcoded
+    allowlist -- a new, un-reviewed call site fails this test until a
+    human deliberately adds it below. This is the direct fix for the
+    failure pattern that motivated the whole tenant-isolation effort: a
+    second, unreviewed copy of sensitive logic diverging from the first
+    because nothing forced it to stay in sync (restaurant creation used
+    to exist near-identically in portal/views.py and
+    accounts/views/superuser_views.py, and a security fix landed in
+    only one of them).
+
+    Currently empty: portal/views.py and accounts/views/superuser_views.py
+    are both gated to is_superuser=True (checked directly, not via a
+    decorator that could vary), and a superuser account always has
+    tenant=None -- so the ambient auto-scope already no-ops for every
+    query they run, with no explicit .unscoped() call needed. If a
+    future role other than is_superuser ever needs cross-tenant
+    visibility, .unscoped() is where that access should be added,
+    deliberately, and this allowlist is where it gets reviewed.
+    """
+    ALLOWED_CALL_SITES = {
+        # Data-integrity preflight: must see every tenant's rows to
+        # report null/orphaned tenant_id counts across the whole table,
+        # not just the (nonexistent, since it's a management command)
+        # current request's tenant. See tenants/management/commands/
+        # tenant_isolation_preflight.py's own docstring.
+        "tenants/management/commands/tenant_isolation_preflight.py:47",
+        "tenants/management/commands/tenant_isolation_preflight.py:52",
+    }
+
+    # Files that reference ".unscoped(" in prose (docstrings/comments)
+    # rather than as an actual call -- the definition itself, and this
+    # test's own docstring above.
+    _NOT_CALL_SITES = {"core/models.py", "core/tests.py"}
+
+    def test_unscoped_call_sites_match_allowlist(self):
+        import re
+        from pathlib import Path
+
+        pattern = re.compile(r"\.unscoped\(")
+        found = set()
+        for path in Path(".").rglob("*.py"):
+            if ".venv" in path.parts or "migrations" in path.parts:
+                continue
+            posix = path.as_posix()
+            if posix in self._NOT_CALL_SITES:
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            for m in pattern.finditer(text):
+                line_no = text.count("\n", 0, m.start()) + 1
+                found.add(f"{posix}:{line_no}")
+
+        unexpected = found - self.ALLOWED_CALL_SITES
+        missing = self.ALLOWED_CALL_SITES - found
+        self.assertEqual(
+            unexpected, set(),
+            f"New, un-reviewed .unscoped() call site(s): {sorted(unexpected)}. "
+            f"If deliberate, add to ALLOWED_CALL_SITES above after review."
+        )
+        self.assertEqual(
+            missing, set(),
+            f"Allowlisted .unscoped() call site(s) no longer found, remove "
+            f"from ALLOWED_CALL_SITES: {sorted(missing)}"
+        )
+
+
 class HeaderLeftHasWayBackTest(TestCase):
     """
     base.html's default header_left is a link to /dashboard/. Pages that

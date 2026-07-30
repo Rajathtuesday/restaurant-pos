@@ -59,6 +59,16 @@ if not FIELD_ENCRYPTION_KEY:
 # A missing/misspelled DEBUG var must never silently expose tracebacks + secrets.
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
+# Structural tenant isolation (core/models.py TenantManager): auto-scopes
+# every TenantScopedModel query to the current request's tenant instead of
+# relying on every call site to remember an explicit filter. Deploys here
+# are a hard `systemctl restart`, not rolling, so there's no mixed-version
+# window to reason about -- but there's also no fast rollback besides a
+# full redeploy, and this flag IS that fast rollback. Meant to be removed
+# on a dated follow-up once there's a stable production window, not kept
+# indefinitely.
+TENANT_AUTO_SCOPE_ENABLED = os.getenv('TENANT_AUTO_SCOPE_ENABLED', 'True') == 'True'
+
 # Parse comma-separated hosts, fallback to localhost for dev
 env_hosts = os.getenv('ALLOWED_HOSTS', '')
 if env_hosts:

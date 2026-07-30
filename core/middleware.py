@@ -4,12 +4,25 @@ import logging
 from django.conf import settings
 from django.shortcuts import render
 from tenants.models import Tenant
-from .log_filters import set_current_tenant_outlet, clear_current_tenant_outlet
+from .tenant_context import set_current_tenant_outlet, clear_current_tenant_outlet
 
 request_logger = logging.getLogger("pos.core")
 
 
 class TenantMiddleware:
+    """
+    Resolves request.tenant from the hostname, for host/branding/routing
+    purposes only. Deliberately does NOT touch the tenant query-scoping
+    context (see core/tenant_context.py) -- a session cookie is valid
+    across every *.rasova.net subdomain (SESSION_COOKIE_DOMAIN), and the
+    superuser/portal panel is reachable on any of them, not host-restricted.
+    Scoping queries off the subdomain-resolved tenant would make a
+    superuser managing tenant B while physically on tenant A's subdomain
+    silently require both at once -- an impossible condition that returns
+    an empty queryset, not an error. ContextLoggingMiddleware, which runs
+    after authentication and scopes off request.user.tenant instead, is
+    the only thing that sets that context now.
+    """
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -39,11 +52,7 @@ class TenantMiddleware:
                     tenant = None
 
         request.tenant = tenant
-        
-        # Initial set of tenant context (outlet will be NA until authenticated)
-        tenant_id = tenant.id if tenant else 'NA'
-        set_current_tenant_outlet(tenant_id, 'NA')
-        
+
         response = self.get_response(request)
         return response
 
@@ -79,22 +88,31 @@ class SubscriptionStatusMiddleware:
 
 class ContextLoggingMiddleware:
     """
-    Middleware that runs AFTER authentication to capture the outlet ID for logs.
+    The single setter and clearer of core.tenant_context, which
+    TenantManager reads to auto-scope every TenantScopedModel query (see
+    core/models.py). Runs after authentication and scopes off
+    request.user.tenant/request.user.outlet, NOT request.tenant -- see
+    the docstring on TenantMiddleware above for why that distinction is
+    load-bearing, not stylistic. Superuser accounts have tenant=None, so
+    this naturally, correctly leaves them unscoped with no special-casing.
+
+    Wrapped in try/finally so the context can never survive past the
+    request that set it, even if the view raises -- this is the one
+    thing that MUST hold for TenantManager's auto-filtering to be safe
+    rather than a source of cross-request data leakage on a reused
+    worker thread.
     """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # Update context if user is authenticated and has an outlet
-        tenant_id = getattr(request, 'tenant', None)
-        tenant_id = tenant_id.id if tenant_id else 'NA'
-        
-        outlet_id = 'NA'
+        tenant_id = None
+        outlet_id = None
         if request.user.is_authenticated:
-            if hasattr(request.user, 'outlet') and request.user.outlet:
-                outlet_id = request.user.outlet.id
-            if not tenant_id and hasattr(request.user, 'tenant') and request.user.tenant:
-                tenant_id = request.user.tenant.id
+            if getattr(request.user, 'tenant', None):
+                tenant_id = request.user.tenant_id
+            if getattr(request.user, 'outlet', None):
+                outlet_id = request.user.outlet_id
 
         set_current_tenant_outlet(tenant_id, outlet_id)
 
