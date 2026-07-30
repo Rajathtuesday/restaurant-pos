@@ -4,9 +4,14 @@
 
 User-agent: *
 
-# Public — the marketing site and the customer-facing digital menu
+# Public — the marketing site
 Allow: /
+
+# Public — the customer-facing digital menu (overrides the /menu/
+# disallow below; a longer, more specific Allow always wins over a
+# shorter Disallow per Google's own spec, regardless of file order)
 Allow: /menu/digital-menu/
+Allow: /menu/qr/
 
 # Private app areas — keep crawlers out (these are login-gated anyway)
 Disallow: /admin/
@@ -26,5 +31,6 @@ Disallow: /shifts/
 Disallow: /accounts/
 Disallow: /portal/
 Disallow: /agency/
+Disallow: /menu/
 
 Sitemap: https://rasova.net/sitemap.xml

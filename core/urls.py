@@ -34,11 +34,30 @@ def custom_500(request):
 from django.http import HttpResponse
 
 def robots_txt(request):
+    # Same content on every subdomain (this view isn't tenant-aware), which
+    # is what we want: the rules below describe the app's URL *shape*, not
+    # any one tenant's data, so they apply identically whether requested on
+    # rasova.net or a real tenant subdomain like spice.rasova.net.
+    #
+    # /menu/ itself is disallowed further down -- it's the staff-facing
+    # menu management screen (login-gated, but no reason to spend crawl
+    # budget on a login redirect). The two Allow rules for
+    # /menu/digital-menu/ and /menu/qr/ below still win over that: Google's
+    # own spec matches by the *longest matching path*, not by which rule
+    # comes first in the file, so a more specific Allow always overrides a
+    # shorter Disallow regardless of order. Those two are the real,
+    # public, guest-facing menu pages -- worth being indexable on a
+    # tenant's own subdomain (e.g. "Spice Garden menu" becoming
+    # searchable), unlike the rest of the app.
     content = """User-agent: *
 
-# Public — the marketing site and the customer-facing digital menu
+# Public — the marketing site
 Allow: /
+
+# Public — the customer-facing digital menu (overrides the /menu/
+# disallow below; see the comment in robots_txt() for why)
 Allow: /menu/digital-menu/
+Allow: /menu/qr/
 
 # Private app areas — keep crawlers out (these are login-gated anyway)
 Disallow: /admin/
@@ -58,16 +77,26 @@ Disallow: /shifts/
 Disallow: /accounts/
 Disallow: /portal/
 Disallow: /agency/
+Disallow: /menu/
 
 Sitemap: https://rasova.net/sitemap.xml"""
     return HttpResponse(content, content_type='text/plain')
 
 def sitemap_xml(request):
-    content = """<?xml version="1.0" encoding="UTF-8"?>
+    from django.utils import timezone
+    # Only one real, public, indexable page exists today (confirmed by
+    # reading core/urls.py's own top-level patterns) -- the landing page.
+    # lastmod is today's date, generated fresh on every request, rather
+    # than a hand-typed date that goes stale the moment anyone forgets to
+    # update it (it had drifted to a 3-month-old date before this fix).
+    # Add more <url> entries here if/when more public marketing pages
+    # (pricing, features, blog) actually exist.
+    today = timezone.localdate().isoformat()
+    content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://rasova.net/</loc>
-    <lastmod>2026-05-05</lastmod>
+    <lastmod>{today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>

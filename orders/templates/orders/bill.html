@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Invoice #{{ order.order_number|default:order.id }} | {{ order.outlet.name }}{% endblock %}
 
 {% block extra_css %}
@@ -314,6 +315,9 @@
                 Scan &amp; Pay  ·  ₹{{ remaining }}
             </div>
             <div id="upi-qr-canvas" style="display:inline-block;"></div>
+            <div id="upi-qr-fallback" style="display:none;font-size:0.78rem;color:#dc2626;margin-top:0.4rem;">
+                Couldn't load the QR — have the customer pay directly to the UPI ID below in any UPI app.
+            </div>
             <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.6rem;">
                 {{ config.upi_id }}
             </div>
@@ -459,13 +463,33 @@
 
 {% block extra_js %}
 {% if config.upi_id and remaining > 0 %}
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+{% comment %}
+Self-hosted, not CDN -- the CDN URL this used to point at
+(cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js) 404s: that path
+doesn't exist in the published package (confirmed directly), so this QR
+has been silently broken on every single load, on every network, since
+the day it was written -- not an occasional CDN hiccup. This is also the
+one script in the whole app that sits directly on the "can this
+restaurant collect a payment" path, so it shouldn't depend on reaching a
+third party at the exact moment a customer is standing at the counter
+trying to pay, even if the path had been right.
+{% endcomment %}
+<script src="{% static 'js/vendor/qrcode.min.js' %}"></script>
 <script>
 (function() {
     const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am={{ remaining }}&cu=INR&tn=Order%20{{ order.order_number|default:order.id }}";
-    QRCode.toCanvas(upiString, { width: 180, margin: 1, color: { dark: "#000000", light: "#ffffff" } }, function(err, canvas) {
-        if (!err) document.getElementById('upi-qr-canvas').appendChild(canvas);
-    });
+    const canvasWrap = document.getElementById('upi-qr-canvas');
+    const fallback = document.getElementById('upi-qr-fallback');
+    try {
+        QRCode.toCanvas(upiString, { width: 180, margin: 1, color: { dark: "#000000", light: "#ffffff" } }, function(err, canvas) {
+            if (err || !canvas) { fallback.style.display = 'block'; return; }
+            canvasWrap.appendChild(canvas);
+        });
+    } catch (e) {
+        // QRCode itself failed to load/init -- same visible fallback as a
+        // draw failure, so staff never see a silent empty box either way.
+        fallback.style.display = 'block';
+    }
 })();
 </script>
 {% endif %}
