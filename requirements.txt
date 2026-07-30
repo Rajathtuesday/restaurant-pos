@@ -3,7 +3,7 @@ requests==2.32.5
 cryptography==46.0.7
 psycopg2-binary==2.9.11
 python-dotenv==1.2.2
-pillow==12.1.1
+pillow==12.3.0
 qrcode==8.0
 python-escpos==3.1
 django-extensions==4.1
