@@ -84,13 +84,12 @@ Sitemap: https://rasova.net/sitemap.xml"""
 
 def sitemap_xml(request):
     from django.utils import timezone
-    # Only one real, public, indexable page exists today (confirmed by
-    # reading core/urls.py's own top-level patterns) -- the landing page.
+    # Public, indexable marketing pages (served as static files by
+    # WhiteNoise from public/, see WHITENOISE_ROOT in settings.py) --
+    # add an entry here whenever a new one ships.
     # lastmod is today's date, generated fresh on every request, rather
     # than a hand-typed date that goes stale the moment anyone forgets to
     # update it (it had drifted to a 3-month-old date before this fix).
-    # Add more <url> entries here if/when more public marketing pages
-    # (pricing, features, blog) actually exist.
     today = timezone.localdate().isoformat()
     content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -99,6 +98,12 @@ def sitemap_xml(request):
     <lastmod>{today}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://rasova.net/compare/petpooja/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 </urlset>"""
     return HttpResponse(content, content_type='application/xml')

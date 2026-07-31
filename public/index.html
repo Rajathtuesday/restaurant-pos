@@ -815,6 +815,51 @@ nav.scrolled {
 .vs-table td.rasova { color: var(--gold); font-weight: 600; }
 .vs-table td.others { color: rgba(255,255,255,0.25); }
 
+/* ── FAQ ── */
+.faq-section {
+  padding: 100px 4rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.faq-list {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-question {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.6rem 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--white);
+}
+.faq-icon {
+  font-size: 1.3rem;
+  color: var(--gold);
+  transition: transform 0.3s;
+  flex-shrink: 0;
+}
+.faq-item.open .faq-icon { transform: rotate(45deg); }
+.faq-answer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, padding 0.35s ease;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.5);
+  padding: 0 0.25rem;
+}
+.faq-item.open .faq-answer { max-height: 260px; padding: 0 0.25rem 1.6rem; }
+
 /* ── TESTIMONIAL / FOUNDER ── */
 .founder-section {
   padding: 100px 4rem;
@@ -978,7 +1023,8 @@ footer {
   <ul class="nav-links">
     <li><a href="#features">Features</a></li>
     <li><a href="#pricing">Pricing</a></li>
-    <li><a href="#compare">Compare</a></li>
+    <li><a href="/compare/petpooja/">Compare</a></li>
+    <li><a href="#faq">FAQ</a></li>
     <li><a href="https://wa.me/917899814912?text=Hi%2C%20I%27d%20like%20to%20know%20more%20about%20Rasova%20POS" target="_blank" class="nav-cta">Get a Demo</a></li>
   </ul>
 </nav>
@@ -1239,8 +1285,38 @@ footer {
         </tr>
       </tbody>
     </table>
+    <p class="reveal" style="margin-top:2rem;font-size:0.85rem;">
+      <a href="/compare/petpooja/" style="color:var(--gold);text-decoration:none;">Read the full Rasova vs Petpooja comparison →</a>
+    </p>
   </div>
 </div>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="faq-section">
+    <div class="section-label reveal">Questions</div>
+    <div class="section-title reveal">Before you ask.</div>
+
+    <div class="faq-list">
+      <div class="faq-item reveal">
+        <button class="faq-question">How much does Rasova cost? <span class="faq-icon">+</span></button>
+        <div class="faq-answer">Rasova starts at ₹999 per month for the Solo Plan (1 outlet) and ₹2,499 per month for the Growth Plan (up to 3 outlets). No annual contract — cancel anytime.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-question">Is Rasova GST compliant? <span class="faq-icon">+</span></button>
+        <div class="faq-answer">Yes. Rasova generates fully GST-compliant bills with CGST and SGST breakdown per item, GSTIN and FSSAI printed on every bill, and CSV reports ready for GSTR-1 filing.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-question">How does the AI menu import work? <span class="faq-icon">+</span></button>
+        <div class="faq-answer">Take a photo of your existing menu — handwritten, printed, or a WhatsApp image. Upload it to Rasova and our AI reads it and creates all your menu items automatically in under 60 seconds. No manual data entry required.</div>
+      </div>
+      <div class="faq-item reveal">
+        <button class="faq-question">Does Rasova work for multiple restaurant outlets? <span class="faq-icon">+</span></button>
+        <div class="faq-answer">Yes. The Growth Plan supports up to 3 outlets under one account, each fully isolated with their own data, floor plan, menu, and reports.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- FOUNDER NOTE -->
 <section>
@@ -1277,6 +1353,16 @@ footer {
   const navbar = document.getElementById('navbar');
   window.addEventListener('scroll', () => {
     navbar.classList.toggle('scrolled', window.scrollY > 50);
+  });
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-question').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const item = btn.parentElement;
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
   });
 
   // Reveal on scroll
