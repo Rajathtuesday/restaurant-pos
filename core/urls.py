@@ -100,7 +100,7 @@ def sitemap_xml(request):
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://rasova.net/compare/petpooja/</loc>
+    <loc>https://rasova.net/compare/</loc>
     <lastmod>{today}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
