@@ -53,6 +53,24 @@
     }
     @media (max-width: 991px) { .category-sidebar { display: none !important; } }
 
+    /* ── Drag handles between the 3 desktop panels ────────────────── */
+    .panel-handle {
+        width: 6px;
+        flex-shrink: 0;
+        cursor: col-resize;
+        align-self: stretch;
+        background: transparent;
+        border-left: 1px solid var(--border-color);
+        transition: background 0.12s;
+        touch-action: none;
+    }
+    .panel-handle:hover,
+    .panel-handle.dragging {
+        background: rgba(197,160,89,0.25);
+        border-left-color: var(--accent-gold);
+    }
+    @media (max-width: 991px) { .panel-handle { display: none !important; } }
+
     .category-title {
         font-size: 0.65rem;
         text-transform: uppercase;
@@ -547,6 +565,8 @@
         </ul>
     </aside>
 
+    <div class="panel-handle" id="handleLeft" data-panel="category-sidebar"></div>
+
     <!-- MOBILE: Horizontal category strip + menu -->
     <div class="d-flex flex-column flex-grow-1" style="min-width:0; overflow:hidden;">
         <div class="mobile-category-nav">
@@ -610,6 +630,8 @@
             </div>
         </main>
     </div>
+
+    <div class="panel-handle" id="handleRight" data-panel="context-sidebar"></div>
 
     <!-- DESKTOP: Current Order / Active Orders sidebar -->
     <aside class="context-sidebar">
@@ -905,6 +927,98 @@
 
 {% block extra_js %}
 <script>
+    /* ── Resizable 3-panel layout (desktop only) ───────────────────────
+       Two drag handles: category-sidebar|menu-area and menu-area|context-
+       sidebar. menu-area itself is never given an explicit width -- it
+       just absorbs whatever the other two don't take (flex-grow:1). */
+    const panelResizer = (() => {
+        const STORAGE_KEY = 'rasova_billing_panel_widths';
+        const DEFAULTS = { 'category-sidebar': 210, 'context-sidebar': 350 };
+        const MIN = { 'category-sidebar': 150, 'context-sidebar': 280 };
+        const MAX = { 'category-sidebar': 320, 'context-sidebar': 480 };
+        const MIN_MENU_WIDTH = 320;
+
+        function loadWidths() {
+            try {
+                return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') };
+            } catch (e) { return { ...DEFAULTS }; }
+        }
+
+        function saveWidths(widths) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(widths)); } catch (e) {}
+        }
+
+        function applyWidths(widths) {
+            const cat = document.querySelector('.category-sidebar');
+            const ctx = document.querySelector('.context-sidebar');
+            if (cat) cat.style.width = widths['category-sidebar'] + 'px';
+            if (ctx) ctx.style.width = widths['context-sidebar'] + 'px';
+        }
+
+        function clamp(panelKey, value, workspace) {
+            value = Math.max(MIN[panelKey], Math.min(MAX[panelKey], value));
+            // Don't let the two side panels together crush the menu area.
+            const other = panelKey === 'category-sidebar' ? 'context-sidebar' : 'category-sidebar';
+            const otherWidth = parseFloat(document.querySelector('.' + other)?.style.width) || DEFAULTS[other];
+            const available = workspace.clientWidth - otherWidth - MIN_MENU_WIDTH;
+            return Math.max(MIN[panelKey], Math.min(value, available));
+        }
+
+        function initHandle(handleId, panelKey, direction) {
+            const handle = document.getElementById(handleId);
+            const panel = document.querySelector('.' + panelKey);
+            const workspace = document.querySelector('.workspace');
+            if (!handle || !panel || !workspace) return;
+
+            let dragging = false, startX = 0, startWidth = 0;
+
+            handle.addEventListener('pointerdown', (e) => {
+                dragging = true;
+                startX = e.clientX;
+                startWidth = panel.getBoundingClientRect().width;
+                handle.classList.add('dragging');
+                handle.setPointerCapture(e.pointerId);
+                e.preventDefault();
+            });
+
+            handle.addEventListener('pointermove', (e) => {
+                if (!dragging) return;
+                const delta = (e.clientX - startX) * direction;
+                panel.style.width = clamp(panelKey, startWidth + delta, workspace) + 'px';
+            });
+
+            const endDrag = (e) => {
+                if (!dragging) return;
+                dragging = false;
+                handle.classList.remove('dragging');
+                const widths = loadWidths();
+                widths[panelKey] = parseFloat(panel.style.width) || DEFAULTS[panelKey];
+                saveWidths(widths);
+            };
+            handle.addEventListener('pointerup', endDrag);
+            handle.addEventListener('pointercancel', endDrag);
+
+            handle.addEventListener('dblclick', () => {
+                panel.style.width = DEFAULTS[panelKey] + 'px';
+                const widths = loadWidths();
+                widths[panelKey] = DEFAULTS[panelKey];
+                saveWidths(widths);
+            });
+        }
+
+        function init() {
+            applyWidths(loadWidths());
+            // direction: which way a rightward drag should grow the panel.
+            // Left handle sits before category-sidebar -> dragging right grows it.
+            // Right handle sits before context-sidebar -> dragging right shrinks it.
+            initHandle('handleLeft', 'category-sidebar', 1);
+            initHandle('handleRight', 'context-sidebar', -1);
+        }
+
+        return { init };
+    })();
+    panelResizer.init();
+
     /* ── Tab switching (Current Order ↔ Active Orders) ──────────────── */
     function switchTab(tab) {
         const toggle = (id, cls, add) => { const el = document.getElementById(id); if (el) el.classList[add ? 'add' : 'remove'](cls); };
