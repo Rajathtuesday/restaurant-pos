@@ -29,9 +29,6 @@ staticfiles/
 Thumbs.db
 
 
-
-
-
 # Logs & rotation files
 pos.log
 logs/*
@@ -40,6 +37,11 @@ pos.log.*
 # Build artifacts — never commit zips
 *.zip
 *.tar.gz
+
+# Android build output & device log dumps
+rasova_android/app/bin/
+rasova_android/log cat/
+*.logcat
 
 # Dev tools output (ER diagrams etc)
 er_diagrams_pos/
@@ -56,3 +58,4 @@ POS_System_Architecture_and_Documentation.md
 
 
 .claude/*
+*.md

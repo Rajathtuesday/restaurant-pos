@@ -26,6 +26,7 @@ def setup_promos(request):
     if request.user.role not in ["owner", "manager"]:
         return redirect("/setup/")
 
+    from django.db.models import Q
     from promos.models import Promo
     from tenants.models import Outlet
 
@@ -35,8 +36,11 @@ def setup_promos(request):
     # All outlets for this tenant (used by the "All Outlets" toggle)
     all_outlets = Outlet.objects.filter(tenant=tenant).order_by("name")
 
-    # Promos scoped to this tenant (includes all-outlet ones + this outlet's)
-    promos = Promo.objects.filter(tenant=tenant).select_related("outlet").order_by("-created_at")
+    # Promos scoped to this tenant (includes all-outlet ones + this outlet's) —
+    # NOT every outlet's promos, matching the page heading below.
+    promos = Promo.objects.filter(tenant=tenant).filter(
+        Q(outlet=outlet) | Q(outlet__isnull=True)
+    ).select_related("outlet").order_by("-created_at")
 
     return render(request, "setup/setup_promos.html", {
         "promos": promos,
@@ -145,6 +149,13 @@ def promo_toggle(request, promo_id):
     except Promo.DoesNotExist:
         return JsonResponse({"error": "Promo not found"}, status=404)
 
+    # A promo scoped to one specific outlet is off-limits to a manager at a
+    # different outlet — only tenant-wide promos (outlet=None) and this
+    # outlet's own promos are toggleable here. Owners keep cross-outlet
+    # access by design, same as everywhere else in setup/.
+    if request.user.role != "owner" and promo.outlet_id and promo.outlet_id != request.user.outlet_id:
+        return JsonResponse({"error": "Promo not found"}, status=404)
+
     promo.is_active = not promo.is_active
     promo.save(update_fields=["is_active"])
     return JsonResponse({"success": True, "is_active": promo.is_active})
@@ -163,6 +174,12 @@ def promo_delete(request, promo_id):
     try:
         promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
     except Promo.DoesNotExist:
+        return JsonResponse({"error": "Promo not found"}, status=404)
+
+    # Same outlet boundary as promo_toggle above — a manager may not delete
+    # another outlet's promo just because they share a tenant. Owners keep
+    # cross-outlet access by design.
+    if request.user.role != "owner" and promo.outlet_id and promo.outlet_id != request.user.outlet_id:
         return JsonResponse({"error": "Promo not found"}, status=404)
 
     promo.delete()

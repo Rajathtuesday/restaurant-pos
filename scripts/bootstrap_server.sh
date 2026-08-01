@@ -13,7 +13,7 @@
 #
 # You can also just run `sudo bash scripts/bootstrap_server.sh` and edit the
 # CONFIG block below first. Anything left blank gets a sensible default.
-#
+# ─
 set -euo pipefail
 
 # ─────────────────────────── CONFIG (override via env) ───────────────────────────
