@@ -51,6 +51,9 @@ pem/
 
 md_files/
 
+# Load-test run logs (generated, not source)
+loadtest_logs/
+
 .dockerignore
 Dockerfile
 docker-compose.yml

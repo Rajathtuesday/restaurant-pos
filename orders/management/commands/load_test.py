@@ -23,9 +23,12 @@ import random
 import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import connection
+from django.test import RequestFactory
+from django.utils import timezone
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
@@ -36,19 +39,11 @@ from orders.services.order_service import get_or_create_open_order, add_items_to
 from kitchen.services.kot_service import create_kot
 from orders.services.payment_service import process_payment
 
+from ._loadtest_common import (
+    RunLogger, ResourceSampler, db_snapshot, format_resource_line, cleanup_tenant,
+)
+
 LOADTEST_SLUG = "loadtest-tenant"
-
-
-def _cleanup_tenant(tenant):
-    """Delete a tenant and everything under it, honoring the PROTECT FK chain
-    (Payment.order and Order.tenant are both on_delete=PROTECT, so payments must
-    go before orders, and orders before the tenant)."""
-    from orders.models import Order, Payment
-    from payments.models import Refund
-    Refund.objects.filter(order__tenant=tenant).delete()
-    Payment.objects.filter(order__tenant=tenant).delete()
-    Order.objects.filter(tenant=tenant).delete()
-    Tenant.objects.filter(pk=tenant.pk).delete()
 
 
 class Command(BaseCommand):
@@ -65,6 +60,10 @@ class Command(BaseCommand):
                             help="Keep the LoadTest tenant + orders instead of cleaning up.")
         parser.add_argument("--no-race", action="store_true",
                             help="Skip the single-table race probe.")
+        parser.add_argument("--no-reservation-race", action="store_true",
+                            help="Skip the reservation-booking race probe.")
+        parser.add_argument("--log-dir", default="loadtest_logs",
+                            help="Directory for the timestamped run log (default: loadtest_logs/).")
 
     # ------------------------------------------------------------------ setup
     def _setup(self, n_tables):
@@ -133,8 +132,10 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------- main
     def handle(self, *args, **opts):
+        log = RunLogger(self.stdout.write, opts["log_dir"], "load_test")
+
         if "sqlite" in connection.vendor:
-            self.stdout.write(self.style.WARNING(
+            log.write(self.style.WARNING(
                 "DB backend is SQLite — its single writer lock serialises all writes, "
                 "so concurrency numbers here are NOT representative. Point DB_* env vars "
                 "at Postgres for a real result.\n"
@@ -144,14 +145,16 @@ class Command(BaseCommand):
         per_worker = max(1, opts["orders"] // workers)
         total = per_worker * workers   # actual total after even split across workers
 
-        self.stdout.write(f"Setting up LoadTest tenant ({workers} tables)...")
+        log.write(f"Setting up LoadTest tenant ({workers} tables)...")
         tenant, outlet, user, tables, items = self._setup(workers)
 
         # ---------------- Phase 1: throughput ----------------
-        self.stdout.write(self.style.MIGRATE_HEADING(
+        log.write(self.style.MIGRATE_HEADING(
             f"\nPhase 1 — throughput: {total} order lifecycles, "
             f"{workers} workers x {per_worker} each (one table per worker)"
         ))
+        db_before = db_snapshot()
+        sampler = ResourceSampler().start()
         latencies, errors = [], {}
         wall_start = time.perf_counter()
         with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -165,23 +168,29 @@ class Command(BaseCommand):
                 for k, v in errs.items():
                     errors[k] = errors.get(k, 0) + v
         wall = time.perf_counter() - wall_start
+        res = sampler.stop()
+        db_after = db_snapshot()
 
         ok = len(latencies)
         failed = sum(errors.values())
-        self.stdout.write(f"  completed : {ok}/{total}   failed: {failed}")
-        self.stdout.write(f"  wall time : {wall:.2f}s")
+        log.write(f"  completed : {ok}/{total}   failed: {failed}")
+        log.write(f"  wall time : {wall:.2f}s")
         if ok:
-            self.stdout.write(f"  throughput: {ok / wall:.1f} orders/sec")
-            self._latency_line("  latency   ", latencies)
+            log.write(f"  throughput: {ok / wall:.1f} orders/sec")
+            self._latency_line(log, "  latency   ", latencies)
         if errors:
-            self.stdout.write(self.style.WARNING("  error breakdown:"))
+            log.write(self.style.WARNING("  error breakdown:"))
             for name, count in sorted(errors.items(), key=lambda x: -x[1]):
-                self.stdout.write(f"    {name}: {count}")
+                log.write(f"    {name}: {count}")
+        log.write(format_resource_line("  resources ", res))
+        if db_before and db_after:
+            log.write(f"  db connections: {db_before['active_connections']} -> {db_after['active_connections']}  "
+                       f"waiting locks (after): {db_after['waiting_locks']}")
 
         # ---------------- Phase 2: single-table race probe ----------------
         if not opts["no_race"]:
             rw = opts["race_workers"]
-            self.stdout.write(self.style.MIGRATE_HEADING(
+            log.write(self.style.MIGRATE_HEADING(
                 f"\nPhase 2 — race probe: {rw} threads open an order on ONE table at once"
             ))
             race_table = Table.objects.create(tenant=tenant, outlet=outlet, name="LT-RACE")
@@ -193,38 +202,108 @@ class Command(BaseCommand):
                 finally:
                     connection.close()
 
+            sampler = ResourceSampler().start()
             with ThreadPoolExecutor(max_workers=rw) as pool:
                 order_ids = [f.result() for f in [pool.submit(_race_open) for _ in range(rw)]]
+            res = sampler.stop()
 
             distinct = set(order_ids)
             open_rows = Order.objects.filter(
                 tenant=tenant, outlet=outlet, table=race_table, status="open"
             ).count()
-            self.stdout.write(f"  {rw} concurrent opens -> {len(distinct)} distinct order id(s)")
-            self.stdout.write(f"  open orders actually in DB for that table: {open_rows}")
+            log.write(f"  {rw} concurrent opens -> {len(distinct)} distinct order id(s)")
+            log.write(f"  open orders actually in DB for that table: {open_rows}")
+            log.write(format_resource_line("  resources", res))
             if open_rows == 1 and len(distinct) == 1:
-                self.stdout.write(self.style.SUCCESS(
+                log.write(self.style.SUCCESS(
                     "  PASS: the unique-open-order-per-table guard held under the race."
                 ))
             else:
-                self.stdout.write(self.style.ERROR(
+                log.write(self.style.ERROR(
                     "  FAIL: more than one open order was created for a single table!"
+                ))
+
+        # ---------------- Phase 3: reservation race probe ----------------
+        if not opts["no_reservation_race"]:
+            rw = opts["race_workers"]
+            log.write(self.style.MIGRATE_HEADING(
+                f"\nPhase 3 — reservation race probe: {rw} threads book ONE table/time-slot at once"
+            ))
+            res_table = Table.objects.create(tenant=tenant, outlet=outlet, name="LT-RES-RACE")
+            res_time = timezone.now() + timedelta(days=1)
+            res_time_str = res_time.strftime("%Y-%m-%dT%H:%M")
+
+            from crm.views import create_reservation
+            factory = RequestFactory()
+
+            # In-memory only (never .save()'d) -- bypasses feature_required's
+            # "does this tenant have the 'reservations' feature" check, same
+            # as tenant_required's subdomain check, which is already a no-op
+            # here since RequestFactory requests never run through middleware.
+            user.is_superuser = True
+
+            import json as _json
+
+            def _race_book(i):
+                body = _json.dumps({
+                    "phone": f"9{i:09d}",
+                    "name": f"LoadTest Guest {i}",
+                    "table_id": res_table.id,
+                    "reservation_time": res_time_str,
+                    "guests": 2,
+                })
+                request = factory.post(
+                    "/crm/reservations/create/",
+                    data=body,
+                    content_type="application/json",
+                )
+                request.user = user
+                try:
+                    response = create_reservation(request)
+                    return response.status_code
+                finally:
+                    connection.close()
+
+            sampler = ResourceSampler().start()
+            with ThreadPoolExecutor(max_workers=rw) as pool:
+                statuses = [f.result() for f in [pool.submit(_race_book, i) for i in range(rw)]]
+            res = sampler.stop()
+
+            successes = statuses.count(200)
+            conflicts = statuses.count(409)
+            from crm.models import Reservation
+            confirmed_rows = Reservation.objects.filter(
+                tenant=tenant, outlet=outlet, table=res_table,
+                status__in=["pending", "confirmed"],
+            ).count()
+            log.write(f"  {rw} concurrent bookings -> {successes} succeeded (200), {conflicts} rejected (409)")
+            log.write(f"  reservation rows actually in DB for that table/slot: {confirmed_rows}")
+            log.write(format_resource_line("  resources", res))
+            if successes == 1 and confirmed_rows == 1:
+                log.write(self.style.SUCCESS(
+                    "  PASS: exactly one booking succeeded for the contested table/slot."
+                ))
+            else:
+                log.write(self.style.ERROR(
+                    "  FAIL: expected exactly 1 success and 1 DB row -- double-booking risk!"
                 ))
 
         # ---------------- cleanup ----------------
         if opts["keep"]:
-            self.stdout.write(self.style.WARNING(
+            log.write(self.style.WARNING(
                 f"\n--keep set: leaving LoadTest tenant '{tenant.slug}' and its data in place."
             ))
         else:
-            self.stdout.write("\nCleaning up LoadTest tenant...")
-            _cleanup_tenant(tenant)
-            self.stdout.write(self.style.SUCCESS("Cleanup complete."))
+            log.write("\nCleaning up LoadTest tenant...")
+            cleanup_tenant(tenant)
+            log.write(self.style.SUCCESS("Cleanup complete."))
 
-        self.stdout.write(self.style.SUCCESS("\nLoad test finished."))
+        log.write(self.style.SUCCESS("\nLoad test finished."))
+        log.write(f"\nFull log saved to: {log.path}")
+        log.close()
 
     # -------------------------------------------------------------- helpers
-    def _latency_line(self, label, latencies):
+    def _latency_line(self, log, label, latencies):
         s = sorted(latencies)
 
         def pct(p):
@@ -233,7 +312,7 @@ class Command(BaseCommand):
             idx = min(len(s) - 1, int(round((p / 100.0) * (len(s) - 1))))
             return s[idx] * 1000
 
-        self.stdout.write(
+        log.write(
             f"{label}: p50={pct(50):.0f}ms  p95={pct(95):.0f}ms  "
             f"p99={pct(99):.0f}ms  max={max(s) * 1000:.0f}ms  "
             f"mean={statistics.mean(s) * 1000:.0f}ms"

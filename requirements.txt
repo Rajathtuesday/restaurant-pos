@@ -20,6 +20,7 @@ gunicorn==22.0.0
 
 # Monitoring
 sentry-sdk==2.20.0
+psutil==7.1.0
 
 # Rate Limiting
 django-axes==6.4.0
