@@ -164,6 +164,22 @@ f:\pos\
 - Redis (for Celery) - `docker run -d -p 6379:6379 redis:alpine`
 - Git
 
+### System Requirements
+
+| | Minimum | Recommended (production) |
+|---|---|---|
+| CPU | 1 vCPU | 2 vCPU |
+| RAM | 1 GB | 2 GB+ |
+| Disk | 10 GB | 20 GB+ (grows with order history + media) |
+| DB | PostgreSQL 16, co-located or managed | PostgreSQL 16, managed (RDS or equivalent) if budget allows |
+| Cache/queue | Redis 7 | Redis 7 |
+
+Production today runs on a **1 vCPU / 1 GB RAM** instance (AWS t3.micro) with Postgres, Redis, gunicorn (`--workers 2 --threads 4`), and a Celery worker all co-located on the same box — this is the *minimum* row above, not the recommended one, and it's genuinely tight: little headroom before swap kicks in under real concurrent load. Per-gunicorn-worker memory measured directly under sustained load (see [`LOAD_TESTING.md`](LOAD_TESTING.md)'s soak test) sits around 90-105 MB; with 2 workers that's already 200 MB+ before Postgres, Redis, Celery, and the OS itself are accounted for.
+
+**Recommended minimum for production** is a **2 vCPU / 2 GB RAM** instance (e.g. AWS t3.small) — enough headroom for the current gunicorn config plus Postgres/Redis/Celery without relying on burst CPU credits or swap. Scale up further (2 vCPU / 4 GB, e.g. t3.medium) if adding more tenants, increasing `--workers`/`--threads`, or increasing Celery concurrency.
+
+These figures come from the app's own configuration and measured per-process footprint, not from live production monitoring (no SSH-based metrics collection is wired up yet). Before committing to a resize, use the load-testing tooling in [`LOAD_TESTING.md`](LOAD_TESTING.md) — specifically a soak test run directly on whichever instance size you're evaluating — to get a real, current answer rather than an estimate.
+
 ### Installation
 
 ```bash
@@ -281,7 +297,13 @@ python manage.py test_pos_flow            # run the full POS flow
 python manage.py simulate_restaurant_rush # stress test concurrency
 python manage.py audit_pos                # check data integrity
 python manage.py reset_pos                # clear POS data (dev only)
+
+# Load testing (concurrency correctness + HTTP capacity + sustained soak test)
+python manage.py load_test                # see LOAD_TESTING.md for the full guide
+python manage.py http_rush_test --host http://127.0.0.1:8000
 ```
+
+Full guide to what each load-test phase checks and how to read its output: [`LOAD_TESTING.md`](LOAD_TESTING.md).
 
 ---
 
