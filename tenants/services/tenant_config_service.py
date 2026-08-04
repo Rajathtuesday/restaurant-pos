@@ -173,6 +173,40 @@ def update_payment_from_post(config, post):
     config.save()
 
 
+def update_subscription_from_post(tenant, post):
+    """Applies the "update_subscription" POST action. Saves the tenant.
+    Manual override for a superuser -- sits alongside, not instead of, the
+    automated billing.tasks (generate_monthly_invoices /
+    enforce_overdue_subscriptions)."""
+    from decimal import Decimal
+    try:
+        tenant.subscription_fee = Decimal(post.get("subscription_fee", "0") or "0")
+    except Exception:
+        logger.warning("Could not parse subscription_fee=%r for tenant %s — left unchanged",
+                        post.get("subscription_fee"), tenant.id)
+    new_status = post.get("subscription_status")
+    if new_status in dict(tenant._meta.get_field("subscription_status").choices):
+        tenant.subscription_status = new_status
+    tenant.save()
+
+
+def mark_invoice_paid_manually(invoice):
+    """Applies the "mark_paid" POST action for a bank-transfer/cash payment
+    made outside the automated Razorpay Payment Link flow. Extends the
+    tenant's subscription the same way the real webhook does, so a manual
+    payment has the exact same downstream effect as an automated one."""
+    from django.utils import timezone
+    invoice.status = "paid"
+    invoice.paid_at = timezone.now()
+    invoice.save(update_fields=["status", "paid_at"])
+
+    tenant = invoice.tenant
+    tenant.subscription_end_date = invoice.period_end
+    if tenant.subscription_status != "active":
+        tenant.subscription_status = "active"
+    tenant.save(update_fields=["subscription_end_date", "subscription_status"])
+
+
 def add_staff_from_post(tenant, outlet, post):
     """Applies the "add_staff" POST action. Returns the new user, or None if invalid/duplicate."""
     uname = post.get("username", "").strip()

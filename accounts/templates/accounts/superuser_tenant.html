@@ -117,6 +117,62 @@
     </form>
   </div>
 
+  <div class="cfg-section">
+    <h3><i class="bi bi-receipt" style="color:var(--accent-gold);"></i> Rasova Subscription</h3>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="update_subscription">
+      <div class="field-row">
+        <div class="field">
+          <label>Monthly Fee (&#8377;)</label>
+          <input type="number" step="0.01" name="subscription_fee" value="{{ tenant.subscription_fee }}">
+        </div>
+        <div class="field">
+          <label>Status</label>
+          <select name="subscription_status">
+            <option value="trial" {% if tenant.subscription_status == "trial" %}selected{% endif %}>Trial</option>
+            <option value="active" {% if tenant.subscription_status == "active" %}selected{% endif %}>Active</option>
+            <option value="suspended" {% if tenant.subscription_status == "suspended" %}selected{% endif %}>Suspended</option>
+          </select>
+        </div>
+      </div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin:4px 0 12px;">
+        Manual override — sits alongside the automated monthly invoicing and overdue-suspension jobs, not instead of them.
+      </div>
+      <button type="submit" class="btn-cfg btn-cfg-primary">Save Subscription</button>
+    </form>
+
+    {% if invoices %}
+    <table style="width:100%;margin-top:1.5rem;font-size:0.8rem;border-collapse:collapse;">
+      <tr style="text-align:left;color:var(--text-muted);font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;">
+        <th style="padding:6px 4px;">Period</th>
+        <th style="padding:6px 4px;">Amount</th>
+        <th style="padding:6px 4px;">Status</th>
+        <th style="padding:6px 4px;"></th>
+      </tr>
+      {% for invoice in invoices %}
+      <tr style="border-top:1px solid var(--border-color);">
+        <td style="padding:6px 4px;">{{ invoice.period_start }} – {{ invoice.period_end }}</td>
+        <td style="padding:6px 4px;">&#8377;{{ invoice.amount }}</td>
+        <td style="padding:6px 4px;text-transform:capitalize;">{{ invoice.status }}</td>
+        <td style="padding:6px 4px;">
+          {% if invoice.status != "paid" %}
+          <form method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="mark_paid">
+            <input type="hidden" name="invoice_id" value="{{ invoice.id }}">
+            <button type="submit" class="btn-cfg" style="padding:0.2rem 0.6rem;font-size:0.65rem;">Mark Paid</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:1rem;">No invoices generated yet.</div>
+    {% endif %}
+  </div>
+
   <!-- Printer / Kitchen Stations -->
   <div class="cfg-section">
     <h3><i class="bi bi-printer" style="color:var(--accent-gold);"></i> Printers / Kitchen Stations</h3>

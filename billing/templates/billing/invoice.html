@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #1c231c; margin: 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #a5772e; padding-bottom: 16px; margin-bottom: 24px; }
+  .brand { font-size: 22px; font-weight: bold; color: #a5772e; }
+  .brand .sub { font-size: 11px; color: #666; font-weight: normal; }
+  .invoice-meta { text-align: right; font-size: 12px; color: #444; }
+  .invoice-meta .status { display: inline-block; padding: 3px 10px; border-radius: 3px; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+  .status.paid { background: #eaf5ec; color: #3d7a4f; }
+  .status.pending { background: #faf1e2; color: #a56a1c; }
+  .status.overdue { background: #f9ecec; color: #a53c3c; }
+  .bill-to { margin-bottom: 24px; }
+  .bill-to .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #888; border-bottom: 1px solid #ddd; padding: 8px 4px; }
+  td { padding: 12px 4px; border-bottom: 1px solid #eee; }
+  .amount-row td { border-bottom: none; padding-top: 16px; }
+  .total-label { text-align: right; font-weight: bold; }
+  .total-amount { text-align: right; font-weight: bold; font-size: 16px; color: #a5772e; }
+  .footer { margin-top: 40px; font-size: 11px; color: #888; border-top: 1px solid #eee; padding-top: 16px; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="brand">Rasova<div class="sub">Restaurant POS SaaS &middot; rasova.net</div></div>
+    <div class="invoice-meta">
+      <div><strong>Invoice #{{ invoice.id }}</strong></div>
+      <div>{{ invoice.period_start|date:"d M Y" }} &ndash; {{ invoice.period_end|date:"d M Y" }}</div>
+      <div style="margin-top:6px;"><span class="status {{ invoice.status }}">{{ invoice.get_status_display }}</span></div>
+    </div>
+  </div>
+
+  <div class="bill-to">
+    <div class="label">Billed to</div>
+    <div><strong>{{ invoice.tenant.name }}</strong></div>
+  </div>
+
+  <table>
+    <tr>
+      <th>Description</th>
+      <th style="text-align:right;">Amount</th>
+    </tr>
+    <tr>
+      <td>Rasova subscription &mdash; {{ invoice.period_start|date:"d M Y" }} to {{ invoice.period_end|date:"d M Y" }}</td>
+      <td style="text-align:right;">&#8377;{{ invoice.amount|floatformat:2 }}</td>
+    </tr>
+    <tr class="amount-row">
+      <td class="total-label">Total</td>
+      <td class="total-amount">&#8377;{{ invoice.amount|floatformat:2 }}</td>
+    </tr>
+  </table>
+
+  {% if invoice.status == 'paid' %}
+  <p>Paid on {{ invoice.paid_at|date:"d M Y, g:i A" }}.</p>
+  {% elif payment_link_url %}
+  <p>Pay online: {{ payment_link_url }}</p>
+  {% endif %}
+
+  <div class="footer">
+    Rasova &middot; This is a system-generated invoice for your Rasova subscription, separate from any bills your own customers receive.
+  </div>
+
+</body>
+</html>

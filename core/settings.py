@@ -116,6 +116,7 @@ INSTALLED_APPS = [
     'payments',
     'agency',
     'portal',
+    'billing',
     'django_celery_results',
 ]
 
@@ -616,6 +617,17 @@ TWILIO_AUTH_TOKEN    = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
 
 # -------------------------------------------------------
+# RASOVA'S OWN RAZORPAY ACCOUNT -- for charging tenants their Rasova
+# subscription fee. Deliberately named distinctly from anything tenant-
+# facing (PaymentConfig's per-tenant razorpay_key_id/secret) so the two
+# are never confused in config, mirroring the code-level separation in
+# billing/razorpay_gateway.py vs payments/razorpay_gateway.py.
+# -------------------------------------------------------
+RASOVA_RAZORPAY_KEY_ID = os.getenv("RASOVA_RAZORPAY_KEY_ID", "")
+RASOVA_RAZORPAY_KEY_SECRET = os.getenv("RASOVA_RAZORPAY_KEY_SECRET", "")
+RASOVA_RAZORPAY_WEBHOOK_SECRET = os.getenv("RASOVA_RAZORPAY_WEBHOOK_SECRET", "")
+
+# -------------------------------------------------------
 # EMAIL
 # Dev:  set EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend in .env
 #       → emails print to terminal, no Gmail needed
@@ -754,5 +766,15 @@ CELERY_BEAT_SCHEDULE = {
     "daily-report-digest": {
         "task": "reports.tasks.send_daily_digest_email",
         "schedule": crontab(hour=7, minute=0),
+    },
+    # Rasova's own subscription billing (charging tenants, not tenant-facing).
+    # See md_files/eli5_subscription_billing_plan.html for the full design.
+    "generate-monthly-subscription-invoices": {
+        "task": "billing.tasks.generate_monthly_invoices",
+        "schedule": crontab(hour=6, minute=0),  # before the daily digest
+    },
+    "enforce-overdue-subscriptions": {
+        "task": "billing.tasks.enforce_overdue_subscriptions",
+        "schedule": crontab(hour=6, minute=30),
     },
 }

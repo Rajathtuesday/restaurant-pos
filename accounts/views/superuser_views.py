@@ -186,6 +186,22 @@ def tenant_config(request, tenant_id):
             tcs.update_outlet_from_post(outlet, request.POST)
             return redirect("superuser_tenant", tenant_id=tenant_id)
 
+        if action == "update_subscription":
+            tcs.update_subscription_from_post(tenant, request.POST)
+            logger.info("SU %s updated subscription for tenant %s", request.user.username, tenant.name)
+            return redirect("superuser_tenant", tenant_id=tenant_id)
+
+        if action == "mark_paid":
+            from billing.models import SubscriptionInvoice
+            invoice = get_object_or_404(SubscriptionInvoice, id=request.POST.get("invoice_id"), tenant=tenant)
+            tcs.mark_invoice_paid_manually(invoice)
+            logger.info("SU %s manually marked invoice %s paid for tenant %s",
+                        request.user.username, invoice.id, tenant.name)
+            return redirect("superuser_tenant", tenant_id=tenant_id)
+
+    from billing.models import SubscriptionInvoice
+    invoices = SubscriptionInvoice.objects.filter(tenant=tenant).order_by("-period_start")[:24]
+
     return render(request, "accounts/superuser_tenant.html", {
         "tenant":          tenant,
         "outlet":          outlet,
@@ -194,6 +210,7 @@ def tenant_config(request, tenant_id):
         "config":          config,
         "feature_summary": feature_summary,
         "presets":         tcs.PRESETS,
+        "invoices":        invoices,
     })
 
 

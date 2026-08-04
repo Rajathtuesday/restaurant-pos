@@ -159,6 +159,9 @@ urlpatterns = [
     # crm module
     path('crm/', include('crm.urls')),
 
+    # Rasova's own subscription billing (charging tenants, not tenant-facing)
+    path('billing/', include('billing.urls')),
+
     # finance module
     path('finance/', include('finance.urls')),
 

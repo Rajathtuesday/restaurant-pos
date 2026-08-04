@@ -112,6 +112,65 @@ def _send_twilio(phone: str, message: str, order_id) -> bool:
 
 
 # -------------------------------------------------------
+# RASOVA SUBSCRIPTION INVOICES (billing app)
+# -------------------------------------------------------
+
+def send_subscription_invoice(invoice, payment_link_url: str = "") -> bool:
+    """
+    Send a Rasova subscription invoice notice to the tenant, via WhatsApp.
+    Reuses the exact same Meta/Twilio senders as customer bill receipts --
+    only the message and phone lookup differ. Never raises, same as
+    send_bill_receipt: a failed WhatsApp send must never block the invoice
+    email or the rest of a monthly batch run.
+
+    Known limitation, documented rather than hidden: neither Tenant nor
+    User has a phone field today -- only Outlet does. This uses the
+    tenant's first outlet's phone as a pragmatic stand-in. A real
+    Tenant.billing_phone field would be the correct fix if this becomes
+    the primary contact channel rather than a v1 stopgap.
+    """
+    tenant = invoice.tenant
+    # order_by("id") clears Outlet's Meta.ordering (which orders by
+    # tenant__name) -- left as the default, every call here would silently
+    # JOIN tenants_tenant just to sort a single-row lookup, which is what
+    # was quietly turning this into an N+1 across the overdue-warning loop.
+    outlet = tenant.outlets.order_by("id").first()
+    phone = getattr(outlet, "phone", None) if outlet else None
+    if not phone:
+        return False
+
+    phone = _normalize_phone(phone)
+    if not phone:
+        return False
+
+    message = _build_subscription_message(invoice, payment_link_url)
+
+    if _send_meta(phone, message):
+        logger.info("WhatsApp (Meta) subscription invoice sent for invoice %s to %s", invoice.id, phone)
+        return True
+
+    if _send_twilio(phone, message, invoice.id):
+        logger.info("WhatsApp (Twilio) subscription invoice sent for invoice %s to %s", invoice.id, phone)
+        return True
+
+    return False
+
+
+def _build_subscription_message(invoice, payment_link_url: str) -> str:
+    lines = [
+        "*Rasova Subscription Invoice*",
+        "",
+        f"*{invoice.tenant.name}*",
+        f"Period: {invoice.period_start} to {invoice.period_end}",
+        f"*Amount due: ₹{invoice.amount:.0f}*",
+    ]
+    if payment_link_url:
+        lines += ["", f"Pay online: {payment_link_url}"]
+    lines.append("\nRasova · rasova.net")
+    return "\n".join(lines)
+
+
+# -------------------------------------------------------
 # MESSAGE BUILDER
 # -------------------------------------------------------
 
