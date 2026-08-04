@@ -171,7 +171,13 @@ def razorpay_webhook(request):
     webhook_amount_paise = payment_entity.get("amount")
 
     if not order_id or not razorpay_payment_id or webhook_amount_paise is None:
-        logger.error("Razorpay webhook missing required fields: %s", payload)
+        # Logging only field-presence, not the full payload -- payment.entity
+        # can carry customer email/contact, which shouldn't land in a log
+        # file just because a webhook was malformed.
+        logger.error(
+            "Razorpay webhook missing required fields: event=%r has_order_id=%s has_payment_id=%s has_amount=%s",
+            event, bool(order_id), bool(razorpay_payment_id), webhook_amount_paise is not None,
+        )
         return JsonResponse({"error": "Malformed payload"}, status=400)
 
     # Idempotency — Razorpay may retry the same webhook.

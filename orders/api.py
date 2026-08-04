@@ -105,13 +105,15 @@ def is_ip_allowed(request):
     """
     if settings.DEBUG:
         return True
-        
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-        
+
+    # Reuses the same client-IP resolution already relied on for rate
+    # limiting/axes lockouts (core/utils.py) -- checks Cloudflare's own
+    # CF-Connecting-IP header first, which the client cannot spoof, rather
+    # than trusting the first hop of X-Forwarded-For on its own (a header
+    # any caller can set to whatever it likes).
+    from core.utils import get_client_ip
+    ip = get_client_ip(request)
+
     # Placeholder for Zomato/Swiggy CIDR ranges
     # In production, these should be moved to settings.py
     ALLOWED_IPS = getattr(settings, 'AGGREGATOR_IP_ALLOWLIST', ['127.0.0.1'])
@@ -219,7 +221,16 @@ def api_ingest_order(request):
         if not signature:
             return JsonResponse({"error": "Missing signature"}, status=401)
             
-        secret = config.zomato_webhook_secret if source == "zomato" else config.swiggy_webhook_secret
+        # Explicit allowlist, not an if/else fallback -- an else-branch here
+        # meant any unrecognized `source` (a typo, "web", "uber_eats") would
+        # silently validate against the swiggy secret instead of being
+        # rejected outright.
+        if source == "zomato":
+            secret = config.zomato_webhook_secret
+        elif source == "swiggy":
+            secret = config.swiggy_webhook_secret
+        else:
+            return JsonResponse({"error": "Unknown aggregator source"}, status=401)
         if not secret:
             return JsonResponse({"error": "Aggregator not configured"}, status=401)
             

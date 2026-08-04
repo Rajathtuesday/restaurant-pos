@@ -61,7 +61,13 @@ def billing_webhook(request):
         # str(invoice_id).isdigit() matters, not just truthiness -- id is an
         # AutoField, and Django's ORM raises an unhandled ValueError (500)
         # trying to cast a non-numeric string in the .get() lookup below.
-        logger.error("Billing webhook missing/mismatched fields: %s", payload)
+        # Logging only the event/notes shape here, not the full payload --
+        # payment.entity can carry customer email/contact, which shouldn't
+        # land in a log file just because a webhook was malformed.
+        logger.error(
+            "Billing webhook missing/mismatched fields: event=%r notes=%r has_payment_id=%s",
+            payload.get("event"), notes, bool(razorpay_payment_id),
+        )
         return JsonResponse({"error": "Malformed payload"}, status=400)
 
     # Fast path -- catches the common case (retry seconds/minutes later)

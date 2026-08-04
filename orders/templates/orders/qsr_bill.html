@@ -86,7 +86,7 @@
                 <div class="logo serif">{{ request.user.tenant.name }}</div>
                 {% endif %}
                 <div style="font-size: 0.85rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.5rem; color:var(--text);">{{ order.outlet.name }}</div>
-                <div class="address">{{ order.outlet.address|safe }}</div>
+                <div class="address">{{ order.outlet.address }}</div>
             </div>
 
             <div class="meta">

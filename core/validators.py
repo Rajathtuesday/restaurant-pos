@@ -1,12 +1,51 @@
+import logging
 import re
+from io import BytesIO
 
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
+
+logger = logging.getLogger("pos.core")
 
 def validate_image_size(image):
     file_size = image.file.size
     limit_mb = 2
     if file_size > limit_mb * 1024 * 1024:
         raise ValidationError(f"Max size of file is {limit_mb} MB")
+
+
+def process_uploaded_image(file_field, max_dimension=800, quality=85):
+    """
+    Re-encodes an uploaded image field to WebP via Pillow, which is the
+    actual content-type security boundary here (not the filename/extension,
+    which is trivially spoofable) -- Pillow raises on anything it can't
+    decode as a raster image, including an SVG carrying an inline <script>
+    or an HTML file renamed to .jpg. Returns (filename, ContentFile) ready
+    for `field.save(name, content, save=False)`.
+
+    Raises ValidationError (not a silent no-op) on anything that isn't a
+    genuine image, so callers must decide what "reject" means for their
+    save flow -- do NOT catch broadly and keep the original raw upload on
+    failure, since the original upload is exactly what's unvalidated.
+    """
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        img = Image.open(file_field)
+        img.verify()  # cheap structural check -- verify() closes the file handle
+        file_field.seek(0)
+        img = Image.open(file_field)  # re-open: verify() leaves the image unusable
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise ValidationError("Uploaded file is not a valid image.") from exc
+
+    output = BytesIO()
+    img.save(output, format="WebP", quality=quality)
+    output.seek(0)
+    base_name = (file_field.name or "upload").rsplit(".", 1)[0]
+    return f"{base_name}.webp", ContentFile(output.read())
 
 
 def normalize_phone(raw):

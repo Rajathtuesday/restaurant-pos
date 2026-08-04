@@ -1,13 +1,16 @@
 # tenants/models.py
 # tenants/models.py
 
+import logging
 import uuid
 
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
-from core.validators import validate_image_size
+from core.validators import validate_image_size, process_uploaded_image
+
+logger = logging.getLogger("pos.tenants")
 
 gstin_validator = RegexValidator(
     regex=r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
@@ -137,6 +140,23 @@ class Tenant(models.Model):
     # AUTO SLUG GENERATION
     # --------------------------------------------
     def save(self, *args, **kwargs):
+
+        # Validate + re-encode any freshly-uploaded logo via Pillow before it
+        # ever touches storage. This is the actual content-type security
+        # boundary (not the filename/extension) -- without it, a raw
+        # request.FILES["logo"] assignment (setup/views/onboarding_views.py,
+        # setup/views/core_views.py) never runs full_clean(), so neither
+        # validate_image_size nor Django's own ImageField content check ever
+        # fire, and an SVG-with-<script> or an HTML file renamed to .jpg
+        # would be stored and served as-is from the public logo URL.
+        if self.logo and hasattr(self.logo, "file") and not self.logo.name.lower().endswith(".webp"):
+            try:
+                validate_image_size(self.logo)
+                filename, content = process_uploaded_image(self.logo)
+                self.logo.save(filename, content, save=False)
+            except ValidationError as exc:
+                logger.error("Rejected invalid logo upload for tenant '%s': %s", self.name, exc)
+                self.logo = None
 
         # Slugs are subdomain names — always force lowercase
         if self.slug:

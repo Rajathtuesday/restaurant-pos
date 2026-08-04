@@ -712,6 +712,19 @@
     const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
     let cart = {};
 
+    // Menu item names (and, below, order-status item names) come from a
+    // tenant's own menu data and get re-interpolated into innerHTML here --
+    // escapejs on the server only protects the onclick="addItem(...)"
+    // attribute they were originally written into, not this later reuse.
+    // Without escaping here, a menu item named e.g. <img src=x onerror=...>
+    // executes in every guest's browser who opens the cart or watches the
+    // order-status banner, pre-login, on the page that leads into payment.
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
     // --- Search & Filter Logic ---
     const searchInput = document.getElementById('searchInput');
     const dietFilters = document.querySelectorAll('.diet-filter');
@@ -1012,12 +1025,12 @@
             totalGst += itemTotal * ((item.gstRate || 5.0) / 100);
 
             const modNames = item.modifiers && item.modifiers.length > 0
-                ? `<div class="cart-modifier-names">${item.modifiers.map(m => m.name).join(', ')}</div>` : '';
+                ? `<div class="cart-modifier-names">${item.modifiers.map(m => escapeHtml(m.name)).join(', ')}</div>` : '';
             const row = document.createElement('div');
             row.className = 'cart-item-row';
             row.innerHTML = `
                 <div>
-                    <div class="cart-item-name">${item.name}</div>
+                    <div class="cart-item-name">${escapeHtml(item.name)}</div>
                     ${modNames}
                     <div class="qty-controls active" style="padding: 0.1rem 0.4rem;">
                         <button class="qty-btn" onclick="decreaseItem('${item.id}')">−</button>
@@ -1201,8 +1214,8 @@
 
         detail.innerHTML = (data.items || []).map(i => `
             <div class="order-status-item-row">
-                <span class="name">${i.quantity}x ${i.name}</span>
-                <span>${i.status}</span>
+                <span class="name">${escapeHtml(i.quantity)}x ${escapeHtml(i.name)}</span>
+                <span>${escapeHtml(i.status)}</span>
             </div>
         `).join('') || '<div class="order-status-item-row"><span>No items yet</span></div>';
     }

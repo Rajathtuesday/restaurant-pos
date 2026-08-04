@@ -1,5 +1,5 @@
 # orders/services/order_service.py
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.db import transaction, IntegrityError
 
 from orders.models import Order, OrderItem, OrderItemModifier
@@ -120,12 +120,32 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
 
         base_price = menu_item.price * Decimal(quantity)
 
+        # Per-item discount is restricted to the same roles bill.html's own
+        # discount button is gated to (owner/manager/cashier/captain), and
+        # clamped 0-100 -- mirroring the order-level discount_value gate in
+        # billing_views.py's create_order (that comment explains why: a QR
+        # guest has user=None and must never be able to set this at all,
+        # otherwise discount_pct=100 zeroes an item's price for free with no
+        # login required). Without this gate that's exactly what happened.
+        try:
+            item_discount_pct = (
+                Decimal(str(item.get("discount_pct", 0)))
+                if user and user.role in ["owner", "manager", "cashier", "captain"]
+                else Decimal("0")
+            )
+        except InvalidOperation:
+            item_discount_pct = Decimal("0")
+        if item_discount_pct < 0:
+            item_discount_pct = Decimal("0")
+        elif item_discount_pct > 100:
+            item_discount_pct = Decimal("100")
+
         order_item = OrderItem.objects.create(
             order=order,
             menu_item=menu_item,
             quantity=quantity,
             price=menu_item.price,
-            item_discount_pct=Decimal(str(item.get("discount_pct", 0))),
+            item_discount_pct=item_discount_pct,
             gst_percentage=menu_item.gst_percentage,
             total_price=base_price,
             notes=item.get("note", ""),

@@ -2,12 +2,9 @@ from django.db import models
 from django.db.models import UniqueConstraint, Index
 from core.models import TenantScopedModel
 from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
 from setup.models import KitchenStation
-from core.validators import validate_image_size
+from core.validators import validate_image_size, process_uploaded_image
 import logging
-from io import BytesIO
-from PIL import Image
 
 logger = logging.getLogger("pos.menu")
 
@@ -159,22 +156,17 @@ class MenuItem(TenantScopedModel):
         # storage path (re-saves for price/availability changes, etc.).
         # This prevents redundant S3/disk reads on every non-image save.
         if self.image and hasattr(self.image, 'file') and not self.image.name.lower().endswith('.webp'):
+            # Fail CLOSED, not open: a file that Pillow can't decode as a
+            # real image (an SVG carrying a <script>, an HTML file renamed
+            # to .jpg) must not be kept and stored as-is under menu_items/
+            # just because re-encoding failed -- that was the actual
+            # security hole here, not just a missed compression pass.
             try:
-                img = Image.open(self.image)
-
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-
-                img.thumbnail((800, 800), Image.Resampling.LANCZOS)
-
-                output = BytesIO()
-                img.save(output, format='WebP', quality=85)
-                output.seek(0)
-
-                filename = self.image.name.rsplit('.', 1)[0] + '.webp'
-                self.image.save(filename, ContentFile(output.read()), save=False)
-            except Exception as e:
-                logger.error("Image compression failed for %s: %s", self.name, e)
+                filename, content = process_uploaded_image(self.image)
+                self.image.save(filename, content, save=False)
+            except ValidationError as e:
+                logger.error("Rejected invalid image upload for menu item '%s': %s", self.name, e)
+                self.image = None
 
         super().save(*args, **kwargs)
 

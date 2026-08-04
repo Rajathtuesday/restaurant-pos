@@ -250,6 +250,16 @@
     /* Kitchen always starts dark — force it regardless of global theme pref */
     document.documentElement.classList.add('dark');
 
+    // Item names, per-item notes, and table names are staff-entered free
+    // text re-interpolated into innerHTML below -- without escaping, one
+    // staff member's item note or menu edit executes in every other staff
+    // member's browser who has the kitchen display open.
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str == null ? '' : String(str);
+        return div.innerHTML;
+    }
+
     let loading = false;
     let currentStation = "";
     /* Kitchen-specific light toggle (not global themeManager) */
@@ -311,8 +321,8 @@
                             <div class="d-flex w-100 align-items-center">
                                 <span class="item-qty">${i.quantity}</span>
                                 <div style="flex-grow:1;">
-                                    <span class="item-name">${i.name}</span>
-                                    ${i.notes ? `<span class="item-note">${i.notes}</span>` : ''}
+                                    <span class="item-name">${escapeHtml(i.name)}</span>
+                                    ${i.notes ? `<span class="item-note">${escapeHtml(i.notes)}</span>` : ''}
                                 </div>
                             </div>
                             <div class="action-cell">${action}</div>
@@ -324,7 +334,7 @@
                         <div class="order-card ${cc}">
                             <div class="order-header">
                                 <div>
-                                    <div class="table-name">${kot.table}</div>
+                                    <div class="table-name">${escapeHtml(kot.table)}</div>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="kot-num">KOT #${kot.kot_number}</span>
                                     </div>
