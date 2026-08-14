@@ -130,7 +130,7 @@ jobs:
           # every CI run regardless, so skipping that drop costs nothing and
           # sidesteps the race entirely.
           python manage.py test \
-            accounts agency core crm finance inventory \
+            accounts agency billing core crm finance inventory \
             kitchen menu notifications orders payments \
             portal printing promos reports setup shifts \
             tablemerge tenants tokens waiter \
