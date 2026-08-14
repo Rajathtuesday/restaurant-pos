@@ -138,11 +138,11 @@
             <div class="field-row">
                 <div class="field">
                     <label>Phone Number</label>
-                    <input type="tel" name="phone" value="{{ outlet.phone }}" placeholder="9876543210">
+                    <input type="tel" name="phone" value="{{ outlet.phone|default:'' }}" placeholder="9876543210">
                 </div>
                 <div class="field">
                     <label>GSTIN</label>
-                    <input type="text" name="gst_no" value="{{ outlet.gst_no }}" maxlength="15" placeholder="27AAAAA0000A1Z5">
+                    <input type="text" name="gst_no" value="{{ outlet.gst_no|default:'' }}" maxlength="15" placeholder="27AAAAA0000A1Z5">
                     <div class="field-hint">15-character GST number. Leave blank if not registered.</div>
                 </div>
             </div>
@@ -154,7 +154,7 @@
 
             <div class="field">
                 <label>FSSAI License Number (optional)</label>
-                <input type="text" name="fssai_no" value="{{ outlet.fssai_no }}" maxlength="14" placeholder="12345678901234">
+                <input type="text" name="fssai_no" value="{{ outlet.fssai_no|default:'' }}" maxlength="14" placeholder="12345678901234">
             </div>
 
             <div class="field">
