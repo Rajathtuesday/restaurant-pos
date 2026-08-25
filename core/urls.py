@@ -124,6 +124,11 @@ urlpatterns = [
     path('demo/', views.demo_switch, name='demo_switch'),
     path('robots.txt', robots_txt),
     path('sitemap.xml', sitemap_xml),
+    # /compare/petpooja/ existed for ~6 minutes on 2026-07-31 before being
+    # genericized back to /compare/ (af74912) -- if Google indexed it in
+    # that window, this stops it dead-ending in a 404 and consolidates any
+    # indexing signal onto the page that actually exists now.
+    path('compare/petpooja/', lambda r: redirect('/compare/', permanent=True)),
     path('favicon.ico', lambda r: HttpResponse(status=204)),
     # PWA
     path('sw.js', views.serve_sw, name='service_worker'),
