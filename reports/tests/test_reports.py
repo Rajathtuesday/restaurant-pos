@@ -776,3 +776,109 @@ class KitchenDashboardPosLinkTest(TestCase):
         response = client.get("/reports/kitchen/")
         content = response.content.decode()
         self.assertIn('<a href="/tables/" class="btn-icon" title="QR Orders awaiting approval">', content)
+
+
+class ReportTabsConsistencyTest(TestCase):
+    """
+    All seven report pages used to hand-copy the same tab strip (six of
+    them), or reimplement it a third way with a different CSS class
+    entirely (kitchen_dashboard.html), or skip it altogether
+    (inventory_report.html was a fully standalone document with no shared
+    header at all). Drift had already happened silently: audit_report.html
+    was missing the CRM Analytics tab entirely, and inventory_report.html's
+    own copy of the dark-mode toggle stored the preference under a
+    different value format than every other page, silently corrupting the
+    shared preference. Now every page renders the same
+    reports/_report_tabs.html include, so this class exists to make sure
+    that stays true.
+    """
+
+    REPORT_URLS = [
+        "/reports/dashboard/",
+        "/reports/kitchen/",
+        "/reports/inventory/",
+        "/reports/menu-engineering/",
+        "/reports/labor/",
+        "/reports/audit/",
+        "/reports/crm-analytics/",
+    ]
+
+    ALL_TAB_LABELS = [
+        "Sales", "Kitchen KPIs", "Inventory", "Menu Engineering",
+        "Labor Cost", "Discount/Void Audit", "CRM Analytics",
+    ]
+
+    def setUp(self):
+        self.client = Client()
+        self.tenant, self.outlet, self.user, self.item = create_base_fixtures()
+        from tenants.models import TenantFeatureOverride
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="advanced_reports", enabled=True)
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="crm", enabled=True)
+        self.client.login(username="owner_test", password="pass1234")
+
+    def test_every_report_page_shows_all_seven_tabs(self):
+        for url in self.REPORT_URLS:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                content = response.content.decode()
+                for label in self.ALL_TAB_LABELS:
+                    self.assertIn(label, content, f"{url} is missing the '{label}' tab")
+
+    def test_inventory_tab_marked_active_on_inventory_report(self):
+        response = self.client.get("/reports/inventory/")
+        content = response.content.decode()
+        self.assertIn('href="/reports/inventory/" class="report-tab active">Inventory', content)
+
+    def test_kitchen_tab_marked_active_on_kitchen_dashboard(self):
+        response = self.client.get("/reports/kitchen/")
+        content = response.content.decode()
+        self.assertIn('href="/reports/kitchen/" class="report-tab active">Kitchen KPIs', content)
+
+    def test_audit_tab_marked_active_on_audit_report(self):
+        response = self.client.get("/reports/audit/")
+        content = response.content.decode()
+        self.assertIn('href="/reports/audit/" class="report-tab active">Discount/Void Audit', content)
+
+
+class InventoryReportSharedHeaderTest(TestCase):
+    """
+    inventory_report.html used to be a fully standalone HTML document: its
+    own <html>/<head>, its own hardcoded color/font variables ignoring
+    whatever the rest of the app resolves for a tenant, and its own
+    dark-mode toggle that stored localStorage['dark'] as '1'/'0' instead
+    of the 'true'/'false' every other page (core/base.html) uses --
+    meaning toggling dark mode on this one page silently broke it
+    everywhere else in the app. It now extends core/base.html like every
+    other report page.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.tenant, self.outlet, self.user, self.item = create_base_fixtures()
+        self.client.login(username="owner_test", password="pass1234")
+
+    def test_uses_the_shared_app_header(self):
+        response = self.client.get("/reports/inventory/")
+        content = response.content.decode()
+        self.assertIn('class="pos-header"', content)
+        self.assertIn("themeManager.toggle()", content)
+
+    def test_no_longer_has_its_own_incompatible_dark_mode_storage(self):
+        response = self.client.get("/reports/inventory/")
+        content = response.content.decode()
+        self.assertNotIn("localStorage.setItem('dark'", content)
+        self.assertNotIn('localStorage.getItem(\'dark\')', content)
+        self.assertNotIn("body.dark {", content)
+
+    def test_report_content_still_renders(self):
+        """The actual point of the page -- make sure the shell swap didn't
+        drop any of the real report content."""
+        response = self.client.get("/reports/inventory/")
+        content = response.content.decode()
+        self.assertIn("Stock Ledger", content)
+        self.assertIn("Consumption", content)
+        self.assertIn("Wastage", content)
+        self.assertIn("Cost Analysis", content)
+        self.assertIn("Can Make", content)
+        self.assertIn("Closing Stock", content)

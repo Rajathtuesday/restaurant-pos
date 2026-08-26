@@ -32,9 +32,23 @@
     .context-info { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 3rem; text-align: center; }
     .context-info strong { color: var(--text-main); }
 
-    .report-subnav { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 1rem 0; border-bottom: 1px solid var(--border-color); margin-bottom: 2rem; align-items: center; justify-content: space-between; }
-    .subnav-btn { border: 1px solid var(--border-color); background: transparent; color: var(--text-main); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.4rem 0.8rem; text-decoration: none; transition: var(--transition-smooth); }
-    .subnav-btn:hover, .subnav-btn.active { border-color: var(--accent-gold); color: var(--accent-gold); }
+    .report-subnav {
+        background: var(--panel-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 0 0 1rem;
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem;
+    }
+    .report-subnav-left  { display: flex; align-items: center; gap: 0; }
+    .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
+    .report-tab {
+        font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
+        color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
+        border-bottom: 2px solid transparent; white-space: nowrap;
+        transition: color 0.2s, border-color 0.2s; display: inline-block;
+    }
+    .report-tab:hover  { color: var(--text-main); }
+    .report-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
 
     @media print {
         .no-print { display: none !important; }
@@ -53,6 +67,7 @@
 {% endblock %}
 
 {% block header_right %}
+<a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
 <button onclick="window.print()" class="btn-icon no-print" title="Print"><i class="bi bi-printer"></i></button>
 {{ block.super }}
 {% endblock %}
@@ -61,13 +76,10 @@
 <div class="container-fluid mx-auto" style="max-width:1400px; padding:1.5rem 2rem;">
 
     <!-- Report Subnav -->
-    <div class="report-subnav no-print">
-        <div class="d-flex gap-2 flex-wrap">
-            <a href="/reports/dashboard/" class="subnav-btn">Sales</a>
-            <a href="/reports/kitchen/" class="subnav-btn active">Kitchen KPIs</a>
-            <a href="/reports/inventory/" class="subnav-btn">Inventory</a>
-            <a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="subnav-btn">POS Dashboard</a>
-        </div>
+    <nav class="report-subnav no-print">
+      <div class="report-subnav-left">
+        {% include "reports/_report_tabs.html" %}
+      </div>
 
         <form id="filterForm" method="GET" class="d-flex gap-2 align-items-center flex-wrap m-0">
             {% if request.user.role == "owner" %}
@@ -98,7 +110,7 @@
                 <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
             </div>
         </form>
-    </div>
+    </nav>
 
     <!-- Context -->
     <div class="context-info">

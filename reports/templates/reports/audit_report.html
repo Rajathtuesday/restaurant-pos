@@ -65,12 +65,7 @@
 {% block content %}
 <nav class="report-subnav">
   <div class="report-subnav-left">
-    <a href="/reports/dashboard/" class="report-tab">Sales</a>
-    <a href="/reports/kitchen/" class="report-tab">Kitchen KPIs</a>
-    <a href="/reports/inventory/" class="report-tab">Inventory</a>
-    <a href="/reports/menu-engineering/" class="report-tab">Menu Engineering</a>
-    <a href="/reports/labor/" class="report-tab">Labor Cost</a>
-    <a href="/reports/audit/" class="report-tab active">Discount/Void Audit</a>
+    {% include "reports/_report_tabs.html" %}
   </div>
   <div class="report-subnav-right">
     <a href="/setup/report-subscriptions/" class="report-tab" title="Daily digest email settings" style="padding:0.5rem 0.6rem;"><i class="bi bi-envelope"></i></a>

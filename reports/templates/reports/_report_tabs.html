@@ -1,0 +1,7 @@
+<a href="/reports/dashboard/" class="report-tab {% if request.path == '/reports/dashboard/' %}active{% endif %}">Sales</a>
+<a href="/reports/kitchen/" class="report-tab {% if 'kitchen' in request.path %}active{% endif %}">Kitchen KPIs</a>
+<a href="/reports/inventory/" class="report-tab {% if 'inventory' in request.path %}active{% endif %}">Inventory</a>
+<a href="/reports/menu-engineering/" class="report-tab {% if 'menu-engineering' in request.path %}active{% endif %}">Menu Engineering</a>
+<a href="/reports/labor/" class="report-tab {% if 'labor' in request.path %}active{% endif %}">Labor Cost</a>
+<a href="/reports/audit/" class="report-tab {% if 'audit' in request.path %}active{% endif %}">Discount/Void Audit</a>
+<a href="/reports/crm-analytics/" class="report-tab {% if 'crm-analytics' in request.path %}active{% endif %}">CRM Analytics</a>
