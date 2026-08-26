@@ -7,7 +7,10 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from tenants.models import Tenant, Outlet
-from inventory.models import InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem
+from inventory.models import (
+    InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem,
+    StockRequisition, RequisitionItem,
+)
 
 
 def _variance_report_url():
@@ -1620,3 +1623,203 @@ class ProductionCapacityUnitConversionTests(TestCase):
         naan_row = next(r for r in results if r["menu_item"] == "Naan")
 
         self.assertEqual(naan_row["max_portions"], 0)
+
+
+class ConvertToPOTests(TestCase):
+    """
+    Coverage for inventory/requisition_views.py:convert_to_po.
+
+    This view had zero test coverage before this class. Its own code once
+    used field/relation names that don't exist on these models and raised
+    TypeError on every call — it had genuinely never run. These tests also
+    cover the follow-up bug found once that was fixed: converting a
+    requisition for a supplier that already has an auto-generated draft PO
+    (from InventoryItem.trigger_reorder) used to raise IntegrityError,
+    because PurchaseOrder only allows one draft per (tenant, outlet,
+    supplier) and the old code did a plain .create() instead of reusing
+    the existing draft.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="PO Convert Tenant", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="po_convert_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.waiter = User.objects.create_user(
+            username="po_convert_waiter", password="pwd",
+            role="waiter", tenant=self.tenant, outlet=self.outlet,
+        )
+
+        self.supplier_a = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Vendor A")
+        self.supplier_b = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Vendor B")
+
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Flour", unit="kg",
+            stock=Decimal("5.000"), cost_price=Decimal("40.00"),
+            preferred_supplier=self.supplier_a,
+        )
+        self.sugar = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Sugar", unit="kg",
+            stock=Decimal("5.000"), cost_price=Decimal("50.00"),
+            preferred_supplier=self.supplier_b,
+        )
+        self.salt = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Salt", unit="kg",
+            stock=Decimal("5.000"), cost_price=Decimal("20.00"),
+            preferred_supplier=None,  # deliberately no preferred supplier
+        )
+
+        self.client.force_login(self.manager)
+
+    def _make_requisition(self, items):
+        """items: list of (inventory_item, quantity_requested)."""
+        req = StockRequisition.objects.create(
+            tenant=self.tenant, requesting_outlet=self.outlet,
+            status="approved", route="external",
+            created_by=self.manager, approved_by=self.manager,
+        )
+        for inv_item, qty in items:
+            RequisitionItem.objects.create(
+                requisition=req, inventory_item=inv_item,
+                quantity_requested=Decimal(str(qty)), unit=inv_item.unit,
+            )
+        return req
+
+    def _to_po(self, req):
+        return self.client.post(reverse("requisition-to-po", args=[req.id]))
+
+    def test_creates_new_draft_po_when_none_exists(self):
+        req = self._make_requisition([(self.flour, "10")])
+        resp = self._to_po(req)
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["pos_created"], 1)
+        self.assertEqual(data["pos_reused"], 0)
+        self.assertEqual(PurchaseOrder.objects.count(), 1)
+
+        po = PurchaseOrder.objects.first()
+        self.assertEqual(po.supplier, self.supplier_a)
+        self.assertEqual(po.status, "draft")
+        self.assertTrue(po.po_number)
+        self.assertEqual(po.items.get(item=self.flour).quantity, Decimal("10.000"))
+
+        req.refresh_from_db()
+        self.assertEqual(req.status, "ordered")
+        self.assertEqual(req.purchase_order, po)
+
+    def test_splits_into_one_po_per_supplier(self):
+        req = self._make_requisition([(self.flour, "10"), (self.sugar, "5")])
+        resp = self._to_po(req)
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["pos_created"], 2)
+        self.assertEqual(PurchaseOrder.objects.count(), 2)
+        suppliers = set(PurchaseOrder.objects.values_list("supplier_id", flat=True))
+        self.assertEqual(suppliers, {self.supplier_a.id, self.supplier_b.id})
+
+    def test_reuses_existing_draft_instead_of_crashing(self):
+        """The core regression test: a draft PO for supplier_a already
+        exists (as trigger_reorder would create), simulating the auto
+        low-stock path having already fired. Converting a requisition for
+        the same supplier must not raise IntegrityError — it should merge
+        into that existing draft."""
+        existing_po = PurchaseOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, supplier=self.supplier_a,
+            status="draft", notes="Auto-generated due to low stock",
+        )
+        PurchaseOrderItem.objects.create(
+            purchase_order=existing_po, item=self.flour,
+            quantity=Decimal("3.000"), unit_price=Decimal("40.00"),
+        )
+
+        req = self._make_requisition([(self.flour, "10")])
+        resp = self._to_po(req)
+        data = resp.json()
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["pos_created"], 0)
+        self.assertEqual(data["pos_reused"], 1)
+
+        # Still exactly one draft PO for this supplier — reused, not duplicated.
+        self.assertEqual(
+            PurchaseOrder.objects.filter(supplier=self.supplier_a, status="draft").count(), 1
+        )
+        existing_po.refresh_from_db()
+        # Same item already on the PO — quantities merged, not duplicated as a second line.
+        self.assertEqual(existing_po.items.count(), 1)
+        self.assertEqual(existing_po.items.get(item=self.flour).quantity, Decimal("13.000"))
+
+        req.refresh_from_db()
+        self.assertEqual(req.status, "ordered")
+        self.assertEqual(req.purchase_order_id, existing_po.id)
+
+    def test_items_with_no_preferred_supplier_are_named_not_just_counted(self):
+        req = self._make_requisition([(self.flour, "10"), (self.salt, "2")])
+        resp = self._to_po(req)
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["skipped"], 1)
+        self.assertEqual(data["skipped_items"], ["Salt"])
+        self.assertIn("Salt", data["message"])
+
+    def test_all_items_missing_supplier_returns_clear_error(self):
+        req = self._make_requisition([(self.salt, "2")])
+        resp = self._to_po(req)
+        data = resp.json()
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("preferred supplier", data["error"])
+        self.assertEqual(data["skipped_items"], ["Salt"])
+        self.assertEqual(PurchaseOrder.objects.count(), 0)
+
+    def test_draft_requisition_cannot_be_converted(self):
+        req = self._make_requisition([(self.flour, "10")])
+        req.status = "draft"
+        req.save(update_fields=["status"])
+
+        resp = self._to_po(req)
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(PurchaseOrder.objects.count(), 0)
+
+    def test_waiter_role_is_forbidden(self):
+        self.client.force_login(self.waiter)
+        req = self._make_requisition([(self.flour, "10")])
+        resp = self._to_po(req)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_po_numbers_do_not_collide_across_two_conversions(self):
+        req1 = self._make_requisition([(self.flour, "10")])
+        req2 = self._make_requisition([(self.sugar, "5")])
+
+        self._to_po(req1)
+        self._to_po(req2)
+
+        numbers = list(PurchaseOrder.objects.values_list("po_number", flat=True))
+        self.assertEqual(len(numbers), len(set(numbers)), "PO numbers must be unique")
+
+    def test_po_number_format_matches_auto_reorder_path(self):
+        """Both PO-creation paths (this view and InventoryItem.trigger_reorder)
+        must share the same generate_po_number helper, so numbers look the
+        same regardless of which path created them."""
+        self.flour.reorder_quantity = Decimal("5.000")
+        self.flour.low_stock_threshold = Decimal("10.000")
+        self.flour.save()
+        self.flour.trigger_reorder()
+        auto_po = PurchaseOrder.objects.get(supplier=self.supplier_a)
+
+        req = self._make_requisition([(self.sugar, "5")])
+        self._to_po(req)
+        manual_po = PurchaseOrder.objects.get(supplier=self.supplier_b)
+
+        import re
+        pattern = r"^PO-\d+-\d{4}-\d{4}$"
+        self.assertRegex(auto_po.po_number, pattern)
+        self.assertRegex(manual_po.po_number, pattern)

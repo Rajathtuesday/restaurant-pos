@@ -183,7 +183,7 @@ class InventoryItem(TenantScopedModel):
         Creates a draft Purchase Order for the preferred supplier.
         """
         from django.utils import timezone
-        
+
         with transaction.atomic():
             po, created = PurchaseOrder.objects.select_for_update().get_or_create(
                 tenant=self.tenant,
@@ -192,16 +192,11 @@ class InventoryItem(TenantScopedModel):
                 status="draft",
                 defaults={"notes": f"Auto-generated due to low stock on {timezone.now().date()}"}
             )
-            
+
             if not po.po_number:
-                counter, _ = TenantPOCounter.objects.select_for_update().get_or_create(
-                    tenant=self.tenant, outlet=self.outlet
-                )
-                counter.value += 1
-                counter.save(update_fields=["value"])
-                po.po_number = f"PO-{self.outlet_id}-{timezone.now().year}-{counter.value:04d}"
+                po.po_number = generate_po_number(self.tenant, self.outlet)
                 po.save(update_fields=["po_number"])
-                
+
             # Add item to PO if not already there
             PurchaseOrderItem.objects.get_or_create(
                 purchase_order=po,
@@ -322,6 +317,27 @@ class TenantPOCounter(TenantScopedModel):
 
     class Meta:
         unique_together = ("tenant", "outlet")
+
+
+def generate_po_number(tenant, outlet):
+    """
+    Atomically generates the next PO number for a tenant+outlet, using the
+    same counter row every PO-creation path shares. Previously convert_to_po
+    (inventory/requisition_views.py) generated numbers via
+    PurchaseOrder.objects.filter(...).count(), a real race condition under
+    concurrent requests, in a completely different format from this one.
+    Both paths now call this single function instead.
+    """
+    from django.utils import timezone
+
+    with transaction.atomic():
+        counter, _ = TenantPOCounter.objects.select_for_update().get_or_create(
+            tenant=tenant, outlet=outlet
+        )
+        counter.value += 1
+        counter.save(update_fields=["value"])
+        return f"PO-{outlet.id}-{timezone.now().year}-{counter.value:04d}"
+
 
 class PurchaseOrder(TenantScopedModel):
     STATUS_CHOICES = (

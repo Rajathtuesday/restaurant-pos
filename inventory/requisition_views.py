@@ -378,7 +378,17 @@ def convert_to_po(request, req_id):
     Converts an approved requisition into a Purchase Order to the vendor.
     Uses preferred_supplier from each InventoryItem.
     Groups items by supplier — one PO per supplier.
+
+    PurchaseOrder enforces at most one draft PO per (tenant, outlet,
+    supplier) — see PurchaseOrder.Meta.constraints. If a draft already
+    exists for a supplier (e.g. the auto-reorder-on-low-stock path already
+    created one), this reuses it and merges the requisition's items in,
+    instead of a plain .create() that would raise IntegrityError and crash
+    the request. get_or_create + select_for_update mirrors the same pattern
+    InventoryItem.trigger_reorder already uses correctly.
     """
+    from inventory.models import generate_po_number
+
     req = get_object_or_404(
         StockRequisition, id=req_id, tenant=request.user.tenant
     )
@@ -388,86 +398,108 @@ def convert_to_po(request, req_id):
     outlet = req.requesting_outlet
 
     # Group items by supplier
-    supplier_groups = {}   # supplier_id (or None) → [RequisitionItem]
+    supplier_groups = {}   # supplier_id → [RequisitionItem]
+    skipped_items = []     # names of items with no preferred_supplier
     for item in req.items.select_related("inventory_item__preferred_supplier").all():
         sup = item.inventory_item.preferred_supplier
-        key = sup.id if sup else None
-        supplier_groups.setdefault(key, {"supplier": sup, "items": []})
-        supplier_groups[key]["items"].append(item)
+        if sup is None:
+            # A vendor PO requires a supplier. PurchaseOrder.supplier is a
+            # non-nullable PROTECT FK, so creating one with supplier=None
+            # would raise IntegrityError. These items simply can't be
+            # ordered yet — skip them and report exactly which ones,
+            # instead of crashing or reporting only a bare count.
+            skipped_items.append(item.inventory_item.name)
+            continue
+        supplier_groups.setdefault(sup.id, {"supplier": sup, "items": []})
+        supplier_groups[sup.id]["items"].append(item)
 
     created_pos = []
-    created_po_objects = []
-    skipped_no_supplier = 0
+    reused_pos = []
     with transaction.atomic():
         for key, group in supplier_groups.items():
             supplier = group["supplier"]
-            # A vendor PO requires a supplier. PurchaseOrder.supplier is a
-            # non-nullable PROTECT FK, so creating one with supplier=None would
-            # raise IntegrityError. Items whose InventoryItem has no
-            # preferred_supplier simply can't be ordered — skip them and report
-            # the count instead of crashing the whole request.
-            if supplier is None:
-                skipped_no_supplier += len(group["items"])
-                continue
 
-            # Auto-generate PO number
-            today_str = timezone.localdate().strftime("%Y%m%d")
-            existing  = PurchaseOrder.objects.filter(
-                tenant=req.tenant, po_number__startswith=f"PO-{today_str}-"
-            ).count()
-            po_number = f"PO-{today_str}-{existing + 1:03d}"
-
-            # NOTE: PurchaseOrder has no created_by field, and PurchaseOrderItem's
-            # FK to InventoryItem is named `item` (not `inventory_item`) and has
-            # no `unit` field. The previous code used all three nonexistent names
-            # and raised TypeError on every call — this view had never run.
-            po = PurchaseOrder.objects.create(
+            po, created = PurchaseOrder.objects.select_for_update().get_or_create(
                 tenant=req.tenant,
                 outlet=outlet,
                 supplier=supplier,
-                po_number=po_number,
                 status="draft",
-                notes=f"From Requisition #{req.id}",
+                defaults={"notes": f"From Requisition #{req.id}"},
             )
+
+            if not po.po_number:
+                po.po_number = generate_po_number(req.tenant, outlet)
+                po.save(update_fields=["po_number"])
+
+            if not created:
+                # Reusing an existing draft (e.g. auto-generated from a low
+                # stock trigger) — record that this requisition also fed
+                # into it, without disturbing whatever notes it already had.
+                addition = f"Requisition #{req.id}"
+                po.notes = f"{po.notes}; {addition}" if po.notes else addition
+                po.save(update_fields=["notes"])
+
             for req_item in group["items"]:
-                PurchaseOrderItem.objects.create(
+                line, line_created = PurchaseOrderItem.objects.get_or_create(
                     purchase_order=po,
                     item=req_item.inventory_item,
-                    quantity=req_item.effective_quantity,
-                    unit_price=req_item.inventory_item.cost_price or 0,
+                    defaults={
+                        "quantity": req_item.effective_quantity,
+                        "unit_price": req_item.inventory_item.cost_price or 0,
+                    },
                 )
-            created_po_objects.append(po)
-            created_pos.append({"po_id": po.id, "po_number": po_number})
+                if not line_created:
+                    # Same item already on this draft PO (from a previous
+                    # trigger) — add to the existing quantity rather than
+                    # silently ignoring what this requisition also needs.
+                    line.quantity = F("quantity") + req_item.effective_quantity
+                    line.save(update_fields=["quantity"])
 
-        if not created_po_objects:
+            # Recalculate total from the PO's current items (post-merge).
+            total = sum(i.quantity * i.unit_price for i in po.items.all())
+            PurchaseOrder.objects.filter(pk=po.pk).update(total_amount=total)
+
+            entry = {"po_id": po.id, "po_number": po.po_number}
+            (created_pos if created else reused_pos).append(entry)
+
+        all_pos = created_pos + reused_pos
+        if not all_pos:
             # Nothing was ordered (no item had a preferred supplier). No rows
             # were written, so returning here leaves the DB untouched.
             return JsonResponse(
                 {"error": "No items have a preferred supplier set — nothing to order. "
-                          "Set a preferred supplier on the items first."},
+                          "Set a preferred supplier on the items first.",
+                 "skipped_items": skipped_items},
                 status=400,
             )
 
-        # The requisition FK holds exactly one PO. Link the first one we
-        # created. (The old code used notes__contains="Requisition #1", which
-        # also matches "Requisition #10", "#11", … — a substring collision.)
-        req.purchase_order = created_po_objects[0]
+        # The requisition FK holds exactly one PO. Link the first one
+        # touched (created or reused).
+        req.purchase_order = PurchaseOrder.objects.get(pk=all_pos[0]["po_id"])
         req.status = "ordered"
         req.save(update_fields=["purchase_order", "status"])
 
     logger.info(
-        "Requisition #%s converted to %d PO(s) by %s (%d item(s) skipped, no supplier)",
-        req_id, len(created_pos), request.user.username, skipped_no_supplier,
+        "Requisition #%s converted: %d new PO(s), %d merged into existing draft(s), "
+        "by %s (%d item(s) skipped, no supplier)",
+        req_id, len(created_pos), len(reused_pos), request.user.username, len(skipped_items),
     )
-    msg = f"{len(created_pos)} PO(s) created from requisition #{req_id}."
-    if skipped_no_supplier:
-        msg += f" {skipped_no_supplier} item(s) skipped (no preferred supplier)."
+    msg_parts = []
+    if created_pos:
+        msg_parts.append(f"{len(created_pos)} new PO(s) created")
+    if reused_pos:
+        msg_parts.append(f"{len(reused_pos)} item(s) added to an existing draft PO")
+    msg = ", ".join(msg_parts) + f" from requisition #{req_id}."
+    if skipped_items:
+        msg += f" Skipped (no preferred supplier): {', '.join(skipped_items)}."
     return JsonResponse({
-        "success":     True,
-        "pos_created": len(created_pos),
-        "pos":         created_pos,
-        "skipped":     skipped_no_supplier,
-        "message":     msg,
+        "success":      True,
+        "pos_created":  len(created_pos),
+        "pos_reused":   len(reused_pos),
+        "pos":          all_pos,
+        "skipped":      len(skipped_items),
+        "skipped_items": skipped_items,
+        "message":      msg,
     })
 
 
