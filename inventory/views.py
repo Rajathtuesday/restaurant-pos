@@ -546,8 +546,20 @@ def mark_po_ordered(request, po_id):
         po.ordered_at = timezone.now()
         po.save(update_fields=["status", "ordered_at"])
 
-        from .services import send_purchase_order_email
-        transaction.on_commit(lambda: send_purchase_order_email(po))
+        # Only touch inventory.services (which imports weasyprint at module
+        # load) when there's actually a chance of sending -- most outlets
+        # have po_vendor_email_enabled off (the default), and importing a
+        # module that can fail on a server missing WeasyPrint's native
+        # GTK/Pango libs must never risk the status update itself, which is
+        # the whole point of running this after commit in the first place.
+        if po.outlet.po_vendor_email_enabled:
+            def _send_email():
+                try:
+                    from .services import send_purchase_order_email
+                    send_purchase_order_email(po)
+                except Exception as exc:
+                    logger.error("PO %s: vendor email trigger failed: %s", po.id, exc)
+            transaction.on_commit(_send_email)
 
     return JsonResponse({"success": True, "status": po.status})
 

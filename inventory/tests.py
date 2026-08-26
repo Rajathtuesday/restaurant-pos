@@ -2313,6 +2313,45 @@ class POVendorEmailTests(TestCase):
         self.assertIsNotNone(self.po.ordered_at)
         self.assertIsNone(self.po.emailed_at)
 
+    def test_po_status_still_updates_even_if_services_module_itself_fails_to_import(self):
+        """
+        Regression test for a real production bug: mark_po_ordered used to
+        do `from .services import send_purchase_order_email` unconditionally
+        and outside any try/except. inventory/services.py imports weasyprint
+        at module load -- on a server missing WeasyPrint's native GTK/Pango
+        libs (pip install succeeds, the shared libraries it needs at import
+        time often aren't installed separately), that import raises before
+        send_purchase_order_email's own internal try/except ever runs, 500ing
+        the whole request. The JS has no try/catch around res.json(), so the
+        failure was completely silent in the browser -- exactly the bug
+        report that led to this fix: click Order, confirm, nothing happens.
+        """
+        import sys
+        self.outlet.po_vendor_email_enabled = True
+        self.outlet.save(update_fields=["po_vendor_email_enabled"])
+
+        with patch.dict(sys.modules, {"inventory.services": None}):
+            resp = self._mark_ordered()
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["success"])
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "ordered")
+
+    def test_mark_ordered_never_touches_services_module_when_email_disabled(self):
+        """Email off (the default) is the common case -- the services import
+        (and its weasyprint dependency) must never even be attempted, so a
+        broken PDF environment can never affect a tenant who isn't using
+        the email feature at all."""
+        import sys
+        with patch.dict(sys.modules, {"inventory.services": None}):
+            resp = self._mark_ordered()
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["success"])
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "ordered")
+
     @patch("inventory.services.weasyprint.HTML")
     def test_render_purchase_order_pdf_disables_presentational_hints(self, mock_html_cls):
         """
