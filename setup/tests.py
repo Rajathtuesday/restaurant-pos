@@ -294,3 +294,54 @@ class RazorpaySecretEncryptionTest(TestCase):
         self.config.save()
         self.config.refresh_from_db()
         self.assertEqual(self.config.razorpay_key_secret, "")
+
+
+class OutletSettingsCentralKitchenTest(TestCase):
+    """
+    The is_central_kitchen checkbox only renders/saves for tenants with the
+    central_kitchen feature — a fine_dining/franchise-less tenant has no
+    business toggling a flag that only means anything for hub-spoke setups.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="CK Toggle Group", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="CK Toggle Outlet")
+        self.owner = _make_user(self.tenant, self.outlet, role="owner", username="ck_toggle_owner")
+        self.client.force_login(self.owner)
+
+    def test_checking_the_box_saves_the_flag(self):
+        self.assertFalse(self.outlet.is_central_kitchen)
+        response = self.client.post(reverse("outlet_settings"), {
+            "outlet_name": self.outlet.name,
+            "is_central_kitchen": "true",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.outlet.refresh_from_db()
+        self.assertTrue(self.outlet.is_central_kitchen)
+
+    def test_unchecking_the_box_clears_the_flag(self):
+        self.outlet.is_central_kitchen = True
+        self.outlet.save()
+        response = self.client.post(reverse("outlet_settings"), {
+            "outlet_name": self.outlet.name,
+            # is_central_kitchen deliberately omitted — an unchecked
+            # checkbox sends nothing at all, same as every other boolean
+            # field on this form.
+        })
+        self.assertEqual(response.status_code, 302)
+        self.outlet.refresh_from_db()
+        self.assertFalse(self.outlet.is_central_kitchen)
+
+    def test_flag_ignored_for_tenants_without_the_feature(self):
+        fine_dining_tenant = Tenant.objects.create(name="No CK Bistro", tenant_type="fine_dining")
+        fine_dining_outlet = Outlet.objects.create(tenant=fine_dining_tenant, name="No CK Bistro Outlet")
+        owner = _make_user(fine_dining_tenant, fine_dining_outlet, role="owner", username="no_ck_owner")
+        self.client.force_login(owner)
+
+        response = self.client.post(reverse("outlet_settings"), {
+            "outlet_name": fine_dining_outlet.name,
+            "is_central_kitchen": "true",
+        })
+        self.assertEqual(response.status_code, 302)
+        fine_dining_outlet.refresh_from_db()
+        self.assertFalse(fine_dining_outlet.is_central_kitchen)

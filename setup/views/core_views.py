@@ -1017,6 +1017,9 @@ def outlet_settings(request):
         outlet.is_composition_scheme  = "is_composition_scheme"  in request.POST
         outlet.is_union_territory     = "is_union_territory"     in request.POST
         outlet.split_bill_by_category = "split_bill_by_category" in request.POST
+        from core.features import has_feature
+        if has_feature(tenant, "central_kitchen"):
+            outlet.is_central_kitchen = "is_central_kitchen" in request.POST
         try:
             from decimal import Decimal
             outlet.parcel_charge_amount = Decimal(request.POST.get("parcel_charge_amount", "0") or "0")

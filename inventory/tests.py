@@ -1823,3 +1823,103 @@ class ConvertToPOTests(TestCase):
         pattern = r"^PO-\d+-\d{4}-\d{4}$"
         self.assertRegex(auto_po.po_number, pattern)
         self.assertRegex(manual_po.po_number, pattern)
+
+
+class AutoRouteTests(TestCase):
+    """
+    Coverage for StockRequisition.auto_route(), previously untested.
+
+    Outlet.is_central_kitchen didn't exist before this — auto_route() used
+    to guess which outlet was the central kitchen purely from
+    ProductionBatch history (whichever outlet made the first-ever batch),
+    with no explicit flag anywhere on Outlet. That heuristic is kept as a
+    fallback for tenants that haven't set the flag yet, but the flag wins
+    whenever it's set.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Route Tenant", tenant_type="franchise")
+        self.branch = Outlet.objects.create(tenant=self.tenant, name="Branch")
+        self.ck = Outlet.objects.create(tenant=self.tenant, name="Central Kitchen")
+
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.branch, name="Flour", unit="kg",
+            stock=Decimal("0.000"),
+        )
+
+    def _make_req(self, qty="5"):
+        req = StockRequisition.objects.create(
+            tenant=self.tenant, requesting_outlet=self.branch, status="pending",
+        )
+        RequisitionItem.objects.create(
+            requisition=req, inventory_item=self.flour,
+            quantity_requested=Decimal(qty), unit="kg",
+        )
+        return req
+
+    def test_uses_explicit_flag_when_set(self):
+        self.ck.is_central_kitchen = True
+        self.ck.save()
+        # CK stock exists under the same item name at the CK outlet.
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.ck, name="Flour", unit="kg",
+            stock=Decimal("50.000"),
+        )
+
+        req = self._make_req(qty="5")
+        req.auto_route()
+
+        self.assertEqual(req.route, "internal")
+        self.assertEqual(req.fulfilling_outlet, self.ck)
+
+    def test_falls_back_to_batch_heuristic_when_no_flag_set(self):
+        """No outlet has is_central_kitchen=True anywhere for this tenant —
+        must fall back to the old 'first outlet to produce a batch' guess,
+        so tenants that existed before this field shipped aren't broken."""
+        from inventory.models import ProductionBatch
+
+        ProductionBatch.objects.create(
+            tenant=self.tenant, batch_number="BATCH-0001", source_outlet=self.ck,
+        )
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.ck, name="Flour", unit="kg",
+            stock=Decimal("50.000"),
+        )
+
+        req = self._make_req(qty="5")
+        req.auto_route()
+
+        self.assertEqual(req.route, "internal")
+        self.assertEqual(req.fulfilling_outlet, self.ck)
+
+    def test_goes_external_when_ck_stock_insufficient(self):
+        self.ck.is_central_kitchen = True
+        self.ck.save()
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.ck, name="Flour", unit="kg",
+            stock=Decimal("1.000"),  # less than the 5 requested
+        )
+
+        req = self._make_req(qty="5")
+        req.auto_route()
+
+        self.assertEqual(req.route, "external")
+        self.assertIsNone(req.fulfilling_outlet)
+
+    def test_goes_external_when_no_central_kitchen_at_all(self):
+        req = self._make_req(qty="5")
+        req.auto_route()
+
+        self.assertEqual(req.route, "external")
+        self.assertIsNone(req.fulfilling_outlet)
+
+    def test_requesting_outlet_flagged_as_own_ck_goes_external(self):
+        """A requisition raised BY the central kitchen itself can't be
+        fulfilled by itself — must go to a vendor, not loop internally."""
+        self.branch.is_central_kitchen = True
+        self.branch.save()
+
+        req = self._make_req(qty="5")
+        req.auto_route()
+
+        self.assertEqual(req.route, "external")

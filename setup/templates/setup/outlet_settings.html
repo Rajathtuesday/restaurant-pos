@@ -244,6 +244,27 @@
 
                     {% endif %}{# parcel_charge #}
 
+                    <!-- ── Central Kitchen (gated: central_kitchen feature) ── -->
+                    {% if 'central_kitchen' in tenant_features %}
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">Central Kitchen</label>
+                        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="ck-box">
+                            <input type="checkbox" name="is_central_kitchen" value="true"
+                                {% if outlet.is_central_kitchen %}checked{% endif %}
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
+                                onchange="toggleCentralKitchen(this)">
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;">This outlet is the Central Kitchen</div>
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
+                                    Other outlets' stock requisitions route here first, if this
+                                    outlet has enough stock, before falling back to a vendor.<br>
+                                    Only one outlet per tenant should have this checked.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    {% endif %}
+
                     <!-- ── Composition Scheme (gated: composition_scheme feature) ── -->
                     {% if 'composition_scheme' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">
@@ -438,6 +459,10 @@
         btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
     });
 
+    function toggleCentralKitchen(cb) {
+        document.getElementById('ck-box').style.borderColor =
+            cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
+    }
     function toggleCompScheme(cb) {
         document.getElementById('comp-scheme-box').style.borderColor =
             cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
@@ -450,8 +475,10 @@
     document.addEventListener('DOMContentLoaded', () => {
         const comp = document.querySelector('[name="is_composition_scheme"]');
         const split = document.querySelector('[name="split_bill_by_category"]');
+        const ck = document.querySelector('[name="is_central_kitchen"]');
         if (comp && comp.checked) toggleCompScheme(comp);
         if (split && split.checked) toggleSplitBill(split);
+        if (ck && ck.checked) toggleCentralKitchen(ck);
     });
 </script>
 {% endblock %}

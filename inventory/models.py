@@ -747,18 +747,23 @@ class StockRequisition(TenantScopedModel):
         """
         from tenants.models import Outlet as _Outlet
 
-        # Find central kitchen outlet for this tenant
-        # Convention: the outlet that is the source of any ProductionBatch
-        ck = (
-            ProductionBatch.objects
-            .filter(tenant=self.tenant)
-            .values_list("source_outlet", flat=True)
-            .first()
-        )
-        if ck:
-            ck_outlet = _Outlet.objects.filter(id=ck).first()
-        else:
-            ck_outlet = None
+        # Prefer the explicit flag. Fall back to the old history-based guess
+        # only for tenants that haven't set it yet, so existing tenants
+        # aren't silently misrouted the moment this field shipped.
+        ck_outlet = _Outlet.objects.filter(
+            tenant=self.tenant, is_central_kitchen=True
+        ).first()
+
+        if not ck_outlet:
+            # Convention: the outlet that is the source of any ProductionBatch
+            ck = (
+                ProductionBatch.objects
+                .filter(tenant=self.tenant)
+                .values_list("source_outlet", flat=True)
+                .first()
+            )
+            if ck:
+                ck_outlet = _Outlet.objects.filter(id=ck).first()
 
         if not ck_outlet or ck_outlet == self.requesting_outlet:
             # No central kitchen or CK is us — go to vendor
