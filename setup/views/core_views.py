@@ -1020,6 +1020,7 @@ def outlet_settings(request):
         from core.features import has_feature
         if has_feature(tenant, "central_kitchen"):
             outlet.is_central_kitchen = "is_central_kitchen" in request.POST
+        outlet.po_vendor_email_enabled = "po_vendor_email_enabled" in request.POST
         try:
             from decimal import Decimal
             outlet.parcel_charge_amount = Decimal(request.POST.get("parcel_charge_amount", "0") or "0")

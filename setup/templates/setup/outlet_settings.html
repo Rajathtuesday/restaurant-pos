@@ -265,6 +265,26 @@
                     </div>
                     {% endif %}
 
+                    <!-- ── Vendor Email (permission gate, not a feature — every outlet gets the choice) ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">Purchase Order Emails</label>
+                        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="po-email-box">
+                            <input type="checkbox" name="po_vendor_email_enabled" value="true"
+                                {% if outlet.po_vendor_email_enabled %}checked{% endif %}
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
+                                onchange="togglePoEmail(this)">
+                            <div>
+                                <div style="font-weight:600;font-size:0.88rem;">Email purchase orders to vendors automatically</div>
+                                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
+                                    When a manager marks a purchase order as ordered, a PDF copy is
+                                    emailed to the vendor automatically, if the vendor has an email
+                                    on file. Off by default — nothing is sent on your behalf until
+                                    you turn this on.
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
                     <!-- ── Composition Scheme (gated: composition_scheme feature) ── -->
                     {% if 'composition_scheme' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">
@@ -463,6 +483,10 @@
         document.getElementById('ck-box').style.borderColor =
             cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
     }
+    function togglePoEmail(cb) {
+        document.getElementById('po-email-box').style.borderColor =
+            cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
+    }
     function toggleCompScheme(cb) {
         document.getElementById('comp-scheme-box').style.borderColor =
             cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
@@ -476,9 +500,11 @@
         const comp = document.querySelector('[name="is_composition_scheme"]');
         const split = document.querySelector('[name="split_bill_by_category"]');
         const ck = document.querySelector('[name="is_central_kitchen"]');
+        const poEmail = document.querySelector('[name="po_vendor_email_enabled"]');
         if (comp && comp.checked) toggleCompScheme(comp);
         if (split && split.checked) toggleSplitBill(split);
         if (ck && ck.checked) toggleCentralKitchen(ck);
+        if (poEmail && poEmail.checked) togglePoEmail(poEmail);
     });
 </script>
 {% endblock %}

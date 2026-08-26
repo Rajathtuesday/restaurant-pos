@@ -1,11 +1,31 @@
 #inventory/tests.py
 import json
+import sys
+import types
+from unittest.mock import patch
 from django.test import TestCase, Client, override_settings
 from decimal import Decimal
+from django.core import mail
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
+try:
+    import weasyprint  # noqa: F401 -- real import, used if native libs are present
+except OSError:
+    # Same pre-existing environment gap as billing/tests.py: this dev machine
+    # lacks WeasyPrint's native GTK/Pango/GObject libraries. inventory/
+    # services.py does `import weasyprint` at module load (for the PO vendor-
+    # email PDF), so without a stub even importing inventory.services would
+    # fail before any test runs. PDF tests below mock
+    # inventory.services.weasyprint.HTML directly and never touch real
+    # rendering internals, so a bare stub is sufficient. Wherever the real
+    # native libs ARE installed (e.g. a proper Linux deployment/CI), this
+    # except branch never fires and the real module is used untouched.
+    stub = types.ModuleType("weasyprint")
+    stub.HTML = lambda *a, **k: None
+    sys.modules["weasyprint"] = stub
 
 from tenants.models import Tenant, Outlet
 from inventory.models import (
@@ -2200,3 +2220,125 @@ class ManualStockAdjustmentTests(TestCase):
         self.client.force_login(self.waiter)
         resp = self._adjust({"new_count": "12", "reason": "Physical count"})
         self.assertEqual(resp.status_code, 403)
+
+
+class POVendorEmailTests(TestCase):
+    """
+    Coverage for the Phase 3 vendor-email flow: mark_po_ordered emails a
+    PDF copy of the PO to the supplier, but only when the outlet has
+    explicitly opted in (Outlet.po_vendor_email_enabled) and the supplier
+    has an email on file. Off by default — nothing is sent on a tenant's
+    behalf until they turn it on.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Emailing Tenant", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.supplier = Supplier.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Fresh Farms", email="orders@freshfarms.test",
+        )
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Flour", unit="kg", stock=Decimal("0.000"),
+        )
+        self.po = PurchaseOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, supplier=self.supplier,
+            status="draft", po_number="PO-1-2026-0001",
+        )
+        PurchaseOrderItem.objects.create(
+            purchase_order=self.po, item=self.flour,
+            quantity=Decimal("10.000"), unit_price=Decimal("40.00"),
+        )
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="email_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def _mark_ordered(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(reverse("po_mark_ordered", args=[self.po.id]))
+
+    def test_email_off_by_default_no_send(self):
+        resp = self._mark_ordered()
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "ordered")
+        self.assertIsNone(self.po.emailed_at)
+
+    @patch("inventory.services.render_purchase_order_pdf", return_value=b"%PDF-fake%")
+    def test_email_sent_when_enabled_and_supplier_has_email(self, mock_pdf):
+        self.outlet.po_vendor_email_enabled = True
+        self.outlet.save(update_fields=["po_vendor_email_enabled"])
+
+        resp = self._mark_ordered()
+        self.assertEqual(resp.status_code, 200)
+
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, ["orders@freshfarms.test"])
+        self.assertIn("PO-1-2026-0001", sent.subject)
+        self.assertEqual(len(sent.attachments), 1)
+        filename, content, mimetype = sent.attachments[0]
+        self.assertEqual(filename, "PO_PO-1-2026-0001.pdf")
+        self.assertEqual(mimetype, "application/pdf")
+        self.assertEqual(content, b"%PDF-fake%")
+
+        self.po.refresh_from_db()
+        self.assertIsNotNone(self.po.emailed_at)
+
+    def test_no_email_when_supplier_has_no_email_on_file(self):
+        self.outlet.po_vendor_email_enabled = True
+        self.outlet.save(update_fields=["po_vendor_email_enabled"])
+        self.supplier.email = ""
+        self.supplier.save(update_fields=["email"])
+
+        resp = self._mark_ordered()
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(mail.outbox), 0)
+        self.po.refresh_from_db()
+        self.assertIsNone(self.po.emailed_at)
+
+    def test_po_status_still_updates_even_if_email_send_raises(self):
+        self.outlet.po_vendor_email_enabled = True
+        self.outlet.save(update_fields=["po_vendor_email_enabled"])
+
+        with patch("inventory.services.render_purchase_order_pdf", side_effect=RuntimeError("boom")):
+            resp = self._mark_ordered()
+
+        self.assertEqual(resp.status_code, 200)
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "ordered")
+        self.assertIsNotNone(self.po.ordered_at)
+        self.assertIsNone(self.po.emailed_at)
+
+    @patch("inventory.services.weasyprint.HTML")
+    def test_render_purchase_order_pdf_disables_presentational_hints(self, mock_html_cls):
+        """
+        presentational_hints=False is the actual fix for the WeasyPrint
+        CSS-injection CVE (GHSA-jhhc-3hcp-qhm5) -- billing/services.py's
+        render_invoice_pdf already applies this because an invoice renders a
+        tenant-supplied name. A PO's notes field is the same class of
+        tenant-influenced content, so this must never regress to the
+        (vulnerable) default of True either.
+        """
+        mock_html_cls.return_value.write_pdf.return_value = b"%PDF-fake%"
+
+        from inventory.services import render_purchase_order_pdf
+        result = render_purchase_order_pdf(self.po)
+
+        self.assertEqual(result, b"%PDF-fake%")
+        _, kwargs = mock_html_cls.return_value.write_pdf.call_args
+        self.assertIs(kwargs["presentational_hints"], False)
+
+    @patch("inventory.services.weasyprint.HTML")
+    def test_render_purchase_order_pdf_renders_po_number_and_supplier(self, mock_html_cls):
+        mock_html_cls.return_value.write_pdf.return_value = b"%PDF-fake%"
+
+        from inventory.services import render_purchase_order_pdf
+        render_purchase_order_pdf(self.po)
+
+        rendered_html = mock_html_cls.call_args.kwargs["string"]
+        self.assertIn(self.po.po_number, rendered_html)
+        self.assertIn(self.supplier.name, rendered_html)

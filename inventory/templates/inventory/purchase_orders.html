@@ -168,6 +168,17 @@
                     {{ po.created_at|date:"d M Y" }}
                     {% if po.ordered_at %}<br>Sent: {{ po.ordered_at|date:"d M" }}{% endif %}
                     {% if po.received_at %}<br>Rcvd: {{ po.received_at|date:"d M" }}{% endif %}
+                    {% if po.status == "ordered" or po.status == "partially_received" or po.status == "received" %}
+                        {% if po.emailed_at %}
+                            <br><span style="color:var(--green);" title="Emailed to {{ po.supplier.email }} on {{ po.emailed_at|date:'d M Y, h:i A' }}"><i class="bi bi-envelope-check"></i> Emailed</span>
+                        {% elif request.user.outlet.po_vendor_email_enabled and po.supplier.email %}
+                            <br><span style="color:var(--red);" title="Vendor email is on but this PO wasn't emailed — check server logs"><i class="bi bi-envelope-exclamation"></i> Not sent</span>
+                        {% elif not request.user.outlet.po_vendor_email_enabled %}
+                            <br><span style="color:var(--muted);" title="Turn on vendor emails in Outlet Settings to send POs automatically"><i class="bi bi-envelope"></i> Email off</span>
+                        {% elif not po.supplier.email %}
+                            <br><span style="color:var(--muted);" title="This vendor has no email on file"><i class="bi bi-envelope"></i> No vendor email</span>
+                        {% endif %}
+                    {% endif %}
                 </td>
                 <td>
                     <div class="d-flex gap-1 flex-wrap">

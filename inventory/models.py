@@ -407,7 +407,11 @@ class PurchaseOrder(TenantScopedModel):
     
     ordered_at = models.DateTimeField(null=True, blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
-    
+    emailed_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Set only once the vendor email actually sends (not just attempted)."
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     notes = models.TextField(blank=True)
 

@@ -442,12 +442,17 @@ def create_purchase_order(request):
 @feature_required("purchase_orders")
 @require_POST
 def mark_po_ordered(request, po_id):
-    """Marks a draft PO as 'ordered' (sent to supplier). Sets ordered_at timestamp."""
+    """
+    Marks a draft PO as 'ordered' (sent to supplier). Sets ordered_at
+    timestamp. If the outlet has opted in to vendor emails (Outlet.
+    po_vendor_email_enabled) and the supplier has an email on file, also
+    emails a PDF copy of the PO after the status change actually commits.
+    """
     if not _manager_required(request.user):
         return HttpResponseForbidden()
 
     try:
-        po = PurchaseOrder.objects.get(
+        po = PurchaseOrder.objects.select_related("supplier", "tenant", "outlet").get(
             id=po_id, tenant=request.user.tenant, outlet=request.user.outlet
         )
     except PurchaseOrder.DoesNotExist:
@@ -456,9 +461,14 @@ def mark_po_ordered(request, po_id):
     if po.status != "draft":
         return JsonResponse({"error": f"Cannot mark a '{po.status}' PO as ordered"}, status=400)
 
-    po.status = "ordered"
-    po.ordered_at = timezone.now()
-    po.save(update_fields=["status", "ordered_at"])
+    with transaction.atomic():
+        po.status = "ordered"
+        po.ordered_at = timezone.now()
+        po.save(update_fields=["status", "ordered_at"])
+
+        from .services import send_purchase_order_email
+        transaction.on_commit(lambda: send_purchase_order_email(po))
+
     return JsonResponse({"success": True, "status": po.status})
 
 

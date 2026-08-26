@@ -426,6 +426,16 @@ class Outlet(models.Model):
         )
     )
 
+    po_vendor_email_enabled = models.BooleanField(
+        default=False,
+        help_text=(
+            "True → automatically email a PDF copy of a purchase order to "
+            "the vendor when a manager marks it as ordered. Off by default: "
+            "sending email on a tenant's behalf on a vendor's real inbox "
+            "needs explicit opt-in, not an assumed default."
+        )
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
