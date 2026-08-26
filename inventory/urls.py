@@ -36,6 +36,7 @@ urlpatterns = [
     # Purchase Orders
     path("purchase-orders/", views.purchase_order_list, name="purchase_order_list"),
     path("purchase-orders/create/", views.create_purchase_order, name="purchase_order_create"),
+    path("purchase-orders/<int:po_id>/edit/", views.edit_purchase_order, name="po_edit"),
     path("purchase-orders/<int:po_id>/order/", views.mark_po_ordered, name="po_mark_ordered"),
     path("purchase-orders/<int:po_id>/receive/", views.receive_purchase_order, name="po_receive"),
     path("purchase-orders/<int:po_id>/cancel/", views.cancel_purchase_order, name="po_cancel"),

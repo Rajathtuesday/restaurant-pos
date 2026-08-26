@@ -2342,3 +2342,179 @@ class POVendorEmailTests(TestCase):
         rendered_html = mock_html_cls.call_args.kwargs["string"]
         self.assertIn(self.po.po_number, rendered_html)
         self.assertIn(self.supplier.name, rendered_html)
+
+
+class EditDraftPurchaseOrderTests(TestCase):
+    """
+    Coverage for edit_purchase_order. Before this, a draft PO had no edit
+    path at all -- create, order, receive, cancel, print were the only
+    four things you could ever do to one. Fixing a wrong quantity or a
+    line that shouldn't be there meant cancelling the whole PO (losing
+    every other line on it too, including ones merged in from more than
+    one requisition via convert_to_po) and starting over from scratch.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Editing Tenant", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.supplier = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Supplier")
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Flour", unit="kg", stock=Decimal("0.000"),
+        )
+        self.sugar = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Sugar", unit="kg", stock=Decimal("0.000"),
+        )
+        self.po = PurchaseOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, supplier=self.supplier,
+            status="draft", po_number="PO-1-2026-0001",
+        )
+        self.flour_line = PurchaseOrderItem.objects.create(
+            purchase_order=self.po, item=self.flour,
+            quantity=Decimal("10.000"), unit_price=Decimal("40.00"),
+        )
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="edit_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.waiter = User.objects.create_user(
+            username="edit_waiter", password="pwd",
+            role="waiter", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def _edit(self, items, notes=""):
+        return self.client.post(
+            reverse("po_edit", args=[self.po.id]),
+            data=json.dumps({"items": items, "notes": notes}),
+            content_type="application/json",
+        )
+
+    def test_can_change_quantity_and_price_on_existing_line(self):
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "6", "unit_price": "45.00"}])
+        self.assertEqual(resp.status_code, 200)
+
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.quantity, Decimal("6.000"))
+        self.assertEqual(self.flour_line.unit_price, Decimal("45.00"))
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.total_amount, Decimal("270.00"))
+
+    def test_can_add_a_new_line(self):
+        resp = self._edit([
+            {"item_id": self.flour.id, "quantity": "10", "unit_price": "40.00"},
+            {"item_id": self.sugar.id, "quantity": "5", "unit_price": "50.00"},
+        ])
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.po.items.count(), 2)
+
+    def test_can_remove_a_line_by_omitting_it(self):
+        PurchaseOrderItem.objects.create(
+            purchase_order=self.po, item=self.sugar,
+            quantity=Decimal("5.000"), unit_price=Decimal("50.00"),
+        )
+        self.assertEqual(self.po.items.count(), 2)
+
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "10", "unit_price": "40.00"}])
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.po.items.count(), 1)
+        self.assertFalse(self.po.items.filter(item=self.sugar).exists())
+
+    def test_notes_updated(self):
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "10", "unit_price": "40.00"}], notes="Vendor asked for this split")
+        self.assertEqual(resp.status_code, 200)
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.notes, "Vendor asked for this split")
+
+    def test_rejected_once_ordered(self):
+        self.po.status = "ordered"
+        self.po.save(update_fields=["status"])
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "1", "unit_price": "1"}])
+        self.assertEqual(resp.status_code, 400)
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.quantity, Decimal("10.000"))  # unchanged
+
+    def test_rejected_once_partially_received(self):
+        self.po.status = "partially_received"
+        self.po.save(update_fields=["status"])
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "1", "unit_price": "1"}])
+        self.assertEqual(resp.status_code, 400)
+
+    def test_rejected_once_received(self):
+        self.po.status = "received"
+        self.po.save(update_fields=["status"])
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "1", "unit_price": "1"}])
+        self.assertEqual(resp.status_code, 400)
+
+    def test_rejected_once_cancelled(self):
+        self.po.status = "cancelled"
+        self.po.save(update_fields=["status"])
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "1", "unit_price": "1"}])
+        self.assertEqual(resp.status_code, 400)
+
+    def test_duplicate_item_in_payload_rejected(self):
+        resp = self._edit([
+            {"item_id": self.flour.id, "quantity": "5", "unit_price": "40.00"},
+            {"item_id": self.flour.id, "quantity": "5", "unit_price": "42.00"},
+        ])
+        self.assertEqual(resp.status_code, 400)
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.quantity, Decimal("10.000"))  # unchanged, rejected before any write
+
+    def test_empty_items_rejected(self):
+        resp = self._edit([])
+        self.assertEqual(resp.status_code, 400)
+
+    def test_non_positive_quantity_rejected(self):
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "0", "unit_price": "40.00"}])
+        self.assertEqual(resp.status_code, 400)
+
+    def test_waiter_role_is_forbidden(self):
+        self.client.force_login(self.waiter)
+        resp = self._edit([{"item_id": self.flour.id, "quantity": "1", "unit_price": "1"}])
+        self.assertEqual(resp.status_code, 403)
+
+    def test_supplier_unchanged_regardless_of_payload(self):
+        other_supplier = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Other Co")
+        self._edit([{"item_id": self.flour.id, "quantity": "10", "unit_price": "40.00"}])
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.supplier_id, self.supplier.id)
+        self.assertNotEqual(self.po.supplier_id, other_supplier.id)
+
+
+class CreatePurchaseOrderNumberingTests(TestCase):
+    """
+    create_purchase_order used to generate its own PO number inline with a
+    different format (missing the outlet id) instead of calling the shared
+    generate_po_number() helper Phase 1 introduced for trigger_reorder and
+    convert_to_po -- a third, silently inconsistent numbering scheme on the
+    same underlying counter. Fixed while touching this view for the draft-
+    edit feature, since it's now the exact code being read line by line.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Numbering Tenant", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.supplier = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Supplier")
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Flour", unit="kg", stock=Decimal("0.000"),
+        )
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="numbering_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def test_manual_po_number_matches_shared_format(self):
+        resp = self.client.post(
+            reverse("purchase_order_create"),
+            data=json.dumps({
+                "supplier_id": self.supplier.id,
+                "items": [{"item_id": self.flour.id, "quantity": "5", "unit_price": "40.00"}],
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        po_number = resp.json()["po_number"]
+        self.assertEqual(po_number, f"PO-{self.outlet.id}-{timezone.now().year}-0001")

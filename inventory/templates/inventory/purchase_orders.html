@@ -183,6 +183,9 @@
                 <td>
                     <div class="d-flex gap-1 flex-wrap">
                     {% if po.status == "draft" %}
+                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="openEditDrawer({{ po.id }}, '{{ po.po_number|default:po.id|escapejs }}', {{ po.supplier.id }}, '{{ po.notes|escapejs }}')">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
                         <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="markOrdered({{ po.id }})">
                             <i class="bi bi-send me-1"></i>Order
                         </button>
@@ -224,7 +227,7 @@
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="poDrawer">
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <div class="drawer-title">New Purchase Order</div>
+        <div class="drawer-title" id="drawerTitleText">New Purchase Order</div>
         <button class="btn-icon" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
     </div>
 
@@ -261,7 +264,7 @@
         Total: ₹<span id="poTotal">0.00</span>
     </div>
 
-    <button class="btn-lux w-100" onclick="submitPO()">
+    <button class="btn-lux w-100" id="submitPoBtn" onclick="submitPO()">
         <i class="bi bi-check-lg me-1"></i>Create Draft PO
     </button>
 
@@ -321,17 +324,50 @@ const PO_LINES = {
     {% endfor %}
 };
 
+let editingPoId = null;
+
 function openDrawer() {
+    editingPoId = null;
+    document.getElementById('drawerTitleText').textContent = 'New Purchase Order';
+    document.getElementById('po_supplier').disabled = false;
+    document.getElementById('po_supplier').value = '';
+    document.getElementById('po_notes').value = '';
+    document.getElementById('submitPoBtn').innerHTML = '<i class="bi bi-check-lg me-1"></i>Create Draft PO';
+    document.getElementById('lineItems').innerHTML = '';
+    lineCount = 0;
+    addLineItem();
+    recalcTotal();
     document.getElementById('poDrawer').classList.add('open');
     document.getElementById('drawerOverlay').style.display = 'block';
-    if (lineCount === 0) addLineItem();
 }
+
+function openEditDrawer(poId, poNumber, supplierId, notes) {
+    editingPoId = poId;
+    document.getElementById('drawerTitleText').textContent = `Edit ${poNumber}`;
+    document.getElementById('po_supplier').value = supplierId;
+    document.getElementById('po_supplier').disabled = true;
+    document.getElementById('po_notes').value = notes || '';
+    document.getElementById('submitPoBtn').innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Changes';
+    document.getElementById('lineItems').innerHTML = '';
+    lineCount = 0;
+
+    const lines = PO_LINES[poId] || [];
+    lines.forEach(line => addLineItem({ item_id: line.item_id, quantity: line.quantity, unit_price: line.ordered_price }));
+    if (!lines.length) addLineItem();
+    recalcTotal();
+
+    document.getElementById('poDrawer').classList.add('open');
+    document.getElementById('drawerOverlay').style.display = 'block';
+}
+
 function closeDrawer() {
     document.getElementById('poDrawer').classList.remove('open');
     document.getElementById('drawerOverlay').style.display = 'none';
+    document.getElementById('po_supplier').disabled = false;
+    editingPoId = null;
 }
 
-function addLineItem() {
+function addLineItem(prefill) {
     lineCount++;
     const id = `line-${lineCount}`;
     const options = ITEMS.map(i => `<option value="${i.id}" data-cost="${i.cost}" data-unit="${i.unit}">${i.name} (${i.unit})</option>`).join('');
@@ -346,6 +382,11 @@ function addLineItem() {
             <i class="bi bi-x" style="font-size:1rem;"></i>
         </button>`;
     document.getElementById('lineItems').appendChild(row);
+    if (prefill) {
+        row.querySelector('.item-sel').value = prefill.item_id;
+        row.querySelector('.line-qty').value = prefill.quantity;
+        row.querySelector('.line-price').value = prefill.unit_price;
+    }
 }
 
 function autofillPrice(sel) {
@@ -366,9 +407,7 @@ function recalcTotal() {
 }
 
 async function submitPO() {
-    const supplier_id = document.getElementById('po_supplier').value;
     const notes = document.getElementById('po_notes').value;
-    if (!supplier_id) { toast('Please select a supplier.', true); return; }
     const items = [];
     let valid = true;
     document.querySelectorAll('.line-item-row').forEach(row => {
@@ -384,6 +423,21 @@ async function submitPO() {
     });
     if (!valid) return;
     if (!items.length) { toast('Add at least one item.', true); return; }
+
+    if (editingPoId) {
+        const res = await fetch(`/inventory/purchase-orders/${editingPoId}/edit/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes, items })
+        });
+        const data = await res.json();
+        if (data.success) { toast('Purchase order updated.'); setTimeout(() => location.reload(), 700); }
+        else toast(data.error, true);
+        return;
+    }
+
+    const supplier_id = document.getElementById('po_supplier').value;
+    if (!supplier_id) { toast('Please select a supplier.', true); return; }
     const res = await fetch('/inventory/purchase-orders/create/', {
         method: 'POST',
         headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },

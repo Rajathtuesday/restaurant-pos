@@ -12,7 +12,7 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem
+from .models import InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem, generate_po_number
 
 logger = logging.getLogger("pos.inventory")
 
@@ -408,16 +408,7 @@ def create_purchase_order(request):
             total_amount=total,
             notes=notes,
         )
-        # Auto-generate PO number using TenantPOCounter
-        from .models import TenantPOCounter
-        from django.utils import timezone
-        
-        counter, _ = TenantPOCounter.objects.select_for_update().get_or_create(
-            tenant=request.user.tenant, outlet=request.user.outlet
-        )
-        counter.value += 1
-        counter.save(update_fields=["value"])
-        po.po_number = f"PO-{timezone.now().year}-{counter.value:04d}"
+        po.po_number = generate_po_number(request.user.tenant, request.user.outlet)
         po.save(update_fields=["po_number"])
 
         for inv_item, qty, unit_price in validated_items:
@@ -435,6 +426,95 @@ def create_purchase_order(request):
         "po_number": po.po_number,
         "total": float(total),
     })
+
+
+@login_required
+@tenant_required
+@feature_required("purchase_orders")
+@require_POST
+def edit_purchase_order(request, po_id):
+    """
+    Replaces a draft PO's line items and notes. Only allowed while the PO
+    is still 'draft' -- once it's ordered the vendor may already be
+    acting on it, and once anything's been received or it's cancelled,
+    editing it retroactively would misrepresent what actually happened.
+    Same validation as create_purchase_order. Supplier is not editable --
+    changing it would have to navigate the one-draft-per-supplier
+    uniqueness constraint; cancel and start a new PO instead.
+    """
+    if not _manager_required(request.user):
+        return HttpResponseForbidden()
+
+    try:
+        po = PurchaseOrder.objects.get(
+            id=po_id, tenant=request.user.tenant, outlet=request.user.outlet
+        )
+    except PurchaseOrder.DoesNotExist:
+        return JsonResponse({"error": "Purchase order not found"}, status=404)
+
+    if po.status != "draft":
+        return JsonResponse({"error": f"Cannot edit a '{po.status}' purchase order"}, status=400)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    items_data = data.get("items", [])
+    notes = data.get("notes", "")
+
+    if not items_data:
+        return JsonResponse({"error": "At least one item is required"}, status=400)
+
+    validated_items = []
+    seen_item_ids = set()
+    for entry in items_data:
+        item_id = entry.get("item_id")
+        try:
+            qty = Decimal(str(entry.get("quantity", "0")))
+            unit_price = Decimal(str(entry.get("unit_price", "0")))
+        except InvalidOperation:
+            return JsonResponse({"error": "Invalid quantity or price"}, status=400)
+
+        if qty <= 0:
+            return JsonResponse({"error": "Quantity must be positive"}, status=400)
+        if unit_price < 0:
+            return JsonResponse({"error": "Unit price cannot be negative"}, status=400)
+
+        if item_id in seen_item_ids:
+            return JsonResponse({"error": "Duplicate item in purchase order"}, status=400)
+        seen_item_ids.add(item_id)
+
+        try:
+            inv_item = InventoryItem.objects.get(
+                id=item_id, tenant=request.user.tenant, outlet=request.user.outlet
+            )
+        except InventoryItem.DoesNotExist:
+            return JsonResponse({"error": f"Inventory item {item_id} not found"}, status=404)
+
+        validated_items.append((inv_item, qty, unit_price))
+
+    with transaction.atomic():
+        po = PurchaseOrder.objects.select_for_update().get(pk=po.pk)
+        if po.status != "draft":
+            return JsonResponse({"error": f"Cannot edit a '{po.status}' purchase order"}, status=400)
+
+        kept_item_ids = [inv_item.id for inv_item, _, _ in validated_items]
+        po.items.exclude(item_id__in=kept_item_ids).delete()
+
+        for inv_item, qty, unit_price in validated_items:
+            PurchaseOrderItem.objects.update_or_create(
+                purchase_order=po, item=inv_item,
+                defaults={"quantity": qty, "unit_price": unit_price},
+            )
+
+        total = sum(qty * price for _, qty, price in validated_items)
+        po.notes = notes
+        po.total_amount = total
+        po.save(update_fields=["notes", "total_amount"])
+
+    logger.info("%s edited PO %s", request.user.username, po.po_number or po.id)
+    return JsonResponse({"success": True, "po_id": po.id, "total": float(total)})
 
 
 @login_required
