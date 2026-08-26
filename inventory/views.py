@@ -5,6 +5,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
@@ -291,7 +292,7 @@ def delete_supplier(request, supplier_id):
 def purchase_order_list(request):
     """
     Lists all POs for this outlet.
-    Can filter by status via ?status=draft|ordered|received|cancelled
+    Can filter by status via ?status=draft|ordered|partially_received|received|cancelled
     """
     if not _manager_required(request.user):
         return HttpResponseForbidden()
@@ -302,7 +303,7 @@ def purchase_order_list(request):
         outlet=request.user.outlet
     ).select_related("supplier").prefetch_related("items__item").order_by("-created_at")
 
-    if status_filter in ("draft", "ordered", "received", "cancelled"):
+    if status_filter in ("draft", "ordered", "partially_received", "received", "cancelled"):
         qs = qs.filter(status=status_filter)
 
     suppliers = Supplier.objects.filter(
@@ -467,15 +468,29 @@ def mark_po_ordered(request, po_id):
 @require_POST
 def receive_purchase_order(request, po_id):
     """
-    Receives a PO — updates inventory stock for all line items atomically.
+    Records a delivery against a PO — updates inventory stock for the
+    received line items atomically. Supports partial receiving: a real
+    delivery is often short or split across trips.
+
+    Body (optional): { "items": { "<item_id>": {"quantity_received": n,
+    "invoiced_price": n or null}, ... } }. Any item omitted, or an empty/
+    missing body entirely, defaults to receiving that line's full
+    remaining ordered quantity at its ordered price — the original
+    one-click "Receive" behavior.
 
     Edge cases:
-    - Already received → reject (idempotent guard).
-    - PO must be in 'ordered' state; draft POs are not receivable.
+    - Already fully received → reject (idempotent guard).
+    - PO must be in 'draft', 'ordered', or 'partially_received' state.
     - Entire receive is atomic; a single stock update failure rolls back all.
     """
     if not _manager_required(request.user):
         return HttpResponseForbidden()
+
+    try:
+        payload = json.loads(request.body) if request.body else {}
+    except json.JSONDecodeError:
+        payload = {}
+    receipts = payload.get("items") or {}
 
     try:
         with transaction.atomic():
@@ -486,19 +501,22 @@ def receive_purchase_order(request, po_id):
             if po.status == "received":
                 return JsonResponse({"error": "This PO has already been received"}, status=400)
 
-            if po.status not in ("draft", "ordered"):
+            if po.status not in ("draft", "ordered", "partially_received"):
                 return JsonResponse({"error": f"Cannot receive a '{po.status}' PO"}, status=400)
 
-            po.receive_order()  # stock updates + status change happen here
+            po.receive_order(receipts=receipts)  # stock updates + status change happen here
+            po.refresh_from_db(fields=["status"])
 
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({"error": "Purchase order not found"}, status=404)
+    except (InvalidOperation, TypeError, KeyError, AttributeError) as e:
+        return JsonResponse({"error": f"Invalid receiving quantities: {e}"}, status=400)
     except Exception:
         logger.exception("PO receive failed for PO %s", po_id)
         return JsonResponse({"error": "Could not receive the PO. Please try again."}, status=500)
 
-    logger.info("%s received PO %s", request.user.username, po.po_number)
-    return JsonResponse({"success": True, "status": "received"})
+    logger.info("%s received PO %s (status now %s)", request.user.username, po.po_number, po.status)
+    return JsonResponse({"success": True, "status": po.status})
 
 
 @login_required
@@ -508,7 +526,8 @@ def receive_purchase_order(request, po_id):
 def cancel_purchase_order(request, po_id):
     """
     Cancels a PO.
-    - Cannot cancel a received PO (stock is already in).
+    - Cannot cancel a received or partially received PO (some stock is
+      already in — cancelling would hide that a delivery happened).
     - Cancelling a draft or ordered PO is allowed.
     """
     if not _manager_required(request.user):
@@ -521,8 +540,8 @@ def cancel_purchase_order(request, po_id):
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({"error": "Purchase order not found"}, status=404)
 
-    if po.status == "received":
-        return JsonResponse({"error": "Cannot cancel a received PO"}, status=400)
+    if po.status in ("received", "partially_received"):
+        return JsonResponse({"error": f"Cannot cancel a '{po.status}' PO — stock has already been received against it"}, status=400)
 
     if po.status == "cancelled":
         return JsonResponse({"error": "PO is already cancelled"}, status=400)
@@ -718,6 +737,68 @@ def log_wastage(request, item_id):
     logger.info(
         "%s logged wastage: %s ×%.3f %s (%s)",
         request.user.username, item.name, quantity, item.unit, reference
+    )
+    return JsonResponse({"success": True, "new_stock": float(item.stock)})
+
+
+@login_required
+@tenant_required
+@feature_required("inventory")
+@require_POST
+def adjust_stock(request, item_id):
+    """
+    Manually corrects an item's stock — e.g. reconciling a physical count
+    against what the system shows. Body: either {"new_count": n} (the
+    counted total) or {"delta": n} (a signed +/- change), plus a required
+    "reason". Exactly one of new_count/delta must be given.
+    """
+    if not _manager_required(request.user):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    reason = data.get("reason", "").strip()[:200]
+    if not reason:
+        return JsonResponse({"error": "A reason is required for a manual adjustment"}, status=400)
+
+    try:
+        item = InventoryItem.objects.get(
+            id=item_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+        )
+    except InventoryItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+
+    has_new_count = "new_count" in data and data.get("new_count") not in (None, "")
+    has_delta = "delta" in data and data.get("delta") not in (None, "")
+    if has_new_count == has_delta:  # both given or neither given
+        return JsonResponse({"error": "Provide exactly one of new_count or delta"}, status=400)
+
+    try:
+        if has_new_count:
+            new_count = Decimal(str(data["new_count"]))
+            delta = new_count - item.stock
+        else:
+            delta = Decimal(str(data["delta"]))
+    except InvalidOperation:
+        return JsonResponse({"error": "Invalid quantity"}, status=400)
+
+    try:
+        item.adjust_stock(delta, reference=reason)
+    except ValidationError as e:
+        return JsonResponse({"error": str(e.message if hasattr(e, "message") else e)}, status=400)
+    except Exception:
+        logger.exception("Error adjusting stock for item %s", item_id)
+        return JsonResponse({"error": "Could not apply the adjustment. Please try again."}, status=400)
+
+    item.refresh_from_db()
+    logger.info(
+        "%s manually adjusted stock: %s %+.3f %s -> %.3f (%s)",
+        request.user.username, item.name, delta, item.unit, item.stock, reason
     )
     return JsonResponse({"success": True, "new_stock": float(item.stock)})
 

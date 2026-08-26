@@ -33,6 +33,7 @@
     .pill { font-size:0.65rem; letter-spacing:1px; padding:3px 9px; border-radius:2px; text-transform:uppercase; font-weight:500; }
     .pill-draft     { background:rgba(100,100,100,0.1); color:var(--muted); }
     .pill-ordered   { background:rgba(59,130,246,0.12); color:#3b82f6; }
+    .pill-partially_received { background:rgba(245,158,11,0.12); color:var(--amber); }
     .pill-received  { background:rgba(16,185,129,0.12); color:var(--green); }
     .pill-cancelled { background:rgba(239,68,68,0.1); color:var(--red); }
 
@@ -108,6 +109,7 @@
         <a href="?" class="filter-tab {% if not status_filter %}active{% endif %}">All</a>
         <a href="?status=draft"     class="filter-tab {% if status_filter == 'draft'     %}active{% endif %}">Draft</a>
         <a href="?status=ordered"   class="filter-tab {% if status_filter == 'ordered'   %}active{% endif %}">Ordered</a>
+        <a href="?status=partially_received" class="filter-tab {% if status_filter == 'partially_received' %}active{% endif %}">Partially Received</a>
         <a href="?status=received"  class="filter-tab {% if status_filter == 'received'  %}active{% endif %}">Received</a>
         <a href="?status=cancelled" class="filter-tab {% if status_filter == 'cancelled' %}active{% endif %}">Cancelled</a>
     </div>
@@ -146,7 +148,17 @@
                 <td>
                     <ul class="item-list">
                     {% for line in po.items.all %}
-                        <li>{{ line.item.name }} — {{ line.quantity }} {{ line.item.unit }} @ ₹{{ line.unit_price }}</li>
+                        <li>
+                            {{ line.item.name }} — {{ line.quantity }} {{ line.item.unit }} @ ₹{{ line.unit_price }}
+                            {% if line.quantity_received > 0 and line.quantity_received < line.quantity %}
+                                <span style="color:var(--amber);">({{ line.quantity_received }} received)</span>
+                            {% endif %}
+                            {% if line.price_variance %}
+                                <span style="color:var(--red);" title="Invoiced at ₹{{ line.invoiced_price }}, ordered at ₹{{ line.unit_price }}">
+                                    (₹{{ line.price_variance }} price variance)
+                                </span>
+                            {% endif %}
+                        </li>
                     {% endfor %}
                     </ul>
                 </td>
@@ -164,11 +176,13 @@
                             <i class="bi bi-send me-1"></i>Order
                         </button>
                         <button class="btn-lux danger" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="cancelPO({{ po.id }})">Cancel</button>
-                    {% elif po.status == "ordered" %}
-                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem; border-color:var(--green); color:var(--green);" onclick="receivePO({{ po.id }})">
-                            <i class="bi bi-box-arrow-in-down me-1"></i>Receive
+                    {% elif po.status == "ordered" or po.status == "partially_received" %}
+                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem; border-color:var(--green); color:var(--green);" onclick="openReceiveModal({{ po.id }})">
+                            <i class="bi bi-box-arrow-in-down me-1"></i>{% if po.status == "partially_received" %}Continue Receiving{% else %}Receive{% endif %}
                         </button>
+                        {% if po.status == "ordered" %}
                         <button class="btn-lux danger" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="cancelPO({{ po.id }})">Cancel</button>
+                        {% endif %}
                     {% elif po.status == "received" %}
                         <span style="font-size:0.75rem; color:var(--green);"><i class="bi bi-check-circle-fill me-1"></i>Stock Updated</span>
                     {% else %}
@@ -246,6 +260,27 @@
     </div>
 </div>
 
+<!-- Receive Delivery Drawer -->
+<div class="drawer-overlay" id="receiveOverlay" onclick="closeReceiveModal()"></div>
+<div class="drawer" id="receiveDrawer">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="drawer-title">Receive Delivery</div>
+        <button class="btn-icon" onclick="closeReceiveModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div style="font-size:0.75rem; color:var(--muted); margin-bottom:1.25rem;">
+        Enter what actually arrived in <em>this</em> delivery for each line. Defaults
+        to the full remaining quantity at the ordered price — leave as-is if
+        everything showed up as ordered.
+    </div>
+
+    <div id="receiveLines"></div>
+
+    <button class="btn-lux w-100 mt-2" onclick="submitReceive()">
+        <i class="bi bi-box-arrow-in-down me-1"></i>Confirm Receipt
+    </button>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 {% endblock %}
 
@@ -254,6 +289,26 @@
 const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken2=')).split('=')[1];
 const ITEMS = [{% for item in inventory_items %}{ id:{{ item.id }}, name:"{{ item.name|escapejs }}", unit:"{{ item.unit }}", cost:{{ item.cost_price }} }{% if not forloop.last %},{% endif %}{% endfor %}];
 let lineCount = 0;
+
+// Per-PO line item data for the receive modal — item id, name, unit,
+// remaining quantity (ordered minus already received), and the ordered
+// price as the default invoiced price.
+const PO_LINES = {
+    {% for po in purchase_orders %}
+    {{ po.id }}: [
+        {% for line in po.items.all %}
+        {
+            item_id: {{ line.item.id }},
+            name: "{{ line.item.name|escapejs }}",
+            unit: "{{ line.item.unit }}",
+            quantity: {{ line.quantity }},
+            quantity_received: {{ line.quantity_received }},
+            ordered_price: {{ line.unit_price }},
+        }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ]{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
 
 function openDrawer() {
     document.getElementById('poDrawer').classList.add('open');
@@ -336,12 +391,79 @@ async function markOrdered(poId) {
     else toast(data.error, true);
 }
 
-async function receivePO(poId) {
-    if (!confirm('Receive this PO? Inventory stock will be updated immediately and cannot be undone.')) return;
-    const res = await fetch(`/inventory/purchase-orders/${poId}/receive/`, { method:'POST', headers:{'X-CSRFToken':CSRF} });
+let receivingPoId = null;
+
+function openReceiveModal(poId) {
+    receivingPoId = poId;
+    const lines = PO_LINES[poId] || [];
+    const container = document.getElementById('receiveLines');
+    container.innerHTML = '';
+
+    lines.forEach((line, i) => {
+        const remaining = (line.quantity - line.quantity_received);
+        if (remaining <= 0) return; // this line's already fully received, nothing to ask about
+
+        const row = document.createElement('div');
+        row.className = 'receive-line';
+        row.dataset.itemId = line.item_id;
+        row.style.cssText = 'border-bottom:1px dashed var(--border); padding-bottom:0.9rem; margin-bottom:0.9rem;';
+        row.innerHTML = `
+            <div style="font-size:0.85rem; font-weight:500; margin-bottom:0.5rem;">${line.name}</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
+                <div>
+                    <div class="line-label">Qty received now (of ${remaining.toFixed(3)} remaining)</div>
+                    <input type="number" class="recv-qty" min="0" step="0.001" value="${remaining.toFixed(3)}">
+                </div>
+                <div>
+                    <div class="line-label">Price invoiced (₹)</div>
+                    <input type="number" class="recv-price" min="0" step="0.01" value="${line.ordered_price.toFixed(2)}">
+                </div>
+            </div>`;
+        container.appendChild(row);
+    });
+
+    if (!lines.some(l => (l.quantity - l.quantity_received) > 0)) {
+        toast('Nothing left to receive on this PO.', true);
+        return;
+    }
+
+    document.getElementById('receiveDrawer').classList.add('open');
+    document.getElementById('receiveOverlay').style.display = 'block';
+}
+
+function closeReceiveModal() {
+    document.getElementById('receiveDrawer').classList.remove('open');
+    document.getElementById('receiveOverlay').style.display = 'none';
+    receivingPoId = null;
+}
+
+async function submitReceive() {
+    if (!receivingPoId) return;
+    const items = {};
+    document.querySelectorAll('#receiveLines .receive-line').forEach(row => {
+        const itemId = row.dataset.itemId;
+        const qty = row.querySelector('.recv-qty').value;
+        const price = row.querySelector('.recv-price').value;
+        items[itemId] = {
+            quantity_received: qty === '' ? '0' : qty,
+            invoiced_price: price === '' ? null : price,
+        };
+    });
+
+    const res = await fetch(`/inventory/purchase-orders/${receivingPoId}/receive/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+    });
     const data = await res.json();
-    if (data.success) { toast('PO received. Stock updated.'); setTimeout(() => location.reload(), 700); }
-    else toast(data.error, true);
+    if (data.success) {
+        const label = data.status === 'partially_received' ? 'Partially received, stock updated.' : 'PO fully received, stock updated.';
+        toast(label);
+        closeReceiveModal();
+        setTimeout(() => location.reload(), 700);
+    } else {
+        toast(data.error, true);
+    }
 }
 
 async function cancelPO(poId) {

@@ -26,6 +26,7 @@ urlpatterns = [
     path("update/<int:item_id>/", views.update_inventory_item, name="update_inventory_item"),
     path("restock/<int:item_id>/", views.restock_item, name="restock_item"),
     path("wastage/<int:item_id>/", views.log_wastage, name="inventory_log_wastage"),
+    path("adjust/<int:item_id>/", views.adjust_stock, name="inventory_adjust_stock"),
 
     # Suppliers
     path("suppliers/", views.supplier_list, name="supplier_list"),

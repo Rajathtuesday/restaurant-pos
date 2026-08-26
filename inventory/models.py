@@ -269,6 +269,53 @@ class InventoryItem(TenantScopedModel):
 
 
     # -------------------------------------------------------
+    # MANUAL ADJUSTMENT (e.g. reconciling a physical stock count)
+    # -------------------------------------------------------
+
+    def adjust_stock(self, delta, reference):
+        """
+        Directly corrects stock by a signed amount (positive = found more
+        than the system had, negative = found less), for reconciling a
+        physical count or correcting a miscount/unlogged loss. Unlike
+        reduce_stock/add_stock, this is deliberately not tied to a specific
+        business event (a sale, a delivery, spillage) — a reason is
+        required precisely because "adjustment" is otherwise unaccountable.
+
+        The transaction_type "adjustment" already existed as a defined
+        choice on InventoryTransaction with nothing anywhere that could
+        actually create one — there was no way for a manager to correct
+        the system's stock number at all before this.
+        """
+        delta = Decimal(delta)
+
+        if delta == 0:
+            raise ValidationError("Adjustment must be non-zero")
+
+        reference = (reference or "").strip()
+        if not reference:
+            raise ValidationError("A reason is required for a manual adjustment")
+
+        with transaction.atomic():
+
+            item = InventoryItem.objects.select_for_update().get(id=self.id)
+
+            if item.stock + delta < 0:
+                raise ValidationError("Adjustment would take stock below zero")
+
+            item.stock = F("stock") + delta
+            item.save(update_fields=["stock"])
+
+            InventoryTransaction.objects.create(
+                item=item,
+                tenant=item.tenant,
+                outlet=item.outlet,
+                quantity=delta,
+                transaction_type="adjustment",
+                reference=reference,
+            )
+
+
+    # -------------------------------------------------------
     # LOW STOCK CHECK
     # -------------------------------------------------------
 
@@ -343,6 +390,7 @@ class PurchaseOrder(TenantScopedModel):
     STATUS_CHOICES = (
         ("draft", "Draft"),
         ("ordered", "Ordered"),
+        ("partially_received", "Partially Received"),
         ("received", "Received"),
         ("cancelled", "Cancelled"),
     )
@@ -376,9 +424,25 @@ class PurchaseOrder(TenantScopedModel):
         return f"PO-{self.id} | {self.supplier.name} | {self.status}"
 
     @transaction.atomic
-    def receive_order(self):
+    def receive_order(self, receipts=None):
         """
-        Marks PO as received and updates inventory stock atomically.
+        Records a delivery against this PO and updates inventory stock
+        atomically. Supports partial receiving: a real delivery is often
+        short, split across trips, or invoiced at a different price than
+        ordered, and this needs to represent that instead of an all-or-
+        nothing yes/no toggle.
+
+        receipts: optional {item_id: {"quantity_received": Decimal,
+        "invoiced_price": Decimal or None}}. quantity_received here means
+        "how much arrived in THIS delivery" (added to the item's running
+        total), not a new grand total — a manager filling this in doesn't
+        have to remember/re-enter everything received on a previous partial
+        receipt, just what showed up today.
+
+        Backward-compatible default: with receipts=None (or an item simply
+        missing from it), the full remaining ordered quantity for that line
+        is received at its ordered price — the exact one-click "Receive"
+        behavior this method used to be the entirety of.
 
         Deliberately avoids calling add_stock() to prevent nested
         transaction.atomic + select_for_update deadlocks: we already hold
@@ -386,10 +450,12 @@ class PurchaseOrder(TenantScopedModel):
         (via select_for_update below), so we write stock directly using
         F() expressions and create the ledger entries inline.
         """
-        if self.status == "received":
+        if self.status in ("received", "cancelled"):
             return
 
         from django.utils import timezone
+
+        receipts = receipts or {}
 
         # Lock all inventory items referenced by this PO in a single query
         # to prevent deadlocks (consistent lock-ordering).
@@ -401,45 +467,106 @@ class PurchaseOrder(TenantScopedModel):
 
         reference = f"PO #{self.po_number or self.id}"
         transactions_to_create = []
+        all_fully_received = True
+        anything_received = False
 
         for item_link in self.items.select_for_update().select_related("item"):
             inv_item = locked_items[item_link.item_id]
-            qty = Decimal(item_link.quantity)
+            remaining = item_link.quantity - item_link.quantity_received
 
-            # Update stock with F() to avoid stale-read races
-            InventoryItem.objects.filter(pk=inv_item.pk).update(
-                stock=F("stock") + qty,
-                last_purchase_price=item_link.unit_price,
-            )
+            entry = receipts.get(str(item_link.item_id)) or receipts.get(item_link.item_id)
+            if entry is not None:
+                increment = Decimal(str(entry.get("quantity_received", remaining)))
+                invoiced_price = entry.get("invoiced_price")
+                invoiced_price = Decimal(str(invoiced_price)) if invoiced_price not in (None, "") else None
+            else:
+                # Not mentioned in the payload — default to fully receiving
+                # whatever's left on this line, at the ordered price.
+                increment = remaining
+                invoiced_price = None
 
-            transactions_to_create.append(
-                InventoryTransaction(
-                    item=inv_item,
-                    tenant=inv_item.tenant,
-                    outlet=inv_item.outlet,
-                    quantity=qty,
-                    transaction_type="restock",
-                    reference=reference,
+            if increment < 0:
+                increment = Decimal("0")
+
+            if increment > 0:
+                anything_received = True
+                InventoryItem.objects.filter(pk=inv_item.pk).update(
+                    stock=F("stock") + increment,
+                    last_purchase_price=invoiced_price or item_link.unit_price,
                 )
-            )
+                transactions_to_create.append(
+                    InventoryTransaction(
+                        item=inv_item,
+                        tenant=inv_item.tenant,
+                        outlet=inv_item.outlet,
+                        quantity=increment,
+                        transaction_type="restock",
+                        reference=reference,
+                    )
+                )
+
+            update_fields = []
+            if increment > 0:
+                item_link.quantity_received = item_link.quantity_received + increment
+                update_fields.append("quantity_received")
+            if invoiced_price is not None:
+                item_link.invoiced_price = invoiced_price
+                update_fields.append("invoiced_price")
+            if update_fields:
+                item_link.save(update_fields=update_fields)
+
+            if not item_link.is_fully_received:
+                all_fully_received = False
+
+        if not anything_received:
+            return
 
         InventoryTransaction.objects.bulk_create(transactions_to_create)
 
-        self.status = "received"
-        self.received_at = timezone.now()
-        self.save(update_fields=["status", "received_at"])
+        if all_fully_received:
+            self.status = "received"
+            self.received_at = timezone.now()
+            self.save(update_fields=["status", "received_at"])
+        else:
+            self.status = "partially_received"
+            self.save(update_fields=["status"])
 
 
 class PurchaseOrderItem(models.Model):
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="items")
     item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE)
-    
+
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    quantity_received = models.DecimalField(
+        max_digits=12, decimal_places=3, default=0,
+        help_text="How much of this line has actually arrived so far. Can be "
+                   "less than quantity — a delivery can be partial or split "
+                   "across more than one receipt.",
+    )
+    invoiced_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="What the vendor actually charged at receive time, if "
+                   "different from unit_price (the ordered price). Null "
+                   "until received, or if the price matched exactly.",
+    )
 
     @property
     def line_total(self):
         return self.quantity * self.unit_price
+
+    @property
+    def is_fully_received(self):
+        return self.quantity_received >= self.quantity
+
+    @property
+    def price_variance(self):
+        """Positive = vendor charged more than ordered. None if not yet
+        received or the price matched exactly."""
+        if self.invoiced_price is None:
+            return None
+        return self.invoiced_price - self.unit_price
 
     def __str__(self):
         return f"{self.item.name} x {self.quantity}"

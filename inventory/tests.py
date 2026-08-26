@@ -2,6 +2,7 @@
 import json
 from django.test import TestCase, Client, override_settings
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -1923,3 +1924,279 @@ class AutoRouteTests(TestCase):
         req.auto_route()
 
         self.assertEqual(req.route, "external")
+
+
+class PartialReceivingTests(TestCase):
+    """
+    Coverage for PurchaseOrder.receive_order()'s partial-receiving and
+    price-variance support. Before this, receive_order() had no concept of
+    "quantity actually received" distinct from "quantity ordered" — every
+    receipt assumed the full ordered amount arrived exactly as ordered, at
+    exactly the ordered price. A short delivery, one split across two
+    trips, or a vendor charging more at the door than quoted had no honest
+    way to be recorded.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Receiving Tenant", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.supplier = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Supplier")
+
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Flour", unit="kg", stock=Decimal("0.000"),
+        )
+        self.sugar = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Sugar", unit="kg", stock=Decimal("0.000"),
+        )
+
+        self.po = PurchaseOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, supplier=self.supplier, status="ordered",
+        )
+        self.flour_line = PurchaseOrderItem.objects.create(
+            purchase_order=self.po, item=self.flour,
+            quantity=Decimal("10.000"), unit_price=Decimal("40.00"),
+        )
+        self.sugar_line = PurchaseOrderItem.objects.create(
+            purchase_order=self.po, item=self.sugar,
+            quantity=Decimal("5.000"), unit_price=Decimal("50.00"),
+        )
+
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="receiving_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def _receive(self, items):
+        return self.client.post(
+            reverse("po_receive", args=[self.po.id]),
+            data=json.dumps({"items": items}),
+            content_type="application/json",
+        )
+
+    # ---- Model-level ----
+
+    def test_no_args_receives_everything_at_ordered_price_backward_compat(self):
+        """The original one-click behavior, unchanged."""
+        self.po.receive_order()
+
+        self.flour.refresh_from_db()
+        self.sugar.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("10.000"))
+        self.assertEqual(self.sugar.stock, Decimal("5.000"))
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "received")
+
+    def test_partial_quantity_updates_stock_by_received_amount_only(self):
+        self.po.receive_order(receipts={
+            str(self.flour.id): {"quantity_received": "4"},
+        })
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("4.000"))
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.quantity_received, Decimal("4.000"))
+        self.assertFalse(self.flour_line.is_fully_received)
+
+    def test_po_stays_partially_received_until_every_line_complete(self):
+        self.po.receive_order(receipts={
+            str(self.flour.id): {"quantity_received": "4"},
+        })
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "partially_received")
+        self.assertIsNone(self.po.received_at)
+
+    def test_second_partial_receive_adds_to_running_total_not_replaces_it(self):
+        self.po.receive_order(receipts={str(self.flour.id): {"quantity_received": "4"}})
+        self.po.receive_order(receipts={str(self.flour.id): {"quantity_received": "3"}})
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("7.000"))  # 4 + 3, not 3
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.quantity_received, Decimal("7.000"))
+
+    def test_receiving_the_remainder_completes_the_po(self):
+        self.po.receive_order(receipts={str(self.flour.id): {"quantity_received": "4"}})
+        # Second call omits flour entirely — defaults to "whatever's left" (6),
+        # and sugar defaults the same way (its full 5).
+        self.po.receive_order()
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("10.000"))
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "received")
+
+    def test_price_variance_recorded_when_invoiced_price_differs(self):
+        self.po.receive_order(receipts={
+            str(self.flour.id): {"quantity_received": "10", "invoiced_price": "45.00"},
+        })
+
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.invoiced_price, Decimal("45.00"))
+        self.assertEqual(self.flour_line.price_variance, Decimal("5.00"))
+        # last_purchase_price reflects what was actually charged, not the stale order price.
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.last_purchase_price, Decimal("45.00"))
+
+    def test_no_variance_when_price_matches(self):
+        self.po.receive_order(receipts={
+            str(self.flour.id): {"quantity_received": "10", "invoiced_price": "40.00"},
+        })
+        self.flour_line.refresh_from_db()
+        self.assertEqual(self.flour_line.price_variance, Decimal("0.00"))
+
+    def test_already_received_po_is_a_no_op(self):
+        self.po.receive_order()
+        self.flour.refresh_from_db()
+        stock_after_first = self.flour.stock
+
+        self.po.receive_order()  # already "received" — should not double-add stock
+
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, stock_after_first)
+
+    # ---- View-level ----
+
+    def test_view_partial_receive_returns_partially_received_status(self):
+        resp = self._receive({str(self.flour.id): {"quantity_received": "4"}})
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["status"], "partially_received")
+
+    def test_view_can_receive_from_partially_received_state(self):
+        self._receive({str(self.flour.id): {"quantity_received": "4"}})
+        resp = self._receive({str(self.flour.id): {"quantity_received": "6"}})
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.po.refresh_from_db()
+        # sugar was never mentioned — defaults to fully received on this 2nd call too.
+        self.assertEqual(self.po.status, "received")
+
+    def test_view_empty_body_receives_everything_default(self):
+        resp = self.client.post(reverse("po_receive", args=[self.po.id]))
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["status"], "received")
+
+    def test_view_rejects_garbage_quantity(self):
+        resp = self._receive({str(self.flour.id): {"quantity_received": "not-a-number"}})
+        self.assertEqual(resp.status_code, 400)
+        self.flour.refresh_from_db()
+        self.assertEqual(self.flour.stock, Decimal("0.000"))  # nothing applied
+
+    def test_cannot_cancel_a_partially_received_po(self):
+        self._receive({str(self.flour.id): {"quantity_received": "4"}})
+        resp = self.client.post(reverse("po_cancel", args=[self.po.id]))
+        self.assertEqual(resp.status_code, 400)
+        self.po.refresh_from_db()
+        self.assertEqual(self.po.status, "partially_received")
+
+
+class ManualStockAdjustmentTests(TestCase):
+    """
+    Coverage for InventoryItem.adjust_stock() and the adjust_stock view.
+
+    "adjustment" already existed as a defined InventoryTransaction type
+    with no view or endpoint anywhere that could actually create one — a
+    physical count that didn't match the system had no way to be
+    reconciled by a manager.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Adjustment Tenant", tenant_type="franchise")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Rice", unit="kg", stock=Decimal("20.000"),
+        )
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="adjust_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.waiter = User.objects.create_user(
+            username="adjust_waiter", password="pwd",
+            role="waiter", tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def _adjust(self, body):
+        return self.client.post(
+            reverse("inventory_adjust_stock", args=[self.item.id]),
+            data=json.dumps(body), content_type="application/json",
+        )
+
+    # ---- Model-level ----
+
+    def test_positive_delta_increases_stock_and_logs_it(self):
+        from inventory.models import InventoryTransaction
+
+        self.item.adjust_stock(Decimal("5"), reference="Found extra sack in storage")
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock, Decimal("25.000"))
+
+        txn = InventoryTransaction.objects.filter(item=self.item, transaction_type="adjustment").first()
+        self.assertIsNotNone(txn)
+        self.assertEqual(txn.quantity, Decimal("5"))
+        self.assertEqual(txn.reference, "Found extra sack in storage")
+
+    def test_negative_delta_decreases_stock(self):
+        self.item.adjust_stock(Decimal("-5"), reference="Miscounted last week")
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock, Decimal("15.000"))
+
+    def test_reason_is_required(self):
+        with self.assertRaises(ValidationError):
+            self.item.adjust_stock(Decimal("5"), reference="")
+
+    def test_zero_delta_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.item.adjust_stock(Decimal("0"), reference="No actual change")
+
+    def test_cannot_adjust_below_zero(self):
+        with self.assertRaises(ValidationError):
+            self.item.adjust_stock(Decimal("-999"), reference="Way too much")
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock, Decimal("20.000"))  # unchanged
+
+    # ---- View-level ----
+
+    def test_view_new_count_computes_correct_delta(self):
+        """Manager enters what they actually counted (12), not a delta —
+        the view computes 12 - 20 = -8 itself."""
+        resp = self._adjust({"new_count": "12", "reason": "Physical count"})
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["new_stock"], 12.0)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock, Decimal("12.000"))
+
+    def test_view_delta_form_also_works(self):
+        resp = self._adjust({"delta": "-3", "reason": "Spoiled, not logged as wastage"})
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["new_stock"], 17.0)
+
+    def test_view_rejects_both_new_count_and_delta_given(self):
+        resp = self._adjust({"new_count": "12", "delta": "-3", "reason": "Ambiguous"})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_view_rejects_neither_given(self):
+        resp = self._adjust({"reason": "Forgot the number"})
+        self.assertEqual(resp.status_code, 400)
+
+    def test_view_rejects_missing_reason(self):
+        resp = self._adjust({"new_count": "12"})
+        self.assertEqual(resp.status_code, 400)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.stock, Decimal("20.000"))  # unchanged
+
+    def test_waiter_role_is_forbidden(self):
+        self.client.force_login(self.waiter)
+        resp = self._adjust({"new_count": "12", "reason": "Physical count"})
+        self.assertEqual(resp.status_code, 403)

@@ -169,6 +169,7 @@
                                 <input type="number" min="0" step="0.01" id="add{{ item.id }}" class="input-luxury" placeholder="Qty">
                                 <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')">Add</button>
                                 <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage"><i class="bi bi-droplet-half"></i></button>
+                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="openAdjustModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}', '{{ item.stock }}')" title="Manually correct stock (e.g. after a physical count)"><i class="bi bi-sliders"></i></button>
                             </div>
                         </td>
                         <td>
@@ -328,6 +329,38 @@
         </div>
     </div>
 </div>
+
+<!-- Manual Stock Adjustment Modal -->
+<div class="modal fade" id="adjustModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border-col);border-radius:8px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" style="color:var(--text-main);">Adjust Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="adjustItemId">
+                <p class="text-muted mb-3" id="adjustItemName" style="font-size:0.9rem;"></p>
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">
+                        What you actually counted (<span id="adjustUnit"></span>)
+                    </label>
+                    <input type="number" id="adjustNewCount" min="0" step="0.001" class="input-luxury w-100" placeholder="e.g. 12.5">
+                    <div class="form-text" style="font-size:0.75rem;" id="adjustCurrentStock"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Reason (required)</label>
+                    <input type="text" id="adjustReason" class="input-luxury w-100" placeholder="e.g. Monthly physical count, miscounted last delivery">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn-luxury w-100 justify-content-center" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="submitAdjust()">
+                    <i class="bi bi-sliders me-2"></i>Apply Adjustment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -449,6 +482,36 @@ function submitWastage() {
             document.getElementById('stock' + id).innerText = parseFloat(data.new_stock).toFixed(3);
             location.reload();
         } else { alert(data.error || 'Failed to log wastage'); }
+    });
+}
+
+function openAdjustModal(id, name, unit, currentStock) {
+    document.getElementById('adjustItemId').value = id;
+    document.getElementById('adjustItemName').textContent = name;
+    document.getElementById('adjustUnit').textContent = unit;
+    document.getElementById('adjustNewCount').value = '';
+    document.getElementById('adjustReason').value = '';
+    document.getElementById('adjustCurrentStock').textContent = `System currently shows ${currentStock} ${unit}`;
+    new bootstrap.Modal(document.getElementById('adjustModal')).show();
+}
+
+function submitAdjust() {
+    const id = document.getElementById('adjustItemId').value;
+    const newCount = document.getElementById('adjustNewCount').value;
+    const reason = document.getElementById('adjustReason').value.trim();
+    if (newCount === '' || parseFloat(newCount) < 0) { alert('Enter what you actually counted.'); return; }
+    if (!reason) { alert('A reason is required for a manual adjustment.'); return; }
+    fetch(`/inventory/adjust/${id}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
+        body: JSON.stringify({ new_count: newCount, reason })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('adjustModal')).hide();
+            location.reload();
+        } else { alert(data.error || 'Failed to apply the adjustment'); }
     });
 }
 </script>
