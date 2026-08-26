@@ -142,7 +142,7 @@
                         <th>Unit</th>
                         <th>Value</th>
                         <th>Status</th>
-                        <th>Refill Stock</th>
+                        <th>Update Stock</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -167,13 +167,13 @@
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <input type="number" min="0" step="0.01" id="add{{ item.id }}" class="input-luxury" placeholder="Qty">
-                                <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')">Add</button>
-                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage"><i class="bi bi-droplet-half"></i></button>
-                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="openAdjustModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}', '{{ item.stock }}')" title="Manually correct stock (e.g. after a physical count)"><i class="bi bi-sliders"></i></button>
+                                <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')" title="Add received stock"><i class="bi bi-plus-lg me-1"></i>Add</button>
+                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage — reduces stock and records it as a loss"><i class="bi bi-droplet-half me-1"></i>Waste</button>
+                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="openAdjustModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}', '{{ item.stock }}')" title="Correct stock after a physical count — not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
                             </div>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}')">
+                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}')" title="Edit ingredient details" aria-label="Edit ingredient details">
                                 <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
                             </button>
                         </td>
