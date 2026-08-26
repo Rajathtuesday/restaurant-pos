@@ -580,6 +580,31 @@ class GenerateMonthlyInvoicesTaskTest(TestCase):
         self.assertFalse(SubscriptionInvoice.objects.filter(tenant=broken).exists())
         self.assertTrue(SubscriptionInvoice.objects.filter(tenant=healthy).exists())
 
+    @patch("billing.razorpay_gateway.requests.post")
+    @patch("notifications.services.whatsapp_service._send_meta", return_value=False)
+    @patch("notifications.services.whatsapp_service._send_twilio", return_value=False)
+    def test_pdf_import_failure_does_not_crash_the_whole_batch(self, mock_twilio, mock_meta, mock_post):
+        """
+        Regression test mirroring the real bug fixed in
+        inventory.views.mark_po_ordered: render_invoice_pdf's import used to
+        happen once, before this function's tenant loop even started.
+        billing.services imports weasyprint at module load -- on a server
+        missing its native GTK/Pango libs, that import failing used to crash
+        the entire monthly billing run before a single tenant was processed,
+        not just the one PDF that couldn't render. The import now happens
+        per-tenant, inside the same try/except that already isolates one
+        tenant's failure (see the Razorpay-failure test above) from the rest
+        of the batch.
+        """
+        self._make_active_tenant("Due Co")
+        mock_post.return_value = self._ok_response()
+
+        with patch.dict(sys.modules, {"billing.services": None}):
+            result = generate_monthly_invoices()  # must not raise
+
+        self.assertEqual(result["created"], 0)
+        self.assertEqual(result["failed"], 1)
+
     @patch("billing.services.render_invoice_pdf", return_value=b"%PDF-fake%")
     @patch("billing.razorpay_gateway.requests.post")
     @patch("notifications.services.whatsapp_service._send_meta", return_value=False)

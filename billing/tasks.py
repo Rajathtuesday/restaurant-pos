@@ -37,7 +37,6 @@ def generate_monthly_invoices():
     from tenants.models import Tenant
     from .models import SubscriptionInvoice
     from .razorpay_gateway import create_subscription_payment_link
-    from .services import render_invoice_pdf
     from notifications.services.whatsapp_service import send_subscription_invoice
 
     today = timezone.now().date()
@@ -78,6 +77,14 @@ def generate_monthly_invoices():
                 invoice.razorpay_payment_link_url = link_url
                 invoice.save(update_fields=["razorpay_payment_link_id", "razorpay_payment_link_url"])
 
+            # Imported here, not at module/function top -- render_invoice_pdf
+            # loads weasyprint, which can fail to import on a server missing
+            # its native GTK/Pango libs (the exact bug fixed in
+            # inventory.views.mark_po_ordered). Importing it before this loop
+            # started would crash generate_monthly_invoices for every tenant
+            # at once instead of just this one, which the except below
+            # already isolates and retries on the next scheduled run.
+            from .services import render_invoice_pdf
             pdf_bytes = render_invoice_pdf(invoice, payment_link_url=link_url)
             if owner and owner.email:
                 email = EmailMessage(
