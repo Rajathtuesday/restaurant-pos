@@ -292,6 +292,17 @@ else:
         },
     }
 
+# Cookie name Django's CSRF middleware sets and every template's JS reads
+# back out of document.cookie. Deliberately NOT gated behind `if not DEBUG`
+# like the domain-scoping settings below it -- a cookie's NAME has no
+# environment-specific meaning (unlike its domain/secure/scope), so it must
+# match in every environment, or the hardcoded `csrftoken2` reads in every
+# template's JS (purchase_orders.html, inventory_board.html, and 7 others)
+# find nothing and either throw (a bare `.find(...).split('=')[1]` on
+# undefined) or silently send no token at all -- confirmed breaking local
+# DEBUG-mode testing of the Order/Edit/Receive flows on this exact page.
+CSRF_COOKIE_NAME = "csrftoken2"
+
 # Security Headers
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
@@ -314,21 +325,19 @@ if not DEBUG:
     SESSION_COOKIE_DOMAIN = _cookie_domain
     CSRF_COOKIE_DOMAIN = _cookie_domain
 
-    # Any browser that had already logged in BEFORE the domain-wide cookie
-    # above was deployed still has an old csrftoken cookie scoped to the
-    # exact host (e.g. spice.rasova.net) alongside the new one scoped to
-    # .rasova.net. Both are valid, both get sent, and the JS reading
-    # document.cookie and Django's own request.COOKIES parsing aren't
-    # guaranteed to pick the same one of the two — producing a persistent,
-    # unexplained "CSRF token from header incorrect" 403 on every POST from
-    # that browser, confirmed in logs/security.log recurring across several
-    # days on one staff device, that clearing cookies once didn't reliably
-    # fix (the browser's per-site "clear cookies" panel doesn't always
-    # remove a domain-scoped cookie set from the same host). Renaming the
-    # cookie makes every browser fetch one single, unambiguous new cookie
-    # on its next request — the old one(s), under the old name, are simply
-    # never read again by anything.
-    CSRF_COOKIE_NAME = "csrftoken2"
+    # CSRF_COOKIE_NAME is set unconditionally above (not here) -- see that
+    # comment. The rename itself was originally motivated by exactly this
+    # domain-scoping change: any browser that had already logged in BEFORE
+    # the domain-wide cookie above was deployed still had an old csrftoken
+    # cookie scoped to the exact host (e.g. spice.rasova.net) alongside the
+    # new one scoped to .rasova.net. Both were valid, both got sent, and the
+    # JS reading document.cookie and Django's own request.COOKIES parsing
+    # weren't guaranteed to pick the same one of the two — producing a
+    # persistent, unexplained "CSRF token from header incorrect" 403 on
+    # every POST from that browser, confirmed in logs/security.log
+    # recurring across several days on one staff device, that clearing
+    # cookies once didn't reliably fix. Renaming the cookie made every
+    # browser fetch one single, unambiguous new cookie on its next request.
 
     # Tell Django the real scheme when running behind nginx or any reverse proxy.
     # Without this, Django sees all requests as HTTP and HTTPS-detection breaks.
