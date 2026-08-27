@@ -154,14 +154,11 @@ def deduct_inventory_for_items(order_items):
         }
 
         def trigger_low_stock_alerts():
-            from notifications.services.notification_service import create_notification
+            from notifications.services.notification_service import create_low_stock_alert
             for item in low_stock_items:
                 computed_new_stock = new_stock_map.get(item.id, item.stock)
-                create_notification(
-                    item.tenant,
-                    item.outlet,
-                    "low_stock",
-                    f"{item.name} low stock ({computed_new_stock} {item.unit})"
+                create_low_stock_alert(
+                    item.tenant, item.outlet, item.id, item.name, item.unit, computed_new_stock,
                 )
                 if getattr(item, 'preferred_supplier', None) and item.reorder_quantity > 0:
                     try:

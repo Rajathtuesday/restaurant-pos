@@ -4,7 +4,9 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase
 from tenants.models import Tenant, Outlet
 from notifications.models import Notification
-from notifications.services.notification_service import create_notification
+from notifications.services.notification_service import (
+    create_notification, create_low_stock_alert, clear_low_stock_alert,
+)
 from notifications.services.whatsapp_service import _build_message
 
 
@@ -69,6 +71,74 @@ class NotificationServiceTests(TestCase):
         self.assertEqual(notification.message, "Cheese low stock")
 
         self.assertEqual(Notification.objects.count(), 1)
+
+
+class LowStockAlertDedupTests(TestCase):
+    """
+    create_low_stock_alert/clear_low_stock_alert (notifications/services/
+    notification_service.py) -- fixes every order that sold an already-low
+    item creating a brand new Notification row instead of reusing the
+    existing unread one, which let the header's Alerts badge balloon to
+    dozens of rows for what was really one ongoing low-stock issue.
+    """
+
+    def setUp(self):
+        from inventory.models import InventoryItem
+        self.tenant = Tenant.objects.create(name="Dedup Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer",
+            unit="kg", stock=5, low_stock_threshold=10,
+        )
+
+    def test_second_alert_for_same_item_updates_instead_of_duplicating(self):
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 5)
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 3)
+
+        self.assertEqual(Notification.objects.filter(type="low_stock").count(), 1)
+        alert = Notification.objects.get(type="low_stock")
+        self.assertIn("3 kg", alert.message)
+
+    def test_alert_for_a_different_item_is_a_separate_row(self):
+        from inventory.models import InventoryItem
+        other = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Cheese",
+            unit="kg", stock=1, low_stock_threshold=5,
+        )
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 5)
+        create_low_stock_alert(self.tenant, self.outlet, other.id, "Cheese", "kg", 1)
+
+        self.assertEqual(Notification.objects.filter(type="low_stock").count(), 2)
+
+    def test_new_alert_created_after_the_old_one_was_read(self):
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 5)
+        Notification.objects.filter(type="low_stock").update(is_read=True)
+
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 2)
+
+        self.assertEqual(Notification.objects.filter(type="low_stock").count(), 2)
+        self.assertEqual(Notification.objects.filter(type="low_stock", is_read=False).count(), 1)
+
+    def test_clear_marks_the_unread_alert_read(self):
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 5)
+        clear_low_stock_alert(self.tenant, self.outlet, self.item.id)
+
+        alert = Notification.objects.get(type="low_stock")
+        self.assertTrue(alert.is_read)
+
+    def test_clear_does_not_touch_a_different_items_alert(self):
+        from inventory.models import InventoryItem
+        other = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Cheese",
+            unit="kg", stock=1, low_stock_threshold=5,
+        )
+        create_low_stock_alert(self.tenant, self.outlet, self.item.id, "Paneer", "kg", 5)
+        create_low_stock_alert(self.tenant, self.outlet, other.id, "Cheese", "kg", 1)
+
+        clear_low_stock_alert(self.tenant, self.outlet, self.item.id)
+
+        self.assertTrue(Notification.objects.get(item_id=self.item.id, type="low_stock").is_read)
+        self.assertFalse(Notification.objects.get(item_id=other.id, type="low_stock").is_read)
 
 
 class WhatsAppBuildMessageTest(TestCase):

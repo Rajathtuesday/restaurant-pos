@@ -4,7 +4,9 @@ from core.models import TenantScopedModel
 from django.db.models import F, Q, CheckConstraint
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from notifications.services.notification_service import create_notification
+from notifications.services.notification_service import (
+    create_low_stock_alert, clear_low_stock_alert,
+)
 
 
 UNIT_CHOICES = [
@@ -165,15 +167,13 @@ class InventoryItem(TenantScopedModel):
                 # doesn't fire for transactions that are later rolled back.
                 _tenant = item.tenant
                 _outlet = item.outlet
+                _item_id = item.id
                 _name = item.name
                 _unit = item.unit
                 _new_stock = new_stock
 
                 def _notify():
-                    create_notification(
-                        _tenant, _outlet, "low_stock",
-                        f"{_name} low stock ({_new_stock} {_unit})"
-                    )
+                    create_low_stock_alert(_tenant, _outlet, _item_id, _name, _unit, _new_stock)
 
                 transaction.on_commit(_notify)
 
@@ -223,6 +223,7 @@ class InventoryItem(TenantScopedModel):
         with transaction.atomic():
 
             item = InventoryItem.objects.select_for_update().get(id=self.id)
+            new_stock = item.stock + quantity
 
             item.stock = F("stock") + quantity
             item.save(update_fields=["stock"])
@@ -235,6 +236,10 @@ class InventoryItem(TenantScopedModel):
                 transaction_type="restock",
                 reference=reference
             )
+
+            if new_stock > item.low_stock_threshold:
+                _tenant, _outlet, _item_id = item.tenant, item.outlet, item.id
+                transaction.on_commit(lambda: clear_low_stock_alert(_tenant, _outlet, _item_id))
 
 
     # -------------------------------------------------------
@@ -494,10 +499,14 @@ class PurchaseOrder(TenantScopedModel):
 
             if increment > 0:
                 anything_received = True
+                new_stock = inv_item.stock + increment
                 InventoryItem.objects.filter(pk=inv_item.pk).update(
                     stock=F("stock") + increment,
                     last_purchase_price=invoiced_price or item_link.unit_price,
                 )
+                if new_stock > inv_item.low_stock_threshold:
+                    _tenant, _outlet, _item_id = inv_item.tenant, inv_item.outlet, inv_item.id
+                    transaction.on_commit(lambda t=_tenant, o=_outlet, i=_item_id: clear_low_stock_alert(t, o, i))
                 transactions_to_create.append(
                     InventoryTransaction(
                         item=inv_item,

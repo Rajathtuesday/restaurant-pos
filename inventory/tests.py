@@ -32,6 +32,7 @@ from inventory.models import (
     InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem,
     StockRequisition, RequisitionItem,
 )
+from notifications.models import Notification
 
 
 def _variance_report_url():
@@ -152,6 +153,99 @@ class InventoryTests(TestCase):
         po.refresh_from_db()
         self.assertEqual(po.status, "received")
         self.assertIsNotNone(po.received_at)
+
+
+class LowStockAlertWiringTests(TestCase):
+    """
+    reduce_stock/add_stock/PurchaseOrder.receive_order now go through
+    create_low_stock_alert/clear_low_stock_alert (notifications/services/
+    notification_service.py) instead of creating a raw Notification
+    directly, so repeated sales of an already-low item update one row
+    instead of piling up duplicates, and restocking clears it automatically.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Wiring Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.supplier = Supplier.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Wiring Supplier",
+        )
+        self.item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer",
+            unit="kg", stock=Decimal("10.000"), low_stock_threshold=Decimal("5.000"),
+            cost_price=Decimal("15.00"),
+        )
+
+    def _low_stock_alerts(self):
+        return Notification.objects.filter(tenant=self.tenant, type="low_stock", item=self.item)
+
+    def test_repeated_sales_below_threshold_update_one_alert(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("6.000"))  # 10 -> 4, crosses threshold
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("1.000"))  # 4 -> 3, still low
+
+        self.assertEqual(self._low_stock_alerts().count(), 1)
+        self.assertIn("3.000 kg", self._low_stock_alerts().first().message)
+
+    def test_restock_above_threshold_clears_the_alert(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("6.000"))  # 10 -> 4, crosses threshold
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 1)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.add_stock(Decimal("10.000"))  # 4 -> 14, back above threshold
+
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 0)
+
+    def test_restock_still_below_threshold_leaves_alert_unread(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("9.000"))  # 10 -> 1, crosses threshold
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.add_stock(Decimal("1.000"))  # 1 -> 2, still below threshold (5)
+
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 1)
+
+    def test_receiving_a_purchase_order_above_threshold_clears_the_alert(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("6.000"))  # 10 -> 4, crosses threshold
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 1)
+
+        po = PurchaseOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, supplier=self.supplier, status="ordered",
+        )
+        PurchaseOrderItem.objects.create(
+            purchase_order=po, item=self.item, quantity=Decimal("10.000"), unit_price=Decimal("15.00"),
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            po.receive_order()
+
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 0)
+
+    def test_receiving_a_purchase_order_still_below_threshold_leaves_alert_unread(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("9.000"))  # 10 -> 1, crosses threshold
+        po = PurchaseOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, supplier=self.supplier, status="ordered",
+        )
+        PurchaseOrderItem.objects.create(
+            purchase_order=po, item=self.item, quantity=Decimal("1.000"), unit_price=Decimal("15.00"),
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            po.receive_order()  # 1 -> 2, still below threshold (5)
+
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 1)
+
+    def test_new_low_stock_event_after_alert_was_read_creates_a_fresh_alert(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("6.000"))  # 10 -> 4
+        self._low_stock_alerts().update(is_read=True)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            self.item.reduce_stock(Decimal("1.000"))  # 4 -> 3, still low, but old alert was read
+
+        self.assertEqual(self._low_stock_alerts().count(), 2)
+        self.assertEqual(self._low_stock_alerts().filter(is_read=False).count(), 1)
 
 
 class InventoryViewsTests(TestCase):

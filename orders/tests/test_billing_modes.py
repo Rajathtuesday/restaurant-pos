@@ -377,6 +377,47 @@ class InventoryDeductionTest(CounterBillingBase):
         self.assertEqual(chutney.stock, Decimal("950"))  # 1000 - 50ml, not left at 1000
 
 
+class BulkDeductionLowStockAlertDedupTest(InventoryDeductionTest):
+    """
+    orders/services/inventory_service.py::trigger_low_stock_alerts (the bulk
+    multi-item deduction path, used by counter/QSR payment) now goes through
+    the same create_low_stock_alert dedup as the single-item reduce_stock
+    path -- two separate orders that both push the same already-low
+    ingredient further down must update one alert, not create two.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.batter.low_stock_threshold = Decimal("4.9")
+        self.batter.save(update_fields=["low_stock_threshold"])
+
+    def _low_stock_alerts(self):
+        from notifications.models import Notification
+        return Notification.objects.filter(tenant=self.tenant, type="low_stock", item=self.batter)
+
+    def _pay(self, order):
+        with self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(
+                f"/pay/{order.id}/",
+                data='{"method":"cash","amount":"' + str(order.grand_total) + '"}',
+                content_type="application/json",
+            )
+
+    def test_two_low_stock_payments_produce_one_alert(self):
+        order1 = self._make_order([(self.idli, 2)])  # 5.0 -> 4.8, crosses 4.9 threshold
+        order1.status = "billing"
+        order1.save(update_fields=["status"])
+        self._pay(order1)
+
+        order2 = self._make_order([(self.idli, 1)])  # 4.8 -> 4.7, still low
+        order2.status = "billing"
+        order2.save(update_fields=["status"])
+        self._pay(order2)
+
+        self.assertEqual(self._low_stock_alerts().count(), 1)
+        self.assertIn("4.700", self._low_stock_alerts().first().message)
+
+
 # ── 5. Feature Gating ─────────────────────────────────────────────────────────
 
 class FeatureGatingTest(TestCase):
