@@ -5,7 +5,6 @@ from django.db import transaction
 from django.utils import timezone
 from orders.models import OrderItem
 from kitchen.models import KOTBatch
-from notifications.services.notification_service import create_notification
 from orders.services.order_service import update_table_state
 
 # Matches tokens/views.py's _READY_STALE_MINUTES (the pickup display
@@ -158,21 +157,17 @@ def set_item_ready(user, item_id):
             token.ready_at = _tz.now()
             token.save(update_fields=["ready_at"])
 
-    # Create KitchenMessage for the waiter dashboard
+    # Create KitchenMessage for the waiter dashboard -- this is the only
+    # alert this event needs. It used to also write a "order_ready"
+    # Notification row for the exact same event, but nothing ever surfaced
+    # that channel to a user (the poller that fetches it never rendered
+    # it), so it was a dead duplicate write, not a second real alert.
     from kitchen.models import KitchenMessage
     KitchenMessage.objects.create(
         tenant=item.order.tenant,
         outlet=item.order.outlet,
         order=item.order,
         message=f"{item.menu_item.name} is ready"
-    )
-
-    table_name = item.order.table.name if item.order.table else "Takeaway"
-    create_notification(
-        item.order.tenant,
-        item.order.outlet,
-        "order_ready",
-        f"Order ready for {table_name}"
     )
 
     return item

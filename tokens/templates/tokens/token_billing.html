@@ -531,10 +531,7 @@
 <!-- Mobile icon nav -->
 <a href="{% url 'token-dashboard' %}" class="btn-icon d-md-none" title="Tokens"><i class="bi bi-grid-3x3"></i></a>
 <a href="/kitchen/" class="btn-icon d-md-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-<span class="notif-wrapper">
-    <a href="/waiter-dashboard/" class="btn-icon d-md-none" title="Calls"><i class="bi bi-bell"></i></a>
-    <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
-</span>
+{% include "core/_notif_badges.html" %}
 <a href="/reports/dashboard/" class="btn-icon d-md-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
 <a href="/logout/" class="btn-icon d-none d-md-inline-flex" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 <button class="btn-icon" onclick="toggleLargeText()" title="Large Text Mode" id="largeTextBtn">

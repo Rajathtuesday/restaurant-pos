@@ -1,0 +1,38 @@
+{# Icon-only notification badges (btn-icon style) -- shared by base.html's
+   default header, and any page's mobile nav row. See also
+   _notif_badges_luxury.html for the text+icon desktop variant used by the
+   main POS screens.
+
+   These three were previously hand-copied per template with real drift:
+   billing.html/tables.html/token_billing.html each had their own copy of
+   just the "Calls" badge, missing QR-orders entirely, and none of them
+   had the low-stock/system badge since it didn't exist until it was
+   added here. One include now, not N hand-copies to keep in sync. #}
+{% if 'waiter_call' in tenant_features %}
+<span class="notif-wrapper">
+    <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
+    <span class="notif-badge hidden" id="notif-badge-waiter{{ notif_id_suffix }}">0</span>
+</span>
+{% endif %}
+{% if 'qr_menu' in tenant_features and 'floor_plan' in tenant_features and request.user.role != "chef" %}
+<span class="notif-wrapper">
+    {% comment %}
+    Floor-plan-only: a tenant without floor_plan (QSR/cafe counter, no
+    waiter-run floor) has no use for a "go approve this on the floor"
+    notification -- Token Billing already shows review items inline with
+    its own approve/reject buttons, so this badge is redundant noise for
+    them, not just a broken link. Guest QR items land as "review"
+    regardless of whether the outlet has tables (see add_items_to_order),
+    so the count itself would still be real for those tenants -- it's
+    just the wrong affordance.
+    {% endcomment %}
+    <a href="/tables/" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
+    <span class="notif-badge hidden" id="notif-badge-qr{{ notif_id_suffix }}">0</span>
+</span>
+{% endif %}
+{% if request.user.role in "owner,manager" %}
+<span class="notif-wrapper">
+    <a href="/inventory/board/" class="btn-icon" title="Low stock &amp; system alerts"><i class="bi bi-exclamation-diamond"></i></a>
+    <span class="notif-badge hidden" id="notif-badge-system{{ notif_id_suffix }}">0</span>
+</span>
+{% endif %}

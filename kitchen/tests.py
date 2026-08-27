@@ -117,6 +117,28 @@ class KitchenStateActionsPermissionTest(_Base):
         self.order_item.refresh_from_db()
         self.assertEqual(self.order_item.status, "ready")
 
+    def test_marking_ready_creates_kitchen_message_not_a_dead_notification(self):
+        """
+        set_item_ready used to also write a Notification(type="order_ready")
+        for the exact same event the KitchenMessage below already covers --
+        a duplicate write to a channel nothing ever displayed to a user
+        (the poller that fetched it never rendered it). Removed as dead
+        code, not replaced with anything, since KitchenMessage already does
+        the real job.
+        """
+        from kitchen.models import KitchenMessage
+        from notifications.models import Notification
+
+        self._login(self.chef).post(reverse("item-start", args=[self.order_item.id]))
+        self._login(self.chef).post(reverse("mark-ready", args=[self.order_item.id]))
+
+        self.assertTrue(
+            KitchenMessage.objects.filter(order=self.order).exists()
+        )
+        self.assertFalse(
+            Notification.objects.filter(tenant=self.tenant, type="order_ready").exists()
+        )
+
     def test_kitchen_role_can_view_dashboard_and_bump_kot(self):
         resp = self._login(self.kitchen).get(reverse("kitchen-view"))
         self.assertEqual(resp.status_code, 200)

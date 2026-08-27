@@ -45,6 +45,16 @@ def inventory_board(request):
 
     categories = sorted({i.category for i in items if i.category})
 
+    # Visiting the board is treated as having seen whatever low-stock/system
+    # alerts brought a manager here in the first place -- same "click through
+    # to go handle it" acknowledgment pattern as the other header badges,
+    # none of which have a separate dropdown/dismiss UI either.
+    from notifications.models import Notification
+    Notification.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet,
+        type__in=["low_stock", "system"], is_read=False,
+    ).update(is_read=True)
+
     return render(request, "inventory/inventory_board.html", {
         "items": items,
         "suppliers": suppliers,

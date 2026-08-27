@@ -170,19 +170,12 @@
   <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
   <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
   <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
-  <span class="notif-wrapper d-none d-sm-inline-flex">
-    <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none"><i class="bi bi-bell me-1"></i> Calls</a>
-    <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
-  </span>
   <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
 
   <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
   <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-  <span class="notif-wrapper d-sm-none">
-    <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
-    <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
-  </span>
   <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
+  {% include "core/_notif_badges_luxury.html" %}
 
   <button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
     <i class="bi bi-moon" id="themeIcon"></i>
@@ -672,27 +665,14 @@
     });
   }
 
-  async function pollNotifications() {
-    try {
-      const res  = await fetch('/api/notifications/');
-      const data = await res.json();
-      const w  = document.getElementById('notif-badge-waiter');
-      const wm = document.getElementById('notif-badge-waiter-mobile');
-      const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
-      if (totalCount > 0) {
-        if (w)  { w.innerText  = totalCount; w.classList.remove('hidden'); }
-        if (wm) { wm.innerText = totalCount; wm.classList.remove('hidden'); }
-      } else {
-        if (w)  w.classList.add('hidden');
-        if (wm) wm.classList.add('hidden');
-      }
-    } catch (e) { console.error("Poll failed", e); }
-  }
-
+  // Waiter/QR/system badges on this page are now kept in sync by the one
+  // global poller in core/base.html (runs every 8s, covers all three) --
+  // this used to run its own separate 10s poller hitting the same
+  // /api/notifications/ endpoint just to update the waiter badge alone,
+  // a redundant duplicate of a mechanism that already works.
   document.addEventListener("DOMContentLoaded", () => {
     refreshLayout();
     setInterval(refreshLayout, 5000);
-    setInterval(pollNotifications, 10000);
   });
 </script>
 {% endblock %}

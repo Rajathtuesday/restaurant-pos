@@ -154,12 +154,6 @@
   {% if 'kitchen_display' in tenant_features %}
   <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
   {% endif %}
-  {% if 'waiter_call' in tenant_features %}
-  <span class="notif-wrapper d-none d-sm-inline-flex">
-    <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none"><i class="bi bi-bell me-1"></i> Calls</a>
-    <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
-  </span>
-  {% endif %}
   {% if 'reports' in tenant_features %}
   <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
   {% endif %}
@@ -171,16 +165,11 @@
   {% if 'kitchen_display' in tenant_features %}
   <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
   {% endif %}
-  {% if 'waiter_call' in tenant_features %}
-  <span class="notif-wrapper d-sm-none">
-    <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
-    <span class="notif-badge hidden" id="notif-badge-waiter-mobile">0</span>
-  </span>
-  {% endif %}
   {% if 'reports' in tenant_features %}
   <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
   {% endif %}
   <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+  {% include "core/_notif_badges_luxury.html" %}
 
   <button class="btn-icon ms-1" onclick="themeManager.toggle()" title="Toggle Theme">
     <i class="bi bi-moon" id="themeIcon"></i>

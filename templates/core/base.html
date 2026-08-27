@@ -243,29 +243,7 @@
             {% endif %}
             {% block header_right %}
             <!-- Default right side buttons -->
-            {% if 'waiter_call' in tenant_features %}
-            <span class="notif-wrapper">
-                <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
-                <span class="notif-badge hidden" id="notif-badge-waiter">0</span>
-            </span>
-            {% endif %}
-            {% if 'qr_menu' in tenant_features and 'floor_plan' in tenant_features and request.user.role != "chef" %}
-            <span class="notif-wrapper">
-                {% comment %}
-                Floor-plan-only: a tenant without floor_plan (QSR/cafe
-                counter, no waiter-run floor) has no use for a "go approve
-                this on the floor" notification -- Token Billing already
-                shows review items inline with its own approve/reject
-                buttons, so this badge is redundant noise for them, not
-                just a broken link. Guest QR items land as "review"
-                regardless of whether the outlet has tables (see
-                add_items_to_order), so the count itself would still be
-                real for those tenants -- it's just the wrong affordance.
-                {% endcomment %}
-                <a href="/tables/" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
-                <span class="notif-badge hidden" id="notif-badge-qr">0</span>
-            </span>
-            {% endif %}
+            {% include "core/_notif_badges.html" %}
             {% if request.user.role != "chef" and request.user.is_authenticated %}
             <a href="{% url 'order-history' %}" class="btn-icon" title="Order History"><i class="bi bi-clock-history"></i></a>
             {% endif %}
@@ -683,6 +661,7 @@
         let prevWaiterCount = -1;
         let prevKitchenCount = -1;
         let prevQrCount = -1;
+        let prevSystemCount = -1;
         let pollInterval = null;
 
         // Short two-tone beep via Web Audio API — no static asset to ship/deploy.
@@ -776,6 +755,22 @@
                             'A customer placed an order from the table QR menu. Approve it to send to the kitchen.');
                     }
                     prevQrCount = qCount;
+                }
+
+                // ---- Low stock / system alerts (owner/manager only -- badge
+                // element is absent entirely for other roles, so this is a
+                // harmless no-op for them) ----
+                if (data.notifications) {
+                    const sCount = data.notifications.length || 0;
+                    updateBadge('notif-badge-system', sCount);
+
+                    if (prevSystemCount !== -1 && sCount > prevSystemCount) {
+                        const newAlerts = data.notifications.slice(0, sCount - prevSystemCount);
+                        newAlerts.forEach(n => {
+                            ui.toast(`⚠️ ${n.message}`, 'warning');
+                        });
+                    }
+                    prevSystemCount = sCount;
                 }
 
             } catch (e) {

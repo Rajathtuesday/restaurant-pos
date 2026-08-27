@@ -214,6 +214,52 @@ class InventoryViewsTests(TestCase):
         self.assertEqual(self.item.stock, Decimal("30.000")) # 10 + 20
 
 
+class InventoryBoardMarksNotificationsReadTests(TestCase):
+    """
+    Visiting the inventory board is the "click through to go handle it"
+    acknowledgment for low_stock/system alerts -- same pattern as every
+    other header badge, none of which have a separate dropdown/dismiss UI.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Board Notif Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="board_mgr", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def test_visiting_board_marks_low_stock_and_system_notifications_read(self):
+        from notifications.models import Notification
+        Notification.objects.create(
+            tenant=self.tenant, outlet=self.outlet, type="low_stock", message="Flour low",
+        )
+        Notification.objects.create(
+            tenant=self.tenant, outlet=self.outlet, type="system", message="Heads up",
+        )
+
+        response = self.client.get(reverse("inventory_board"))
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(
+            Notification.objects.filter(tenant=self.tenant, is_read=False).count(), 0
+        )
+
+    def test_does_not_mark_other_outlets_notifications_read(self):
+        from notifications.models import Notification
+        other_outlet = Outlet.objects.create(tenant=self.tenant, name="Branch 2")
+        other_notif = Notification.objects.create(
+            tenant=self.tenant, outlet=other_outlet, type="low_stock", message="Not mine",
+        )
+
+        self.client.get(reverse("inventory_board"))
+
+        other_notif.refresh_from_db()
+        self.assertFalse(other_notif.is_read)
+
+
 @_NO_MANIFEST
 class InventoryAccessControlTests(TestCase):
     """Verify that only owners/managers can access the inventory board."""
