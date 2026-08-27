@@ -11,13 +11,13 @@ had the low-stock/system badge since it didn't exist until it was
 added here. One include now, not N hand-copies to keep in sync.
 {% endcomment %}
 {% if 'waiter_call' in tenant_features %}
-<span class="notif-wrapper">
+<span class="notif-wrapper {{ extra_class }}">
     <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
     <span class="notif-badge hidden" id="notif-badge-waiter{{ notif_id_suffix }}">0</span>
 </span>
 {% endif %}
 {% if 'qr_menu' in tenant_features and 'floor_plan' in tenant_features and request.user.role != "chef" %}
-<span class="notif-wrapper">
+<span class="notif-wrapper {{ extra_class }}">
     {% comment %}
     Floor-plan-only: a tenant without floor_plan (QSR/cafe counter, no
     waiter-run floor) has no use for a "go approve this on the floor"
@@ -33,7 +33,7 @@ added here. One include now, not N hand-copies to keep in sync.
 </span>
 {% endif %}
 {% if request.user.role in "owner,manager" %}
-<span class="notif-wrapper">
+<span class="notif-wrapper {{ extra_class }}">
     <a href="/inventory/board/" class="btn-icon" title="Low stock &amp; system alerts"><i class="bi bi-exclamation-diamond"></i></a>
     <span class="notif-badge hidden" id="notif-badge-system{{ notif_id_suffix }}">0</span>
 </span>

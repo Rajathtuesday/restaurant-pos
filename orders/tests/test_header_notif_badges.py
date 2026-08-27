@@ -72,6 +72,29 @@ class HeaderNotifBadgeConsistencyTest(TestCase):
         self.assertIn('id="notif-badge-waiter"', content)
         self.assertIn('id="notif-badge-waiter-mobile"', content)
 
+    def test_mobile_badges_hidden_on_desktop_not_shown_twice(self):
+        """
+        Real bug, caught live: the luxury partial's desktop row is
+        correctly wrapped in d-sm-none/d-sm-inline-flex, but the mobile
+        row underneath it (a separate include of the icon-only partial)
+        had no visibility class applied at all -- so both the labeled
+        desktop badges ("Calls", "QR Orders", "Alerts") AND the icon-only
+        mobile duplicates rendered at every screen size simultaneously,
+        four extra icons appearing on a plain desktop screenshot.
+        """
+        self._login(self.manager)
+        resp = self.client.get("/billing/")
+        content = resp.content.decode()
+        # the mobile-suffixed wrapper must carry d-sm-none so it's hidden
+        # at the same breakpoint the desktop row switches on at
+        import re
+        mobile_wrapper = re.search(
+            r'<span class="notif-wrapper[^"]*"[^>]*>\s*<a href="/waiter-dashboard/" class="btn-icon"',
+            content,
+        )
+        self.assertIsNotNone(mobile_wrapper, "mobile icon-only Calls wrapper not found")
+        self.assertIn("d-sm-none", mobile_wrapper.group(0))
+
     def test_tables_no_longer_ships_its_own_redundant_poller(self):
         """
         The page-local 10s pollNotifications() duplicated the global 8s
