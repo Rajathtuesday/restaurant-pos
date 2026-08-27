@@ -120,8 +120,23 @@
     box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 1020; text-align: center; border: none;
     transition: var(--transition-smooth);
   }
-  .offcanvas-luxury { background: var(--panel-bg); color: var(--text-main); border-left: 1px solid var(--border-color); }
   .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+
+  /* Mobile cart -- full-viewport "page" overlay, not a Bootstrap offcanvas drawer.
+     A capped-width side drawer left the item list squeezed into a small nested-scroll
+     pocket beneath the settings bar and above a tall pinned footer; this instead makes
+     the item list the one naturally-scrolling region with a slim pinned Dispatch bar. */
+  .mobile-cart-page {
+    position: fixed; inset: 0; z-index: 1045;
+    background: var(--panel-bg); color: var(--text-main);
+    display: flex; flex-direction: column;
+    transform: translateX(100%); transition: var(--transition-smooth); visibility: hidden;
+  }
+  .mobile-cart-page.show { transform: translateX(0); visibility: visible; }
+  .mobile-cart-page-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+  .mobile-cart-page .context-body { overflow-y: visible; flex-grow: 0; }
+  .cart-page-breakdown { border-top: 1px dashed var(--border-color); margin-top: 1rem; padding-top: 1rem; }
+  #cartSummaryBlockMobile { flex-shrink: 0; }
 
   .toast-minimal {
     position: fixed; top: 20px; right: 20px; background: var(--text-main); color: var(--bg-color);
@@ -148,7 +163,7 @@
     .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
   }
   @media (min-width: 992px) {
-    .offcanvas-luxury { display: none !important; }
+    .mobile-cart-page { display: none !important; }
   }
 </style>
 {% endblock %}
@@ -318,21 +333,21 @@
 </div>
 
 <!-- MOBILE FAB -->
-<button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas">
+<button class="fab-cart" onclick="openCartMobile()">
   View Order (<span class="view-total">₹0</span>)
 </button>
 
-<!-- MOBILE OFFCANVAS CART -->
-<div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas">
+<!-- MOBILE CART PAGE (full-viewport overlay, not a drawer -- see openCartMobile/closeCartMobile) -->
+<div class="mobile-cart-page" id="mobileCartPage" role="dialog" aria-modal="true" aria-label="Current Order">
   <div class="offcanvas-header">
     <h5 class="m-0" style="font-family:'DM Serif Display',serif;">Current Order</h5>
-    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    <button type="button" class="btn-icon" onclick="closeCartMobile()" aria-label="Close order"><i class="bi bi-arrow-left"></i></button>
   </div>
   <div class="context-tabs">
     <div class="context-tab active" id="tabCartMobile" onclick="switchTabMobile('cart')">Order</div>
     <div class="context-tab" id="tabRunningMobile" onclick="switchTabMobile('running')">Active</div>
   </div>
-  <div class="offcanvas-body d-flex flex-column p-0">
+  <div class="mobile-cart-page-body">
     <div class="context-body flex-grow-1" id="cartViewMobile">
       <button type="button" class="order-summary-bar" onclick="toggleOrderSettings('mobile')">
         <span><i class="bi bi-geo-alt me-1"></i><span id="orderSummaryLabelMobile">Walk-in &middot; Dine-in</span></span>
@@ -356,41 +371,43 @@
         <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
       </div>
       <div id="cartItemsContainerMobile"></div>
-    </div>
-    <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
-      <div id="runningItemsMobile"></div>
-    </div>
-    <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
-      <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-      <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
-      {% if outlet.parcel_charge_amount %}
-      <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
-        <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
-      </div>
-      <button class="parcel-btn" onclick="toggleParcel()"
-        style="width:100%;padding:0.6rem;margin:0.4rem 0;border:1.5px dashed var(--border-color);
-               background:transparent;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;
-               letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-               justify-content:center;gap:0.5rem;font-family:inherit;">
-        <i class="bi bi-bag"></i>
-        <span class="parcel-btn-text">Add Parcel +₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
-      </button>
-      {% endif %}
-      <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-      <div class="d-flex flex-column gap-2 mt-3">
-        {% if auto_kot_mode %}
-        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitQSROrder()" style="background:#10b981;border-color:#10b981;font-size:0.85rem;letter-spacing:2px;">
-          <i class="bi bi-cash-coin me-2"></i>PAY &amp; PRINT SLIP
+      <div class="cart-page-breakdown">
+        <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+        <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+        {% if outlet.parcel_charge_amount %}
+        <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
+          <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+        </div>
+        <button class="parcel-btn" onclick="toggleParcel()"
+          style="width:100%;padding:0.6rem;margin:0.4rem 0;border:1.5px dashed var(--border-color);
+                 background:transparent;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;
+                 letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
+                 justify-content:center;gap:0.5rem;font-family:inherit;">
+          <i class="bi bi-bag"></i>
+          <span class="parcel-btn-text">Add Parcel +₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
         </button>
-        {% else %}
-        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
-        <div class="d-flex gap-2 secondary-actions">
+        {% endif %}
+        {% if not auto_kot_mode %}
+        <div class="d-flex gap-2 secondary-actions mt-2">
           <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
           <button class="btn-luxury w-50" onclick="clearCart()">Clear</button>
         </div>
         {% endif %}
       </div>
     </div>
+    <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
+      <div id="runningItemsMobile"></div>
+    </div>
+  </div>
+  <div class="cart-summary" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
+    <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
+    {% if auto_kot_mode %}
+    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitQSROrder()" style="background:#10b981;border-color:#10b981;font-size:0.85rem;letter-spacing:2px;">
+      <i class="bi bi-cash-coin me-2"></i>PAY &amp; PRINT SLIP
+    </button>
+    {% else %}
+    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
+    {% endif %}
   </div>
 </div>
 
@@ -501,6 +518,28 @@
     const panel = document.getElementById(view === 'desktop' ? 'orderSettingsPanelDesktop' : 'orderSettingsPanelMobile');
     if (panel) panel.classList.toggle('d-none');
   }
+
+  function openCartMobile() {
+    const page = document.getElementById('mobileCartPage');
+    if (!page) return;
+    page.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeCartMobile() {
+    const page = document.getElementById('mobileCartPage');
+    if (!page) return;
+    page.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const page = document.getElementById('mobileCartPage');
+    if (!page || !page.classList.contains('show')) return;
+    if (document.querySelector('.modal.show')) return;
+    closeCartMobile();
+  });
 
   function updateOrderSummaryText(view) {
     const tableSel = document.getElementById(view === 'desktop' ? 'tableSelectDesktop' : 'tableSelectMobile');
@@ -856,11 +895,7 @@
             } else {
               loadRunningOrder();
             }
-            const offcanvasEl = document.getElementById('mobileCartOffcanvas');
-            if (offcanvasEl) {
-              const oc = bootstrap.Offcanvas.getInstance(offcanvasEl);
-              if (oc) oc.hide();
-            }
+            closeCartMobile();
           }).catch(() => resetSendBtn());
       })
       .catch(err => {
