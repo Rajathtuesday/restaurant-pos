@@ -1,13 +1,15 @@
-{# Text+icon notification badges (btn-luxury style, desktop) -- shared by
-   the POS-facing screens (billing, floor plan) that use the luxury button
-   language instead of base.html's plain icon buttons. Pair with
-   _notif_badges.html (icon-only) for each page's own mobile row.
+{% comment %}
+Text+icon notification badges (btn-luxury style, desktop) -- shared by
+the POS-facing screens (billing, floor plan) that use the luxury button
+language instead of base.html's plain icon buttons. Pair with
+_notif_badges.html (icon-only) for each page's own mobile row.
 
-   billing.html and tables.html each previously hand-copied only the
-   "Calls" badge here and had never had QR-orders or the low-stock/system
-   badge at all -- a manager working the actual billing screen all day
-   had no visibility into either, even though the underlying alerts were
-   real. #}
+billing.html and tables.html each previously hand-copied only the
+"Calls" badge here and had never had QR-orders or the low-stock/system
+badge at all -- a manager working the actual billing screen all day
+had no visibility into either, even though the underlying alerts were
+real.
+{% endcomment %}
 {% if 'waiter_call' in tenant_features %}
 <span class="notif-wrapper d-none d-sm-inline-flex">
     <a href="/waiter-dashboard/" class="btn-luxury text-decoration-none"><i class="bi bi-bell me-1"></i> Calls</a>
