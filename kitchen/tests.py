@@ -525,6 +525,123 @@ class TokenOrderClearsFromKitchenDisplayTest(TestCase):
         self.assertIn(order.id, order_ids)
 
 
+class DineInOrderClearsFromKitchenOnCloseTest(TestCase):
+    """
+    Dine-in equivalent of TokenOrderClearsFromKitchenDisplayTest above.
+    A dine-in order had no path to "served" other than a waiter explicitly
+    tapping Serve on a different screen -- closing the bill (normal
+    payment, a complimentary order, or a manager's payment-gate bypass)
+    never touched OrderItem.status, so a "ready" item on a paid/closed
+    order sat on the Kitchen Display forever. mark_ready_items_served
+    (orders/services/payment_service.py) is now called from all three
+    closing paths, mirroring what mark_token_collected already does for
+    counter/token orders -- but must stay a no-op for token orders, since
+    those pay BEFORE cooking and already have their own correct handling.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="KDS Dine-in Close Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.owner = User.objects.create_user(
+            username="owner1", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="owner",
+        )
+        self.manager = User.objects.create_user(
+            username="mgr1", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="manager",
+        )
+        self.chef = User.objects.create_user(
+            username="chef1", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="chef",
+        )
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        self.category = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Mains")
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=self.category,
+            name="Burger", price=100,
+        )
+
+    def _order(self, grand_total, item_status):
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=self.table,
+            status="open", grand_total=grand_total,
+        )
+        item = OrderItem.objects.create(
+            order=order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="pending",
+        )
+        # Route through create_kot so the item is attached to a KOTBatch --
+        # get_kitchen_data only ever looks at items via kot.items, so an
+        # OrderItem created with a status but no KOT is invisible to it
+        # regardless of status, which isn't what these tests are checking.
+        create_kot(self.chef, order)
+        item.refresh_from_db()
+        item.status = item_status
+        item.save(update_fields=["status"])
+        return order, item
+
+    def _login(self, user):
+        client = Client()
+        client.login(username=user.username, password="pw")
+        return client
+
+    def _kitchen_data(self, order):
+        resp = self._login(self.chef).get(reverse("kitchen-data"))
+        data = resp.json()["kots"]
+        return [kot for kot in data if kot["order_id"] == order.id]
+
+    def test_ready_item_clears_after_normal_payment_closes_order(self):
+        from orders.services.payment_service import process_payment
+        order, item = self._order(grand_total=105, item_status="ready")
+        process_payment(order, "cash", 105, user=self.owner)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "served")
+        self.assertEqual(self._kitchen_data(order), [])
+
+    def test_still_cooking_item_is_left_alone_when_order_closes(self):
+        from orders.services.payment_service import process_payment
+        order, item = self._order(grand_total=105, item_status="preparing")
+        process_payment(order, "cash", 105, user=self.owner)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "preparing")
+        self.assertNotEqual(self._kitchen_data(order), [])
+
+    def test_complimentary_order_clears_ready_item(self):
+        from setup.models import PaymentConfig
+        PaymentConfig.objects.create(tenant=self.tenant, outlet=self.outlet)
+        order, item = self._order(grand_total=0, item_status="ready")
+        resp = self._login(self.owner).post(
+            reverse("pay-order", args=[order.id]),
+            data=json.dumps({"method": "cash", "amount": 0}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "served")
+
+    def test_manager_bypass_clears_ready_item(self):
+        order, item = self._order(grand_total=105, item_status="ready")
+        resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]))
+        self.assertEqual(resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "served")
+
+    def test_token_order_ready_item_is_not_touched_by_dine_in_close(self):
+        from datetime import date
+        from tokens.models import TokenOrder
+        from orders.services.payment_service import process_payment
+        order, item = self._order(grand_total=105, item_status="ready")
+        order.source = "counter"
+        order.save(update_fields=["source"])
+        TokenOrder.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=order,
+            token_number=1, date=date.today(), is_online=False,
+        )
+        process_payment(order, "cash", 105, user=self.owner)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "ready", "token orders keep their own -- unrelated -- serve path")
+
+
 # ======================================================================
 #  Moved from orders/tests/test_schema_review.py
 # ======================================================================

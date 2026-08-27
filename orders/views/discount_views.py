@@ -12,6 +12,7 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderEvent, OrderItem
 from orders.utils.order_utils import validate_order_editable
+from orders.services.payment_service import mark_ready_items_served
 
 logger = logging.getLogger("pos.orders")
 
@@ -220,6 +221,7 @@ def log_bypass(request, order_id):
             order.status = "closed"
             order.closed_at = timezone.now()
             order.save(update_fields=["status", "closed_at"])
+            mark_ready_items_served(order)
 
             if order.table:
                 order.table.state = "cleaning"

@@ -26,10 +26,25 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
-from orders.models import Payment
+from orders.models import Payment, OrderItem
 from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError
 
 logger = logging.getLogger("pos.orders")
+
+
+def mark_ready_items_served(order):
+    """
+    Dine-in equivalent of tokens.views.mark_token_collected's bulk-serve.
+    Closing/paying a dine-in order is the signal that any already-cooked
+    ("ready") items were delivered -- payment happens after food is served,
+    not before. Token/QSR orders pay BEFORE cooking, so a token order
+    closing says nothing about delivery; mark_token_collected (an explicit
+    "picked up" tap) already owns that transition for them, so this is a
+    deliberate no-op for token orders -- do not remove this check.
+    """
+    if hasattr(order, "token"):
+        return
+    OrderItem.objects.filter(order=order, status="ready").update(status="served")
 
 
 @transaction.atomic
@@ -115,6 +130,7 @@ def process_payment(order, method, amount, user=None, reference=None):
         order.status    = "closed"
         order.closed_at = timezone.now()
         order.save(update_fields=["status", "closed_at"])
+        mark_ready_items_served(order)
         order_closed = True
         logger.info("Order #%s fully paid and closed.", order.id)
 

@@ -14,7 +14,7 @@ from django_ratelimit.decorators import ratelimit
 from core.decorators import tenant_required, role_required, feature_required
 from orders.models import Order, OrderEvent, Payment
 from shifts.models import CashSession
-from orders.services.payment_service import process_payment
+from orders.services.payment_service import process_payment, mark_ready_items_served
 from payments.refund_service import process_refund
 from setup.models import PaymentConfig
 
@@ -122,6 +122,7 @@ def pay_order(request, order_id):
                     order.status = "closed"
                     order.closed_at = timezone.now()
                     order.save(update_fields=["status", "closed_at"])
+                    mark_ready_items_served(order)
                     if order.table:
                         order.table.state = "cleaning"
                         order.table.save(update_fields=["state"])
