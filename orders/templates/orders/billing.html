@@ -58,6 +58,22 @@
   .context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
   .context-body { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
 
+  /* Collapsed table/source summary -- replaces two always-visible dropdowns
+     that rarely change once an order's started with one compact row,
+     expanded only when actually needed. */
+  .order-summary-bar {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: transparent; border: 1px solid var(--border-color); border-radius: 4px;
+    padding: 0.65rem 0.9rem; margin-bottom: 1rem; color: var(--text-main);
+    font-size: 0.85rem; cursor: pointer; transition: var(--transition-smooth);
+  }
+  .order-summary-bar:hover { border-color: var(--accent-gold); }
+  .order-settings-panel { margin-bottom: 1rem; }
+
+  /* Bill/Clear are used far less often than Dispatch -- visually demoted
+     so Dispatch reads as the one obvious action, not one of three equals. */
+  .secondary-actions .btn-luxury { font-size: 0.72rem; padding: 0.5rem 1rem; color: var(--text-muted); }
+
   .cart-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px dashed var(--border-color); }
   .cart-item-name { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem; }
   .cart-item-note { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
@@ -238,21 +254,17 @@
     </div>
 
     <div class="context-body" id="cartView">
-      <select id="tableSelectDesktop" class="form-select-luxury table-syncer" onchange="syncTableSelect(this.value)">
-        <option value="">Walk-in</option>
-        {% for table in tables %}
-        <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
-        {% endfor %}
-      </select>
-      <div id="cartItemsContainerDesktop" style="min-height:200px;"></div>
-    </div>
-
-    <div class="context-body d-none" id="runningView">
-      <div id="runningItemsDesktop"></div>
-    </div>
-
-    <div class="cart-summary" id="cartSummaryBlock">
-      <div class="mb-3">
+      <button type="button" class="order-summary-bar" onclick="toggleOrderSettings('desktop')">
+        <span><i class="bi bi-geo-alt me-1"></i><span id="orderSummaryLabel">Walk-in &middot; Dine-in</span></span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="order-settings-panel d-none" id="orderSettingsPanelDesktop">
+        <select id="tableSelectDesktop" class="form-select-luxury table-syncer mb-2" onchange="syncTableSelect(this.value)">
+          <option value="">Walk-in</option>
+          {% for table in tables %}
+          <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
+          {% endfor %}
+        </select>
         <select id="sourceSelectDesktop" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'desktop')">
           <option value="dine_in">Dine-in</option>
           <option value="takeaway">Takeaway</option>
@@ -263,6 +275,14 @@
         </select>
         <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
       </div>
+      <div id="cartItemsContainerDesktop" style="min-height:200px;"></div>
+    </div>
+
+    <div class="context-body d-none" id="runningView">
+      <div id="runningItemsDesktop"></div>
+    </div>
+
+    <div class="cart-summary" id="cartSummaryBlock">
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
       {% if outlet.parcel_charge_amount %}
@@ -286,14 +306,11 @@
         </button>
         {% else %}
         <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch <i class="bi bi-arrow-right ms-2"></i></button>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 secondary-actions">
           <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-          <button class="btn-luxury w-50" style="color:var(--text-muted);border-color:var(--border-color);" onclick="clearCart()">Clear</button>
+          <button class="btn-luxury w-50" onclick="clearCart()">Clear</button>
         </div>
         {% endif %}
-        <button class="btn-luxury w-100" style="color:var(--text-muted);border-color:var(--border-color);font-size:0.75rem;" onclick="clearCart()">
-          <i class="bi bi-x me-1"></i>Clear Cart
-        </button>
       </div>
     </div>
   </aside>
@@ -317,19 +334,17 @@
   </div>
   <div class="offcanvas-body d-flex flex-column p-0">
     <div class="context-body flex-grow-1" id="cartViewMobile">
-      <select id="tableSelectMobile" class="form-select-luxury table-syncer" style="margin-bottom:1rem;" onchange="syncTableSelect(this.value)">
-        <option value="">Walk-in</option>
-        {% for table in tables %}
-        <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
-        {% endfor %}
-      </select>
-      <div id="cartItemsContainerMobile"></div>
-    </div>
-    <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
-      <div id="runningItemsMobile"></div>
-    </div>
-    <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
-      <div class="mb-3">
+      <button type="button" class="order-summary-bar" onclick="toggleOrderSettings('mobile')">
+        <span><i class="bi bi-geo-alt me-1"></i><span id="orderSummaryLabelMobile">Walk-in &middot; Dine-in</span></span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+      <div class="order-settings-panel d-none" id="orderSettingsPanelMobile">
+        <select id="tableSelectMobile" class="form-select-luxury table-syncer mb-2" onchange="syncTableSelect(this.value)">
+          <option value="">Walk-in</option>
+          {% for table in tables %}
+          <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
+          {% endfor %}
+        </select>
         <select id="sourceSelectMobile" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'mobile')">
           <option value="dine_in">Dine-in</option>
           <option value="takeaway">Takeaway</option>
@@ -340,6 +355,12 @@
         </select>
         <input type="text" id="aggregatorIdMobile" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
       </div>
+      <div id="cartItemsContainerMobile"></div>
+    </div>
+    <div class="context-body flex-grow-1 d-none" id="runningViewMobile">
+      <div id="runningItemsMobile"></div>
+    </div>
+    <div class="cart-summary mt-auto" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
       <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
       {% if outlet.parcel_charge_amount %}
@@ -363,9 +384,9 @@
         </button>
         {% else %}
         <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 secondary-actions">
           <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-          <button class="btn-luxury w-50" style="color:var(--text-muted);border-color:var(--border-color);" onclick="clearCart()">Clear</button>
+          <button class="btn-luxury w-50" onclick="clearCart()">Clear</button>
         </div>
         {% endif %}
       </div>
@@ -472,6 +493,23 @@
       el.classList.toggle('d-none', !isAggregator);
       if (!isAggregator) el.value = '';
     }
+    updateOrderSummaryText(view);
+  }
+
+  /* ── Collapsed table/source summary ─────────────────────────── */
+  function toggleOrderSettings(view) {
+    const panel = document.getElementById(view === 'desktop' ? 'orderSettingsPanelDesktop' : 'orderSettingsPanelMobile');
+    if (panel) panel.classList.toggle('d-none');
+  }
+
+  function updateOrderSummaryText(view) {
+    const tableSel = document.getElementById(view === 'desktop' ? 'tableSelectDesktop' : 'tableSelectMobile');
+    const srcSel   = document.getElementById(view === 'desktop' ? 'sourceSelectDesktop' : 'sourceSelectMobile');
+    const label    = document.getElementById(view === 'desktop' ? 'orderSummaryLabel' : 'orderSummaryLabelMobile');
+    if (!tableSel || !srcSel || !label) return;
+    const tableName = tableSel.selectedIndex >= 0 ? tableSel.options[tableSel.selectedIndex].text : 'Walk-in';
+    const srcName   = srcSel.selectedIndex >= 0 ? srcSel.options[srcSel.selectedIndex].text : 'Dine-in';
+    label.textContent = tableName + ' · ' + srcName;
   }
 
   function showToast(msg) {
@@ -929,29 +967,19 @@
       });
   }
 
-  async function pollNotifications() {
-    try {
-      const res  = await fetch('/api/notifications/');
-      const data = await res.json();
-      const waiterBadge       = document.getElementById('notif-badge-waiter');
-      const waiterBadgeMobile = document.getElementById('notif-badge-waiter-mobile');
-      const totalCount = (data.waiter_calls.count || 0) + (data.kitchen_messages.count || 0);
-      if (totalCount > 0) {
-        if (waiterBadge)       { waiterBadge.innerText = totalCount;       waiterBadge.classList.remove('hidden'); }
-        if (waiterBadgeMobile) { waiterBadgeMobile.innerText = totalCount; waiterBadgeMobile.classList.remove('hidden'); }
-      } else {
-        if (waiterBadge)       waiterBadge.classList.add('hidden');
-        if (waiterBadgeMobile) waiterBadgeMobile.classList.add('hidden');
-      }
-    } catch (e) { console.error("Poll failed", e); }
-  }
+  // Waiter/QR/system badges on this page are kept in sync by the one
+  // global poller in core/base.html (runs every 8s, covers all three
+  // badges) -- this used to run its own separate, identically-scoped
+  // pollNotifications() hitting the same /api/notifications/ endpoint
+  // just to update the waiter badge, the same redundant-poller pattern
+  // already found and removed from tables.html.
 
   document.addEventListener("DOMContentLoaded", () => {
     renderCart();
     loadRunningOrder();
-    pollNotifications();
+    updateOrderSummaryText('desktop');
+    updateOrderSummaryText('mobile');
     setInterval(loadRunningOrder, 5000);
-    setInterval(pollNotifications, 8000);
     const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
     const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");
 
