@@ -10,6 +10,7 @@ logger = logging.getLogger("pos.orders")
 from kitchen.models import KOTBatch, DailyKOTCounter
 from orders.models import OrderItem
 from orders.services.inventory_service import deduct_inventory_for_items
+from orders.services.order_service import update_table_state
 from setup.services.station_service import get_default_station_for
 
 
@@ -132,12 +133,12 @@ def create_kot(user, order, print_on_create=True):
     # -----------------------------------------
 
     if order.table:
-
-        table = order.table
-
-        table.state = "preparing"
-
-        table.save(update_fields=["state"])
+        # Was an unconditional raw write -- clobbered a table correctly
+        # showing "billing" (or "cleaning") back to "preparing" the moment
+        # one more item got sent to kitchen after the bill was already
+        # generated. update_table_state() derives the same "preparing"
+        # result from item statuses, but guards billing/cleaning first.
+        update_table_state(order)
 
     # -----------------------------------------
     # EXECUTE PRINTING (ASYNC THREAD ON COMMIT)

@@ -661,6 +661,51 @@ class DineInOrderClearsFromKitchenOnCloseTest(TestCase):
         self.assertEqual(item.status, "ready", "token orders keep their own -- unrelated -- serve path")
 
 
+class CreateKotDoesNotClobberBillingTableStateTest(TestCase):
+    """
+    create_kot() used to unconditionally write table.state = "preparing"
+    whenever a KOT was sent, bypassing update_table_state()'s own guard
+    against overwriting "billing"/"cleaning". Sending one more item to the
+    kitchen for a table whose bill was already generated silently bounced
+    it back to "preparing" -- the same class of bug as the order-splitting
+    fix in orders/services/order_service.py::get_or_create_open_order,
+    just via a second, independent raw write.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="KOT Table State Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.chef = User.objects.create_user(
+            username="kot_chef", password="pw", tenant=self.tenant,
+            outlet=self.outlet, role="chef",
+        )
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1", state="billing")
+        self.category = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Mains")
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=self.category, name="Burger", price=100,
+        )
+        self.order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=self.table, status="billing",
+        )
+        self.order_item = OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=1, price=100,
+            gst_percentage=5, total_price=105, status="pending",
+        )
+
+    def test_sending_to_kitchen_leaves_a_billing_table_state_alone(self):
+        create_kot(self.chef, self.order)
+        self.table.refresh_from_db()
+        self.assertEqual(self.table.state, "billing")
+
+    def test_sending_to_kitchen_still_sets_preparing_for_a_normal_table(self):
+        """Regression guard -- the everyday case must still work."""
+        self.table.state = "ordering"
+        self.table.save(update_fields=["state"])
+        create_kot(self.chef, self.order)
+        self.table.refresh_from_db()
+        self.assertEqual(self.table.state, "preparing")
+
+
 # ======================================================================
 #  Moved from orders/tests/test_schema_review.py
 # ======================================================================
