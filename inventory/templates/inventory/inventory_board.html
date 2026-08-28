@@ -130,6 +130,19 @@
         {% endfor %}
     </datalist>
 
+    {% if 'purchase_orders' in tenant_features and low_stock_count > 0 %}
+    <div id="lowStockBar" class="d-flex align-items-center justify-content-between flex-wrap gap-2"
+         style="border:1px solid var(--accent-gold); background:color-mix(in srgb, var(--accent-gold) 8%, transparent); padding:0.7rem 1rem; margin-bottom:1rem; border-radius:2px;">
+        <span id="lowStockBarText" style="font-size:0.85rem; color:var(--text-main);">
+            <i class="bi bi-exclamation-triangle-fill me-1" style="color:var(--accent-gold);"></i>
+            {{ low_stock_count }} item{{ low_stock_count|pluralize }} low on stock
+        </span>
+        <button class="btn-luxury btn-gold" onclick="generatePurchaseOrders()" id="genPoBtn">
+            <i class="bi bi-receipt me-1"></i> Generate Purchase Orders
+        </button>
+    </div>
+    {% endif %}
+
     <div class="inventory-card">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -402,6 +415,35 @@ function restock(id) {
             location.reload();
         } else { alert('Restock failed'); }
     });
+}
+
+function generatePurchaseOrders() {
+    const btn = document.getElementById('genPoBtn');
+    const text = document.getElementById('lowStockBarText');
+    const poListUrl = "{% url 'purchase_order_list' %}";
+    btn.disabled = true;
+    fetch('/inventory/generate-purchase-orders/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken2') },
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) { alert('Could not generate purchase orders.'); btn.disabled = false; return; }
+
+        let html = `${data.processed_count} item${data.processed_count === 1 ? '' : 's'} added to ${data.purchase_orders.length} draft PO${data.purchase_orders.length === 1 ? '' : 's'}`;
+        if (data.purchase_orders.length) {
+            html += ': ' + data.purchase_orders.map(po =>
+                `<a href="${poListUrl}#po-row-${po.id}" style="color:var(--accent-gold);">${po.supplier}</a>`
+            ).join(', ');
+        }
+        if (data.skipped.length) {
+            html += `<br><span style="color:var(--text-muted); font-size:0.78rem;">Skipped: ` +
+                data.skipped.map(s => `${s.name} (${s.reason})`).join(', ') + `</span>`;
+        }
+        text.innerHTML = html;
+        btn.remove();
+    })
+    .catch(() => { alert('Could not generate purchase orders.'); btn.disabled = false; });
 }
 
 function openAddInventoryModal() {

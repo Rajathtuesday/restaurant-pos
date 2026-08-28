@@ -155,6 +155,127 @@ class InventoryTests(TestCase):
         self.assertIsNotNone(po.received_at)
 
 
+class GeneratePurchaseOrdersViewTests(TestCase):
+    """
+    generate_purchase_orders (inventory/views.py) is the on-demand "Generate
+    Purchase Orders" button on the inventory board -- reuses trigger_reorder()
+    as-is for every currently-low item that has a supplier + reorder quantity
+    + cost price set, and honestly reports the ones it skipped instead of
+    silently ignoring them.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="AutoPO Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="autopo_mgr", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.waiter = User.objects.create_user(
+            username="autopo_waiter", password="pwd", role="waiter",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.supplier = Supplier.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Fresh Farms",
+        )
+
+    def _url(self):
+        return reverse("generate_purchase_orders")
+
+    def test_waiter_gets_403(self):
+        self.client.force_login(self.waiter)
+        resp = self.client.post(self._url())
+        self.assertEqual(resp.status_code, 403)
+
+    def test_ready_item_is_processed_and_lands_on_a_draft_po(self):
+        item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer", unit="kg",
+            stock=Decimal("2.000"), low_stock_threshold=Decimal("5.000"),
+            reorder_quantity=Decimal("10.000"), cost_price=Decimal("15.00"),
+            preferred_supplier=self.supplier,
+        )
+        self.client.force_login(self.manager)
+        resp = self.client.post(self._url())
+        data = resp.json()
+
+        self.assertTrue(data["success"])
+        self.assertEqual(data["processed_count"], 1)
+        self.assertEqual(data["skipped"], [])
+        self.assertEqual(len(data["purchase_orders"]), 1)
+        self.assertEqual(data["purchase_orders"][0]["supplier"], "Fresh Farms")
+
+        po = PurchaseOrder.objects.get(id=data["purchase_orders"][0]["id"])
+        self.assertEqual(po.status, "draft")
+        self.assertTrue(po.items.filter(item=item).exists())
+
+    def test_item_with_no_supplier_is_skipped_with_a_reason(self):
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Chili Oil", unit="ml",
+            stock=Decimal("50.000"), low_stock_threshold=Decimal("100.000"),
+            reorder_quantity=Decimal("500.000"), cost_price=Decimal("2.00"),
+        )
+        self.client.force_login(self.manager)
+        resp = self.client.post(self._url())
+        data = resp.json()
+
+        self.assertEqual(data["processed_count"], 0)
+        self.assertEqual(len(data["skipped"]), 1)
+        self.assertEqual(data["skipped"][0]["name"], "Chili Oil")
+        self.assertIn("no supplier set", data["skipped"][0]["reason"])
+        self.assertEqual(PurchaseOrder.objects.count(), 0)
+
+    def test_item_with_zero_reorder_quantity_is_skipped(self):
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Chutney", unit="kg",
+            stock=Decimal("1.000"), low_stock_threshold=Decimal("5.000"),
+            reorder_quantity=Decimal("0.000"), cost_price=Decimal("10.00"),
+            preferred_supplier=self.supplier,
+        )
+        self.client.force_login(self.manager)
+        resp = self.client.post(self._url())
+        data = resp.json()
+
+        self.assertEqual(data["processed_count"], 0)
+        self.assertIn("no reorder quantity set", data["skipped"][0]["reason"])
+
+    def test_two_low_stock_items_same_supplier_land_on_one_po(self):
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Idli Batter", unit="kg",
+            stock=Decimal("1.000"), low_stock_threshold=Decimal("5.000"),
+            reorder_quantity=Decimal("10.000"), cost_price=Decimal("20.00"),
+            preferred_supplier=self.supplier,
+        )
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Coconut", unit="pcs",
+            stock=Decimal("1.000"), low_stock_threshold=Decimal("5.000"),
+            reorder_quantity=Decimal("20.000"), cost_price=Decimal("30.00"),
+            preferred_supplier=self.supplier,
+        )
+        self.client.force_login(self.manager)
+        resp = self.client.post(self._url())
+        data = resp.json()
+
+        self.assertEqual(data["processed_count"], 2)
+        self.assertEqual(len(data["purchase_orders"]), 1)
+        po = PurchaseOrder.objects.get(id=data["purchase_orders"][0]["id"])
+        self.assertEqual(po.items.count(), 2)
+
+    def test_calling_twice_does_not_duplicate_the_po_line(self):
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer", unit="kg",
+            stock=Decimal("2.000"), low_stock_threshold=Decimal("5.000"),
+            reorder_quantity=Decimal("10.000"), cost_price=Decimal("15.00"),
+            preferred_supplier=self.supplier,
+        )
+        self.client.force_login(self.manager)
+        self.client.post(self._url())
+        self.client.post(self._url())
+
+        po = PurchaseOrder.objects.get(tenant=self.tenant, status="draft")
+        self.assertEqual(po.items.count(), 1)
+
+
 class LowStockAlertWiringTests(TestCase):
     """
     reduce_stock/add_stock/PurchaseOrder.receive_order now go through

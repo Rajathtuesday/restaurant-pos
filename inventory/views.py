@@ -44,6 +44,7 @@ def inventory_board(request):
     ).order_by("name")
 
     categories = sorted({i.category for i in items if i.category})
+    low_stock_count = sum(1 for i in items if i.is_low_stock)
 
     # Visiting the board is treated as having seen whatever low-stock/system
     # alerts brought a manager here in the first place -- same "click through
@@ -59,6 +60,7 @@ def inventory_board(request):
         "items": items,
         "suppliers": suppliers,
         "categories": categories,
+        "low_stock_count": low_stock_count,
     })
 
 
@@ -96,6 +98,66 @@ def restock_item(request, item_id):
     logger.info("%s restocked '%s' +%s. Now: %s", request.user.username, item.name, quantity, item.stock)
 
     return JsonResponse({"success": True, "new_stock": float(item.stock)})
+
+
+@login_required
+@tenant_required
+@feature_required("inventory")
+@require_POST
+def generate_purchase_orders(request):
+    """
+    On-demand version of the same check reduce_stock() already runs
+    automatically at the moment an item crosses its low-stock line --
+    catches two gaps that leaves: items with no preferred supplier
+    configured (never auto-reorder at all), and items that were already
+    low before their supplier/reorder quantity got set (nothing
+    retroactively re-checks them). Reuses trigger_reorder() as-is, so an
+    item's PO line is never duplicated even if this is run repeatedly.
+    """
+    if not _manager_required(request.user):
+        return HttpResponseForbidden()
+
+    items = InventoryItem.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet,
+    ).select_related("preferred_supplier")
+
+    processed_ids, skipped = [], []
+    for item in items:
+        if not item.is_low_stock:
+            continue
+        reasons = []
+        if not item.preferred_supplier_id:
+            reasons.append("no supplier set")
+        if not item.reorder_quantity or item.reorder_quantity <= 0:
+            reasons.append("no reorder quantity set")
+        if not item.cost_price or item.cost_price <= 0:
+            reasons.append("no cost price set")
+        if reasons:
+            skipped.append({"name": item.name, "reason": ", ".join(reasons)})
+            continue
+        try:
+            item.trigger_reorder()
+            processed_ids.append(item.id)
+        except Exception as e:
+            logger.error("Auto-PO failed for %s: %s", item.name, e)
+            skipped.append({"name": item.name, "reason": "unexpected error, check logs"})
+
+    pos = list(
+        PurchaseOrder.objects.filter(
+            tenant=request.user.tenant, outlet=request.user.outlet, status="draft",
+            items__item_id__in=processed_ids,
+        ).distinct().select_related("supplier")
+    )
+
+    return JsonResponse({
+        "success": True,
+        "processed_count": len(processed_ids),
+        "skipped": skipped,
+        "purchase_orders": [
+            {"id": po.id, "po_number": po.po_number, "supplier": po.supplier.name}
+            for po in pos
+        ],
+    })
 
 
 @login_required

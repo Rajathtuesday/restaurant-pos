@@ -25,6 +25,7 @@ urlpatterns = [
     path("create/", views.create_inventory_item, name="create_inventory_item"),
     path("update/<int:item_id>/", views.update_inventory_item, name="update_inventory_item"),
     path("restock/<int:item_id>/", views.restock_item, name="restock_item"),
+    path("generate-purchase-orders/", views.generate_purchase_orders, name="generate_purchase_orders"),
     path("wastage/<int:item_id>/", views.log_wastage, name="inventory_log_wastage"),
     path("adjust/<int:item_id>/", views.adjust_stock, name="inventory_adjust_stock"),
 
