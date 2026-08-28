@@ -276,6 +276,62 @@ class GeneratePurchaseOrdersViewTests(TestCase):
         self.assertEqual(po.items.count(), 1)
 
 
+class GeneratePurchaseOrdersNoSuppliersTest(TestCase):
+    """
+    A brand new tenant with zero suppliers configured gets a "no supplier
+    set" skip reason for every single low-stock item -- a repetitive wall
+    that doesn't tell the manager the one thing that actually matters.
+    has_suppliers distinguishes "this restaurant has never added a
+    supplier at all" from "suppliers exist, this one item just isn't
+    linked to one", so the frontend can say the more useful thing.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="No Supplier Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        User = get_user_model()
+        self.manager = User.objects.create_user(
+            username="nosupplier_mgr", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.force_login(self.manager)
+
+    def _url(self):
+        return reverse("generate_purchase_orders")
+
+    def test_zero_suppliers_reports_has_suppliers_false(self):
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer", unit="kg",
+            stock=Decimal("2.000"), low_stock_threshold=Decimal("5.000"),
+        )
+        data = self.client.post(self._url()).json()
+        self.assertFalse(data["has_suppliers"])
+        self.assertEqual(data["processed_count"], 0)
+
+    def test_only_inactive_supplier_still_reports_has_suppliers_false(self):
+        Supplier.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Closed Supplier", is_active=False,
+        )
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer", unit="kg",
+            stock=Decimal("2.000"), low_stock_threshold=Decimal("5.000"),
+        )
+        data = self.client.post(self._url()).json()
+        self.assertFalse(data["has_suppliers"])
+
+    def test_active_supplier_elsewhere_reports_has_suppliers_true(self):
+        supplier = Supplier.objects.create(tenant=self.tenant, outlet=self.outlet, name="Fresh Farms")
+        InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Paneer", unit="kg",
+            stock=Decimal("2.000"), low_stock_threshold=Decimal("5.000"),
+            reorder_quantity=Decimal("10.000"), cost_price=Decimal("15.00"),
+            preferred_supplier=supplier,
+        )
+        data = self.client.post(self._url()).json()
+        self.assertTrue(data["has_suppliers"])
+        self.assertEqual(data["processed_count"], 1)
+
+
 class LowStockAlertWiringTests(TestCase):
     """
     reduce_stock/add_stock/PurchaseOrder.receive_order now go through

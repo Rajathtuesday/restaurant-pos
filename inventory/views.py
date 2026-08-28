@@ -117,6 +117,10 @@ def generate_purchase_orders(request):
     if not _manager_required(request.user):
         return HttpResponseForbidden()
 
+    has_suppliers = Supplier.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet, is_active=True,
+    ).exists()
+
     items = InventoryItem.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet,
     ).select_related("preferred_supplier")
@@ -151,6 +155,7 @@ def generate_purchase_orders(request):
 
     return JsonResponse({
         "success": True,
+        "has_suppliers": has_suppliers,
         "processed_count": len(processed_ids),
         "skipped": skipped,
         "purchase_orders": [

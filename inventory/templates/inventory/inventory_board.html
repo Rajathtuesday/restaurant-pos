@@ -430,6 +430,13 @@ function generatePurchaseOrders() {
     .then(data => {
         if (!data.success) { alert('Could not generate purchase orders.'); btn.disabled = false; return; }
 
+        if (!data.has_suppliers && data.processed_count === 0) {
+            text.innerHTML = `You haven't added any suppliers yet — add one to start generating purchase orders. ` +
+                `<a href="{% url 'supplier_list' %}" style="color:var(--accent-gold);">Add a Supplier</a>`;
+            btn.remove();
+            return;
+        }
+
         let html = `${data.processed_count} item${data.processed_count === 1 ? '' : 's'} added to ${data.purchase_orders.length} draft PO${data.purchase_orders.length === 1 ? '' : 's'}`;
         if (data.purchase_orders.length) {
             html += ': ' + data.purchase_orders.map(po =>
