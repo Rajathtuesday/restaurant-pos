@@ -855,6 +855,7 @@
     const source   = document.getElementById(isMobile ? "sourceSelectMobile"  : "sourceSelectDesktop").value;
     const aggId    = document.getElementById(isMobile ? "aggregatorIdMobile"   : "aggregatorIdDesktop").value;
     const orderPayload = { cart, table_id: tableId, source, aggregator_id: aggId, customer_name: '', customer_phone: '' };
+    if (currentOrderId) orderPayload.order_id = currentOrderId;
 
     // Edge case: already offline before the cashier even hits submit — don't
     // attempt the request at all, queue it straight away.

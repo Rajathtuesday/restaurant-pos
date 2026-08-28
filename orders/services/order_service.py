@@ -15,6 +15,17 @@ from orders.services.inventory_service import check_inventory_availability
 # -------------------------------------------------
 
 def get_or_create_open_order(user, table, tenant=None, outlet=None):
+    """
+    "Open" here means the table's active, still-editable order, whether it's
+    genuinely open or already at the billing stage -- matches the same
+    ("open", "billing") allowance create_order's order_id-explicit branch
+    already uses. A "billing" order used to be invisible to this lookup, so
+    trying to add one more item for an already-billed table silently created
+    a second, separate order instead of adding to the one being paid, and
+    unconditionally reset the table back to "ordering" even though it was
+    correctly "billing". Only status="paid"/"closed"/"cancelled" (a settled
+    table, next customer) should still fall through to creating fresh.
+    """
 
     t = tenant or user.tenant
     o = outlet or user.outlet
@@ -24,7 +35,7 @@ def get_or_create_open_order(user, table, tenant=None, outlet=None):
             tenant=t,
             outlet=o,
             table=table,
-            status="open"
+            status__in=["open", "billing"],
         )
 
     except Order.DoesNotExist:
@@ -60,7 +71,7 @@ def get_or_create_open_order(user, table, tenant=None, outlet=None):
                 tenant=t,
                 outlet=o,
                 table=table,
-                status="open"
+                status__in=["open", "billing"],
             )
 
 
