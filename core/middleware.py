@@ -125,6 +125,29 @@ class ContextLoggingMiddleware:
         return response
 
 
+class NoStoreForAuthenticatedResponsesMiddleware:
+    """
+    Stops a browser from showing a stale authenticated page via Back/Forward
+    cache after logout. logout_view() already destroys the session correctly
+    server-side -- any real new request already redirects to login -- but a
+    small number of views (dashboard, tokens, billing_core) were the only ones
+    telling the browser not to keep a navigable snapshot at all (@never_cache).
+    Every other authenticated page had no such header, so pressing Back after
+    logout could show the last-rendered page without ever recontacting the
+    server. Applies Cache-Control: no-store to every authenticated response,
+    once, centrally -- new views get this for free instead of needing to
+    remember @never_cache individually.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if request.user.is_authenticated:
+            response["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+        return response
+
+
 class RequestLoggingMiddleware:
     """
     Logs every HTTP request: method, path, status, duration, user, tenant.

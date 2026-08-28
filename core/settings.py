@@ -136,6 +136,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ContextLoggingMiddleware',
+    'core.middleware.NoStoreForAuthenticatedResponsesMiddleware',
     'core.middleware.RequestLoggingMiddleware',
 ]
 

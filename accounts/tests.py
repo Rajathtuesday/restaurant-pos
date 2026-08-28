@@ -207,6 +207,37 @@ class LogoutViewTest(TestCase):
         self.assertIn("login", response.get("Location", "").lower())
 
 
+class NoStoreForAuthenticatedResponsesMiddlewareTest(TestCase):
+    """
+    Pressing the browser's Back button after logout could show the
+    last-rendered authenticated page straight from the browser's own
+    Back/Forward cache, without ever recontacting the server -- the
+    account IS genuinely logged out (logout_view destroys the session
+    correctly), the browser just never re-asked. Only a handful of views
+    (dashboard, tokens, billing_core) told the browser not to keep a
+    snapshot at all (@never_cache); every other page had no such header.
+    core.middleware.NoStoreForAuthenticatedResponsesMiddleware applies
+    Cache-Control: no-store centrally, to every authenticated response.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="NoStore Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.manager = User.objects.create_user(
+            username="nostore_mgr", password="pwd",
+            role="manager", tenant=self.tenant, outlet=self.outlet,
+        )
+
+    def test_authenticated_response_gets_no_store(self):
+        self.client.login(username="nostore_mgr", password="pwd")
+        response = self.client.get("/inventory/board/")
+        self.assertIn("no-store", response.get("Cache-Control", ""))
+
+    def test_unauthenticated_response_is_untouched(self):
+        response = self.client.get(reverse("login"))
+        self.assertNotIn("no-store", response.get("Cache-Control", ""))
+
+
 # ---------------------------------------------------------------------------
 # Schema-review additions
 # ---------------------------------------------------------------------------
