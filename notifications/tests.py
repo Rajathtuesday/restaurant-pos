@@ -141,6 +141,70 @@ class LowStockAlertDedupTests(TestCase):
         self.assertFalse(Notification.objects.get(item_id=other.id, type="low_stock").is_read)
 
 
+class ClearOrphanedLowStockAlertsMigrationTest(TestCase):
+    """
+    notifications/migrations/0004_clear_orphaned_low_stock_alerts.py --
+    one-time cleanup for low_stock alerts created before the item FK
+    existed (migration 0003). Those NULL-item rows can never be deduped
+    against or auto-cleared by the fixed create_low_stock_alert/
+    clear_low_stock_alert (they match on item_id), so without this they'd
+    sit unread forever even after the dedup fix ships -- exactly why the
+    header badge stayed inflated on a live tenant after the fix deployed.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Migration Cleanup Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+
+    def _run_migration_function(self):
+        from importlib import import_module
+        module = import_module("notifications.migrations.0004_clear_orphaned_low_stock_alerts")
+        from django.apps import apps
+        module.clear_orphaned_low_stock_alerts(apps, None)
+
+    def test_orphaned_unread_low_stock_alert_gets_marked_read(self):
+        orphan = Notification.objects.create(
+            tenant=self.tenant, outlet=self.outlet, type="low_stock",
+            message="Paneer low stock (2 kg)", item=None,
+        )
+        self._run_migration_function()
+        orphan.refresh_from_db()
+        self.assertTrue(orphan.is_read)
+
+    def test_correctly_tagged_low_stock_alert_is_left_alone(self):
+        from inventory.models import InventoryItem
+        item = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Rice", unit="kg",
+        )
+        tagged = Notification.objects.create(
+            tenant=self.tenant, outlet=self.outlet, type="low_stock",
+            message="Rice low stock (1 kg)", item=item,
+        )
+        self._run_migration_function()
+        tagged.refresh_from_db()
+        self.assertFalse(tagged.is_read)
+
+    def test_other_notification_types_are_left_alone(self):
+        system_notif = Notification.objects.create(
+            tenant=self.tenant, outlet=self.outlet, type="system",
+            message="Heads up", item=None,
+        )
+        self._run_migration_function()
+        system_notif.refresh_from_db()
+        self.assertFalse(system_notif.is_read)
+
+    def test_already_read_orphaned_alert_is_untouched(self):
+        orphan = Notification.objects.create(
+            tenant=self.tenant, outlet=self.outlet, type="low_stock",
+            message="Paneer low stock (2 kg)", item=None, is_read=True,
+        )
+        original_created_at = orphan.created_at
+        self._run_migration_function()
+        orphan.refresh_from_db()
+        self.assertTrue(orphan.is_read)
+        self.assertEqual(orphan.created_at, original_created_at)
+
+
 class WhatsAppBuildMessageTest(TestCase):
     """_build_message() must never raise — a broken item list should still
     produce a sendable receipt, but the failure must be logged, not silently
