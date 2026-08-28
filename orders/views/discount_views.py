@@ -194,8 +194,8 @@ def log_bypass(request, order_id):
 
             # Enforce daily bypass limit for non-owners
             if request.user.role != "owner":
-                import pytz
-                ist = pytz.timezone('Asia/Kolkata')
+                import zoneinfo
+                ist = zoneinfo.ZoneInfo('Asia/Kolkata')
                 now_ist = timezone.now().astimezone(ist)
                 # Keep the datetime timezone-aware; stripping tzinfo causes Django ORM
                 # to compare a naive dt against a tz-aware field, giving wrong results.

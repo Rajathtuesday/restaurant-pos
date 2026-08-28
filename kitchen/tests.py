@@ -22,6 +22,8 @@ Also includes (moved from orders/tests/, Phase 3 of the orders app split):
 Run: python manage.py test kitchen
 """
 import json
+import sys
+from unittest.mock import patch
 
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -622,6 +624,23 @@ class DineInOrderClearsFromKitchenOnCloseTest(TestCase):
     def test_manager_bypass_clears_ready_item(self):
         order, item = self._order(grand_total=105, item_status="ready")
         resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]))
+        self.assertEqual(resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "served")
+
+    def test_manager_bypass_does_not_depend_on_pytz(self):
+        """
+        log_bypass's non-owner daily-limit check used to import pytz, which
+        isn't in requirements.txt -- it happened to be present in local dev
+        venvs as a leftover/transitive package, so this passed locally but
+        threw ModuleNotFoundError (swallowed into a 500 by log_bypass's own
+        except Exception:) the moment a real CI install first exercised this
+        exact manager-role path. Fixed by switching to the stdlib zoneinfo,
+        already used the same way in reports/services/sales_reports.py.
+        """
+        order, item = self._order(grand_total=105, item_status="ready")
+        with patch.dict(sys.modules, {"pytz": None}):
+            resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]))
         self.assertEqual(resp.status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.status, "served")
