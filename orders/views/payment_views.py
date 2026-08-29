@@ -124,7 +124,7 @@ def pay_order(request, order_id):
                     order.save(update_fields=["status", "closed_at"])
                     mark_ready_items_served(order)
                     if order.table:
-                        order.table.state = "cleaning"
+                        order.table.state = "free"
                         order.table.save(update_fields=["state"])
                     logger.info("Order #%s fully complimentary and closed", order.id)
                     return JsonResponse({"success": True, "message": "Complimentary order closed"})
@@ -182,9 +182,9 @@ def pay_order(request, order_id):
 
                 if payment_result["order_closed"]:
                     # payment_service already set status=closed and closed_at.
-                    # Set table to cleaning here - service doesn't know about tables.
+                    # Set table to free here - service doesn't know about tables.
                     if order.table:
-                        order.table.state = "cleaning"
+                        order.table.state = "free"
                         order.table.save(update_fields=["state"])
                     logger.info("Order #%s fully paid and closed", order.id)
 
@@ -407,7 +407,7 @@ def split_pay(request, order_id):
             # payment_service already closed the order - set table state here.
             if order.status == "closed":
                 if order.table:
-                    order.table.state = "cleaning"
+                    order.table.state = "free"
                     order.table.save(update_fields=["state"])
 
         logger.info(

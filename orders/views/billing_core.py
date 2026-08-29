@@ -115,7 +115,11 @@ def bill_view(request, order_id):
             id=order_id, tenant=request.user.tenant, outlet=request.user.outlet
         )
 
-        if order.table:
+        # Only while the order is still actually awaiting payment -- once
+        # it's paid/closed/cancelled, this page reloads on its own right
+        # after payment (to trigger printing) and must not undo the
+        # "cleaning" state pay_order already correctly set a moment earlier.
+        if order.table and order.status in ("open", "billing"):
             order.table.state = "billing"
             order.table.save(update_fields=["state"])
 

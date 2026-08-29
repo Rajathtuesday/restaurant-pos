@@ -261,7 +261,7 @@ def razorpay_webhook(request):
                     # Mirrors pay_order's behaviour (payment_views.py) — process_payment
                     # itself doesn't know about tables, so every caller that closes an
                     # order is responsible for this transition.
-                    order.table.state = "cleaning"
+                    order.table.state = "free"
                     order.table.save(update_fields=["state"])
             except ValidationError:
                 # Lost the race between this check and process_payment's own lock —

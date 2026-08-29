@@ -224,7 +224,7 @@ def log_bypass(request, order_id):
             mark_ready_items_served(order)
 
             if order.table:
-                order.table.state = "cleaning"
+                order.table.state = "free"
                 order.table.save(update_fields=["state"])
 
             OrderEvent.objects.create(

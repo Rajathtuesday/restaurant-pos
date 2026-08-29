@@ -237,7 +237,7 @@ class RazorpayWebhookTest(CounterBillingBase):
         self.assertEqual(payment.method, "upi")
         self.assertEqual(payment.amount, order.grand_total)
 
-    def test_credited_event_moves_table_to_cleaning(self):
+    def test_credited_event_moves_table_to_free(self):
         """
         Mirrors pay_order's behaviour (payment_views.py) for the cashier-driven
         flow — a customer paying via Razorpay QR with no cashier involved must
@@ -251,7 +251,7 @@ class RazorpayWebhookTest(CounterBillingBase):
         self._post_webhook(self._credited_payload(order, payment_id="pay_table_test"))
 
         table.refresh_from_db()
-        self.assertEqual(table.state, "cleaning")
+        self.assertEqual(table.state, "free")
 
     def test_qr_marked_paid_after_credit(self):
         order = self._make_order()
