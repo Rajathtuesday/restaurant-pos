@@ -50,6 +50,7 @@ er_diagrams_pos/
 pem/
 
 md_files/
+js/
 
 # Load-test run logs (generated, not source)
 loadtest_logs/
