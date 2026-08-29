@@ -131,3 +131,50 @@ class CreateOrderViewReusesBillingOrderTests(_Base):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["order_id"], billing_order.id)
         self.assertEqual(Order.objects.filter(table=self.table).count(), 1)
+
+    def test_stale_order_id_from_a_closed_previous_order_does_not_block_staff(self):
+        """
+        billing.html sends order_id whenever it already has one in memory.
+        currentOrderId only refreshes when loadRunningOrder() runs (table
+        select, or after a submit) -- not the instant a payment completes
+        on a different page (bill.html). If a cashier's tab isn't
+        reselected after the previous customer's order closes, the next
+        customer's first item at this table arrives with a stale order_id
+        pointing at that now-closed order. Must not block staff with the
+        guest-facing "call a waiter" error -- must fall through and start
+        a clean new order instead, same as if no order_id had been sent.
+        """
+        closed_order = self._order("closed")
+        resp = self._post({
+            "cart": [{"id": self.dish.id, "quantity": 1}],
+            "table_id": self.table.id,
+            "order_id": closed_order.id,
+            "source": "dine_in",
+        })
+
+        self.assertEqual(resp.status_code, 200)
+        new_order_id = resp.json()["order_id"]
+        self.assertNotEqual(new_order_id, closed_order.id)
+        new_order = Order.objects.get(id=new_order_id)
+        self.assertEqual(new_order.status, "open")
+        self.assertEqual(new_order.items.count(), 1)
+
+    def test_guest_with_a_stale_order_id_is_still_blocked(self):
+        """Regression guard -- the guest guardrail (409, "call a waiter")
+        must stay exactly as it was. A guest's phone remembering a stale,
+        already-billed order_id should still be told to get staff involved,
+        not silently handed a fresh order of its own."""
+        closed_order = self._order("closed")
+
+        resp = self.client.post(
+            reverse("create-order"),
+            data={
+                "cart": [{"id": self.dish.id, "quantity": 1}],
+                "table_token": str(self.table.qr_token),
+                "order_id": closed_order.id,
+            },
+            content_type="application/json",
+        )
+
+        self.assertEqual(resp.status_code, 409)
+        self.assertIn("call a waiter", resp.json()["error"].lower())

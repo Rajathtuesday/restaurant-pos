@@ -202,10 +202,17 @@ def create_order(request):
                     return JsonResponse({"error": "That order does not belong to this table."}, status=403)
 
                 if order.status not in ("open", "billing"):
-                    return JsonResponse(
-                        {"error": "This order has already been billed. Please call a waiter for more items."},
-                        status=409,
-                    )
+                    if user is None:
+                        return JsonResponse(
+                            {"error": "This order has already been billed. Please call a waiter for more items."},
+                            status=409,
+                        )
+                    # Staff: a stale order_id (e.g. this tab wasn't reselected
+                    # since the previous customer's order at this table closed)
+                    # must not block starting the next customer's order --
+                    # fall through to the same find-or-create-fresh path used
+                    # when no order_id is sent at all.
+                    order = get_or_create_open_order(user, table, tenant=tenant, outlet=outlet)
 
                 order.source = source
                 if aggregator_id: order.aggregator_order_id = aggregator_id
