@@ -303,7 +303,12 @@ def create_order(request):
                 u_name, order.id, table.name if table else "Walk-in/Online", source,
             )
 
-        return JsonResponse({"success": True, "order_id": order.id})
+        from orders.views.public_views import make_order_status_token
+        return JsonResponse({
+            "success": True,
+            "order_id": order.id,
+            "status_token": make_order_status_token(order.id),
+        })
     except Exception:
         # Never leak internal exception text (DB constraints, table names) to
         # the client — especially unauthenticated QR guests. Log full trace,

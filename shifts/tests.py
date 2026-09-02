@@ -230,6 +230,10 @@ class ShiftsRoleGateTests(TestCase):
             reverse("shift-template-list"),
             reverse("shift-template-create"),
             reverse("shift-template-delete", args=[1]),
+            # export_z_report had no role check at all until this fix --
+            # exported full daily revenue + per-cash-session discrepancy
+            # detail to any authenticated staff role.
+            reverse("export-z-report"),
         ]
 
     def test_waiter_denied_on_every_gated_view(self):

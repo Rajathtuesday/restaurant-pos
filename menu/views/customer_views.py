@@ -123,13 +123,18 @@ def call_waiter(request, qr_token):
 
 
 @ratelimit(key="ip", rate="30/m", method="GET", block=False)
-def order_status(request, order_id):
+def order_status(request, signed_token):
     """
     Public, read-only status poll for a guest who just placed a QR order.
     No login required — a guest has no account. Deliberately returns only
     non-sensitive fields (item names/quantities/status, a plain-English stage)
-    and NOTHING financial (no prices, totals, or payment info), since the
-    order_id alone is not treated as a secret.
+    and NOTHING financial (no prices, totals, or payment info).
+
+    Keyed off a signed token (order_id was NOT treated as a secret here
+    until this fix -- it's a raw sequential integer shared across every
+    tenant on the platform, so a bare order_id let anyone enumerate and
+    read any restaurant's live order, not just their own). Same pattern as
+    public_bill's signed link, see orders/views/public_views.py.
 
     Rate-limited: a guest's own phone polls this every ~6s (10/min steady
     state) while an order is active -- 30/min gives 3x headroom for a
@@ -139,7 +144,17 @@ def order_status(request, order_id):
     if getattr(request, "limited", False):
         return JsonResponse({"error": "Too many requests."}, status=429)
 
+    from django.core.signing import BadSignature, SignatureExpired, TimestampSigner
     from orders.models import Order
+    from orders.views.public_views import ORDER_STATUS_MAX_AGE, ORDER_STATUS_SALT
+
+    signer = TimestampSigner(salt=ORDER_STATUS_SALT)
+    try:
+        order_id = signer.unsign(signed_token, max_age=ORDER_STATUS_MAX_AGE)
+    except SignatureExpired:
+        return JsonResponse({"error": "This order status link has expired."}, status=410)
+    except BadSignature:
+        return JsonResponse({"error": "Invalid order status link."}, status=400)
 
     order = get_object_or_404(Order, id=order_id)
 

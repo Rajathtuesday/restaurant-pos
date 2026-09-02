@@ -1097,7 +1097,7 @@
         if (_statusStorageKey) localStorage.removeItem(_statusStorageKey);
     }
 
-    let _pollingOrderId = null;
+    let _pollingToken = null;  // a signed order-status token now, not a raw order id
 
     // --- Submit Order ---
     function submitOrder() {
@@ -1147,7 +1147,7 @@
         .then(({ ok, data }) => {
             if(ok && data.success) {
                 setStoredOrderId(data.order_id);
-                setStatusOrderId(data.order_id);
+                setStatusOrderId(data.status_token);
                 btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> ORDER SENT!';
                 btn.style.background = '#16a34a';
                 setTimeout(() => location.reload(), 1200);
@@ -1236,11 +1236,11 @@
     }
 
     async function pollOrderStatus() {
-        if (!_pollingOrderId) return;
+        if (!_pollingToken) return;
         try {
-            const res = await fetch(`/menu/order-status/${_pollingOrderId}/`);
+            const res = await fetch(`/menu/order-status/${_pollingToken}/`);
             if (!res.ok) {
-                _pollingOrderId = null;
+                _pollingToken = null;
                 clearStoredOrderId();
                 clearStatusOrderId();
                 resetOrderStatusUI();
@@ -1261,7 +1261,7 @@
                 || (!data.token_display && !data.can_add_more)
                 || (data.token_display && data.token_collected);
             if (done) {
-                _pollingOrderId = null;
+                _pollingToken = null;
                 clearStatusOrderId();
                 resetOrderStatusUI();
                 if (_statusPollTimer) clearInterval(_statusPollTimer);
@@ -1274,8 +1274,8 @@
         // already gone by the time a token order reaches "ready for
         // pickup", but this key isn't, so a refresh mid-wait still resumes
         // the banner instead of showing nothing until pickup actually happens.
-        _pollingOrderId = getStatusOrderId();
-        if (!_pollingOrderId) return;
+        _pollingToken = getStatusOrderId();
+        if (!_pollingToken) return;
         pollOrderStatus();
         _statusPollTimer = setInterval(pollOrderStatus, 6000);
     }

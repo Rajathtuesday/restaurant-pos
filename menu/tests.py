@@ -459,14 +459,16 @@ class PublicMenuRateLimitTest(TestCase):
 
     def test_order_status_rate_limited_after_30_per_minute(self):
         from orders.models import Order, Table
+        from orders.views.public_views import make_order_status_token
         table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
         order = Order.objects.create(
             tenant=self.tenant, outlet=self.outlet, table=table, status="open",
         )
+        token = make_order_status_token(order.id)
         for _ in range(30):
-            resp = self.client.get(reverse("order_status", args=[order.id]))
+            resp = self.client.get(reverse("order_status", args=[token]))
             self.assertEqual(resp.status_code, 200)
-        resp = self.client.get(reverse("order_status", args=[order.id]))
+        resp = self.client.get(reverse("order_status", args=[token]))
         self.assertEqual(resp.status_code, 429)
         self.assertIn("error", resp.json())
 
@@ -478,6 +480,83 @@ class PublicMenuRateLimitTest(TestCase):
         for _ in range(20):
             resp = self.client.get(reverse("menu_view", args=[table.qr_token]))
             self.assertEqual(resp.status_code, 200)
+
+
+class OrderStatusTokenSecurityTest(TestCase):
+    """Regression: order_status used to take a raw sequential order_id with
+    no login required -- anyone could enumerate it and read any tenant's
+    live order, not just their own. Now keyed off a signed token, same
+    pattern as public_bill."""
+
+    def setUp(self):
+        from orders.models import Order, Table
+        self.tenant_a = Tenant.objects.create(name="Tenant A", tenant_type="cafe")
+        self.outlet_a = Outlet.objects.create(tenant=self.tenant_a, name="Main")
+        self.table_a = Table.objects.create(tenant=self.tenant_a, outlet=self.outlet_a, name="A1")
+        self.order_a = Order.objects.create(
+            tenant=self.tenant_a, outlet=self.outlet_a, table=self.table_a, status="open",
+        )
+
+        self.tenant_b = Tenant.objects.create(name="Tenant B", tenant_type="cafe")
+        self.outlet_b = Outlet.objects.create(tenant=self.tenant_b, name="Main")
+        self.table_b = Table.objects.create(tenant=self.tenant_b, outlet=self.outlet_b, name="B1")
+        self.order_b = Order.objects.create(
+            tenant=self.tenant_b, outlet=self.outlet_b, table=self.table_b, status="open",
+        )
+
+    def test_raw_integer_order_id_no_longer_works(self):
+        resp = self.client.get(f"/menu/order-status/{self.order_a.id}/")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_valid_token_returns_the_right_order(self):
+        from orders.views.public_views import make_order_status_token
+        token = make_order_status_token(self.order_a.id)
+        resp = self.client.get(reverse("order_status", args=[token]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["order_id"], self.order_a.id)
+
+    def test_tenant_bs_token_cannot_be_used_to_read_tenant_as_order(self):
+        """The whole point: a guessed/enumerated raw id is gone, and each
+        tenant's own signed token only ever resolves to its own order."""
+        from orders.views.public_views import make_order_status_token
+        token_b = make_order_status_token(self.order_b.id)
+        resp = self.client.get(reverse("order_status", args=[token_b]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["order_id"], self.order_b.id)
+        self.assertNotEqual(resp.json()["order_id"], self.order_a.id)
+
+    def test_tampered_token_rejected(self):
+        from orders.views.public_views import make_order_status_token
+        token = make_order_status_token(self.order_a.id)
+        tampered = token[:-1] + ("x" if token[-1] != "x" else "y")
+        resp = self.client.get(reverse("order_status", args=[tampered]))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_create_order_response_includes_a_usable_status_token(self):
+        category = MenuCategory.objects.create(
+            tenant=self.tenant_a, outlet=self.outlet_a, name="Mains"
+        )
+        item = MenuItem.objects.create(
+            tenant=self.tenant_a, outlet=self.outlet_a, category=category,
+            name="Dosa", price=Decimal("120.00"), is_available=True,
+        )
+        resp = self.client.post(
+            "/create-order/",
+            data=json.dumps({
+                "table_token": str(self.table_a.qr_token),
+                "cart": [{"id": item.id, "quantity": 1}],
+            }),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertIn("status_token", body)
+
+        # The token create_order just handed back must actually resolve,
+        # end to end, to the order that was just created.
+        status_resp = self.client.get(reverse("order_status", args=[body["status_token"]]))
+        self.assertEqual(status_resp.status_code, 200)
+        self.assertEqual(status_resp.json()["order_id"], body["order_id"])
 
 
 @override_settings(RATELIMIT_ENABLE=True)

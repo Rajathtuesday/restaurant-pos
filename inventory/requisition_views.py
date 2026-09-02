@@ -308,7 +308,8 @@ def convert_to_batch(request, req_id):
     from inventory.models import ProductionBatch, BatchItem
 
     req = get_object_or_404(
-        StockRequisition, id=req_id, tenant=request.user.tenant
+        StockRequisition, id=req_id, tenant=request.user.tenant,
+        fulfilling_outlet=request.user.outlet,
     )
     if req.status != "approved":
         return JsonResponse({"error": "Requisition must be approved first."}, status=400)
@@ -387,10 +388,21 @@ def convert_to_po(request, req_id):
     the request. get_or_create + select_for_update mirrors the same pattern
     InventoryItem.trigger_reorder already uses correctly.
     """
+    from django.db.models import Q
     from inventory.models import generate_po_number
 
+    # Unlike convert_to_batch (CK-only, always has a real fulfilling_outlet),
+    # this view also handles the "external" route -- vendor PO, no central
+    # kitchen involved -- where fulfilling_outlet is legitimately None (see
+    # StockRequisition.auto_route()). Authorize either the fulfilling
+    # outlet's manager (internal route) or, when there is none, the
+    # requesting outlet's own manager (external route) -- not just tenant.
     req = get_object_or_404(
-        StockRequisition, id=req_id, tenant=request.user.tenant
+        StockRequisition.objects.filter(
+            Q(fulfilling_outlet=request.user.outlet)
+            | Q(fulfilling_outlet__isnull=True, requesting_outlet=request.user.outlet)
+        ),
+        id=req_id, tenant=request.user.tenant,
     )
     if req.status not in ("approved", "pending"):
         return JsonResponse({"error": "Approve the requisition before creating a PO."}, status=400)

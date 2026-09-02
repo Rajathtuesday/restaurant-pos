@@ -170,9 +170,11 @@ def create_batch(request):
 @login_required
 @tenant_required
 @feature_required("central_kitchen")
+@role_required("owner", "manager")
 def batch_detail(request, batch_id):
     batch = get_object_or_404(
-        ProductionBatch, id=batch_id, tenant=request.user.tenant
+        ProductionBatch, id=batch_id, tenant=request.user.tenant,
+        source_outlet=request.user.outlet
     )
     items     = batch.items.select_related("inventory_item").all()
     transfers = batch.transfers.select_related("destination_outlet", "received_by").all()
@@ -255,7 +257,8 @@ def add_batch_item(request, batch_id):
 def create_transfers(request, batch_id):
     """Create BatchTransfer records for selected outlet IDs."""
     batch = get_object_or_404(
-        ProductionBatch, id=batch_id, tenant=request.user.tenant
+        ProductionBatch, id=batch_id, tenant=request.user.tenant,
+        source_outlet=request.user.outlet
     )
     if not batch.items.exists():
         return JsonResponse(
@@ -317,7 +320,8 @@ def dispatch_batch(request, batch_id):
     from django.core.exceptions import ValidationError
 
     batch = get_object_or_404(
-        ProductionBatch, id=batch_id, tenant=request.user.tenant
+        ProductionBatch, id=batch_id, tenant=request.user.tenant,
+        source_outlet=request.user.outlet
     )
     now = timezone.now()
 

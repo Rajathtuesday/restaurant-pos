@@ -204,3 +204,53 @@ class CancelOrderRoleTest(_Base):
         self.assertEqual(resp.status_code, 403)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "open")
+
+
+class VoidOnCompletedOrderTest(_Base):
+    """void_order_item checked item.status but never order.status -- a
+    cashier/captain could void an item on an already-paid/closed order
+    (routine for QSR, which pays before the kitchen cooks), silently
+    changing grand_total with no corresponding Payment adjustment."""
+
+    def setUp(self):
+        super().setUp()
+        self.cashier = User.objects.create_user(
+            username="void_cashier", password="pw", role="cashier",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+
+    def _order_with_item(self, status):
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=self.table, status=status,
+        )
+        item = OrderItem.objects.create(
+            order=order, menu_item=self.item, quantity=1,
+            price=self.item.price, gst_percentage=self.item.gst_percentage,
+            total_price=self.item.price, status="sent",
+        )
+        return order, item
+
+    def test_cannot_void_item_on_a_closed_order(self):
+        order, item = self._order_with_item(status="closed")
+        client = Client()
+        client.force_login(self.cashier)
+        resp = client.post(reverse("cancel-item", args=[item.id]))
+        self.assertEqual(resp.status_code, 400)
+        item.refresh_from_db()
+        self.assertNotEqual(item.status, "voided")
+
+    def test_cannot_void_item_on_a_paid_order(self):
+        order, item = self._order_with_item(status="paid")
+        client = Client()
+        client.force_login(self.cashier)
+        resp = client.post(reverse("cancel-item", args=[item.id]))
+        self.assertEqual(resp.status_code, 400)
+
+    def test_can_still_void_item_on_an_open_order(self):
+        order, item = self._order_with_item(status="open")
+        client = Client()
+        client.force_login(self.cashier)
+        resp = client.post(reverse("cancel-item", args=[item.id]))
+        self.assertEqual(resp.status_code, 200)
+        item.refresh_from_db()
+        self.assertEqual(item.status, "voided")

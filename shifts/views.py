@@ -322,6 +322,7 @@ def close_cash_session(request):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager")
 def export_z_report(request):
     """Exports Z-report for the day including summary and session details."""
     import csv

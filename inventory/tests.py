@@ -2163,6 +2163,152 @@ class ConvertToPOTests(TestCase):
         self.assertRegex(manual_po.po_number, pattern)
 
 
+class RequisitionOutletScopingTests(TestCase):
+    """convert_to_batch and convert_to_po only checked tenant, not outlet --
+    a manager at the wrong outlet could push any tenant requisition into
+    production or commit spend against an outlet they don't manage.
+    approve_requisition already scoped correctly; these two didn't."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Outlet Scope Tenant", tenant_type="franchise")
+        self.ck_outlet = Outlet.objects.create(tenant=self.tenant, name="Central Kitchen")
+        self.other_outlet = Outlet.objects.create(tenant=self.tenant, name="Branch B")
+
+        User = get_user_model()
+        self.ck_manager = User.objects.create_user(
+            username="ck_mgr", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.ck_outlet,
+        )
+        self.other_manager = User.objects.create_user(
+            username="other_mgr", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.other_outlet,
+        )
+
+        self.flour = InventoryItem.objects.create(
+            tenant=self.tenant, outlet=self.ck_outlet, name="Flour", unit="kg",
+            stock=Decimal("50.000"), cost_price=Decimal("40.00"),
+        )
+
+    def _internal_requisition(self):
+        req = StockRequisition.objects.create(
+            tenant=self.tenant, requesting_outlet=self.other_outlet,
+            fulfilling_outlet=self.ck_outlet, status="approved", route="internal",
+            created_by=self.other_manager, approved_by=self.ck_manager,
+        )
+        RequisitionItem.objects.create(
+            requisition=req, inventory_item=self.flour,
+            quantity_requested=Decimal("5"), quantity_approved=Decimal("5"),
+        )
+        return req
+
+    def test_manager_at_wrong_outlet_cannot_convert_to_batch(self):
+        req = self._internal_requisition()
+        self.client.force_login(self.other_manager)
+        resp = self.client.post(reverse("requisition-to-batch", args=[req.id]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_fulfilling_outlet_manager_can_convert_to_batch(self):
+        req = self._internal_requisition()
+        self.client.force_login(self.ck_manager)
+        resp = self.client.post(reverse("requisition-to-batch", args=[req.id]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_requesting_outlet_manager_can_still_convert_external_route_to_po(self):
+        # No central kitchen involved -- fulfilling_outlet is legitimately
+        # None. The requesting outlet's own manager must still be able to
+        # convert their own requisition to a vendor PO.
+        supplier = Supplier.objects.create(tenant=self.tenant, outlet=self.other_outlet, name="Vendor")
+        self.flour.preferred_supplier = supplier
+        self.flour.save()
+        req = StockRequisition.objects.create(
+            tenant=self.tenant, requesting_outlet=self.other_outlet,
+            fulfilling_outlet=None, status="approved", route="external",
+            created_by=self.other_manager, approved_by=self.other_manager,
+        )
+        RequisitionItem.objects.create(
+            requisition=req, inventory_item=self.flour,
+            quantity_requested=Decimal("5"), quantity_approved=Decimal("5"),
+        )
+        self.client.force_login(self.other_manager)
+        resp = self.client.post(reverse("requisition-to-po", args=[req.id]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_unrelated_outlet_manager_cannot_convert_external_route_to_po(self):
+        req = StockRequisition.objects.create(
+            tenant=self.tenant, requesting_outlet=self.other_outlet,
+            fulfilling_outlet=None, status="approved", route="external",
+            created_by=self.other_manager, approved_by=self.other_manager,
+        )
+        RequisitionItem.objects.create(
+            requisition=req, inventory_item=self.flour,
+            quantity_requested=Decimal("5"), quantity_approved=Decimal("5"),
+        )
+        self.client.force_login(self.ck_manager)
+        resp = self.client.post(reverse("requisition-to-po", args=[req.id]))
+        self.assertEqual(resp.status_code, 404)
+
+
+class CentralKitchenOutletScopingTests(TestCase):
+    """batch_detail had no role check at all; create_transfers and
+    dispatch_batch checked role but not outlet -- a manager at the wrong
+    outlet could view another outlet's batch, or transfer/dispatch (real
+    stock-debiting) a batch they don't own."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="CK Scope Tenant", tenant_type="franchise")
+        self.ck_outlet = Outlet.objects.create(tenant=self.tenant, name="Central Kitchen")
+        self.other_outlet = Outlet.objects.create(tenant=self.tenant, name="Branch B")
+
+        User = get_user_model()
+        self.ck_manager = User.objects.create_user(
+            username="ck_mgr2", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.ck_outlet,
+        )
+        self.other_manager = User.objects.create_user(
+            username="other_mgr2", password="pwd", role="manager",
+            tenant=self.tenant, outlet=self.other_outlet,
+        )
+        self.waiter = User.objects.create_user(
+            username="ck_waiter", password="pwd", role="waiter",
+            tenant=self.tenant, outlet=self.ck_outlet,
+        )
+
+        from inventory.models import ProductionBatch
+        self.batch = ProductionBatch.objects.create(
+            tenant=self.tenant, source_outlet=self.ck_outlet,
+            batch_number="B-0001", batch_type="produce",
+        )
+
+    def test_wrong_outlet_manager_cannot_view_batch_detail(self):
+        self.client.force_login(self.other_manager)
+        resp = self.client.get(reverse("ck-batch-detail", args=[self.batch.id]))
+        self.assertEqual(resp.status_code, 404)
+
+    def test_waiter_cannot_view_batch_detail_even_at_the_right_outlet(self):
+        self.client.force_login(self.waiter)
+        resp = self.client.get(reverse("ck-batch-detail", args=[self.batch.id]))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_source_outlet_manager_can_view_batch_detail(self):
+        self.client.force_login(self.ck_manager)
+        resp = self.client.get(reverse("ck-batch-detail", args=[self.batch.id]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_wrong_outlet_manager_cannot_create_transfers(self):
+        self.client.force_login(self.other_manager)
+        resp = self.client.post(
+            reverse("ck-create-transfers", args=[self.batch.id]),
+            data=json.dumps({"outlet_ids": [self.other_outlet.id]}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 404)
+
+    def test_wrong_outlet_manager_cannot_dispatch_batch(self):
+        self.client.force_login(self.other_manager)
+        resp = self.client.post(reverse("ck-dispatch", args=[self.batch.id]))
+        self.assertEqual(resp.status_code, 404)
+
+
 class AutoRouteTests(TestCase):
     """
     Coverage for StockRequisition.auto_route(), previously untested.

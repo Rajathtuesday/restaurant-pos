@@ -28,6 +28,8 @@ def void_order_item(user, item_id, reason):
         )
     )
 
+    if item.order.status in ("paid", "closed", "cancelled"):
+        raise OrderError("Cannot void an item on a completed order.")
     if item.status == "voided":
         raise OrderError("Item is already voided")
     if item.status == "served" and user.role not in ["manager", "owner"]:

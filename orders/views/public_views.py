@@ -18,9 +18,22 @@ logger = logging.getLogger("pos.orders")
 PUBLIC_BILL_SALT = "public-bill"
 PUBLIC_BILL_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
+# order_status (menu/views/customer_views.py) used to take a raw sequential
+# order_id with no login required -- anyone could enumerate it and read any
+# restaurant's live order, not just their own. Same signed-token pattern as
+# the bill link above, just a much shorter lifetime since this is only ever
+# needed for the length of one active dine-in/QSR visit, not a receipt kept
+# around for a week.
+ORDER_STATUS_SALT = "order-status"
+ORDER_STATUS_MAX_AGE = 60 * 60 * 6  # 6 hours
+
 
 def make_public_bill_token(order_id) -> str:
     return TimestampSigner(salt=PUBLIC_BILL_SALT).sign(str(order_id))
+
+
+def make_order_status_token(order_id) -> str:
+    return TimestampSigner(salt=ORDER_STATUS_SALT).sign(str(order_id))
 
 
 def public_bill(request, signed_token):
