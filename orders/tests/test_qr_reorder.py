@@ -22,6 +22,7 @@ from django.urls import reverse
 
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
+from orders.views.public_views import make_order_status_token
 from tenants.models import Tenant, Outlet
 
 
@@ -142,7 +143,7 @@ class OrderStatusEndpointTest(_Base):
         first = self._place(self.table_a, self.item)
         order_id = first.json()["order_id"]
 
-        resp = self.client.get(reverse("order_status", args=[order_id]))
+        resp = self.client.get(reverse("order_status", args=[make_order_status_token(order_id)]))
         self.assertEqual(resp.status_code, 200)
         data = resp.json()
         self.assertEqual(data["stage"], "waiting_confirmation")
@@ -157,7 +158,7 @@ class OrderStatusEndpointTest(_Base):
         order_id = first.json()["order_id"]
         Order.objects.filter(id=order_id).update(status="paid")
 
-        resp = self.client.get(reverse("order_status", args=[order_id]))
+        resp = self.client.get(reverse("order_status", args=[make_order_status_token(order_id)]))
         self.assertFalse(resp.json()["can_add_more"])
 
 
@@ -246,7 +247,7 @@ class OrderStatusTokenFieldsTest(_FranchiseBase):
         # Fine-dining-style order with no table -- e.g. a takeaway placed by
         # staff, never gets a token, order_status must degrade gracefully.
         order = Order.objects.create(tenant=self.tenant, outlet=self.outlet)
-        resp = self.client.get(reverse("order_status", args=[order.id]))
+        resp = self.client.get(reverse("order_status", args=[make_order_status_token(order.id)]))
         data = resp.json()
         self.assertIsNone(data["token_display"])
         self.assertFalse(data["token_ready"])
@@ -256,7 +257,7 @@ class OrderStatusTokenFieldsTest(_FranchiseBase):
         first = self._place(self.item)
         order_id = first.json()["order_id"]
 
-        resp = self.client.get(reverse("order_status", args=[order_id]))
+        resp = self.client.get(reverse("order_status", args=[make_order_status_token(order_id)]))
         data = resp.json()
         self.assertEqual(data["token_display"], "#1")
         self.assertFalse(data["token_ready"])
@@ -270,7 +271,7 @@ class OrderStatusTokenFieldsTest(_FranchiseBase):
         order_id = first.json()["order_id"]
         TokenOrder.objects.filter(order_id=order_id).update(ready_at=timezone.now())
 
-        resp = self.client.get(reverse("order_status", args=[order_id]))
+        resp = self.client.get(reverse("order_status", args=[make_order_status_token(order_id)]))
         data = resp.json()
         self.assertTrue(data["token_ready"])
         self.assertFalse(data["token_collected"])
@@ -284,7 +285,7 @@ class OrderStatusTokenFieldsTest(_FranchiseBase):
         now = timezone.now()
         TokenOrder.objects.filter(order_id=order_id).update(ready_at=now, collected_at=now)
 
-        resp = self.client.get(reverse("order_status", args=[order_id]))
+        resp = self.client.get(reverse("order_status", args=[make_order_status_token(order_id)]))
         data = resp.json()
         self.assertFalse(data["token_ready"])
         self.assertTrue(data["token_collected"])
