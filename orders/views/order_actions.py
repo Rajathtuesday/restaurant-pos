@@ -118,6 +118,7 @@ def cancel_item(request, item_id):
 
 @login_required
 @tenant_required
+@role_required("owner", "manager", "cashier", "captain")
 @require_POST
 def toggle_parcel(request, order_id):
     """

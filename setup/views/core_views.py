@@ -1068,6 +1068,8 @@ def outlet_settings(request):
 @tenant_required
 def setup_qr_codes(request):
     """Print QR codes for all tables — one QR per table linking to the digital menu."""
+    if request.user.role not in ["owner", "manager"]:
+        return redirect("/setup/")
     from django.conf import settings
 
     outlet = request.user.outlet

@@ -620,9 +620,17 @@
     if (!confirm("Unmerge all tables linked to this primary table?")) return;
     fetch("{% url 'unmerge-tables' 0 %}".replace('0', primaryId), {
       method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-    }).then(r => r.json()).then(d => {
+    }).then(r => {
+      if (!r.ok) throw new Error(`Server error (${r.status})`);
+      return r.json();
+    }).then(d => {
       if (d.success) { showToast("Tables Unmerged"); setTimeout(() => location.reload(), 1000); }
       else showToast(d.error || "Unmerge failed");
+    }).catch(err => {
+      // Previously uncaught -- a non-JSON error response (e.g. a real 500)
+      // failed silently here: no toast, no reload, nothing visible at all.
+      console.error("Unmerge failed:", err);
+      showToast("Unmerge failed — please try again");
     });
   }
 

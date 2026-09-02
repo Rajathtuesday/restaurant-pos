@@ -28,6 +28,7 @@ logger = logging.getLogger("pos.orders")
 @login_required
 @tenant_required
 @require_POST
+@role_required("manager", "cashier", "captain", "owner")
 @ratelimit(key="user", rate="15/m", method="POST", block=True)
 def pay_order(request, order_id):
     """
@@ -311,6 +312,7 @@ def refund_payment(request, payment_id):
 @login_required
 @require_POST
 @tenant_required
+@role_required("manager", "cashier", "captain", "owner")
 @feature_required("split_bill")
 def split_pay(request, order_id):
     """

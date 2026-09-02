@@ -50,6 +50,34 @@ class PaymentMethodsRoleGateTest(_Base):
         self.assertEqual(resp.status_code, 200)
 
 
+class QrCodesRoleGateTest(_Base):
+    """setup_qr_codes had no role check at all -- any authenticated staff
+    account (default role is cashier) could reach it directly by URL."""
+
+    def test_cashier_blocked_from_qr_codes(self):
+        client = Client()
+        client.force_login(self.cashier)
+        resp = client.get(reverse("setup_qr_codes"))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn("/setup/", resp["Location"])
+
+    def test_manager_allowed(self):
+        manager = User.objects.create_user(
+            username="manager1", password="pw", role="manager",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        client = Client()
+        client.force_login(manager)
+        resp = client.get(reverse("setup_qr_codes"))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_owner_allowed(self):
+        client = Client()
+        client.force_login(self.owner)
+        resp = client.get(reverse("setup_qr_codes"))
+        self.assertEqual(resp.status_code, 200)
+
+
 class StaffRoleValidationTest(_Base):
     def test_owner_cannot_create_another_owner(self):
         client = Client()

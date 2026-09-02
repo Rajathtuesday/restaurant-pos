@@ -461,7 +461,9 @@
         </a>
     </div>
     {% endif %}
+    {% endif %}
 
+    {% if not is_cashier %}
     <div class="col-6 col-md-3 col-lg-2">
         <a href="/setup/" class="quick-card">
             <div class="icon"><i class="bi bi-sliders"></i></div>
@@ -469,7 +471,9 @@
             <p>System Config</p>
         </a>
     </div>
+    {% endif %}
 
+    {% if not is_manager %}
     {% if request.user.is_superuser %}
     <div class="col-6 col-md-3 col-lg-2">
         <a href="{% url 'feature_flags' %}" class="quick-card" style="border-color:var(--accent-gold);">

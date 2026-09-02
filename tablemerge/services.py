@@ -78,8 +78,15 @@ def merge_tables(user, primary_table_id, table_ids):
 @transaction.atomic
 def unmerge_tables(user, merge_id):
 
+    # select_for_update: without this, two near-simultaneous unmerge
+    # requests for the same merge (a double-tap, or a retry on a flaky
+    # connection) can both pass the view's own existence check, then race
+    # here -- the second one's .get(is_active=True) raises DoesNotExist
+    # once the first commits, a genuine unhandled 500 rather than a clean
+    # "already unmerged" response.
     merge = (
         TableMerge.objects
+        .select_for_update()
         .select_related("primary_table")
         .prefetch_related("tables")
         .get(
@@ -92,10 +99,15 @@ def unmerge_tables(user, merge_id):
 
     primary = merge.primary_table
 
-    # get active order of the primary table
+    # Was status="open" only -- a "billing" order (bill generated, not yet
+    # paid) was invisible to this filter, so unmerging mid-billing always
+    # forced every secondary table to "free" as if there were no active
+    # order at all, even though the combined party's bill was still open.
+    # Matches the status__in=["open","billing"] convention every other
+    # order lookup in this app already uses.
     order = Order.objects.filter(
         table=primary,
-        status="open"
+        status__in=["open", "billing"]
     ).first()
 
     for table in merge.tables.all():
@@ -103,7 +115,15 @@ def unmerge_tables(user, merge_id):
         if table == primary:
             continue
 
-        # restore proper state
+        # Never clobber a table that's already mid-billing/cleaning on its
+        # own -- same guard update_table_state() uses elsewhere. A
+        # secondary table can only be in a state derived from the merge
+        # itself, so this only matters if something outside the merge
+        # already moved it, which should be left alone rather than
+        # overwritten by unmerge.
+        if table.state in ("billing", "cleaning"):
+            continue
+
         if order:
             table.state = "ordering"
         else:

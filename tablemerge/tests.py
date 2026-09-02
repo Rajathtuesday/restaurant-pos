@@ -155,6 +155,39 @@ class MergeTablesViewTest(_Base):
         resp = self._login().post(reverse("unmerge-tables", args=[999999]))
         self.assertEqual(resp.status_code, 404)
 
+    def test_unmerge_succeeds_while_primary_order_is_billing(self):
+        """Regression: unmerge_tables only ever looked for status="open" --
+        a bill already generated for the merged group (status="billing",
+        not yet paid) was invisible to that filter, so every secondary
+        table got force-reset to "free" as if there were no active order
+        at all, silently discarding the fact that the group's bill was
+        still open."""
+        order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, table=self.table_a,
+            created_by=self.manager, status="billing",
+        )
+        merge = merge_tables(self.manager, self.table_a.id, [self.table_b.id])
+
+        unmerge_tables(self.manager, merge.id)
+
+        merge.refresh_from_db()
+        self.table_b.refresh_from_db()
+        self.assertFalse(merge.is_active)
+        # The group's bill is still open -- table_b must reflect that
+        # ("ordering"), not silently revert to "free" as if the party had
+        # never been seated.
+        self.assertEqual(self.table_b.state, "ordering")
+
+    def test_unmerge_does_not_clobber_a_secondary_table_already_billing_on_its_own(self):
+        merge = merge_tables(self.manager, self.table_a.id, [self.table_b.id])
+        self.table_b.state = "billing"
+        self.table_b.save(update_fields=["state"])
+
+        unmerge_tables(self.manager, merge.id)
+
+        self.table_b.refresh_from_db()
+        self.assertEqual(self.table_b.state, "billing")
+
     def test_logged_out_user_redirected_not_merged(self):
         resp = Client().post(
             reverse("merge-tables"),

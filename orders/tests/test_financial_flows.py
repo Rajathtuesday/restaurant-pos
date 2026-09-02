@@ -359,3 +359,67 @@ class PayOrderTest(TestCase):
         # Order must NOT be in a terminal state after a partial payment
         self.assertNotIn(self.order.status, ["paid", "closed"],
             f"Partial payment should not close order, got status: {self.order.status}")
+
+
+class PaymentRoleGateTest(TestCase):
+    """Regression test: pay_order, split_pay, and toggle_parcel had no role
+    check at all until this fix -- any authenticated role, including
+    kitchen/chef, could close out or reprice any order in the outlet."""
+
+    def setUp(self):
+        self.t, self.o = _tenant("Role Gate Cafe")
+        self.kitchen = _user(self.t, self.o, role="kitchen", username="rg_kitchen")
+        self.cashier = _user(self.t, self.o, role="cashier", username="rg_cashier")
+        self.menu_item = _item(self.t, self.o, price=500, gst=0)
+        self.table = _table(self.t, self.o, "R1")
+        self.order = _order(self.t, self.o, self.cashier, self.table, status="billing")
+        _order_item(self.order, self.menu_item, qty=1)
+        self.order.recalculate_totals()
+
+        CashSession.objects.create(
+            tenant=self.t, outlet=self.o,
+            opened_by=self.cashier, opening_balance=Decimal("0"),
+            status="open"
+        )
+        PaymentConfig.objects.create(
+            tenant=self.t, outlet=self.o,
+            cash_enabled=True, upi_enabled=True, card_enabled=True
+        )
+
+    def test_kitchen_cannot_pay_order(self):
+        c = Client()
+        c.force_login(self.kitchen)
+        resp = c.post(
+            f"/pay/{self.order.id}/",
+            data=json.dumps({"method": "cash", "amount": 500}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 403)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, "billing")
+
+    def test_cashier_can_still_pay_order(self):
+        c = Client()
+        c.force_login(self.cashier)
+        resp = c.post(
+            f"/pay/{self.order.id}/",
+            data=json.dumps({"method": "cash", "amount": 500}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+
+    def test_kitchen_cannot_split_pay(self):
+        c = Client()
+        c.force_login(self.kitchen)
+        resp = c.post(
+            f"/split-pay/{self.order.id}/",
+            data=json.dumps({"people": 2, "method": "cash"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 403)
+
+    def test_kitchen_cannot_toggle_parcel(self):
+        c = Client()
+        c.force_login(self.kitchen)
+        resp = c.post(f"/toggle-parcel/{self.order.id}/")
+        self.assertEqual(resp.status_code, 403)
