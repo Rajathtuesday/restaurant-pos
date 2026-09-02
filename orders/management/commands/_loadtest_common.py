@@ -107,16 +107,22 @@ class ResourceSampler:
 
 
 def cleanup_tenant(tenant):
-    """Delete a tenant and everything under it, honoring the PROTECT FK chain
-    (Payment.order and Order.tenant are both on_delete=PROTECT, so payments
-    must go before orders, and orders before the tenant). Shared by every
-    load-test command so a throwaway tenant never lingers."""
+    """Delete a tenant and everything under it, honoring every PROTECT FK
+    chain -- Payment.order and Order.tenant are both on_delete=PROTECT, so
+    payments must go before orders, and orders before the tenant; likewise
+    PurchaseOrder.supplier is PROTECT, so any draft POs a test's low-stock
+    reorder logic created must go before the tenant too (PurchaseOrderItem
+    cascades off PurchaseOrder itself, no separate step needed). Shared by
+    every load-test command so a throwaway tenant never lingers -- the
+    PurchaseOrder delete is a no-op for commands that never create one."""
     from orders.models import Order, Payment
     from payments.models import Refund
+    from inventory.models import PurchaseOrder
     from tenants.models import Tenant
     Refund.objects.filter(order__tenant=tenant).delete()
     Payment.objects.filter(order__tenant=tenant).delete()
     Order.objects.filter(tenant=tenant).delete()
+    PurchaseOrder.objects.filter(tenant=tenant).delete()
     Tenant.objects.filter(pk=tenant.pk).delete()
 
 

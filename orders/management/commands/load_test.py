@@ -15,12 +15,22 @@ Usage:
     python manage.py load_test --orders 300 --workers 16
     python manage.py load_test --orders 300 --workers 16 --keep   # skip cleanup
     python manage.py load_test --race-workers 40                   # race probe size
+    python manage.py load_test --soak-minutes 30                   # + a sustained Phase 4
+
+A fourth, OPT-IN phase (--soak-minutes, off by default) holds a steady
+number of workers running the same order lifecycle continuously for N
+minutes, checkpointing throughput/memory/DB state every --soak-checkpoint-
+seconds. This is deliberately DB-level, not HTTP: /create-order/ rate-limits
+at 20/min per IP, which would make an HTTP-level soak test measure the rate
+limiter for 29 of every 30 minutes, not the app -- see http_rush_test.py for
+the HTTP-level (burst, not sustained) test instead.
 
 By default it creates (and afterwards deletes) a dedicated "LoadTest" tenant so
 it never touches real restaurant data.
 """
 import random
 import statistics
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
@@ -64,6 +74,13 @@ class Command(BaseCommand):
                             help="Skip the reservation-booking race probe.")
         parser.add_argument("--log-dir", default="loadtest_logs",
                             help="Directory for the timestamped run log (default: loadtest_logs/).")
+        parser.add_argument("--soak-minutes", type=int, default=0,
+                            help="Run an additional Phase 4: N minutes of sustained load, "
+                                 "checkpointed periodically. 0 (default) = skip this phase.")
+        parser.add_argument("--soak-workers", type=int, default=0,
+                            help="Workers for the soak phase (default: same as --workers).")
+        parser.add_argument("--soak-checkpoint-seconds", type=int, default=60,
+                            help="How often the soak phase logs a throughput/memory checkpoint.")
 
     # ------------------------------------------------------------------ setup
     def _setup(self, n_tables):
@@ -287,6 +304,103 @@ class Command(BaseCommand):
                 log.write(self.style.ERROR(
                     "  FAIL: expected exactly 1 success and 1 DB row -- double-booking risk!"
                 ))
+
+        # ---------------- Phase 4: soak test (opt-in) ----------------
+        if opts["soak_minutes"] > 0:
+            soak_minutes = opts["soak_minutes"]
+            soak_workers = opts["soak_workers"] or workers
+            checkpoint_s = opts["soak_checkpoint_seconds"]
+            log.write(self.style.MIGRATE_HEADING(
+                f"\nPhase 4 — soak test: {soak_workers} workers, sustained for {soak_minutes} min, "
+                f"checkpoint every {checkpoint_s}s"
+            ))
+            soak_tables = [
+                Table.objects.create(tenant=tenant, outlet=outlet, name=f"LT-SOAK{i}")
+                for i in range(soak_workers)
+            ]
+            stop_event = threading.Event()
+            counts_lock = threading.Lock()
+            counts = {"completed": 0, "failed": 0}
+
+            def _soak_loop(table):
+                try:
+                    while not stop_event.is_set():
+                        try:
+                            order = get_or_create_open_order(user, table)
+                            cart = [
+                                {"id": random.choice(items).id, "quantity": random.randint(1, 3), "modifiers": []}
+                                for _ in range(random.randint(1, 4))
+                            ]
+                            add_items_to_order(user, order, cart)
+                            create_kot(user, order)
+                            order.refresh_from_db()
+                            process_payment(order, "cash", order.grand_total)
+                            with counts_lock:
+                                counts["completed"] += 1
+                        except Exception:
+                            with counts_lock:
+                                counts["failed"] += 1
+                finally:
+                    connection.close()
+
+            threads = [threading.Thread(target=_soak_loop, args=(t,), daemon=True) for t in soak_tables]
+            for th in threads:
+                th.start()
+
+            soak_start = time.perf_counter()
+            end_at = soak_start + soak_minutes * 60
+            mem_series = []
+            prev_completed = 0
+            while True:
+                now = time.perf_counter()
+                remaining = end_at - now
+                if remaining <= 0:
+                    break
+                sampler = ResourceSampler().start()
+                time.sleep(min(checkpoint_s, remaining))
+                res = sampler.stop()
+                elapsed = time.perf_counter() - soak_start
+                with counts_lock:
+                    c, f = counts["completed"], counts["failed"]
+                db = db_snapshot()
+                delta = c - prev_completed
+                prev_completed = c
+                db_bit = (f"  db_conns={db['active_connections']} waiting_locks={db['waiting_locks']}"
+                          if db else "")
+                log.write(
+                    f"  t={elapsed / 60:.1f}min  completed={c} (+{delta}) failed={f}  "
+                    f"{format_resource_line('mem/cpu', res)}{db_bit}"
+                )
+                if res.get("available") and res.get("samples", 0):
+                    mem_series.append((elapsed, res["mem_mb_mean"]))
+
+            stop_event.set()
+            for th in threads:
+                th.join(timeout=10)
+
+            log.write(f"  soak finished: {counts['completed']} completed, {counts['failed']} failed "
+                      f"over {soak_minutes} min")
+            if len(mem_series) >= 4:
+                half = len(mem_series) // 2
+                first_half_mean = statistics.mean(m for _, m in mem_series[:half])
+                second_half_mean = statistics.mean(m for _, m in mem_series[half:])
+                growth_pct = ((second_half_mean - first_half_mean) / first_half_mean * 100) if first_half_mean else 0
+                still_climbing = mem_series[-1][1] > mem_series[-2][1]
+                if growth_pct > 20 and still_climbing:
+                    log.write(self.style.WARNING(
+                        f"  WATCH: mean memory grew {growth_pct:.0f}% from first half to second half "
+                        f"of the soak ({first_half_mean:.0f}MB -> {second_half_mean:.0f}MB) and was still "
+                        "climbing at the end -- worth a longer soak to confirm this is a real leak "
+                        "and not just warm-up/cache fill."
+                    ))
+                else:
+                    log.write(self.style.SUCCESS(
+                        f"  Memory looked stable: {first_half_mean:.0f}MB -> {second_half_mean:.0f}MB "
+                        f"({growth_pct:+.0f}%) across the soak."
+                    ))
+            else:
+                log.write("  (too few checkpoints to judge a memory trend -- use a longer --soak-minutes "
+                           "or shorter --soak-checkpoint-seconds)")
 
         # ---------------- cleanup ----------------
         if opts["keep"]:
