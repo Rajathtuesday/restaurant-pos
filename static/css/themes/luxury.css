@@ -6,6 +6,8 @@
 
 /* ── Design Tokens ───────────────────────────────────────── */
 :root {
+    color-scheme: light;
+
     --accent-gold:       #c5a059;
     --accent-hover:      #b59250;
     --bg-color:          #fafafa;
@@ -41,6 +43,8 @@
 
 /* ── Dark mode ───────────────────────────────────────────── */
 html.dark {
+    color-scheme: dark;
+
     --bg-color:    #000000;
     --panel-bg:    #0a0a0a;
     --text-main:   #ffffff;
@@ -205,6 +209,16 @@ pre,
     color: var(--text-main);
 }
 .form-control::placeholder { color: var(--text-muted); opacity: 0.7; }
+
+/* The dropdown POPUP for a <select> is drawn by the browser's native
+   widget, not this page's box model - `color-scheme` above is what
+   actually tells the browser to use a dark-appropriate popup palette.
+   This explicit <option> rule is a second line of defense for browsers
+   that honor authored colors but not `color-scheme` for the popup. */
+.form-select option, .form-control option {
+    background: var(--panel-bg);
+    color: var(--text-main);
+}
 
 /* Luxury minimal input (underline style used on many forms) */
 .form-input-luxury {
