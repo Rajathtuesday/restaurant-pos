@@ -17,6 +17,11 @@ staticfiles/
 # Environment — NEVER commit secrets
 .env
 .env.*
+# ...except the template itself, which only ever holds placeholder values
+# and is meant to be committed so anyone cloning the repo knows what env
+# vars exist. Was being silently swallowed by .env.* above -- never once
+# actually tracked in git until now.
+!.env.example
 *.pem
 
 # IDE
