@@ -214,9 +214,16 @@ pre,
    widget, not this page's box model - `color-scheme` above is what
    actually tells the browser to use a dark-appropriate popup palette.
    This explicit <option> rule is a second line of defense for browsers
-   that honor authored colors but not `color-scheme` for the popup. */
-.form-select option, .form-control option {
-    background: var(--panel-bg);
+   that honor authored colors but not `color-scheme` for the popup.
+   Deliberately a bare element selector (not scoped to .form-select /
+   .form-control) so it's a site-wide safety net: every <select> on every
+   page that extends base.html gets a readable popup by default, including
+   pages with their own one-off select classes (.form-select-luxury,
+   .category-select, .field-select, etc). Its low specificity means any
+   page that already declares its own `<class> option { ... }` rule keeps
+   winning for the properties it sets - this just fills the gaps. */
+option {
+    background-color: var(--panel-bg);
     color: var(--text-main);
 }
 

@@ -9,13 +9,21 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
         :root {
+            color-scheme: light;
             --bg: #fafafa; --panel: #ffffff; --text: #111111; --muted: #737373;
             --border: #eaeaea; --gold: #c5a059; --success: #22c55e;
         }
         body.dark {
+            color-scheme: dark;
             --bg: #0f1115; --panel: #1a1d24; --text: #f9fafb; --muted: #9ca3af;
             --border: #2d3139; --gold: #d4af37;
         }
+        /* Native <select> popups are browser-drawn, not styled by the rules
+           above - color-scheme tells the browser which palette to use for
+           the popup, and this is the explicit fallback for browsers that
+           don't honor color-scheme for it. See static/css/themes/luxury.css
+           for the same pattern used on every other page. */
+        option { background-color: var(--panel); color: var(--text); }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; transition: background 0.3s; }
         body.dark { background: var(--bg); }
