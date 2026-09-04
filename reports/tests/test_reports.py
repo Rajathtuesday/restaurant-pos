@@ -393,6 +393,33 @@ class ExportServicesTest(TestCase):
         self.assertIn("State Tax (SGST)", header_values)
         self.assertIn("Taxable Value", header_values)
 
+    def test_generate_gstr1_excel_includes_hsn_summary_sheet(self):
+        """Table 12 (HSN/SAC summary) is mandatory for every GSTR-1 filer,
+        not just tenants with B2B sales — it must always be present, with
+        the fixture's known 5% item correctly rolled into SAC 996331."""
+        import openpyxl
+        from reports.services.export_services import generate_gstr1_excel
+        result = generate_gstr1_excel(self.tenant, self.outlet, self.today, self.today)
+        wb = openpyxl.load_workbook(io.BytesIO(result))
+
+        self.assertIn("GSTR-1 Table 12 (HSN)", wb.sheetnames)
+        ws12 = wb["GSTR-1 Table 12 (HSN)"]
+
+        header_values = [ws12.cell(row=4, column=i).value for i in range(1, 12)]
+        self.assertIn("HSN/SAC", header_values)
+        self.assertIn("UQC", header_values)
+        self.assertIn("Taxable Value", header_values)
+        self.assertIn("Central Tax (CGST)", header_values)
+        self.assertIn("State Tax (SGST)", header_values)
+
+        # Row 5 is the first (and only, one rate group) data row.
+        data_row = [ws12.cell(row=5, column=i).value for i in range(1, 12)]
+        self.assertEqual(data_row[0], "996331")   # HSN/SAC
+        self.assertEqual(data_row[5], 5.0)        # Rate (%)
+        self.assertEqual(data_row[6], 400.0)      # Taxable Value
+        self.assertEqual(data_row[8], 10.0)       # CGST
+        self.assertEqual(data_row[9], 10.0)       # SGST
+
     def test_generate_orders_csv_empty_when_no_orders_in_range(self):
         """CSV with a past date range should only have the header, no data rows."""
         from reports.services.export_services import generate_orders_csv

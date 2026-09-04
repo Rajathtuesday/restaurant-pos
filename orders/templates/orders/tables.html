@@ -497,12 +497,22 @@
     let sOpts = '<option value="" disabled selected>Select a table to merge...</option>';
     let tfOpts = '<option value="" disabled selected>Select source table...</option>';
     let ttOpts = '<option value="" disabled selected>Select destination table...</option>';
+    let freeCount = 0;
 
     tableDataStore.forEach(t => {
       const opt = `<option value="${t.id}">${t.name}</option>`;
       pOpts += opt; tfOpts += opt;
-      if (t.status === "free") { sOpts += opt; ttOpts += opt; }
+      if (t.status === "free") { sOpts += opt; ttOpts += opt; freeCount++; }
     });
+
+    // Merge/transfer destinations are deliberately limited to free tables
+    // (transferring onto an already-occupied table would silently clobber
+    // its order) -- but an empty dropdown with no explanation just looks
+    // broken. Say why instead of leaving it blank.
+    if (freeCount === 0) {
+      const noneOpt = '<option value="" disabled>No free tables available right now</option>';
+      sOpts += noneOpt; ttOpts += noneOpt;
+    }
 
     p.innerHTML = pOpts; s.innerHTML = sOpts; tf.innerHTML = tfOpts; tt.innerHTML = ttOpts;
     if (pVal) p.value = pVal; if (sVal) s.value = sVal;

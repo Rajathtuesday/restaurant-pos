@@ -143,11 +143,32 @@ def generate_items_csv(tenant, outlet, start_date, end_date):
     return output.getvalue()
 
 
+def _autosize_columns(ws):
+    """Auto-adjust column widths (skip MergedCells which lack column_letter)."""
+    for col in ws.columns:
+        max_length = 0
+        first_cell = col[0]
+        if not hasattr(first_cell, "column_letter"):
+            continue
+        column = first_cell.column_letter
+        for cell in col:
+            try:
+                if cell.value and len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except Exception:
+                pass
+        ws.column_dimensions[column].width = max_length + 2
+
+
 def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     """
-    Generates a GSTR-1 compliant Excel report for B2C sales.
-    Splits GST into CGST and SGST (assuming intra-state for standard restaurant POS).
+    Generates a GSTR-1 compliant Excel report for B2C sales, plus the
+    Table 12 HSN/SAC summary — mandatory for every GST filer regardless
+    of B2B/B2C mix, unlike the B2CS sheet which only matters once there's
+    B2C turnover to report.
     """
+    from orders.services.tax_service import split_cgst_sgst
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "GSTR-1 B2CS"
@@ -288,10 +309,9 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     for rate, data in sorted(gst_groups.items()):
         taxable = data['taxable']
         gst = data['gst']
-        
-        from orders.services.tax_service import split_cgst_sgst
+
         cgst, sgst = split_cgst_sgst(gst)
-        
+
         total_taxable += taxable
         total_central += cgst
         total_state += sgst
@@ -323,21 +343,86 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     # Bold the totals row
     for col in range(1, 11):
         ws.cell(row=ws.max_row, column=col).font = Font(bold=True)
-        
-    # Auto-adjust column widths (skip MergedCells which lack column_letter)
-    for col in ws.columns:
-        max_length = 0
-        first_cell = col[0]
-        if not hasattr(first_cell, "column_letter"):
-            continue
-        column = first_cell.column_letter
-        for cell in col:
-            try:
-                if cell.value and len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except Exception:
-                pass
-        ws.column_dimensions[column].width = max_length + 2
+
+    _autosize_columns(ws)
+
+    # ── Table 12 — HSN/SAC Summary ──────────────────────────────────────────
+    # Mandatory for every GSTR-1 filer, unconditionally — unlike the B2CS
+    # sheet above, this isn't optional just because a period had no B2C sales.
+    # A restaurant's whole menu is one GST service classification (SAC 996331,
+    # "restaurant/catering services"), so this reuses gst_groups computed
+    # above rather than re-deriving anything — one row per rate actually used.
+    ws12 = wb.create_sheet("GSTR-1 Table 12 (HSN)")
+
+    ws12.merge_cells('A1:K1')
+    t12_title = ws12['A1']
+    t12_title.value = f"GSTR-1 Table 12 — HSN/SAC Summary - {tenant.name}"
+    t12_title.font = Font(size=14, bold=True)
+    t12_title.alignment = Alignment(horizontal='center')
+
+    ws12.merge_cells('A2:K2')
+    t12_date = ws12['A2']
+    t12_date.value = f"Period: {start_date.strftime('%d-%b-%Y')} to {end_date.strftime('%d-%b-%Y')}"
+    t12_date.font = Font(italic=True)
+    t12_date.alignment = Alignment(horizontal='center')
+
+    t12_headers = [
+        'HSN/SAC', 'Description', 'UQC', 'Total Quantity', 'Total Value',
+        'Rate (%)', 'Taxable Value', 'Integrated Tax (IGST)',
+        'Central Tax (CGST)', 'State Tax (SGST)', 'Cess Amount',
+    ]
+    ws12.append([])
+    ws12.append(t12_headers)
+    for col in range(1, len(t12_headers) + 1):
+        ws12.cell(row=4, column=col).font = Font(bold=True)
+
+    RESTAURANT_SAC = "996331"
+    RESTAURANT_SAC_DESC = "Restaurant/catering services"
+
+    t12_total_value = Decimal("0.0")
+    t12_total_taxable = Decimal("0.0")
+    t12_total_central = Decimal("0.0")
+    t12_total_state = Decimal("0.0")
+
+    for rate, data in sorted(gst_groups.items()):
+        taxable = data['taxable']
+        gst = data['gst']
+        cgst, sgst = split_cgst_sgst(gst)
+        total_value = taxable + gst
+
+        t12_total_value += total_value
+        t12_total_taxable += taxable
+        t12_total_central += cgst
+        t12_total_state += sgst
+
+        ws12.append([
+            RESTAURANT_SAC,
+            RESTAURANT_SAC_DESC,
+            'NA',   # services have no unit of measure
+            0,      # Total Quantity — not applicable for services
+            round(float(total_value), 2),
+            rate,
+            round(float(taxable), 2),
+            0.0,    # IGST — same intra-state-only limitation as the B2CS sheet
+            round(float(cgst), 2),
+            round(float(sgst), 2),
+            0.0,    # Cess
+        ])
+
+    ws12.append([])
+    ws12.append([
+        'TOTAL', '', '', 0,
+        round(float(t12_total_value), 2), '',
+        round(float(t12_total_taxable), 2),
+        0.0,
+        round(float(t12_total_central), 2),
+        round(float(t12_total_state), 2),
+        0.0,
+    ])
+    for col in range(1, len(t12_headers) + 1):
+        ws12.cell(row=ws12.max_row, column=col).font = Font(bold=True)
+
+    _autosize_columns(ws12)
 
     output = io.BytesIO()
     wb.save(output)
