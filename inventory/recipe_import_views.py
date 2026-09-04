@@ -17,6 +17,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from core.celery_utils import dispatch
 from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuItem
 from inventory.models import InventoryItem, Recipe, RecipeImportJob, RecipeImportLine, UNIT_CHOICES
@@ -65,7 +66,7 @@ def recipe_import_start(request):
 
     from inventory.tasks import ai_import_recipe
     try:
-        ai_import_recipe.delay(job_id=job.id, text=text, image_b64=image_b64, mime_type=mime_type)
+        dispatch(ai_import_recipe, job_id=job.id, text=text, image_b64=image_b64, mime_type=mime_type)
     except Exception:
         logger.warning("Celery unavailable for recipe import — running synchronously")
         ai_import_recipe(job.id, text, image_b64, mime_type)

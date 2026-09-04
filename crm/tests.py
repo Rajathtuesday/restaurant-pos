@@ -54,6 +54,20 @@ class CRMAccessControlTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertIn("/login", resp["Location"])
 
+    def test_guest_profile_loads_for_owner(self):
+        guest = Guest.objects.create(tenant=self.tenant, phone="9876543210", name="Test Guest")
+        c = Client()
+        c.force_login(self.owner)
+        resp = c.get(reverse("guest-profile", args=[guest.id]))
+        self.assertEqual(resp.status_code, 200)
+
+    def test_guest_profile_forbidden_for_waiter(self):
+        guest = Guest.objects.create(tenant=self.tenant, phone="9876543211", name="Test Guest 2")
+        c = Client()
+        c.force_login(self.waiter)
+        resp = c.get(reverse("guest-profile", args=[guest.id]))
+        self.assertEqual(resp.status_code, 403)
+
     def test_reservations_loads_for_owner(self):
         c = Client()
         c.force_login(self.owner)

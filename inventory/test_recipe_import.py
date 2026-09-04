@@ -169,12 +169,21 @@ class RecipeServiceTests(TestCase):
             upsert_modifier_recipe(modifier, self.foreign_item, Decimal("10"))
 
 
-def _run_task_synchronously(**kwargs):
-    """Runs the real Celery task in-process, bypassing the broker — same
+def _run_task_synchronously(*_args, **call_kwargs):
+    """Runs the real Celery task in-process, bypassing the broker -- same
     mechanism recipe_import_start already falls back to when Celery is
-    unreachable, just forced here so tests are deterministic either way."""
+    unreachable, just forced here so tests are deterministic either way.
+
+    Used as apply_async's side_effect (recipe_import_views.py dispatches
+    via core.celery_utils.dispatch(), which calls apply_async(args=,
+    kwargs=, headers=), not .delay() directly) -- the real task kwargs
+    are nested inside call_kwargs['kwargs'], not passed to this function
+    directly."""
     from inventory.tasks import ai_import_recipe
-    return ai_import_recipe(kwargs["job_id"], kwargs["text"], kwargs["image_b64"], kwargs["mime_type"])
+    task_kwargs = call_kwargs.get("kwargs", {})
+    return ai_import_recipe(
+        task_kwargs["job_id"], task_kwargs["text"], task_kwargs["image_b64"], task_kwargs["mime_type"]
+    )
 
 
 class RecipeImportJobLifecycleTests(TestCase):
@@ -214,7 +223,7 @@ class RecipeImportJobLifecycleTests(TestCase):
             data={"menu_item": self.menu_item.id, "text": "dummy recipe text"},
         )
 
-    @patch("inventory.tasks.ai_import_recipe.delay")
+    @patch("inventory.tasks.ai_import_recipe.apply_async")
     @patch("core.ai_service.AIService.match_ingredients")
     @patch("core.ai_service.AIService.parse_recipe")
     def test_high_confidence_lines_are_saved_low_confidence_lines_are_not(
@@ -264,7 +273,7 @@ class RecipeImportJobLifecycleTests(TestCase):
         self.assertEqual(job.status, "confirmed")
         self.assertIsNotNone(job.confirmed_at)
 
-    @patch("inventory.tasks.ai_import_recipe.delay")
+    @patch("inventory.tasks.ai_import_recipe.apply_async")
     @patch("core.ai_service.AIService.match_ingredients")
     @patch("core.ai_service.AIService.parse_recipe")
     def test_discard_leaves_zero_recipe_rows(self, mock_parse_recipe, mock_match_ingredients, mock_delay):
@@ -280,7 +289,7 @@ class RecipeImportJobLifecycleTests(TestCase):
         job = RecipeImportJob.objects.get(id=job_id)
         self.assertEqual(job.status, "discarded")
 
-    @patch("inventory.tasks.ai_import_recipe.delay")
+    @patch("inventory.tasks.ai_import_recipe.apply_async")
     @patch("core.ai_service.AIService.match_ingredients")
     @patch("core.ai_service.AIService.parse_recipe")
     def test_confirm_rolls_back_atomically_on_incompatible_unit(
@@ -315,7 +324,7 @@ class RecipeImportJobLifecycleTests(TestCase):
         job.refresh_from_db()
         self.assertEqual(job.status, "ready_for_review")  # unchanged — never got to "confirmed"
 
-    @patch("inventory.tasks.ai_import_recipe.delay")
+    @patch("inventory.tasks.ai_import_recipe.apply_async")
     @patch("core.ai_service.AIService.match_ingredients")
     @patch("core.ai_service.AIService.parse_recipe")
     def test_double_confirm_is_rejected(self, mock_parse_recipe, mock_match_ingredients, mock_delay):
@@ -350,7 +359,7 @@ class RecipeImportJobLifecycleTests(TestCase):
         resp = client.post(reverse("recipe-import-start"), data={"menu_item": other_item.id, "text": "x"})
         self.assertEqual(resp.status_code, 403)
 
-    @patch("inventory.tasks.ai_import_recipe.delay")
+    @patch("inventory.tasks.ai_import_recipe.apply_async")
     @patch("core.ai_service.AIService.match_ingredients")
     @patch("core.ai_service.AIService.parse_recipe")
     def test_cross_tenant_line_access_is_rejected(self, mock_parse_recipe, mock_match_ingredients, mock_delay):
@@ -384,3 +393,24 @@ class RecipeImportJobLifecycleTests(TestCase):
 
         discard_resp = attacker_client.post(reverse("recipe-import-discard", args=[job_id]))
         self.assertEqual(discard_resp.status_code, 404)
+
+    @patch("core.ai_service.AIService.parse_recipe")
+    def test_task_failure_stores_a_generic_message_not_the_raw_exception(self, mock_parse_recipe):
+        """The recipe-import task must never leak a raw exception string into
+        job.error_message -- the poll endpoint serializes that field straight
+        to the browser, bypassing Django's own DEBUG=False protection."""
+        mock_parse_recipe.side_effect = RuntimeError("some internal secret path or DB detail")
+
+        job = RecipeImportJob.objects.create(
+            tenant=self.tenant, outlet=self.outlet, menu_item=self.menu_item, status="processing",
+        )
+        # Called directly, not through _run_task_synchronously -- that helper
+        # exists to adapt apply_async's side_effect call shape (args=, kwargs=,
+        # headers=) for the OTHER tests in this class; this test only needs the
+        # task's own exception-handling behavior, same as it was called before.
+        from inventory.tasks import ai_import_recipe
+        ai_import_recipe(job.id, "dummy recipe text", "", "")
+
+        job.refresh_from_db()
+        self.assertEqual(job.status, "failed")
+        self.assertNotIn("some internal secret path or DB detail", job.error_message)

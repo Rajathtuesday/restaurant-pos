@@ -2,7 +2,7 @@ import csv
 import io
 import logging
 from datetime import timedelta
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 from django.db.models import Sum, F
 from django.utils import timezone
 from orders.models import Order, OrderItem
@@ -289,8 +289,8 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         taxable = data['taxable']
         gst = data['gst']
         
-        cgst = (gst / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        sgst = gst - cgst   # ensures CGST + SGST == total GST exactly
+        from orders.services.tax_service import split_cgst_sgst
+        cgst, sgst = split_cgst_sgst(gst)
         
         total_taxable += taxable
         total_central += cgst

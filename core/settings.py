@@ -44,6 +44,11 @@ if not SECRET_KEY:
     )
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 
+# Default keeps /admin/ for local dev; production sets ADMIN_URL to an
+# unguessable path so the login page isn't sitting at the one URL every
+# scanner tries first.
+ADMIN_URL = os.getenv('ADMIN_URL', 'admin/')
+
 # Encrypts at-rest secrets stored in the database (e.g. PaymentConfig's
 # Razorpay key/webhook secrets). Required in every environment, same as
 # SECRET_KEY — a missing key must never silently fall back to plaintext.
@@ -433,7 +438,7 @@ LOGGING = {
         "verbose": {
             "format": (
                 "[{levelname}] {asctime} pid={process:d} "
-                "[T:{tenant_id}|O:{outlet_id}] {name} {message}"
+                "[T:{tenant_id}|O:{outlet_id}|X:{trace_id}] {name} {message}"
             ),
             "style": "{",
         },

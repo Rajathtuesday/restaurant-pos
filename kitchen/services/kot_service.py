@@ -7,6 +7,7 @@ from django.utils import timezone
 
 logger = logging.getLogger("pos.orders")
 
+from core.celery_utils import dispatch
 from kitchen.models import KOTBatch, DailyKOTCounter
 from orders.models import OrderItem
 from orders.services.inventory_service import deduct_inventory_for_items
@@ -150,7 +151,7 @@ def create_kot(user, order, print_on_create=True):
         from orders.tasks import print_kot_task
         for station, kot in print_jobs:
             try:
-                print_kot_task.delay(station.id, order.id, kot.id)
+                dispatch(print_kot_task, station.id, order.id, kot.id)
             except Exception as exc:
                 logger.warning(
                     "Celery unavailable for KOT #%s, falling back to sync print: %s",

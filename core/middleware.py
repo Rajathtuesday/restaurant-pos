@@ -5,6 +5,7 @@ from django.conf import settings
 from django.shortcuts import render
 from tenants.models import Tenant
 from .tenant_context import set_current_tenant_outlet, clear_current_tenant_outlet
+from .request_context import set_current_trace_id, clear_current_trace_id
 
 request_logger = logging.getLogger("pos.core")
 
@@ -106,6 +107,14 @@ class ContextLoggingMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # trace_id set first, deliberately -- it must not depend on auth
+        # having resolved (anonymous QR-menu requests need one too).
+        # Honors an inbound X-Trace-Id so this stays correct if a load
+        # balancer or API gateway ever supplies its own upstream.
+        import uuid
+        trace_id = request.headers.get('X-Trace-Id') or str(uuid.uuid4())
+        set_current_trace_id(trace_id)
+
         tenant_id = None
         outlet_id = None
         if request.user.is_authenticated:
@@ -121,7 +130,9 @@ class ContextLoggingMiddleware:
         finally:
             # Clear context after request finishes to prevent leak between threads
             clear_current_tenant_outlet()
+            clear_current_trace_id()
 
+        response['X-Trace-Id'] = trace_id
         return response
 
 

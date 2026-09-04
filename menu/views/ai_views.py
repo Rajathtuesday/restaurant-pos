@@ -9,6 +9,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
+from core.celery_utils import dispatch
 from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuCategory, MenuItem
 
@@ -44,7 +45,8 @@ def ai_menu_importer(request):
 
         from menu.tasks import ai_import_menu
         try:
-            task = ai_import_menu.delay(
+            task = dispatch(
+                ai_import_menu,
                 tenant_id=request.user.tenant_id,
                 outlet_id=request.user.outlet_id,
                 text=text,

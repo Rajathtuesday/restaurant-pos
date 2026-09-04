@@ -218,11 +218,15 @@ class Order(TenantScopedModel):
 
     @property
     def cgst_total(self):
-        return (self.gst_total / Decimal("2.0")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        
+        from orders.services.tax_service import split_cgst_sgst
+        cgst, _ = split_cgst_sgst(self.gst_total)
+        return cgst
+
     @property
     def sgst_total(self):
-        return self.gst_total - self.cgst_total
+        from orders.services.tax_service import split_cgst_sgst
+        _, sgst = split_cgst_sgst(self.gst_total)
+        return sgst
 
     @property
     def gst_breakdown(self):
@@ -258,13 +262,14 @@ class Order(TenantScopedModel):
                 item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
             breakdown[rate] += item_gst
 
+        from orders.services.tax_service import split_cgst_sgst
+
         result = []
         for rate, amount in sorted(breakdown.items()):
             if amount <= 0:
                 continue
             half_rate = (rate / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            cgst_amt  = (amount / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            sgst_amt  = amount - cgst_amt   # ensures CGST + SGST == amount exactly
+            cgst_amt, sgst_amt = split_cgst_sgst(amount)
             result.append({
                 "rate":        str(rate),
                 "cgst_rate":   str(half_rate),

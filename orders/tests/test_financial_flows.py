@@ -423,3 +423,43 @@ class PaymentRoleGateTest(TestCase):
         c.force_login(self.kitchen)
         resp = c.post(f"/toggle-parcel/{self.order.id}/")
         self.assertEqual(resp.status_code, 403)
+
+
+class SplitPayPartySizeCapTest(TestCase):
+    """split_pay's 'people' field was previously only validated as >= 2,
+    with no upper bound at all."""
+
+    def setUp(self):
+        self.t, self.o = _tenant("Split Cap Cafe")
+        self.cashier = _user(self.t, self.o, role="cashier", username="cap_cashier")
+        self.menu_item = _item(self.t, self.o, price=500, gst=0)
+        self.table = _table(self.t, self.o, "S1")
+        self.order = _order(self.t, self.o, self.cashier, self.table, status="billing")
+        _order_item(self.order, self.menu_item, qty=1)
+        self.order.recalculate_totals()
+        CashSession.objects.create(
+            tenant=self.t, outlet=self.o,
+            opened_by=self.cashier, opening_balance=Decimal("0"), status="open",
+        )
+        PaymentConfig.objects.create(
+            tenant=self.t, outlet=self.o,
+            cash_enabled=True, upi_enabled=True, card_enabled=True,
+        )
+        self.client_ = Client()
+        self.client_.force_login(self.cashier)
+
+    def test_unreasonable_party_size_rejected(self):
+        resp = self.client_.post(
+            f"/split-pay/{self.order.id}/",
+            data=json.dumps({"people": 500, "method": "cash"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_reasonable_party_size_still_works(self):
+        resp = self.client_.post(
+            f"/split-pay/{self.order.id}/",
+            data=json.dumps({"people": 4, "method": "cash"}),
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)

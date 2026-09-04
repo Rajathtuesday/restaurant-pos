@@ -37,6 +37,10 @@ def crm_dashboard(request):
 @feature_required("crm")
 def guest_profile(request, guest_id):
     """Detailed guest loyalty history."""
+    if request.user.role not in ("manager", "owner", "cashier", "captain") and not request.user.is_superuser:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
     try:
         guest = Guest.objects.get(id=guest_id, tenant=request.user.tenant)
         transactions = guest.transactions.all()[:50]

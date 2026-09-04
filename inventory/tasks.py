@@ -130,8 +130,11 @@ def ai_import_recipe(self, job_id, text, image_b64, mime_type):
         )
         job.save(update_fields=["status", "error_message"])
 
-    except Exception as e:
+    except Exception:
         logger.exception("AI recipe import task failed for job %s", job_id)
         job.status = "failed"
-        job.error_message = str(e)
+        job.error_message = (
+            "Something went wrong while importing this file. Try again, "
+            "or contact support if it keeps happening."
+        )
         job.save(update_fields=["status", "error_message"])

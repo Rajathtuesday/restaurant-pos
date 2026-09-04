@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
+from core.celery_utils import dispatch
 from core.decorators import tenant_required, role_required, feature_required
 from orders.models import Order, OrderEvent, Payment
 from shifts.models import CashSession
@@ -205,7 +206,7 @@ def pay_order(request, order_id):
                                 _ord = _O.objects.get(id=_oid)
                                 _st  = get_default_station(_ord.created_by or request.user)
                                 if _st and _st.printer_ip:
-                                    print_bill_task.delay(_oid, _st.id)
+                                    dispatch(print_bill_task, _oid, _st.id)
                             except Exception as _pe:
                                 logger.warning("Auto-print after payment failed: %s", _pe)
                         transaction.on_commit(_auto_print)
@@ -225,7 +226,7 @@ def pay_order(request, order_id):
                             # Celery task has no `request` object to build it from.
                             token = make_public_bill_token(_order_id)
                             bill_url = request.build_absolute_uri(reverse("public-bill", args=[token]))
-                            send_whatsapp_receipt_task.delay(_order_id, bill_url)
+                            dispatch(send_whatsapp_receipt_task, _order_id, bill_url)
                         except Exception as _e:
                             logger.error("WhatsApp receipt dispatch failed for order %s: %s", _order_id, _e)
                     transaction.on_commit(_send_whatsapp)
@@ -335,8 +336,8 @@ def split_pay(request, order_id):
     except (TypeError, ValueError):
         return JsonResponse({"error": "Invalid value for 'people'"}, status=400)
 
-    if people < 2:
-        return JsonResponse({"error": "'people' must be 2 or more"}, status=400)
+    if people < 2 or people > 20:
+        return JsonResponse({"error": "'people' must be between 2 and 20"}, status=400)
 
     method = data.get("method")
     VALID_METHODS = ["cash", "upi", "card"]

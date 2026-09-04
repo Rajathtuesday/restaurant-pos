@@ -597,3 +597,26 @@ class CallWaiterRateLimitTest(TestCase):
         extra_table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extra")
         resp = self.client.post(reverse("call_waiter", args=[extra_table.qr_token]))
         self.assertEqual(resp.status_code, 429)
+
+
+class AIImportTaskErrorMessageTests(TestCase):
+    """The AI-import task must never leak a raw exception string into the
+    cache entry a public poll endpoint later serializes straight to the
+    browser -- that bypasses Django's own DEBUG=False protection entirely."""
+
+    def test_task_failure_stores_a_generic_message_not_the_raw_exception(self):
+        from unittest.mock import patch, MagicMock
+        from menu.tasks import ai_import_menu
+
+        with patch("core.ai_service.AIService.parse_menu") as mock_parse:
+            mock_parse.side_effect = RuntimeError("some internal secret path or DB detail")
+            # Called directly (not via .delay()/.apply_async()), same as
+            # inventory/test_recipe_import.py's established _run_task_synchronously
+            # pattern -- Celery binds `self` automatically, and self.request.id
+            # resolves to None outside a real dispatch context.
+            ai_import_menu(999999, 999999, "x", "", "text/plain")
+
+        result = cache.get("ai_import:None")
+        self.assertIsNotNone(result)
+        self.assertEqual(result["status"], "error")
+        self.assertNotIn("some internal secret path or DB detail", result["error"])

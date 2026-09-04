@@ -24,25 +24,25 @@ def generate_bill(request, order_id):
     Transitions an active order from 'open' to 'billing' status.
     Triggers a final recalculation of all totals before generating the physical/digital receipt.
     """
-    order = (
-        Order.objects
-        .filter(tenant=request.user.tenant, outlet=request.user.outlet,
-                id=order_id, status="open")
-        .first()
-    )
-    if not order:
-        return JsonResponse({"error": "No active order found"}, status=404)
-
-    # recalculate_totals() below only excludes voided items, not "review"
-    # ones -- an unapproved QR-guest item would otherwise get silently
-    # billed to the customer without staff ever having actually accepted
-    # it onto the order.
-    if order.items.filter(status="review").exists():
-        return JsonResponse(
-            {"error": "Approve or reject all items before checkout."}, status=400
-        )
-
     with transaction.atomic():
+        order = (
+            Order.objects.select_for_update()
+            .filter(tenant=request.user.tenant, outlet=request.user.outlet,
+                    id=order_id, status="open")
+            .first()
+        )
+        if not order:
+            return JsonResponse({"error": "No active order found"}, status=404)
+
+        # recalculate_totals() below only excludes voided items, not "review"
+        # ones -- an unapproved QR-guest item would otherwise get silently
+        # billed to the customer without staff ever having actually accepted
+        # it onto the order.
+        if order.items.filter(status="review").exists():
+            return JsonResponse(
+                {"error": "Approve or reject all items before checkout."}, status=400
+            )
+
         order.status = "billing"
         order.save(update_fields=["status"])
         order.recalculate_totals()

@@ -1,4 +1,4 @@
-Django==6.0.7
+Django==6.0.8
 requests==2.33.0
 cryptography==50.0.0
 psycopg2-binary==2.9.11
@@ -34,7 +34,7 @@ google-genai==1.73.1
 
 openpyxl==3.1.5
 python-docx==1.1.2
-weasyprint==68.0
+weasyprint==69.0
 rapidfuzz==3.14.1
 
 # WhatsApp receipts (optional — set TWILIO_* env vars to enable)

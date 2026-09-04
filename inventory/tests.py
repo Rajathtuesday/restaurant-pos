@@ -570,6 +570,26 @@ class InventoryAccessControlTests(TestCase):
         response = self.client.get(reverse("inventory_board"))
         self.assertIn(response.status_code, [301, 302])
 
+    def test_owner_can_access_consumption_report(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("inventory_consumption"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_waiter_cannot_access_consumption_report(self):
+        self.client.force_login(self.waiter)
+        response = self.client.get(reverse("inventory_consumption"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_access_variance_report(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_waiter_cannot_access_variance_report(self):
+        self.client.force_login(self.waiter)
+        response = self.client.get(reverse("inventory_variance"))
+        self.assertEqual(response.status_code, 403)
+
 
 class InventoryItemFieldTests(TestCase):
     """Verify InventoryItem fields are stored and retrieved correctly."""

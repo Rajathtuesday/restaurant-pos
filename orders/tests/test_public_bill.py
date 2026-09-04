@@ -84,8 +84,8 @@ class WhatsAppDispatchGatingTest(CounterBillingBase):
                 content_type="application/json",
             )
 
-    @patch("notifications.tasks.send_whatsapp_receipt_task.delay")
-    def test_whatsapp_not_dispatched_when_feature_off(self, mock_delay):
+    @patch("notifications.tasks.send_whatsapp_receipt_task.apply_async")
+    def test_whatsapp_not_dispatched_when_feature_off(self, mock_apply_async):
         order = self._make_order()
         order.customer_phone = "9876543210"
         order.save(update_fields=["customer_phone"])
@@ -93,10 +93,10 @@ class WhatsAppDispatchGatingTest(CounterBillingBase):
         response = self._pay_in_full(order)
 
         self.assertEqual(response.status_code, 200)
-        mock_delay.assert_not_called()
+        mock_apply_async.assert_not_called()
 
-    @patch("notifications.tasks.send_whatsapp_receipt_task.delay")
-    def test_whatsapp_dispatched_when_feature_enabled(self, mock_delay):
+    @patch("notifications.tasks.send_whatsapp_receipt_task.apply_async")
+    def test_whatsapp_dispatched_when_feature_enabled(self, mock_apply_async):
         TenantFeatureOverride.objects.create(
             tenant=self.tenant, feature="whatsapp_receipts", enabled=True
         )
@@ -107,7 +107,10 @@ class WhatsAppDispatchGatingTest(CounterBillingBase):
         response = self._pay_in_full(order)
 
         self.assertEqual(response.status_code, 200)
-        mock_delay.assert_called_once()
-        called_order_id, called_bill_url = mock_delay.call_args[0]
+        mock_apply_async.assert_called_once()
+        # dispatch() (core/celery_utils.py) calls apply_async(args=(...), kwargs={...},
+        # headers={...}) rather than .delay(...) directly, so the order id/bill url
+        # land in the args= kwarg, not positional call args.
+        called_order_id, called_bill_url = mock_apply_async.call_args.kwargs["args"]
         self.assertEqual(called_order_id, order.id)
         self.assertIn("/bill/public/", called_bill_url)

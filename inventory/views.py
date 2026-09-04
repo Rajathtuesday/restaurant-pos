@@ -765,6 +765,9 @@ def consumption_report(request):
     Shows how much of each ingredient was used today based on orders × recipes.
     Best practice: calculated from OrderItem quantities × Recipe.quantity_required.
     """
+    if not _manager_required(request.user):
+        return HttpResponseForbidden("Access denied")
+
     from django.utils import timezone
     from decimal import Decimal
     from orders.models import OrderItem
@@ -997,6 +1000,9 @@ def variance_report(request):
       +ve → more was deducted than orders explain (untracked consumption, recipe drift)
       -ve → orders placed but inventory wasn't fully deducted (tracking gap)
     """
+    if not _manager_required(request.user):
+        return HttpResponseForbidden("Access denied")
+
     import csv
     from datetime import date as dt_date
     from core.utils import get_business_date

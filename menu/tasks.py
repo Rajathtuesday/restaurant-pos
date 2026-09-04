@@ -87,6 +87,10 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
                      "for a big PDF, split it into a few pages and import them one at a time.",
         }, CACHE_TTL)
 
-    except Exception as e:
+    except Exception:
         logger.exception("AI import task failed")
-        cache.set(cache_key, {"status": "error", "error": str(e)}, CACHE_TTL)
+        cache.set(cache_key, {
+            "status": "error",
+            "error": "Something went wrong while importing this file. Try again, "
+                     "or contact support if it keeps happening.",
+        }, CACHE_TTL)
