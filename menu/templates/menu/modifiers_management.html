@@ -47,6 +47,9 @@
     html.dark .modal-header, html.dark .modal-footer { border-color: var(--border-color); }
     html.dark .table { color: var(--text-main); }
     html.dark .table thead { background: var(--panel-bg); }
+
+    .modifier-search { max-width: 420px; margin-bottom: 2rem; }
+    .filtered-out { display: none; }
 </style>
 {% endblock %}
 
@@ -68,7 +71,9 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="row g-4">
+    <input type="text" id="groupSearchInput" class="form-input-luxury modifier-search" placeholder="Search modifier groups or modifiers...">
+
+    <div class="row g-4" id="modifierCardsGrid">
         {% for group in groups %}
         <div class="col-md-6 col-lg-4">
             <div class="modifier-card">
@@ -118,6 +123,7 @@
         <div class="row">
             <div class="col-md-5">
                 <label class="small text-muted text-uppercase fw-bold">Select Menu Item</label>
+                <input type="text" id="linkItemFilter" class="form-input-luxury" placeholder="Type to filter items..." style="margin-bottom:0.5rem;">
                 <select id="linkItem" class="form-control form-input-luxury">
                     {% for item in items %}
                     <option value="{{ item.id }}">{{ item.name }} ({{ item.category.name }})</option>
@@ -355,5 +361,27 @@ function removeInventoryLink(inventoryItemId) {
         body: JSON.stringify({ inventory_item_id: inventoryItemId })
     }).then(() => location.reload());
 }
+
+// ── Search: filter the modifier group cards by group/modifier name ──
+document.getElementById('groupSearchInput').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('#modifierCardsGrid > [class*="col-"]').forEach(col => {
+        const matches = !q || col.textContent.toLowerCase().includes(q);
+        col.classList.toggle('filtered-out', !matches);
+    });
+});
+
+// ── Search: filter the "Select Menu Item" dropdown's options as you type ──
+document.getElementById('linkItemFilter').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const select = document.getElementById('linkItem');
+    let firstVisible = null;
+    Array.from(select.options).forEach(opt => {
+        const matches = !q || opt.textContent.toLowerCase().includes(q);
+        opt.hidden = !matches;
+        if (matches && !firstVisible) firstVisible = opt;
+    });
+    if (firstVisible && select.selectedOptions[0]?.hidden) select.value = firstVisible.value;
+});
 </script>
 {% endblock %}
