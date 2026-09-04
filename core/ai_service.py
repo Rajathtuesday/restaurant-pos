@@ -163,13 +163,21 @@ class AIService:
             raise Exception("No menu data provided to parse.")
 
         prompt = """
-        Analyze this restaurant menu and extract all items. 
+        Analyze this restaurant menu and extract all items.
         Format your response as a valid JSON list of objects. Each object represents a category.
         Each category object must have:
         1. "category": String (name of the category, e.g., "Starters")
-        2. "items": List of objects, each with "name" (String) and "price" (Float/Number).
-        
-        If you find a description, ignore it. Only extract name and price.
+        2. "items": List of objects, each with:
+           - "name" (String)
+           - "price" (Float/Number)
+           - "is_veg" (Boolean): true if the dish is vegetarian (no meat, poultry,
+             fish, seafood, or egg), false otherwise. Judge from the dish name and
+             any veg/non-veg marker shown on the menu (a green or red dot/square is
+             the standard Indian menu convention: green = veg, red/brown = non-veg).
+             If genuinely ambiguous, default to false rather than falsely labeling
+             a non-veg dish as vegetarian.
+
+        If you find a description, ignore it. Only extract name, price, and is_veg.
         If no price is found, use 0.
         Output ONLY the raw JSON list. No markdown, no backticks.
         """
@@ -239,18 +247,46 @@ class AIService:
                 name = line[:price_match.start()].strip(' \t:-')
                 current_category["items"].append({
                     "name": name,
-                    "price": float(price_match.group(1))
+                    "price": float(price_match.group(1)),
+                    "is_veg": self._guess_veg(name),
                 })
             else:
                 # No price found, add as item with price 0
+                name = line.strip()
                 current_category["items"].append({
-                    "name": line.strip(),
-                    "price": 0
+                    "name": name,
+                    "price": 0,
+                    "is_veg": self._guess_veg(name),
                 })
 
         if current_category["items"]:
             structured.append(current_category)
         return structured
+
+    # Non-veg keywords only -- deliberately not the reverse (a "contains veg
+    # keyword" allowlist), since a dish can be non-veg without ever naming an
+    # ingredient (e.g. "Chef's Special"). Defaulting unmatched names to veg
+    # is still a guess, but it's the same default the model field itself
+    # already uses, so this only removes the *confidently wrong* cases.
+    _NON_VEG_KEYWORDS = (
+        "chicken", "mutton", "lamb", "beef", "pork", "bacon", "ham",
+        "fish", "prawn", "shrimp", "crab", "squid", "calamari", "seafood",
+        "egg", "keema", "meat",
+    )
+
+    def _guess_veg(self, name):
+        """Best-effort veg/non-veg guess for the regex fallback path, which
+        has no real language understanding. Keyword-based, not a substitute
+        for the AI classification in parse_menu -- used only when no API key
+        is configured. Deliberately only matches actual protein/ingredient
+        names, not cooking styles like "tikka" or "kebab" -- those appear on
+        plenty of real vegetarian dishes (Paneer Tikka), so including them
+        would create confident-but-wrong false positives, which is worse
+        than the plain "default to veg" the model field already does."""
+        lname = name.lower()
+        if "veg" in lname and "non veg" not in lname and "non-veg" not in lname:
+            return True
+        return not any(kw in lname for kw in self._NON_VEG_KEYWORDS)
 
     def parse_recipe(self, text=None, image_bytes=None, mime_type=None):
         """

@@ -69,7 +69,10 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
                         MenuItem.objects.get_or_create(
                             tenant=tenant, outlet=outlet,
                             category=category, name=name,
-                            defaults={"price": Decimal(str(price))},
+                            defaults={
+                                "price": Decimal(str(price)),
+                                "is_veg": bool(item_data.get("is_veg", True)),
+                            },
                         )
                         imported_count += 1
 

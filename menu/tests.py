@@ -620,3 +620,82 @@ class AIImportTaskErrorMessageTests(TestCase):
         self.assertIsNotNone(result)
         self.assertEqual(result["status"], "error")
         self.assertNotIn("some internal secret path or DB detail", result["error"])
+
+
+class AIImportVegNonVegTests(TestCase):
+    """AI-imported items must carry the AI's veg/non-veg classification
+    instead of silently falling back to the model's default=True for
+    every item, which would mislabel every non-veg dish as vegetarian."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Veg Test Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Outlet")
+
+    def test_ai_response_is_veg_false_is_applied_to_the_created_item(self):
+        from unittest.mock import patch
+        from menu.tasks import ai_import_menu
+
+        with patch("core.ai_service.AIService.parse_menu") as mock_parse:
+            mock_parse.return_value = [{
+                "category": "Main Course",
+                "items": [{"name": "Chicken Biryani", "price": 380, "is_veg": False}],
+            }]
+            ai_import_menu(self.tenant.id, self.outlet.id, "x", "", "text/plain")
+
+        item = MenuItem.objects.get(tenant=self.tenant, name="Chicken Biryani")
+        self.assertFalse(item.is_veg)
+
+    def test_ai_response_is_veg_true_is_applied_to_the_created_item(self):
+        from unittest.mock import patch
+        from menu.tasks import ai_import_menu
+
+        with patch("core.ai_service.AIService.parse_menu") as mock_parse:
+            mock_parse.return_value = [{
+                "category": "Starters",
+                "items": [{"name": "Paneer Tikka", "price": 260, "is_veg": True}],
+            }]
+            ai_import_menu(self.tenant.id, self.outlet.id, "x", "", "text/plain")
+
+        item = MenuItem.objects.get(tenant=self.tenant, name="Paneer Tikka")
+        self.assertTrue(item.is_veg)
+
+    def test_missing_is_veg_in_ai_response_defaults_to_true_not_a_crash(self):
+        """Older/degraded AI responses that omit is_veg shouldn't break import
+        -- falls back to the same safe default the model field already has."""
+        from unittest.mock import patch
+        from menu.tasks import ai_import_menu
+
+        with patch("core.ai_service.AIService.parse_menu") as mock_parse:
+            mock_parse.return_value = [{
+                "category": "Breads",
+                "items": [{"name": "Butter Naan", "price": 60}],
+            }]
+            ai_import_menu(self.tenant.id, self.outlet.id, "x", "", "text/plain")
+
+        item = MenuItem.objects.get(tenant=self.tenant, name="Butter Naan")
+        self.assertTrue(item.is_veg)
+
+
+class ManualMenuParserVegGuessTests(TestCase):
+    """The regex fallback parser (no AI key configured) has no language
+    understanding, so its veg/non-veg guess is keyword-based -- confirms it
+    gets the common real cases right, including the specific false-positive
+    this fix corrected (a cooking style like "Tikka" is not a protein)."""
+
+    def setUp(self):
+        from core.ai_service import AIService
+        self.svc = AIService()
+
+    def test_protein_keywords_are_flagged_non_veg(self):
+        self.assertFalse(self.svc._guess_veg("Chicken Biryani"))
+        self.assertFalse(self.svc._guess_veg("Fish Amritsari"))
+        self.assertFalse(self.svc._guess_veg("Egg Curry"))
+
+    def test_paneer_tikka_is_not_misflagged_by_the_cooking_style_name(self):
+        """Regression case: Paneer Tikka is a real, veg item -- "Tikka" is a
+        cooking style, not a protein, and must not trigger a non-veg match."""
+        self.assertTrue(self.svc._guess_veg("Paneer Tikka"))
+
+    def test_plain_veg_dishes_default_true(self):
+        self.assertTrue(self.svc._guess_veg("Veg Spring Rolls"))
+        self.assertTrue(self.svc._guess_veg("Dal Tadka"))
