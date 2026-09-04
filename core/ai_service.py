@@ -126,6 +126,60 @@ class AIService:
                     lines.append("  ".join(cells))
         return "\n".join(lines)
 
+    def _extract_pdf_text(self, file_bytes):
+        """Pull embedded text out of a PDF, page by page. Only works for a
+        genuine digital PDF (text layer present) -- a scanned/photographed
+        menu saved as PDF has no text layer, and this correctly comes back
+        empty rather than guessing. Used only as the fallback source when
+        Gemini itself (which reads scanned PDFs too, via OCR) is unavailable;
+        the normal working path still sends the raw PDF straight to Gemini,
+        since that's strictly more capable than this when it's up."""
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            return ""
+        try:
+            reader = PdfReader(io.BytesIO(file_bytes))
+            return "\n".join(page.extract_text() or "" for page in reader.pages)
+        except Exception as e:
+            logger.warning("PDF text extraction failed: %s", e)
+            return ""
+
+    # Generous headroom over any real menu (a huge one might run a few
+    # thousand characters) while still bounding worst case -- this is the
+    # backstop against a decompression-bomb-style file: something whose
+    # compressed size passes the 15MB upload cap but unpacks internally
+    # (inside pypdf/python-docx/openpyxl) into far more text than that.
+    # Truncating here means the regex parser downstream never sees more
+    # than this, regardless of how much the file expanded to internally.
+    _MAX_FALLBACK_TEXT_CHARS = 50_000
+
+    def _extract_fallback_text(self, file_bytes, mime_type):
+        """Best-effort plain text for the no-AI fallback parser, from
+        whatever file type was uploaded. Mirrors _file_to_content's routing,
+        but every branch here degrades to "" instead of raising -- this is
+        already the fallback path, so there's nothing lower to fall back to.
+        Images return "" deliberately: the regex parser needs text, and
+        there's no local OCR to get any from a photo."""
+        mt = (mime_type or "").lower()
+        if mt == "application/pdf" or file_bytes[:5] == b"%PDF-":
+            result = self._extract_pdf_text(file_bytes)
+        elif "wordprocessingml" in mt or mt == "application/msword":
+            try:
+                result = self._extract_docx(file_bytes)
+            except Exception:
+                result = ""
+        elif "spreadsheetml" in mt or "ms-excel" in mt:
+            try:
+                result = self._extract_xlsx(file_bytes)
+            except Exception:
+                result = ""
+        elif mt.startswith("text/"):
+            result = file_bytes.decode("utf-8", errors="replace")
+        else:
+            result = ""
+        return result[: self._MAX_FALLBACK_TEXT_CHARS]
+
     def _extract_xlsx(self, file_bytes):
         """Flatten every non-empty cell of every sheet into text (openpyxl is
         already a dependency for the GSTR-1 export)."""
@@ -147,18 +201,24 @@ class AIService:
         Parses menu from text or image. 
         Falls back to manual regex parsing if AI is not configured and only text is provided.
         """
-        # Improved check: only use manual fallback if we have actual text and NO image
-        can_manual = bool(text and text.strip() and not image_bytes)
-        
+        # Whatever plain text we can get our hands on without needing Gemini at
+        # all -- either what was pasted directly, or (for Word/Excel/CSV/PDF
+        # uploads) text extracted locally from the file. This is the one thing
+        # the regex fallback parser can work with; a bare photo has no local
+        # text to extract, so this stays "" for that case.
+        fallback_text = text.strip() if text and text.strip() else ""
+        if not fallback_text and image_bytes:
+            fallback_text = self._extract_fallback_text(image_bytes, mime_type)
+
         if not self.client:
-            if can_manual:
+            if fallback_text:
                 logger.info("Google API Key not found. Falling back to manual text parser.")
-                return self._manual_text_parse(text)
-            
-            # If they provided an image but we have no API key
+                return self._manual_text_parse(fallback_text)
+
+            # A real photo genuinely needs AI/OCR -- no local text to fall back to.
             if image_bytes:
                 raise Exception("Image parsing requires an AI activation key. Please add it to your configuration.")
-            
+
             # If they provided neither or empty text
             raise Exception("No menu data provided to parse.")
 
@@ -207,9 +267,9 @@ class AIService:
             return json.loads(raw_json)
         except Exception as e:
             logger.error("In-build AI API Error: %s", e)
-            if text:
-                logger.info("Retrying with manual parser after API error.")
-                return self._manual_text_parse(text)
+            if fallback_text:
+                logger.info("Falling back to manual parser after Gemini API error.")
+                return self._manual_text_parse(fallback_text)
             raise e
 
     def _manual_text_parse(self, text):
@@ -218,21 +278,49 @@ class AIService:
         """
         import re
         if not text: return []
-        
+
         lines = [line.strip() for line in text.split('\n') if line.strip()]
+
+        # A flattened table export (found via a real menu PDF during testing:
+        # pypdf turns each "Category | Dish | Price" table row into one line,
+        # "Category Dish Price", not a separate category header followed by
+        # item lines). Only attempt to split an inline category off the front
+        # of each item name when there's clear positive evidence this file is
+        # that shape -- a column-header row like "Category Dish Price" -- not
+        # just because some leading word happens to repeat, which would
+        # misfire on an ordinary menu with e.g. "Chicken Biryani" and
+        # "Chicken 65" both starting with "Chicken".
+        header_line = next((l for l in lines if self._looks_like_table_header(l)), None)
+        inline_categories = self._detect_inline_categories(lines) if header_line else set()
+
         structured = []
+        structured_by_name = {}
         current_category = {"category": "General", "items": []}
-        
+
+        def _target_category(name):
+            cat_name, item_name = self._split_inline_category(name, inline_categories)
+            if not cat_name:
+                return current_category, name
+            cat = structured_by_name.get(cat_name)
+            if not cat:
+                cat = {"category": cat_name, "items": []}
+                structured_by_name[cat_name] = cat
+                structured.append(cat)
+            return cat, item_name
+
         for line in lines:
+            if line is header_line:
+                continue  # the column-header row itself is not a category
+
             # Detect category: All caps, or ends with colon, or short line with no digits
             is_cat = (line.isupper() and len(line) > 3) or line.endswith(':') or (not any(c.isdigit() for c in line) and len(line) < 25)
-            
-            if is_cat:
+
+            if is_cat and not inline_categories:
                 if current_category["items"]:
                     structured.append(current_category)
                 current_category = {"category": line.rstrip(':').strip().title(), "items": []}
                 continue
-            
+
             # Match "Item Name 123.45" or "Item Name - 123". Deliberately not
             # a single regex like r'(.*?)(?:[:\-\s]+)(\d+...)$' -- that shape
             # lets the non-greedy name group and the separator class both
@@ -244,16 +332,18 @@ class AIService:
             # whatever's left as the name with ordinary string slicing.
             price_match = re.search(r'(\d+(?:\.\d+)?)$', line)
             if price_match:
-                name = line[:price_match.start()].strip(' \t:-')
-                current_category["items"].append({
+                raw_name = line[:price_match.start()].strip(' \t:-')
+                target, name = _target_category(raw_name)
+                target["items"].append({
                     "name": name,
                     "price": float(price_match.group(1)),
                     "is_veg": self._guess_veg(name),
                 })
             else:
                 # No price found, add as item with price 0
-                name = line.strip()
-                current_category["items"].append({
+                raw_name = line.strip()
+                target, name = _target_category(raw_name)
+                target["items"].append({
                     "name": name,
                     "price": 0,
                     "is_veg": self._guess_veg(name),
@@ -262,6 +352,59 @@ class AIService:
         if current_category["items"]:
             structured.append(current_category)
         return structured
+
+    _TABLE_HEADER_WORDS = ("category", "dish", "item", "price", "name", "menu")
+
+    def _looks_like_table_header(self, line):
+        """A column-header row from a table export ("Category Dish Price"),
+        not real menu content -- recognized by containing 2+ generic column
+        labels and having no price of its own. This is the positive-evidence
+        gate for the inline-category splitting below: without it, a plain
+        menu with no such header row is left completely untouched."""
+        import re
+        if re.search(r'\d', line):
+            return False
+        lname = line.lower()
+        return sum(1 for w in self._TABLE_HEADER_WORDS if w in lname) >= 2
+
+    def _detect_inline_categories(self, lines):
+        """Only called once a table-header row has already confirmed this
+        file is a flattened table export. Finds the leading word-phrase each
+        item's category got flattened into -- the phrase that recurs across
+        multiple item lines (e.g. "Main Course" appearing at the start of
+        five different item lines). Checked at 1, 2, and 3 leading words so
+        _split_inline_category can prefer the longest match per line."""
+        import re
+        from collections import Counter
+        candidates = []
+        for line in lines:
+            m = re.search(r'(\d+(?:\.\d+)?)$', line)
+            if m:
+                name = line[:m.start()].strip(' \t:-')
+                if name:
+                    candidates.append(name.split())
+
+        recurring = set()
+        for n in (1, 2, 3):
+            counts = Counter(" ".join(words[:n]) for words in candidates if len(words) > n)
+            recurring |= {phrase for phrase, count in counts.items() if count >= 2}
+        return recurring
+
+    def _split_inline_category(self, name, inline_categories):
+        """If `name` starts with a detected inline category phrase, split it
+        off and return (category, remaining item name) -- preferring the
+        longest matching prefix ("Main Course" over just "Main"). Returns
+        (None, name) unchanged when nothing matches, which is always true
+        when inline_categories is empty (the ordinary, non-tabular case)."""
+        if not inline_categories:
+            return None, name
+        words = name.split()
+        for n in (3, 2, 1):
+            if len(words) > n:
+                prefix = " ".join(words[:n])
+                if prefix in inline_categories:
+                    return prefix.title(), " ".join(words[n:])
+        return None, name
 
     # Non-veg keywords only -- deliberately not the reverse (a "contains veg
     # keyword" allowlist), since a dish can be non-veg without ever naming an

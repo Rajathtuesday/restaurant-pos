@@ -676,6 +676,63 @@ class AIImportVegNonVegTests(TestCase):
         self.assertTrue(item.is_veg)
 
 
+class SyncFallbackAIImportTests(TestCase):
+    """menu/views/ai_views.py::_run_sync is the OTHER place that creates
+    MenuItems from AI-parsed data (used when Celery/Redis is down) --
+    a second, separate code path from menu/tasks.py::ai_import_menu, found
+    while adding a timeout to this same function. Confirms it got the same
+    is_veg fix, not just the Celery path, and that the new timeout actually
+    bounds a hung parse instead of leaving the request to hang."""
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Sync Fallback Tenant")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Outlet")
+        self.owner = User.objects.create_user(
+            username="sync_owner", password="pass1234",
+            tenant=self.tenant, outlet=self.outlet, role="owner",
+        )
+        self.client.force_login(self.owner)
+
+    def test_sync_path_applies_ai_is_veg_classification(self):
+        from unittest.mock import patch
+
+        with patch("core.celery_utils.dispatch", side_effect=Exception("Celery down")), \
+             patch("core.ai_service.AIService.parse_menu") as mock_parse:
+            mock_parse.return_value = [{
+                "category": "Main Course",
+                "items": [{"name": "Chicken Biryani", "price": 380, "is_veg": False}],
+            }]
+            resp = self.client.post(
+                reverse("ai_menu_importer"), {"text": "Chicken Biryani 380"}
+            )
+
+        self.assertEqual(resp.status_code, 200)
+        item = MenuItem.objects.get(tenant=self.tenant, name="Chicken Biryani")
+        self.assertFalse(item.is_veg)
+
+    def test_sync_path_times_out_cleanly_instead_of_hanging(self):
+        from unittest.mock import patch
+        import time
+
+        def _slow_parse(*args, **kwargs):
+            time.sleep(0.3)
+            return [{"category": "Starters", "items": [{"name": "Should Not Import", "price": 1}]}]
+
+        with patch("core.celery_utils.dispatch", side_effect=Exception("Celery down")), \
+             patch("menu.views.ai_views.SYNC_PARSE_TIMEOUT_SECONDS", 0.05), \
+             patch("core.ai_service.AIService.parse_menu", side_effect=_slow_parse):
+            resp = self.client.post(
+                reverse("ai_menu_importer"), {"text": "some menu text"}
+            )
+
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("took too long", resp.json()["error"])
+        # The item from the (still-running-in-the-background) slow parse
+        # must not show up -- the request already returned its own clean
+        # timeout error and moved on.
+        self.assertFalse(MenuItem.objects.filter(tenant=self.tenant, name="Should Not Import").exists())
+
+
 class ManualMenuParserVegGuessTests(TestCase):
     """The regex fallback parser (no AI key configured) has no language
     understanding, so its veg/non-veg guess is keyword-based -- confirms it

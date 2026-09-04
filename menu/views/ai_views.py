@@ -15,6 +15,10 @@ from menu.models import MenuCategory, MenuItem
 
 logger = logging.getLogger("pos.menu")
 
+# Module-level so tests can patch it to something tiny rather than actually
+# waiting out a 100-second timeout to exercise that code path.
+SYNC_PARSE_TIMEOUT_SECONDS = 100
+
 
 @login_required
 @tenant_required
@@ -75,13 +79,51 @@ def ai_import_status(request, task_id):
 
 
 def _run_sync(request, text, image_b64, mime_type):
-    """Synchronous fallback used when Celery is unavailable."""
+    """Synchronous fallback used when Celery is unavailable.
+
+    Runs inside the actual gunicorn request/thread, not a background worker
+    -- unlike the Celery path (which has its own soft_time_limit), there's
+    nothing here to cleanly cancel a hung parse. Bounded with its own
+    timeout well under gunicorn's --timeout 120s, so a pathological upload
+    gets a clean error from our own code instead of gunicorn eventually
+    killing and restarting the whole worker process (which would drop
+    whatever else that worker was mid-handling too). ThreadPoolExecutor,
+    not signal.alarm() -- gunicorn runs gthread workers here, and signal
+    handlers only fire reliably on the main thread, which a request thread
+    often isn't.
+    """
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
     from core.ai_service import AIService
 
     image_bytes = base64.b64decode(image_b64) if image_b64 else None
-    structured_data = AIService().parse_menu(
-        text=text, image_bytes=image_bytes, mime_type=mime_type
+    # Deliberately not `with ThreadPoolExecutor(...) as pool:` -- that context
+    # manager's __exit__ calls shutdown(wait=True), which would block right
+    # here until the hung parse actually finishes, silently undoing the
+    # timeout below. shutdown(wait=False) on the timeout path lets this
+    # request return immediately; the orphaned thread just runs its course
+    # in the background instead of holding the response hostage.
+    pool = ThreadPoolExecutor(max_workers=1)
+    future = pool.submit(
+        AIService().parse_menu, text=text, image_bytes=image_bytes, mime_type=mime_type
     )
+    try:
+        structured_data = future.result(timeout=SYNC_PARSE_TIMEOUT_SECONDS)
+        pool.shutdown(wait=False)
+    except FutureTimeoutError:
+        pool.shutdown(wait=False)
+        # A JsonResponse here, not `raise` -- this function is called from
+        # inside ai_menu_importer's own except block, whose outer try/except
+        # replaces ANY raised exception with a generic "Could not import the
+        # menu" message. That's fine for a truly unexpected failure, but this
+        # one is deliberate and actionable, so return it directly instead of
+        # letting it get swallowed into the generic message.
+        return JsonResponse({
+            "error": "The menu took too long to read. Try a smaller or clearer file — "
+                     "for a big PDF, split it into a few pages and import them one at a time."
+        }, status=400)
+    except Exception:
+        pool.shutdown(wait=False)
+        raise
 
     tenant = request.user.tenant
     outlet = request.user.outlet
@@ -113,7 +155,10 @@ def _run_sync(request, text, image_b64, mime_type):
                     MenuItem.objects.get_or_create(
                         tenant=tenant, outlet=outlet,
                         category=category, name=name,
-                        defaults={"price": Decimal(str(price))},
+                        defaults={
+                            "price": Decimal(str(price)),
+                            "is_veg": bool(item_data.get("is_veg", True)),
+                        },
                     )
                     imported_count += 1
 
