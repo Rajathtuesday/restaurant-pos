@@ -10,6 +10,7 @@ every text-extractable upload type through the same safety net, while a
 bare photo (which has no local text to extract) still correctly raises
 rather than silently pretending to succeed.
 """
+import os
 from unittest.mock import patch, MagicMock
 from django.test import TestCase
 
@@ -198,3 +199,114 @@ class ManualParserFlattenedTableTests(TestCase):
         self.assertTrue(self.svc._looks_like_table_header("Item Name and Price"))
         self.assertFalse(self.svc._looks_like_table_header("Chicken Biryani"))  # just a dish
         self.assertFalse(self.svc._looks_like_table_header("Price 380"))  # has a digit, not a header
+
+
+class FallbackAccountInitTests(TestCase):
+    """GOOGLE_API_KEY_FALLBACK is opt-in -- confirms it's actually optional,
+    not something that silently changes behavior for every existing
+    deployment that's never heard of it."""
+
+    def test_fallback_client_is_none_when_env_var_unset(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("GOOGLE_API_KEY_FALLBACK", None)
+            svc = AIService()
+        self.assertIsNone(svc.fallback_client)
+
+    def test_fallback_client_is_created_when_env_var_set(self):
+        with patch.dict(os.environ, {"GOOGLE_API_KEY_FALLBACK": "fake-fallback-key"}), \
+             patch("core.ai_service.genai.Client") as mock_client_cls:
+            svc = AIService()
+        self.assertIsNotNone(svc.fallback_client)
+        # Called once for the primary key, once for the fallback key.
+        self.assertEqual(mock_client_cls.call_count, 2)
+
+
+class GenerateContentFallbackTests(TestCase):
+    """The core retry logic in _generate_content, tested in isolation from
+    any specific caller (parse_menu, parse_recipe, etc all go through this
+    same one method now)."""
+
+    def setUp(self):
+        self.svc = AIService()
+        self.svc.client = MagicMock()
+        self.svc.fallback_client = None  # each test sets this explicitly
+
+    def test_primary_success_never_touches_fallback(self):
+        self.svc.client.models.generate_content.return_value = "primary response"
+        self.svc.fallback_client = MagicMock()
+
+        result = self.svc._generate_content("some-model", ["prompt"])
+
+        self.assertEqual(result, "primary response")
+        self.svc.fallback_client.models.generate_content.assert_not_called()
+
+    def test_primary_fails_no_fallback_configured_raises_original_error(self):
+        """The critical regression case: with no second key set (true for
+        every deployment before and after this feature), behavior must be
+        byte-for-byte what it was before _generate_content existed."""
+        self.svc.client.models.generate_content.side_effect = Exception("503 UNAVAILABLE")
+        self.svc.fallback_client = None
+
+        with self.assertRaises(Exception) as ctx:
+            self.svc._generate_content("some-model", ["prompt"])
+        self.assertIn("503", str(ctx.exception))
+
+    def test_primary_fails_fallback_configured_and_succeeds(self):
+        self.svc.client.models.generate_content.side_effect = Exception("429 RESOURCE_EXHAUSTED")
+        self.svc.fallback_client = MagicMock()
+        self.svc.fallback_client.models.generate_content.return_value = "fallback response"
+
+        result = self.svc._generate_content("some-model", ["prompt"])
+
+        self.assertEqual(result, "fallback response")
+        self.svc.fallback_client.models.generate_content.assert_called_once_with(
+            model="some-model", contents=["prompt"]
+        )
+
+    def test_primary_and_fallback_both_fail_raises(self):
+        self.svc.client.models.generate_content.side_effect = Exception("primary down")
+        self.svc.fallback_client = MagicMock()
+        self.svc.fallback_client.models.generate_content.side_effect = Exception("fallback also down")
+
+        with self.assertRaises(Exception) as ctx:
+            self.svc._generate_content("some-model", ["prompt"])
+        self.assertIn("fallback also down", str(ctx.exception))
+
+    def test_model_name_is_forwarded_correctly(self):
+        self.svc.client.models.generate_content.return_value = "ok"
+        self.svc._generate_content("a-specific-model-name", ["prompt"])
+        self.svc.client.models.generate_content.assert_called_once_with(
+            model="a-specific-model-name", contents=["prompt"]
+        )
+
+
+class RegexFallbackStillWorksWithBothKeysDownTests(TestCase):
+    """The most important integration check: parse_menu's existing regex-
+    parser safety net must still fire when EVERY Gemini attempt fails --
+    now potentially two attempts (primary + fallback) instead of one, but
+    the end result for the caller must be identical."""
+
+    def setUp(self):
+        self.svc = AIService()
+        self.svc.client = MagicMock()
+
+    def test_both_keys_failing_still_falls_through_to_regex_parser(self):
+        self.svc.client.models.generate_content.side_effect = Exception("503 UNAVAILABLE")
+        self.svc.fallback_client = MagicMock()
+        self.svc.fallback_client.models.generate_content.side_effect = Exception("429 RESOURCE_EXHAUSTED")
+
+        with patch.object(self.svc, "_extract_pdf_text", return_value="Paneer Tikka 260"):
+            result = self.svc.parse_menu(image_bytes=b"%PDF-1.4 fake", mime_type="application/pdf")
+
+        self.assertEqual(result[0]["items"][0]["name"], "Paneer Tikka")
+
+    def test_no_fallback_configured_still_falls_through_to_regex_parser(self):
+        """Same check with fallback_client=None -- confirms nothing about
+        this feature is required for the pre-existing safety net to work."""
+        self.svc.client.models.generate_content.side_effect = Exception("503 UNAVAILABLE")
+        self.svc.fallback_client = None
+
+        with patch.object(self.svc, "_extract_pdf_text", return_value="Dal Tadka 240"):
+            result = self.svc.parse_menu(image_bytes=b"%PDF-1.4 fake", mime_type="application/pdf")
+
+        self.assertEqual(result[0]["items"][0]["name"], "Dal Tadka")

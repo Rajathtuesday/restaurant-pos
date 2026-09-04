@@ -10,14 +10,47 @@ import io
 
 from django.conf import settings
 import logging
+import os
 
 logger = logging.getLogger("pos.ai")
+
+# One place to change which Gemini model every AI feature uses -- was
+# hardcoded as a literal string in four separate call sites, meaning
+# switching models (e.g. pinning a specific version instead of "-latest",
+# or trying a cheaper/newer one later) needed a code change in each. Now
+# it's an env var, defaulting to the same "-latest" alias as before, so
+# nothing changes unless GEMINI_MODEL_NAME is actually set.
+GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-flash-latest")
+
 
 class AIService:
     def __init__(self):
         import os
         self.api_key = os.getenv("GOOGLE_API_KEY")
         self.client = None
+
+        # ══════════════════════════════════════════════════════════════════
+        # TEMPORARY DEV-STAGE WORKAROUND — NOT A PERMANENT DESIGN.
+        #
+        # A second Google account's key, tried only when the primary key's
+        # call actually fails at runtime (free-tier quota exhausted, rate
+        # limited, etc). This exists purely because Rasova has no paying
+        # customers yet, so every request today is our own testing burning
+        # through a 20/day free-tier cap — not because "two free accounts"
+        # is the right long-term architecture. Relying on multiple free-tier
+        # accounts to route around a rate limit is exactly what Google's
+        # terms discourage; keep this short-lived.
+        #
+        # >>> REMINDER: the day Rasova gets its first real paying customer,
+        # >>> retire this. Upgrade GOOGLE_API_KEY's account to a paid Gemini
+        # >>> tier (removes the cap entirely, costs pennies at real volume),
+        # >>> then delete GOOGLE_API_KEY_FALLBACK from .env. Don't let this
+        # >>> quietly become permanent just because it works.
+        #
+        # Full writeup: md_files/ai_cost_plan_eli5_2026-09-04.html (step 5).
+        # ══════════════════════════════════════════════════════════════════
+        self.fallback_api_key = os.getenv("GOOGLE_API_KEY_FALLBACK")
+        self.fallback_client = None
 
         # Log the SPECIFIC reason the client can't be built, so the server logs
         # say exactly what to fix instead of a generic "no AI key". The #1 cause
@@ -42,6 +75,31 @@ class AIService:
             logger.info("AI client initialized (key ...%s).", self.api_key[-4:])
         except Exception as e:
             logger.error("Failed to initialize AI client — check the key is valid: %s", e)
+
+        if self.fallback_api_key:
+            try:
+                self.fallback_client = genai.Client(api_key=self.fallback_api_key)
+                logger.info("AI fallback client initialized (key ...%s) -- dev-stage only, see __init__.", self.fallback_api_key[-4:])
+            except Exception as e:
+                logger.error("Failed to initialize AI fallback client: %s", e)
+
+    def _generate_content(self, model, contents):
+        """Every Gemini call in this file goes through here instead of hitting
+        self.client directly, so the fallback-account retry lives in exactly
+        one place rather than duplicated at each call site. Tries the primary
+        key; only if that call itself fails (quota, rate limit, transient
+        error) AND a second key is configured does it retry once on the
+        second key. If neither fallback_client exists nor the retry helps,
+        the original exception propagates exactly as it always did, so every
+        existing except-block (regex-parser fallback, error messages) keeps
+        working unchanged."""
+        try:
+            return self.client.models.generate_content(model=model, contents=contents)
+        except Exception as e:
+            if not self.fallback_client:
+                raise
+            logger.warning("Primary Gemini key failed (%s) -- retrying on fallback key.", e)
+            return self.fallback_client.models.generate_content(model=model, contents=contents)
 
     def _resize_image(self, image_bytes, max_size=(1024, 1024)):
         """Re-encode any image to a clean, right-sized RGB JPEG.
@@ -254,12 +312,9 @@ class AIService:
             contents.append(self._file_to_content(image_bytes, mime_type))
 
         try:
-            response = self.client.models.generate_content(
-                model='gemini-flash-latest',
-                contents=contents
-            )
+            response = self._generate_content(GEMINI_MODEL_NAME, contents)
             import json
-            
+
             # The new SDK response structure: response.text or response.candidates[0].content.parts[0].text
             res_text = response.text or ""
             # Strip potential markdown backticks
@@ -481,10 +536,7 @@ class AIService:
 
         import json
         try:
-            response = self.client.models.generate_content(
-                model='gemini-flash-latest',
-                contents=contents
-            )
+            response = self._generate_content(GEMINI_MODEL_NAME, contents)
             res_text = response.text or ""
             raw_json = res_text.strip().replace("```json", "").replace("```", "")
             parsed = json.loads(raw_json)
@@ -532,10 +584,7 @@ class AIService:
         """
 
         try:
-            response = self.client.models.generate_content(
-                model='gemini-flash-latest',
-                contents=[prompt]
-            )
+            response = self._generate_content(GEMINI_MODEL_NAME, [prompt])
             res_text = response.text or ""
             raw_json = res_text.strip().replace("```json", "").replace("```", "")
             parsed = json.loads(raw_json)
@@ -562,10 +611,7 @@ class AIService:
         
         prompt = f"Calculate the suggested menu price for '{dish_name}'. Ingredients and their total cost in this dish: {ingredients_with_costs}. Aim for a 30% food cost percentage. Add a summary of why."
         try:
-            response = self.client.models.generate_content(
-                model='gemini-flash-latest',
-                contents=prompt
-            )
+            response = self._generate_content(GEMINI_MODEL_NAME, prompt)
             return response.text
         except Exception as e:
             logger.error("AI pricing suggestion error: %s", e)
