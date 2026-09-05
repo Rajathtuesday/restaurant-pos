@@ -123,6 +123,37 @@ class CreateQRPaymentServiceTest(CounterBillingBase):
         self.assertEqual(kwargs["json"]["notes"]["tenant_id"], str(order.tenant_id))
         self.assertEqual(kwargs["json"]["notes"]["outlet_id"], str(order.outlet_id))
 
+    @patch("payments.razorpay_gateway.requests.post")
+    def test_requested_amount_overrides_the_full_remaining_balance(self, mock_post):
+        """A split-bill share, not the full order, must be what gets quoted --
+        otherwise a customer paying their share via Razorpay is asked to pay
+        the whole table's remaining balance instead."""
+        mock_post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"id": "qr_split", "image_url": "https://rzp.io/qr_split.png"},
+        )
+        mock_post.return_value.raise_for_status = lambda: None
+
+        order = self._make_order()  # grand_total = 152
+        qr = create_qr_payment(order, self.config, requested_amount=Decimal("76.00"))
+
+        self.assertEqual(qr.quoted_amount, Decimal("76.00"))
+        _, kwargs = mock_post.call_args
+        self.assertEqual(kwargs["json"]["payment_amount"], decimal_to_paise(Decimal("76.00")))
+
+    @patch("payments.razorpay_gateway.requests.post")
+    def test_no_requested_amount_still_defaults_to_full_remaining(self, mock_post):
+        mock_post.return_value = MagicMock(
+            status_code=200,
+            json=lambda: {"id": "qr_full", "image_url": "https://rzp.io/qr_full.png"},
+        )
+        mock_post.return_value.raise_for_status = lambda: None
+
+        order = self._make_order()
+        qr = create_qr_payment(order, self.config, requested_amount=None)
+
+        self.assertEqual(qr.quoted_amount, order.grand_total)
+
 
 class CreateRazorpayQRViewTest(CounterBillingBase):
 
@@ -164,6 +195,96 @@ class CreateRazorpayQRViewTest(CounterBillingBase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["qr_code_id"], "qr_abc")
+
+    @patch("payments.razorpay_views.create_qr_payment")
+    def test_posted_amount_is_passed_through_as_requested_amount(self, mock_create):
+        """The JS sends whatever's in the split/payment field -- confirms the
+        view actually forwards it instead of always requesting the full
+        remaining balance."""
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
+        order = self._make_order()  # grand_total = 152
+        mock_create.return_value = RazorpayQRCode.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=order,
+            qr_code_id="qr_split", image_url="https://rzp.io/qr_split.png",
+            quoted_amount=Decimal("76.00"), expires_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse("razorpay-create-qr", args=[order.id]),
+            data=json.dumps({"amount": "76.00"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        _, kwargs = mock_create.call_args
+        self.assertEqual(kwargs["requested_amount"], Decimal("76.00"))
+
+    @patch("payments.razorpay_views.create_qr_payment")
+    def test_no_posted_amount_defaults_to_none(self, mock_create):
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
+        order = self._make_order()
+        mock_create.return_value = RazorpayQRCode.objects.create(
+            tenant=self.tenant, outlet=self.outlet, order=order,
+            qr_code_id="qr_full", image_url="https://rzp.io/qr_full.png",
+            quoted_amount=order.grand_total, expires_at=timezone.now(),
+        )
+
+        response = self.client.post(reverse("razorpay-create-qr", args=[order.id]))
+
+        self.assertEqual(response.status_code, 200)
+        _, kwargs = mock_create.call_args
+        self.assertIsNone(kwargs["requested_amount"])
+
+    def test_amount_greater_than_remaining_is_rejected(self):
+        """Without this, a typo or a stale/tampered client value could quote
+        a QR for more than the order actually owes."""
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
+        order = self._make_order()  # grand_total = 152
+
+        response = self.client.post(
+            reverse("razorpay-create-qr", args=[order.id]),
+            data=json.dumps({"amount": "9999"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("remaining balance", response.json()["error"])
+
+    def test_zero_amount_is_rejected(self):
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
+        order = self._make_order()
+
+        response = self.client.post(
+            reverse("razorpay-create-qr", args=[order.id]),
+            data=json.dumps({"amount": "0"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_negative_amount_is_rejected(self):
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
+        order = self._make_order()
+
+        response = self.client.post(
+            reverse("razorpay-create-qr", args=[order.id]),
+            data=json.dumps({"amount": "-10"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_non_numeric_amount_is_rejected(self):
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="razorpay_gateway", enabled=True)
+        order = self._make_order()
+
+        response = self.client.post(
+            reverse("razorpay-create-qr", args=[order.id]),
+            data=json.dumps({"amount": "not-a-number"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
 
 
 class RazorpayWebhookTest(CounterBillingBase):

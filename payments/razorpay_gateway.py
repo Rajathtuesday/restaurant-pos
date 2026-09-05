@@ -37,10 +37,18 @@ def decimal_to_paise(amount: Decimal) -> int:
     return int((amount * 100).to_integral_value())
 
 
-def create_qr_payment(order, payment_config):
+def create_qr_payment(order, payment_config, requested_amount=None):
     """
-    Creates a single-use, fixed-amount UPI QR code for the order's current
-    remaining balance. Returns the RazorpayQRCode row created to track it.
+    Creates a single-use, fixed-amount UPI QR code for the order.
+
+    Defaults to the order's current remaining balance. Pass requested_amount
+    (already validated by the caller against the current remaining balance)
+    to quote a smaller amount instead -- e.g. one person's share of a split
+    bill. The webhook records whatever Razorpay actually reports as paid for
+    this QR, so a smaller quote here correctly results in a partial payment,
+    not a full close, of the order.
+
+    Returns the RazorpayQRCode row created to track it.
 
     Raises requests.RequestException on network/API failure — callers should
     catch and surface a clean error to the cashier.
@@ -52,6 +60,7 @@ def create_qr_payment(order, payment_config):
         total=Sum("amount")
     )["total"] or Decimal("0.00")
     remaining = order.grand_total - paid_total
+    amount = requested_amount if requested_amount is not None else remaining
     expires_at = timezone.now() + timedelta(minutes=QR_EXPIRY_MINUTES)
 
     response = requests.post(
@@ -61,7 +70,7 @@ def create_qr_payment(order, payment_config):
             "type": "upi_qr",
             "usage": "single_use",
             "fixed_amount": True,
-            "payment_amount": decimal_to_paise(remaining),
+            "payment_amount": decimal_to_paise(amount),
             "close_by": int(expires_at.timestamp()),
             "notes": {
                 "order_id": str(order.id),
@@ -80,7 +89,7 @@ def create_qr_payment(order, payment_config):
         order=order,
         qr_code_id=data["id"],
         image_url=data["image_url"],
-        quoted_amount=remaining,
+        quoted_amount=amount,
         status="active",
         expires_at=expires_at,
     )

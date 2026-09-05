@@ -67,8 +67,30 @@ def create_razorpay_qr(request, order_id):
             status=400,
         )
 
+    paid_total = order.payments.exclude(method="refund").aggregate(
+        total=Sum("amount")
+    )["total"] or Decimal("0.00")
+    remaining = order.grand_total - paid_total
+
+    requested_amount = None
     try:
-        qr = create_qr_payment(order, config)
+        body = json.loads(request.body) if request.body else {}
+    except ValueError:
+        body = {}
+    raw_amount = body.get("amount")
+    if raw_amount not in (None, ""):
+        try:
+            requested_amount = Decimal(str(raw_amount))
+        except InvalidOperation:
+            return JsonResponse({"error": "Invalid amount."}, status=400)
+        if requested_amount <= 0 or requested_amount > remaining:
+            return JsonResponse(
+                {"error": f"Amount must be between 0 and the remaining balance (₹{remaining})."},
+                status=400,
+            )
+
+    try:
+        qr = create_qr_payment(order, config, requested_amount=requested_amount)
     except requests.RequestException as e:
         logger.error("Razorpay QR creation failed for order %s: %s", order_id, e)
         return JsonResponse({"error": "Could not reach Razorpay. Please try again."}, status=502)

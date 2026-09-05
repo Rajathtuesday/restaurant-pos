@@ -476,10 +476,17 @@ trying to pay, even if the path had been right.
 {% endcomment %}
 <script src="{% static 'js/vendor/qrcode.min.js' %}"></script>
 <script>
-(function() {
-    const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am={{ remaining }}&cu=INR&tn=Order%20{{ order.order_number|default:order.id }}";
+// A named, callable function instead of a run-once IIFE -- the QR used to
+// be drawn exactly once at page load from {{ remaining }}, which meant it
+// never reflected the amount actually being collected once Split (or any
+// manual edit to the payment field) changed it. Now re-callable any time
+// the amount changes, from updateChange() below.
+function renderUpiQR(amount) {
+    const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am=" + amount + "&cu=INR&tn=Order%20{{ order.order_number|default:order.id }}";
     const canvasWrap = document.getElementById('upi-qr-canvas');
     const fallback = document.getElementById('upi-qr-fallback');
+    canvasWrap.innerHTML = '';       // clear the previous canvas -- otherwise
+    fallback.style.display = 'none'; // re-rendering stacks a new one on top
     try {
         QRCode.toCanvas(upiString, { width: 180, margin: 1, color: { dark: "#000000", light: "#ffffff" } }, function(err, canvas) {
             if (err || !canvas) { fallback.style.display = 'block'; return; }
@@ -490,7 +497,8 @@ trying to pay, even if the path had been right.
         // draw failure, so staff never see a silent empty box either way.
         fallback.style.display = 'block';
     }
-})();
+}
+renderUpiQR({{ remaining }});
 </script>
 {% endif %}
 {% if razorpay_feature_enabled and config.razorpay_enabled %}
@@ -537,7 +545,12 @@ trying to pay, even if the path had been right.
         status.textContent = 'Waiting for payment…';
 
         try {
-            const data = await apiClient.post('{% url "razorpay-create-qr" order.id %}', {});
+            // Same field Split writes the per-person share into -- without
+            // this, the Razorpay QR always billed the full remaining balance
+            // regardless of what the cashier had just split the order into.
+            const amtEl  = document.getElementById('payAmount');
+            const amount = amtEl && amtEl.value ? amtEl.value : {{ remaining }};
+            const data = await apiClient.post('{% url "razorpay-create-qr" order.id %}', { amount });
             area.innerHTML = `<img src="${data.image_url}" alt="Razorpay UPI QR" style="width:280px;height:280px;image-rendering:pixelated;">`;
 
             const expiresAt = new Date(data.expires_at).getTime();
@@ -645,6 +658,12 @@ trying to pay, even if the path had been right.
 
     function updateChange(enteredVal) {
         const entered = parseFloat(enteredVal) || 0;
+        // Single hook point for "the amount to collect changed" -- covers
+        // Split, Pay All, and manual typing, since all three end up calling
+        // this function. typeof-guarded because renderUpiQR only exists when
+        // the UPI QR block actually rendered (config.upi_id set, remaining > 0).
+        if (typeof renderUpiQR === 'function') renderUpiQR(entered);
+
         const balance = {{ remaining }};
         const change  = Math.round(entered - balance);
         const display = document.getElementById('change-display');
@@ -658,7 +677,14 @@ trying to pay, even if the path had been right.
     }
     function splitPay(v) {
         const n = parseInt(prompt('Split into how many people?'));
-        if (n > 0) document.getElementById('payAmount').value = (v / n).toFixed(2);
+        if (n > 0) {
+            const share = (v / n).toFixed(2);
+            document.getElementById('payAmount').value = share;
+            // Was missing entirely -- Split set the field's value directly,
+            // which doesn't fire the input's oninput handler, so neither the
+            // change-due display nor (now) the QR ever reacted to a split.
+            updateChange(share);
+        }
     }
 
     // Manual receipt print. On the Rasova app / any device, queue to the on-LAN
