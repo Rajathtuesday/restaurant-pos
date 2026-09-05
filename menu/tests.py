@@ -368,6 +368,67 @@ class DigitalMenuTableTokenTest(TestCase):
         self.assertEqual(resp.status_code, 200)
 
 
+class DigitalMenuOrderStatusUITest(TestCase):
+    """
+    The order-status UI used to be a full-width banner that sat right under
+    the header and pushed the whole menu down for as long as a guest had an
+    active order. Replaced with a small floating pill (same idea as the
+    existing sticky cart bar) that opens a slide-up status sheet instead.
+
+    These are template-rendering checks -- they confirm the right markup
+    and wiring are present in the response HTML, not actual browser-executed
+    behaviour (no JS/browser test runner exists in this project).
+    """
+
+    def setUp(self):
+        from orders.models import Table
+
+        self.tenant = Tenant.objects.create(name="Status UI Tenant", tenant_type="fine_dining")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+
+    def _get_html(self):
+        resp = self.client.get(reverse("digital_menu"), {"table_token": str(self.table.qr_token)})
+        self.assertEqual(resp.status_code, 200)
+        return resp.content.decode()
+
+    def test_old_banner_markup_is_gone(self):
+        html = self._get_html()
+        self.assertNotIn("order-status-banner", html)
+        self.assertNotIn("orderStatusBanner", html)
+        self.assertNotIn("toggleOrderStatusDetail", html)
+
+    def test_pill_and_sheet_markup_present(self):
+        html = self._get_html()
+        self.assertIn('id="orderStatusPill"', html)
+        self.assertIn('onclick="openStatusSheet()"', html)
+        self.assertIn('id="statusSheetOverlay"', html)
+        self.assertIn('id="statusSheet"', html)
+        # Received / Preparing / Ready / Served
+        self.assertEqual(html.count('class="status-stage"'), 4)
+
+    def test_pill_starts_hidden(self):
+        """No order placed yet for this table -- the pill must not show."""
+        html = self._get_html()
+        self.assertIn('order-status-pill hidden', html)
+
+    def test_cart_bar_hooks_into_pill_repositioning(self):
+        """Without this wiring, a second round added mid-cook would leave
+        the pill sitting underneath the cart bar instead of above it."""
+        html = self._get_html()
+        self.assertIn("repositionStatusPill();", html)
+        self.assertIn("function repositionStatusPill", html)
+
+    def test_stage_index_covers_every_real_backend_stage(self):
+        """menu/views/customer_views.py::order_status can return stage values
+        placed/confirmed/waiting_confirmation/preparing/ready/served -- every
+        one of them must map to a timeline position, or a guest could see a
+        stage with no dot lit up at all."""
+        html = self._get_html()
+        for stage in ("placed", "confirmed", "waiting_confirmation", "preparing", "ready", "served"):
+            self.assertIn(f"{stage}:", html)
+
+
 class CounterMenuQRTest(TestCase):
     """
     QSR/cafe outlets with no seating have no Table to hang a per-table QR

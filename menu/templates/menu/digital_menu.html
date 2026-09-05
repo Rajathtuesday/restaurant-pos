@@ -451,41 +451,75 @@
         }
         .cart-modifier-names { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
 
-        /* ORDER STATUS BANNER — shown once a guest has placed at least one
-           order for this table, polls order-status and reflects the stage. */
-        .order-status-banner {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 0.75rem; margin: 0.5rem 1rem 0; padding: 0.65rem 1rem;
+        /* ORDER STATUS PILL — a small floating button, same idea as the
+           sticky cart bar below, shown once a guest has placed at least one
+           order for this table. Replaces the old full-width banner that
+           used to sit under the header and push the whole menu down for
+           as long as an order was active. Tapping it opens the status
+           sheet (a slide-up drawer, same mechanics as the cart modal). */
+        .order-status-pill {
+            position: fixed; right: 1rem; bottom: 1rem; z-index: 1032;
+            display: flex; align-items: center; gap: 0.5rem;
             background: var(--panel-bg); border: 1px solid var(--accent-gold);
-            border-radius: 12px; cursor: pointer; transition: var(--transition-smooth);
+            border-radius: 999px; padding: 0.55rem 0.9rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.18); cursor: pointer;
+            transition: var(--transition-smooth), bottom 0.25s ease;
         }
-        .order-status-banner.hidden { display: none; }
-        .order-status-row { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; font-size: 0.9rem; }
+        .order-status-pill.hidden { display: none; }
+        /* Shifted up when the cart bar is also visible (a second round
+           added while the first is still cooking) so the two never overlap. */
+        .order-status-pill.above-cart-bar { bottom: 5.5rem; }
+        .order-status-pill:active { transform: scale(0.96); }
         .order-status-number {
             background: var(--accent-gold); color: #fff; font-weight: 700;
-            font-size: 0.8rem; padding: 0.15rem 0.55rem; border-radius: 999px;
+            font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px;
             flex-shrink: 0; letter-spacing: 0.02em;
         }
         .order-status-number.hidden { display: none; }
         .order-status-dot {
-            width: 10px; height: 10px; border-radius: 50%; background: var(--accent-gold);
+            width: 9px; height: 9px; border-radius: 50%; background: var(--accent-gold);
             flex-shrink: 0; animation: statusPulse 1.6s ease-in-out infinite;
         }
         .order-status-dot.done { animation: none; background: var(--veg-color); }
         @keyframes statusPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-        .order-status-toggle { background: none; border: none; color: var(--text-muted); font-size: 1.1rem; }
-        .order-status-detail {
-            margin: 0 1rem; padding: 0 1rem; background: var(--panel-bg);
-            border: 1px solid var(--border-color); border-top: none;
-            border-radius: 0 0 12px 12px; overflow: hidden;
-            max-height: 0; transition: var(--transition-smooth);
+        .order-status-pill-label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); white-space: nowrap; }
+
+        /* STATUS SHEET — slide-up drawer, copied from the cart modal's own
+           overlay/transform pattern so both feel like one consistent app
+           instead of two different popup styles. */
+        .status-sheet-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); z-index: 1041;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
         }
-        .order-status-detail.open { max-height: 300px; padding: 0.75rem 1rem; }
-        .order-status-item-row {
-            display: flex; justify-content: space-between; font-size: 0.85rem;
-            padding: 0.3rem 0; color: var(--text-muted);
+        .status-sheet-overlay.active { opacity: 1; pointer-events: auto; }
+        .status-sheet {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--bg-color); border-radius: 20px 20px 0 0;
+            padding: 1.5rem; z-index: 1051;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            max-height: 80vh; overflow-y: auto;
         }
-        .order-status-item-row .name { color: var(--text-main); }
+        .status-sheet.active { transform: translateY(0); }
+        .status-sheet-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin: 0; }
+        .status-sheet-table { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
+        .status-stages { display: flex; justify-content: space-between; position: relative; margin: 1.4rem 0 1.6rem; }
+        .status-stages::before {
+            content: ''; position: absolute; top: 8px; left: 8%; right: 8%; height: 2px;
+            background: var(--border-color); z-index: 0;
+        }
+        .status-stage { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; z-index: 1; background: var(--bg-color); padding: 0 0.3rem; }
+        .status-stage .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--border-color); border: 2px solid var(--border-color); }
+        .status-stage.done .dot { background: var(--veg-color); border-color: var(--veg-color); }
+        .status-stage.active .dot { background: var(--bg-color); border-color: var(--accent-gold); box-shadow: 0 0 0 4px rgba(197,160,89,0.2); }
+        .status-stage .t { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
+        .status-stage.done .t, .status-stage.active .t { color: var(--text-main); }
+        .status-sheet-item-row {
+            display: flex; justify-content: space-between; font-size: 0.88rem;
+            padding: 0.45rem 0; border-bottom: 1px solid var(--border-color); color: var(--text-muted);
+        }
+        .status-sheet-item-row:last-child { border-bottom: none; }
+        .status-sheet-item-row .name { color: var(--text-main); font-weight: 500; }
 
         /* CALL WAITER BUTTON */
         .call-waiter-btn {
@@ -559,16 +593,30 @@
 
     <div class="mini-toast" id="miniToast"></div>
 
-    <!-- ORDER STATUS — hidden until this table has a placed order -->
-    <div class="order-status-banner hidden" id="orderStatusBanner" onclick="toggleOrderStatusDetail()">
-        <div class="order-status-row">
-            <span class="order-status-dot" id="orderStatusDot"></span>
-            <span class="order-status-number hidden" id="orderStatusNumber"></span>
-            <span id="orderStatusLabel">Order received</span>
-        </div>
-        <i class="bi bi-chevron-down" id="orderStatusChevron"></i>
+    <!-- ORDER STATUS PILL — hidden until this table has a placed order.
+         Floats bottom-right instead of sitting inline under the header;
+         tapping it opens the status sheet below. -->
+    <div class="order-status-pill hidden" id="orderStatusPill" onclick="openStatusSheet()">
+        <span class="order-status-dot" id="orderStatusDot"></span>
+        <span class="order-status-number hidden" id="orderStatusNumber"></span>
+        <span class="order-status-pill-label" id="orderStatusPillLabel">Order status</span>
     </div>
-    <div class="order-status-detail" id="orderStatusDetail"></div>
+
+    <!-- STATUS SHEET — slide-up drawer, same mechanics as the cart modal -->
+    <div class="status-sheet-overlay" id="statusSheetOverlay" onclick="closeStatusSheet()"></div>
+    <div class="status-sheet" id="statusSheet">
+        <div class="modal-drag-handle"></div>
+        <button class="close-modal-btn" onclick="closeStatusSheet()"><i class="bi bi-x"></i></button>
+        <h3 class="status-sheet-title" id="statusSheetLabel">Order received</h3>
+        <div class="status-sheet-table" id="statusSheetTable"></div>
+        <div class="status-stages" id="statusStages">
+            <div class="status-stage" data-stage="0"><span class="dot"></span><span class="t">Received</span></div>
+            <div class="status-stage" data-stage="1"><span class="dot"></span><span class="t">Preparing</span></div>
+            <div class="status-stage" data-stage="2"><span class="dot"></span><span class="t">Ready</span></div>
+            <div class="status-stage" data-stage="3"><span class="dot"></span><span class="t">Served</span></div>
+        </div>
+        <div id="statusSheetItems"></div>
+    </div>
 
     <!-- SEARCH -->
     <div class="search-container">
@@ -981,6 +1029,7 @@
             bar.classList.remove('visible');
             closeCart();
         }
+        repositionStatusPill();
     }
 
     function updateETA() {
@@ -1179,22 +1228,48 @@
     // --- Order status banner (poll while this table has an active order) ---
     let _statusPollTimer = null;
 
-    function toggleOrderStatusDetail() {
-        const detail = document.getElementById('orderStatusDetail');
-        const chevron = document.getElementById('orderStatusChevron');
-        const isOpen = detail.classList.toggle('open');
-        chevron.classList.toggle('bi-chevron-down', !isOpen);
-        chevron.classList.toggle('bi-chevron-up', isOpen);
+    function openStatusSheet() {
+        document.getElementById('statusSheetOverlay').classList.add('active');
+        document.getElementById('statusSheet').classList.add('active');
+    }
+    function closeStatusSheet() {
+        document.getElementById('statusSheetOverlay').classList.remove('active');
+        document.getElementById('statusSheet').classList.remove('active');
+    }
+
+    // placed/confirmed/waiting_confirmation all collapse into the same
+    // "Received" tier of the timeline -- the guest doesn't need to
+    // distinguish "the kitchen hasn't looked at it yet" from "review
+    // pending", just that it hasn't started cooking yet.
+    const STATUS_STAGE_INDEX = {
+        placed: 0, confirmed: 0, waiting_confirmation: 0,
+        preparing: 1, ready: 2, served: 3,
+    };
+    const STATUS_PILL_SHORT_LABEL = {
+        placed: 'Received', confirmed: 'Received', waiting_confirmation: 'Received',
+        preparing: 'Preparing', ready: 'Ready!', served: 'Served',
+    };
+
+    // The pill can be visible at the same time as the cart bar (a second
+    // round added while the first is still cooking) -- shift it up above
+    // the cart bar instead of letting them overlap.
+    function repositionStatusPill() {
+        const pill = document.getElementById('orderStatusPill');
+        const cartBarVisible = document.getElementById('cartBar').classList.contains('visible');
+        pill.classList.toggle('above-cart-bar', cartBarVisible);
     }
 
     function renderOrderStatus(data) {
-        const banner = document.getElementById('orderStatusBanner');
+        const pill = document.getElementById('orderStatusPill');
         const dot = document.getElementById('orderStatusDot');
         const number = document.getElementById('orderStatusNumber');
-        const label = document.getElementById('orderStatusLabel');
-        const detail = document.getElementById('orderStatusDetail');
+        const pillLabel = document.getElementById('orderStatusPillLabel');
+        const sheetLabel = document.getElementById('statusSheetLabel');
+        const sheetTable = document.getElementById('statusSheetTable');
+        const items = document.getElementById('statusSheetItems');
 
-        banner.classList.remove('hidden');
+        pill.classList.remove('hidden');
+        repositionStatusPill();
 
         // token_display only exists for QSR/franchise/cafe orders -- a
         // fine-dining table order never gets a TokenOrder, so this stays
@@ -1207,20 +1282,30 @@
             number.classList.add('hidden');
         }
 
-        // QSR token ready-for-pickup overrides the generic per-item label --
-        // matches the wording on the public "Now Serving" display board.
-        label.textContent = data.token_ready ? 'Ready for pickup!' : data.label;
         dot.classList.toggle('done', data.stage === 'ready' || data.stage === 'served' || data.token_ready);
 
-        detail.innerHTML = (data.items || []).map(i => `
-            <div class="order-status-item-row">
+        // QSR token ready-for-pickup overrides the generic per-item label --
+        // matches the wording on the public "Now Serving" display board.
+        pillLabel.textContent = data.token_ready ? 'Ready for pickup!' : (STATUS_PILL_SHORT_LABEL[data.stage] || 'Order status');
+        sheetLabel.textContent = data.token_ready ? 'Ready for pickup!' : data.label;
+        sheetTable.textContent = data.table;
+
+        const currentIndex = data.token_ready ? 2 : (STATUS_STAGE_INDEX[data.stage] ?? 0);
+        document.querySelectorAll('#statusStages .status-stage').forEach(el => {
+            const idx = parseInt(el.dataset.stage, 10);
+            el.classList.toggle('done', idx < currentIndex);
+            el.classList.toggle('active', idx === currentIndex);
+        });
+
+        items.innerHTML = (data.items || []).map(i => `
+            <div class="status-sheet-item-row">
                 <span class="name">${escapeHtml(i.quantity)}x ${escapeHtml(i.name)}</span>
                 <span>${escapeHtml(i.status)}</span>
             </div>
-        `).join('') || '<div class="order-status-item-row"><span>No items yet</span></div>';
+        `).join('') || '<div class="status-sheet-item-row"><span>No items yet</span></div>';
     }
 
-    // Once polling ends (order gone, or truly done), the status banner used
+    // Once polling ends (order gone, or truly done), the status pill used
     // to just freeze showing whatever it last rendered ("Ready for pickup!",
     // "Enjoy your meal!") forever in this tab -- a guest who left the tab
     // open past actual completion would see stale info indefinitely. This
@@ -1229,10 +1314,9 @@
     // localStorage.clear() as a shortcut -- that would also wipe the
     // unrelated "dark" theme preference.
     function resetOrderStatusUI() {
-        const banner = document.getElementById('orderStatusBanner');
-        const detail = document.getElementById('orderStatusDetail');
-        if (banner) banner.classList.add('hidden');
-        if (detail) detail.classList.remove('open');
+        const pill = document.getElementById('orderStatusPill');
+        if (pill) pill.classList.add('hidden');
+        closeStatusSheet();
     }
 
     async function pollOrderStatus() {
