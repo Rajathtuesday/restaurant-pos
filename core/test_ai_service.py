@@ -213,7 +213,15 @@ class FallbackAccountInitTests(TestCase):
         self.assertIsNone(svc.fallback_client)
 
     def test_fallback_client_is_created_when_env_var_set(self):
-        with patch.dict(os.environ, {"GOOGLE_API_KEY_FALLBACK": "fake-fallback-key"}), \
+        # GOOGLE_API_KEY must be explicitly set here too, not left to
+        # whatever's ambient -- __init__ returns early with no fallback
+        # client at all if the primary key is missing. Relying on a local
+        # .env happening to have a real key is exactly what let this test
+        # pass locally while failing in CI, where no such key exists.
+        with patch.dict(os.environ, {
+                "GOOGLE_API_KEY": "fake-primary-key",
+                "GOOGLE_API_KEY_FALLBACK": "fake-fallback-key",
+             }), \
              patch("core.ai_service.genai.Client") as mock_client_cls:
             svc = AIService()
         self.assertIsNotNone(svc.fallback_client)

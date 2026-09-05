@@ -696,7 +696,7 @@ class SyncFallbackAIImportTests(TestCase):
     def test_sync_path_applies_ai_is_veg_classification(self):
         from unittest.mock import patch
 
-        with patch("core.celery_utils.dispatch", side_effect=Exception("Celery down")), \
+        with patch("menu.views.ai_views.dispatch", side_effect=Exception("Celery down")), \
              patch("core.ai_service.AIService.parse_menu") as mock_parse:
             mock_parse.return_value = [{
                 "category": "Main Course",
@@ -718,7 +718,7 @@ class SyncFallbackAIImportTests(TestCase):
             time.sleep(0.3)
             return [{"category": "Starters", "items": [{"name": "Should Not Import", "price": 1}]}]
 
-        with patch("core.celery_utils.dispatch", side_effect=Exception("Celery down")), \
+        with patch("menu.views.ai_views.dispatch", side_effect=Exception("Celery down")), \
              patch("menu.views.ai_views.SYNC_PARSE_TIMEOUT_SECONDS", 0.05), \
              patch("core.ai_service.AIService.parse_menu", side_effect=_slow_parse):
             resp = self.client.post(
