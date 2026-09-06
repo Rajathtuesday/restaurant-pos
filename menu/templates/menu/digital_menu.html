@@ -1062,6 +1062,34 @@
     function renderCartModal() {
         const container = document.getElementById('cartItemsContainer');
         container.innerHTML = '';
+
+        // Already-placed items from this table's current order, shown
+        // read-only above the items being newly added -- same idea as
+        // Swiggy/Zomato showing your earlier round when you add more to an
+        // in-progress order, so a guest isn't left guessing what they
+        // already ordered before deciding what else to add.
+        if (_lastKnownOrderItems.length > 0) {
+            const already = document.createElement('div');
+            already.innerHTML = `
+                <div class="cart-items-text" style="margin-bottom:0.5rem;">Already ordered</div>
+                ${_lastKnownOrderItems.map(i => `
+                    <div class="status-sheet-item-row">
+                        <span class="name">${escapeHtml(i.quantity)}x ${escapeHtml(i.name)}</span>
+                        <span>${escapeHtml(i.status)}</span>
+                    </div>
+                `).join('')}
+            `;
+            container.appendChild(already);
+
+            if (Object.keys(cart).length > 0) {
+                const addingNow = document.createElement('div');
+                addingNow.className = 'cart-items-text';
+                addingNow.style.cssText = 'margin:1.1rem 0 0.5rem;';
+                addingNow.textContent = 'Adding now';
+                container.appendChild(addingNow);
+            }
+        }
+
         let subtotal = 0;
         let totalGst = 0;
 
@@ -1228,6 +1256,13 @@
     // --- Order status banner (poll while this table has an active order) ---
     let _statusPollTimer = null;
 
+    // Items already placed on this table's current order, from the last
+    // order-status poll -- lets the cart show them (like Swiggy/Zomato do)
+    // when a guest opens the cart to add a second round, instead of only
+    // ever showing what's newly being added with no memory of what's
+    // already on its way to the kitchen.
+    let _lastKnownOrderItems = [];
+
     function openStatusSheet() {
         document.getElementById('statusSheetOverlay').classList.add('active');
         document.getElementById('statusSheet').classList.add('active');
@@ -1297,7 +1332,9 @@
             el.classList.toggle('active', idx === currentIndex);
         });
 
-        items.innerHTML = (data.items || []).map(i => `
+        _lastKnownOrderItems = data.items || [];
+
+        items.innerHTML = _lastKnownOrderItems.map(i => `
             <div class="status-sheet-item-row">
                 <span class="name">${escapeHtml(i.quantity)}x ${escapeHtml(i.name)}</span>
                 <span>${escapeHtml(i.status)}</span>
@@ -1317,6 +1354,7 @@
         const pill = document.getElementById('orderStatusPill');
         if (pill) pill.classList.add('hidden');
         closeStatusSheet();
+        _lastKnownOrderItems = [];
     }
 
     async function pollOrderStatus() {
@@ -1451,28 +1489,33 @@
         });
     }
     function fixStickyNav() {
-    const header = document.querySelector('.pos-header') || document.querySelector('.menu-header');
-    const stickyNav = document.querySelector('.cat-nav-bar') || document.querySelector('.category-tabs');
-    
+    const header = document.querySelector('.menu-header');
+    const stickyNav = document.querySelector('.category-tabs');
+
     if (header && stickyNav) {
         const headerHeight = header.getBoundingClientRect().height;
         const navHeight = stickyNav.getBoundingClientRect().height;
-        const totalBlocked = headerHeight + navHeight;
-        
+
         // Position nav just below header
         stickyNav.style.top = headerHeight + 'px';
-        
-        // Push ALL content below both sticky bars
-        document.querySelectorAll('.category-section').forEach(section => {
-            section.style.scrollMarginTop = (totalBlocked + 16) + 'px';
-        });
 
-        // Push first visible content down
-        const firstContent = document.querySelector('.search-container') || 
-                            document.querySelector('.container-fluid:not(.pos-header)');
-        if (firstContent) {
-            firstContent.style.marginTop = (totalBlocked + 8) + 'px';
-        }
+        // Offset anchor-scroll targets (tapping a category tab) so a section's
+        // title doesn't land hidden under the two sticky bars.
+        //
+        // Deliberately NOT pushing .search-container down with a matching
+        // marginTop -- .menu-header and .category-tabs are both
+        // position:sticky, which already reserves their real height in the
+        // normal page flow. Adding that height again as margin on top of it
+        // double-counted the header, leaving a blank gap at the top of the
+        // page equal to header+nav height. That marginTop push (removed
+        // here) was written for a different, position:fixed header on
+        // another page -- this function used to fall back to '.pos-header'/
+        // '.cat-nav-bar' selectors that don't exist anywhere in this
+        // template, confirming it was copied over rather than written for
+        // this page's actual (sticky) layout.
+        document.querySelectorAll('.category-section').forEach(section => {
+            section.style.scrollMarginTop = (headerHeight + navHeight + 16) + 'px';
+        });
     }
 }
 fixStickyNav();

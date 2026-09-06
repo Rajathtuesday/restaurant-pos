@@ -3,6 +3,8 @@
 > Cloud-based POS and restaurant management system for Indian restaurants.  
 > Django 6.0 · PostgreSQL · Celery + Redis · Multi-tenant SaaS · ESC/POS thermal printing.
 
+See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
+
 ---
 
 ## What Is Rasova
@@ -59,7 +61,8 @@ Each type gets its own default feature set. Owners and superusers can override i
 ### Billing and Payments
 - Split billing - multiple payment methods on one order
 - Partial payments - collect in stages
-- Payment methods - Cash, UPI, Card (configurable per outlet), Razorpay UPI QR (dynamic, webhook-confirmed)
+- Split-bill QR accuracy - both the plain UPI QR and the Razorpay QR quote the actual amount being collected (a split share, not the full remaining balance), and the same corrected QR is what prints on the receipt
+- Payment methods - Cash, UPI, Card (configurable per outlet), Razorpay UPI QR (dynamic, webhook-confirmed, supports quoting a partial/split amount)
 - Offline cash payments - a bill can be closed and paid in cash with no internet connection; queues locally and syncs automatically once reconnected
 - Discounts - percentage or flat, at order or item level (manager/owner only)
 - Complimentary items - mark individual items as ₹0
@@ -84,6 +87,7 @@ Each type gets its own default feature set. Owners and superusers can override i
 
 ### Ordering
 - QR self-ordering - customer scans → views menu → places order → appears for staff approval
+- Live order status for guests - a floating status button on the QR menu opens a slide-up sheet with a Received → Preparing → Ready → Served timeline, polling automatically until the order is done
 - AI menu importer - photograph any menu format → imported via Gemini AI
 - Aggregator webhooks - Zomato/Swiggy order ingestion with HMAC signature verification and idempotency
 
@@ -174,11 +178,11 @@ f:\pos\
 | DB | PostgreSQL 16, co-located or managed | PostgreSQL 16, managed (RDS or equivalent) if budget allows |
 | Cache/queue | Redis 7 | Redis 7 |
 
-Production today runs on a **1 vCPU / 1 GB RAM** instance (AWS t3.micro) with Postgres, Redis, gunicorn (`--workers 2 --threads 4`), and a Celery worker all co-located on the same box — this is the *minimum* row above, not the recommended one, and it's genuinely tight: little headroom before swap kicks in under real concurrent load. Per-gunicorn-worker memory measured directly under sustained load (see [`LOAD_TESTING.md`](LOAD_TESTING.md)'s soak test) sits around 90-105 MB; with 2 workers that's already 200 MB+ before Postgres, Redis, Celery, and the OS itself are accounted for.
+Production today runs on a **1 vCPU / 1 GB RAM** instance (AWS t3.micro) with Postgres, Redis, gunicorn (`--workers 2 --threads 4`), and a Celery worker all co-located on the same box — this is the *minimum* row above, not the recommended one, and it's genuinely tight: little headroom before swap kicks in under real concurrent load. Per-gunicorn-worker memory measured directly under sustained load (see [`LOAD_TESTING.md`](docs/LOAD_TESTING.md)'s soak test) sits around 90-105 MB; with 2 workers that's already 200 MB+ before Postgres, Redis, Celery, and the OS itself are accounted for.
 
 **Recommended minimum for production** is a **2 vCPU / 2 GB RAM** instance (e.g. AWS t3.small) — enough headroom for the current gunicorn config plus Postgres/Redis/Celery without relying on burst CPU credits or swap. Scale up further (2 vCPU / 4 GB, e.g. t3.medium) if adding more tenants, increasing `--workers`/`--threads`, or increasing Celery concurrency.
 
-These figures come from the app's own configuration and measured per-process footprint, not from live production monitoring (no SSH-based metrics collection is wired up yet). Before committing to a resize, use the load-testing tooling in [`LOAD_TESTING.md`](LOAD_TESTING.md) — specifically a soak test run directly on whichever instance size you're evaluating — to get a real, current answer rather than an estimate.
+These figures come from the app's own configuration and measured per-process footprint, not from live production monitoring (no SSH-based metrics collection is wired up yet). Before committing to a resize, use the load-testing tooling in [`LOAD_TESTING.md`](docs/LOAD_TESTING.md) — specifically a soak test run directly on whichever instance size you're evaluating — to get a real, current answer rather than an estimate.
 
 ### Installation
 
@@ -213,6 +217,8 @@ docker run -d -p 6379:6379 redis:alpine
 ```
 
 Visit `http://localhost:8000` → log in as superuser → go to `/superuser/` to create your first restaurant.
+
+**Alternative: Docker Compose** - `docker-compose up` brings up Postgres, Redis, the web server, and both a Celery worker and Celery beat (needed for the app's scheduled tasks) in one command, reading config from `.env`. This is a local/dev convenience, not how production is actually deployed - see [`DEPLOY.md`](DEPLOY.md) for the real EC2 runbook.
 
 ### Preview Printing Without a Printer
 
@@ -299,11 +305,11 @@ python manage.py audit_pos                # check data integrity
 python manage.py reset_pos                # clear POS data (dev only)
 
 # Load testing (concurrency correctness + HTTP capacity + sustained soak test)
-python manage.py load_test                # see LOAD_TESTING.md for the full guide
+python manage.py load_test                # see docs/LOAD_TESTING.md for the full guide
 python manage.py http_rush_test --host http://127.0.0.1:8000
 ```
 
-Full guide to what each load-test phase checks and how to read its output: [`LOAD_TESTING.md`](LOAD_TESTING.md).
+Full guide to what each load-test phase checks and how to read its output: [`LOAD_TESTING.md`](docs/LOAD_TESTING.md).
 
 ---
 
@@ -383,9 +389,11 @@ Business logic lives in `orders/services/` - 14 service modules, none of which k
 - [x] Same fix applied separately to the actual CSV/Excel export layer (`export_services.py`) - a different module with its own independent date-filtering, missed in the first pass and caught by specifically re-auditing GSTR-1 for accuracy. GSTR-1 gets filed with the government, so this one mattered more than an internal report being off. 5 export functions fixed, each with a test proving the old code dropped a full evening's data.
 - [x] Self-service staff account management - owner/manager can reset a locked-out staff member's password or deactivate/reactivate an account directly from the Staff page, no server access required. Deactivation force-ends any already-open session and preserves all historical shift/cash-session/order records rather than deleting them.
 - [x] Mobile-responsive setup pages
+- [x] GSTR-1 export - accountant-ready Excel report, B2CS sales plus the mandatory Table 12 HSN/SAC summary every GST filer needs regardless of turnover
+- [x] Split-bill QR fix - the UPI and Razorpay QR codes on the bill screen used to always quote the order's full remaining balance even after a bill was split into per-person shares; both now quote the actual amount being collected, and the fix carries through to the printed receipt
+- [x] Order status for QR-ordering guests - a floating status button + slide-up sheet with a live Received → Preparing → Ready → Served timeline, replacing a banner that used to sit under the header and push the whole menu down
 
 **Next:**
-- [ ] GSTR-1 export - accountant-ready GST return CSV
 - [ ] Celery task monitoring - see pending and failed print jobs in UI
 - [ ] Subscription billing - auto-charge restaurants monthly fee
 - [ ] WhatsApp bill delivery

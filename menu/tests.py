@@ -428,6 +428,69 @@ class DigitalMenuOrderStatusUITest(TestCase):
         for stage in ("placed", "confirmed", "waiting_confirmation", "preparing", "ready", "served"):
             self.assertIn(f"{stage}:", html)
 
+    def test_no_double_counted_gap_above_search_bar(self):
+        """fixStickyNav() used to push .search-container down by ANOTHER
+        full header+nav height on top of the space .menu-header and
+        .category-tabs (both position:sticky, already in normal flow)
+        naturally take up -- doubling the header's height as blank space at
+        the top of the page. That marginTop push must be gone; the harmless
+        stickyNav.style.top positioning and scrollMarginTop offset must stay."""
+        html = self._get_html()
+        self.assertNotIn("firstContent.style.marginTop", html)
+        self.assertIn("stickyNav.style.top = headerHeight", html)
+        self.assertIn("section.style.scrollMarginTop", html)
+
+
+class DigitalMenuReorderCartTest(TestCase):
+    """
+    The cart used to only ever show items the guest was newly adding --
+    opening it to add a second round while a first round was already
+    cooking gave no reminder of what was already ordered, unlike the
+    Swiggy/Zomato pattern of showing an earlier round above new additions.
+    renderCartModal() now prepends a read-only "Already ordered" section
+    sourced from the same order-status data already being polled.
+    """
+
+    def setUp(self):
+        from orders.models import Table
+
+        self.tenant = Tenant.objects.create(name="Reorder Cart Tenant", tenant_type="fine_dining")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+
+    def _get_html(self):
+        resp = self.client.get(reverse("digital_menu"), {"table_token": str(self.table.qr_token)})
+        self.assertEqual(resp.status_code, 200)
+        return resp.content.decode()
+
+    def test_last_known_order_items_is_cached_from_polling(self):
+        html = self._get_html()
+        self.assertIn("let _lastKnownOrderItems = [];", html)
+        self.assertIn("_lastKnownOrderItems = data.items || [];", html)
+
+    def test_cart_modal_renders_already_ordered_section(self):
+        html = self._get_html()
+        self.assertIn("Already ordered", html)
+        self.assertIn("_lastKnownOrderItems.length > 0", html)
+        self.assertIn("_lastKnownOrderItems.map(i =>", html)
+
+    def test_adding_now_label_only_shown_alongside_new_cart_items(self):
+        """If there's nothing new being added yet, showing an "Adding now"
+        header above an empty list would be confusing -- it must be gated
+        on the local cart actually having items."""
+        html = self._get_html()
+        self.assertIn("Object.keys(cart).length > 0", html)
+        self.assertIn("Adding now", html)
+
+    def test_reset_clears_the_cached_items(self):
+        """Once an order is truly finished, its items shouldn't keep
+        appearing as "already ordered" reference for whatever the guest
+        orders next."""
+        html = self._get_html()
+        reset_fn = html[html.index("function resetOrderStatusUI"):]
+        reset_fn = reset_fn[:reset_fn.index("\n    }")]
+        self.assertIn("_lastKnownOrderItems = [];", reset_fn)
+
 
 class CounterMenuQRTest(TestCase):
     """

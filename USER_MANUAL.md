@@ -149,6 +149,7 @@ Each table has its own printed QR code. When a guest scans it:
 
 - They see your full menu, with photos, veg/non-veg markers, and search.
 - They can add items to a cart and place the order directly — it appears on your staff dashboard for approval before it goes to the kitchen.
+- Once their order is placed, a small status button appears on their screen. Tapping it shows a live Received → Preparing → Ready → Served timeline, so guests can check progress themselves instead of having to ask a waiter.
 - They can tap **Call Waiter** to get a staff member's attention without raising a hand.
 
 **Important:** each table's QR code is unique and secret. A guest can only order onto the table they actually scanned — there is no way to guess or type in a table number to reach a different one.
