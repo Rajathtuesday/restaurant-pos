@@ -67,4 +67,7 @@ POS_System_Architecture_and_Documentation.md
 
 
 .claude/*
-*.md
+# Was blanket-ignoring every *.md, including root product docs -- silently
+# swallowing any new one (CHANGELOG.md never got tracked because of this).
+# md_files/ above already excludes the actual intended target (scratch/
+# personal markdown); root docs are meant to be committed.
