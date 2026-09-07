@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-09-07
+
+### Added
+- **Self-serve live demo** - replaces the old flow of sending a stranger a video or booking a call: `/live-demo/` is a rate-limited magic link that logs a visitor straight in as a demo owner account, no signup, no waiting on us. Backed by an idempotent seed (`orders/scripts/demo_seed.py`, `reset_demo_tenant` management command) that gives every visitor the same clean slate - a tenant called "Demo Bistro," 8 tables, a 17-item menu across 5 categories, and 2 sample in-progress orders - with AI menu import and real payment gateways left off by default so nobody can accidentally rack up a real bill or burn real API quota poking around. 13 new tests, including one that proves a locked-out login form doesn't block the separate magic-link path.
+
 ## 2026-09-05
 
 ### Fixed

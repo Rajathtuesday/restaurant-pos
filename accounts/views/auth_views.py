@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django_ratelimit.decorators import ratelimit
 
+from accounts.models import User
+
 
 def _role_path(user):
     """Return the path the user should land on after login."""
@@ -70,3 +72,49 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect("login")
+
+
+@ratelimit(key="ip", rate="20/m", method="GET", block=False)
+def demo_login(request):
+    """
+    Public, unauthenticated entry point: logs a visitor straight into the
+    Demo Bistro tenant's owner account and lands them on the live floor
+    plan, no signup or typed credentials at all.
+
+    Deliberately not a shared *typed* password -- this app locks an
+    account out after 5 failed logins (AXES_FAILURE_LIMIT), and a public
+    password that strangers type by hand will eventually get mistyped,
+    locking the demo for everyone until the hour-long cooldown clears. A
+    magic link has no failed-password attempt to count against anything.
+
+    Rate-limited per IP (not the tighter 10/m real login gets) since this
+    has no password to brute-force in the first place -- the limit here is
+    purely to stop someone scripting repeated hits, not a security control
+    on the account itself. The demo owner account also carries an
+    unusable password (see demo_seed.py), so it can never be reached
+    through the normal /login/ form even if someone guessed the username.
+    """
+    if getattr(request, "limited", False):
+        messages.error(request, "Too many requests. Please wait a minute and try again.")
+        return redirect("landing")
+
+    from orders.scripts.demo_seed import DEMO_OWNER_USERNAME
+
+    try:
+        demo_owner = User.objects.get(username=DEMO_OWNER_USERNAME, role="owner")
+    except User.DoesNotExist:
+        messages.error(request, "The live demo isn't set up yet. Please check back shortly.")
+        return redirect("landing")
+
+    # Explicit backend required: this project has two AUTHENTICATION_BACKENDS
+    # configured (ModelBackend + axes), and login() can only infer which one
+    # to attach to the session when the user object already carries a
+    # `.backend` attribute -- which only happens as a side effect of going
+    # through authenticate() first. A magic link has no password to check,
+    # so there's nothing to authenticate() against; ModelBackend is the
+    # correct one to attach directly, same backend a normal password login
+    # ends up using anyway.
+    login(request, demo_owner, backend="django.contrib.auth.backends.ModelBackend")
+    path = "/tables/"  # the live floor plan -- the most immediately convincing view, not the analytics dashboard
+    url = _subdomain_redirect(demo_owner, path)
+    return redirect(url or path)

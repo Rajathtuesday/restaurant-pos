@@ -1,7 +1,7 @@
 # accounts/urls.py
 from django.urls import path
 from .views import (
-    login_view, logout_view,
+    login_view, logout_view, demo_login,
     owner_dashboard, sales_dashboard, feature_flags_view,
     toggle_feature_flag, dashboard_metrics_json,
     superuser_panel, create_restaurant, tenant_config, apply_preset,
@@ -10,6 +10,10 @@ from .views import (
 urlpatterns = [
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),
+    # Public, one-click prospect demo. NOT the same as core/views.py's
+    # DEBUG-only /demo/ tenant-switcher (an unrelated internal dev tool) --
+    # this one is meant to work in production and requires no auth at all.
+    path("live-demo/", demo_login, name="live-demo"),
     path("dashboard/", owner_dashboard, name="dashboard"),
     path("dashboard/metrics.json", dashboard_metrics_json, name="dashboard-metrics-json"),
     path("sales/", sales_dashboard, name="sales_dashboard"),
