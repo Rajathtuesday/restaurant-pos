@@ -3,7 +3,7 @@
 > Cloud-based POS and restaurant management system for Indian restaurants.  
 > Django 6.0 · PostgreSQL · Celery + Redis · Multi-tenant SaaS · ESC/POS thermal printing.
 
-See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
+See [`CHANGELOG.md`](CHANGokELOG.md) for what's changed recently.
 
 ---
 
@@ -264,6 +264,12 @@ GEMINI_API_KEY=your-gemini-api-key
 # WhatsApp bills (optional)
 # META_WHATSAPP_TOKEN=your-token
 # META_WHATSAPP_PHONE_ID=your-phone-id
+
+# Public live demo -- /live-demo/?key=<this> skips the trailer-mode
+# restrictions (see accounts/demo_restrictions.py). Leave unset and the
+# key can never match, so every visitor gets the restricted demo by
+# default -- fail closed, not fail open.
+DEMO_FOUNDER_KEY=some-long-random-string
 ```
 
 ---
@@ -307,6 +313,11 @@ python manage.py reset_pos                # clear POS data (dev only)
 # Load testing (concurrency correctness + HTTP capacity + sustained soak test)
 python manage.py load_test                # see docs/LOAD_TESTING.md for the full guide
 python manage.py http_rush_test --host http://127.0.0.1:8000
+
+# Public live demo (/live-demo/) -- idempotent, safe to run any time.
+# Runs automatically every 4 hours via Celery beat; use by hand to reset
+# on demand instead of waiting for the next scheduled run.
+python manage.py reset_demo_tenant
 ```
 
 Full guide to what each load-test phase checks and how to read its output: [`LOAD_TESTING.md`](docs/LOAD_TESTING.md).
