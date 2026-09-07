@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required, role_required
+from accounts.demo_restrictions import blocked_in_demo_trailer
 from menu.models import MenuCategory, MenuItem
 from setup.models import KitchenStation
 from inventory.models import InventoryItem
@@ -20,6 +21,7 @@ logger = logging.getLogger("pos.menu")
 @tenant_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def create_menu_item(request):
     try:
         if request.content_type == "application/json":
@@ -90,6 +92,7 @@ def create_menu_item(request):
 @tenant_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def update_menu_item(request, item_id):
     try:
         item = get_object_or_404(
@@ -156,6 +159,7 @@ def update_menu_item(request, item_id):
 @tenant_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def delete_menu_item(request, item_id):
     item = get_object_or_404(
         MenuItem, id=item_id,

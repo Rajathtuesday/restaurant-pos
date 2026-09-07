@@ -49,6 +49,13 @@ BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 # scanner tries first.
 ADMIN_URL = os.getenv('ADMIN_URL', 'admin/')
 
+# Lets /live-demo/?key=<this> skip the public-visitor restrictions (demo
+# trailer mode) for the one person who actually knows it -- a bookmarked
+# link instead of a password, since the demo account has no usable password
+# at all (see demo_seed.py). Unset in an environment means the key can never
+# match, so the fail-safe default is "everyone is a restricted visitor."
+DEMO_FOUNDER_KEY = os.getenv('DEMO_FOUNDER_KEY', '')
+
 # Encrypts at-rest secrets stored in the database (e.g. PaymentConfig's
 # Razorpay key/webhook secrets). Required in every environment, same as
 # SECRET_KEY — a missing key must never silently fall back to plaintext.
@@ -791,5 +798,12 @@ CELERY_BEAT_SCHEDULE = {
     "enforce-overdue-subscriptions": {
         "task": "billing.tasks.enforce_overdue_subscriptions",
         "schedule": crontab(hour=6, minute=30),
+    },
+    # Public /live-demo/ tenant: wipe whatever a visitor did every few hours
+    # so the next one always lands on a clean floor plan, without anyone
+    # needing to remember to run reset_demo_tenant by hand.
+    "reset-public-demo-tenant": {
+        "task": "orders.tasks.reset_demo_tenant_task",
+        "schedule": crontab(minute=0, hour="*/4"),
     },
 }

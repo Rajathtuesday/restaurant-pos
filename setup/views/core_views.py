@@ -15,6 +15,7 @@ from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet
 from setup.models import KitchenStation, PaymentConfig
 from core.decorators import tenant_required, role_required
+from accounts.demo_restrictions import is_demo_trailer, blocked_in_demo_trailer, BLOCKED_MESSAGE
 from accounts.models import User
 
 logger = logging.getLogger("pos.setup")
@@ -351,6 +352,10 @@ def setup_payment_methods(request):
     config, _ = PaymentConfig.for_outlet(outlet, tenant)
 
     if request.method == "POST":
+        if is_demo_trailer(request):
+            messages.info(request, BLOCKED_MESSAGE)
+            return redirect("setup_payment_methods")
+
         config.cash_enabled = "cash" in request.POST.getlist("methods")
         config.upi_enabled = "upi" in request.POST.getlist("methods")
         config.card_enabled = "card" in request.POST.getlist("methods")
@@ -420,6 +425,10 @@ def setup_staff(request):
 
     if request.method == "POST":
 
+        if is_demo_trailer(request):
+            messages.info(request, BLOCKED_MESSAGE)
+            return redirect("setup_staff")
+
         username = request.POST.get("username")
         password = request.POST.get("password")
         role = request.POST.get("role")
@@ -482,6 +491,7 @@ def setup_staff(request):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def reset_staff_password(request, user_id):
     """
     Owner/manager resets a staff member's password directly, without needing
@@ -522,6 +532,7 @@ def reset_staff_password(request, user_id):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def toggle_staff_active(request, user_id):
     """
     Deactivate/reactivate a staff account, rather than deleting it.
@@ -568,6 +579,7 @@ def toggle_staff_active(request, user_id):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def edit_staff_role(request, user_id):
     """
     Changes an existing staff member's role. Unlike is_active (only checked
@@ -616,6 +628,7 @@ def edit_staff_role(request, user_id):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def edit_staff_outlet(request, user_id):
     """
     Reassigns an existing staff member to a different outlet within the same
@@ -666,6 +679,7 @@ def edit_staff_outlet(request, user_id):
 @login_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def edit_pay_rate(request, user_id):
     """
     Sets or updates how a staff member is paid -- monthly salary or hourly
@@ -993,6 +1007,15 @@ def outlet_settings(request):
     tenant = request.user.tenant
 
     if request.method == "POST":
+        # Blocked wholesale, not just the vendor-email toggle: unlike
+        # orders, outlet settings are never touched by the scheduled
+        # reseed, so anything a trailer visitor changed here (GST number,
+        # address, the vendor-email flag) would otherwise persist
+        # indefinitely instead of resetting for the next visitor.
+        if is_demo_trailer(request):
+            messages.info(request, BLOCKED_MESSAGE)
+            return redirect("outlet_settings")
+
         # ── Outlet fields ──
         name = request.POST.get("outlet_name", "").strip()
         address = request.POST.get("address", "").strip()

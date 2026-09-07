@@ -1,4 +1,6 @@
 """Login and logout."""
+import secrets
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -115,6 +117,17 @@ def demo_login(request):
     # correct one to attach directly, same backend a normal password login
     # ends up using anyway.
     login(request, demo_owner, backend="django.contrib.auth.backends.ModelBackend")
+
+    # Trailer mode ON by default (the public link on the marketing page) --
+    # OFF only for the one bookmarked link that carries the matching key,
+    # e.g. when doing a live walkthrough for an actual restaurant owner.
+    # compare_digest guards against a timing attack revealing the key
+    # character-by-character; the `and` short-circuits so an unset
+    # DEMO_FOUNDER_KEY (empty string) can never match an empty ?key= either.
+    supplied_key = request.GET.get("key", "")
+    is_founder = bool(settings.DEMO_FOUNDER_KEY) and secrets.compare_digest(supplied_key, settings.DEMO_FOUNDER_KEY)
+    request.session["demo_trailer_mode"] = not is_founder
+
     path = "/tables/"  # the live floor plan -- the most immediately convincing view, not the analytics dashboard
     url = _subdomain_redirect(demo_owner, path)
     return redirect(url or path)

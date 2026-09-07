@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, role_required
+from accounts.demo_restrictions import blocked_in_demo_trailer
 from menu.models import MenuCategory
 
 logger = logging.getLogger("pos.menu")
@@ -16,6 +17,7 @@ logger = logging.getLogger("pos.menu")
 @tenant_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def create_category(request):
     try:
         data = json.loads(request.body)
@@ -36,6 +38,7 @@ def create_category(request):
 @tenant_required
 @role_required("owner", "manager")
 @require_POST
+@blocked_in_demo_trailer
 def delete_category(request, category_id):
     try:
         category = get_object_or_404(

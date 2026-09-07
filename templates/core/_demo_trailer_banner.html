@@ -1,0 +1,15 @@
+{% if request.session.demo_trailer_mode %}
+<div id="demo-trailer-banner">
+    <span>
+        <i class="bi bi-play-circle-fill me-1"></i>
+        You're exploring a live demo &middot; Try billing <strong>Table 4</strong>, or check today's <strong>Dashboard</strong>
+    </span>
+    <button type="button" onclick="document.getElementById('demo-trailer-banner').remove(); sessionStorage.setItem('demoTrailerBannerDismissed','1');" aria-label="Dismiss">&times;</button>
+</div>
+<script>
+    if (sessionStorage.getItem('demoTrailerBannerDismissed') === '1') {
+        var _b = document.getElementById('demo-trailer-banner');
+        if (_b) _b.remove();
+    }
+</script>
+{% endif %}
