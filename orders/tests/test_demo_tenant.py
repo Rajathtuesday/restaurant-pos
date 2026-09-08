@@ -89,7 +89,7 @@ class DemoSeedTests(TestCase):
         demo visitor who actually completed a payment (exactly what the
         onboarding banner tells them to try -- "bill Table 4") left an
         Order the old reset couldn't delete, breaking every reset after
-        it, including the scheduled one every 4 hours."""
+        it, including the scheduled one every 2 hours."""
         from orders.models import Payment
         tenant = create_or_reset_demo_tenant()
         outlet = tenant.outlets.first()

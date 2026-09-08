@@ -146,7 +146,7 @@ def _clear_transactional_data(tenant):
     # safeguard against ever losing a financial record via an unrelated
     # cascade), so any order a demo visitor actually paid raised
     # ProtectedError here and silently broke every reset after it,
-    # including the scheduled one every 4 hours. Payments must go first.
+    # including the scheduled one every 2 hours. Payments must go first.
     Payment.objects.filter(order__tenant=tenant).delete()
     Order.objects.filter(tenant=tenant).delete()
 

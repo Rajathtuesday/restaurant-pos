@@ -315,7 +315,7 @@ python manage.py load_test                # see docs/LOAD_TESTING.md for the ful
 python manage.py http_rush_test --host http://127.0.0.1:8000
 
 # Public live demo (/live-demo/) -- idempotent, safe to run any time.
-# Runs automatically every 4 hours via Celery beat; use by hand to reset
+# Runs automatically every 2 hours via Celery beat; use by hand to reset
 # on demand instead of waiting for the next scheduled run.
 python manage.py reset_demo_tenant
 ```

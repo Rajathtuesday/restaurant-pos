@@ -804,6 +804,6 @@ CELERY_BEAT_SCHEDULE = {
     # needing to remember to run reset_demo_tenant by hand.
     "reset-public-demo-tenant": {
         "task": "orders.tasks.reset_demo_tenant_task",
-        "schedule": crontab(minute=0, hour="*/4"),
+        "schedule": crontab(minute=0, hour="*/2"),
     },
 }
