@@ -77,6 +77,15 @@ self.addEventListener('fetch', event => {
     if (url.pathname === '/') return;           // landing page — let nginx/browser handle it
     if (url.pathname.startsWith('/admin/')) return;
     if (url.pathname.startsWith('/api/')) return;
+    // /live-demo/ redirects to the tenant's own subdomain (see
+    // _subdomain_redirect in accounts/views/auth_views.py) -- a
+    // cross-origin redirect. The "app pages" handler below does its own
+    // fetch()-and-follow-redirect and hands the result to respondWith(),
+    // which browsers can't do across origins for a navigation request --
+    // the click silently re-renders the current page instead of actually
+    // navigating. Let the browser handle this redirect natively, same
+    // reasoning as the landing page skip just above.
+    if (url.pathname === '/live-demo/') return;
 
     // Static assets (JS, CSS, fonts) — cache first
     if (
