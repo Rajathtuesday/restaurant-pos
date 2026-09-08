@@ -74,6 +74,18 @@ if ! sudo systemctl restart celery 2>/dev/null; then
         >> $APP_DIR/logs/celery.log 2>&1 &
 fi
 
+# celery beat — without a restart here, CELERY_BEAT_SCHEDULE changes (like
+# the new demo-tenant reset job) never take effect on the running process,
+# even though the code deployed just fine. Same try-systemd-then-nohup
+# pattern as the worker above.
+if ! sudo systemctl restart celery-beat 2>/dev/null; then
+    pkill -9 -f 'celery -A core beat' 2>/dev/null || true
+    sleep 1
+    setsid nohup celery -A core beat --loglevel=warning \
+        --schedule=$APP_DIR/logs/celerybeat-schedule \
+        >> $APP_DIR/logs/celery-beat.log 2>&1 &
+fi
+
 sleep 3
 HTTP=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health/)
 echo "=== Deploy complete — HTTP $HTTP ==="
