@@ -84,6 +84,25 @@ class DemoSeedTests(TestCase):
         create_or_reset_demo_tenant()
         self.assertEqual(Order.objects.filter(tenant=tenant).count(), 2)
 
+    def test_reset_survives_a_paid_demo_order(self):
+        """Real bug, found live: Payment.order is on_delete=PROTECT, so a
+        demo visitor who actually completed a payment (exactly what the
+        onboarding banner tells them to try -- "bill Table 4") left an
+        Order the old reset couldn't delete, breaking every reset after
+        it, including the scheduled one every 4 hours."""
+        from orders.models import Payment
+        tenant = create_or_reset_demo_tenant()
+        outlet = tenant.outlets.first()
+        table = Table.objects.filter(tenant=tenant).first()
+        paid_order = Order.objects.create(
+            tenant=tenant, outlet=outlet, table=table, status="closed", grand_total="450.00",
+        )
+        Payment.objects.create(order=paid_order, method="upi", amount="450.00")
+
+        create_or_reset_demo_tenant()  # must not raise ProtectedError
+        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 2)
+        self.assertEqual(Payment.objects.filter(order__tenant=tenant).count(), 0)
+
     def test_upi_id_is_never_set_for_the_demo_tenant(self):
         """A real UPI QR shown to strangers on the open internet would be a
         real payment address collecting real money for nothing -- must

@@ -17,7 +17,7 @@ from decimal import Decimal
 
 from tenants.models import Tenant, TenantFeatureOverride
 from accounts.models import User
-from orders.models import Table, Order, OrderItem
+from orders.models import Table, Order, OrderItem, Payment
 from menu.models import MenuCategory, MenuItem
 from setup.models import PaymentConfig
 
@@ -141,9 +141,13 @@ def _ensure_menu(tenant, outlet):
 
 
 def _clear_transactional_data(tenant):
-    # Cascades to OrderItem/Payment/OrderEvent through their own FKs --
-    # this is the only part of the demo a visitor can actually leave messy,
-    # so it's the only part that gets wiped on every reset.
+    # Cascades to OrderItem/OrderEvent through their own FKs, but NOT to
+    # Payment -- Payment.order is on_delete=PROTECT (a real production
+    # safeguard against ever losing a financial record via an unrelated
+    # cascade), so any order a demo visitor actually paid raised
+    # ProtectedError here and silently broke every reset after it,
+    # including the scheduled one every 4 hours. Payments must go first.
+    Payment.objects.filter(order__tenant=tenant).delete()
     Order.objects.filter(tenant=tenant).delete()
 
 
