@@ -896,11 +896,16 @@
         }
 
         // ── Install prompt ──────────────────────────────────────────────────────
+        // Suppressed entirely for the shared /live-demo/ account (trailer-mode
+        // visitors AND the founder-key walkthrough) -- "Install Rasova POS"
+        // makes no sense on a demo account nobody actually owns, and it's a
+        // confusing thing to have pop up mid pitch on a real prospect's screen.
+        const IS_DEMO_SESSION = {% if "demo_trailer_mode" in request.session %}true{% else %}false{% endif %};
         let deferredPrompt = null;
         window.addEventListener('beforeinstallprompt', e => {
             e.preventDefault();
             deferredPrompt = e;
-            if (!sessionStorage.getItem('pwa_dismissed')) showInstallBanner();
+            if (!IS_DEMO_SESSION && !sessionStorage.getItem('pwa_dismissed')) showInstallBanner();
         });
 
         function showInstallBanner() {
