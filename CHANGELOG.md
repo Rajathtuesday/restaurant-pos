@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-09-17
+
+### Added
+- **Inventory and 14-day sales history in the live demo** - the demo tenant previously only showed 2 sample in-progress orders, so Reports, Dashboard, and Inventory looked empty to anyone clicking past the order screen. `demo_seed.py` now also seeds 10 realistic ingredients (a few deliberately below their low-stock threshold, so that alert has something real to show) and backdates several paid orders per day across the last two weeks at realistic lunch/dinner hours, so a visitor sees an actual sales trend and payment-method breakdown instead of a flat, empty day. Runs on the same 2-hour reset schedule as everything else, with a fixed random seed so the generated history looks the same shape every time rather than reshuffling for no reason.
+
 ## 2026-09-07
 
 ### Added
