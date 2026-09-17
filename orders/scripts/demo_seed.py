@@ -13,13 +13,18 @@ only) -- only the transactional data (orders/items/payments) actually gets
 wiped and reseeded every run, since that's the only part a demo visitor can
 mess up.
 """
+import random
 from decimal import Decimal
+
+from django.utils import timezone
+from datetime import timedelta
 
 from tenants.models import Tenant, TenantFeatureOverride
 from accounts.models import User
 from orders.models import Table, Order, OrderItem, Payment
 from menu.models import MenuCategory, MenuItem
 from setup.models import PaymentConfig
+from inventory.models import InventoryItem
 
 DEMO_TENANT_NAME = "Demo Bistro"
 DEMO_TENANT_SLUG = "demo-bistro"
@@ -58,6 +63,27 @@ _MENU = {
 }
 
 _TABLE_NAMES = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"]
+
+# (name, category, unit, stock, low_stock_threshold, reorder_quantity, cost_price)
+# A few items are deliberately seeded BELOW their threshold so the low-stock
+# alert on the dashboard has something real to show a visitor, not an
+# always-empty list.
+_INVENTORY = [
+    ("Paneer",                "Dairy",      "kg", Decimal("2.5"), Decimal("5"),  Decimal("10"), Decimal("320")),  # low
+    ("Chicken",                "Meat",       "kg", Decimal("18"),  Decimal("8"),  Decimal("15"), Decimal("220")),
+    ("Basmati Rice",           "Dry Store",  "kg", Decimal("40"),  Decimal("15"), Decimal("25"), Decimal("90")),
+    ("Onions",                 "Veggies",    "kg", Decimal("12"),  Decimal("10"), Decimal("20"), Decimal("35")),
+    ("Tomatoes",               "Veggies",    "kg", Decimal("3"),   Decimal("8"),  Decimal("15"), Decimal("40")),   # low
+    ("Milk",                   "Dairy",      "l",  Decimal("22"),  Decimal("10"), Decimal("20"), Decimal("60")),
+    ("Refined Flour (Maida)",  "Dry Store",  "kg", Decimal("25"),  Decimal("10"), Decimal("20"), Decimal("45")),
+    ("Cooking Oil",            "Dry Store",  "l",  Decimal("15"),  Decimal("8"),  Decimal("15"), Decimal("140")),
+    ("Sugar",                  "Dry Store",  "kg", Decimal("18"),  Decimal("6"),  Decimal("12"), Decimal("48")),
+    ("Garam Masala",           "Spices",     "kg", Decimal("0.6"), Decimal("1"),  Decimal("2"),  Decimal("650")),  # low
+]
+
+_HISTORY_DAYS = 14
+_PEAK_HOURS = [12, 13, 14, 19, 20, 21]
+_PAYMENT_METHODS = ["cash", "upi", "card"]
 
 
 def _ensure_tenant_and_owner():
@@ -140,6 +166,79 @@ def _ensure_menu(tenant, outlet):
     return items_by_name
 
 
+def _ensure_inventory(tenant, outlet):
+    """
+    Force-resets stock levels to the baseline above on every run, same
+    philosophy as orders: whatever a visitor changed (a manual stock edit,
+    a wastage entry) shouldn't linger for the next one.
+    """
+    for name, category, unit, stock, threshold, reorder_qty, cost in _INVENTORY:
+        InventoryItem.objects.update_or_create(
+            tenant=tenant, outlet=outlet, name=name,
+            defaults={
+                "category": category,
+                "unit": unit,
+                "stock": stock,
+                "low_stock_threshold": threshold,
+                "reorder_quantity": reorder_qty,
+                "cost_price": cost,
+            },
+        )
+
+
+def _seed_order_history(tenant, outlet, items_by_name, owner):
+    """
+    Backdated, already-paid orders across the last two weeks, so Reports/
+    Dashboard have a real trend to plot instead of a single flat day.
+
+    daily_sales() derives revenue from Payment.paid_at, not Order.created_at
+    (see reports/services/sales_reports.py), so both get backdated together
+    to the same historical moment after creation -- created_at/paid_at are
+    auto_now_add, which only takes effect at INSERT time, so this has to be
+    a separate .update() call rather than passed into .create().
+
+    A fixed random seed keeps the generated history looking the same shape
+    on every reset, rather than reshuffling into a different-looking demo
+    every 2 hours for no reason.
+    """
+    rng = random.Random(42)
+    all_items = list(items_by_name.values())
+    now = timezone.now()
+
+    for day_offset in range(_HISTORY_DAYS, -1, -1):
+        day = now - timedelta(days=day_offset)
+        for _ in range(rng.randint(4, 9)):
+            order_time = day.replace(
+                hour=rng.choice(_PEAK_HOURS), minute=rng.randint(0, 59),
+                second=0, microsecond=0,
+            )
+            if order_time > now:
+                order_time = now
+
+            order = Order.objects.create(
+                tenant=tenant, outlet=outlet, created_by=owner,
+                status="closed",
+                source=rng.choice(["dine_in", "dine_in", "dine_in", "takeaway"]),
+            )
+
+            for menu_item in rng.sample(all_items, k=rng.randint(2, 4)):
+                qty = rng.randint(1, 3)
+                OrderItem.objects.create(
+                    order=order, menu_item=menu_item, quantity=qty,
+                    price=menu_item.price, gst_percentage=Decimal("5"),
+                    total_price=menu_item.price * qty, status="served",
+                )
+            order.recalculate_totals()
+
+            payment = Payment.objects.create(
+                order=order, method=rng.choice(_PAYMENT_METHODS),
+                amount=order.grand_total, created_by=owner,
+            )
+
+            Order.objects.filter(pk=order.pk).update(created_at=order_time, closed_at=order_time)
+            Payment.objects.filter(pk=payment.pk).update(paid_at=order_time)
+
+
 def _clear_transactional_data(tenant):
     # Cascades to OrderItem/OrderEvent through their own FKs, but NOT to
     # Payment -- Payment.order is on_delete=PROTECT (a real production
@@ -203,8 +302,10 @@ def create_or_reset_demo_tenant():
     _ensure_payment_config(tenant, outlet)
     tables = _ensure_tables(tenant, outlet)
     items_by_name = _ensure_menu(tenant, outlet)
+    _ensure_inventory(tenant, outlet)
 
     _clear_transactional_data(tenant)
     _seed_sample_orders(tenant, outlet, tables, items_by_name, owner)
+    _seed_order_history(tenant, outlet, items_by_name, owner)
 
     return tenant
