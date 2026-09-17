@@ -189,8 +189,8 @@ class ScheduledResetTaskTests(TestCase):
         tenant = create_or_reset_demo_tenant()
         outlet = tenant.outlets.first()
         table = Table.objects.filter(tenant=tenant).first()
-        Order.objects.create(tenant=tenant, outlet=outlet, table=table, status="closed")
-        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 3)
+        visitor_order = Order.objects.create(tenant=tenant, outlet=outlet, table=table, status="closed")
+        self.assertTrue(Order.objects.filter(pk=visitor_order.pk).exists())
 
         reset_demo_tenant_task()
-        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 2)
+        self.assertFalse(Order.objects.filter(pk=visitor_order.pk).exists())

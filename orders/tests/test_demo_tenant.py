@@ -61,8 +61,23 @@ class DemoSeedTests(TestCase):
         self.assertGreater(MenuItem.objects.filter(tenant=tenant).count(), 10)
 
     def test_seeds_sample_orders_so_the_floor_plan_is_not_empty(self):
+        """2 open orders on live tables -- separate from the backdated,
+        already-closed order history seeded for Reports/Dashboard, so this
+        checks status="open" specifically rather than a total count."""
         tenant = create_or_reset_demo_tenant()
-        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 2)
+        self.assertEqual(Order.objects.filter(tenant=tenant, status="open").count(), 2)
+
+    def test_seeds_order_history_for_reports(self):
+        """Backdated, already-paid orders across the last two weeks, so
+        Reports/Dashboard have a real trend instead of one flat day."""
+        from orders.models import Payment
+        tenant = create_or_reset_demo_tenant()
+        closed_orders = Order.objects.filter(tenant=tenant, status="closed")
+        self.assertGreater(closed_orders.count(), 0)
+        self.assertTrue(Payment.objects.filter(order__tenant=tenant).exists())
+        oldest = closed_orders.order_by("created_at").first()
+        from django.utils import timezone
+        self.assertGreater((timezone.now() - oldest.created_at).days, 7)
 
     def test_running_twice_is_idempotent_not_duplicated(self):
         create_or_reset_demo_tenant()
@@ -78,11 +93,11 @@ class DemoSeedTests(TestCase):
         tenant = create_or_reset_demo_tenant()
         outlet = tenant.outlets.first()
         table = Table.objects.filter(tenant=tenant).first()
-        Order.objects.create(tenant=tenant, outlet=outlet, table=table, status="closed")
-        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 3)
+        visitor_order = Order.objects.create(tenant=tenant, outlet=outlet, table=table, status="closed")
+        self.assertTrue(Order.objects.filter(pk=visitor_order.pk).exists())
 
         create_or_reset_demo_tenant()
-        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 2)
+        self.assertFalse(Order.objects.filter(pk=visitor_order.pk).exists())
 
     def test_reset_survives_a_paid_demo_order(self):
         """Real bug, found live: Payment.order is on_delete=PROTECT, so a
@@ -97,11 +112,11 @@ class DemoSeedTests(TestCase):
         paid_order = Order.objects.create(
             tenant=tenant, outlet=outlet, table=table, status="closed", grand_total="450.00",
         )
-        Payment.objects.create(order=paid_order, method="upi", amount="450.00")
+        payment = Payment.objects.create(order=paid_order, method="upi", amount="450.00")
 
         create_or_reset_demo_tenant()  # must not raise ProtectedError
-        self.assertEqual(Order.objects.filter(tenant=tenant).count(), 2)
-        self.assertEqual(Payment.objects.filter(order__tenant=tenant).count(), 0)
+        self.assertFalse(Order.objects.filter(pk=paid_order.pk).exists())
+        self.assertFalse(Payment.objects.filter(pk=payment.pk).exists())
 
     def test_upi_id_is_never_set_for_the_demo_tenant(self):
         """A real UPI QR shown to strangers on the open internet would be a
