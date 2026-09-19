@@ -60,6 +60,11 @@ R2 fixes both **serving** and **durability**.
 ## 3. Database backups
 
 Script: **`scripts/backup/backup_to_r2.py`** — `pg_dump → gzip → private R2 bucket → prune old`.
+Streams the whole way through (`pg_dump` piped into `gzip` piped into R2 via
+`upload_fileobj`, auto-multipart), no full-dump memory buffer and no upload
+size ceiling — earlier versions buffered the entire dump in RAM and uploaded
+via a single non-multipart PUT (R2's hard cap there is 5GiB), fine at today's
+size, a silent failure waiting for the database to eventually grow into it.
 
 ### One-time setup
 1. In Cloudflare R2, create bucket **`rasova-backups`** — leave it **PRIVATE**
@@ -228,6 +233,14 @@ here was a real failure caught and fixed live, not a guess.
    that fails completely silently otherwise (see the drill note above). Check the R2
    bucket's `wal/` prefix directly after a few minutes, or just watch `wal_health.log`
    for the first "OK" line.
+
+   This same health check also warns if total R2 backup storage (`db/` + `wal/` +
+   `base/` combined) crosses `R2_STORAGE_WARN_GB` (default 8, out of R2's 10GB free
+   tier). This is deliberately a warning, not an automatic deletion — the time-based
+   retention above can't catch a genuine write-volume spike ballooning size *within*
+   its own retention window, and pruning WAL more aggressively than the stated policy
+   to compensate could silently strand an older base backup with nothing left to
+   replay onto it. A size problem gets a human decision, not a silent policy change.
 
 > **Setting this up on a brand-new EC2 machine** (a migration, not just a deploy)?
 > Full step-by-step ELI5 with the reasoning behind every single one of these,
