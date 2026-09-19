@@ -149,6 +149,41 @@ change to R2, not just once a night — see the ELI5 walkthrough in
 
 ### One-time server setup
 
+`deploy.sh` now automates steps 0a and 0b below on every deploy (idempotent,
+safe to re-run). Everything from step 1 onward is still manual, on purpose,
+since it requires a Postgres restart. This exact sequence, in this exact
+order, is what actually worked end to end on the real server — every step
+here was a real failure caught and fixed live, not a guess.
+
+0. **Permissions, before touching any config** (`deploy.sh` does this automatically now,
+   included here for a fresh machine that hasn't run it yet, or manual reference):
+   ```bash
+   # a) postgres needs to reach the app dir at all — /home/ubuntu is 750 by
+   #    default, which silently blocks postgres (neither owner nor in the
+   #    ubuntu group) from even traversing into it. Execute-only, not a
+   #    broader chmod — lets postgres reach a path it already knows without
+   #    being able to list anything else in there (.ssh/, shell history, etc).
+   sudo setfacl -m u:postgres:x /home/ubuntu
+
+   # b) postgres also needs to WRITE into logs/ — django.setup() (needed to
+   #    read the R2 credentials from settings) also configures Django's own
+   #    file logging, which opens pos.log/django.log/errors.log/security.log
+   #    immediately, whether or not the script ever logs anything through it.
+   #    -R covers files that already exist; the -d (default ACL) line makes
+   #    it apply automatically to new files too (log rotation creates new
+   #    ones), so this doesn't have to be repeated after every rotation.
+   sudo setfacl -R -m u:postgres:rwx /home/ubuntu/rasova/logs
+   sudo setfacl -R -d -m u:postgres:rwx /home/ubuntu/rasova/logs
+
+   # c) pg_basebackup connects using the app's normal DB role, which has no
+   #    reason to hold replication access for anything else it does. Without
+   #    this, base_backup_to_r2.py fails with "permission denied to start
+   #    WAL sender". Replace rasova_user with the real DB user if different.
+   sudo -u postgres psql -c "ALTER ROLE rasova_user WITH REPLICATION;"
+   ```
+   Full ELI5 on why the ACL approach specifically (not a broader chmod) is in
+   `md_files/ELI5_ACL_PERMISSIONS.html`.
+
 1. Add to `postgresql.conf` (path is usually `/etc/postgresql/<version>/main/postgresql.conf`):
    ```ini
    wal_level = replica
@@ -157,12 +192,20 @@ change to R2, not just once a night — see the ELI5 walkthrough in
    archive_timeout = 300
    ```
    `wal_level = replica` and `archive_mode = on` **require a full Postgres restart**
-   (not just reload) to take effect — plan this for a quiet moment.
+   (not just reload) to take effect — plan this for a quiet moment. `archive_timeout`
+   alone can be applied with just `sudo systemctl reload postgresql` if set later.
 2. Restart Postgres: `sudo systemctl restart postgresql`
-3. Verify it took: `sudo -u postgres psql -c "SHOW wal_level; SHOW archive_mode;"`
-4. Watch it actually archive something: `sudo -u postgres psql -c "SELECT pg_switch_wal();"` forces
-   one segment to close immediately, then check `rasova-backups/wal/` in the R2 dashboard for a new object.
-5. Add the weekly base-backup cron:
+3. Verify it took: `sudo -u postgres psql -c "SHOW wal_level; SHOW archive_mode; SHOW archive_timeout;"`
+4. Watch it actually archive something — **check `pg_stat_archiver`, not the Postgres
+   log**. Postgres only logs archive *failures*, never successes, so log silence after
+   a fix looks identical to "still broken" and cost real time confirming this the hard way:
+   ```bash
+   sudo -u postgres psql -c "SELECT pg_switch_wal();"
+   sudo -u postgres psql -c "SELECT archived_count, last_archived_wal, last_archived_time, failed_count, last_failed_time FROM pg_stat_archiver;"
+   ```
+   `last_archived_time` should be recent and *later* than `last_failed_time`. Also fine
+   to eyeball the R2 dashboard's `rasova-backups/wal/` prefix directly for a new object.
+5. Add the weekly base-backup cron (or just deploy — `deploy.sh` installs this too now):
    ```bash
    crontab -e
    # add:
@@ -170,16 +213,26 @@ change to R2, not just once a night — see the ELI5 walkthrough in
    ```
 6. Run `base_backup_to_r2.py` once manually right now too — WAL archived before
    the first base backup exists is not useful on its own, you need the anchor.
-7. Add the health check to cron too, and actually watch it once before trusting it:
+   If this fails with `permission denied to start WAL sender`, step 0c above
+   wasn't done yet or targeted the wrong role.
+7. Add the health check to cron too (also in `deploy.sh` now), and actually watch it
+   once before trusting it:
    ```bash
    */15 * * * * cd /home/ubuntu/rasova && sudo -u postgres .venv/bin/python scripts/backup/check_wal_archiving_health.py >> /home/ubuntu/rasova/logs/wal_health.log 2>&1
    ```
    Runs as `postgres`, not `ubuntu` — the local pg_wal check reads Postgres's own
    700-owned data directory, which `postgres` naturally has access to and no other
-   account should. Confirm `archive_command` can genuinely run as the `postgres` OS user before
-   walking away — permissions are the one failure mode that fails completely silently
-   otherwise (see the drill note above). Check the R2 bucket's `wal/` prefix directly
-   after a few minutes, or just watch `wal_health.log` for the first "OK" line.
+   account should (don't grant `ubuntu` access into Postgres's internals to "fix" this,
+   that's the wrong direction of privilege). Confirm `archive_command` can genuinely run
+   as the `postgres` OS user before walking away — permissions are the one failure mode
+   that fails completely silently otherwise (see the drill note above). Check the R2
+   bucket's `wal/` prefix directly after a few minutes, or just watch `wal_health.log`
+   for the first "OK" line.
+
+> **Setting this up on a brand-new EC2 machine** (a migration, not just a deploy)?
+> Full step-by-step ELI5 with the reasoning behind every single one of these,
+> written specifically for that scenario, is in
+> `md_files/ELI5_WAL_AND_POINT_IN_TIME_RECOVERY.html` under "Moving to a New Server."
 
 ### Restoring to a point in time (not just "last night")
 
