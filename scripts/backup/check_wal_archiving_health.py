@@ -49,6 +49,10 @@ STALE_AFTER_SECONDS = int(os.getenv("WAL_ARCHIVE_STALE_SECONDS", "1800"))  # 30 
 # (default 50 = ~800MB), that's a backlog worth knowing about on a small box.
 PG_WAL_SEGMENT_WARN_COUNT = int(os.getenv("WAL_LOCAL_SEGMENT_WARN_COUNT", "50"))
 
+# Postgres's data directory. Only needs overriding if it's not the standard
+# Debian/Ubuntu layout (e.g. a different major version, or a non-default install).
+PG_DATA_DIR_DEFAULT = "/var/lib/postgresql/18/main"
+
 
 def _warn(msg):
     print(f"[wal-health] WARNING: {msg}")
@@ -96,10 +100,11 @@ def check_pg_stat_archiver():
 
 def check_local_wal_backlog():
     """Independent of Postgres's own bookkeeping: is pg_wal itself piling up?"""
-    with connection.cursor() as cur:
-        cur.execute("SHOW data_directory")
-        data_dir = cur.fetchone()[0]
-
+    # `SHOW data_directory` would need the app role to hold pg_read_all_settings,
+    # a privilege it has no other reason to carry. The data directory is static
+    # server config, not something that needs a live DB query — read it from an
+    # env var instead (falls back to the standard Debian/Ubuntu layout).
+    data_dir = os.getenv("PG_DATA_DIR", PG_DATA_DIR_DEFAULT)
     pg_wal_dir = os.path.join(data_dir, "pg_wal")
     if not os.path.isdir(pg_wal_dir):
         _warn(f"couldn't find pg_wal at {pg_wal_dir} — check path (this script must run "
