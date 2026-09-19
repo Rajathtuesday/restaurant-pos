@@ -16,6 +16,39 @@ if [ ! -f /swapfile ]; then
     echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 fi
 
+# Ensure the `postgres` OS user can reach the app dir — needed for WAL
+# archive_command to run at all. /home/ubuntu is 750 by default, which
+# silently blocks postgres (it's neither owner nor in the ubuntu group)
+# from even traversing into it; discovered the hard way via a real Docker
+# drill where archiving failed for hours with zero visible error until
+# someone went looking. Execute-only on the home dir (not a broader chmod)
+# so postgres can reach a path it already knows without being able to list
+# anything else in there (.ssh/, shell history, etc). rwx on logs/ because
+# django.setup() (needed to read R2 creds) also opens the app's log files.
+if ! sudo -u postgres test -r "$APP_DIR/.env" 2>/dev/null; then
+    echo "=== Granting postgres ACL access for WAL archiving (one-time) ==="
+    sudo setfacl -m u:postgres:x /home/ubuntu
+    sudo setfacl -R -m u:postgres:rwx $APP_DIR/logs
+    sudo setfacl -R -d -m u:postgres:rwx $APP_DIR/logs
+fi
+
+# Ensure the backup/recovery cron jobs exist — idempotent via the marker
+# comment below, so re-running deploy.sh (or rebuilding the server from
+# scratch) never depends on someone remembering the manual runbook steps
+# in MEDIA_AND_BACKUPS.md. Does NOT touch postgresql.conf/archive_mode —
+# that's a rare, restart-requiring change, deliberately kept a one-time
+# manual step rather than something a routine deploy could ever re-trigger.
+if ! crontab -l 2>/dev/null | grep -q "rasova-backups-managed"; then
+    echo "=== Installing backup cron jobs (one-time) ==="
+    (crontab -l 2>/dev/null; cat <<CRON
+# rasova-backups-managed — deploy.sh checks for this comment, don't remove it
+0 2 * * * cd $APP_DIR && .venv/bin/python scripts/backup/backup_to_r2.py >> $APP_DIR/logs/backup.log 2>&1
+0 3 * * 0 cd $APP_DIR && .venv/bin/python scripts/backup/base_backup_to_r2.py >> $APP_DIR/logs/base_backup.log 2>&1
+*/15 * * * * cd $APP_DIR && .venv/bin/python scripts/backup/check_wal_archiving_health.py >> $APP_DIR/logs/wal_health.log 2>&1
+CRON
+    ) | crontab -
+fi
+
 echo "=== Pulling latest code ==="
 OLD_REV=$(git rev-parse HEAD 2>/dev/null || echo "none")
 git fetch origin qsr
@@ -89,4 +122,11 @@ fi
 sleep 3
 HTTP=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health/)
 echo "=== Deploy complete — HTTP $HTTP ==="
+
+# Informational only — never fails the deploy over this. Surfaces a stalled
+# WAL archiver (the exact failure mode that fills this box's disk silently)
+# right in the deploy log instead of waiting for the next 15-min cron tick.
+.venv/bin/python scripts/backup/check_wal_archiving_health.py || \
+    echo "=== NOTE: WAL archiving health check reported an issue — see above ==="
+
 exit 0
