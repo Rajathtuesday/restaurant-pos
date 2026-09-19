@@ -19,16 +19,19 @@ Two independent signals, on purpose — either one alone can miss things:
      thing that actually threatens the disk.
 
 Run this on a schedule and read its output/exit code, it does not send an
-alert on its own (no email/Slack wired up — that's a separate decision):
+alert on its own (no email/Slack wired up — that's a separate decision).
+Runs as `postgres`, not `ubuntu` — the local pg_wal check reads Postgres's
+own data directory, which is 700-owned by postgres and correctly not
+readable by any other account, `postgres` already has natural access to
+its own files, no extra grant needed:
 
 Cron (every 15 min):
-    */15 * * * * cd /home/ubuntu/rasova && .venv/bin/python scripts/check_wal_archiving_health.py \
+    */15 * * * * cd /home/ubuntu/rasova && sudo -u postgres .venv/bin/python scripts/backup/check_wal_archiving_health.py \
                  >> /home/ubuntu/rasova/logs/wal_health.log 2>&1
 """
 import os
 import sys
 import datetime
-import subprocess
 
 import django
 
@@ -38,7 +41,6 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
 from django.db import connection
-from django.conf import settings
 
 # If archiving hasn't succeeded in longer than this, something's wrong.
 # Should be a few multiples of archive_timeout (300s in postgresql.conf),

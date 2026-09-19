@@ -172,9 +172,11 @@ change to R2, not just once a night — see the ELI5 walkthrough in
    the first base backup exists is not useful on its own, you need the anchor.
 7. Add the health check to cron too, and actually watch it once before trusting it:
    ```bash
-   */15 * * * * cd /home/ubuntu/rasova && .venv/bin/python scripts/backup/check_wal_archiving_health.py >> /home/ubuntu/rasova/logs/wal_health.log 2>&1
+   */15 * * * * cd /home/ubuntu/rasova && sudo -u postgres .venv/bin/python scripts/backup/check_wal_archiving_health.py >> /home/ubuntu/rasova/logs/wal_health.log 2>&1
    ```
-   Confirm `archive_command` can genuinely run as the `postgres` OS user before
+   Runs as `postgres`, not `ubuntu` — the local pg_wal check reads Postgres's own
+   700-owned data directory, which `postgres` naturally has access to and no other
+   account should. Confirm `archive_command` can genuinely run as the `postgres` OS user before
    walking away — permissions are the one failure mode that fails completely silently
    otherwise (see the drill note above). Check the R2 bucket's `wal/` prefix directly
    after a few minutes, or just watch `wal_health.log` for the first "OK" line.

@@ -44,7 +44,7 @@ if ! crontab -l 2>/dev/null | grep -q "rasova-backups-managed"; then
 # rasova-backups-managed — deploy.sh checks for this comment, don't remove it
 0 2 * * * cd $APP_DIR && .venv/bin/python scripts/backup/backup_to_r2.py >> $APP_DIR/logs/backup.log 2>&1
 0 3 * * 0 cd $APP_DIR && .venv/bin/python scripts/backup/base_backup_to_r2.py >> $APP_DIR/logs/base_backup.log 2>&1
-*/15 * * * * cd $APP_DIR && .venv/bin/python scripts/backup/check_wal_archiving_health.py >> $APP_DIR/logs/wal_health.log 2>&1
+*/15 * * * * cd $APP_DIR && sudo -u postgres .venv/bin/python scripts/backup/check_wal_archiving_health.py >> $APP_DIR/logs/wal_health.log 2>&1
 CRON
     ) | crontab -
 fi
@@ -126,7 +126,8 @@ echo "=== Deploy complete — HTTP $HTTP ==="
 # Informational only — never fails the deploy over this. Surfaces a stalled
 # WAL archiver (the exact failure mode that fills this box's disk silently)
 # right in the deploy log instead of waiting for the next 15-min cron tick.
-.venv/bin/python scripts/backup/check_wal_archiving_health.py || \
+# Runs as postgres — it reads Postgres's own 700-owned data directory.
+sudo -u postgres .venv/bin/python scripts/backup/check_wal_archiving_health.py || \
     echo "=== NOTE: WAL archiving health check reported an issue — see above ==="
 
 exit 0
