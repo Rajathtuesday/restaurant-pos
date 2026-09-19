@@ -29,7 +29,6 @@ Restore (see MEDIA_AND_BACKUPS.md):
 """
 import os
 import sys
-import gzip
 import subprocess
 import datetime
 
@@ -61,9 +60,16 @@ def main():
     stamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
     key   = f"db/rasova_{stamp}.sql.gz"
 
-    # 1 ── pg_dump (password via env so it never appears in the process list)
+    # Stream pg_dump -> gzip -> R2, instead of buffering the whole dump in
+    # this process's memory first. On a small box, `capture_output=True` +
+    # `gzip.compress()` + a single put_object() meant: the entire uncompressed
+    # dump had to fit in RAM, AND the final upload was capped at R2's 5GiB
+    # single-PUT limit. Piping through two real OS processes means neither
+    # limit applies — memory usage stays flat regardless of DB size, and
+    # boto3's upload_fileobj automatically switches to multipart for
+    # anything past its threshold, so there's no size ceiling at all here.
     env = dict(os.environ, PGPASSWORD=str(db.get("PASSWORD", "")))
-    cmd = [
+    dump_cmd = [
         "pg_dump",
         "-h", str(db.get("HOST") or "localhost"),
         "-p", str(db.get("PORT") or "5432"),
@@ -71,15 +77,10 @@ def main():
         "--no-owner", "--no-privileges",
         str(db.get("NAME") or ""),
     ]
-    proc = subprocess.run(cmd, env=env, capture_output=True)
-    if proc.returncode != 0:
-        _fail("pg_dump failed: " + proc.stderr.decode("utf-8", "replace")[:500])
+    dump_proc = subprocess.Popen(dump_cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    gzip_proc = subprocess.Popen(["gzip"], stdin=dump_proc.stdout, stdout=subprocess.PIPE)
+    dump_proc.stdout.close()  # let dump_proc receive SIGPIPE if gzip_proc dies first
 
-    blob = gzip.compress(proc.stdout)
-    if len(blob) < 100:
-        _fail("dump suspiciously small — aborting (DB empty or dump failed?).")
-
-    # 2 ── upload to the PRIVATE R2 bucket
     s3 = boto3.client(
         "s3",
         endpoint_url=settings.AWS_S3_ENDPOINT_URL,
@@ -87,9 +88,23 @@ def main():
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
         region_name="auto",
     )
-    s3.put_object(Bucket=BUCKET, Key=key, Body=blob,
-                  ContentType="application/gzip")
-    print(f"[backup] uploaded s3://{BUCKET}/{key}  ({len(blob)//1024} KB)")
+    s3.upload_fileobj(gzip_proc.stdout, BUCKET, key, ExtraArgs={"ContentType": "application/gzip"})
+    gzip_proc.stdout.close()
+
+    gzip_proc.wait()
+    dump_proc.wait()
+    if dump_proc.returncode != 0:
+        s3.delete_object(Bucket=BUCKET, Key=key)
+        _fail("pg_dump failed: " + dump_proc.stderr.read().decode("utf-8", "replace")[:500])
+    if gzip_proc.returncode != 0:
+        s3.delete_object(Bucket=BUCKET, Key=key)
+        _fail(f"gzip exited {gzip_proc.returncode}")
+
+    size = s3.head_object(Bucket=BUCKET, Key=key)["ContentLength"]
+    if size < 100:
+        s3.delete_object(Bucket=BUCKET, Key=key)
+        _fail(f"dump suspiciously small ({size} bytes) — aborting (DB empty or dump failed?).")
+    print(f"[backup] uploaded s3://{BUCKET}/{key}  ({size // 1024} KB)")
 
     # 3 ── prune old backups
     cutoff  = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=RETAIN_DAYS)

@@ -11,12 +11,20 @@ could actually run out of disk and stop accepting writes, not a theoretical
 risk. This script checks Postgres's own bookkeeping (`pg_stat_archiver`) plus
 the actual pg_wal directory, and exits non-zero the moment something looks off.
 
-Two independent signals, on purpose — either one alone can miss things:
+Three independent signals, on purpose — either one alone can miss things:
   1. `pg_stat_archiver`: Postgres's own record of when it last successfully
      archived a segment, and when it last failed. Precise, but only reflects
      what Postgres itself has tried, not what's piling up on disk right now.
   2. Raw pg_wal directory size: a direct, Postgres-independent check on the
      thing that actually threatens the disk.
+  3. Total R2 storage used: the time-based retention in base_backup_to_r2.py
+     (delete anything older than RETAIN_WEEKS) doesn't protect against a
+     genuine write-volume spike ballooning size WITHIN that window. This is
+     deliberately a WARNING, not an auto-delete — pruning WAL more
+     aggressively than the stated retention window to save space could
+     silently strand an older base backup with no WAL left to replay onto
+     it, breaking the exact recovery guarantee this system exists for. A
+     size problem gets a human's attention, not a silent policy change.
 
 Run this on a schedule and read its output/exit code, it does not send an
 alert on its own (no email/Slack wired up — that's a separate decision).
@@ -41,6 +49,8 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "core.settings")
 django.setup()
 
 from django.db import connection
+from django.conf import settings
+import boto3
 
 # If archiving hasn't succeeded in longer than this, something's wrong.
 # Should be a few multiples of archive_timeout (300s in postgresql.conf),
@@ -50,6 +60,12 @@ STALE_AFTER_SECONDS = int(os.getenv("WAL_ARCHIVE_STALE_SECONDS", "1800"))  # 30 
 # pg_wal directory itself — if this many uncollected 16MB segments pile up
 # (default 50 = ~800MB), that's a backlog worth knowing about on a small box.
 PG_WAL_SEGMENT_WARN_COUNT = int(os.getenv("WAL_LOCAL_SEGMENT_WARN_COUNT", "50"))
+
+# Total R2 backup storage (db/ + wal/ + base/ combined) — warn comfortably
+# before the 10GB free tier, so there's time to react before anything
+# actually gets throttled or starts costing money unexpectedly.
+R2_STORAGE_WARN_GB = float(os.getenv("R2_STORAGE_WARN_GB", "8"))
+R2_BUCKET = os.getenv("R2_BACKUP_BUCKET", "rasova-backups")
 
 # Postgres's data directory. Only needs overriding if it's not the standard
 # Debian/Ubuntu layout (e.g. a different major version, or a non-default install).
@@ -126,11 +142,49 @@ def check_local_wal_backlog():
     return True
 
 
+def check_r2_storage_usage():
+    """Total size across the whole bucket — independent of any object's age.
+
+    Catches what the time-based retention in base_backup_to_r2.py structurally
+    cannot: a genuine spike in write volume (a bug, a busy season, real growth)
+    ballooning WAL size within the current retention window itself. Warns only
+    — see the module docstring for why this never auto-deletes anything.
+    """
+    if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
+        _warn("R2 not configured — can't check storage usage.")
+        return False
+
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        region_name="auto",
+    )
+    total_bytes = 0
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=R2_BUCKET):
+        for obj in page.get("Contents", []):
+            total_bytes += obj["Size"]
+
+    total_gb = total_bytes / (1024 ** 3)
+    print(f"[wal-health] total R2 backup storage: {total_gb:.2f} GB (warn at {R2_STORAGE_WARN_GB} GB)")
+
+    if total_gb > R2_STORAGE_WARN_GB:
+        _warn(f"R2 backup storage ({total_gb:.2f} GB) has crossed {R2_STORAGE_WARN_GB} GB. "
+              f"Time-based retention alone doesn't catch a volume spike within the retention "
+              f"window — this needs a human decision (shorten RETAIN_WEEKS, or budget for paid "
+              f"R2 storage beyond the 10GB free tier, ~$0.015/GB/month), not an automatic one.")
+        return False
+    return True
+
+
 def main():
     ok_archiver = check_pg_stat_archiver()
     ok_local    = check_local_wal_backlog()
+    ok_storage  = check_r2_storage_usage()
 
-    if ok_archiver and ok_local:
+    if ok_archiver and ok_local and ok_storage:
         print("[wal-health] OK — archiving is healthy.")
         sys.exit(0)
     else:

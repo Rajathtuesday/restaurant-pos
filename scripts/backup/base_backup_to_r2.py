@@ -76,8 +76,11 @@ def main():
             region_name="auto",
         )
         key = f"base/rasova_base_{stamp}.tar.gz"
-        with open(base_file, "rb") as f:
-            s3.put_object(Bucket=BUCKET, Key=key, Body=f.read(), ContentType="application/gzip")
+        # upload_file (not put_object + f.read()) streams straight from disk and
+        # switches to multipart automatically past its threshold — a base backup
+        # only ever gets bigger as the real DB grows, this shouldn't ever need
+        # revisiting for a size ceiling or a full-file memory buffer either.
+        s3.upload_file(base_file, BUCKET, key, ExtraArgs={"ContentType": "application/gzip"})
         size_mb = os.path.getsize(base_file) / (1024 * 1024)
         print(f"[base-backup] uploaded s3://{BUCKET}/{key}  ({size_mb:.1f} MB)")
 
