@@ -7,6 +7,30 @@ the source of truth.
 
 ---
 
+## 2026-09-20
+
+### Fixed
+- **Guest QR menu: ADD did nothing on some dishes, and extras could never be chosen** - `_build_modifier_data` returned an already-encoded JSON string and the template then ran it through `json_script`, which encodes a second time, so the page's `JSON.parse` produced a string instead of an object. `ITEM_MODIFIERS[itemId]` then read a single character out of that string: any dish whose id was smaller than the string's length threw `groups.forEach is not a function` and nothing was added to the cart, and the extras popup (sizes, toppings, required choices) could never appear for any dish. Present since the popup was added on 2026-06-03, and live in production because `deploy.sh` runs `origin/qsr`. The helper now returns a plain dict and `json_script` does the one and only encoding. Found while filming the guest ordering flow for the product walkthrough.
+
+### Added
+- **Tests for guest orders with extras** - 3 tests in `menu/tests.py` parse the embedded modifier data exactly as the browser does (they fail on the old code), and 4 tests in `orders/tests/test_qr_modifiers.py` cover the server side of a guest order that carries modifier ids, which nothing tested before because a browser could never send one: extras stored with their name and price and priced into the line and order subtotal, the price always taken from the database and never the request, an order with no extras still works, and another restaurant's extras are refused. Verified on SQLite (110 related tests pass) and with a real-browser run of the whole flow: popup opens, a required choice cannot be skipped, the price updates, and the order stores the chosen extras. Not run on Postgres locally, and there is no committed browser-level test.
+
+---
+
+## 2026-09-19
+
+### Added
+- **Point-in-time database recovery (WAL archiving)** - the nightly `pg_dump` alone meant a server failure at 1:59am lost up to 24 hours of orders. Postgres now ships every finished WAL segment to the private R2 bucket (gzip-compressed, under `wal/`) through `scripts/backup/archive_wal_to_r2.py`, and a weekly physical base backup (`scripts/backup/base_backup_to_r2.py`, under `base/`) is the anchor those segments replay onto. `scripts/backup/restore_wal_from_r2.py` fetches segments back during a recovery. WAL older than the oldest kept base backup (`R2_BASE_BACKUP_RETAIN_WEEKS`, default 4) is pruned inside the weekly job, so the trail stays bounded instead of growing forever. Verified with a real Docker drill (throwaway Postgres 16: real base backup, real archiving, real restore to a target time; rows committed before the target survived, rows after it did not), then set up on production (Postgres 18): `pg_stat_archiver` confirmed segments archiving and the first base backup (4.9 MB) landed in R2. There are no unit tests for these scripts, the drill and the live checks are the verification. The one-time server steps that are not in git (four `postgresql.conf` lines and a restart, the `REPLICATION` attribute on the app's DB role) are written up in `MEDIA_AND_BACKUPS.md` section 4b.
+- **WAL archiving health check** - `scripts/backup/check_wal_archiving_health.py`, run every 15 minutes from cron as the `postgres` user. Three independent checks: Postgres's own `pg_stat_archiver` (last success recent, no failure newer than it), the actual `pg_wal` directory (a backlog of unarchived segments is what fills a small disk), and total R2 backup storage against `R2_STORAGE_WARN_GB` (default 8, under R2's 10GB free tier). The storage check only warns. It never deletes anything, because pruning WAL earlier than the stated retention window could silently strand an older base backup with nothing left to replay onto it.
+- **`deploy.sh` now sets up the backup plumbing** - idempotent ACL grants so the `postgres` OS user can reach the app directory and write to `logs/` (without them `archive_command` fails on every segment with no visible error, because `/home/ubuntu` is `750` by default and `django.setup()` opens every log file), the three backup cron jobs installed once via a marker comment, and an informational WAL health check at the end of a deploy. It deliberately does not touch `postgresql.conf` or restart Postgres.
+
+### Changed
+- **All backup and recovery scripts now live in `scripts/backup/`** - the existing `backup_to_r2.py` and `restore_drill.py` moved there alongside the four new ones, and the path setup inside each was adjusted for the extra folder level. The production crontab still pointed at the old `scripts/backup_to_r2.py` path, which would have made the nightly backup fail silently after the move; it was corrected on the server and `deploy.sh` now installs the new path.
+
+### Fixed
+- **Nightly DB backup had a hidden memory and size ceiling** - `backup_to_r2.py` held the entire uncompressed dump in memory (`capture_output=True`) and then uploaded it with a single non-multipart `put_object`, which R2 caps at 5GiB. Fine at today's size, a silent failure once the database grows into it, and the memory limit on a `t3.micro` would have hit well before 5GiB. It now streams `pg_dump` into `gzip` into R2 with `upload_fileobj` (multipart automatically), so memory stays flat and there is no size ceiling. `base_backup_to_r2.py` had the same read-then-`put_object` pattern for its upload and now uses `upload_file`. The streaming path was verified against real R2 inside a Linux container, since a Windows-only subprocess pipe quirk made testing it directly on a Windows machine misleading.
+- **WeasyPrint bumped from 69.0 to 70.0** - fixes Dependabot alert #38, a server-side request forgery in versions before 70.0 (medium severity).
+
 ## 2026-09-17
 
 ### Added
