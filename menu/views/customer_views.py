@@ -1,5 +1,4 @@
 """Customer-facing views: QR menu, digital self-order menu, waiter call."""
-import json
 import logging
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import render, get_object_or_404
@@ -14,7 +13,13 @@ logger = logging.getLogger("pos.menu")
 
 
 def _build_modifier_data(categories):
-    """Return a JSON string: {item_id: [{group}]} for items that have modifier groups."""
+    """Return a plain dict: {item_id: [{group}]} for items that have modifier groups.
+
+    Deliberately NOT a JSON string: the template embeds this with json_script,
+    which does the JSON encoding itself. Returning an already-encoded string
+    made it encode twice, so the page's JSON.parse() got a string instead of
+    an object and ADD threw for any dish whose id was below the string's length.
+    """
     data = {}
     for cat in categories:
         for item in cat.items.all():
@@ -34,7 +39,7 @@ def _build_modifier_data(categories):
                     })
             if groups:
                 data[str(item.id)] = groups
-    return json.dumps(data)
+    return data
 
 
 @ratelimit(key="ip", rate="30/m", method="GET", block=False)

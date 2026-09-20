@@ -4,6 +4,7 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from decimal import Decimal
 import json
+import re
 
 from tenants.models import Tenant, Outlet
 from accounts.models import User
@@ -880,3 +881,68 @@ class ManualMenuParserVegGuessTests(TestCase):
     def test_plain_veg_dishes_default_true(self):
         self.assertTrue(self.svc._guess_veg("Veg Spring Rolls"))
         self.assertTrue(self.svc._guess_veg("Dal Tadka"))
+
+
+class QRMenuModifierDataTest(TestCase):
+    """
+    Regression: the guest QR menu handed the browser its modifier data
+    double-encoded. _build_modifier_data() returned an already-JSON string and
+    the template then ran it through json_script, which encodes a second time,
+    so the page's JSON.parse(...) produced a *string*, not an object.
+    ITEM_MODIFIERS[itemId] then read a single character out of that string:
+    any dish whose id was smaller than the string's length threw
+    "groups.forEach is not a function" on ADD (nothing was added), and
+    modifier choices could never appear for any dish. Present since the
+    modifier modal was added (2026-06-03); no test parsed the embedded data.
+    """
+
+    SCRIPT = re.compile(
+        r'<script id="item-modifiers-raw" type="application/json">(.*?)</script>', re.S
+    )
+
+    def setUp(self):
+        from orders.models import Table
+
+        self.tenant = Tenant.objects.create(name="Modifier QR Tenant", tenant_type="fine_dining")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main Outlet")
+        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
+        self.category = MenuCategory.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Mains"
+        )
+        self.item = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=self.category,
+            name="Pizza", price=Decimal("250.00"),
+        )
+        self.group = ModifierGroup.objects.create(
+            tenant=self.tenant, outlet=self.outlet, name="Size", is_required=True,
+        )
+        Modifier.objects.create(group=self.group, name="Large", price=Decimal("50.00"))
+
+    def _embedded(self, resp):
+        match = self.SCRIPT.search(resp.content.decode())
+        self.assertIsNotNone(match, "item-modifiers-raw script tag missing from the page")
+        return json.loads(match.group(1))     # exactly what the browser's JSON.parse does
+
+    def test_modifier_data_reaches_the_browser_as_an_object(self):
+        MenuItemModifierGroup.objects.create(menu_item=self.item, modifier_group=self.group)
+        resp = self.client.get(reverse("menu_view", args=[self.table.qr_token]))
+        self.assertEqual(resp.status_code, 200)
+
+        data = self._embedded(resp)
+        self.assertIsInstance(data, dict)      # was a str: the double-encoding bug
+        groups = data[str(self.item.id)]
+        self.assertIsInstance(groups, list)
+        self.assertEqual(groups[0]["name"], "Size")
+        self.assertTrue(groups[0]["is_required"])
+        self.assertEqual(groups[0]["modifiers"][0]["name"], "Large")
+
+    def test_menu_without_modifiers_embeds_an_empty_object(self):
+        resp = self.client.get(reverse("menu_view", args=[self.table.qr_token]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self._embedded(resp), {})
+
+    def test_digital_menu_route_embeds_an_object_too(self):
+        MenuItemModifierGroup.objects.create(menu_item=self.item, modifier_group=self.group)
+        resp = self.client.get(reverse("digital_menu"), {"table_token": str(self.table.qr_token)})
+        self.assertEqual(resp.status_code, 200)
+        self.assertIsInstance(self._embedded(resp), dict)
