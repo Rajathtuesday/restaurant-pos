@@ -3,7 +3,7 @@
 > Cloud-based POS and restaurant management system for Indian restaurants.  
 > Django 6.0 · PostgreSQL · Celery + Redis · Multi-tenant SaaS · ESC/POS thermal printing.
 
-See [`CHANGELOG.md`](CHANGokELOG.md) for what's changed recently.
+See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
 
 ---
 
@@ -117,8 +117,8 @@ Each type gets its own default feature set. Owners and superusers can override i
 
 | Layer | Technology |
 |---|---|
-| Backend | Django 6.0.3 |
-| Database | PostgreSQL 16 |
+| Backend | Django 6.0 |
+| Database | PostgreSQL (16 in CI, 18 in production) |
 | Task queue | Celery 5.6 + Redis 7 |
 | Web server | Nginx + Gunicorn |
 | Auth protection | django-axes (brute-force lockout) |
@@ -126,6 +126,11 @@ Each type gets its own default feature set. Owners and superusers can override i
 | Error tracking | Sentry |
 | Printing | python-escpos (ESC/POS thermal) + browser `window.print()` |
 | Deployment | GitHub Actions CI/CD |
+| Media and backups | Cloudflare R2 (S3-compatible) through django-storages and boto3 |
+| PDF invoices | WeasyPrint |
+| AI menu import | Google Gemini (google-genai) |
+| WhatsApp | Twilio or Meta Cloud API (bill receipts, subscription invoices) |
+| Payments | Razorpay (dynamic UPI QR, subscription payment links) |
 
 ---
 
@@ -136,23 +141,34 @@ f:\pos\
 ├── accounts/           User auth, roles, login, dashboard, superuser panel
 │   └── views/          auth_views, dashboard_views, feature_views, superuser_views
 ├── agency/             Multi-client agency management
+├── billing/            Rasova's own subscription billing: invoices, Razorpay payment links, WhatsApp and email delivery
 ├── core/               Settings, middleware, decorators, Celery app, features
 ├── crm/                Guest profiles, loyalty, reservations
+├── finance/            Expense tracking
 ├── inventory/          Stock, recipes, deduction, purchase orders
+├── kitchen/            Kitchen display, KOT batches, kitchen-to-waiter messages
 ├── menu/               Categories, items, modifiers, GST, QR digital menu
 │   └── views/          customer, management, item, category, modifier, gst, ai
 ├── notifications/      In-app notification system
 ├── orders/             Core POS - orders, KOT, billing, payments, history
 │   ├── management/     Management commands (preview_print, seed, audit, stress test)
-│   ├── services/       14 service modules (payment, KOT, printing, void, refund…)
+│   ├── services/       9 service modules (order, payment, split, tax, void, inventory, printing, events, locking)
 │   ├── tasks.py        Celery tasks - print_kot_task, print_bill_task
-│   ├── tests/          246 tests across financial, security, API, concurrency
+│   ├── tests/          414 tests across financial, security, API, concurrency
 │   └── views/          billing_core, payment, discount, print, kitchen, table, history
+├── payments/           Razorpay QR codes and refunds
+├── portal/             Internal operations panel (superuser only)
+├── printing/           Print jobs
+├── promos/             Promotions
 ├── reports/            8 report services + dashboard metrics
 ├── setup/              Kitchen stations, payment config, onboarding wizard
 │   └── views/          core, promo, onboarding, aggregator
 ├── shifts/             Cash sessions, shift management, reconciliation
+├── tablemerge/         Table merge and unmerge
 ├── tenants/            Tenant and outlet models (includes SAC code field)
+├── tokens/             QSR daily token counters and token orders
+├── waiter/             Waiter calls
+├── scripts/backup/     Nightly dump, WAL archiving, restore drill, health check
 └── templates/
     └── core/base.html  Master layout - notification poller, dark mode, theme
 ```
@@ -259,7 +275,9 @@ RASOVA_OUTLET_ID=1    # only process jobs for this outlet
 SENTRY_DSN=https://your-key@sentry.io/project-id
 
 # AI menu import
-GEMINI_API_KEY=your-gemini-api-key
+GOOGLE_API_KEY=your-gemini-api-key
+# GOOGLE_API_KEY_FALLBACK=second-key-used-if-the-first-hits-its-quota
+# GEMINI_MODEL_NAME=gemini-flash-latest
 
 # WhatsApp bills (optional)
 # META_WHATSAPP_TOKEN=your-token
@@ -270,7 +288,59 @@ GEMINI_API_KEY=your-gemini-api-key
 # key can never match, so every visitor gets the restricted demo by
 # default -- fail closed, not fail open.
 DEMO_FOUNDER_KEY=some-long-random-string
+
+# Encrypted model fields (required) -- a Fernet key
+FIELD_ENCRYPTION_KEY=your-fernet-key
+
+# Media storage on Cloudflare R2 (S3-compatible). Leave AWS_STORAGE_BUCKET_NAME
+# empty and media is saved on local disk instead.
+AWS_STORAGE_BUCKET_NAME=your-public-media-bucket
+AWS_ACCESS_KEY_ID=your-r2-access-key
+AWS_SECRET_ACCESS_KEY=your-r2-secret
+AWS_S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
+AWS_S3_CUSTOM_DOMAIN=media.yourdomain.com
+
+# Database backups -- a separate PRIVATE bucket (see MEDIA_AND_BACKUPS.md)
+R2_BACKUP_BUCKET=rasova-backups
+R2_BACKUP_RETAIN_DAYS=30          # nightly dumps are kept this long
+R2_BASE_BACKUP_RETAIN_WEEKS=4     # weekly base backups, and the WAL after them, are kept this long
+R2_STORAGE_WARN_GB=8              # the health check warns above this total (the R2 free tier is 10)
+
+# Subscription billing (Rasova's own Razorpay account, not a restaurant's)
+RASOVA_RAZORPAY_KEY_ID=
+RASOVA_RAZORPAY_KEY_SECRET=
+RASOVA_RAZORPAY_WEBHOOK_SECRET=
+
+# WhatsApp through Twilio (the alternative to the Meta variables above)
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+
+# Email sending (invoices, digests)
+EMAIL_USER=
+EMAIL_PASSWORD=
+
+# Production hardening, all optional and safe by default
+# ADMIN_URL=admin/
+# SECURE_SSL_REDIRECT=False
+# CSRF_TRUSTED_ORIGINS=https://*.yourdomain.com,https://yourdomain.com
+# SESSION_COOKIE_DOMAIN=.yourdomain.com
+# AXES_FAILURE_LIMIT=5
+# DB_CONN_MAX_AGE=60
 ```
+
+---
+
+## Backups and Media Storage
+
+Media (logos, menu images) and database backups both live on Cloudflare R2, in two separate buckets: one public for media, one private for backups.
+
+- **Nightly dump** - `scripts/backup/backup_to_r2.py` streams a gzip-compressed `pg_dump` straight to the private bucket, with flat memory use and no size ceiling. 30 days are kept by default.
+- **Point-in-time recovery** - Postgres ships every finished WAL segment to R2 (`archive_wal_to_r2.py`), and a weekly physical base backup (`base_backup_to_r2.py`) is the anchor those segments replay onto. A server failure no longer loses up to a day of orders.
+- **Health check** - `check_wal_archiving_health.py` runs every 15 minutes: the archiver's own status, any backlog of unarchived WAL on disk, and total R2 usage against the free tier.
+- **Restore** - `restore_wal_from_r2.py` fetches segments during a recovery, and `restore_drill.py` rehearses a restore into a throwaway database. Practise it before you need it.
+
+Bucket setup, the one-time server steps, the restore procedure and troubleshooting are in [`MEDIA_AND_BACKUPS.md`](MEDIA_AND_BACKUPS.md).
 
 ---
 
@@ -326,7 +396,7 @@ Full guide to what each load-test phase checks and how to read its output: [`LOA
 
 ## Tests
 
-**797+ tests across the codebase. All passing.**
+**1,360 tests across the codebase. All passing.**
 
 ```bash
 python manage.py test --keepdb                           # all tests
@@ -358,7 +428,7 @@ All payment operations use `select_for_update()` to prevent race conditions. `De
 Each local Celery worker reads `RASOVA_TENANT_ID` and `RASOVA_OUTLET_ID` from environment. Tasks for other restaurants are silently skipped. Task idempotency keys in Redis prevent double-printing on retry. Tasks expire after 30 minutes - old print jobs are never processed.
 
 ### Service Layer
-Business logic lives in `orders/services/` - 14 service modules, none of which know about HTTP. Views are thin: validate input → call service → return response.
+Business logic lives in `orders/services/` - 9 service modules, none of which know about HTTP. Views are thin: validate input → call service → return response.
 
 ---
 
@@ -391,7 +461,7 @@ Business logic lives in `orders/services/` - 14 service modules, none of which k
 - [x] Order history with audit trail and CSV export
 - [x] SAC code (GST compliance) on all bills
 - [x] AI menu import (Gemini)
-- [x] 797+ passing tests (financial, security, concurrency, business-date accuracy)
+- [x] 1,360 passing tests (financial, security, concurrency, business-date accuracy)
 - [x] GitHub Actions CI/CD
 - [x] Razorpay UPI QR - dynamic QR on the bill screen, auto-confirms via webhook, configured per outlet in Payment Methods setup
 - [x] Offline write queue - orders placed during connectivity loss sync when back online (IndexedDB, `offlineQueue` in `templates/core/base.html`); extended to cash payment closure too (`offlinePaymentQueue`) - a bill can now be closed and paid in cash with no connection, and syncs once back online. UPI/card intentionally excluded - both require a live gateway round-trip to actually verify payment, which no client-side queue can fake without accepting an unconfirmed claim as real.
@@ -403,11 +473,14 @@ Business logic lives in `orders/services/` - 14 service modules, none of which k
 - [x] GSTR-1 export - accountant-ready Excel report, B2CS sales plus the mandatory Table 12 HSN/SAC summary every GST filer needs regardless of turnover
 - [x] Split-bill QR fix - the UPI and Razorpay QR codes on the bill screen used to always quote the order's full remaining balance even after a bill was split into per-person shares; both now quote the actual amount being collected, and the fix carries through to the printed receipt
 - [x] Order status for QR-ordering guests - a floating status button + slide-up sheet with a live Received → Preparing → Ready → Served timeline, replacing a banner that used to sit under the header and push the whole menu down
+- [x] Subscription billing - monthly invoices for restaurants with Razorpay payment links, delivered by WhatsApp and email
+- [x] WhatsApp bill delivery - customer receipts and subscription invoices through Twilio or the Meta Cloud API
+- [x] Self-serve live demo - `/live-demo/` signs a visitor into a seeded demo restaurant that resets every 2 hours
+- [x] Point-in-time database recovery - WAL archiving plus weekly base backups to R2, with a 15-minute health check
 
 **Next:**
 - [ ] Celery task monitoring - see pending and failed print jobs in UI
-- [ ] Subscription billing - auto-charge restaurants monthly fee
-- [ ] WhatsApp bill delivery
+- [ ] Automatic recurring charge for the subscription fee (UPI Autopay) - today each invoice goes out with a payment link and the restaurant pays it
 - [ ] External security audit
 - [ ] Full local-first offline deployment (running detached from the cloud for extended outages, not just brief drops) - a substantially larger undertaking than the write queue above, only worth it for restaurants with sustained multi-hour/day outages rather than occasional drops
 
