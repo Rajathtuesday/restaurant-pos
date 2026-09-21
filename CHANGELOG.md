@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-09-21
+
+### Changed
+- **Dependency updates, batch 1 (patch and minor releases inside the same major version)** - cryptography 50.0.0 to 50.0.1, django-storages 1.14.2 to 1.14.6, psutil 7.1.0 to 7.2.2, psycopg2-binary 2.9.11 to 2.9.13, pypdf 6.17.0 to 6.19.0, rapidfuzz 3.14.1 to 3.14.6, requests 2.33.0 to 2.34.2, qrcode 8.0 to 8.2. `pip-audit` reports no known vulnerabilities for the pinned versions. Verified with the full suite (1,360 tests) on Postgres 18, the production version, using a separate virtual environment so the working environment was never touched.
+- **Removed `django-redis` from `requirements.txt`** - nothing imports it: `core/settings.py` uses Django's built-in `django.core.cache.backends.redis.RedisCache`, which needs only the `redis` package. `qrcode` stays even though the app never imports it, because `python-escpos` depends on it. Removing a line from the file does not uninstall the package from an environment that already has it.
+
+---
+
 ## 2026-09-20
 
 ### Fixed
