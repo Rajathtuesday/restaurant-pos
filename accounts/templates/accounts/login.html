@@ -144,8 +144,20 @@
       justify-content: center;
       align-items: center;
       padding: 3rem 2rem;
-      background: var(--panel);
+      background: var(--bg);
       position: relative;
+      overflow: hidden;
+    }
+    /* Same faint hairline grid as the left panel, so the two halves read as
+       one considered composition instead of "decorated half + blank half". */
+    .right-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(197,160,89,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(197,160,89,0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
     }
 
     .theme-btn {
@@ -158,7 +170,27 @@
     }
     .theme-btn:hover { border-color: var(--gold); color: var(--gold); }
 
-    .form-wrap { width: 100%; max-width: 380px; }
+    .form-wrap { width: 100%; max-width: 400px; position: relative; }
+
+    /* The form used to float directly on the panel background with nothing
+       framing it, which read as empty on a wide screen. A bordered card with
+       its own surface colour gives it the presence the left panel already has. */
+    .auth-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--gold);
+      padding: 2.75rem 2.5rem;
+      box-shadow: 0 30px 70px -22px rgba(0,0,0,0.12);
+      animation: cardIn 0.5s ease both;
+    }
+    html.dark .auth-card { box-shadow: none; }
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .auth-card { animation: none; }
+    }
 
     /* Tenant branding (subdomain login) */
     .tenant-brand {
@@ -260,7 +292,7 @@
     }
 
     .footer-note {
-      margin-top: 2rem; text-align: center;
+      margin-top: 1.75rem; text-align: center;
       font-size: 0.65rem; color: var(--muted);
       text-transform: uppercase; letter-spacing: 1px;
     }
@@ -321,11 +353,12 @@
 
   <!-- ── Right: form ────────────────────────────── -->
   <div class="right-panel">
-    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+    <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
       <i class="bi bi-moon" id="themeIcon"></i>
     </button>
 
     <div class="form-wrap">
+    <div class="auth-card">
 
       {% if tenant %}
       <!-- Subdomain login — show restaurant branding -->
@@ -387,6 +420,8 @@
           Sign In &nbsp;→
         </button>
       </form>
+
+    </div>
 
       {% if tenant %}
       <div class="footer-note">
