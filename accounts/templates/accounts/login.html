@@ -43,9 +43,12 @@
     }
 
     body {
-      min-height: 100vh;
+      min-height: 100vh;   /* fallback for browsers without dvh */
+      height: 100vh;
+      height: 100dvh;      /* the real visible screen height, adjusts itself automatically */
       display: grid;
       grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr;   /* an explicit row that fills the body, instead of relying on an implicit row to stretch itself */
     }
     @media (max-width: 768px) {
       body { grid-template-columns: 1fr; }
