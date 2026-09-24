@@ -196,6 +196,8 @@ def running_order_data(request, order_id):
             "name": i.menu_item.name,
             "quantity": i.quantity,
             "status": i.status,
+            "in_kitchen": i.status not in ("pending", "review"),
+            "void_reason": i.void_reason or "",
             "modifiers": [m.name for m in i.modifiers.all()]
         })
 

@@ -184,7 +184,9 @@ def _build_message(order, bill_url: str) -> str:
     ]
 
     try:
-        for item in order.items.select_related("menu_item").all():
+        # Same rule as every printed/on-screen bill: cancelled lines are not
+        # part of what the guest paid for, so they stay off the receipt.
+        for item in order.items.exclude(status="voided").select_related("menu_item"):
             lines.append(f"  {item.quantity}x {item.menu_item.name}  ₹{item.total_price:.0f}")
     except Exception as e:
         # Still send the receipt without an itemized list rather than block

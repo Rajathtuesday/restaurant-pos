@@ -1,7 +1,8 @@
 # orders/urls.py
 from django.urls import path
 
-from .views.order_actions import cancel_order, cancel_item, toggle_parcel
+from .views.order_actions import cancel_order, cancel_item, reduce_item, toggle_parcel
+from .views.live_orders import live_orders_view, live_orders_data
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.public_views import public_bill, submit_feedback
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
@@ -79,6 +80,9 @@ urlpatterns = [
 
     path("cancel-order/<int:order_id>/", cancel_order, name="cancel-order"),
     path("cancel-item/<int:item_id>/", cancel_item, name="cancel-item"),
+    path("reduce-item/<int:item_id>/", reduce_item, name="reduce-item"),
+    path("live-orders/", live_orders_view, name="live-orders"),
+    path("live-orders/data/", live_orders_data, name="live-orders-data"),
     path("toggle-parcel/<int:order_id>/", toggle_parcel, name="toggle-parcel"),
 
     path("running-order-items/", running_order_items ,name="running-order-items"),

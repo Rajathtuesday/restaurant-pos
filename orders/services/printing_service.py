@@ -186,7 +186,8 @@ class PrintingService:
 
         p.text(self._sep() + "\n")
 
-        items = list(kot_batch.items.select_related("menu_item").all())
+        # A reprint must not bring back dishes cancelled after the ticket went out.
+        items = list(kot_batch.items.exclude(status="voided").select_related("menu_item"))
         kot_total = sum(item.total_price for item in items)
 
         for item in items:

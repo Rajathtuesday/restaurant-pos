@@ -72,6 +72,134 @@ def void_order_item(user, item_id, reason):
     return item
 
 
+_NOT_YET_IN_KITCHEN = ("pending", "review")
+_TWO_PLACES = Decimal("0.01")
+
+
+def _whole_units(value):
+    # Accepts 2, 2.0 and "2"; refuses 1.5, "1.5", True and junk instead of
+    # quietly rounding them to some other number of dishes.
+    if isinstance(value, bool):
+        raise OrderError("Quantity to remove must be a whole number.")
+    if isinstance(value, float):
+        if not value.is_integer():
+            raise OrderError("Quantity to remove must be a whole number.")
+        value = int(value)
+    try:
+        units = int(str(value).strip())
+    except (TypeError, ValueError):
+        raise OrderError("Quantity to remove must be a whole number.")
+    if units < 1:
+        raise OrderError("Quantity to remove must be at least 1.")
+    return units
+
+
+@transaction.atomic
+def reduce_item_quantity(user, item_id, reduce_by, reason):
+    """
+    Take `reduce_by` units off one order line ("make that one naan, not two").
+
+    Before the line has gone to the kitchen it's just a basket edit: the
+    quantity drops in place, no void record, no stock movement.
+
+    Once it has gone to the kitchen, the removed units are split off into
+    their own voided line (same dish, price, GST, discount, modifiers, KOT)
+    and the original line keeps the rest. That way the void report shows
+    exactly what was taken back and why, every sales report (which already
+    skips voided lines) stays right, and _restore_inventory_for_void returns
+    stock for exactly the removed units, because it works from the line's
+    own quantity. No schema change needed.
+
+    Removing the whole quantity is the same as voiding the line.
+    """
+    reduce_by = _whole_units(reduce_by)
+
+    item = (
+        OrderItem.objects
+        .select_for_update()
+        .select_related("order", "menu_item")
+        .get(
+            id=item_id,
+            order__tenant=user.tenant,
+            order__outlet=user.outlet,
+        )
+    )
+
+    if item.order.status in ("paid", "closed", "cancelled"):
+        raise OrderError("Cannot change an item on a completed order.")
+    if item.status == "voided":
+        raise OrderError("Item is already voided")
+    if item.status == "served" and user.role not in ["manager", "owner"]:
+        raise OrderError("Item is already served. Manager override required.")
+    if reduce_by > item.quantity:
+        raise OrderError(f"Only {item.quantity} left on this line.")
+
+    if reduce_by == item.quantity:
+        return void_order_item(user, item.id, reason)
+
+    # total_price is (price + modifier prices) x quantity, so it divides evenly.
+    unit_total = item.total_price / Decimal(item.quantity)
+    removed_total = (unit_total * reduce_by).quantize(_TWO_PLACES)
+    name = item.menu_item.name if item.menu_item else "Unknown"
+    before = item.quantity
+
+    if item.status in _NOT_YET_IN_KITCHEN:
+        item.quantity -= reduce_by
+        item.total_price -= removed_total
+        item.save(update_fields=["quantity", "total_price"])
+        order = Order.objects.select_for_update().get(id=item.order_id)
+        order.recalculate_totals()
+        log_event(order, "item_updated", user, {
+            "action": "quantity_reduced", "item": name,
+            "from": before, "to": item.quantity, "reason": reason,
+        })
+        return item
+
+    from orders.models import OrderItemModifier
+
+    voided = OrderItem.objects.create(
+        order_id=item.order_id,
+        menu_item=item.menu_item,
+        quantity=reduce_by,
+        price=item.price,
+        item_discount_pct=item.item_discount_pct,
+        gst_percentage=item.gst_percentage,
+        total_price=removed_total,
+        status="voided",
+        is_takeaway=item.is_takeaway,
+        is_complimentary=item.is_complimentary,
+        notes=item.notes,
+        void_reason=reason,
+        voided_by=user,
+        voided_at=timezone.now(),
+        kot_id=item.kot_id,
+    )
+    OrderItemModifier.objects.bulk_create([
+        OrderItemModifier(order_item=voided, modifier_id=m.modifier_id, name=m.name, price=m.price)
+        for m in item.modifiers.all()
+    ])
+
+    item.quantity -= reduce_by
+    # Subtract rather than recompute, so the two lines always add back up to
+    # exactly what the original line was.
+    item.total_price -= removed_total
+    item.save(update_fields=["quantity", "total_price"])
+
+    _restore_inventory_for_void(voided)
+
+    order = Order.objects.select_for_update().get(id=item.order_id)
+    order.recalculate_totals()
+    update_table_state(order)
+
+    # "item_voided" on purpose: the Discount & Void audit counts this event
+    # type, so a partial reduction shows up there alongside full voids.
+    log_event(order, "item_voided", user, {
+        "item": name, "reason": reason, "quantity": reduce_by,
+        "partial": True, "from": before, "to": item.quantity,
+    })
+    return item
+
+
 def _restore_inventory_for_void(item):
     """
     Reverse the inventory deduction made when the KOT was sent.

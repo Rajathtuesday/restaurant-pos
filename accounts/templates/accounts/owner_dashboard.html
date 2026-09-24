@@ -301,6 +301,18 @@
     {% endif %}
     {% endif %}
 
+    {% if 'running_order' in tenant_features or 'token_system' in tenant_features %}
+    {% if request.user.role != 'chef' and request.user.role != 'kitchen' %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <a href="{% url 'live-orders' %}" class="quick-card">
+            <div class="icon"><i class="bi bi-card-checklist"></i></div>
+            <h5>Live Orders</h5>
+            <p>Every open order</p>
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+
     {% if 'kitchen_display' in tenant_features %}
     <div class="col-6 col-md-3 col-lg-2">
         <a href="/kitchen/" class="quick-card">

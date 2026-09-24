@@ -55,7 +55,9 @@ er_diagrams_pos/
 pem/
 
 md_files/
-js/
+# Root-level personal pages only. Unanchored "js/" also matched static/js/,
+# so new app scripts there were silently never committed.
+/js/
 
 # Load-test run logs (generated, not source)
 loadtest_logs/

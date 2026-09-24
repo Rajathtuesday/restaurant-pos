@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -115,6 +115,19 @@
 
         .btn-theme { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; transition: color 0.3s ease; }
         .btn-theme:hover { color: var(--text-main); }
+
+        .btn-step {
+            width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+            border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
+            border-radius: 4px; cursor: pointer; font-size: 1.05rem; transition: var(--transition-smooth);
+        }
+        .btn-step:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+        .btn-step:focus-visible, .btn-luxury:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+        .item-card.is-voided { opacity: 0.55; box-shadow: none; }
+        .item-card.is-voided:hover { transform: none; border-color: var(--border-color); }
+        .item-card.is-voided .item-name { text-decoration: line-through; }
+        .void-reason { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+        .badge-voided { background: rgba(239, 68, 68, 0.08); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.5); }
     </style>
 </head>
 <body>
@@ -149,6 +162,8 @@
     </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.all.min.js"></script>
+<script src="{% static 'js/order_edit.js' %}"></script>
 <script>
     /* THEME MANAGEMENT */
     let isDark = localStorage.getItem("dark") === "true";
@@ -161,53 +176,53 @@
     function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
 
     /* CORE API FUNCTIONS */
+    OrderEdit.configure({
+        reduce: "{% url 'reduce-item' 0 %}",
+        cancel: "{% url 'cancel-item' 0 %}",
+    });
+    const USER_ROLE = "{{ request.user.role|escapejs }}";
+    const CAN_EDIT = ["owner", "manager", "cashier", "captain"].includes(USER_ROLE);
+    const IS_MANAGER = USER_ROLE === "owner" || USER_ROLE === "manager";
+    let itemsById = {};
+    let busy = false;
+
     function cancelOrder(id){
-        if(!confirm("Are you sure you want to cancel this entire order? This cannot be undone.")) return;
-        fetch("{% url 'cancel-order' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") } })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                alert("Order cancelled successfully.");
-                window.location.href = "{% url 'table-dashboard' %}";
-            } else {
-                alert(data.error || "Failed to cancel order.");
-            }
+        Swal.fire({
+            title: "Cancel this whole order?",
+            text: "Every dish not yet served is cancelled and the table is freed. This cannot be undone.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonText: "Cancel order",
+            cancelButtonText: "Keep it",
+            reverseButtons: true,
+            confirmButtonColor: "#ef4444",
+        }).then(r => {
+            if (!r.isConfirmed) return;
+            OrderEdit.post("{% url 'cancel-order' 0 %}".replace('/0/', '/' + id + '/'), {})
+                .then(() => { window.location.href = "{% url 'table-dashboard' %}"; })
+                .catch(err => OrderEdit.toast(err.message, "error"));
         });
     }
 
-    function cancelItem(id){
-        if(!confirm("Cancel this item?")) return;
-        fetch("{% url 'cancel-item' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") } })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) refreshRunningOrder();
-            else alert(data.error || "Failed to cancel item.");
-        });
+    function editItem(kind, id){
+        const item = itemsById[id];
+        if (!item || busy) return;
+        busy = true;
+        const action = kind === "reduce" ? OrderEdit.reduce(item) : OrderEdit.remove(item);
+        action.then(() => { busy = false; refreshRunningOrder(); }, () => { busy = false; });
     }
 
-    function serveItem(id){
-        fetch("{% url 'serve-item' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") } })
-        .then(res => res.json().catch(() => ({}))
-            .then(data => {
-                if (res.ok && data.success !== false) refreshRunningOrder();
-                else alert(data.error || `Failed to serve item (HTTP ${res.status}).`);
-            })
-        )
-        .catch(() => alert("Network error — couldn't reach the server to serve this item."));
+    function simpleAction(url, id, failText){
+        OrderEdit.post(url.replace('/0/', '/' + id + '/'), {})
+            .then(() => refreshRunningOrder())
+            .catch(err => OrderEdit.toast(err.message || failText, "error"));
     }
 
-    function makeComplimentary(id){
-        fetch("{% url 'make-complimentary' 0 %}".replace('0', id), { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") } })
-        .then(res => res.json().catch(() => ({}))
-            .then(data => {
-                if (res.ok && data.success !== false) refreshRunningOrder();
-                else alert(data.error || `Failed to mark complimentary (HTTP ${res.status}).`);
-            })
-        )
-        .catch(() => alert("Network error — couldn't reach the server."));
-    }
+    function serveItem(id){ simpleAction("{% url 'serve-item' 0 %}", id, "Couldn't serve this item."); }
+    function makeComplimentary(id){ simpleAction("{% url 'make-complimentary' 0 %}", id, "Couldn't mark this complimentary."); }
 
     function refreshRunningOrder(){
+        if (busy || OrderEdit.sheetOpen()) return;
         fetch("{% url 'running-order-data' order.id %}")
         .then(res => res.json())
         .then(data => {
@@ -224,37 +239,48 @@
                 return;
             }
 
-            data.items.forEach(i => {
+            const esc = OrderEdit.esc;
+            itemsById = {};
+            // Active dishes first, cancelled ones underneath as a record.
+            const sorted = data.items.slice().sort((a, b) => (a.status === "voided") - (b.status === "voided"));
+            sorted.forEach(i => {
+                itemsById[i.id] = i;
+                const voided = i.status === "voided";
                 let badgeClass = "badge-pending";
                 if(i.status === "sent") badgeClass = "badge-ordering";
                 if(i.status === "preparing") badgeClass = "badge-preparing";
                 if(i.status === "ready") badgeClass = "badge-ready";
                 if(i.status === "served") badgeClass = "badge-served";
+                if(voided) badgeClass = "badge-voided";
 
                 let actions = "";
-                if(i.status === "ready") {
-                    actions += `<button class="btn-luxury btn-gold me-2" onclick="serveItem(${i.id})"><i class="bi bi-check2-circle"></i> Serve</button>`;
-                }
-                if(i.status !== "served" && i.status !== "voided") {
-                    actions += `<button class="btn-luxury me-2 text-danger border-danger px-2" style="font-size:0.7rem;" onclick="cancelItem(${i.id})">CANCEL</button>`;
+                if (!voided) {
+                    if(i.status === "ready") {
+                        actions += `<button class="btn-luxury btn-gold me-2" onclick="serveItem(${i.id})"><i class="bi bi-check2-circle"></i> Serve</button>`;
+                    }
+                    const locked = i.status === "served" && !IS_MANAGER;
+                    if (CAN_EDIT && !locked) {
+                        actions += `<button class="btn-step me-2" onclick="editItem('reduce', ${i.id})" aria-label="Remove one ${esc(i.name)}" title="Remove one"><i class="bi bi-dash-lg"></i></button>`;
+                        actions += `<button class="btn-luxury me-2 text-danger border-danger px-2" style="font-size:0.7rem;min-height:44px;" onclick="editItem('remove', ${i.id})">CANCEL</button>`;
+                    }
+                    if (IS_MANAGER) {
+                        actions += `<button class="btn-luxury px-2" style="font-size:0.7rem;min-height:44px;" title="Make Complimentary" onclick="makeComplimentary(${i.id})">COMP</button>`;
+                    }
                 }
 
-                let userRole = "{{ request.user.role }}";
-                if (userRole === "manager" || userRole === "owner") {
-                    actions += `<button class="btn-luxury px-2" style="font-size:0.7rem;" title="Make Complimentary" onclick="makeComplimentary(${i.id})">COMP</button>`;
-                }
-
+                const reason = voided && i.void_reason ? `<div class="void-reason">Cancelled: ${esc(i.void_reason)}</div>` : '';
                 fullHtml += `
-                    <div class="item-card">
+                    <div class="item-card${voided ? ' is-voided' : ''}">
                         <div>
-                            <div class="item-name">${i.name}</div>
-                            ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.75rem; color:var(--accent-gold); font-style:italic; margin-bottom:4px;">+ ${i.modifiers.join(', ')}</div>` : ''}
+                            <div class="item-name">${esc(i.name)}</div>
+                            ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.75rem; color:var(--accent-gold); font-style:italic; margin-bottom:4px;">+ ${esc(i.modifiers.join(', '))}</div>` : ''}
                             <div class="item-meta">
-                                <span>Qty: ${i.quantity}</span>
-                                <span class="status-badge ${badgeClass}">${i.status}</span>
+                                <span>Qty: ${esc(i.quantity)}</span>
+                                <span class="status-badge ${badgeClass}">${esc(voided ? 'cancelled' : i.status)}</span>
                             </div>
+                            ${reason}
                         </div>
-                        <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center flex-wrap justify-content-end">
                             ${actions}
                         </div>
                     </div>

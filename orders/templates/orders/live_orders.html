@@ -1,0 +1,360 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Live Orders · {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .lo-wrap { max-width: 1440px; margin: 0 auto; padding: 1.25rem 1rem 3rem; width: 100%; }
+
+  /* Summary */
+  .lo-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1.1rem; }
+  .lo-stat { background: var(--panel-bg); border: 1px solid var(--border-color); padding: .85rem 1rem; }
+  .lo-stat-val { font-family: var(--font-display, 'DM Serif Display', serif); font-size: 1.9rem; line-height: 1; color: var(--text-main); }
+  .lo-stat-label { font-size: .68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .35rem; }
+  .lo-stat.is-ready .lo-stat-val { color: #10b981; }
+  .lo-stat.is-bill .lo-stat-val { color: var(--accent-gold); }
+  @media (max-width: 640px) { .lo-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lo-stat-val { font-size: 1.55rem; } }
+
+  /* Toolbar */
+  .lo-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: 1rem; }
+  .lo-filters { display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none; flex: 1 1 auto; padding-bottom: 2px; }
+  .lo-filters::-webkit-scrollbar { display: none; }
+  .lo-filter {
+    min-height: 40px; padding: .4rem .85rem; border: 1px solid var(--border-color); background: transparent;
+    color: var(--text-muted); font: inherit; font-size: .8rem; text-transform: uppercase; letter-spacing: 1px;
+    white-space: nowrap; cursor: pointer; display: inline-flex; align-items: center; gap: .4rem;
+  }
+  .lo-filter:hover { color: var(--text-main); border-color: var(--text-muted); }
+  .lo-filter[aria-pressed="true"] { color: var(--text-main); border-color: var(--accent-gold); box-shadow: inset 0 -2px 0 var(--accent-gold); }
+  .lo-filter .lo-count { font-family: var(--font-mono, monospace); font-size: .72rem; color: var(--text-muted); }
+  .lo-filter.is-attention[aria-pressed="false"] .lo-count.has { color: #f97316; }
+  .lo-search { position: relative; flex: 0 1 260px; min-width: 180px; }
+  .lo-search input {
+    width: 100%; min-height: 40px; padding: .45rem .75rem .45rem 2.1rem; border: 1px solid var(--border-color);
+    background: var(--panel-bg); color: var(--text-main); font: inherit; font-size: .9rem;
+  }
+  .lo-search input:focus { outline: none; border-color: var(--accent-gold); }
+  .lo-search .bi { position: absolute; left: .7rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+  .lo-sync { font-family: var(--font-mono, monospace); font-size: .72rem; color: var(--text-muted); display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; }
+  .lo-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; }
+  .lo-sync.is-stale .lo-dot { background: #f97316; }
+  @media (max-width: 640px) { .lo-search { flex: 1 1 100%; } }
+
+  /* Tickets */
+  .lo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 1rem; align-items: start; }
+  .lo-ticket { background: var(--panel-bg); border: 1px solid var(--border-color); display: flex; flex-direction: column; }
+  .lo-ticket.is-attention { border-top: 3px solid #f97316; }
+  .lo-ticket.is-billing { border-top: 3px solid var(--accent-gold); }
+  .lo-head { padding: .85rem 1rem .6rem; display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
+  .lo-title { font-family: var(--font-display, 'DM Serif Display', serif); font-size: 1.45rem; line-height: 1.1; color: var(--text-main); margin: 0; overflow-wrap: anywhere; }
+  .lo-meta { font-size: .72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: .3rem; }
+  .lo-age { font-family: var(--font-mono, monospace); font-size: .82rem; color: var(--text-muted); white-space: nowrap; text-align: right; }
+  .lo-age.is-warn { color: #f97316; }
+  .lo-age.is-late { color: #ef4444; font-weight: 700; }
+  .lo-pill { display: inline-block; margin-top: .3rem; font-size: .62rem; text-transform: uppercase; letter-spacing: 1.5px; padding: .15rem .45rem; border: 1px solid var(--border-color); color: var(--text-muted); }
+  .lo-pill.is-billing { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+  .lo-items { list-style: none; margin: 0; padding: 0 1rem; border-top: 1px solid var(--border-color); }
+  .lo-item { display: flex; align-items: center; gap: .6rem; padding: .55rem 0; border-bottom: 1px dashed var(--border-color); }
+  .lo-item:last-child { border-bottom: 0; }
+  .lo-qty { font-family: var(--font-mono, monospace); font-weight: 700; font-size: .95rem; min-width: 2.2rem; color: var(--text-main); }
+  .lo-name { flex: 1 1 auto; min-width: 0; }
+  .lo-name-main { font-size: .95rem; color: var(--text-main); overflow-wrap: anywhere; }
+  .lo-name-sub { font-size: .74rem; color: var(--accent-gold); font-style: italic; overflow-wrap: anywhere; }
+  .lo-name-note { font-size: .74rem; color: var(--text-muted); overflow-wrap: anywhere; }
+  .lo-st { font-size: .6rem; text-transform: uppercase; letter-spacing: 1px; padding: .12rem .4rem; border: 1px solid; white-space: nowrap; }
+  .st-pending  { color: #9ca3af; border-color: rgba(156,163,175,.45); }
+  .st-review   { color: #a855f7; border-color: rgba(168,85,247,.45); }
+  .st-sent, .st-preparing { color: #f97316; border-color: rgba(249,115,22,.45); }
+  .st-ready    { color: #10b981; border-color: rgba(16,185,129,.45); }
+  .st-served   { color: #3b82f6; border-color: rgba(59,130,246,.45); }
+  .lo-acts { display: flex; gap: .3rem; flex: 0 0 auto; }
+  .lo-btn {
+    width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; font-size: 1.05rem;
+  }
+  .lo-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .lo-btn.is-danger:hover { border-color: #ef4444; color: #ef4444; }
+  .lo-btn:focus-visible, .lo-foot a:focus-visible, .lo-filter:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+  .lo-btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .lo-lock { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); }
+
+  .lo-foot { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .75rem 1rem; border-top: 1px solid var(--border-color); margin-top: auto; }
+  .lo-total { font-family: var(--font-mono, monospace); font-size: 1.05rem; font-weight: 700; color: var(--text-main); }
+  .lo-links { display: flex; gap: .4rem; flex-wrap: wrap; justify-content: flex-end; }
+  .lo-links a {
+    min-height: 40px; padding: .45rem .8rem; border: 1px solid var(--border-color); color: var(--text-main);
+    text-decoration: none; font-size: .74rem; text-transform: uppercase; letter-spacing: 1px; display: inline-flex; align-items: center; gap: .35rem;
+  }
+  .lo-links a:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+  .lo-links a.is-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+  .lo-links a.is-primary:hover { background: var(--accent-hover, var(--accent-gold)); color: #fff; }
+
+  .lo-empty, .lo-error { text-align: center; padding: 4rem 1rem; color: var(--text-muted); border: 1px dashed var(--border-color); }
+  .lo-empty .bi { font-size: 2rem; display: block; margin-bottom: .6rem; }
+  .lo-error { border-color: rgba(239,68,68,.4); color: #ef4444; padding: .75rem 1rem; margin-bottom: 1rem; text-align: left; font-size: .88rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lo-ticket { transition: border-color .2s; }
+  }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div class="d-flex flex-column">
+  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
+  </a>
+  <p class="mb-0" style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">Live Orders · {{ request.user.outlet.name }}</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<div class="action-group d-flex align-items-center flex-wrap gap-2">
+  {% if 'floor_plan' in tenant_features %}
+  <a href="{% url 'table-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
+  <a href="{% url 'table-dashboard' %}" class="btn-icon d-sm-none" title="Tables" aria-label="Tables"><i class="bi bi-grid-3x3"></i></a>
+  {% endif %}
+  {% if 'token_system' in tenant_features %}
+  <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tokens</a>
+  <a href="{% url 'token-dashboard' %}" class="btn-icon d-sm-none" title="Tokens" aria-label="Tokens"><i class="bi bi-ticket-perforated"></i></a>
+  {% endif %}
+  {% if 'kitchen_display' in tenant_features %}
+  <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
+  <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen" aria-label="Kitchen"><i class="bi bi-fire"></i></a>
+  {% endif %}
+  {% include "core/_notif_badges_luxury.html" %}
+  <button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme" aria-label="Toggle theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+  </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="lo-wrap">
+  <div class="lo-stats" aria-label="Summary">
+    <div class="lo-stat"><div class="lo-stat-val" id="st-open">0</div><div class="lo-stat-label">Open orders</div></div>
+    <div class="lo-stat"><div class="lo-stat-val" id="st-kitchen">0</div><div class="lo-stat-label">Dishes in kitchen</div></div>
+    <div class="lo-stat is-ready"><div class="lo-stat-val" id="st-ready">0</div><div class="lo-stat-label">Ready to serve</div></div>
+    <div class="lo-stat is-bill"><div class="lo-stat-val" id="st-bill">0</div><div class="lo-stat-label">Waiting for bill</div></div>
+  </div>
+
+  <div class="lo-toolbar">
+    <div class="lo-filters" role="group" aria-label="Filter orders">
+      <button type="button" class="lo-filter" data-f="all" aria-pressed="true">All <span class="lo-count" data-c="all">0</span></button>
+      <button type="button" class="lo-filter" data-f="table" aria-pressed="false">Dine-in <span class="lo-count" data-c="table">0</span></button>
+      <button type="button" class="lo-filter" data-f="counter" aria-pressed="false">Counter <span class="lo-count" data-c="counter">0</span></button>
+      <button type="button" class="lo-filter" data-f="online" aria-pressed="false">Online <span class="lo-count" data-c="online">0</span></button>
+      <button type="button" class="lo-filter is-attention" data-f="attention" aria-pressed="false"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Attention <span class="lo-count" data-c="attention">0</span></button>
+    </div>
+    <label class="lo-search">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      <input type="search" id="lo-q" placeholder="Table, token, dish, staff" aria-label="Search orders" autocomplete="off">
+    </label>
+    <span class="lo-sync" id="lo-sync" aria-live="polite"><span class="lo-dot" aria-hidden="true"></span><span id="lo-sync-text">Loading…</span></span>
+  </div>
+
+  <div class="lo-error" id="lo-error" role="alert" hidden></div>
+  <div class="lo-grid" id="lo-grid" aria-live="off"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/order_edit.js' %}"></script>
+<script>
+(function () {
+  "use strict";
+
+  const DATA_URL = "{% url 'live-orders-data' %}";
+  const POLL_MS = 8000;
+  const esc = OrderEdit.esc;
+  OrderEdit.configure({
+    reduce: "{% url 'reduce-item' 0 %}",
+    cancel: "{% url 'cancel-item' 0 %}",
+  });
+
+  const STATUS_LABEL = { pending: "Not sent", review: "Approve", sent: "Sent", preparing: "Cooking", ready: "Ready", served: "Served" };
+  const KIND_LABEL = { table: "Dine-in", token: "Counter", takeaway: "Takeaway", online: "Online" };
+
+  let orders = [];
+  let filter = "all";
+  let query = "";
+  let lastOk = 0;
+  let timer = null;
+  let busy = false;
+
+  const grid = document.getElementById("lo-grid");
+  const errorBox = document.getElementById("lo-error");
+  const syncEl = document.getElementById("lo-sync");
+  const syncText = document.getElementById("lo-sync-text");
+
+  function needsAttention(o) {
+    return o.counts.review > 0 || o.counts.ready > 0 || o.age_minutes >= 30;
+  }
+
+  function group(o) {
+    if (o.kind === "table") return "table";
+    if (o.kind === "online") return "online";
+    return "counter";
+  }
+
+  function matches(o) {
+    if (filter === "attention" && !needsAttention(o)) return false;
+    if (filter !== "all" && filter !== "attention" && group(o) !== filter) return false;
+    if (!query) return true;
+    const hay = [o.label, o.staff, String(o.id), o.source_display]
+      .concat(o.items.map(function (i) { return i.name; }))
+      .join(" ").toLowerCase();
+    return hay.indexOf(query) !== -1;
+  }
+
+  function ageClass(m) { return m >= 40 ? "is-late" : (m >= 20 ? "is-warn" : ""); }
+  function ageText(m) {
+    if (m < 60) return m + " min";
+    if (m < 1440) return Math.floor(m / 60) + " h " + (m % 60) + " m";
+    return Math.floor(m / 1440) + " d " + Math.floor((m % 1440) / 60) + " h";
+  }
+  function money(n) { return "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 }); }
+
+  function itemRow(o, i) {
+    const subs = i.modifiers.length ? '<div class="lo-name-sub">+ ' + esc(i.modifiers.join(", ")) + "</div>" : "";
+    const note = i.notes ? '<div class="lo-name-note">' + esc(i.notes) + "</div>" : "";
+    const comp = i.is_complimentary ? ' <span class="lo-st st-served">Comp</span>' : "";
+    let acts = "";
+    if (i.can_reduce) {
+      acts =
+        '<button type="button" class="lo-btn" data-act="reduce" data-o="' + o.id + '" data-i="' + i.id + '" ' +
+        'aria-label="Remove one ' + esc(i.name) + '" title="Remove one"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>' +
+        '<button type="button" class="lo-btn is-danger" data-act="remove" data-o="' + o.id + '" data-i="' + i.id + '" ' +
+        'aria-label="Cancel all ' + esc(i.name) + '" title="Cancel this dish"><i class="bi bi-x-lg" aria-hidden="true"></i></button>';
+    } else if (i.needs_manager) {
+      acts = '<span class="lo-lock" title="Already served, a manager can change this" aria-label="Manager needed"><i class="bi bi-lock" aria-hidden="true"></i></span>';
+    }
+    return (
+      '<li class="lo-item">' +
+        '<span class="lo-qty">' + esc(i.quantity) + "×</span>" +
+        '<div class="lo-name"><div class="lo-name-main">' + esc(i.name) + comp + "</div>" + subs + note + "</div>" +
+        '<span class="lo-st st-' + esc(i.status) + '">' + esc(STATUS_LABEL[i.status] || i.status) + "</span>" +
+        (acts ? '<div class="lo-acts">' + acts + "</div>" : "") +
+      "</li>"
+    );
+  }
+
+  function ticket(o) {
+    const attention = needsAttention(o);
+    const cls = "lo-ticket" + (o.status === "billing" ? " is-billing" : (attention ? " is-attention" : ""));
+    const meta = [KIND_LABEL[o.kind] || o.source_display, o.staff ? esc(o.staff) : "", "#" + o.id].filter(Boolean).join(" · ");
+    const pill = o.status === "billing" ? '<span class="lo-pill is-billing">Bill printed</span>' : "";
+    const items = o.items.length
+      ? '<ul class="lo-items">' + o.items.map(function (i) { return itemRow(o, i); }).join("") + "</ul>"
+      : '<ul class="lo-items"><li class="lo-item"><span class="lo-name-note">No dishes on this order yet.</span></li></ul>';
+    let links = "";
+    if (o.add_url) links += '<a href="' + esc(o.add_url) + '"><i class="bi bi-plus-lg" aria-hidden="true"></i>Add</a>';
+    if (o.detail_url) links += '<a href="' + esc(o.detail_url) + '">Details</a>';
+    links += '<a class="is-primary" href="' + esc(o.bill_url) + '">Bill</a>';
+    return (
+      '<article class="' + cls + '" aria-label="' + esc(o.label) + '">' +
+        '<div class="lo-head"><div><h2 class="lo-title">' + esc(o.label) + '</h2><div class="lo-meta">' + meta + "</div>" + pill + "</div>" +
+        '<div class="lo-age ' + ageClass(o.age_minutes) + '" title="Time since the order was opened">' + ageText(o.age_minutes) + "</div></div>" +
+        items +
+        '<div class="lo-foot"><span class="lo-total">' + money(o.total) + '</span><div class="lo-links">' + links + "</div></div>" +
+      "</article>"
+    );
+  }
+
+  function render() {
+    const counts = { all: orders.length, table: 0, counter: 0, online: 0, attention: 0 };
+    orders.forEach(function (o) {
+      counts[group(o)] += 1;
+      if (needsAttention(o)) counts.attention += 1;
+    });
+    document.querySelectorAll(".lo-count").forEach(function (el) {
+      const n = counts[el.dataset.c] || 0;
+      el.textContent = n;
+      el.classList.toggle("has", n > 0);
+    });
+
+    const shown = orders.filter(matches);
+    if (!orders.length) {
+      grid.innerHTML = '<div class="lo-empty" style="grid-column:1/-1"><i class="bi bi-cup-hot" aria-hidden="true"></i>No open orders right now.</div>';
+    } else if (!shown.length) {
+      grid.innerHTML = '<div class="lo-empty" style="grid-column:1/-1"><i class="bi bi-search" aria-hidden="true"></i>Nothing matches this filter.</div>';
+    } else {
+      grid.innerHTML = shown.map(ticket).join("");
+    }
+  }
+
+  function setSummary(s) {
+    document.getElementById("st-open").textContent = s.open_orders;
+    document.getElementById("st-kitchen").textContent = s.in_kitchen;
+    document.getElementById("st-ready").textContent = s.ready;
+    document.getElementById("st-bill").textContent = s.awaiting_bill;
+  }
+
+  function tickSync() {
+    if (!lastOk) return;
+    const secs = Math.round((Date.now() - lastOk) / 1000);
+    syncText.textContent = secs < 5 ? "Live" : "Updated " + secs + "s ago";
+    syncEl.classList.toggle("is-stale", secs > 30);
+  }
+
+  function load() {
+    // Don't redraw under the user's finger while a pop-up is open or an edit is saving.
+    if (busy || document.hidden || OrderEdit.sheetOpen()) return Promise.resolve();
+    return fetch(DATA_URL, { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        orders = d.orders || [];
+        setSummary(d.summary || {});
+        render();
+        lastOk = Date.now();
+        errorBox.hidden = true;
+        tickSync();
+      })
+      .catch(function () {
+        errorBox.textContent = "Couldn't refresh the orders. Showing the last update, trying again…";
+        errorBox.hidden = false;
+        syncEl.classList.add("is-stale");
+      });
+  }
+
+  function findItem(orderId, itemId) {
+    const o = orders.find(function (x) { return x.id === orderId; });
+    return o ? o.items.find(function (x) { return x.id === itemId; }) : null;
+  }
+
+  grid.addEventListener("click", function (e) {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn || busy) return;
+    const item = findItem(Number(btn.dataset.o), Number(btn.dataset.i));
+    if (!item) return;
+    busy = true;
+    const action = btn.dataset.act === "reduce" ? OrderEdit.reduce(item) : OrderEdit.remove(item);
+    action.then(function () { busy = false; return load(); }, function () { busy = false; });
+  });
+
+  document.querySelectorAll(".lo-filter").forEach(function (b) {
+    b.addEventListener("click", function () {
+      filter = b.dataset.f;
+      document.querySelectorAll(".lo-filter").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      render();
+    });
+  });
+
+  document.getElementById("lo-q").addEventListener("input", function (e) {
+    query = e.target.value.trim().toLowerCase();
+    render();
+  });
+
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
+
+  load();
+  timer = setInterval(load, POLL_MS);
+  setInterval(tickSync, 1000);
+})();
+</script>
+{% endblock %}

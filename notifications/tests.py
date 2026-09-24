@@ -226,16 +226,17 @@ class WhatsAppBuildMessageTest(TestCase):
         item.quantity = 2
         item.menu_item.name = "Butter Naan"
         item.total_price = 60
-        order.items.select_related.return_value.all.return_value = [item]
+        order.items.exclude.return_value.select_related.return_value = [item]
 
         msg = _build_message(order, "")
         self.assertIn("Butter Naan", msg)
         self.assertIn("Total", msg)
+        order.items.exclude.assert_called_once_with(status="voided")
 
     @patch("notifications.services.whatsapp_service.logger")
     def test_broken_item_list_logs_and_still_builds_message(self, mock_logger):
         order = self._mock_order()
-        order.items.select_related.return_value.all.side_effect = Exception("db hiccup")
+        order.items.exclude.side_effect = Exception("db hiccup")
 
         msg = _build_message(order, "")  # must not raise
 

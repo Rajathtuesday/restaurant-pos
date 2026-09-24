@@ -168,10 +168,12 @@
   <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#manageTablesModal"><i class="bi bi-gear me-1"></i> Tables</button>
   <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#mergeModal">Combine</button>
   <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
+  <a href="{% url 'live-orders' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Live Orders</a>
   <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
   <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
   <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
 
+  <a href="{% url 'live-orders' %}" class="btn-icon d-sm-none" title="Live Orders" aria-label="Live Orders"><i class="bi bi-card-checklist"></i></a>
   <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
   <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
   <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>

@@ -12,6 +12,19 @@ from orders.exceptions import OrderError
 
 logger = logging.getLogger("pos.orders")
 
+
+def _json_body(request):
+    try:
+        data = json.loads(request.body or b"{}")
+    except (ValueError, UnicodeDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _reason(data, default):
+    reason = str(data.get("reason") or "").strip()
+    return reason[:255] or default
+
 @login_required
 @tenant_required
 @role_required("owner", "manager", "cashier", "captain")
@@ -99,7 +112,8 @@ def cancel_item(request, item_id):
     from orders.services.void_service import void_order_item
 
     try:
-        item = void_order_item(request.user, item_id, "Manual Item Cancellation")
+        reason = _reason(_json_body(request), "Manual Item Cancellation")
+        item = void_order_item(request.user, item_id, reason)
         # void_order_item recalculates totals on its own freshly-locked Order
         # object, not item.order (held before the call) — re-fetch, don't
         # trust the stale one.
@@ -113,6 +127,41 @@ def cancel_item(request, item_id):
         return JsonResponse({"error": str(e)}, status=400)
     except Exception as e:
         logger.error("Error cancelling item #%s: %s", item_id, e, exc_info=True)
+        return JsonResponse({"error": "Server error"}, status=500)
+
+
+@login_required
+@tenant_required
+@role_required("owner", "manager", "cashier", "captain")
+@require_POST
+def reduce_item(request, item_id):
+    """
+    Take some units off one order line. Body: {"reduce_by": 1, "reason": "..."}.
+    Same roles as cancel_item; the service enforces the served-item manager
+    rule and the tenant/outlet scope (another outlet's item is a 404).
+    """
+    from orders.services.void_service import reduce_item_quantity
+
+    data = _json_body(request)
+    try:
+        item = reduce_item_quantity(
+            request.user, item_id, data.get("reduce_by", 1),
+            _reason(data, "Quantity reduced"),
+        )
+        order = Order.objects.get(id=item.order_id)
+        remaining = 0 if item.status == "voided" else item.quantity
+        logger.info("User %s reduced item #%s to %s", request.user.username, item_id, remaining)
+        return JsonResponse({
+            "success": True,
+            "remaining": remaining,
+            "new_total": float(order.grand_total),
+        })
+    except OrderItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    except OrderError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except Exception as e:
+        logger.error("Error reducing item #%s: %s", item_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
 
 
