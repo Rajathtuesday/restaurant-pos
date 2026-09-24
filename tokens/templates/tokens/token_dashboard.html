@@ -273,6 +273,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/order_edit.js' %}"></script>
 <script>
     async function createNewToken() {
         const btn = document.getElementById('newOrderBtn');
@@ -297,25 +298,15 @@
     async function cancelTokenOrder(event, orderId, tokenNumber) {
         event.preventDefault();
         event.stopPropagation();
-        if (!await ui.confirm(`Cancel Token #${tokenNumber}? This cannot be undone.`)) return;
+        OrderEdit.configure({ cancelOrder: "{% url 'cancel-order' 0 %}" });
+        const data = await OrderEdit.cancelOrder(orderId, { billUrl: "{% url 'token-bill' 0 %}".replace('/0/', '/' + orderId + '/') });
+        if (!data) return;
         const wrap = document.getElementById(`wrap-${orderId}`);
-        if (wrap) wrap.style.opacity = '0.4';
-        try {
-            const data = await apiClient.post(`/cancel-order/${orderId}/`, {});
-            if (data.success) {
-                if (wrap) {
-                    wrap.style.transition = 'opacity 0.3s, transform 0.3s';
-                    wrap.style.opacity = '0';
-                    wrap.style.transform = 'scale(0.9)';
-                    setTimeout(() => { wrap.remove(); updateActiveCount(); }, 300);
-                }
-                ui.toast(`Token #${tokenNumber} cancelled`, 'success');
-            } else {
-                if (wrap) wrap.style.opacity = '1';
-                ui.toast(data.error || 'Cancel failed', 'error');
-            }
-        } catch (e) {
-            if (wrap) wrap.style.opacity = '1';
+        if (wrap) {
+            wrap.style.transition = 'opacity 0.3s, transform 0.3s';
+            wrap.style.opacity = '0';
+            wrap.style.transform = 'scale(0.9)';
+            setTimeout(() => { wrap.remove(); updateActiveCount(); }, 300);
         }
     }
 

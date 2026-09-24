@@ -207,6 +207,12 @@ DATABASES = {
     }
 }
 
+# The SQLite default above is for local use only; see core/db_guard.py.
+from core.db_guard import require_postgres_in_production  # noqa: E402
+require_postgres_in_production(
+    DATABASES['default']['ENGINE'], DEBUG, os.getenv('ALLOW_NON_POSTGRES') == '1',
+)
+
 
 
 # Password validation

@@ -16,6 +16,7 @@ from django.utils import timezone
 from core.decorators import tenant_required, role_required
 from core.features import has_feature
 from orders.models import Order, OrderItem
+from orders.services.void_service import kitchen_stock_hint
 
 logger = logging.getLogger("pos.orders")
 
@@ -83,7 +84,7 @@ def live_orders_data(request):
             queryset=(
                 OrderItem.objects
                 .exclude(status="voided")
-                .select_related("menu_item")
+                .select_related("menu_item", "kot")
                 .prefetch_related("modifiers")
                 .order_by("id")
             ),
@@ -114,12 +115,12 @@ def live_orders_data(request):
                 "name": i.menu_item.name if i.menu_item else "Unknown Item",
                 "quantity": i.quantity,
                 "status": i.status,
-                "in_kitchen": i.status not in ("pending", "review"),
                 "modifiers": [m.name for m in i.modifiers.all()],
                 "notes": i.notes or "",
                 "is_complimentary": i.is_complimentary,
                 "can_reduce": can_edit and not served_lock,
                 "needs_manager": can_edit and served_lock,
+                **kitchen_stock_hint(i, is_manager, now),
             })
 
         if order.table_id:

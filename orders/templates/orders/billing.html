@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}POS | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
@@ -495,6 +496,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/order_edit.js' %}"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -994,13 +996,8 @@
   }
 
   function cancelOrder(orderId) {
-    if (!confirm("Cancel this entire order? This cannot be undone.")) return;
-    fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) { showToast("Order Cancelled!"); loadRunningOrder(); }
-        else showToast(data.error || "Failed to cancel order.");
-      });
+    OrderEdit.configure({ cancelOrder: "{% url 'cancel-order' 0 %}" });
+    OrderEdit.cancelOrder(orderId).then(data => { if (data) loadRunningOrder(); });
   }
 
   // Waiter/QR/system badges on this page are kept in sync by the one

@@ -624,6 +624,17 @@ class InventoryTransaction(TenantScopedModel):
         null=True
     )
 
+    # Set only on stock movements caused by cancelling a dish, so the
+    # wastage report can separate "cancelled after cooking" from manual
+    # wastage (spillage, spoilage) and show which order and dish it was.
+    order_item = models.ForeignKey(
+        "orders.OrderItem",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="stock_movements",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
 

@@ -13,6 +13,7 @@ from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderEvent, OrderItem
 from orders.utils.order_utils import validate_order_editable
 from orders.services.payment_service import mark_ready_items_served
+from orders.services.row_locks import lock_order_of_item
 
 logger = logging.getLogger("pos.orders")
 
@@ -109,6 +110,7 @@ def make_item_complimentary(request, item_id):
         # apply_item_discount. Without the lock a concurrent discount/void/
         # payment on the same order can race with this write and lose an update.
         with transaction.atomic():
+            lock_order_of_item(request.user, item_id)  # order before line, see row_locks
             item = (
                 OrderItem.objects.select_for_update().select_related("order")
                 .get(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
@@ -146,6 +148,7 @@ def apply_item_discount(request, item_id):
             return JsonResponse({"error": "Invalid percentage"}, status=400)
 
         with transaction.atomic():
+            lock_order_of_item(request.user, item_id)  # order before line, see row_locks
             item = (
                 OrderItem.objects.select_related("order")
                 .select_for_update()

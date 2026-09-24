@@ -91,7 +91,7 @@ def deduct_inventory_for_items(order_items):
     inventory_ids = sorted(list(required_qty_map.keys()))
     locked_items = {
         item.id: item
-        for item in InventoryItem.objects.select_for_update().filter(id__in=inventory_ids)
+        for item in InventoryItem.objects.select_for_update().filter(id__in=inventory_ids).order_by("id")
     }
 
     transactions_to_create = []

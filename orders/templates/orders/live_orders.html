@@ -172,6 +172,7 @@
   OrderEdit.configure({
     reduce: "{% url 'reduce-item' 0 %}",
     cancel: "{% url 'cancel-item' 0 %}",
+    cancelOrder: "{% url 'cancel-order' 0 %}",
   });
 
   const STATUS_LABEL = { pending: "Not sent", review: "Approve", sent: "Sent", preparing: "Cooking", ready: "Ready", served: "Served" };

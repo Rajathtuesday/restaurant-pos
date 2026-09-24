@@ -179,6 +179,7 @@
     OrderEdit.configure({
         reduce: "{% url 'reduce-item' 0 %}",
         cancel: "{% url 'cancel-item' 0 %}",
+        cancelOrder: "{% url 'cancel-order' 0 %}",
     });
     const USER_ROLE = "{{ request.user.role|escapejs }}";
     const CAN_EDIT = ["owner", "manager", "cashier", "captain"].includes(USER_ROLE);
@@ -187,21 +188,13 @@
     let busy = false;
 
     function cancelOrder(id){
-        Swal.fire({
-            title: "Cancel this whole order?",
-            text: "Every dish not yet served is cancelled and the table is freed. This cannot be undone.",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Cancel order",
-            cancelButtonText: "Keep it",
-            reverseButtons: true,
-            confirmButtonColor: "#ef4444",
-        }).then(r => {
-            if (!r.isConfirmed) return;
-            OrderEdit.post("{% url 'cancel-order' 0 %}".replace('/0/', '/' + id + '/'), {})
-                .then(() => { window.location.href = "{% url 'table-dashboard' %}"; })
-                .catch(err => OrderEdit.toast(err.message, "error"));
-        });
+        if (busy) return;
+        busy = true;
+        OrderEdit.cancelOrder(id, { billUrl: "{% url 'bill-view' order.id %}" }).then(data => {
+            busy = false;
+            if (data) window.location.href = "{% url 'table-dashboard' %}";
+            else refreshRunningOrder();
+        }, () => { busy = false; });
     }
 
     function editItem(kind, id){

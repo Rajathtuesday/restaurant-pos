@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Token Billing {% if token %}— {{ token.display_number }}{% endif %} | {{ request.user.tenant.name }}{% endblock %}
 
@@ -923,6 +924,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/order_edit.js' %}"></script>
 <script>
     /* ── Resizable 3-panel layout (desktop only) ───────────────────────
        Two drag handles: category-sidebar|menu-area and menu-area|context-
@@ -1598,18 +1600,8 @@
     }
 
     function cancelOrder(orderId) {
-        ui.confirm('Cancel entire order?', 'This cannot be undone.', 'Yes, cancel it')
-            .then(result => {
-                if (!result.isConfirmed) return;
-                fetch("{% url 'cancel-order' 0 %}".replace('0', orderId), {
-                    method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) { ui.toast('Order cancelled', 'success'); loadRunningOrder(); }
-                    else ui.toast(data.error || 'Failed', 'error');
-                });
-            });
+        OrderEdit.configure({ cancelOrder: "{% url 'cancel-order' 0 %}" });
+        OrderEdit.cancelOrder(orderId).then(data => { if (data) loadRunningOrder(); });
     }
 
     /* ── Large text mode (persists in localStorage) ─────────────── */

@@ -1,13 +1,11 @@
 import json
 import logging
-from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
 
 from core.decorators import tenant_required, role_required
-from orders.models import Order, OrderItem, OrderEvent
+from orders.models import Order, OrderItem
 from orders.exceptions import OrderError
 
 logger = logging.getLogger("pos.orders")
@@ -25,73 +23,58 @@ def _reason(data, default):
     reason = str(data.get("reason") or "").strip()
     return reason[:255] or default
 
+
+def _made(data):
+    # true / false from the edit sheet, or absent to use the suggestion.
+    made = data.get("made")
+    if made is None or isinstance(made, bool):
+        return made
+    raise OrderError("'made' must be true or false.")
+
+
 @login_required
 @tenant_required
 @role_required("owner", "manager", "cashier", "captain")
 @require_POST
 def cancel_order(request, order_id):
     """
-    Cancels an entire order entirely. Voids all non-served items via
-    void_service.void_order_item (restores inventory — this used to void
-    items inline with zero inventory restoration), updates order status to
-    cancelled, and frees up the table.
+    Cancels a whole order. Body: {"reason": "...", "include_made": true}.
 
-    Already-served items are deliberately left un-voided, matching prior
-    behavior — this can strand a served-but-unbilled item once the order is
-    marked cancelled (cancelled orders are excluded from every active-order
-    query), a known, separate issue not fixed by this pass.
+    If dishes on it were already made, the first call answers 409 with
+    needs_confirm and the list, so the screen can ask "cancel them as
+    wastage, or keep them and bill?". Repeating with include_made=true and a
+    reason cancels them; served dishes need a manager. See
+    void_service.cancel_whole_order.
     """
-    from orders.services.void_service import void_order_item
+    from orders.services.void_service import cancel_whole_order, MadeDishesNeedConfirmation
 
+    data = _json_body(request)
     try:
-        tenant = request.user.tenant
-        outlet = request.user.outlet
-
-        with transaction.atomic():
-            order = Order.objects.select_for_update().filter(
-                id=order_id, tenant=tenant, outlet=outlet
-            ).first()
-
-            if not order:
-                return JsonResponse({"error": "Order not found"}, status=404)
-
-            if order.status in ["paid", "closed", "cancelled"]:
-                return JsonResponse({"error": f"Cannot cancel order in {order.status} state"}, status=400)
-
-            for item in list(order.items.exclude(status__in=["voided", "served"])):
-                try:
-                    void_order_item(request.user, item.id, "Order Cancelled")
-                except OrderError:
-                    # Voided/served by a concurrent action since the list
-                    # above was built — skip rather than fail the whole cancel.
-                    continue
-
-            order.refresh_from_db()
-            order.status = "cancelled"
-            order.closed_at = timezone.now()
-            order.save(update_fields=["status", "closed_at"])
-            order.recalculate_totals()
-
-            # Cancelled orders are excluded from every active-order query, so
-            # this table can never be billed through this order again
-            # regardless of what update_table_state would compute — free it
-            # unconditionally rather than risk it reading "ready" and
-            # misleading staff into thinking stranded served items are
-            # still billable.
-            if order.table:
-                order.table.state = "free"
-                order.table.save(update_fields=["state"])
-
-            OrderEvent.objects.create(
-                tenant=tenant, outlet=outlet, order=order,
-                event_type="order_cancelled",
-                metadata={"reason": "Manual cancellation"},
-                created_by=request.user
-            )
-
+        cancel_whole_order(
+            request.user, order_id,
+            reason=str(data.get("reason") or ""),
+            include_made=data.get("include_made") is True,
+        )
         logger.info("User %s cancelled Order #%s", request.user.username, order_id)
         return JsonResponse({"success": True})
 
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except MadeDishesNeedConfirmation as e:
+        return JsonResponse({
+            "needs_confirm": True,
+            "error": str(e),
+            "needs_manager": (
+                any(i.status == "served" for i in e.items)
+                and getattr(request.user, "role", None) not in ("manager", "owner")
+            ),
+            "made_items": [
+                {"name": i.menu_item.name if i.menu_item else "Unknown", "quantity": i.quantity, "status": i.status}
+                for i in e.items
+            ],
+        }, status=409)
+    except OrderError as e:
+        return JsonResponse({"error": str(e)}, status=400)
     except Exception as e:
         logger.error("Error cancelling order #%s: %s", order_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
@@ -112,8 +95,10 @@ def cancel_item(request, item_id):
     from orders.services.void_service import void_order_item
 
     try:
-        reason = _reason(_json_body(request), "Manual Item Cancellation")
-        item = void_order_item(request.user, item_id, reason)
+        data = _json_body(request)
+        item = void_order_item(
+            request.user, item_id, _reason(data, "Manual Item Cancellation"), made=_made(data),
+        )
         # void_order_item recalculates totals on its own freshly-locked Order
         # object, not item.order (held before the call) — re-fetch, don't
         # trust the stale one.
@@ -146,7 +131,7 @@ def reduce_item(request, item_id):
     try:
         item = reduce_item_quantity(
             request.user, item_id, data.get("reduce_by", 1),
-            _reason(data, "Quantity reduced"),
+            _reason(data, "Quantity reduced"), made=_made(data),
         )
         order = Order.objects.get(id=item.order_id)
         remaining = 0 if item.status == "voided" else item.quantity

@@ -95,6 +95,15 @@
     .badge-wastage  { background: rgba(239,68,68,0.12);  color: #dc2626; }
     .badge-adjustment { background: rgba(234,179,8,0.12); color: #ca8a04; }
     .empty-state { text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem; }
+    .wastage-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.9rem 0.8rem 0.6rem; }
+    .wf-chip {
+      min-height: 40px; padding: 0.4rem 0.85rem; border: 1px solid var(--border-color); background: transparent;
+      color: var(--text-muted); font: inherit; font-size: 0.78rem; cursor: pointer;
+    }
+    .wf-chip:hover { color: var(--text-main); border-color: var(--text-muted); }
+    .wf-chip[aria-pressed="true"] { color: var(--text-main); border-color: var(--accent-gold); box-shadow: inset 0 -2px 0 var(--accent-gold); }
+    .wf-chip:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
+    .wastage-subhead { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; margin: 1.4rem 0.8rem 0.4rem; }
 
     /* ── Section tabs ───────────────────────────────── */
     .section-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-color); margin-bottom: 0; }
@@ -177,6 +186,9 @@
         <button type="submit" class="subnav-btn gold"><i class="bi bi-check2"></i></button>
       </div>
 
+      <input type="hidden" name="wastage_source" id="wastageSource" value="{{ wastage_source }}">
+      <input type="hidden" name="tab" id="currentTab" value="{{ request.GET.tab }}">
+
       <!-- Item filter -->
       <div class="subnav-sep"></div>
       <select name="item" class="subnav-select subnav-hide-sm" onchange="document.getElementById('filterForm').submit()">
@@ -206,9 +218,9 @@
       <div class="stat-unit">at cost price</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Wastage Items</div>
-      <div class="stat-value text-danger">{{ wastage|length }}</div>
-      <div class="stat-unit">unique ingredients</div>
+      <div class="stat-label">Wastage Cost</div>
+      <div class="stat-value mono text-danger">₹{{ total_wastage_cost|floatformat:2 }}</div>
+      <div class="stat-unit">{{ wastage|length }} ingredient{{ wastage|length|pluralize }}{% if wastage_source == "cancelled" %}, cancelled dishes{% elif wastage_source == "manual" %}, logged by hand{% endif %}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Ledger Entries</div>
@@ -253,7 +265,7 @@
                 </span>
               </td>
               <td class="text-end mono">
-                {% if txn.transaction_type == "restock" %}+{% elif txn.transaction_type == "adjustment" %}±{% else %}-{% endif %}{{ txn.quantity|floatformat:3 }}
+                {% if txn.quantity > 0 %}+{% endif %}{{ txn.quantity|floatformat:3 }}
                 <span style="font-size:0.75rem; color:var(--text-muted);">{{ txn.item.unit }}</span>
               </td>
               <td style="color:var(--text-muted); font-size:0.8rem;">{{ txn.reference|default:"—" }}</td>
@@ -297,6 +309,12 @@
 
     <!-- Wastage -->
     <div id="tab-wastage" style="display:none;">
+      <div class="wastage-filter" role="group" aria-label="Which wastage">
+        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'all' %}true{% else %}false{% endif %}" onclick="setWastageSource('all')">All</button>
+        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'cancelled' %}true{% else %}false{% endif %}" onclick="setWastageSource('cancelled')">From cancelled dishes</button>
+        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'manual' %}true{% else %}false{% endif %}" onclick="setWastageSource('manual')">Logged by hand</button>
+      </div>
+
       {% if wastage %}
       <div style="overflow-x:auto;">
         <table class="data-table">
@@ -305,6 +323,7 @@
               <th>Item</th>
               <th class="text-end">Qty Wasted</th>
               <th class="text-end">Unit</th>
+              <th class="text-end">Cost</th>
             </tr>
           </thead>
           <tbody>
@@ -313,6 +332,7 @@
               <td>{{ row.item__name }}</td>
               <td class="text-end mono text-danger">{{ row.total_qty|floatformat:3 }}</td>
               <td class="text-end" style="color:var(--text-muted);">{{ row.item__unit }}</td>
+              <td class="text-end mono">₹{{ row.total_cost|floatformat:2 }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -320,6 +340,36 @@
       </div>
       {% else %}
       <div class="empty-state"><i class="bi bi-check2-circle" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>No wastage recorded for this period.</div>
+      {% endif %}
+
+      {% if cancelled_dishes %}
+      <h3 class="wastage-subhead">Dishes cancelled after the kitchen made them</h3>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Table / Token</th>
+              <th>Dish</th>
+              <th>Reason</th>
+              <th>Staff</th>
+              <th class="text-end">Ingredient cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in cancelled_dishes %}
+            <tr>
+              <td class="mono" style="font-size:0.8rem;">{{ row.when|date:"d M H:i" }}</td>
+              <td>{{ row.where }} <span style="color:var(--text-muted);font-size:0.75rem;">#{{ row.order_id }}</span></td>
+              <td>{{ row.quantity }} × {{ row.dish }}</td>
+              <td style="color:var(--text-muted);">{{ row.reason|default:"No reason given" }}</td>
+              <td>{{ row.staff }}</td>
+              <td class="text-end mono text-danger">₹{{ row.cost|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% endif %}
     </div>
 
@@ -489,6 +539,21 @@ function showTab(name, btn) {
   });
   document.querySelectorAll('.section-tab').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
+  // Remembered so a filter change (which reloads the page) comes back here.
+  document.getElementById('currentTab').value = name;
 }
+
+function setWastageSource(value) {
+  document.getElementById('wastageSource').value = value;
+  document.getElementById('currentTab').value = 'wastage';
+  document.getElementById('filterForm').submit();
+}
+
+(function () {
+  var tab = document.getElementById('currentTab').value;
+  if (['ledger','usage','wastage','cost','canmake','closing'].indexOf(tab) === -1) return;
+  var btn = document.querySelector('.section-tab[onclick*="\'' + tab + '\'"]');
+  if (btn) showTab(tab, btn);
+})();
 </script>
 {% endblock %}

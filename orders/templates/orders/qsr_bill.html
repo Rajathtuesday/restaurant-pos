@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Invoice | {{ request.user.outlet.name }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet">
@@ -27,6 +28,10 @@
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; display: flex; justify-content: center; padding: 2rem 1rem; transition: background 0.3s; }
         body.dark { background: var(--bg); }
+        /* Names the shared order-edit sheet (static/js/order_edit.js) reads.
+           Set on body, not :root, so body.dark's values flow through. */
+        body { --panel-bg: var(--panel); --text-main: var(--text); --text-muted: var(--muted);
+               --border-color: var(--border); --accent-gold: var(--gold); --danger: #ef4444; }
         h1, h2, h3, .serif { font-family: 'DM Serif Display', serif; }
         
         .receipt-container { width: 100%; max-width: 440px; background: var(--panel); border: 1px solid var(--border); padding: 3rem 2.5rem; border-radius: 4px; box-shadow: 0 15px 50px rgba(0,0,0,0.5); position: relative; }
@@ -192,6 +197,8 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.all.min.js"></script>
+    <script src="{% static 'js/order_edit.js' %}"></script>
     <script>
         const CSRF = '{{ csrf_token }}';
 
@@ -268,30 +275,12 @@
 
         // ── Cancel order ─────────────────────────────────────────────
         async function cancelOrder() {
-            if (!confirm('Cancel this order completely? This cannot be undone.')) return;
-
-            showToast('Cancelling...', '');
-
-            try {
-                const res = await fetch("{% url 'cancel-order' order.id %}", {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': CSRF }
-                });
-
-                if (!res.ok) throw new Error('Server error ' + res.status);
-                const data = await res.json();
-
-                if (data.success) {
-                    showToast('Order Cancelled', 'success');
-                    setTimeout(() => {
-                        window.location.href = "{% if direct_billing_mode %}/dashboard/{% else %}{% url 'token-dashboard' %}{% endif %}";
-                    }, 1000);
-                } else {
-                    showToast(data.error || 'Failed to cancel', 'error');
-                }
-            } catch(e) {
-                showToast('Network Error — check connection', 'error');
-            }
+            OrderEdit.configure({ cancelOrder: "{% url 'cancel-order' 0 %}" });
+            const data = await OrderEdit.cancelOrder({{ order.id }});
+            if (!data) return;
+            setTimeout(() => {
+                window.location.href = "{% if direct_billing_mode %}/dashboard/{% else %}{% url 'token-dashboard' %}{% endif %}";
+            }, 1000);
         }
 
         function closeChangeModal() {

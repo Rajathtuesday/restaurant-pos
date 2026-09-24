@@ -174,10 +174,17 @@ def running_order_items(request):
 @tenant_required
 @feature_required("running_order")
 def running_order_data(request, order_id):
+    from django.db.models import Prefetch
+    from django.utils import timezone
+    from orders.services.void_service import kitchen_stock_hint
+
     order = (
         Order.objects
         .select_related("table")
-        .prefetch_related("items__menu_item", "items__modifiers")
+        .prefetch_related(Prefetch(
+            "items",
+            queryset=OrderItem.objects.select_related("menu_item", "kot").prefetch_related("modifiers"),
+        ))
         .filter(
             id=order_id,
             tenant=request.user.tenant,
@@ -189,6 +196,8 @@ def running_order_data(request, order_id):
     if not order:
         return JsonResponse({"error": "Order not found"}, status=404)
 
+    is_manager = request.user.is_superuser or request.user.role in ("owner", "manager")
+    now = timezone.now()
     items = []
     for i in order.items.all():
         items.append({
@@ -196,9 +205,9 @@ def running_order_data(request, order_id):
             "name": i.menu_item.name,
             "quantity": i.quantity,
             "status": i.status,
-            "in_kitchen": i.status not in ("pending", "review"),
             "void_reason": i.void_reason or "",
-            "modifiers": [m.name for m in i.modifiers.all()]
+            "modifiers": [m.name for m in i.modifiers.all()],
+            **kitchen_stock_hint(i, is_manager, now),
         })
 
     return JsonResponse({

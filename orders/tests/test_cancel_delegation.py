@@ -7,14 +7,16 @@ table-state update; void_order_item had both, correctly, but was dead code.
 
 Run: python manage.py test orders.tests.test_cancel_delegation
 """
+import json
 from decimal import Decimal
+
 from django.test import TestCase, Client
 from django.urls import reverse
 
 from accounts.models import User
 from tenants.models import Tenant, Outlet
 from menu.models import MenuCategory, MenuItem
-from inventory.models import InventoryItem, Recipe
+from inventory.models import InventoryItem, InventoryTransaction, Recipe
 from orders.models import Order, OrderItem, Table
 
 
@@ -121,8 +123,12 @@ class CancelDelegationTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.status, "voided")
+        # A served dish was eaten or thrown away: its flour does not go back
+        # on the shelf, it is recorded as wastage against this line.
         self.flour.refresh_from_db()
-        self.assertEqual(self.flour.stock, Decimal("10.000"))
+        self.assertEqual(self.flour.stock, Decimal("9.500"))
+        wastage = InventoryTransaction.objects.get(order_item=item, transaction_type="wastage")
+        self.assertEqual(wastage.quantity, Decimal("-0.500"))
         self.table.refresh_from_db()
         self.assertEqual(self.table.state, "free")
 
@@ -134,10 +140,9 @@ class CancelDelegationTests(TestCase):
 
         self.assertEqual(resp.status_code, 404)
 
-    def test_cancel_order_restores_inventory_and_skips_served_item(self):
-        """Whole-order cancel: the sent item is voided with inventory
-        restored, the already-served item is left untouched (existing
-        behavior), and the table is freed."""
+    def test_cancel_order_with_a_served_dish_asks_first(self):
+        """A served dish used to be left "served" on a cancelled order, off
+        every report. Now the first call changes nothing and asks."""
         order = self._order()
         sent_item = self._sent_item(order)
         served_item = self._sent_item(order)
@@ -148,16 +153,44 @@ class CancelDelegationTests(TestCase):
 
         resp = client.post(reverse("cancel-order", args=[order.id]))
 
+        self.assertEqual(resp.status_code, 409)
+        data = resp.json()
+        self.assertTrue(data["needs_confirm"])
+        self.assertTrue(data["needs_manager"])
+        self.assertEqual([i["status"] for i in data["made_items"]], ["served"])
+        sent_item.refresh_from_db()
+        order.refresh_from_db()
+        self.assertEqual(sent_item.status, "sent")
+        self.assertEqual(order.status, "open")
+
+    def test_manager_cancels_order_with_a_served_dish(self):
+        """Confirmed by a manager: every dish is voided, the sent one's
+        flour goes back, the served one's becomes wastage, table freed."""
+        order = self._order()
+        sent_item = self._sent_item(order)
+        served_item = self._sent_item(order)
+        served_item.status = "served"
+        served_item.save(update_fields=["status"])
+        client = Client()
+        client.force_login(self.manager)
+
+        resp = client.post(
+            reverse("cancel-order", args=[order.id]),
+            data=json.dumps({"include_made": True, "reason": "Guest walked out"}),
+            content_type="application/json",
+        )
+
         self.assertEqual(resp.status_code, 200)
         sent_item.refresh_from_db()
         served_item.refresh_from_db()
         self.assertEqual(sent_item.status, "voided")
-        self.assertEqual(served_item.status, "served")  # untouched
+        self.assertEqual(served_item.status, "voided")
+        self.assertEqual(served_item.void_reason, "Guest walked out")
 
         self.flour.refresh_from_db()
-        # Only the sent item's 0.5kg is restored — the served item's
-        # deduction stays gone, matching existing cancel_order behavior.
         self.assertEqual(self.flour.stock, Decimal("9.500"))
+        self.assertTrue(InventoryTransaction.objects.filter(
+            order_item=served_item, transaction_type="wastage").exists())
 
         order.refresh_from_db()
         self.assertEqual(order.status, "cancelled")

@@ -6,6 +6,7 @@ from django.utils import timezone
 from orders.models import OrderItem
 from kitchen.models import KOTBatch
 from orders.services.order_service import update_table_state
+from orders.services.row_locks import lock_order_of_item
 
 # Matches tokens/views.py's _READY_STALE_MINUTES (the pickup display
 # board's own auto-clear) -- one "how long is a ready order allowed to
@@ -98,6 +99,7 @@ def set_item_preparing(user, item_id):
     """
     Marks a kitchen item as 'preparing'.
     """
+    lock_order_of_item(user, item_id)  # order before line, see row_locks
     item = (
         OrderItem.objects
         .select_for_update()
@@ -121,6 +123,7 @@ def set_item_ready(user, item_id):
     """
     Marks an item as 'ready', updates table statuses, and pings notifications.
     """
+    lock_order_of_item(user, item_id)  # order before line, see row_locks
     item = (
         OrderItem.objects
         .select_related("order")
@@ -178,6 +181,7 @@ def set_item_served(user, item_id):
     """
     Marks an item as 'served' and dynamically updates the table state.
     """
+    lock_order_of_item(user, item_id)  # order before line, see row_locks
     item = (
         OrderItem.objects
         .select_related("order")

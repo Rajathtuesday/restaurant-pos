@@ -39,19 +39,78 @@ def inventory_usage(tenant, outlet, start_date=None, end_date=None):
     )
 
 
-def inventory_wastage(tenant, outlet, start_date=None, end_date=None):
-    """Total quantity wasted per item, optionally filtered by date range."""
+WASTAGE_SOURCES = ("all", "cancelled", "manual")
+
+
+def _wastage_qs(tenant, outlet, start_date, end_date, source):
     qs = InventoryTransaction.objects.filter(
         tenant=tenant,
         outlet=outlet,
         transaction_type="wastage",
     )
-    qs = _business_range_filter(qs, outlet, start_date, end_date)
-    return list(
-        qs.values("item__name", "item__unit")
-          .annotate(total_qty=Sum("quantity"))
-          .order_by("-total_qty")
+    if source == "cancelled":
+        qs = qs.filter(order_item__isnull=False)
+    elif source == "manual":
+        qs = qs.filter(order_item__isnull=True)
+    return _business_range_filter(qs, outlet, start_date, end_date)
+
+
+def inventory_wastage(tenant, outlet, start_date=None, end_date=None, source="all"):
+    """
+    Total quantity wasted per item, with its cost at cost price.
+    source: "all", "cancelled" (dishes cancelled after the kitchen made them)
+    or "manual" (spillage, spoilage and other wastage logged by hand).
+    Quantities are stored negative, so the most-wasted item sorts first.
+    """
+    from decimal import Decimal as D
+    rows = list(
+        _wastage_qs(tenant, outlet, start_date, end_date, source)
+        .values("item__name", "item__unit", "item__cost_price")
+        .annotate(total_qty=Sum("quantity"))
+        .order_by("total_qty")
     )
+    for row in rows:
+        row["total_cost"] = abs(row["total_qty"] or D("0")) * (row.get("item__cost_price") or D("0"))
+    return rows
+
+
+def cancelled_dish_wastage(tenant, outlet, start_date=None, end_date=None):
+    """
+    One row per cancelled dish that turned into wastage: when, which order,
+    what, why, who, and the ingredient cost lost. Built from the wastage
+    records' own link to the cancelled line, so it only ever shows this
+    outlet's records.
+    """
+    from decimal import Decimal as D
+    txns = (
+        _wastage_qs(tenant, outlet, start_date, end_date, "cancelled")
+        .select_related(
+            "item", "order_item__menu_item", "order_item__voided_by",
+            "order_item__order__table", "order_item__order__token",
+        )
+        .order_by("-created_at")
+    )
+    rows = {}
+    for t in txns:
+        oi = t.order_item
+        row = rows.get(oi.id)
+        if row is None:
+            order = oi.order
+            token = getattr(order, "token", None)
+            where = order.table.name if order.table_id else (f"Token {token.display_number}" if token else order.get_source_display())
+            staff = oi.voided_by
+            row = rows[oi.id] = {
+                "when": oi.voided_at or t.created_at,
+                "where": where,
+                "order_id": order.id,
+                "dish": oi.menu_item.name if oi.menu_item else "Unknown",
+                "quantity": oi.quantity,
+                "reason": oi.void_reason or "",
+                "staff": (staff.first_name or staff.username) if staff else "",
+                "cost": D("0"),
+            }
+        row["cost"] += abs(t.quantity) * (t.item.cost_price or D("0"))
+    return list(rows.values())
 
 
 def inventory_cost(tenant, outlet, start_date=None, end_date=None):

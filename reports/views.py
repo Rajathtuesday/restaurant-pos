@@ -371,7 +371,10 @@ def inspection_report(request):
 @feature_required("reports")
 @role_required("owner", "manager", "agent")
 def inventory_report(request):
-    from reports.services.inventory_reports import inventory_usage, inventory_wastage, inventory_cost, stock_ledger, production_capacity, closing_stock
+    from reports.services.inventory_reports import (
+        inventory_usage, inventory_wastage, inventory_cost, stock_ledger, production_capacity,
+        closing_stock, cancelled_dish_wastage, WASTAGE_SOURCES,
+    )
     from inventory.models import InventoryItem
 
     tenant = request.user.tenant
@@ -409,8 +412,17 @@ def inventory_report(request):
 
     item_id = request.GET.get("item") or None
 
+    wastage_source = request.GET.get("wastage_source", "all")
+    if wastage_source not in WASTAGE_SOURCES:
+        wastage_source = "all"
+
     usage = inventory_usage(tenant, outlet, start_date, end_date) if outlet else []
-    wastage = inventory_wastage(tenant, outlet, start_date, end_date) if outlet else []
+    wastage = inventory_wastage(tenant, outlet, start_date, end_date, wastage_source) if outlet else []
+    cancelled_dishes = (
+        cancelled_dish_wastage(tenant, outlet, start_date, end_date)
+        if outlet and wastage_source != "manual" else []
+    )
+    total_wastage_cost = sum(r["total_cost"] for r in wastage)
     costs = inventory_cost(tenant, outlet, start_date, end_date) if outlet else []
     ledger = stock_ledger(tenant, outlet, start_date, end_date, item_id) if outlet else []
     items = InventoryItem.objects.filter(tenant=tenant, outlet=outlet).order_by("name") if outlet else []
@@ -434,6 +446,9 @@ def inventory_report(request):
         "selected_item": item_id,
         "total_cost": total_cost,
         "total_wastage_qty": total_wastage_qty,
+        "wastage_source": wastage_source,
+        "cancelled_dishes": cancelled_dishes,
+        "total_wastage_cost": total_wastage_cost,
         "capacity": capacity,
         "closing": closing,
     })
