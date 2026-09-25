@@ -331,7 +331,8 @@ class LedgerAndReportTests(TestCase):
         _, item = _order_in_kitchen(self)
         _post(self.cashier, "cancel-item", item.id, {"reason": "x", "made": True})
         usage = {r["item__name"]: r["total_qty"] for r in inventory_usage(self.tenant, self.outlet, self.day, self.day)}
-        self.assertEqual(usage["Basmati Rice"], Decimal("0"))
+        # Used and then un-used the same day nets to nothing, so it isn't listed.
+        self.assertNotIn("Basmati Rice", usage)
 
     def test_variance_report_shows_no_gap_for_a_cancelled_dish(self):
         order, item = _order_in_kitchen(self, status="preparing")
@@ -362,9 +363,9 @@ class LedgerAndReportTests(TestCase):
             rows = inventory_wastage(self.tenant, self.outlet, self.day, self.day, source)
             return sum((r["total_qty"] for r in rows), Decimal("0")), sum((r["total_cost"] for r in rows), Decimal("0"))
 
-        self.assertEqual(total("all"), (Decimal("-0.700"), Decimal("84.000")))
-        self.assertEqual(total("cancelled"), (Decimal("-0.200"), Decimal("24.000")))
-        self.assertEqual(total("manual"), (Decimal("-0.500"), Decimal("60.000")))
+        self.assertEqual(total("all"), (Decimal("0.700"), Decimal("84.000")))
+        self.assertEqual(total("cancelled"), (Decimal("0.200"), Decimal("24.000")))
+        self.assertEqual(total("manual"), (Decimal("0.500"), Decimal("60.000")))
 
     def test_cancelled_dish_list(self):
         order, item = _order_in_kitchen(self, quantity=2)

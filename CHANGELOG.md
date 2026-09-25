@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-09-25
+
+### Fixed
+- **Reports scrolled sideways on a phone** - the tab row shared by all seven report pages (Sales, Kitchen KPIs, Inventory, Menu Engineering, Labor Cost, Discount/Void Audit, CRM Analytics) is about 940px wide, and nothing let it shrink, so on a 390px phone the whole page scrolled sideways. The row now scrolls inside its own strip (one rule in `static/css/themes/luxury.css`, which every signed-in page loads), and `reports/_report_tabs.html` scrolls the current report's tab into the middle of the strip. Desktop is unchanged: all tabs still fit on one line.
+- **The inventory report showed a minus sign on money** - the stock ledger stores stock going out as negative, and the report added those rows up as they were. So the Consumption Cost card read "₹-1,234.00", the Consumption and Cost tabs listed negative amounts, and both sorted the *least* used and *cheapest* item first. The Wastage tab also showed "-0.150". `reports/services/inventory_reports.py` now turns movements into positive amounts used, wasted and spent in one helper, sorts the biggest first, and leaves out items that net to zero (a dish cancelled and put back the same day). The Stock Ledger keeps its + and - signs, because there they mean stock in and out.
+
+### Tests
+- **7 new tests** in `reports/tests/test_inventory_report_amounts.py`: usage, cost and wastage are positive and biggest first, net-zero items are left out, the page contains no "₹-" and the right totals, the ledger keeps its signs, and the tab strip and its centring script are on the page. Two tests from 24 September now expect positive wastage and a left-out net-zero item.
+- **Verified** on a 390px phone-sized browser against the local demo restaurant: no sideways page scroll on the Inventory, Sales and Kitchen KPIs reports, the current tab is on screen, the strip swipes, all tabs fit on desktop, no JavaScript errors.
+
+---
+
 ## 2026-09-24 (later): cooked dishes, wastage and cancelling whole orders
 
 ### Added

@@ -24,19 +24,37 @@ def _business_range_filter(qs, outlet, start_date, end_date):
     return qs
 
 
+def _amount_used(rows):
+    """
+    Turn signed stock movements into amounts used, for display.
+
+    The ledger stores stock going out as negative ("consume" -0.5 kg) and
+    stock coming back as positive, which is right for a ledger but made the
+    report show "Rs -1,234.00" of consumption, and sorted the least-used
+    item first. Flip the sign once here, drop items that net to zero (a dish
+    cancelled and put back the same day), and put the biggest first.
+    """
+    from decimal import Decimal as D
+    out = []
+    for row in rows:
+        row["total_qty"] = -(row["total_qty"] or D("0"))
+        if row["total_qty"]:
+            out.append(row)
+    return sorted(out, key=lambda r: r["total_qty"], reverse=True)
+
+
 def inventory_usage(tenant, outlet, start_date=None, end_date=None):
-    """Total quantity consumed per item, optionally filtered by date range."""
+    """How much of each item was used (a positive amount), most used first."""
     qs = InventoryTransaction.objects.filter(
         tenant=tenant,
         outlet=outlet,
         transaction_type="consume",
     )
     qs = _business_range_filter(qs, outlet, start_date, end_date)
-    return list(
+    return _amount_used(list(
         qs.values("item__name", "item__unit")
           .annotate(total_qty=Sum("quantity"))
-          .order_by("-total_qty")
-    )
+    ))
 
 
 WASTAGE_SOURCES = ("all", "cancelled", "manual")
@@ -57,20 +75,19 @@ def _wastage_qs(tenant, outlet, start_date, end_date, source):
 
 def inventory_wastage(tenant, outlet, start_date=None, end_date=None, source="all"):
     """
-    Total quantity wasted per item, with its cost at cost price.
+    How much of each item was wasted (a positive amount), with its cost at
+    cost price, most wasted first.
     source: "all", "cancelled" (dishes cancelled after the kitchen made them)
     or "manual" (spillage, spoilage and other wastage logged by hand).
-    Quantities are stored negative, so the most-wasted item sorts first.
     """
     from decimal import Decimal as D
-    rows = list(
+    rows = _amount_used(list(
         _wastage_qs(tenant, outlet, start_date, end_date, source)
         .values("item__name", "item__unit", "item__cost_price")
         .annotate(total_qty=Sum("quantity"))
-        .order_by("total_qty")
-    )
+    ))
     for row in rows:
-        row["total_cost"] = abs(row["total_qty"] or D("0")) * (row.get("item__cost_price") or D("0"))
+        row["total_cost"] = row["total_qty"] * (row.get("item__cost_price") or D("0"))
     return rows
 
 
@@ -114,7 +131,7 @@ def cancelled_dish_wastage(tenant, outlet, start_date=None, end_date=None):
 
 
 def inventory_cost(tenant, outlet, start_date=None, end_date=None):
-    """Total consumption cost per item (quantity × item cost_price)."""
+    """What each item's usage cost at cost price (positive), dearest first."""
     from decimal import Decimal as D
     qs = InventoryTransaction.objects.filter(
         tenant=tenant,
@@ -122,13 +139,12 @@ def inventory_cost(tenant, outlet, start_date=None, end_date=None):
         transaction_type="consume",
     )
     qs = _business_range_filter(qs, outlet, start_date, end_date)
-    rows = list(
+    rows = _amount_used(list(
         qs.values("item__name", "item__unit", "item__cost_price")
           .annotate(total_qty=Sum("quantity"))
-    )
+    ))
     for row in rows:
-        cost = row.get("item__cost_price") or D("0")
-        row["total_cost"] = (row["total_qty"] or D("0")) * cost
+        row["total_cost"] = row["total_qty"] * (row.get("item__cost_price") or D("0"))
     return sorted(rows, key=lambda r: r["total_cost"], reverse=True)
 
 

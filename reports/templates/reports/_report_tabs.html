@@ -5,3 +5,12 @@
 <a href="/reports/labor/" class="report-tab {% if 'labor' in request.path %}active{% endif %}">Labor Cost</a>
 <a href="/reports/audit/" class="report-tab {% if 'audit' in request.path %}active{% endif %}">Discount/Void Audit</a>
 <a href="/reports/crm-analytics/" class="report-tab {% if 'crm-analytics' in request.path %}active{% endif %}">CRM Analytics</a>
+<script>
+  // On a narrow screen the tab row scrolls sideways (see luxury.css), so bring the current report's tab into view.
+  (function (strip) {
+    var active = strip && strip.querySelector(".report-tab.active");
+    if (!active || strip.scrollWidth <= strip.clientWidth) return;
+    var offset = active.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
+    strip.scrollLeft = offset - (strip.clientWidth - active.offsetWidth) / 2;
+  })(document.currentScript && document.currentScript.parentElement);
+</script>

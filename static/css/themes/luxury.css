@@ -336,3 +336,16 @@ option {
 /* ── Navigation active states ────────────────────────────── */
 .nav-link { color: var(--text-muted); font-size: var(--text-sm); }
 .nav-link:hover, .nav-link.active { color: var(--accent-gold); }
+
+/* Report tab bar (reports/_report_tabs.html, on all seven report pages).
+   The seven tabs are about 940px wide, so on a phone the row used to push
+   the whole page sideways. Let it scroll inside its own strip instead;
+   _report_tabs.html scrolls the active tab into view. */
+.report-subnav-left {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.report-subnav-left::-webkit-scrollbar { display: none; }
