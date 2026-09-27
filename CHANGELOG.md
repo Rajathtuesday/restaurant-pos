@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-09-27
+
+### Fixed
+- **The kitchen display got slower every day** - its data call (`get_kitchen_data` in `kitchen/services/kitchen_service.py`) loaded every KOT the outlet had ever had, then asked the database separately for each one's unfinished dishes (`kot.items.exclude(...)` skips the prefetch) and again for each dish's menu name. The screen asks every 5 seconds. A load test on a t3.micro-sized copy of production measured about 1.1 ms per past KOT: 1,000 KOTs made one poll take about 1 second, 10,000 about 12 seconds, and a single open kitchen screen at 1,000 KOTs used more CPU than a t3.micro's whole all-day allowance. The database now returns only KOTs that still have an unfinished dish, with those dishes and their menu items fetched in one more query, so a poll is the same small number of queries however long the history is. What the screen shows is unchanged: same KOTs, same dishes, cancelled orders and finished dishes still hidden, the station filter and the token pickup rule as before. Dishes within a ticket are now always listed in the order they were added.
+
+### Tests
+- **3 new tests** in `kitchen/tests.py` (`KitchenDataQueryCountTest`): a poll makes the same number of queries before and after 25 finished KOTs are added (the old code went from 10 to 35), a ticket with a served and an unserved dish lists only the unserved one, and the station filter still works. All 48 kitchen tests pass on Postgres.
+
+---
+
 ## 2026-09-25
 
 ### Fixed

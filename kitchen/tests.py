@@ -224,6 +224,81 @@ class KitchenDataVisibleAfterPaymentTest(_Base):
         self.assertEqual(data, [])
 
 
+class KitchenDataQueryCountTest(_Base):
+    """
+    get_kitchen_data used to load every KOT the outlet had ever had and run
+    kot.items.exclude(...) for each one, which bypasses the prefetch: one
+    query per KOT in history. The kitchen screen polls every 5 s, so it got
+    slower every day a restaurant used it (a load test measured about 1 s
+    per poll at 1,000 past KOTs). Finished history must not change how many
+    queries a poll makes, or what it shows.
+    """
+
+    def setUp(self):
+        super().setUp()
+        create_kot(self.owner, self.order)  # one live KOT: the Burger, "sent"
+        self.order_item.refresh_from_db()
+        self.history_order = Order.objects.create(
+            tenant=self.tenant, outlet=self.outlet, status="closed",
+        )
+        self._next_kot_number = 1000
+
+    def _add_finished_kots(self, n):
+        from kitchen.models import KOTBatch
+        for _ in range(n):
+            self._next_kot_number += 1
+            kot = KOTBatch.objects.create(
+                tenant=self.tenant, outlet=self.outlet, order=self.history_order,
+                kot_number=self._next_kot_number, status="ready",
+            )
+            OrderItem.objects.create(
+                order=self.history_order, menu_item=self.item, quantity=1, price=100,
+                gst_percentage=5, total_price=105, status="served", kot=kot,
+            )
+
+    def _poll(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+        client = self._login(self.chef)
+        client.get(reverse("kitchen-data"))  # warm up session and per-request caches
+        with CaptureQueriesContext(connection) as ctx:
+            resp = client.get(reverse("kitchen-data"))
+        self.assertEqual(resp.status_code, 200)
+        return len(ctx.captured_queries), resp.json()["kots"]
+
+    def test_query_count_does_not_grow_with_finished_history(self):
+        before, kots_before = self._poll()
+        self._add_finished_kots(25)
+        after, kots_after = self._poll()
+        self.assertEqual(before, after, "a poll must not run a query per past KOT")
+        self.assertEqual([k["order_id"] for k in kots_after], [self.order.id])
+        self.assertEqual(kots_before, kots_after)
+
+    def test_mixed_kot_lists_only_unfinished_items(self):
+        from kitchen.models import KOTBatch
+        kot = KOTBatch.objects.get(order=self.order)
+        OrderItem.objects.create(
+            order=self.order, menu_item=self.item, quantity=2, price=100,
+            gst_percentage=5, total_price=210, status="served", kot=kot,
+        )
+        _, kots = self._poll()
+        self.assertEqual(len(kots), 1)
+        self.assertEqual([i["id"] for i in kots[0]["items"]], [self.order_item.id])
+        self.assertEqual(kots[0]["items"][0]["name"], "Burger")
+        self.assertEqual(kots[0]["items"][0]["status"], "sent")
+
+    def test_station_filter_still_applies(self):
+        from kitchen.models import KOTBatch
+        from setup.models import KitchenStation
+        grill = KitchenStation.objects.create(tenant=self.tenant, outlet=self.outlet, name="Grill")
+        KOTBatch.objects.filter(order=self.order).update(station=grill)
+        client = self._login(self.chef)
+        grill_kots = client.get(reverse("kitchen-data"), {"station": "Grill"}).json()["kots"]
+        bar_kots = client.get(reverse("kitchen-data"), {"station": "Bar"}).json()["kots"]
+        self.assertEqual([k["station"] for k in grill_kots], ["Grill"])
+        self.assertEqual(bar_kots, [])
+
+
 class ServeAndMessagePermissionTest(_Base):
     def setUp(self):
         super().setUp()
