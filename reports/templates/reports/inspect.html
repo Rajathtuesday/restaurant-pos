@@ -279,14 +279,15 @@
           <td class="text-end mono">₹{{ row.taxable|floatformat:2 }}</td>
           <td class="text-end mono">₹{{ row.cgst|floatformat:2 }}</td>
           <td class="text-end mono">₹{{ row.sgst|floatformat:2 }}</td>
-          <td class="text-end mono">₹{{ row.cgst|add:row.sgst|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ row.gst|floatformat:2 }}</td>
         </tr>
         {% endfor %}
         <tr class="total-row">
           <td>Total</td>
-          <td class="text-end mono">₹{{ net|floatformat:2 }}</td>
-          <td colspan="2"></td>
-          <td class="text-end mono">₹{{ gst|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ gst_totals.taxable|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ gst_totals.cgst|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ gst_totals.sgst|floatformat:2 }}</td>
+          <td class="text-end mono">₹{{ gst_totals.gst|floatformat:2 }}</td>
         </tr>
       </tbody>
     </table>

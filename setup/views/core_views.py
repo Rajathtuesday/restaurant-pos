@@ -1052,6 +1052,18 @@ def outlet_settings(request):
                 "Could not parse parcel_charge_amount=%r for outlet %s — left unchanged",
                 request.POST.get("parcel_charge_amount"), outlet.id,
             )
+        # Only on the form when the parcel_charge feature is on; a missing or
+        # unknown value leaves the rate as it was.
+        if "parcel_gst_rate" in request.POST:
+            from orders.services.tax_service import GST_RATES
+            try:
+                rate = Decimal(request.POST["parcel_gst_rate"])
+            except Exception:
+                rate = None
+            if rate in GST_RATES:
+                outlet.parcel_gst_rate = rate
+            else:
+                logger.warning("Ignored parcel_gst_rate=%r for outlet %s", request.POST["parcel_gst_rate"], outlet.id)
 
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):
@@ -1081,9 +1093,11 @@ def outlet_settings(request):
         messages.success(request, "Outlet details saved successfully.")
         return redirect("outlet_settings")
 
+    from orders.services.tax_service import GST_RATE_CHOICES
     return render(request, "setup/outlet_settings.html", {
         "outlet": outlet,
         "tenant": tenant,
+        "parcel_gst_rates": GST_RATE_CHOICES,
     })
 
 

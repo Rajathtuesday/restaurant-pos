@@ -3,6 +3,7 @@
 
 import logging
 import uuid
+from decimal import Decimal
 
 from django.db import models
 from django.utils.text import slugify
@@ -358,6 +359,19 @@ class Outlet(models.Model):
         help_text=(
             "True (recommended): charge × quantity (3 idlis = ₹15). "
             "False: flat charge per order regardless of items."
+        )
+    )
+
+    parcel_gst_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("5.00"),
+        help_text=(
+            "GST on the parcel charge, in percent. Packing is part of the "
+            "restaurant service, so it carries the food's rate: 5% for most "
+            "restaurants, 18% in a hotel with rooms over ₹7,500 a night. "
+            "Added on top when prices exclude GST, taken out of the charge "
+            "when they include it, and never charged on the composition scheme."
         )
     )
 

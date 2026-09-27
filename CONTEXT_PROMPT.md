@@ -32,7 +32,7 @@ Features are per-tenant-type, overridable via `TenantFeatureOverride`
 - `Outlet` — address, phone, gst_no, fssai_no, sac_code, gst_inclusive, print_mode
 - `KitchenStation` — name, is_default, printer_ip, printer_port, paper_width_mm, cut_type, printer_encoding
 - `KOTBatch` — groups items by station, one per station per order-send
-- `Order / OrderItem` — recalculate_totals() handles GST inclusive/exclusive
+- `Order / OrderItem`: recalculate_totals() runs the tax engine (`orders/services/tax_engine.py`, the only place tax maths happens: GST on top or included, composition, parcel GST, rounding) and stores the bill's tax record in `Order.tax_summary`; bills, reports and GSTR-1 read that record. A paid or closed bill is never re-totalled (`IssuedBillError`).
 - `DailyTokenCounter` — locked with select_for_update, prevents duplicate tokens
 
 ## Printing architecture

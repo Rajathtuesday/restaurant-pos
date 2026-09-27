@@ -194,6 +194,8 @@ def make_order(tenant, outlet, dishes, mode_index, bill_index, bill):
         order_number=f"GOLD-{mode_index}{bill_index}",
         discount_type=dtype, discount_value=Decimal(dval),
         parcel_surcharge=Decimal(bill.get("parcel", "0")),
+        # as toggle_parcel does: the outlet's parcel GST rate, copied onto the bill
+        parcel_gst_rate=outlet.parcel_gst_rate if bill.get("parcel") else None,
     )
     for key, qty, *extra in bill["lines"]:
         dish = dishes[key]

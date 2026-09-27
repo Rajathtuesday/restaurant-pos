@@ -220,6 +220,8 @@ class ParcelSurchargeTest(CounterBillingBase):
         data = resp.json()
         self.assertTrue(data["parcel_on"])
         self.assertEqual(Decimal(str(data["parcel_amount"])), Decimal("5"))
+        # 5% GST on the ₹5 parcel charge (0.25): 152 + 5.25 = 157.25, billed as 157
+        self.assertEqual(Decimal(str(data["parcel_gst"])), Decimal("0.25"))
         self.assertEqual(Decimal(str(data["grand_total"])), original_total + Decimal("5"))
 
     def test_toggle_parcel_twice_removes_surcharge(self):
@@ -242,6 +244,8 @@ class ParcelSurchargeTest(CounterBillingBase):
         self.assertEqual(resp.status_code, 404)
 
     def test_parcel_included_in_grand_total_recalculate(self):
+        # Set directly, not through toggle_parcel, so no parcel GST rate is
+        # stored: the parcel is untaxed, as on bills from before 27 Sep 2026.
         order = self._make_order([(self.idli, 1)])  # 40 + GST
         order.parcel_surcharge = Decimal("5")
         order.save(update_fields=["parcel_surcharge"])

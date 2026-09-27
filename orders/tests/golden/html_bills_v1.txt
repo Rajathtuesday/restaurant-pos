@@ -61,20 +61,20 @@ Parcel Charge
 Tax Breakdown
 GST @ 5.00%
 CGST @ 2.50%
-₹10.62
+₹11.12
 SGST @ 2.50%
-₹10.61
+₹11.11
 Total GST
-₹21.23
+₹22.23
 CGST @ 2.50%
-₹10.62
+₹11.12
 SGST @ 2.50%
-₹10.61
+₹11.11
 Round Off
 +₹0.27
 TOTAL
-₹466.00
-−₹466.00
+₹467.00
+−₹467.00
 Balance Due
 ₹0.00
 FULLY PAID
@@ -84,11 +84,11 @@ SAC: 996331
 Subtotal
 Rs.425
 GST
-Rs.21
+Rs.22
 Parcel Charge
 Rs.20
 TOTAL
-Rs.466
+Rs.467
 Paid via
 ==== public bill | GST extra | parcel with a token, UPI ====
 ₹75.00
@@ -96,13 +96,13 @@ Paid via
 Subtotal
 ₹424.50
 CGST
-₹10.62
+₹11.12
 SGST
-₹10.61
+₹11.11
 Round Off
 +₹0.27
 Total
-₹466.00
+₹467.00
 Paid in full
 ==== bill page | GST extra | mixed rates, 10% off, one voided and one free dish ====
 Invoice
@@ -190,7 +190,7 @@ GST @ 5.00%
 CGST @ 2.50%
 ₹14.45
 SGST @ 2.50%
-₹14.45
+₹14.46
 GST @ 18.00%
 CGST @ 9.00%
 ₹25.52
@@ -201,7 +201,7 @@ Total GST
 CGST @ 2.50%
 ₹14.45
 SGST @ 2.50%
-₹14.45
+₹14.46
 CGST @ 9.00%
 ₹25.52
 SGST @ 9.00%
@@ -362,16 +362,16 @@ Tax Breakdown
 (included in price)
 GST @ 5.00% (incl.)
 CGST @ 2.50%
-₹10.11
+₹10.58
 SGST @ 2.50%
-₹10.10
+₹10.58
 Total GST (incl.)
-₹20.21
+₹21.16
 (All prices inclusive of GST)
 CGST @ 2.50%
-₹10.11
+₹10.58
 SGST @ 2.50%
-₹10.10
+₹10.58
 Round Off
 +₹0.50
 TOTAL
@@ -387,7 +387,7 @@ SAC: 996331
 Subtotal
 Rs.404
 GST
-Rs.20
+Rs.21
 Parcel Charge
 Rs.20
 TOTAL
@@ -399,9 +399,9 @@ Paid via
 Subtotal
 ₹404.29
 CGST
-₹10.11
+₹10.58
 SGST
-₹10.10
+₹10.58
 Round Off
 +₹0.50
 Total
@@ -423,23 +423,23 @@ Tax Breakdown
 (included in price)
 GST @ 5.00% (incl.)
 CGST @ 2.50%
-₹10.29
-SGST @ 2.50%
 ₹10.28
+SGST @ 2.50%
+₹10.29
 GST @ 18.00% (incl.)
 CGST @ 9.00%
-₹43.93
+₹43.94
 SGST @ 9.00%
 ₹43.93
 Total GST (incl.)
 ₹108.44
 (All prices inclusive of GST)
 CGST @ 2.50%
-₹10.29
-SGST @ 2.50%
 ₹10.28
+SGST @ 2.50%
+₹10.29
 CGST @ 9.00%
-₹43.93
+₹43.94
 SGST @ 9.00%
 ₹43.93
 TOTAL
@@ -491,9 +491,9 @@ Tax Breakdown
 (included in price)
 GST @ 5.00% (incl.)
 CGST @ 2.50%
-₹13.77
-SGST @ 2.50%
 ₹13.76
+SGST @ 2.50%
+₹13.77
 GST @ 18.00% (incl.)
 CGST @ 9.00%
 ₹21.63
@@ -503,9 +503,9 @@ Total GST (incl.)
 ₹70.78
 (All prices inclusive of GST)
 CGST @ 2.50%
-₹13.77
-SGST @ 2.50%
 ₹13.76
+SGST @ 2.50%
+₹13.77
 CGST @ 9.00%
 ₹21.63
 SGST @ 9.00%

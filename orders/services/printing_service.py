@@ -257,7 +257,8 @@ class PrintingService:
         # ── INVOICE INFO — centered block, Font A ───────────────────────
         p.set(align="center", bold=False, font='a')
         p.text(tc("Bill No.", str(order.order_number or order.id)) + "\n")
-        p.text(tc("Date", order.created_at.strftime("%d/%m/%Y %H:%M")) + "\n")
+        # created_at is stored in UTC; the bill shows the outlet's local time
+        p.text(tc("Date", timezone.localtime(order.created_at).strftime("%d/%m/%Y %H:%M")) + "\n")
         if order.table:
             p.text(tc("Table", order.table.name) + "\n")
         elif hasattr(order, 'token') and order.token:
@@ -329,7 +330,7 @@ class PrintingService:
             _UNCATEGORISED = "uncategorised"
             for item in order.items.exclude(status="voided").select_related(
                 "menu_item__category"
-            ).order_by("menu_item__category__name"):
+            ).order_by("menu_item__category__name", "id"):
                 cat = item.menu_item.category if item.menu_item else None
                 key = cat.id if cat else _UNCATEGORISED
                 if key not in groups:

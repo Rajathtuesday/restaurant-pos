@@ -592,7 +592,7 @@
                     {% for item in popular_items %}
                     <div class="col-6 col-md-4 col-xl-3 menu-item-searchable">
                         <div class="menu-card" id="card-{{ item.id }}"
-                            onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage|default:0 }}, {{ item.is_veg|lower }})">
+                            onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage }}, {{ item.is_veg|lower }})">
                             <span class="cart-badge" id="badge-{{ item.id }}">0</span>
                             <div class="item-name">
                                 {% if item.is_veg %}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>
@@ -612,7 +612,7 @@
                     {% for item in category.sorted_items %}
                     <div class="col-6 col-md-4 col-xl-3 menu-item-searchable">
                         <div class="menu-card" id="card-{{ item.id }}"
-                            onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage|default:0 }}, {{ item.is_veg|lower }})">
+                            onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage }}, {{ item.is_veg|lower }})">
                             <span class="cart-badge" id="badge-{{ item.id }}">0</span>
                             <div class="item-name">
                                 {% if item.is_veg %}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>
@@ -744,7 +744,9 @@
             </div>
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            {% if not request.user.outlet.is_composition_scheme %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            {% endif %}
             {% if request.user.outlet.parcel_charge_amount %}
             <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
                 <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -873,7 +875,9 @@
             </div>
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            {% if not request.user.outlet.is_composition_scheme %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+            {% endif %}
             {% if request.user.outlet.parcel_charge_amount %}
             <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
                 <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -925,6 +929,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/order_edit.js' %}"></script>
+<script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
     /* ── Resizable 3-panel layout (desktop only) ───────────────────────
        Two drag handles: category-sidebar|menu-area and menu-area|context-
@@ -1035,6 +1040,8 @@
     /* ── State ───────────────────────────────────────────────────────── */
     let cart = [];
     const GST_INCLUSIVE = {{ request.user.outlet.gst_inclusive|yesno:"true,false" }};
+    const IS_COMPOSITION = {{ request.user.outlet.is_composition_scheme|yesno:"true,false" }};
+    const PARCEL_GST_RATE = {{ request.user.outlet.parcel_gst_rate|default:0 }};
     let selectedItem = null;
     let sending = false;
     let currentOrderId = null;
@@ -1126,23 +1133,12 @@
     function renderCart() {
         const dc = document.getElementById('cartItemsContainerDesktop');
         const mc = document.getElementById('cartItemsContainerMobile');
-        let subtotal = 0, gst = 0;
-
         if (!cart.length) {
             const empty = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
             dc.innerHTML = empty; mc.innerHTML = empty;
         } else {
             const rows = cart.map((i, idx) => {
                 const total    = i.price * i.quantity;
-                const rate     = (i.gst_percentage || 0) / 100;
-                subtotal += total;
-                if (GST_INCLUSIVE) {
-                    // Price already includes GST — extract it: gst = price × rate / (1 + rate)
-                    gst += total * rate / (1 + rate);
-                } else {
-                    // Price excludes GST — add on top
-                    gst += total * rate;
-                }
                 return `<div class="cart-row">
                     <div style="flex-grow:1;padding-right:8px;">
                         <div class="cart-item-name">${i.name}${i.is_takeaway ? ' <span style="font-size:0.55rem;background:var(--accent-gold);color:#fff;padding:1px 5px;vertical-align:middle;">TKW</span>' : ''}</div>
@@ -1161,20 +1157,22 @@
             dc.innerHTML = rows; mc.innerHTML = rows;
         }
 
-        gst = Math.round(gst);
-        // Inclusive: GST is already inside subtotal — don't add again.
-        // Parcel is a flat surcharge on top either way, added here so the
-        // Total shown actually matches what checkout will charge once
-        // parcel is toggled on (see toggleParcel/_syncParcelUI).
-        const grandTotal = (GST_INCLUSIVE ? subtotal : subtotal + gst) + (_parcelOn ? _parcelChargeAmount : 0);
-        document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + subtotal);
+        // The same rules as the bill (static/js/cart_tax.js): each line at its
+        // own rate, GST inside the price or on top, none on the composition
+        // scheme, and the parcel charge (once toggled on, see
+        // toggleParcel/_syncParcelUI) taxed like the food.
+        const t = RasovaCartTax.totals(
+            cart.map(i => ({ amount: i.price * i.quantity, gstRate: i.gst_percentage })),
+            { inclusive: GST_INCLUSIVE, composition: IS_COMPOSITION,
+              parcel: _parcelOn ? _parcelChargeAmount : 0, parcelGstRate: PARCEL_GST_RATE });
+        document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + t.subtotal);
         document.querySelectorAll('.view-gst').forEach(e => {
-            e.textContent = '₹' + gst;
+            e.textContent = '₹' + t.gst.toFixed(2);
             // Show label hint so cashier knows it's included, not added
             const label = e.closest('.summary-row')?.querySelector('span:first-child');
             if (label) label.textContent = GST_INCLUSIVE ? 'GST (incl.)' : 'GST';
         });
-        document.querySelectorAll('.view-total').forEach(e => e.textContent = '₹' + grandTotal);
+        document.querySelectorAll('.view-total').forEach(e => e.textContent = '₹' + t.roundedTotal);
 
         // FAB badge — total item count
         const totalQty = cart.reduce((s, i) => s + i.quantity, 0);

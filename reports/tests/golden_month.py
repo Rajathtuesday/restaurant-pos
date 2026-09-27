@@ -114,6 +114,8 @@ def _bill(rng, tenant, outlet, dishes, number, opened_at, edge):
     order = Order.objects.create(
         tenant=tenant, outlet=outlet, status=status, order_number=number, source="dine_in",
         discount_type=dtype, discount_value=dval, parcel_surcharge=parcel,
+        # as toggle_parcel does: the outlet's parcel GST rate, copied onto the bill
+        parcel_gst_rate=outlet.parcel_gst_rate if parcel else None,
     )
     for dish in rng.sample(dishes, rng.randint(1, 5)):
         qty = rng.randint(1, 4)

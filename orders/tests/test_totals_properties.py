@@ -6,7 +6,8 @@ Two kinds of test live here:
 
   * Rules on the frozen copy of today's maths (legacy_totals.py): the bill
     adds up, round-off stays within 50 paise, CGST and SGST split the GST,
-    composition outlets charge no GST, voided and free dishes change nothing.
+    composition outlets charge no GST, voided and free dishes change nothing,
+    the parcel charge carries its own rate and never changes the food's tax.
     No database, so they run fast on many bills.
 
   * A differential test: random bills go through the real
@@ -28,7 +29,7 @@ from hypothesis.extra.django import TestCase as HypothesisTestCase
 
 from orders.tests.legacy_totals import legacy_totals
 from orders.tests.money_scenarios import (
-    GST_RATES, OUTLET_CONFIGS, build_world, create_orders, make_item, make_spec, snapshot,
+    GST_RATES, OUTLET_CONFIGS, build_world, create_orders, make_item, make_spec, row_head, snapshot,
 )
 
 THOROUGH = os.environ.get("MONEY_THOROUGH") == "1"
@@ -72,13 +73,16 @@ order_discounts = st.one_of(
     st.tuples(st.just("amount"), _paise(0.01, 100000)),
 )
 parcels = st.one_of(st.just("0"), _paise(0.01, 500))
+# None: a bill from before parcel GST, whose parcel charge carries none
+parcel_rates = st.sampled_from([None, "5", "5", "18"])
 
 
 @st.composite
 def bills(draw, cfgs=tuple(range(len(OUTLET_CONFIGS)))):
     cfg = draw(st.sampled_from(list(cfgs)))
     dtype, dval = draw(order_discounts)
-    return make_spec(cfg, draw(st.lists(dishes, max_size=10)), dtype, dval, draw(parcels))
+    return make_spec(cfg, draw(st.lists(dishes, max_size=10)), dtype, dval,
+                     draw(parcels), draw(parcel_rates))
 
 
 def live_items(spec):
@@ -86,9 +90,9 @@ def live_items(spec):
 
 
 def totals(spec):
-    """legacy_totals() with the money fields as Decimals."""
+    """legacy_totals() with the money fields as Decimals (pgst is 0 without a parcel)."""
     out = legacy_totals(spec, OUTLET_CONFIGS)
-    return {key: (value if key == "bd" else D(value)) for key, value in out.items()}
+    return {"pgst": D("0"), **{key: (value if key == "bd" else D(value)) for key, value in out.items()}}
 
 
 # ---------------------------------------------------------------------------
@@ -106,8 +110,9 @@ class BillRulesTest(SimpleTestCase):
         inclusive, _ = OUTLET_CONFIGS[spec["cfg"]]
         parcel = D(spec["parcel"])
         if inclusive:
-            # menu prices already hold the GST, and the discount came off them
-            expected = t["sub"] + t["gst"] + parcel + t["ro"]
+            # menu prices and the parcel charge already hold their GST, and
+            # the discount came off the prices
+            expected = t["sub"] + t["gst"] - t["pgst"] + parcel + t["ro"]
         else:
             expected = t["sub"] - t["disc"] + t["gst"] + parcel + t["ro"]
         self.assertEqual(t["grand"], expected)
@@ -130,7 +135,31 @@ class BillRulesTest(SimpleTestCase):
     @given(bills(cfgs=COMPOSITION_CFGS))
     def test_composition_outlets_charge_no_gst(self, spec):
         t = totals(spec)
-        self.assertEqual((t["gst"], t["cgst"], t["sgst"]), (0, 0, 0))
+        self.assertEqual((t["gst"], t["cgst"], t["sgst"], t["pgst"]), (0, 0, 0, 0))
+        self.assertEqual(t["bd"], [], "a bill of supply has no GST breakdown")
+
+    @PURE
+    @given(bills(cfgs=GST_CFGS))
+    def test_parcel_gst_is_the_parcel_rate_on_the_parcel(self, spec):
+        t = totals(spec)
+        inclusive, _ = OUTLET_CONFIGS[spec["cfg"]]
+        parcel = D(spec["parcel"])
+        rate = D(spec["parcel_rate"]) if spec["parcel_rate"] else D("0")
+        if parcel <= 0 or rate == 0:
+            expected = D("0")
+        elif inclusive:
+            expected = parcel * rate / (100 + rate)      # inside the charge
+        else:
+            expected = parcel * rate / 100               # on top of the charge
+        self.assertEqual(t["pgst"], expected.quantize(D("0.01"), rounding=ROUND_HALF_UP))
+
+    @PURE
+    @given(bills())
+    def test_the_parcel_never_changes_the_food_tax(self, spec):
+        with_parcel = totals(spec)
+        without = totals(dict(spec, parcel="0"))
+        self.assertEqual(with_parcel["gst"] - with_parcel["pgst"], without["gst"])
+        self.assertEqual((with_parcel["sub"], with_parcel["disc"]), (without["sub"], without["disc"]))
 
     @PURE
     @given(bills(), st.lists(dishes, min_size=1, max_size=4))
@@ -144,9 +173,10 @@ class BillRulesTest(SimpleTestCase):
     @PURE
     @given(bills(cfgs=INCLUSIVE_CFGS))
     def test_inclusive_menu_price_is_what_the_guest_pays(self, spec):
+        """Menu prices and the parcel charge both already include their GST."""
         items = [dict(it, disc="0") for it in spec["items"]]
-        spec = dict(spec, items=items, dtype=None, dval="0", parcel="0")
-        menu_total = sum((D(it["total"]) for it in live_items(spec)), D("0"))
+        spec = dict(spec, items=items, dtype=None, dval="0")
+        menu_total = sum((D(it["total"]) for it in live_items(spec)), D("0")) + D(spec["parcel"])
         self.assertEqual(totals(spec)["grand"], menu_total.quantize(D("1"), rounding=ROUND_HALF_UP))
 
     @PURE
@@ -160,28 +190,39 @@ class BillRulesTest(SimpleTestCase):
 
     @PURE
     @given(bills())
-    def test_breakdown_rows_are_well_formed(self, spec):
-        rows = totals(spec)["bd"]
-        rates = [D(row[0]) for row in rows]
+    def test_tax_rows_are_well_formed(self, spec):
+        """One row per rate in use, in rate order, each with CGST and SGST
+        splitting its tax to within a paisa."""
+        t = totals(spec)
+        rates = [D(row[1]) for row in t["bd"]]
         self.assertEqual(rates, sorted(set(rates)))
-        self.assertLessEqual(set(rates), {D(it["gst"]) for it in live_items(spec)})
-        for rate, cgst_rate, sgst_rate, cgst, sgst in rows:
-            self.assertEqual(D(cgst_rate), D(rate) / 2)
-            self.assertEqual(D(sgst_rate), D(cgst_rate))
-            self.assertGreater(D(cgst) + D(sgst), 0)
-            self.assertIn(D(cgst) - D(sgst), (0, D("0.01")))
+        allowed = {D(it["gst"]) for it in live_items(spec)}
+        if D(spec["parcel"]) > 0 and spec["parcel_rate"] is not None:
+            allowed.add(D(spec["parcel_rate"]))
+        self.assertLessEqual(set(rates), allowed)
+        for kind, rate, taxable, tax, cgst, sgst in t["bd"]:
+            self.assertEqual(kind, "gst")
+            self.assertTrue(D(taxable) != 0 or D(tax) != 0, "an empty row")
+            self.assertEqual(D(cgst) + D(sgst), D(tax))
+            self.assertIn(D(cgst) - D(sgst), (D("-0.01"), 0, D("0.01")))
 
     @PURE
     @given(bills(cfgs=GST_CFGS))
-    def test_breakdown_is_within_half_a_paisa_per_dish_of_the_gst_total(self, spec):
-        """A known gap, recorded in the liquor VAT plan: the breakdown rounds
-        each dish's tax on its own while the GST total is rounded once, so the
-        two can differ by a few paise. Phase 1 closes it to zero; until then
-        it must stay this small."""
+    def test_tax_rows_add_up_to_the_bill(self, spec):
+        """The rows add up to exactly the bill's GST, CGST, SGST and taxable
+        value (P11 closed: before the engine they could miss by a few paise)."""
         t = totals(spec)
-        shown = sum((D(row[3]) + D(row[4]) for row in t["bd"]), D("0"))
-        allowed = D("0.005") * (len(live_items(spec)) + 1)
-        self.assertLessEqual(abs(shown - t["gst"]), allowed)
+        inclusive, _ = OUTLET_CONFIGS[spec["cfg"]]
+        column = lambda n: sum((D(row[n]) for row in t["bd"]), D("0"))
+        self.assertEqual(column(3), t["gst"])
+        self.assertEqual(column(4), t["cgst"])
+        self.assertEqual(column(5), t["sgst"])
+        parcel = D(spec["parcel"]) if spec["parcel_rate"] is not None else D("0")
+        if inclusive:
+            expected_taxable = t["sub"] + parcel - t["pgst"]
+        else:
+            expected_taxable = t["sub"] - t["disc"] + parcel
+        self.assertEqual(column(2), expected_taxable)
 
 
 class RealMathsMatchesFrozenCopyTest(HypothesisTestCase):
@@ -196,6 +237,5 @@ class RealMathsMatchesFrozenCopyTest(HypothesisTestCase):
     def test_real_bill_matches_the_frozen_copy(self, spec):
         [order] = create_orders(self.world, [spec])
         order.recalculate_totals()
-        expected = {"i": 0, "cfg": spec["cfg"], "parcel": spec["parcel"]}
-        expected.update(legacy_totals(spec, OUTLET_CONFIGS))
+        expected = {**row_head(0, spec), **legacy_totals(spec, OUTLET_CONFIGS)}
         self.assertEqual(snapshot(order, 0, spec), expected)

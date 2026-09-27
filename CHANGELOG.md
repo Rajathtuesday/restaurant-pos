@@ -7,6 +7,40 @@ the source of truth.
 
 ---
 
+## 2026-09-27 (evening): one tax engine for every bill, and today's GST problems fixed
+
+Phase 0 of the liquor VAT plan. Every bill without a taxed parcel charge still totals exactly as before: all 5,000 golden bills were checked line by line against the version committed that morning.
+
+### Changed
+- **One tax engine** - `orders/services/tax_engine.py` is now the only place Rasova does tax maths, and its docstring states every rule. `Order.recalculate_totals()` runs it and stores the bill's **tax record** in the new `Order.tax_summary`: the taxable value, tax, CGST and SGST at each rate (0% included), and the parcel charge's GST. The bill page's breakdown, GSTR-1 and the tax inspection screen read that record; nothing re-does the maths any more. Every line carries a tax kind, so liquor VAT will be a second kind of tax, not another rewrite. Bills totalled before the record existed are worked out by the same engine when a report needs them, which gives exactly the totals they were billed with. `gst_breakdown_cache` is still written in its old shape next to the record, so a rollback to the previous release still shows every breakdown.
+- **A paid or closed bill is never re-totalled** - `recalculate_totals()` refuses it with `IssuedBillError`. Every screen already stopped before that point; the model now makes sure nothing new can get past it. An order that arrives already paid (aggregators) is totalled once.
+
+### Fixed
+- **The parcel charge carried no GST (P5)** - packing is part of the restaurant service and carries the food's rate. New outlet setting "GST on the Parcel Charge" (Outlet Settings and the superuser portal; 0%, 5% or 18%, default 5%). `toggle_parcel` copies the rate onto the bill when the charge is turned on, so changing the setting later never changes a bill already made. Prices excluding GST: the GST is added on top (a ₹10 parcel becomes ₹10.50). Prices including GST: it is inside the charge and the guest pays the same. None on the composition scheme. Parcel orders from before today have no rate and stay untaxed. In the golden bills this changed 661 parcel bills, each by exactly the parcel's own GST.
+- **The tax breakdown didn't add up to the bill (P11)** - each dish's tax was rounded on its own for the breakdown, while the bill's GST was rounded once. On 519 of the 5,000 golden bills the rows missed the GST by a paisa or two, and one bill charged ₹0.01 GST with no row showing it. The engine keeps the one rounding (so totals don't move) and allocates the rows to it, largest remainder first; CGST and SGST per rate are allocated the same way. The rows now always add up to the bill's GST, CGST and SGST. No row moved by more than 2 paise.
+- **Composition bills stored GST rows (P7)** - a bill of supply now has none (2,138 golden bills).
+- **GSTR-1 used each dish's current menu rate (P2), left out parcel charges and could drift from the bills (P17)** - it now sums the bills' own tax records: each dish at the rate it was sold at, parcel charges included, and its total tax equals the bills' GST to the paisa.
+- **The tax inspection screen (P9)** - "Taxable Value" showed the tax, and "Total GST" dropped the paise (₹12.75 + ₹12.75 showed as ₹24). It now shows the taxable value, CGST, SGST and GST at every rate, from the same records as GSTR-1, with paise.
+- **Times in UTC (P8)** - the receipt the phone agent prints and the orders CSV now show Indian time: a bill made at 8 PM printed 14:30.
+- **Carts guessed GST (P3, P10)** - the QR menu said "GST (5%)" for everything, turned a 0% dish into 5% and added GST on top at GST-included and composition outlets; the POS cart did the same, and the QSR cart missed composition. All three now use one script, `static/js/cart_tax.js`, the browser copy of the engine, which follows the same rules to the paisa, parcel GST included.
+- **GST rate list (P1)** - the GST Rates page offered "18%, AC / Liquor License", 12% and 28%. It now offers 0%, 5% and 18% with honest labels, says alcohol is not under GST, refuses 12% and 28%, and marks any dish still on a retired rate "old rate" (it used to show as 0%).
+- **Bill lines in random order (P19)** - a bill's lines came back in whatever order the database stored them. `OrderItem` now always lists them in the order they were added (bills, receipts, KOTs, screens).
+- **Reports and exports with ties** - top items, category sales, the payment split and the items, category and waiter CSVs sorted only by a value that could tie, and the orders CSV listed a bill's payment methods in database order, so the same month could export in a different order each time. Each now has a fixed tie-break.
+
+### Tests
+- New: `orders/tests/test_tax_engine.py` (23 rules, hand-worked), `test_tax_record.py` (22: the stored record, issued bills, parcel GST through the real toggle, the settings), `reports/tests/test_tax_reports.py` (10: GSTR-1, the queries it makes, inspection, Indian time), `menu/test_gst_rates.py` (5), `orders/tests/test_cart_wiring.py` (6), and `orders/tests/test_cart_tax_js.py`, which runs the cart script in Node on 400 random carts against the real engine (GitHub's runners have Node; in CI a missing Node fails the test instead of skipping it).
+- The property tests now require the rows to add up exactly, and add the parcel rules. `legacy_totals.py` became a second, independent implementation of the engine's rules; it agrees with all 5,000 golden bills.
+- Golden files regenerated and reviewed: every changed line is one of the changes above.
+- Parcel tests in `test_parcel_dispatch.py` and `test_billing_modes.py` now expect the parcel's GST, with the arithmetic written out.
+- **Repo scanners read only the project's own files** - three checks in `core/tests.py` (multi-line template comments, `.unscoped()` call sites, header links) walked every folder, so the local lab copies of the app in `md_files/` made them fail on a laptop while passing in CI. They now read git's list of the project's files (tracked, plus new files not yet added, minus anything ignored), and `AppFilesTest` pins what they read.
+- **Full suite**: 1,543 tests; the only two failures were those scanners, fixed as above. A deep run of the property rules (220,000 random bills) and of 3,000 real bills against the independent copy passed.
+
+### Upgrade notes
+- Migrations: `tenants 0034` (Outlet.parcel_gst_rate, default 5%), `orders 0061` (Order.parcel_gst_rate and Order.tax_summary, both nullable: no table rewrite), `orders 0062` (line order, no SQL).
+- No stored bill is rewritten. Bills from before today keep their totals and breakdowns.
+
+---
+
 ## 2026-09-27 (later): a safety net for the bill maths
 
 The liquor VAT work will rewrite how bills are totalled, printed and reported. Before any of that, these tests pin exactly what Rasova does today, so every change it makes is either deliberate and reviewed, or caught.

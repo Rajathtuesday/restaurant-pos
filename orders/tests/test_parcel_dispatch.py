@@ -174,7 +174,13 @@ class ToggleBasicTests(ParcelBase):
         self._toggle(order.id)
         order.refresh_from_db()
         self.assertEqual(order.parcel_surcharge, Decimal("15"))  # 3 × ₹5
-        self.assertEqual(order.grand_total, order.subtotal + order.gst_total + Decimal("15"))
+        # Since 27 Sep 2026 the parcel charge carries the outlet's 5% GST:
+        # food 120 + GST 6.00, parcel 15 + GST 0.75 = 141.75, billed as 142.
+        self.assertEqual(order.parcel_tax, Decimal("0.75"))
+        self.assertEqual(order.gst_total, Decimal("6.75"))
+        self.assertEqual(order.grand_total, Decimal("142"))
+        self.assertEqual(order.grand_total,
+                         order.subtotal + order.gst_total + Decimal("15") + order.round_off)
 
     def test_toggle_response_includes_grand_total(self):
         order = self._make_order([(self.idli, 1)])
@@ -304,10 +310,13 @@ class ToggleTotalIntegrationTests(ParcelBase):
 
     def test_grand_total_increases_by_parcel_amount(self):
         order = self._make_order([(self.idli, 2)])
-        before = order.grand_total
+        before = order.grand_total                    # 80 + 4.00 GST = 84
         self._toggle(order.id)
         order.refresh_from_db()
-        self.assertEqual(order.grand_total, before + Decimal("10"))
+        # the ₹10 parcel charge plus its 5% GST (0.50): 94.50, billed as 95
+        self.assertEqual(before, Decimal("84"))
+        self.assertEqual(order.parcel_tax, Decimal("0.50"))
+        self.assertEqual(order.grand_total, Decimal("95"))
 
     def test_grand_total_restores_after_toggle_off(self):
         order = self._make_order([(self.idli, 2)])
@@ -339,8 +348,11 @@ class ToggleTotalIntegrationTests(ParcelBase):
         order.refresh_from_db()
 
         self.assertEqual(order.parcel_surcharge, surcharge_before)
+        # food 140 + GST 7.00, parcel 10 + GST 0.50 = 157.50, billed as 158
+        self.assertEqual(order.parcel_tax, Decimal("0.50"))
+        self.assertEqual(order.grand_total, Decimal("158"))
         self.assertEqual(order.grand_total,
-                         order.subtotal + order.gst_total + surcharge_before)
+                         order.subtotal + order.gst_total + surcharge_before + order.round_off)
 
 
 # ── 4. Gap 2 — running_order_items returns parcel state ────────────────────────

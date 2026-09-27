@@ -19,11 +19,10 @@ from django.test import TestCase
 
 from orders.tests.legacy_totals import legacy_totals
 from orders.tests.money_scenarios import (
-    OUTLET_CONFIGS, build_world, create_orders, generate_specs, snapshot,
+    OUTLET_CONFIGS, build_world, create_orders, generate_specs, row_head, snapshot,
 )
 
 GOLDEN = pathlib.Path(__file__).parent / "golden" / "totals_v1.jsonl"
-FIELDS = ("sub", "gst", "disc", "grand", "ro", "cgst", "sgst", "bd")
 
 
 def _read_golden():
@@ -34,10 +33,10 @@ def _read_golden():
 def _differences(actual, expected, limit=15):
     lines = []
     for a, e in zip(actual, expected):
-        bad = [f for f in FIELDS if a[f] != e[f]]
+        bad = [f for f in sorted(set(a) | set(e)) if a.get(f) != e.get(f)]
         if bad:
             lines.append(f"bill {a['i']} (mode {a['cfg']}, parcel {a['parcel']}): "
-                         + ", ".join(f"{f} {e[f]} -> {a[f]}" for f in bad))
+                         + ", ".join(f"{f} {e.get(f)} -> {a.get(f)}" for f in bad))
             if len(lines) >= limit:
                 break
     return lines
@@ -86,8 +85,6 @@ class LegacyCopyMatchesGoldenTest(TestCase):
         expected = _read_golden()
         actual = []
         for index, spec in enumerate(specs):
-            row = {"i": index, "cfg": spec["cfg"], "parcel": spec["parcel"]}
-            row.update(legacy_totals(spec, OUTLET_CONFIGS))
-            actual.append(row)
+            actual.append({**row_head(index, spec), **legacy_totals(spec, OUTLET_CONFIGS)})
         diffs = _differences(actual, expected)
         self.assertFalse(diffs, "legacy_totals() disagrees with the golden file:\n" + "\n".join(diffs))

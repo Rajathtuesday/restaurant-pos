@@ -23,6 +23,36 @@ def _dummy_view(request):
     return HttpResponse("ok")
 
 
+# Folders that are never the app's own code: the virtualenv, local copies of
+# the app (md_files labs, agent worktrees), generated indexes and build output.
+_NOT_APP_DIRS = {".venv", "md_files", ".claude", "graft", "staticfiles", "node_modules", ".git"}
+
+
+def _app_files(keep):
+    """The project's own files for which keep(path) is true: everything git
+    tracks plus new files not yet added, minus whatever .gitignore excludes.
+    Walking the folder tree instead also picked up local copies of the app
+    (the k6 lab in md_files holds a whole second Rasova) and failed on code
+    that isn't the app's. Without git, walks the tree and skips the folders
+    above."""
+    import subprocess
+    from pathlib import Path
+
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+            capture_output=True, text=True, check=True,
+        ).stdout.splitlines()
+        paths = [Path(name) for name in listed]
+    except (OSError, subprocess.CalledProcessError):
+        paths = [p for p in Path(".").rglob("*") if not _NOT_APP_DIRS.intersection(p.parts)]
+    return sorted(p for p in paths if p.is_file() and keep(p))
+
+
+def _is_template(path):
+    return path.suffix == ".html" and "templates" in path.parts
+
+
 class TenantRequiredSuperuserBypassTest(TestCase):
 
     def setUp(self):
@@ -112,6 +142,24 @@ class CsrfFailureViewTest(TestCase):
         self.assertNotIn("CSRF verification failed", content)
 
 
+class AppFilesTest(TestCase):
+    """The scanners below read _app_files(). If it ever read nothing, they
+    would pass without checking anything; if it read local copies of the
+    app, they would fail on code that isn't the app's."""
+
+    def test_reads_the_apps_own_files(self):
+        templates = {p.as_posix() for p in _app_files(_is_template)}
+        python = {p.as_posix() for p in _app_files(lambda p: p.suffix == ".py")}
+        self.assertIn("orders/templates/orders/bill.html", templates)
+        self.assertIn("templates/core/base.html", templates)
+        self.assertIn("orders/models.py", python)
+        self.assertGreater(len(templates), 50)
+
+    def test_never_reads_local_copies_or_the_virtualenv(self):
+        for path in _app_files(lambda p: True):
+            self.assertFalse(_NOT_APP_DIRS.intersection(path.parts), path)
+
+
 class NoMultilineDjangoCommentsTest(TestCase):
     """
     Django's {# #} comment tag cannot span multiple lines -- unlike most
@@ -128,13 +176,10 @@ class NoMultilineDjangoCommentsTest(TestCase):
 
     def test_no_multiline_hash_comments_in_any_template(self):
         import re
-        from pathlib import Path
 
         offenders = []
         pattern = re.compile(r"\{#(.*?)#\}", re.DOTALL)
-        for path in Path(".").rglob("templates/**/*.html"):
-            if ".venv" in path.parts:
-                continue
+        for path in _app_files(_is_template):
             text = path.read_text(encoding="utf-8", errors="ignore")
             for m in pattern.finditer(text):
                 if "\n" in m.group(1):
@@ -189,13 +234,10 @@ class UnscopedCallSiteAllowlistTest(TestCase):
 
     def test_unscoped_call_sites_match_allowlist(self):
         import re
-        from pathlib import Path
 
         pattern = re.compile(r"\.unscoped\(")
         found = set()
-        for path in Path(".").rglob("*.py"):
-            if ".venv" in path.parts or "migrations" in path.parts:
-                continue
+        for path in _app_files(lambda p: p.suffix == ".py" and "migrations" not in p.parts):
             posix = path.as_posix()
             if posix in self._NOT_CALL_SITES:
                 continue
@@ -245,13 +287,10 @@ class HeaderLeftHasWayBackTest(TestCase):
 
     def test_every_header_left_override_has_a_link_somewhere(self):
         import re
-        from pathlib import Path
 
         offenders = []
         pattern = re.compile(r"\{% block header_left %\}(.*?)\{% endblock", re.DOTALL)
-        for path in Path(".").rglob("templates/**/*.html"):
-            if ".venv" in path.parts:
-                continue
+        for path in _app_files(_is_template):
             posix = path.as_posix()
             if posix in self.EXEMPT:
                 continue

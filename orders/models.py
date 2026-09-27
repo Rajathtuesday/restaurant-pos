@@ -6,6 +6,7 @@ import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
 from core.models import TenantScopedModel
+from orders.services.tax_engine import GST, Line, compute as compute_tax, rows_from_summary
 from django.db.models import Q
 from django.utils import timezone
 
@@ -55,6 +56,13 @@ class Table(TenantScopedModel):
 # =====================================================
 # ORDER
 # =====================================================
+
+
+class IssuedBillError(Exception):
+    """Something tried to re-total a bill that is paid or closed. An issued
+    bill is a tax invoice and never changes; a correction is a refund. Every
+    screen already stops before this; the model makes sure nothing new can
+    get past."""
 
 
 class Order(TenantScopedModel):
@@ -137,12 +145,25 @@ class Order(TenantScopedModel):
         max_digits=6, decimal_places=2, default=Decimal("0.00"),
         help_text="Extra charge for parcel/takeaway orders. Added to grand_total."
     )
+    # The outlet's parcel GST rate, copied onto the bill when the parcel
+    # charge is turned on (toggle_parcel), so changing the setting later never
+    # changes a bill already made. Empty on bills from before 27 Sep 2026:
+    # their parcel charge carried no GST, and re-totalling keeps it that way.
+    parcel_gst_rate = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     round_off = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"))
 
-    # Cached GST breakdown populated by recalculate_totals() — avoids per-call DB queries and
-    # logic duplication between the property and _recalculate_* methods.
+    # The bill's tax record, from the tax engine (orders/services/tax_engine.py):
+    # taxable value, tax, CGST and SGST per rate, and the tax on each charge.
+    # Bills, reports and returns read it; none of them re-does the maths.
+    # Empty on bills totalled before 27 Sep 2026 (see tax_rows()).
+    tax_summary = models.JSONField(null=True, blank=True)
+
+    # The GST breakdown in its original shape (rate, cgst_rate, sgst_rate,
+    # cgst_amount, sgst_amount). Still written next to tax_summary so that a
+    # rollback to the release before it shows every bill's breakdown; bills
+    # from before tax_summary have only this. tax_summary is the record.
     gst_breakdown_cache = models.JSONField(default=list, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -230,54 +251,47 @@ class Order(TenantScopedModel):
 
     @property
     def gst_breakdown(self):
-        """GST grouped by rate, read from the pre-computed cache.
-
-        Populated by recalculate_totals() — zero DB queries at bill render time.
-        Returns Decimal values for consistent arithmetic downstream.
+        """GST by rate for the bill: the rows with some tax, each as
+        {rate, cgst_rate, sgst_rate, cgst_amount, sgst_amount, taxable} in
+        Decimals. From the tax record; bills totalled before it existed have
+        the breakdown they were saved with (without taxable values).
         """
+        if self.tax_summary is not None:
+            rows = []
+            for row in rows_from_summary(self.tax_summary):
+                if row.kind != GST or row.tax <= 0:
+                    continue
+                half = (row.rate / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                rows.append({
+                    "rate": row.rate, "cgst_rate": half, "sgst_rate": half,
+                    "cgst_amount": row.cgst, "sgst_amount": row.sgst, "taxable": row.taxable,
+                })
+            return rows
         return [
             {k: Decimal(v) for k, v in row.items()}
             for row in (self.gst_breakdown_cache or [])
         ]
 
-    def _build_gst_breakdown_data(self, items, order_discount_factor, gst_inclusive):
-        """Compute GST breakdown given already-calculated order_discount_factor.
-
-        Called from _recalculate_exclusive / _recalculate_inclusive so the
-        discount factor is never recomputed a second time.
-        Returns a JSON-serialisable list[dict[str]] ready for gst_breakdown_cache.
+    def tax_rows(self):
+        """The bill's tax by kind and rate (tax_engine.RateRow), 0% rows
+        included, as returns and tax reports need it. From the tax record.
+        Bills totalled before the record existed are worked out by the same
+        engine from their lines, which gives exactly the totals they were
+        billed with. Reads self.items.all(), so prefetch items for many bills.
         """
-        from collections import defaultdict
-        breakdown = defaultdict(Decimal)
+        if self.tax_summary is not None:
+            return rows_from_summary(self.tax_summary)
+        items = [i for i in self.items.all() if i.status != "voided" and not i.is_complimentary]
+        return list(self._run_tax_engine(items).rows)
 
-        for item in items:
-            rate = item.gst_percentage
-            item_base = item.total_price
-            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-            item_taxable = item_base * order_discount_factor
-            if gst_inclusive:
-                item_gst = (item_taxable * rate / (Decimal("100") + rate)).quantize(Decimal("0.01")) if rate > 0 else Decimal("0.00")
-            else:
-                item_gst = (item_taxable * rate / Decimal("100")).quantize(Decimal("0.01"))
-            breakdown[rate] += item_gst
-
-        from orders.services.tax_service import split_cgst_sgst
-
-        result = []
-        for rate, amount in sorted(breakdown.items()):
-            if amount <= 0:
-                continue
-            half_rate = (rate / 2).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-            cgst_amt, sgst_amt = split_cgst_sgst(amount)
-            result.append({
-                "rate":        str(rate),
-                "cgst_rate":   str(half_rate),
-                "sgst_rate":   str(half_rate),
-                "cgst_amount": str(cgst_amt),
-                "sgst_amount": str(sgst_amt),
-            })
-        return result
+    @property
+    def parcel_tax(self):
+        """GST on the parcel charge (inside it when prices include GST), from
+        the tax record; part of gst_total already."""
+        for charge in (self.tax_summary or {}).get("charges", []):
+            if charge["name"] == "parcel":
+                return Decimal(charge["tax"])
+        return Decimal("0.00")
 
     # -------------------------------------------------
     # APPLY / CLEAR DISCOUNT (helpers for views / API)
@@ -305,182 +319,71 @@ class Order(TenantScopedModel):
     # -------------------------------------------------
     # TOTAL RECALCULATION
     # -------------------------------------------------
-    
+
     def recalculate_totals(self):
         """
-        Recalculate order totals supporting two GST modes:
+        Total the bill with the tax engine and save the result: the money
+        fields, and the tax record (tax_summary) that every bill, report and
+        return reads. orders/services/tax_engine.py sets out every rule:
+        prices exclude GST (added on top) or include it (worked out from
+        inside), the composition scheme collects none, the parcel charge is
+        taxed like the food and never discounted, totals are rounded once,
+        and the per-rate rows always add up to them.
 
-        EXCLUSIVE (default, gst_inclusive=False):
-            item.price = base price.  GST added on top.
-            grand_total = subtotal - discounts + gst
-
-        INCLUSIVE (gst_inclusive=True):
-            item.price = final customer price (GST already inside).
-            GST is back-calculated: gst = price × rate / (100 + rate)
-            grand_total = inclusive_price - discounts (GST already inside)
-            subtotal field stores the back-calculated base (excl. GST).
+        A paid or closed bill that has been totalled is an issued tax invoice
+        and is never re-totalled: this raises IssuedBillError. (An order that
+        arrives already paid, from an aggregator, is totalled once.)
         """
+        if self.pk and self.status in ("paid", "closed") and (
+                self.tax_summary is not None or self.grand_total):
+            raise IssuedBillError(
+                f"Order {self.pk} is {self.status}: an issued bill is never re-totalled."
+            )
+
         items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
+        bill = self._run_tax_engine(items)
 
-        # Detect mode — safe fallback if outlet not loaded
+        self.subtotal       = bill.subtotal
+        self.discount_total = bill.discount
+        self.gst_total      = bill.gst
+        self.grand_total    = bill.grand_total
+        self.round_off      = bill.round_off
+        self.tax_summary    = bill.summary()
+        self.gst_breakdown_cache = [
+            {"rate": str(row["rate"]), "cgst_rate": str(row["cgst_rate"]), "sgst_rate": str(row["sgst_rate"]),
+             "cgst_amount": str(row["cgst_amount"]), "sgst_amount": str(row["sgst_amount"])}
+            for row in self.gst_breakdown
+        ]
+        self.save(update_fields=["subtotal", "gst_total", "discount_total",
+                                 "grand_total", "round_off", "discount_type",
+                                 "discount_value", "parcel_surcharge",
+                                 "tax_summary", "gst_breakdown_cache"])
+
+    def _run_tax_engine(self, items):
+        """The engine's result for these (live) lines, this bill's discount
+        and parcel charge, and the outlet's GST settings."""
         try:
-            gst_inclusive    = bool(self.outlet.gst_inclusive)
-            is_composition   = bool(self.outlet.is_composition_scheme)
+            prices_include_tax = bool(self.outlet.gst_inclusive)
+            composition        = bool(self.outlet.is_composition_scheme)
         except Exception:
-            gst_inclusive  = False
-            is_composition = False
+            prices_include_tax = composition = False
 
-        if gst_inclusive:
-            self._recalculate_inclusive(items, is_composition=is_composition)
-        else:
-            self._recalculate_exclusive(items, is_composition=is_composition)
-
-    # ------------------------------------------------------------------
-    # EXCLUSIVE MODE  (GST added on top — existing behaviour)
-    # ------------------------------------------------------------------
-
-    def _recalculate_exclusive(self, items, is_composition=False):
-        raw_subtotal = sum((item.total_price for item in items), Decimal("0.0"))
-        subtotal = self._quantize(raw_subtotal)
-
-        item_discount_total = Decimal("0.00")
-        subtotal_after_item_discounts = Decimal("0.00")
-        for item in items:
-            item_base = item.total_price
-            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                item_discount = item_base * (item.item_discount_pct / Decimal("100"))
-                item_discount_total += item_discount
-                item_base -= item_discount
-            subtotal_after_item_discounts += item_base
-
-        order_discount_total = Decimal("0.00")
-        if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
-            order_discount_total = subtotal_after_item_discounts * (Decimal(self.discount_value) / Decimal("100"))
-        elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
-            order_discount_total = Decimal(str(self.discount_value))
-
-        discount_total = self._quantize(item_discount_total + order_discount_total)
-        if discount_total > subtotal:
-            discount_total = subtotal
-
-        taxable_amount = subtotal - discount_total
-
-        if subtotal_after_item_discounts > 0:
-            order_discount_factor = max(
-                Decimal("0.0"),
-                (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts,
-            )
-        else:
-            order_discount_factor = Decimal("1.0")
-
-        gst_total = Decimal("0.00")
-        if not is_composition:
-            for item in items:
-                item_base = item.total_price
-                if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                    item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-                item_taxable = item_base * order_discount_factor
-                gst_total += (item_taxable * item.gst_percentage) / Decimal("100.0")
-
-        gst_total = self._quantize(gst_total)
-        final_total = self._quantize(taxable_amount + gst_total)
-        rounded_total = final_total.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-
+        lines = [
+            Line(amount=item.total_price, rate=item.gst_percentage,
+                 item_discount_pct=item.item_discount_pct or Decimal("0"))
+            for item in items
+        ]
         parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
-        rounded_total = (final_total + parcel).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+        if parcel > 0:
+            # A bill from before parcel GST has no rate: its charge stays untaxed.
+            taxed = self.parcel_gst_rate is not None
+            lines.append(Line(amount=parcel, rate=self.parcel_gst_rate if taxed else Decimal("0"),
+                              kind=GST if taxed else None, charge="parcel"))
 
-        self.subtotal           = subtotal
-        self.gst_total          = gst_total
-        self.discount_total     = discount_total
-        self.grand_total        = rounded_total
-        self.round_off          = rounded_total - final_total - parcel
-        self.gst_breakdown_cache = self._build_gst_breakdown_data(items, order_discount_factor, False)
-        self.save(update_fields=["subtotal", "gst_total", "discount_total",
-                                 "grand_total", "round_off", "discount_type",
-                                 "discount_value", "parcel_surcharge",
-                                 "gst_breakdown_cache"])
-
-    # ------------------------------------------------------------------
-    # INCLUSIVE MODE  (GST back-calculated from the price)
-    # ------------------------------------------------------------------
-
-    def _recalculate_inclusive(self, items, is_composition=False):
-        """
-        item.total_price is the CUSTOMER-FACING price (GST inside).
-        We back-calculate: gst = amount × rate / (100 + rate)
-        Discounts are applied to the inclusive price first, then GST
-        is back-calculated from the discounted inclusive amounts.
-
-        Result:
-          subtotal   = back-calculated base (excl. GST)
-          gst_total  = back-calculated GST
-          grand_total = inclusive_total - discounts  (what customer pays)
-          subtotal + gst_total ≡ grand_total  ← always true
-        """
-        raw_inclusive = sum((item.total_price for item in items), Decimal("0.0"))
-
-        # Item-level discounts on inclusive price
-        item_discount_total = Decimal("0.00")
-        inclusive_after_item_disc = Decimal("0.00")
-        for item in items:
-            inc = item.total_price
-            if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                item_disc = inc * (item.item_discount_pct / Decimal("100"))
-                item_discount_total += item_disc
-                inc -= item_disc
-            inclusive_after_item_disc += inc
-
-        # Order-level discount on inclusive price
-        order_discount_total = Decimal("0.00")
-        if self.discount_type == "percentage" and (self.discount_value or 0) > 0:
-            order_discount_total = inclusive_after_item_disc * (Decimal(self.discount_value) / Decimal("100"))
-        elif self.discount_type == "amount" and (self.discount_value or 0) > 0:
-            order_discount_total = Decimal(str(self.discount_value))
-
-        discount_total = self._quantize(item_discount_total + order_discount_total)
-        if discount_total > raw_inclusive:
-            discount_total = raw_inclusive
-
-        grand_after_discount = self._quantize(raw_inclusive - discount_total)
-
-        # Proportional discount factor for back-calculation
-        if inclusive_after_item_disc > 0:
-            order_discount_factor = max(
-                Decimal("0.0"),
-                (inclusive_after_item_disc - order_discount_total) / inclusive_after_item_disc,
-            )
-        else:
-            order_discount_factor = Decimal("1.0")
-
-        # Back-calculate GST from each item's discounted inclusive amount
-        gst_total = Decimal("0.00")
-        if not is_composition:
-            for item in items:
-                inc = item.total_price
-                if getattr(item, "item_discount_pct", Decimal("0.00")) > 0:
-                    inc = inc * (1 - item.item_discount_pct / Decimal("100"))
-                inc_discounted = inc * order_discount_factor
-                rate = item.gst_percentage
-                if rate > 0:
-                    gst_total += inc_discounted * rate / (Decimal("100") + rate)
-
-        gst_total  = self._quantize(gst_total)
-        subtotal   = self._quantize(grand_after_discount - gst_total)   # base excl. GST
-        rounded_total = grand_after_discount.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-
-        parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
-        rounded_total = (grand_after_discount + parcel).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
-
-        self.subtotal            = subtotal
-        self.gst_total           = gst_total
-        self.discount_total      = discount_total
-        self.grand_total         = rounded_total
-        self.round_off           = rounded_total - grand_after_discount - parcel
-        self.gst_breakdown_cache = self._build_gst_breakdown_data(items, order_discount_factor, True)
-        self.save(update_fields=["subtotal", "gst_total", "discount_total",
-                                 "grand_total", "round_off", "discount_type",
-                                 "discount_value", "parcel_surcharge",
-                                 "gst_breakdown_cache"])
+        return compute_tax(
+            lines, prices_include_tax=prices_include_tax, composition=composition,
+            discount_type=self.discount_type, discount_value=self.discount_value,
+        )
 
 
 # KOTBatch moved to kitchen/models.py (Phase 3 of the orders app split,
@@ -577,6 +480,10 @@ class OrderItem(models.Model):
     )
 
     class Meta:
+        # A bill's lines always come back in the order they were added, so
+        # every bill, receipt, KOT and screen lists them the same way. Without
+        # it they came back in whatever order the database stored them.
+        ordering = ["id"]
         indexes = [
             models.Index(fields=["order"],           name="orderitem_order"),
             models.Index(fields=["order", "status"], name="orderitem_order_status"),

@@ -3,10 +3,12 @@ import io
 import logging
 from datetime import timedelta
 from decimal import Decimal
-from django.db.models import Sum, F
+from django.db.models import Prefetch, Sum, F
 from django.utils import timezone
-from orders.models import Order, OrderItem
+from orders.models import Order, OrderItem, Payment
 from core.utils import get_business_date_range
+from orders.services.tax_engine import GST
+from reports.services.tax_totals import rate_totals
 import openpyxl
 from openpyxl.styles import Font, Alignment
 
@@ -65,18 +67,22 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
         tenant=tenant,
         created_at__gte=range_start,
         created_at__lt=range_end
-    ).prefetch_related('payments', 'outlet').order_by('-created_at')
+    ).prefetch_related(
+        # payments in the order they were taken, so the methods column is stable
+        Prefetch('payments', queryset=Payment.objects.order_by('paid_at', 'id')), 'outlet',
+    ).order_by('-created_at', '-id')
 
     if outlet:
         orders = orders.filter(outlet=outlet)
 
     for order in orders:
         payments = ", ".join([p.method for p in order.payments.all()])
+        opened = timezone.localtime(order.created_at)   # stored in UTC; the sheet shows local time
         writer.writerow([
             order.id,
             order.order_number or '-',
-            order.created_at.strftime('%Y-%m-%d'),
-            order.created_at.strftime('%H:%M:%S'),
+            opened.strftime('%Y-%m-%d'),
+            opened.strftime('%H:%M:%S'),
             order.outlet.name if order.outlet else 'Unknown',
             order.get_source_display(),
             order.get_status_display(),
@@ -125,7 +131,7 @@ def generate_items_csv(tenant, outlet, start_date, end_date):
     ).annotate(
         total_qty=Sum('quantity'),
         total_rev=Sum('total_price')
-    ).order_by('-total_qty')
+    ).order_by('-total_qty', 'menu_item__name')
     
     for stat in item_stats:
         qty = stat['total_qty'] or 0
@@ -167,8 +173,6 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     of B2B/B2C mix, unlike the B2CS sheet which only matters once there's
     B2C turnover to report.
     """
-    from orders.services.tax_service import split_cgst_sgst
-
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "GSTR-1 B2CS"
@@ -201,13 +205,6 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         cell = ws.cell(row=4, column=col)
         cell.font = Font(bold=True)
         
-    # We group by the menu item's GST percentage
-    # To handle order-level discounts, we calculate an approximation:
-    # Taxable Value = Sum(total_price)
-    # GST = Sum(GST calculated on item base considering order discounts)
-    # For a perfect GSTR-1, we will re-calculate item-level taxable amounts accounting for order discounts
-    
-    # Let's fetch the actual orders to iterate through their items to be perfectly accurate with order discounts
     range_start, _ = get_business_date_range(start_date, outlet)
     _, range_end = get_business_date_range(end_date, outlet)
     orders = Order.objects.filter(
@@ -215,69 +212,18 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         created_at__gte=range_start,
         created_at__lt=range_end,
         status__in=['paid', 'closed']
-    ).prefetch_related('items', 'items__menu_item')
+    )
     
     if outlet:
         orders = orders.filter(outlet=outlet)
         
-    # Group data by GST Rate
-    gst_groups = {} # rate: {'taxable': 0, 'gst': 0}
-    
-    for order in orders:
-        # Composition scheme outlets issue Bill of Supply — no GST, skip from GSTR-1
-        if getattr(order.outlet, "is_composition_scheme", False):
-            continue
-
-        gst_inclusive = getattr(order.outlet, "gst_inclusive", False)
-
-        # Reconstruct exactly how Order.recalculate_totals works
-        items_valid = [item for item in order.items.all() if item.status != "voided" and not item.is_complimentary]
-        
-        raw_subtotal = sum((item.total_price for item in items_valid), Decimal("0.0"))
-        
-        item_discount_total = Decimal("0.00")
-        subtotal_after_item_discounts = Decimal("0.00")
-        for item in items_valid:
-            item_base = item.total_price
-            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
-                item_discount = item_base * (item.item_discount_pct / Decimal("100"))
-                item_base = item_base - item_discount
-            subtotal_after_item_discounts += item_base
-            
-        order_discount_total = Decimal("0.00")
-        if order.discount_type == "percentage" and (order.discount_value or 0) > 0:
-            order_discount_total = subtotal_after_item_discounts * (Decimal(order.discount_value) / Decimal("100"))
-        elif order.discount_type == "amount" and (order.discount_value or 0) > 0:
-            order_discount_total = Decimal(str(order.discount_value))
-            
-        if subtotal_after_item_discounts > 0:
-            order_discount_factor = max(Decimal("0.0"), (subtotal_after_item_discounts - order_discount_total) / subtotal_after_item_discounts)
-        else:
-            order_discount_factor = Decimal("1.0")
-            
-        for item in items_valid:
-            item_base = item.total_price
-            if getattr(item, 'item_discount_pct', Decimal("0.00")) > 0:
-                item_base = item_base * (1 - item.item_discount_pct / Decimal("100"))
-            
-            item_discounted = item_base * order_discount_factor
-            rate = item.menu_item.gst_percentage if item.menu_item else Decimal("5.00")
-
-            rate_key = float(rate)
-            if rate_key not in gst_groups:
-                gst_groups[rate_key] = {'taxable': Decimal("0.0"), 'gst': Decimal("0.0")}
-
-            if gst_inclusive:
-                # item_discounted is the inclusive customer price — back-calculate
-                item_gst     = item_discounted * rate / (Decimal("100") + rate)
-                item_taxable = item_discounted - item_gst
-            else:
-                # item_discounted is already the pre-GST base
-                item_taxable = item_discounted
-                item_gst     = item_taxable * rate / Decimal("100")
-
-            gst_groups[rate_key]['taxable'] += item_taxable
-            gst_groups[rate_key]['gst']     += item_gst
+    # Taxable value, CGST and SGST per rate, summed from each bill's own tax
+    # record: the rate each line was sold at, the parcel charge included, so
+    # the return adds up to exactly the bills it covers. Composition bills
+    # carry no GST rows.
+    gst_groups = sorted(
+        (rate, figures) for (kind, rate), figures in rate_totals(orders).items() if kind == GST
+    )
 
     total_taxable = Decimal("0.0")
     total_central = Decimal("0.0")
@@ -306,11 +252,10 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         else:
             pos_state = "Unknown — set outlet GSTIN"
     
-    for rate, data in sorted(gst_groups.items()):
+    for rate, data in gst_groups:
         taxable = data['taxable']
-        gst = data['gst']
-
-        cgst, sgst = split_cgst_sgst(gst)
+        gst = data['tax']
+        cgst, sgst = data['cgst'], data['sgst']
 
         total_taxable += taxable
         total_central += cgst
@@ -319,7 +264,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         ws.append([
             'OE', # Outward Supplies
             pos_state,
-            rate,
+            float(rate),
             round(float(taxable), 2),
             round(float(cgst), 2),
             round(float(sgst), 2),
@@ -350,8 +295,8 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     # Mandatory for every GSTR-1 filer, unconditionally — unlike the B2CS
     # sheet above, this isn't optional just because a period had no B2C sales.
     # A restaurant's whole menu is one GST service classification (SAC 996331,
-    # "restaurant/catering services"), so this reuses gst_groups computed
-    # above rather than re-deriving anything — one row per rate actually used.
+    # "restaurant/catering services"), so this reuses gst_groups from above,
+    # one row per rate actually used.
     ws12 = wb.create_sheet("GSTR-1 Table 12 (HSN)")
 
     ws12.merge_cells('A1:K1')
@@ -384,10 +329,10 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     t12_total_central = Decimal("0.0")
     t12_total_state = Decimal("0.0")
 
-    for rate, data in sorted(gst_groups.items()):
+    for rate, data in gst_groups:
         taxable = data['taxable']
-        gst = data['gst']
-        cgst, sgst = split_cgst_sgst(gst)
+        gst = data['tax']
+        cgst, sgst = data['cgst'], data['sgst']
         total_value = taxable + gst
 
         t12_total_value += total_value
@@ -401,7 +346,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
             'NA',   # services have no unit of measure
             0,      # Total Quantity — not applicable for services
             round(float(total_value), 2),
-            rate,
+            float(rate),
             round(float(taxable), 2),
             0.0,    # IGST — same intra-state-only limitation as the B2CS sheet
             round(float(cgst), 2),
@@ -454,7 +399,7 @@ def generate_waiter_csv(tenant, outlet, start_date, end_date):
     waiter_stats = orders.values('created_by__username').annotate(
         total_orders=Sum(1),
         total_rev=Sum('grand_total')
-    ).order_by('-total_rev')
+    ).order_by('-total_rev', 'created_by__username')
     
     for stat in waiter_stats:
         orders_count = stat['total_orders'] or 0
@@ -496,7 +441,7 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
     category_stats = items.values('menu_item__category__name').annotate(
         qty=Sum('quantity'),
         rev=Sum('total_price')
-    ).order_by('-rev')
+    ).order_by('-rev', 'menu_item__category__name')
     
     for stat in category_stats:
         writer.writerow([

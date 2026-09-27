@@ -247,7 +247,7 @@
       <div class="row g-3 g-md-4 mb-5">
         {% for item in category.items.all %}
         <div class="col-12 col-sm-6 col-lg-4 menu-item-searchable">
-          <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage|default:5 }}', {{ item.is_veg|yesno:'true,false' }})">
+          <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage }}', {{ item.is_veg|yesno:'true,false' }})">
             <div>
               <div class="item-name">
                 <span class="veg-dot {% if item.is_veg %}veg{% else %}nonveg{% endif %}"></span>{{ item.name }}
@@ -300,7 +300,9 @@
 
     <div class="cart-summary" id="cartSummaryBlock">
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-      <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+      {% if not outlet.is_composition_scheme %}
+      <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
+      {% endif %}
       {% if outlet.parcel_charge_amount %}
       <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
         <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -374,7 +376,9 @@
       <div id="cartItemsContainerMobile"></div>
       <div class="cart-page-breakdown">
         <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-        <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
+        {% if not outlet.is_composition_scheme %}
+        <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
+        {% endif %}
         {% if outlet.parcel_charge_amount %}
         <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
           <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -497,6 +501,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/order_edit.js' %}"></script>
+<script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -715,28 +720,32 @@
     const dc = document.getElementById("cartItemsContainerDesktop");
     const mc = document.getElementById("cartItemsContainerMobile");
     dc.innerHTML = ""; mc.innerHTML = "";
-    let subtotal = 0, gst = 0;
     if (cart.length === 0) {
       const emptyMsg = `<div class="text-center text-muted" style="margin-top:20px;text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
       dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
     }
     cart.forEach((i, idx) => {
       const total = i.price * i.quantity;
-      subtotal += total;
-      gst += total * ((i.gst_percentage || 5) / 100);
       const vegDot = `<span class="veg-dot ${i.is_veg !== false ? 'veg' : 'nonveg'}"></span>`;
       const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${vegDot}${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
       dc.innerHTML += html;
       mc.innerHTML += html;
     });
-    gst = Math.round(gst);
-    // Parcel is a flat surcharge on top, added here so the Total shown
-    // actually matches what checkout will charge once toggled on (see
-    // toggleParcel/_syncParcelUI).
-    const grandTotal = subtotal + gst + (_parcelOn ? _parcelChargeAmount : 0);
-    document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + subtotal);
-    document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + gst);
-    document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + grandTotal);
+    // The same rules as the bill (static/js/cart_tax.js): each line at its
+    // own rate (0% stays 0%), GST inside the price or on top, none on the
+    // composition scheme, and the parcel charge (once toggled on, see
+    // toggleParcel/_syncParcelUI) taxed like the food.
+    const t = RasovaCartTax.totals(
+      cart.map(i => ({ amount: i.price * i.quantity, gstRate: i.gst_percentage })),
+      {
+        inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
+        composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
+        parcel: _parcelOn ? _parcelChargeAmount : 0,
+        parcelGstRate: {{ outlet.parcel_gst_rate|default:0 }},
+      });
+    document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + t.subtotal);
+    document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + t.gst.toFixed(2));
+    document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + t.roundedTotal);
   }
 
   function inc(i) { cart[i].quantity++; renderCart(); }

@@ -33,7 +33,7 @@ def top_items(tenant, outlet=None, start_date=None, end_date=None):
         # `total_rev` — without this annotation it defaulted to 0, so every
         # exported item row showed zero revenue and a zero average rate.
         .annotate(total=Sum("quantity"), total_rev=Sum("total_price"))
-        .order_by("-total")[:10]
+        .order_by("-total", "menu_item__name")[:10]   # ties by name, so the top 10 is stable
     )
 
     return items

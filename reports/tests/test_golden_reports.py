@@ -88,24 +88,13 @@ def workbook_cells(data):
     }
 
 
-def _in_a_fixed_order(name, output):
-    """A few reports list rows in no particular order when values tie."""
-    if name == "top_items":
-        return sorted(output, key=lambda row: (-float(row["total"]), row["menu_item__name"]))
-    if name == "category_sales":
-        return sorted(output, key=lambda row: (-float(row["revenue"]), row["menu_item__category__name"]))
-    if name == "daily_sales":
-        output["payments"] = sorted(output["payments"], key=lambda row: row["method"])
-    return output
-
-
 def all_reports():
     tenant, outlets = build_month()
     out = {}
     for outlet in [*outlets, None]:
         scope = outlet.name if outlet else "(all outlets)"
         out[scope] = {
-            name: _in_a_fixed_order(name, plain(report(tenant, outlet, FIRST_DAY, LAST_DAY)))
+            name: plain(report(tenant, outlet, FIRST_DAY, LAST_DAY))
             for name, report in REPORTS.items()
         }
         out[scope]["gstr1_workbook"] = workbook_cells(generate_gstr1_excel(tenant, outlet, FIRST_DAY, LAST_DAY))

@@ -141,6 +141,16 @@ def update_outlet_from_post(outlet, post):
             "Could not parse parcel_charge_amount=%r for outlet %s — left unchanged",
             post.get("parcel_charge_amount"), outlet.id,
         )
+    if "parcel_gst_rate" in post:
+        from orders.services.tax_service import GST_RATES
+        try:
+            rate = Decimal(post["parcel_gst_rate"])
+        except Exception:
+            rate = None
+        if rate in GST_RATES:
+            outlet.parcel_gst_rate = rate
+        else:
+            logger.warning("Ignored parcel_gst_rate=%r for outlet %s", post["parcel_gst_rate"], outlet.id)
     outlet.save()
 
 

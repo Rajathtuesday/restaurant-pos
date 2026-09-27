@@ -39,7 +39,7 @@ def category_sales(tenant, outlet=None, start_date=None, end_date=None):
         query
         .values("menu_item__category__name")
         .annotate(revenue=Sum("total_price"))  # 🔥 IMPORTANT FIX
-        .order_by("-revenue")
+        .order_by("-revenue", "menu_item__category__name")
     )
 
     return list(data)

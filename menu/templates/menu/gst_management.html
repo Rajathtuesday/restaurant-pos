@@ -56,8 +56,16 @@
     .rate-chip { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.3px; border: 1px solid; }
     .chip-0  { background: rgba(128,128,128,0.1); color: var(--text-muted); border-color: var(--border-color); }
     .chip-5  { background: rgba(34,197,94,0.1); color: var(--success); border-color: var(--success); }
-    .chip-12 { background: rgba(96,165,250,0.1); color: var(--blue); border-color: var(--blue); }
     .chip-18 { background: rgba(249,115,22,0.1); color: var(--orange); border-color: var(--orange); }
+
+    /* ── RETIRED RATES (12% / 28% before GST 2.0) ── */
+    .retired-banner { border-left-color: var(--orange); }
+    .retired-tag {
+        display: inline-block; margin-left: 0.4rem; padding: 0 0.4rem;
+        border: 1px solid var(--orange); border-radius: 3px; color: var(--orange);
+        font-size: 0.62rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+        vertical-align: middle;
+    }
 
     /* ── CATEGORY CARD ── */
     .category-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: var(--radius); margin-bottom: 0.75rem; overflow: hidden; transition: border-color 0.2s; }
@@ -126,18 +134,24 @@
 <main class="gst-main">
 
     <div class="info-banner">
-        <strong>Set the correct GST rate per item.</strong> Changes save instantly — no page reload needed.<br>
-        Non-AC restaurant: <strong>5%</strong> &nbsp;·&nbsp;
-        AC restaurant / liquor license: <strong>18%</strong> &nbsp;·&nbsp;
-        Packaged / takeaway food: <strong>12%</strong> &nbsp;·&nbsp;
-        Exempt items: <strong>0%</strong>
+        <strong>Set the correct GST rate per item.</strong> Changes save instantly, no page reload needed.<br>
+        Restaurants and cafes, AC or not, dine-in or takeaway: <strong>5%</strong> &nbsp;·&nbsp;
+        Restaurant in a hotel with rooms over ₹7,500 a night: <strong>18%</strong> &nbsp;·&nbsp;
+        Exempt or nil-rated items: <strong>0%</strong><br>
+        Alcohol is not under GST at all: it is taxed by the state, not on this page.
     </div>
+
+    {% if retired_count %}
+    <div class="info-banner retired-banner" id="retired-banner">
+        <strong>{{ retired_count }} item{{ retired_count|pluralize }} {{ retired_count|pluralize:"is,are" }} on a rate that is no longer a GST rate.</strong>
+        12% and 28% were removed on 22 September 2025. Bills still use the old rate until you choose 0%, 5% or 18%; those items are marked <span class="retired-tag">old rate</span> below.
+    </div>
+    {% endif %}
 
     <div class="rate-legend">
         <span class="rate-chip chip-0"><i class="bi bi-circle"></i> 0% Exempt</span>
-        <span class="rate-chip chip-5"><i class="bi bi-circle-fill"></i> 5% Non-AC</span>
-        <span class="rate-chip chip-12"><i class="bi bi-circle-fill"></i> 12% Packaged</span>
-        <span class="rate-chip chip-18"><i class="bi bi-circle-fill"></i> 18% AC/Liquor</span>
+        <span class="rate-chip chip-5"><i class="bi bi-circle-fill"></i> 5% Restaurant</span>
+        <span class="rate-chip chip-18"><i class="bi bi-circle-fill"></i> 18% Hotel restaurant</span>
     </div>
 
     {% if categories %}
@@ -163,12 +177,16 @@
             <div class="items-list" id="cat-{{ category.id }}">
                 {% for item in category.items.all %}
                 <div class="item-row">
+                    {% with current=item.gst_percentage|floatformat:2 %}
                     <div class="item-info">
-                        <div class="item-name">{{ item.name }}</div>
+                        <div class="item-name">{{ item.name }}{% if current not in valid_rates %} <span class="retired-tag" id="retired-{{ item.id }}">old rate</span>{% endif %}</div>
                         <div class="item-price">₹{{ item.price }}</div>
                     </div>
                     <div class="item-gst-control">
                         <select class="gst-select" id="gst-{{ item.id }}" onchange="updateItemGST({{ item.id }}, this.value)">
+                            {% if current not in valid_rates %}
+                            <option value="{{ current }}" selected disabled>{{ item.gst_percentage|floatformat:"-2" }}%, no longer a GST rate</option>
+                            {% endif %}
                             {% for rate in gst_rates %}
                             <option value="{{ rate.value }}" {% if item.gst_percentage|floatformat:2 == rate.value %}selected{% endif %}>
                                 {{ rate.label }}
@@ -177,6 +195,7 @@
                         </select>
                         <div class="saving-dot" id="dot-{{ item.id }}"></div>
                     </div>
+                    {% endwith %}
                 </div>
                 {% empty %}
                 <div class="empty">No items in this category</div>
@@ -216,8 +235,21 @@ async function updateItemGST(itemId, gstValue) {
         });
         const data = await res.json();
         showToast(data.success ? data.message : (data.error || 'Update failed'), data.success ? 'success' : 'error');
+        if (data.success) clearRetired([itemId]);
     } catch (e) { showToast('Connection error', 'error'); }
     finally { dot.style.display = 'none'; }
+}
+
+// An item moved off a retired rate (12% / 28%): drop its "old rate" tag and
+// option, and the banner once no item is left on one.
+function clearRetired(itemIds) {
+    itemIds.forEach(id => {
+        document.getElementById(`retired-${id}`)?.remove();
+        document.querySelector(`#gst-${id} option[disabled]`)?.remove();
+    });
+    if (!document.querySelector('.retired-tag[id^="retired-"]')) {
+        document.getElementById('retired-banner')?.remove();
+    }
 }
 
 async function applyBulkGST(categoryId) {
@@ -230,7 +262,9 @@ async function applyBulkGST(categoryId) {
         });
         const data = await res.json();
         if (data.success) {
-            document.getElementById(`cat-${categoryId}`).querySelectorAll('select[id^="gst-"]').forEach(sel => { sel.value = gstValue; });
+            const selects = document.getElementById(`cat-${categoryId}`).querySelectorAll('select[id^="gst-"]');
+            selects.forEach(sel => { sel.value = gstValue; });
+            clearRetired([...selects].map(sel => sel.id.slice(4)));
             showToast(data.message, 'success');
         } else { showToast(data.error || 'Bulk update failed', 'error'); }
     } catch (e) { showToast('Connection error', 'error'); }

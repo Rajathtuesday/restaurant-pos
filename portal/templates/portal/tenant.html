@@ -145,6 +145,15 @@
                  placeholder="0">
           <span style="font-size:0.78rem;color:var(--text-muted);">Parcel / Takeaway charge (0 = disabled)</span>
         </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:0.75rem;">
+          <select name="parcel_gst_rate"
+                  style="background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.3rem 0;font-size:0.85rem;outline:none;">
+            {% for rate in parcel_gst_rates %}
+            <option value="{{ rate.value }}" {% if outlet.parcel_gst_rate|floatformat:2 == rate.value %}selected{% endif %}>{{ rate.label }}</option>
+            {% endfor %}
+          </select>
+          <span style="font-size:0.78rem;color:var(--text-muted);">GST on the parcel charge</span>
+        </div>
       </div>
 
       <button type="submit" class="btn-cfg btn-cfg-primary" style="margin-top:1.25rem;">Save Outlet Info</button>

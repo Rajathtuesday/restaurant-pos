@@ -424,7 +424,7 @@ def thermal_receipt_view(request, order_id):
     if split_mode:
         groups: dict = {}
         _UNCAT = "uncategorised"
-        for item in items.order_by("menu_item__category__name"):
+        for item in items.order_by("menu_item__category__name", "id"):
             cat = item.menu_item.category if item.menu_item else None
             key = cat.id if cat else _UNCAT
             if key not in groups:

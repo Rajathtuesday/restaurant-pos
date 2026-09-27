@@ -47,8 +47,12 @@ def make_item(price, qty=1, gst="5", disc="0", status="pending", comp=False, mod
     }
 
 
-def make_spec(cfg, items, dtype=None, dval="0", parcel="0"):
-    return {"cfg": cfg, "items": items, "dtype": dtype, "dval": dval, "parcel": parcel}
+def make_spec(cfg, items, dtype=None, dval="0", parcel="0", parcel_rate="5"):
+    """parcel_rate is the GST rate copied onto the order when its parcel charge
+    was turned on; None is a bill from before 27 Sep 2026, whose parcel charge
+    carries no GST."""
+    return {"cfg": cfg, "items": items, "dtype": dtype, "dval": dval, "parcel": parcel,
+            "parcel_rate": parcel_rate}
 
 
 def edge_specs():
@@ -67,7 +71,8 @@ def edge_specs():
             make_spec(cfg, [make_item("100", disc="100")]),                    # 100% item discount
             make_spec(cfg, [make_item("100"), make_item("50", gst="0")], "percentage", "100"),  # 100% order discount
             make_spec(cfg, [make_item("100")], "amount", "100000"),            # discount far bigger than the bill
-            make_spec(cfg, [make_item("100", status="voided")], parcel="15"),  # parcel charge only
+            make_spec(cfg, [make_item("100", status="voided")], parcel="15",   # parcel charge only, on a
+                      parcel_rate=None),                                     # bill from before parcel GST
             make_spec(cfg, [make_item("40", qty=3)], parcel="15"),             # parcel on a normal order
             make_spec(cfg, [make_item("333.33", qty=3, gst="12"), make_item("0.05", gst="28")], "amount", "0.01"),
             make_spec(cfg, [make_item("2500", qty=20, gst="28", modifier="100")], "percentage", "33.33", "120"),
@@ -107,7 +112,9 @@ def generate_specs(count=COUNT, seed=SEED):
         else:
             dtype, dval = "amount", rng.choice(AMT_DISCOUNTS)
         parcel = "0" if rng.random() < 0.7 else rng.choice(PARCELS)
-        specs.append(make_spec(cfg, items, dtype, dval, parcel))
+        # Chosen from the position, not the generator, so adding it changed no bill.
+        parcel_rate = {3: None, 7: "18"}.get(len(specs) % 10, "5")
+        specs.append(make_spec(cfg, items, dtype, dval, parcel, parcel_rate))
     return specs[:count]
 
 
@@ -145,6 +152,7 @@ def create_orders(world, specs):
             tenant=tenant, outlet=world["outlets"][spec["cfg"]], status="open",
             discount_type=spec["dtype"], discount_value=Decimal(spec["dval"]),
             parcel_surcharge=Decimal(spec["parcel"]),
+            parcel_gst_rate=Decimal(spec["parcel_rate"]) if spec.get("parcel_rate") else None,
         )
         for spec in specs
     ], batch_size=1000)
@@ -165,12 +173,24 @@ def money(value):
     return f"{Decimal(value):.2f}"
 
 
+def row_head(index, spec):
+    """The start of a golden line: which bill it is. Parcel bills also carry
+    the parcel's GST rate (so lines without a parcel look as they always did)."""
+    head = {"i": index, "cfg": spec["cfg"], "parcel": spec["parcel"]}
+    if spec["parcel"] != "0":
+        head["prate"] = spec.get("parcel_rate")
+    return head
+
+
 def snapshot(order, index, spec):
-    """Everything a bill shows about money, as plain strings."""
+    """Everything a bill shows about money, as plain strings. "bd" is the
+    bill's tax record (Order.tax_summary), one [kind, rate, taxable, tax,
+    CGST, SGST] per rate."""
+    row = row_head(index, spec)
+    if spec["parcel"] != "0":
+        row["pgst"] = money(order.parcel_tax)
     return {
-        "i": index,
-        "cfg": spec["cfg"],
-        "parcel": spec["parcel"],
+        **row,
         "sub": money(order.subtotal),
         "gst": money(order.gst_total),
         "disc": money(order.discount_total),
@@ -179,7 +199,7 @@ def snapshot(order, index, spec):
         "cgst": money(order.cgst_total),
         "sgst": money(order.sgst_total),
         "bd": [
-            [row["rate"], row["cgst_rate"], row["sgst_rate"], row["cgst_amount"], row["sgst_amount"]]
-            for row in (order.gst_breakdown_cache or [])
+            [r["kind"], r["rate"], r["taxable"], r["tax"], r["cgst"], r["sgst"]]
+            for r in (order.tax_summary or {}).get("rows", [])
         ],
     }

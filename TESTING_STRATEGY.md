@@ -700,6 +700,38 @@ class TestGSTCalculation(TestCase):
 
 ---
 
+## Part 6b: The Money Safety Net (built 27 Sep 2026)
+
+All bill maths lives in one place, `orders/services/tax_engine.py`; its docstring states every rule. `Order.recalculate_totals()` runs it and stores the bill's tax record (`Order.tax_summary`), which bills, reports and returns read. These tests guard it; together they are why a change to the maths is either deliberate and reviewed, or caught.
+
+| What | File | Guards |
+|---|---|---|
+| Engine rules | `orders/tests/test_tax_engine.py` | Each rule on a hand-worked bill, no database |
+| Golden bills | `orders/tests/test_golden_totals.py` + `golden/totals_v1.jsonl` | 5,000 fixed bills, every total and tax row, to the paisa |
+| Independent copy | `orders/tests/legacy_totals.py` | A second implementation of the rules; must agree with all 5,000 |
+| Property tests | `orders/tests/test_totals_properties.py` | Rules on random bills (Hypothesis), and real bills against the independent copy |
+| Golden printouts | `test_golden_receipts.py`, `test_golden_html_bills.py` | Thermal receipts (the real bytes) and the web bills |
+| Golden reports | `reports/tests/test_golden_reports.py` | A fixed month through every money report and the GSTR-1 workbook |
+| Tax record | `orders/tests/test_tax_record.py` | Stored record, issued bills never re-totalled, parcel GST |
+| Cart copy | `orders/tests/test_cart_tax_js.py` | `static/js/cart_tax.js` run in Node against the real engine |
+
+**Changing the maths on purpose:** change the engine, then regenerate the golden files and read every changed line before committing:
+
+```bash
+GOLDEN_UPDATE=1 python manage.py test orders.tests.test_golden_totals orders.tests.test_golden_receipts orders.tests.test_golden_html_bills reports.tests.test_golden_reports
+git diff orders/tests/golden reports/tests/golden
+```
+
+The independent copy (`legacy_totals.py`) changes only in the same commit as a deliberate rule change, and its docstring lists every such change.
+
+**A deeper search** before a release that touches money (about 17 minutes):
+
+```bash
+MONEY_THOROUGH=1 python manage.py test orders.tests.test_totals_properties
+```
+
+---
+
 ## Part 7 — Concurrency Tests
 
 These are the hardest and slowest to write. Use `TransactionTestCase`.  

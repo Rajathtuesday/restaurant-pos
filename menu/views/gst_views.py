@@ -9,17 +9,9 @@ from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required
 from menu.models import MenuCategory, MenuItem
+from orders.services.tax_service import GST_RATE_CHOICES, GST_RATES
 
 logger = logging.getLogger("pos.menu")
-
-_VALID_GST = [Decimal("0"), Decimal("5"), Decimal("12"), Decimal("18"), Decimal("28")]
-_GST_RATES = [
-    {"value": "0.00",  "label": "0% — Exempt"},
-    {"value": "5.00",  "label": "5% — Non-AC Restaurant"},
-    {"value": "12.00", "label": "12% — Packaged Food"},
-    {"value": "18.00", "label": "18% — AC / Liquor License"},
-    {"value": "28.00", "label": "28% — 5-Star / Premium (rare)"},
-]
 
 
 @login_required
@@ -30,8 +22,14 @@ def gst_management(request):
     categories = MenuCategory.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet, is_active=True
     ).prefetch_related("items")
+    # Dishes still on a rate that no longer exists (12% and 28% before GST 2.0)
+    retired = MenuItem.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet,
+    ).exclude(gst_percentage__in=GST_RATES).count()
     return render(request, "menu/gst_management.html", {
-        "categories": categories, "gst_rates": _GST_RATES,
+        "categories": categories, "gst_rates": GST_RATE_CHOICES,
+        "valid_rates": [choice["value"] for choice in GST_RATE_CHOICES],
+        "retired_count": retired,
     })
 
 
@@ -47,7 +45,7 @@ def update_item_gst(request, item_id):
     try:
         data = json.loads(request.body)
         gst  = Decimal(str(data.get("gst_percentage", "5.00")))
-        if gst not in _VALID_GST:
+        if gst not in GST_RATES:
             return JsonResponse({"error": "Invalid GST rate"}, status=400)
         item.gst_percentage = gst
         item.save(update_fields=["gst_percentage"])
@@ -73,7 +71,7 @@ def update_category_gst(request, category_id):
     try:
         data    = json.loads(request.body)
         gst     = Decimal(str(data.get("gst_percentage", "5.00")))
-        if gst not in _VALID_GST:
+        if gst not in GST_RATES:
             return JsonResponse({"error": "Invalid GST rate"}, status=400)
         updated = category.items.filter(
             tenant=request.user.tenant, outlet=request.user.outlet

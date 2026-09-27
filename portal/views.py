@@ -127,10 +127,12 @@ def tenant_config(request, tenant_id):
             tcs.add_staff_from_post(tenant, outlet, request.POST)
             return redirect("portal:tenant", tenant_id=tenant_id)
 
+    from orders.services.tax_service import GST_RATE_CHOICES
     return render(request, "portal/tenant.html", {
         "tenant": tenant, "outlet": outlet, "stations": stations,
         "staff": staff, "config": config,
         "feature_summary": feature_summary, "presets": tcs.PRESETS,
+        "parcel_gst_rates": GST_RATE_CHOICES,
     })
 
 

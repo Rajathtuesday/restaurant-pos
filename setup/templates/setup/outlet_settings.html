@@ -242,6 +242,20 @@
                         </div>
                     </div>
 
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label" for="parcel_gst_rate">GST on the Parcel Charge</label>
+                        <select id="parcel_gst_rate" name="parcel_gst_rate" class="field-input" style="max-width:320px;margin-top:0.4rem;">
+                            {% for rate in parcel_gst_rates %}
+                            <option value="{{ rate.value }}" {% if outlet.parcel_gst_rate|floatformat:2 == rate.value %}selected{% endif %}>{{ rate.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-hint">
+                            Packing is part of your restaurant service, so it carries the same GST as your food.
+                            When prices exclude GST it is added on top of the charge; when they include GST it is
+                            already inside the charge. Composition scheme outlets never charge it.
+                        </div>
+                    </div>
+
                     {% endif %}{# parcel_charge #}
 
                     <!-- ── Central Kitchen (gated: central_kitchen feature) ── -->

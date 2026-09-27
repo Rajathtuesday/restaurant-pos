@@ -174,7 +174,11 @@ def toggle_parcel(request, order_id):
         # Toggle: if already set → remove; if zero → add
         if order.parcel_surcharge > 0:
             order.parcel_surcharge = Decimal("0")
+            order.parcel_gst_rate = None
         else:
+            # The rate is copied now, so a later change to the outlet setting
+            # never changes this bill (see Order.parcel_gst_rate).
+            order.parcel_gst_rate = order.outlet.parcel_gst_rate
             active_items = list(order.items.exclude(status="voided").select_related("menu_item"))
             # Per-item mode: if ANY menu item has its own parcel_charge set, sum those
             per_item_total = sum(
@@ -190,13 +194,14 @@ def toggle_parcel(request, order_id):
             else:
                 order.parcel_surcharge = charge
 
-        order.save(update_fields=["parcel_surcharge"])
+        order.save(update_fields=["parcel_surcharge", "parcel_gst_rate"])
         order.recalculate_totals()
 
         return JsonResponse({
             "success": True,
             "parcel_on": order.parcel_surcharge > 0,
             "parcel_amount": float(order.parcel_surcharge),
+            "parcel_gst": float(order.parcel_tax),
             "grand_total": float(order.grand_total),
         })
     except Order.DoesNotExist:

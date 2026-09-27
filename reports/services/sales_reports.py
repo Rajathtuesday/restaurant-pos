@@ -68,6 +68,7 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
         .exclude(method="refund")
         .values("method")
         .annotate(total=Sum("amount"))
+        .order_by("method")
     )
 
     # Surface refunds as a separate line so the report is transparent

@@ -319,22 +319,22 @@ def inspection_report(request):
     order_count = agg["count"]     or 0
     net         = gross - gst
 
-    # GST breakdown by rate — read from each order's stored cache
-    gst_by_rate = {}
-    for order in orders:
-        for row in (order.gst_breakdown or []):
-            rate = str(row["rate"])
-            if rate not in gst_by_rate:
-                gst_by_rate[rate] = {
-                    "rate":    row["rate"],
-                    "taxable": Decimal("0"),
-                    "cgst":    Decimal("0"),
-                    "sgst":    Decimal("0"),
-                }
-            gst_by_rate[rate]["cgst"] += row["cgst_amount"]
-            gst_by_rate[rate]["sgst"] += row["sgst_amount"]
-    for r in gst_by_rate.values():
-        r["taxable"] = r["cgst"] + r["sgst"]
+    # GST by rate, summed from each bill's own tax record, the same figures
+    # the GSTR-1 export uses: the taxable value, CGST and SGST at every rate,
+    # 0% included, and they always add up to the bills.
+    from orders.services.tax_engine import GST
+    from reports.services.tax_totals import rate_totals
+
+    gst_by_rate = [
+        {"rate": rate, "taxable": figures["taxable"], "cgst": figures["cgst"],
+         "sgst": figures["sgst"], "gst": figures["tax"]}
+        for (kind, rate), figures in sorted(rate_totals(orders).items())
+        if kind == GST
+    ]
+    gst_totals = {
+        field: sum((row[field] for row in gst_by_rate), Decimal("0"))
+        for field in ("taxable", "cgst", "sgst", "gst")
+    }
 
     items_today = top_items(tenant, outlet, start_date=today, end_date=today)[:10]
 
@@ -359,7 +359,8 @@ def inspection_report(request):
         "gst":           gst,
         "net":           net,
         "discounts":     discounts,
-        "gst_by_rate":   sorted(gst_by_rate.values(), key=lambda r: r["rate"]),
+        "gst_by_rate":   gst_by_rate,
+        "gst_totals":    gst_totals,
         "items_today":   items_today,
         "payments":      payments,
         "is_composition": is_composition,

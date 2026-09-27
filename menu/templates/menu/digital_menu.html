@@ -671,7 +671,7 @@
                             <div class="item-footer">
                                 <div class="item-price">₹{{ item.price }}</div>
                                 <div>
-                            <button class="add-btn" id="addBtn-{{ item.id }}" onclick="addItem('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.estimated_prep_time }}, {{ item.gst_percentage|default:5.0 }})">ADD +</button>
+                            <button class="add-btn" id="addBtn-{{ item.id }}" onclick="addItem('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.estimated_prep_time }}, {{ item.gst_percentage }})">ADD +</button>
                                     <div class="qty-controls" id="qtyCtrl-{{ item.id }}">
                                         <button class="qty-btn" onclick="decreaseItem('{{ item.id }}')">−</button>
                                         <span class="qty-num" id="qty-{{ item.id }}">1</span>
@@ -729,10 +729,12 @@
                 <span>Subtotal</span>
                 <span>₹<span id="billSubtotal">0</span></span>
             </div>
+            {% if not outlet.is_composition_scheme %}
             <div class="bill-row">
-                <span>GST (5%)</span>
+                <span>{% if outlet.gst_inclusive %}GST (included in prices){% else %}GST{% endif %}</span>
                 <span>₹<span id="billGst">0</span></span>
             </div>
+            {% endif %}
             <div class="bill-total">
                 <span>Total</span>
                 <span>₹<span id="billTotal">0</span></span>
@@ -756,6 +758,7 @@
     </div>
 
 {{ item_modifier_data|json_script:"item-modifiers-raw" }}
+<script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
     const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
     let cart = {};
@@ -849,7 +852,7 @@
 
     function addToCart(id, name, price, prepTime, gstRate, modifiers, modifierPrice) {
         if (!cart[id]) {
-            cart[id] = { id, name, price, qty: 1, prepTime: prepTime || 15, gstRate: gstRate || 5.0, modifiers: modifiers || [], modifierPrice: modifierPrice || 0 };
+            cart[id] = { id, name, price, qty: 1, prepTime: prepTime || 15, gstRate: Number(gstRate) || 0, modifiers: modifiers || [], modifierPrice: modifierPrice || 0 };
             document.getElementById(`addBtn-${id}`).classList.add('hidden');
             document.getElementById(`qtyCtrl-${id}`).classList.add('active');
         } else {
@@ -1090,16 +1093,12 @@
             }
         }
 
-        let subtotal = 0;
-        let totalGst = 0;
+        const lines = [];
 
         for(let key in cart) {
             const item = cart[key];
             const itemTotal = item.qty * (item.price + (item.modifierPrice || 0));
-            subtotal += itemTotal;
-
-            // Calculate GST for this specific item based on its rate
-            totalGst += itemTotal * ((item.gstRate || 5.0) / 100);
+            lines.push({ amount: itemTotal, gstRate: item.gstRate });
 
             const modNames = item.modifiers && item.modifiers.length > 0
                 ? `<div class="cart-modifier-names">${item.modifiers.map(m => escapeHtml(m.name)).join(', ')}</div>` : '';
@@ -1120,12 +1119,18 @@
             container.appendChild(row);
         }
 
-        const gst = totalGst;
-        const total = subtotal + gst;
+        // The same rules as the bill (static/js/cart_tax.js): each dish at
+        // its own rate, GST inside the price or on top, none at all on the
+        // composition scheme.
+        const t = RasovaCartTax.totals(lines, {
+            inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
+            composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
+        });
 
-        document.getElementById('billSubtotal').innerText = subtotal.toFixed(2);
-        document.getElementById('billGst').innerText = gst.toFixed(2);
-        document.getElementById('billTotal').innerText = total.toFixed(2);
+        document.getElementById('billSubtotal').innerText = t.subtotal.toFixed(2);
+        const gstEl = document.getElementById('billGst');
+        if (gstEl) gstEl.innerText = t.gst.toFixed(2);
+        document.getElementById('billTotal').innerText = t.total.toFixed(2);
     }
 
     // --- Order tracking (lets a guest add a SECOND round of items to the

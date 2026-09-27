@@ -1,12 +1,10 @@
 # orders/tests/test_tax_service.py
 """
-split_cgst_sgst was extracted from three independent, drifting copies of
-the same CGST/SGST 50/50-split-and-round logic (orders/models.py's
-cgst_total/sgst_total properties, orders/models.py's
-_build_gst_breakdown_data, and reports/services/export_services.py's
-GSTR-1 export). This is a pure-function test on the shared helper itself;
-the three call sites' own existing tests cover that the refactor didn't
-change their behavior.
+split_cgst_sgst is the CGST/SGST 50/50 split: CGST half the GST rounded half
+up, SGST the rest. It began as the shared copy of three drifting ones; since
+27 Sep 2026 the tax engine owns the rule (orders/services/tax_engine.py,
+split_gst) and this name stays for its callers (the cgst_total and
+sgst_total properties). A pure-function test on the rule itself.
 """
 from decimal import Decimal
 

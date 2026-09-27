@@ -32,6 +32,21 @@ After setting, calls `recalculate_totals()` which rebuilds the grand total inclu
 
 ---
 
+## 2b. GST on the parcel charge (since 27 Sep 2026)
+
+Packing is part of the restaurant service, so the parcel charge carries GST like the food.
+
+- **`Outlet.parcel_gst_rate`** (Outlet Settings, next to the parcel charge; default 5%): the rate.
+- **`Order.parcel_gst_rate`**: `toggle_parcel` copies the outlet's rate onto the order when the charge is turned ON, and clears it when turned OFF. A later change to the setting never changes a bill already made. Orders from before 27 Sep 2026 have no rate, so their parcel charge stays untaxed even if re-totalled.
+- **The maths** is the tax engine's (`orders/services/tax_engine.py`): the parcel is a *charge line*, never discounted, taxed at its own rate and rounded on its own, so it never moves the food's figures.
+  - Prices exclude GST: the GST is added on top. ₹10 parcel at 5% → ₹10.50.
+  - Prices include GST: the GST is inside the charge. ₹10 parcel holds ₹0.48; the guest still pays ₹10.
+  - Composition scheme: no GST at all.
+- The parcel's GST is part of `gst_total`, sits in the tax record's row for its rate (so GSTR-1 includes it), and is readable as `order.parcel_tax`. `toggle_parcel` returns it as `parcel_gst`.
+- The carts show the same figure before the order exists (`static/js/cart_tax.js`).
+
+---
+
 ## 3. The bill template
 
 `orders/templates/orders/bill.html` has this block:
@@ -166,6 +181,9 @@ If a brand new order is created (order_id=8), the old value `7` doesn't match, s
 | `tenants/models.py` — `Outlet.parcel_charge_amount` | Unit price setting |
 | `tenants/models.py` — `Outlet.parcel_charge_per_item` | Flat vs. per-item mode |
 | `orders/models.py` — `Order.parcel_surcharge` | Actual charge stored on order |
+| `tenants/models.py`: `Outlet.parcel_gst_rate` | GST rate on the parcel charge (default 5%) |
+| `orders/models.py`: `Order.parcel_gst_rate` | The rate copied onto the bill when parcel is turned on |
+| `orders/services/tax_engine.py` | The parcel charge's GST, with the rest of the bill's tax |
 | `orders/views/order_actions.py` — `toggle_parcel` | Server flip-flop view |
 | `orders/templates/orders/bill.html` | Displays parcel row if > 0 |
 | `orders/templates/orders/billing.html` | JS state + dispatch logic (the fix is here) |
