@@ -14,6 +14,7 @@ the source of truth.
 
 ### Tests
 - **3 new tests** in `kitchen/tests.py` (`KitchenDataQueryCountTest`): a poll makes the same number of queries before and after 25 finished KOTs are added (the old code went from 10 to 35), a ticket with a served and an unserved dish lists only the unserved one, and the station filter still works. All 48 kitchen tests pass on Postgres.
+- **A race test from 24 September was flaky** - `test_kitchen_starts_cooking_while_the_order_is_cancelled` runs its race three times on the same table. When the kitchen wins a round, the order rightly stays open with the dish cooking, and the next round's new order on that table broke the one-open-order-per-table rule. It passed until a CI run where the kitchen won early, which blocked the deploy of the kitchen display fix. Each round now uses a takeaway order, so the rounds can't collide whichever side wins. No app code changed.
 
 ---
 

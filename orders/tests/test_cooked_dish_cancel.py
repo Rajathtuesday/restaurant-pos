@@ -611,7 +611,12 @@ class CancelOrderConcurrencyTests(TransactionTestCase):
             username="cookedrace_chef", password="pw", role="chef", tenant=self.tenant, outlet=self.outlet,
         )
         for _ in range(3):
-            order, item = _order_in_kitchen(self)
+            # A takeaway order each round, not a table order: when the kitchen
+            # wins, the order rightly stays open with its dish cooking, and a
+            # table can only hold one open order, so the next round's table
+            # order failed on unique_open_order_per_table (a CI run on 27 Sep
+            # hit exactly that). Takeaway rounds can't collide.
+            order, item = _order_in_kitchen(self, table=False)
 
             results = self._race([
                 (self.cashier, reverse("cancel-order", args=[order.id]), {"reason": "Guest left"}),
