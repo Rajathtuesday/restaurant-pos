@@ -1,0 +1,4178 @@
+{
+ "(all outlets)": {
+  "category_sales": [
+   {
+    "menu_item__category__name": "Starters",
+    "revenue": "31879.32"
+   },
+   {
+    "menu_item__category__name": "Bar",
+    "revenue": "31020.00"
+   },
+   {
+    "menu_item__category__name": "Mains",
+    "revenue": "16260.00"
+   },
+   {
+    "menu_item__category__name": "Beverages",
+    "revenue": "7340.00"
+   }
+  ],
+  "daily_sales": {
+   "avg_order_value": 874.5,
+   "discount": 2353.5,
+   "gst_total": 6096.79,
+   "net_refunds": 679.0,
+   "orders": 100,
+   "payments": [
+    {
+     "method": "card",
+     "total": "23665.00"
+    },
+    {
+     "method": "cash",
+     "total": "30696.00"
+    },
+    {
+     "method": "upi",
+     "total": "33768.00"
+    }
+   ],
+   "round_off": 2.15,
+   "subtotal": 82718.06,
+   "total_sales": 87450.0
+  },
+  "gross_margin": {
+   "avg_order_value": 905.02,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 303 items have no recipe — their cost is excluded.",
+   "discounts": 2121.0,
+   "gross_margin_pct": 100.0,
+   "gross_profit": 83229.62,
+   "gross_revenue": 89597.0,
+   "gst_collected": 6367.38,
+   "items_with_recipe": 0,
+   "items_without_recipe": 303,
+   "net_revenue": 83229.62,
+   "order_count": 99,
+   "recipe_coverage_pct": 0.0
+  },
+  "gstr1_workbook": {
+   "GSTR-1 B2CS": [
+    [
+     "GSTR-1 B2CS (Business to Consumer Small) Report - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Type",
+     "Place of Supply",
+     "Rate (%)",
+     "Taxable Value",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Integrated Tax (IGST)",
+     "Cess Amount",
+     "E-Commerce GSTIN",
+     "Total Tax"
+    ],
+    [
+     "OE",
+     "Karnataka",
+     0,
+     1481.33,
+     0,
+     0,
+     0,
+     0,
+     null,
+     0
+    ],
+    [
+     "OE",
+     "Karnataka",
+     5,
+     31287.16,
+     782.18,
+     782.18,
+     0,
+     0,
+     null,
+     1564.36
+    ],
+    [
+     "OE",
+     "Karnataka",
+     12,
+     915.41,
+     54.92,
+     54.93,
+     0,
+     0,
+     null,
+     109.85
+    ],
+    [
+     "OE",
+     "Karnataka",
+     18,
+     24569.87,
+     2211.29,
+     2211.29,
+     0,
+     0,
+     null,
+     4422.58
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     58253.77,
+     3048.39,
+     3048.39,
+     0,
+     0,
+     null,
+     6096.78
+    ]
+   ],
+   "GSTR-1 Table 12 (HSN)": [
+    [
+     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "HSN/SAC",
+     "Description",
+     "UQC",
+     "Total Quantity",
+     "Total Value",
+     "Rate (%)",
+     "Taxable Value",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     1481.33,
+     0,
+     1481.33,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     32851.52,
+     5,
+     31287.16,
+     0,
+     782.18,
+     782.18,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     1025.26,
+     12,
+     915.41,
+     0,
+     54.92,
+     54.93,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     28992.45,
+     18,
+     24569.87,
+     0,
+     2211.29,
+     2211.29,
+     0
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     0,
+     64350.55,
+     null,
+     58253.77,
+     0,
+     3048.39,
+     3048.39,
+     0
+    ]
+   ]
+  },
+  "hourly_sales": [
+   {
+    "label": "Sep 01",
+    "total": 5662.0
+   },
+   {
+    "label": "Sep 02",
+    "total": 2831.0
+   },
+   {
+    "label": "Sep 03",
+    "total": 2426.0
+   },
+   {
+    "label": "Sep 04",
+    "total": 3711.0
+   },
+   {
+    "label": "Sep 05",
+    "total": 692.0
+   },
+   {
+    "label": "Sep 06",
+    "total": 2104.0
+   },
+   {
+    "label": "Sep 07",
+    "total": 1745.0
+   },
+   {
+    "label": "Sep 08",
+    "total": 3576.0
+   },
+   {
+    "label": "Sep 09",
+    "total": 2199.0
+   },
+   {
+    "label": "Sep 10",
+    "total": 1152.0
+   },
+   {
+    "label": "Sep 11",
+    "total": 3660.0
+   },
+   {
+    "label": "Sep 12",
+    "total": 7062.0
+   },
+   {
+    "label": "Sep 13",
+    "total": 3209.0
+   },
+   {
+    "label": "Sep 14",
+    "total": 2855.0
+   },
+   {
+    "label": "Sep 15",
+    "total": 5404.0
+   },
+   {
+    "label": "Sep 16",
+    "total": 0
+   },
+   {
+    "label": "Sep 17",
+    "total": 1410.0
+   },
+   {
+    "label": "Sep 18",
+    "total": 2198.0
+   },
+   {
+    "label": "Sep 19",
+    "total": 2023.0
+   },
+   {
+    "label": "Sep 20",
+    "total": 5718.0
+   },
+   {
+    "label": "Sep 21",
+    "total": 6048.0
+   },
+   {
+    "label": "Sep 22",
+    "total": 630.0
+   },
+   {
+    "label": "Sep 23",
+    "total": 2886.0
+   },
+   {
+    "label": "Sep 24",
+    "total": 4800.0
+   },
+   {
+    "label": "Sep 25",
+    "total": 3906.0
+   },
+   {
+    "label": "Sep 26",
+    "total": 0
+   },
+   {
+    "label": "Sep 27",
+    "total": 0
+   },
+   {
+    "label": "Sep 28",
+    "total": 2390.0
+   },
+   {
+    "label": "Sep 29",
+    "total": 2206.0
+   },
+   {
+    "label": "Sep 30",
+    "total": 3110.0
+   }
+  ],
+  "net_profit": {
+   "avg_order_value": 905.02,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 303 items have no recipe — their cost is excluded.",
+   "discounts": 2121.0,
+   "expense_breakdown": [],
+   "gross_margin_pct": 100.0,
+   "gross_profit": 83229.62,
+   "gross_revenue": 89597.0,
+   "gst_collected": 6367.38,
+   "items_with_recipe": 0,
+   "items_without_recipe": 303,
+   "net_margin_pct": 100.0,
+   "net_profit": 83229.62,
+   "net_revenue": 83229.62,
+   "operating_expenses": 0.0,
+   "order_count": 99,
+   "recipe_coverage_pct": 0.0
+  },
+  "period_comparison": {
+   "current": {
+    "avg_order": 911.88,
+    "discounts": 2121.0,
+    "gst": 6367.38,
+    "orders": 99,
+    "revenue": 90276.0,
+    "subtotal": 84573.39
+   },
+   "deltas": {
+    "avg_order": -13.9,
+    "discounts": 523.8,
+    "orders": 3200.0,
+    "revenue": 2740.7
+   },
+   "prev_end": "2026-08-31",
+   "prev_start": "2026-08-02",
+   "previous": {
+    "avg_order": 1059.33,
+    "discounts": 340.0,
+    "gst": 325.77,
+    "orders": 3,
+    "revenue": 3178.0,
+    "subtotal": 3191.28
+   }
+  },
+  "top_items": [
+   {
+    "menu_item__name": "Gobi Manchurian",
+    "total": 74,
+    "total_rev": "13320.00"
+   },
+   {
+    "menu_item__name": "Filter Coffee",
+    "total": 72,
+    "total_rev": "1800.00"
+   },
+   {
+    "menu_item__name": "Fresh Lime Soda",
+    "total": 70,
+    "total_rev": "4200.00"
+   },
+   {
+    "menu_item__name": "Veg Club Sandwich",
+    "total": 68,
+    "total_rev": "6799.32"
+   },
+   {
+    "menu_item__name": "Bottled Water 1L",
+    "total": 67,
+    "total_rev": "1340.00"
+   },
+   {
+    "menu_item__name": "Kingfisher Premium 650ml",
+    "total": 66,
+    "total_rev": "21120.00"
+   },
+   {
+    "menu_item__name": "Old Monk 60ml",
+    "total": 66,
+    "total_rev": "9900.00"
+   },
+   {
+    "menu_item__name": "Ghee Roast Dosa",
+    "total": 63,
+    "total_rev": "8820.00"
+   },
+   {
+    "menu_item__name": "Masala Dosa",
+    "total": 62,
+    "total_rev": "5580.00"
+   },
+   {
+    "menu_item__name": "Plain Curd",
+    "total": 62,
+    "total_rev": "1860.00"
+   }
+  ]
+ },
+ "Composition": {
+  "category_csv": [
+   [
+    "Category Name",
+    "Items Sold",
+    "Total Revenue"
+   ],
+   [
+    "Bar",
+    "37",
+    "8950.0"
+   ],
+   [
+    "Starters",
+    "46",
+    "7359.81"
+   ],
+   [
+    "Mains",
+    "50",
+    "4630.0"
+   ],
+   [
+    "Beverages",
+    "73",
+    "2885.0"
+   ]
+  ],
+  "category_sales": [
+   {
+    "menu_item__category__name": "Bar",
+    "revenue": "8950.00"
+   },
+   {
+    "menu_item__category__name": "Starters",
+    "revenue": "7359.81"
+   },
+   {
+    "menu_item__category__name": "Mains",
+    "revenue": "4630.00"
+   },
+   {
+    "menu_item__category__name": "Beverages",
+    "revenue": "2885.00"
+   }
+  ],
+  "daily_sales": {
+   "avg_order_value": 808.931,
+   "discount": 438.5,
+   "gst_total": 0.0,
+   "net_refunds": 68.0,
+   "orders": 29,
+   "payments": [
+    {
+     "method": "card",
+     "total": "4704.00"
+    },
+    {
+     "method": "cash",
+     "total": "10226.00"
+    },
+    {
+     "method": "upi",
+     "total": "8597.00"
+    }
+   ],
+   "round_off": 0.69,
+   "subtotal": 23824.81,
+   "total_sales": 23459.0
+  },
+  "gross_margin": {
+   "avg_order_value": 840.0,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 92 items have no recipe — their cost is excluded.",
+   "discounts": 417.5,
+   "gross_margin_pct": 100.0,
+   "gross_profit": 24360.0,
+   "gross_revenue": 24360.0,
+   "gst_collected": 0.0,
+   "items_with_recipe": 0,
+   "items_without_recipe": 92,
+   "net_revenue": 24360.0,
+   "order_count": 29,
+   "recipe_coverage_pct": 0.0
+  },
+  "gstr1_workbook": {
+   "GSTR-1 B2CS": [
+    [
+     "GSTR-1 B2CS (Business to Consumer Small) Report - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Type",
+     "Place of Supply",
+     "Rate (%)",
+     "Taxable Value",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Integrated Tax (IGST)",
+     "Cess Amount",
+     "E-Commerce GSTIN",
+     "Total Tax"
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     0,
+     0,
+     0,
+     0,
+     0,
+     null,
+     0
+    ]
+   ],
+   "GSTR-1 Table 12 (HSN)": [
+    [
+     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "HSN/SAC",
+     "Description",
+     "UQC",
+     "Total Quantity",
+     "Total Value",
+     "Rate (%)",
+     "Taxable Value",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     0,
+     0,
+     null,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   ]
+  },
+  "hourly_sales": [
+   {
+    "label": "Sep 01",
+    "total": 1770.0
+   },
+   {
+    "label": "Sep 02",
+    "total": 1945.0
+   },
+   {
+    "label": "Sep 03",
+    "total": 1670.0
+   },
+   {
+    "label": "Sep 04",
+    "total": 1519.0
+   },
+   {
+    "label": "Sep 05",
+    "total": 338.0
+   },
+   {
+    "label": "Sep 06",
+    "total": 1160.0
+   },
+   {
+    "label": "Sep 07",
+    "total": 1745.0
+   },
+   {
+    "label": "Sep 08",
+    "total": 1756.0
+   },
+   {
+    "label": "Sep 09",
+    "total": 650.0
+   },
+   {
+    "label": "Sep 10",
+    "total": 202.0
+   },
+   {
+    "label": "Sep 11",
+    "total": 970.0
+   },
+   {
+    "label": "Sep 12",
+    "total": 1230.0
+   },
+   {
+    "label": "Sep 13",
+    "total": 120.0
+   },
+   {
+    "label": "Sep 14",
+    "total": 0
+   },
+   {
+    "label": "Sep 15",
+    "total": 1940.0
+   },
+   {
+    "label": "Sep 16",
+    "total": 0
+   },
+   {
+    "label": "Sep 17",
+    "total": 740.0
+   },
+   {
+    "label": "Sep 18",
+    "total": 1110.0
+   },
+   {
+    "label": "Sep 19",
+    "total": 770.0
+   },
+   {
+    "label": "Sep 20",
+    "total": 1290.0
+   },
+   {
+    "label": "Sep 21",
+    "total": 230.0
+   },
+   {
+    "label": "Sep 22",
+    "total": 0
+   },
+   {
+    "label": "Sep 23",
+    "total": 1375.0
+   },
+   {
+    "label": "Sep 24",
+    "total": 0
+   },
+   {
+    "label": "Sep 25",
+    "total": 0
+   },
+   {
+    "label": "Sep 26",
+    "total": 0
+   },
+   {
+    "label": "Sep 27",
+    "total": 0
+   },
+   {
+    "label": "Sep 28",
+    "total": 810.0
+   },
+   {
+    "label": "Sep 29",
+    "total": 0
+   },
+   {
+    "label": "Sep 30",
+    "total": 0
+   }
+  ],
+  "items_csv": [
+   [
+    "Item Name",
+    "Category",
+    "Quantity Sold",
+    "Gross Revenue",
+    "Average Rate"
+   ],
+   [
+    "Fresh Lime Soda",
+    "Beverages",
+    "33",
+    "1980.00",
+    "60.00"
+   ],
+   [
+    "Masala Dosa",
+    "Mains",
+    "21",
+    "1890.00",
+    "90.00"
+   ],
+   [
+    "Filter Coffee",
+    "Beverages",
+    "21",
+    "525.00",
+    "25.00"
+   ],
+   [
+    "Kingfisher Premium 650ml",
+    "Bar",
+    "20",
+    "6400.00",
+    "320.00"
+   ],
+   [
+    "Bottled Water 1L",
+    "Beverages",
+    "19",
+    "380.00",
+    "20.00"
+   ],
+   [
+    "Veg Club Sandwich",
+    "Starters",
+    "19",
+    "1899.81",
+    "99.99"
+   ],
+   [
+    "Ghee Roast Dosa",
+    "Mains",
+    "17",
+    "2380.00",
+    "140.00"
+   ],
+   [
+    "Old Monk 60ml",
+    "Bar",
+    "17",
+    "2550.00",
+    "150.00"
+   ],
+   [
+    "Gobi Manchurian",
+    "Starters",
+    "17",
+    "3060.00",
+    "180.00"
+   ],
+   [
+    "Plain Curd",
+    "Mains",
+    "12",
+    "360.00",
+    "30.00"
+   ],
+   [
+    "Chicken 65",
+    "Starters",
+    "10",
+    "2400.00",
+    "240.00"
+   ]
+  ],
+  "net_profit": {
+   "avg_order_value": 840.0,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 92 items have no recipe — their cost is excluded.",
+   "discounts": 417.5,
+   "expense_breakdown": [],
+   "gross_margin_pct": 100.0,
+   "gross_profit": 24360.0,
+   "gross_revenue": 24360.0,
+   "gst_collected": 0.0,
+   "items_with_recipe": 0,
+   "items_without_recipe": 92,
+   "net_margin_pct": 100.0,
+   "net_profit": 24360.0,
+   "net_revenue": 24360.0,
+   "operating_expenses": 0.0,
+   "order_count": 29,
+   "recipe_coverage_pct": 0.0
+  },
+  "orders_csv": [
+   [
+    "NOTE: Composition Taxable Person — not eligible to collect tax on supplies.",
+    "GSTIN: 29ABCDE1234F1Z5",
+    "Period: 2026-09-01 to 2026-09-30"
+   ],
+   [],
+   [
+    "Order ID",
+    "Order No",
+    "Date",
+    "Time",
+    "Outlet",
+    "Source",
+    "Status",
+    "Customer Name",
+    "Subtotal",
+    "Discount",
+    "GST",
+    "Round Off",
+    "Grand Total",
+    "Payment Methods"
+   ],
+   [
+    "(id)",
+    "GM-2003",
+    "2026-09-30",
+    "19:45:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "140.00",
+    "21.00",
+    "0.00",
+    "0.00",
+    "119.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-2031",
+    "2026-09-28",
+    "14:38:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "810.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "810.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2028",
+    "2026-09-27",
+    "14:55:00",
+    "Composition",
+    "Dine In",
+    "Open",
+    "Walk-in",
+    "299.97",
+    "0.00",
+    "0.00",
+    "0.03",
+    "300.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2022",
+    "2026-09-25",
+    "19:21:00",
+    "Composition",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "1150.00",
+    "120.00",
+    "0.00",
+    "0.00",
+    "1030.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2005",
+    "2026-09-23",
+    "15:31:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "819.98",
+    "35.00",
+    "0.00",
+    "0.02",
+    "785.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2017",
+    "2026-09-23",
+    "14:40:00",
+    "Composition",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "2365.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "2395.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2037",
+    "2026-09-23",
+    "06:43:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "590.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "590.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-2020",
+    "2026-09-20",
+    "17:46:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "230.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "230.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2036",
+    "2026-09-20",
+    "14:40:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1280.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "1290.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2014",
+    "2026-09-18",
+    "19:04:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "770.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "770.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2035",
+    "2026-09-18",
+    "15:15:00",
+    "Composition",
+    "Dine In",
+    "Open",
+    "Walk-in",
+    "574.98",
+    "20.00",
+    "0.00",
+    "0.02",
+    "555.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2011",
+    "2026-09-18",
+    "07:08:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1110.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "1110.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-2023",
+    "2026-09-17",
+    "19:55:00",
+    "Composition",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "90.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "90.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2016",
+    "2026-09-17",
+    "16:12:00",
+    "Composition",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "730.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "740.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-2012",
+    "2026-09-14",
+    "20:16:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1910.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "1940.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2027",
+    "2026-09-14",
+    "15:56:00",
+    "Composition",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "260.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "260.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2006",
+    "2026-09-13",
+    "08:14:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "90.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "120.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-2010",
+    "2026-09-12",
+    "09:12:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "959.96",
+    "0.00",
+    "0.00",
+    "0.04",
+    "960.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2030",
+    "2026-09-12",
+    "08:50:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "270.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "270.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-2039",
+    "2026-09-11",
+    "08:52:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "735.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "735.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2018",
+    "2026-09-11",
+    "07:35:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "279.99",
+    "45.00",
+    "0.00",
+    "0.01",
+    "235.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-2032",
+    "2026-09-10",
+    "20:20:00",
+    "Composition",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "300.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "300.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2026",
+    "2026-09-09",
+    "18:06:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "240.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "270.00",
+    "upi, refund"
+   ],
+   [
+    "(id)",
+    "GM-2015",
+    "2026-09-09",
+    "15:23:00",
+    "Composition",
+    "Dine In",
+    "Open",
+    "Walk-in",
+    "199.98",
+    "0.00",
+    "0.00",
+    "0.02",
+    "200.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-2013",
+    "2026-09-09",
+    "14:58:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "649.97",
+    "0.00",
+    "0.00",
+    "0.03",
+    "650.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2021",
+    "2026-09-08",
+    "15:45:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1759.97",
+    "4.00",
+    "0.00",
+    "0.03",
+    "1756.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2034",
+    "2026-09-07",
+    "15:21:00",
+    "Composition",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "1099.97",
+    "165.00",
+    "0.00",
+    "0.03",
+    "935.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2033",
+    "2026-09-06",
+    "17:46:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "779.99",
+    "0.00",
+    "0.00",
+    "0.01",
+    "810.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-2029",
+    "2026-09-05",
+    "19:26:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1159.98",
+    "0.00",
+    "0.00",
+    "0.02",
+    "1160.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-2024",
+    "2026-09-04",
+    "19:02:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "375.00",
+    "37.50",
+    "0.00",
+    "0.50",
+    "338.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2019",
+    "2026-09-04",
+    "14:22:00",
+    "Composition",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "40.00",
+    "4.00",
+    "0.00",
+    "0.00",
+    "36.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2025",
+    "2026-09-04",
+    "13:46:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "570.00",
+    "57.00",
+    "0.00",
+    "0.00",
+    "513.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-2009",
+    "2026-09-04",
+    "06:42:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "970.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "970.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2007",
+    "2026-09-03",
+    "14:44:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "600.00",
+    "10.00",
+    "0.00",
+    "0.00",
+    "590.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-2038",
+    "2026-09-02",
+    "18:17:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1080.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "1080.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-2008",
+    "2026-09-02",
+    "07:33:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1945.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "1945.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-2002",
+    "2026-09-01",
+    "00:35:00",
+    "Composition",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1830.00",
+    "60.00",
+    "0.00",
+    "0.00",
+    "1770.00",
+    "card"
+   ]
+  ],
+  "period_comparison": {
+   "current": {
+    "avg_order": 842.34,
+    "discounts": 417.5,
+    "gst": 0.0,
+    "orders": 29,
+    "revenue": 24428.0,
+    "subtotal": 24704.81
+   },
+   "deltas": {
+    "avg_order": 3.0,
+    "discounts": 53.2,
+    "orders": 2800.0,
+    "revenue": 2886.3
+   },
+   "prev_end": "2026-08-31",
+   "prev_start": "2026-08-02",
+   "previous": {
+    "avg_order": 818.0,
+    "discounts": 272.5,
+    "gst": 0.0,
+    "orders": 1,
+    "revenue": 818.0,
+    "subtotal": 1090.0
+   }
+  },
+  "pl_csv": [
+   [
+    "NET PROFIT REPORT",
+    "Period: 2026-09-01 to 2026-09-30"
+   ],
+   [],
+   [
+    "Gross Revenue",
+    "24360.0"
+   ],
+   [
+    "GST Collected",
+    "0.0"
+   ],
+   [
+    "Net Revenue",
+    "24360.0"
+   ],
+   [
+    "Discounts Given",
+    "417.5"
+   ],
+   [
+    "COGS",
+    "0.0"
+   ],
+   [
+    "Gross Profit",
+    "24360.0"
+   ],
+   [
+    "Gross Margin %",
+    "100.0"
+   ],
+   [
+    "Operating Expenses",
+    "0.0"
+   ],
+   [
+    "NET PROFIT",
+    "24360.0"
+   ],
+   [
+    "Net Margin %",
+    "100.0"
+   ],
+   [],
+   [
+    "EXPENSE BREAKDOWN BY CATEGORY"
+   ],
+   [
+    "Category",
+    "Amount"
+   ]
+  ],
+  "top_items": [
+   {
+    "menu_item__name": "Fresh Lime Soda",
+    "total": 33,
+    "total_rev": "1980.00"
+   },
+   {
+    "menu_item__name": "Filter Coffee",
+    "total": 21,
+    "total_rev": "525.00"
+   },
+   {
+    "menu_item__name": "Masala Dosa",
+    "total": 21,
+    "total_rev": "1890.00"
+   },
+   {
+    "menu_item__name": "Kingfisher Premium 650ml",
+    "total": 20,
+    "total_rev": "6400.00"
+   },
+   {
+    "menu_item__name": "Bottled Water 1L",
+    "total": 19,
+    "total_rev": "380.00"
+   },
+   {
+    "menu_item__name": "Veg Club Sandwich",
+    "total": 19,
+    "total_rev": "1899.81"
+   },
+   {
+    "menu_item__name": "Ghee Roast Dosa",
+    "total": 17,
+    "total_rev": "2380.00"
+   },
+   {
+    "menu_item__name": "Gobi Manchurian",
+    "total": 17,
+    "total_rev": "3060.00"
+   },
+   {
+    "menu_item__name": "Old Monk 60ml",
+    "total": 17,
+    "total_rev": "2550.00"
+   },
+   {
+    "menu_item__name": "Plain Curd",
+    "total": 12,
+    "total_rev": "360.00"
+   }
+  ]
+ },
+ "Exclusive": {
+  "category_csv": [
+   [
+    "Category Name",
+    "Items Sold",
+    "Total Revenue"
+   ],
+   [
+    "Bar",
+    "53",
+    "13050.0"
+   ],
+   [
+    "Starters",
+    "72",
+    "12499.77"
+   ],
+   [
+    "Mains",
+    "59",
+    "5020.0"
+   ],
+   [
+    "Beverages",
+    "78",
+    "2340.0"
+   ]
+  ],
+  "category_sales": [
+   {
+    "menu_item__category__name": "Bar",
+    "revenue": "13050.00"
+   },
+   {
+    "menu_item__category__name": "Starters",
+    "revenue": "12499.77"
+   },
+   {
+    "menu_item__category__name": "Mains",
+    "revenue": "5020.00"
+   },
+   {
+    "menu_item__category__name": "Beverages",
+    "revenue": "2340.00"
+   }
+  ],
+  "daily_sales": {
+   "avg_order_value": 1026.8857,
+   "discount": 639.5,
+   "gst_total": 3591.03,
+   "net_refunds": 0.0,
+   "orders": 35,
+   "payments": [
+    {
+     "method": "card",
+     "total": "11062.00"
+    },
+    {
+     "method": "cash",
+     "total": "12549.00"
+    },
+    {
+     "method": "upi",
+     "total": "12330.00"
+    }
+   ],
+   "round_off": -0.3,
+   "subtotal": 32909.77,
+   "total_sales": 35941.0
+  },
+  "gross_margin": {
+   "avg_order_value": 1051.89,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 106 items have no recipe — their cost is excluded.",
+   "discounts": 639.5,
+   "gross_margin_pct": 100.0,
+   "gross_profit": 33090.57,
+   "gross_revenue": 36816.0,
+   "gst_collected": 3725.43,
+   "items_with_recipe": 0,
+   "items_without_recipe": 106,
+   "net_revenue": 33090.57,
+   "order_count": 35,
+   "recipe_coverage_pct": 0.0
+  },
+  "gstr1_workbook": {
+   "GSTR-1 B2CS": [
+    [
+     "GSTR-1 B2CS (Business to Consumer Small) Report - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Type",
+     "Place of Supply",
+     "Rate (%)",
+     "Taxable Value",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Integrated Tax (IGST)",
+     "Cess Amount",
+     "E-Commerce GSTIN",
+     "Total Tax"
+    ],
+    [
+     "OE",
+     "Karnataka",
+     0,
+     701.33,
+     0,
+     0,
+     0,
+     0,
+     null,
+     0
+    ],
+    [
+     "OE",
+     "Karnataka",
+     5,
+     15777.16,
+     394.43,
+     394.43,
+     0,
+     0,
+     null,
+     788.86
+    ],
+    [
+     "OE",
+     "Karnataka",
+     12,
+     672.55,
+     40.35,
+     40.36,
+     0,
+     0,
+     null,
+     80.71
+    ],
+    [
+     "OE",
+     "Karnataka",
+     18,
+     15119.24,
+     1360.73,
+     1360.73,
+     0,
+     0,
+     null,
+     2721.46
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     32270.27,
+     1795.51,
+     1795.52,
+     0,
+     0,
+     null,
+     3591.03
+    ]
+   ],
+   "GSTR-1 Table 12 (HSN)": [
+    [
+     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "HSN/SAC",
+     "Description",
+     "UQC",
+     "Total Quantity",
+     "Total Value",
+     "Rate (%)",
+     "Taxable Value",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     701.33,
+     0,
+     701.33,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     16566.02,
+     5,
+     15777.16,
+     0,
+     394.43,
+     394.43,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     753.26,
+     12,
+     672.55,
+     0,
+     40.35,
+     40.36,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     17840.7,
+     18,
+     15119.24,
+     0,
+     1360.73,
+     1360.73,
+     0
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     0,
+     35861.3,
+     null,
+     32270.27,
+     0,
+     1795.51,
+     1795.52,
+     0
+    ]
+   ]
+  },
+  "hourly_sales": [
+   {
+    "label": "Sep 01",
+    "total": 2137.0
+   },
+   {
+    "label": "Sep 02",
+    "total": 576.0
+   },
+   {
+    "label": "Sep 03",
+    "total": 756.0
+   },
+   {
+    "label": "Sep 04",
+    "total": 2192.0
+   },
+   {
+    "label": "Sep 05",
+    "total": 354.0
+   },
+   {
+    "label": "Sep 06",
+    "total": 189.0
+   },
+   {
+    "label": "Sep 07",
+    "total": 0
+   },
+   {
+    "label": "Sep 08",
+    "total": 0
+   },
+   {
+    "label": "Sep 09",
+    "total": 1054.0
+   },
+   {
+    "label": "Sep 10",
+    "total": 0
+   },
+   {
+    "label": "Sep 11",
+    "total": 2690.0
+   },
+   {
+    "label": "Sep 12",
+    "total": 2892.0
+   },
+   {
+    "label": "Sep 13",
+    "total": 3089.0
+   },
+   {
+    "label": "Sep 14",
+    "total": 2855.0
+   },
+   {
+    "label": "Sep 15",
+    "total": 3464.0
+   },
+   {
+    "label": "Sep 16",
+    "total": 0
+   },
+   {
+    "label": "Sep 17",
+    "total": 0
+   },
+   {
+    "label": "Sep 18",
+    "total": 1088.0
+   },
+   {
+    "label": "Sep 19",
+    "total": 210.0
+   },
+   {
+    "label": "Sep 20",
+    "total": 1394.0
+   },
+   {
+    "label": "Sep 21",
+    "total": 0
+   },
+   {
+    "label": "Sep 22",
+    "total": 0
+   },
+   {
+    "label": "Sep 23",
+    "total": 861.0
+   },
+   {
+    "label": "Sep 24",
+    "total": 4740.0
+   },
+   {
+    "label": "Sep 25",
+    "total": 1716.0
+   },
+   {
+    "label": "Sep 26",
+    "total": 0
+   },
+   {
+    "label": "Sep 27",
+    "total": 0
+   },
+   {
+    "label": "Sep 28",
+    "total": 0
+   },
+   {
+    "label": "Sep 29",
+    "total": 1136.0
+   },
+   {
+    "label": "Sep 30",
+    "total": 2290.0
+   }
+  ],
+  "items_csv": [
+   [
+    "Item Name",
+    "Category",
+    "Quantity Sold",
+    "Gross Revenue",
+    "Average Rate"
+   ],
+   [
+    "Bottled Water 1L",
+    "Beverages",
+    "34",
+    "680.00",
+    "20.00"
+   ],
+   [
+    "Kingfisher Premium 650ml",
+    "Bar",
+    "30",
+    "9600.00",
+    "320.00"
+   ],
+   [
+    "Filter Coffee",
+    "Beverages",
+    "28",
+    "700.00",
+    "25.00"
+   ],
+   [
+    "Gobi Manchurian",
+    "Starters",
+    "26",
+    "4680.00",
+    "180.00"
+   ],
+   [
+    "Plain Curd",
+    "Mains",
+    "24",
+    "720.00",
+    "30.00"
+   ],
+   [
+    "Veg Club Sandwich",
+    "Starters",
+    "23",
+    "2299.77",
+    "99.99"
+   ],
+   [
+    "Chicken 65",
+    "Starters",
+    "23",
+    "5520.00",
+    "240.00"
+   ],
+   [
+    "Ghee Roast Dosa",
+    "Mains",
+    "23",
+    "3220.00",
+    "140.00"
+   ],
+   [
+    "Old Monk 60ml",
+    "Bar",
+    "23",
+    "3450.00",
+    "150.00"
+   ],
+   [
+    "Fresh Lime Soda",
+    "Beverages",
+    "16",
+    "960.00",
+    "60.00"
+   ],
+   [
+    "Masala Dosa",
+    "Mains",
+    "12",
+    "1080.00",
+    "90.00"
+   ]
+  ],
+  "net_profit": {
+   "avg_order_value": 1051.89,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 106 items have no recipe — their cost is excluded.",
+   "discounts": 639.5,
+   "expense_breakdown": [],
+   "gross_margin_pct": 100.0,
+   "gross_profit": 33090.57,
+   "gross_revenue": 36816.0,
+   "gst_collected": 3725.43,
+   "items_with_recipe": 0,
+   "items_without_recipe": 106,
+   "net_margin_pct": 100.0,
+   "net_profit": 33090.57,
+   "net_revenue": 33090.57,
+   "operating_expenses": 0.0,
+   "order_count": 35,
+   "recipe_coverage_pct": 0.0
+  },
+  "orders_csv": [
+   [
+    "Order ID",
+    "Order No",
+    "Date",
+    "Time",
+    "Outlet",
+    "Source",
+    "Status",
+    "Customer Name",
+    "Subtotal",
+    "Discount",
+    "GST",
+    "Round Off",
+    "Grand Total",
+    "Payment Methods"
+   ],
+   [
+    "(id)",
+    "GM-0003",
+    "2026-09-30",
+    "19:45:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "219.98",
+    "0.00",
+    "38.40",
+    "-0.38",
+    "258.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0020",
+    "2026-09-30",
+    "15:27:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "829.97",
+    "0.00",
+    "84.69",
+    "0.34",
+    "915.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0017",
+    "2026-09-30",
+    "15:13:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "720.00",
+    "0.00",
+    "97.20",
+    "-0.20",
+    "817.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0031",
+    "2026-09-30",
+    "07:25:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "630.00",
+    "94.50",
+    "22.95",
+    "-0.45",
+    "558.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0027",
+    "2026-09-29",
+    "14:18:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "199.99",
+    "25.00",
+    "18.50",
+    "-0.49",
+    "193.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-0012",
+    "2026-09-28",
+    "20:07:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "899.99",
+    "14.00",
+    "57.30",
+    "-0.29",
+    "943.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0025",
+    "2026-09-24",
+    "20:09:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "1560.00",
+    "0.00",
+    "156.00",
+    "0.00",
+    "1716.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0006",
+    "2026-09-24",
+    "09:13:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "2650.00",
+    "0.00",
+    "339.30",
+    "-0.30",
+    "3019.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0008",
+    "2026-09-23",
+    "19:11:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1649.96",
+    "56.00",
+    "127.19",
+    "-0.15",
+    "1721.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-0035",
+    "2026-09-23",
+    "07:03:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "870.00",
+    "50.00",
+    "40.72",
+    "0.28",
+    "861.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0033",
+    "2026-09-22",
+    "18:06:00",
+    "Exclusive",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "1020.00",
+    "100.00",
+    "46.00",
+    "0.00",
+    "966.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-0010",
+    "2026-09-19",
+    "19:18:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1239.96",
+    "4.00",
+    "157.91",
+    "0.13",
+    "1394.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0026",
+    "2026-09-18",
+    "18:40:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "200.00",
+    "0.00",
+    "9.60",
+    "0.40",
+    "210.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-0016",
+    "2026-09-18",
+    "14:34:00",
+    "Exclusive",
+    "Dine In",
+    "Open",
+    "Walk-in",
+    "510.00",
+    "6.00",
+    "20.70",
+    "0.30",
+    "555.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-0034",
+    "2026-09-18",
+    "13:46:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "180.00",
+    "0.00",
+    "9.00",
+    "0.00",
+    "199.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0024",
+    "2026-09-18",
+    "07:42:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "870.00",
+    "37.50",
+    "56.25",
+    "0.25",
+    "889.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0023",
+    "2026-09-15",
+    "16:20:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1430.00",
+    "0.00",
+    "236.40",
+    "-0.40",
+    "1686.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-0005",
+    "2026-09-15",
+    "15:10:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1670.00",
+    "0.00",
+    "87.70",
+    "0.30",
+    "1778.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0029",
+    "2026-09-14",
+    "15:47:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1765.00",
+    "0.00",
+    "171.45",
+    "-0.45",
+    "1936.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0013",
+    "2026-09-14",
+    "07:22:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "580.00",
+    "0.00",
+    "33.20",
+    "-0.20",
+    "613.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0009",
+    "2026-09-14",
+    "06:33:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "340.00",
+    "80.00",
+    "45.60",
+    "0.40",
+    "306.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0032",
+    "2026-09-13",
+    "07:01:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "459.96",
+    "0.00",
+    "74.99",
+    "0.05",
+    "535.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-0028",
+    "2026-09-12",
+    "20:05:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "2199.97",
+    "0.00",
+    "354.39",
+    "-0.36",
+    "2554.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0018",
+    "2026-09-11",
+    "20:23:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "150.00",
+    "0.00",
+    "27.00",
+    "0.00",
+    "177.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0036",
+    "2026-09-11",
+    "18:42:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1480.00",
+    "0.00",
+    "198.80",
+    "0.20",
+    "1679.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0037",
+    "2026-09-11",
+    "17:46:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "1084.99",
+    "111.00",
+    "61.70",
+    "0.31",
+    "1036.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0038",
+    "2026-09-11",
+    "07:34:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "240.00",
+    "0.00",
+    "12.00",
+    "0.00",
+    "252.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0007",
+    "2026-09-10",
+    "18:02:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "2155.00",
+    "60.00",
+    "342.75",
+    "0.25",
+    "2438.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0011",
+    "2026-09-09",
+    "16:28:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1070.00",
+    "100.00",
+    "83.86",
+    "0.14",
+    "1054.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0030",
+    "2026-09-05",
+    "18:41:00",
+    "Exclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "180.00",
+    "0.00",
+    "9.00",
+    "0.00",
+    "189.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0039",
+    "2026-09-05",
+    "15:24:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "300.00",
+    "0.00",
+    "54.00",
+    "0.00",
+    "354.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0019",
+    "2026-09-03",
+    "20:26:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1935.00",
+    "7.50",
+    "264.18",
+    "0.32",
+    "2192.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-0015",
+    "2026-09-03",
+    "08:09:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "720.00",
+    "0.00",
+    "36.00",
+    "0.00",
+    "756.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0014",
+    "2026-09-02",
+    "16:25:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "120.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "120.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-0021",
+    "2026-09-02",
+    "09:29:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "395.00",
+    "0.00",
+    "61.35",
+    "-0.35",
+    "456.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-0022",
+    "2026-09-01",
+    "15:47:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "300.00",
+    "0.00",
+    "20.60",
+    "0.40",
+    "321.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-0002",
+    "2026-09-01",
+    "00:35:00",
+    "Exclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1615.00",
+    "0.00",
+    "201.05",
+    "-0.05",
+    "1816.00",
+    "cash, upi"
+   ]
+  ],
+  "period_comparison": {
+   "current": {
+    "avg_order": 1051.89,
+    "discounts": 639.5,
+    "gst": 3725.43,
+    "orders": 35,
+    "revenue": 36816.0,
+    "subtotal": 33649.79
+   },
+   "deltas": {
+    "avg_order": 67.0,
+    "discounts": 847.4,
+    "orders": 3400.0,
+    "revenue": 5743.8
+   },
+   "prev_end": "2026-08-31",
+   "prev_start": "2026-08-02",
+   "previous": {
+    "avg_order": 630.0,
+    "discounts": 67.5,
+    "gst": 67.12,
+    "orders": 1,
+    "revenue": 630.0,
+    "subtotal": 629.97
+   }
+  },
+  "pl_csv": [
+   [
+    "NET PROFIT REPORT",
+    "Period: 2026-09-01 to 2026-09-30"
+   ],
+   [],
+   [
+    "Gross Revenue",
+    "36816.0"
+   ],
+   [
+    "GST Collected",
+    "3725.43"
+   ],
+   [
+    "Net Revenue",
+    "33090.57"
+   ],
+   [
+    "Discounts Given",
+    "639.5"
+   ],
+   [
+    "COGS",
+    "0.0"
+   ],
+   [
+    "Gross Profit",
+    "33090.57"
+   ],
+   [
+    "Gross Margin %",
+    "100.0"
+   ],
+   [
+    "Operating Expenses",
+    "0.0"
+   ],
+   [
+    "NET PROFIT",
+    "33090.57"
+   ],
+   [
+    "Net Margin %",
+    "100.0"
+   ],
+   [],
+   [
+    "EXPENSE BREAKDOWN BY CATEGORY"
+   ],
+   [
+    "Category",
+    "Amount"
+   ]
+  ],
+  "top_items": [
+   {
+    "menu_item__name": "Bottled Water 1L",
+    "total": 34,
+    "total_rev": "680.00"
+   },
+   {
+    "menu_item__name": "Kingfisher Premium 650ml",
+    "total": 30,
+    "total_rev": "9600.00"
+   },
+   {
+    "menu_item__name": "Filter Coffee",
+    "total": 28,
+    "total_rev": "700.00"
+   },
+   {
+    "menu_item__name": "Gobi Manchurian",
+    "total": 26,
+    "total_rev": "4680.00"
+   },
+   {
+    "menu_item__name": "Plain Curd",
+    "total": 24,
+    "total_rev": "720.00"
+   },
+   {
+    "menu_item__name": "Chicken 65",
+    "total": 23,
+    "total_rev": "5520.00"
+   },
+   {
+    "menu_item__name": "Ghee Roast Dosa",
+    "total": 23,
+    "total_rev": "3220.00"
+   },
+   {
+    "menu_item__name": "Old Monk 60ml",
+    "total": 23,
+    "total_rev": "3450.00"
+   },
+   {
+    "menu_item__name": "Veg Club Sandwich",
+    "total": 23,
+    "total_rev": "2299.77"
+   },
+   {
+    "menu_item__name": "Fresh Lime Soda",
+    "total": 16,
+    "total_rev": "960.00"
+   }
+  ]
+ },
+ "Inclusive": {
+  "category_csv": [
+   [
+    "Category Name",
+    "Items Sold",
+    "Total Revenue"
+   ],
+   [
+    "Starters",
+    "73",
+    "12019.74"
+   ],
+   [
+    "Bar",
+    "42",
+    "9020.0"
+   ],
+   [
+    "Mains",
+    "78",
+    "6610.0"
+   ],
+   [
+    "Beverages",
+    "58",
+    "2115.0"
+   ]
+  ],
+  "category_sales": [
+   {
+    "menu_item__category__name": "Starters",
+    "revenue": "12019.74"
+   },
+   {
+    "menu_item__category__name": "Bar",
+    "revenue": "9020.00"
+   },
+   {
+    "menu_item__category__name": "Mains",
+    "revenue": "6610.00"
+   },
+   {
+    "menu_item__category__name": "Beverages",
+    "revenue": "2115.00"
+   }
+  ],
+  "daily_sales": {
+   "avg_order_value": 779.1667,
+   "discount": 1275.5,
+   "gst_total": 2505.76,
+   "net_refunds": 611.0,
+   "orders": 36,
+   "payments": [
+    {
+     "method": "card",
+     "total": "7899.00"
+    },
+    {
+     "method": "cash",
+     "total": "7921.00"
+    },
+    {
+     "method": "upi",
+     "total": "12841.00"
+    }
+   ],
+   "round_off": 1.76,
+   "subtotal": 25983.48,
+   "total_sales": 28050.0
+  },
+  "gross_margin": {
+   "avg_order_value": 812.03,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 105 items have no recipe — their cost is excluded.",
+   "discounts": 1064.0,
+   "gross_margin_pct": 100.0,
+   "gross_profit": 25779.05,
+   "gross_revenue": 28421.0,
+   "gst_collected": 2641.95,
+   "items_with_recipe": 0,
+   "items_without_recipe": 105,
+   "net_revenue": 25779.05,
+   "order_count": 35,
+   "recipe_coverage_pct": 0.0
+  },
+  "gstr1_workbook": {
+   "GSTR-1 B2CS": [
+    [
+     "GSTR-1 B2CS (Business to Consumer Small) Report - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Type",
+     "Place of Supply",
+     "Rate (%)",
+     "Taxable Value",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Integrated Tax (IGST)",
+     "Cess Amount",
+     "E-Commerce GSTIN",
+     "Total Tax"
+    ],
+    [
+     "OE",
+     "Karnataka",
+     0,
+     780,
+     0,
+     0,
+     0,
+     0,
+     null,
+     0
+    ],
+    [
+     "OE",
+     "Karnataka",
+     5,
+     15510,
+     387.75,
+     387.75,
+     0,
+     0,
+     null,
+     775.5
+    ],
+    [
+     "OE",
+     "Karnataka",
+     12,
+     242.86,
+     14.57,
+     14.57,
+     0,
+     0,
+     null,
+     29.14
+    ],
+    [
+     "OE",
+     "Karnataka",
+     18,
+     9450.64,
+     850.56,
+     850.55,
+     0,
+     0,
+     null,
+     1701.11
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     25983.49,
+     1252.88,
+     1252.88,
+     0,
+     0,
+     null,
+     2505.76
+    ]
+   ],
+   "GSTR-1 Table 12 (HSN)": [
+    [
+     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "HSN/SAC",
+     "Description",
+     "UQC",
+     "Total Quantity",
+     "Total Value",
+     "Rate (%)",
+     "Taxable Value",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     780,
+     0,
+     780,
+     0,
+     0,
+     0,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     16285.5,
+     5,
+     15510,
+     0,
+     387.75,
+     387.75,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     272,
+     12,
+     242.86,
+     0,
+     14.57,
+     14.57,
+     0
+    ],
+    [
+     "996331",
+     "Restaurant/catering services",
+     "NA",
+     0,
+     11151.75,
+     18,
+     9450.64,
+     0,
+     850.56,
+     850.55,
+     0
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     0,
+     28489.25,
+     null,
+     25983.49,
+     0,
+     1252.88,
+     1252.88,
+     0
+    ]
+   ]
+  },
+  "hourly_sales": [
+   {
+    "label": "Sep 01",
+    "total": 1755.0
+   },
+   {
+    "label": "Sep 02",
+    "total": 310.0
+   },
+   {
+    "label": "Sep 03",
+    "total": 0
+   },
+   {
+    "label": "Sep 04",
+    "total": 0
+   },
+   {
+    "label": "Sep 05",
+    "total": 0
+   },
+   {
+    "label": "Sep 06",
+    "total": 755.0
+   },
+   {
+    "label": "Sep 07",
+    "total": 0
+   },
+   {
+    "label": "Sep 08",
+    "total": 1820.0
+   },
+   {
+    "label": "Sep 09",
+    "total": 495.0
+   },
+   {
+    "label": "Sep 10",
+    "total": 950.0
+   },
+   {
+    "label": "Sep 11",
+    "total": 0
+   },
+   {
+    "label": "Sep 12",
+    "total": 2940.0
+   },
+   {
+    "label": "Sep 13",
+    "total": 0
+   },
+   {
+    "label": "Sep 14",
+    "total": 0
+   },
+   {
+    "label": "Sep 15",
+    "total": 0
+   },
+   {
+    "label": "Sep 16",
+    "total": 0
+   },
+   {
+    "label": "Sep 17",
+    "total": 670.0
+   },
+   {
+    "label": "Sep 18",
+    "total": 0
+   },
+   {
+    "label": "Sep 19",
+    "total": 1043.0
+   },
+   {
+    "label": "Sep 20",
+    "total": 3034.0
+   },
+   {
+    "label": "Sep 21",
+    "total": 5818.0
+   },
+   {
+    "label": "Sep 22",
+    "total": 630.0
+   },
+   {
+    "label": "Sep 23",
+    "total": 650.0
+   },
+   {
+    "label": "Sep 24",
+    "total": 60.0
+   },
+   {
+    "label": "Sep 25",
+    "total": 2190.0
+   },
+   {
+    "label": "Sep 26",
+    "total": 0
+   },
+   {
+    "label": "Sep 27",
+    "total": 0
+   },
+   {
+    "label": "Sep 28",
+    "total": 1580.0
+   },
+   {
+    "label": "Sep 29",
+    "total": 1070.0
+   },
+   {
+    "label": "Sep 30",
+    "total": 820.0
+   }
+  ],
+  "items_csv": [
+   [
+    "Item Name",
+    "Category",
+    "Quantity Sold",
+    "Gross Revenue",
+    "Average Rate"
+   ],
+   [
+    "Gobi Manchurian",
+    "Starters",
+    "31",
+    "5580.00",
+    "180.00"
+   ],
+   [
+    "Masala Dosa",
+    "Mains",
+    "29",
+    "2610.00",
+    "90.00"
+   ],
+   [
+    "Veg Club Sandwich",
+    "Starters",
+    "26",
+    "2599.74",
+    "99.99"
+   ],
+   [
+    "Old Monk 60ml",
+    "Bar",
+    "26",
+    "3900.00",
+    "150.00"
+   ],
+   [
+    "Plain Curd",
+    "Mains",
+    "26",
+    "780.00",
+    "30.00"
+   ],
+   [
+    "Filter Coffee",
+    "Beverages",
+    "23",
+    "575.00",
+    "25.00"
+   ],
+   [
+    "Ghee Roast Dosa",
+    "Mains",
+    "23",
+    "3220.00",
+    "140.00"
+   ],
+   [
+    "Fresh Lime Soda",
+    "Beverages",
+    "21",
+    "1260.00",
+    "60.00"
+   ],
+   [
+    "Kingfisher Premium 650ml",
+    "Bar",
+    "16",
+    "5120.00",
+    "320.00"
+   ],
+   [
+    "Chicken 65",
+    "Starters",
+    "16",
+    "3840.00",
+    "240.00"
+   ],
+   [
+    "Bottled Water 1L",
+    "Beverages",
+    "14",
+    "280.00",
+    "20.00"
+   ]
+  ],
+  "net_profit": {
+   "avg_order_value": 812.03,
+   "cogs": 0.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 105 items have no recipe — their cost is excluded.",
+   "discounts": 1064.0,
+   "expense_breakdown": [],
+   "gross_margin_pct": 100.0,
+   "gross_profit": 25779.05,
+   "gross_revenue": 28421.0,
+   "gst_collected": 2641.95,
+   "items_with_recipe": 0,
+   "items_without_recipe": 105,
+   "net_margin_pct": 100.0,
+   "net_profit": 25779.05,
+   "net_revenue": 25779.05,
+   "operating_expenses": 0.0,
+   "order_count": 35,
+   "recipe_coverage_pct": 0.0
+  },
+  "orders_csv": [
+   [
+    "Order ID",
+    "Order No",
+    "Date",
+    "Time",
+    "Outlet",
+    "Source",
+    "Status",
+    "Customer Name",
+    "Subtotal",
+    "Discount",
+    "GST",
+    "Round Off",
+    "Grand Total",
+    "Payment Methods"
+   ],
+   [
+    "(id)",
+    "GM-1006",
+    "2026-09-30",
+    "20:19:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "144.29",
+    "0.00",
+    "5.71",
+    "0.00",
+    "150.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1003",
+    "2026-09-30",
+    "19:45:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1176.62",
+    "220.50",
+    "72.88",
+    "0.50",
+    "1250.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-1033",
+    "2026-09-30",
+    "17:47:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "60.00",
+    "0.00",
+    "0.00",
+    "0.00",
+    "60.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1034",
+    "2026-09-30",
+    "14:33:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "780.95",
+    "180.00",
+    "39.05",
+    "0.00",
+    "820.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1030",
+    "2026-09-29",
+    "16:59:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1003.29",
+    "50.00",
+    "66.69",
+    "0.02",
+    "1070.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1010",
+    "2026-09-28",
+    "06:56:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1444.64",
+    "0.00",
+    "135.33",
+    "0.03",
+    "1580.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1014",
+    "2026-09-25",
+    "15:40:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "84.74",
+    "0.00",
+    "15.25",
+    "0.01",
+    "100.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-1032",
+    "2026-09-24",
+    "18:05:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1930.40",
+    "0.00",
+    "129.57",
+    "0.03",
+    "2090.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1028",
+    "2026-09-24",
+    "15:00:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "57.14",
+    "0.00",
+    "2.86",
+    "0.00",
+    "60.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-1025",
+    "2026-09-22",
+    "20:07:00",
+    "Inclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "228.57",
+    "0.00",
+    "11.43",
+    "0.00",
+    "250.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-1007",
+    "2026-09-22",
+    "18:18:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "338.95",
+    "0.00",
+    "61.01",
+    "0.04",
+    "400.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1035",
+    "2026-09-22",
+    "16:27:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "597.62",
+    "0.00",
+    "32.38",
+    "0.00",
+    "630.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1038",
+    "2026-09-21",
+    "17:22:00",
+    "Inclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "756.90",
+    "0.00",
+    "73.10",
+    "0.00",
+    "830.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1021",
+    "2026-09-21",
+    "16:29:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "2169.90",
+    "0.00",
+    "245.10",
+    "0.00",
+    "2445.00",
+    "upi, refund"
+   ],
+   [
+    "(id)",
+    "GM-1026",
+    "2026-09-21",
+    "15:42:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "107.86",
+    "0.00",
+    "2.14",
+    "0.00",
+    "110.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1024",
+    "2026-09-21",
+    "15:29:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "813.56",
+    "0.00",
+    "146.44",
+    "0.00",
+    "970.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1037",
+    "2026-09-20",
+    "19:48:00",
+    "Inclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "1921.73",
+    "366.00",
+    "152.27",
+    "0.00",
+    "2074.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1017",
+    "2026-09-20",
+    "14:51:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "185.00",
+    "16.50",
+    "8.50",
+    "0.50",
+    "194.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1036",
+    "2026-09-20",
+    "08:02:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "2059.85",
+    "0.00",
+    "180.11",
+    "0.04",
+    "2270.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1011",
+    "2026-09-20",
+    "06:56:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "533.41",
+    "10.00",
+    "36.58",
+    "0.01",
+    "570.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1016",
+    "2026-09-19",
+    "14:01:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "462.31",
+    "0.00",
+    "72.69",
+    "0.00",
+    "535.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-1018",
+    "2026-09-19",
+    "07:42:00",
+    "Inclusive",
+    "Dine In",
+    "Cancelled",
+    "Walk-in",
+    "976.27",
+    "128.00",
+    "175.73",
+    "0.00",
+    "1152.00",
+    ""
+   ],
+   [
+    "(id)",
+    "GM-1015",
+    "2026-09-18",
+    "20:03:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "419.35",
+    "112.50",
+    "58.15",
+    "0.50",
+    "508.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-1031",
+    "2026-09-17",
+    "16:04:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "328.55",
+    "0.00",
+    "31.45",
+    "0.00",
+    "360.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1012",
+    "2026-09-16",
+    "18:11:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "295.24",
+    "50.00",
+    "14.76",
+    "0.00",
+    "310.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-1023",
+    "2026-09-12",
+    "15:13:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "176.19",
+    "15.00",
+    "8.81",
+    "0.00",
+    "185.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1020",
+    "2026-09-12",
+    "13:42:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1853.46",
+    "235.00",
+    "261.50",
+    "0.04",
+    "2115.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-1039",
+    "2026-09-12",
+    "08:28:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "567.52",
+    "0.00",
+    "72.44",
+    "0.04",
+    "640.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1022",
+    "2026-09-10",
+    "15:50:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "700.95",
+    "0.00",
+    "29.05",
+    "0.00",
+    "730.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-1005",
+    "2026-09-10",
+    "08:03:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "208.57",
+    "0.00",
+    "11.43",
+    "0.00",
+    "220.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1013",
+    "2026-09-09",
+    "07:45:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "475.71",
+    "5.00",
+    "19.29",
+    "0.00",
+    "495.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1029",
+    "2026-09-08",
+    "06:35:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "1589.01",
+    "0.00",
+    "230.99",
+    "0.00",
+    "1820.00",
+    "upi"
+   ],
+   [
+    "(id)",
+    "GM-1008",
+    "2026-09-06",
+    "15:57:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "656.18",
+    "0.00",
+    "98.82",
+    "0.00",
+    "755.00",
+    "cash, upi"
+   ],
+   [
+    "(id)",
+    "GM-1027",
+    "2026-09-02",
+    "17:21:00",
+    "Inclusive",
+    "Dine In",
+    "Closed",
+    "Walk-in",
+    "264.29",
+    "0.00",
+    "15.71",
+    "0.00",
+    "310.00",
+    "card"
+   ],
+   [
+    "(id)",
+    "GM-1019",
+    "2026-09-01",
+    "07:55:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "228.57",
+    "0.00",
+    "11.43",
+    "0.00",
+    "240.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-1009",
+    "2026-09-01",
+    "07:21:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "853.69",
+    "15.00",
+    "61.31",
+    "0.00",
+    "915.00",
+    "cash"
+   ],
+   [
+    "(id)",
+    "GM-1002",
+    "2026-09-01",
+    "00:35:00",
+    "Inclusive",
+    "Dine In",
+    "Paid",
+    "Walk-in",
+    "508.47",
+    "0.00",
+    "91.53",
+    "0.00",
+    "600.00",
+    "card"
+   ]
+  ],
+  "period_comparison": {
+   "current": {
+    "avg_order": 829.49,
+    "discounts": 1064.0,
+    "gst": 2641.95,
+    "orders": 35,
+    "revenue": 29032.0,
+    "subtotal": 26218.79
+   },
+   "deltas": {
+    "avg_order": -52.1,
+    "discounts": null,
+    "orders": 3400.0,
+    "revenue": 1578.2
+   },
+   "prev_end": "2026-08-31",
+   "prev_start": "2026-08-02",
+   "previous": {
+    "avg_order": 1730.0,
+    "discounts": 0.0,
+    "gst": 258.65,
+    "orders": 1,
+    "revenue": 1730.0,
+    "subtotal": 1471.31
+   }
+  },
+  "pl_csv": [
+   [
+    "NET PROFIT REPORT",
+    "Period: 2026-09-01 to 2026-09-30"
+   ],
+   [],
+   [
+    "Gross Revenue",
+    "28421.0"
+   ],
+   [
+    "GST Collected",
+    "2641.95"
+   ],
+   [
+    "Net Revenue",
+    "25779.05"
+   ],
+   [
+    "Discounts Given",
+    "1064.0"
+   ],
+   [
+    "COGS",
+    "0.0"
+   ],
+   [
+    "Gross Profit",
+    "25779.05"
+   ],
+   [
+    "Gross Margin %",
+    "100.0"
+   ],
+   [
+    "Operating Expenses",
+    "0.0"
+   ],
+   [
+    "NET PROFIT",
+    "25779.05"
+   ],
+   [
+    "Net Margin %",
+    "100.0"
+   ],
+   [],
+   [
+    "EXPENSE BREAKDOWN BY CATEGORY"
+   ],
+   [
+    "Category",
+    "Amount"
+   ]
+  ],
+  "top_items": [
+   {
+    "menu_item__name": "Gobi Manchurian",
+    "total": 31,
+    "total_rev": "5580.00"
+   },
+   {
+    "menu_item__name": "Masala Dosa",
+    "total": 29,
+    "total_rev": "2610.00"
+   },
+   {
+    "menu_item__name": "Old Monk 60ml",
+    "total": 26,
+    "total_rev": "3900.00"
+   },
+   {
+    "menu_item__name": "Plain Curd",
+    "total": 26,
+    "total_rev": "780.00"
+   },
+   {
+    "menu_item__name": "Veg Club Sandwich",
+    "total": 26,
+    "total_rev": "2599.74"
+   },
+   {
+    "menu_item__name": "Filter Coffee",
+    "total": 23,
+    "total_rev": "575.00"
+   },
+   {
+    "menu_item__name": "Ghee Roast Dosa",
+    "total": 23,
+    "total_rev": "3220.00"
+   },
+   {
+    "menu_item__name": "Fresh Lime Soda",
+    "total": 21,
+    "total_rev": "1260.00"
+   },
+   {
+    "menu_item__name": "Chicken 65",
+    "total": 16,
+    "total_rev": "3840.00"
+   },
+   {
+    "menu_item__name": "Kingfisher Premium 650ml",
+    "total": 16,
+    "total_rev": "5120.00"
+   }
+  ]
+ }
+}

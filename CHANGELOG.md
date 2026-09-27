@@ -7,6 +7,23 @@ the source of truth.
 
 ---
 
+## 2026-09-27 (later): a safety net for the bill maths
+
+The liquor VAT work will rewrite how bills are totalled, printed and reported. Before any of that, these tests pin exactly what Rasova does today, so every change it makes is either deliberate and reviewed, or caught.
+
+### Tests
+- **5,000 golden bills** - `orders/tests/test_golden_totals.py`: fixed bills in every outlet mode (GST extra, GST included, composition, composition with GST included), with free dishes, one-paisa items, 100% discounts, discounts bigger than the bill, parcel charges and all five GST rates, are totalled by the real `recalculate_totals()` and must match `orders/tests/golden/totals_v1.jsonl` to the paisa. One line per bill, so a deliberate change shows in `git diff` as exactly the bills it touched. A second test checks that totalling a bill twice changes nothing.
+- **A frozen copy of today's maths** - `orders/tests/legacy_totals.py` totals a bill the way `orders/models.py` does on 27 September, as a plain function, and is checked against all 5,000 golden bills. New code gets compared with it, and it may only change in the same commit as a deliberate change to the maths.
+- **Property tests** (Hypothesis) - `orders/tests/test_totals_properties.py`: nine rules, each checked on 500 random bills. The bill adds up; the grand total is whole rupees with at most 50 paise round-off; CGST and SGST split the GST evenly; composition outlets charge no GST; voided and free dishes change nothing; a GST-included menu price is what the guest pays; a discount never goes past the bill; the rate breakdown is well formed and stays within half a paisa per dish of the GST total. A tenth test puts 150 random bills through the real `recalculate_totals()` and compares each with the frozen copy. On a mismatch, Hypothesis shrinks it to the smallest bill that shows it. CI uses the same random bills on every run, so a red build always means the code changed. A deep local run (`MONEY_THOROUGH=1`: 20,000 bills per rule and 3,000 real ones) passed.
+- **Golden receipts** - `orders/tests/test_golden_receipts.py`: five bills in each outlet mode. Each is printed three ways: as the real bytes the phone agent sends to the printer (58 mm and 80 mm paper), as the split-bill slips and as the QSR token receipt. The output is decoded into readable lines, with font, bold, alignment and exact width, in `orders/tests/golden/receipts_v1.txt`. `orders/tests/test_golden_html_bills.py` does the same for the three web bills (the bill page, which the PDF also renders; the thermal HTML receipt; the WhatsApp link). It keeps only the lines that carry money or tax wording, so layout changes elsewhere on those pages don't disturb it.
+- **Golden reports** - `reports/tests/test_golden_reports.py` seeds a fixed September at three outlets (`reports/tests/golden_month.py`). The month includes bills after midnight at the month's edges, cancelled and unpaid orders, voided and free dishes, split payments and a refund. It pins daily and hourly sales, category and item sales, gross margin, net profit, period comparison, the orders, items, category and P&L CSVs, and every cell of the GSTR-1 workbook in `reports/tests/golden/reports_v1.json`.
+- **Test-only packages** - `requirements-test.txt` (hypothesis, coverage), installed by CI and included from `requirements-dev.txt`. Production installs (`requirements.txt`, `deploy.sh`, the Dockerfile) are unchanged.
+- The golden files pin today's behaviour as it is, known problems included: bill times printed in UTC, whole-rupee amounts and no CGST/SGST lines on the printed bill, composition bills without "Bill of Supply", a WhatsApp bill with no discount line, GSTR-1 using today's menu rate and leaving out parcel charges, and reports that count the same month differently. They are listed with their fixes in `md_files/liquor_vat_food_gst_plan_2026-09-27.html`. Each fix will arrive as a reviewed change to a golden file.
+
+No app code changed.
+
+---
+
 ## 2026-09-27
 
 ### Fixed

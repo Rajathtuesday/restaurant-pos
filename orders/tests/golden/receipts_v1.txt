@@ -1,0 +1,2476 @@
+==== bill, 32 chars | GST extra | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Indiranagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-00|
+A ^ |Date        20/09/2026 14:30|
+A ^ |Table                     T4|
+A ^ |----------------------------|
+A ^ |2x [V] Masala Dosa       180|
+A ^ |1x [N] Chicken 65        240|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.420|
+A ^ |GST                    Rs.21|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.441|
+A ^ |Paid via                CASH|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST extra | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road, Indiranagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-00|
+A ^ |Date                        20/09/2026 14:30|
+A ^ |Table                                     T4|
+A ^ |--------------------------------------------|
+A ^ |2x [V] Masala Dosa                       180|
+A ^ |1x [N] Chicken 65                        240|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.420|
+A ^ |GST                                    Rs.21|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.441|
+A ^ |Paid via                                CASH|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST extra | dine-in, cash ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-00|
+A < |Date : 20/09/2026 20:00|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                              2   180|
+A < |Chicken 65                               1   240|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.420|
+A < |GST                                        Rs.21|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.441|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.180|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |1x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.240|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST extra | dine-in, cash ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-00|
+A < |--------------------------------|
+A < |2x Masala Dosa              180|
+A < |1x Chicken 65               240|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.441|
+A < |Paid                        CASH|
+A > |20/09 20:00|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST extra | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Indiranagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-01|
+A ^ |Date        20/09/2026 14:31|
+A ^ |Token                     17|
+A ^ |----------------------------|
+A ^ |3x [V] Filter Coffee      75|
+A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.424|
+A ^ |GST                    Rs.21|
+A ^ |Parcel                 Rs.20|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.466|
+A ^ |Paid via                 UPI|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST extra | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road, Indiranagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-01|
+A ^ |Date                        20/09/2026 14:31|
+A ^ |Token                                     17|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Filter Coffee                      75|
+A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.424|
+A ^ |GST                                    Rs.21|
+A ^ |Parcel                                 Rs.20|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.466|
+A ^ |Paid via                                 UPI|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST extra | parcel with a token, UPI ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A*< 2x2 |Token #17|
+A < |Date : 20/09/2026 20:01|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Filter Coffee                            3    75|
+A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.424|
+A < |GST                                        Rs.21|
+A < |Parcel Charge                              Rs.20|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.466|
+A < |Paid via                                     UPI|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |3x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.75|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.350|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST extra | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |TOKEN #17|
+A < |--------------------------------|
+A < |3x Filter Coffee             75|
+A < |1x Paneer Tikka Masala with   350|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.466|
+A < |Paid                         UPI|
+A > |20/09 20:01|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST extra | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Indiranagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-02|
+A ^ |Date        20/09/2026 14:32|
+A ^ |Table                    T12|
+A ^ |----------------------------|
+A ^ |2x [N] Chicken 65        480|
+A ^ |1x [V] Plain Curd         30|
+A ^ |2x [V] Kingfisher Premiu 640|
+A ^ |1x [V] Filter Coffee      25|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.1150|
+A ^ |GST                   Rs.125|
+A ^ |Discount             -Rs.115|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.1160|
+A ^ |Paid via                CARD|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST extra | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road, Indiranagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-02|
+A ^ |Date                        20/09/2026 14:32|
+A ^ |Table                                    T12|
+A ^ |--------------------------------------------|
+A ^ |2x [N] Chicken 65                        480|
+A ^ |1x [V] Plain Curd                         30|
+A ^ |2x [V] Kingfisher Premium 650ml          640|
+A ^ |1x [V] Filter Coffee                      25|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.1150|
+A ^ |GST                                   Rs.125|
+A ^ |Discount                             -Rs.115|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.1160|
+A ^ |Paid via                                CARD|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST extra | mixed rates, 10% off, one voided and one free dish ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-02|
+A < |Date : 20/09/2026 20:02|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Chicken 65                               2   480|
+A < |Plain Curd                               1    30|
+A < |Kingfisher Premium 650ml                 2   640|
+A < |Filter Coffee                            1    25|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.1150|
+A < |GST                                       Rs.125|
+A < |Discount                                 -Rs.115|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.1160|
+A < |Paid via                                    CARD|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BAR|
+A < |------------------------------------------------|
+A*< |2x [V] Kingfisher Premium 650ml|
+A < |------------------------------------------------|
+A*< |BAR Total                                 Rs.640|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A < |------------------------------------------------|
+A*< |1x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.25|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |1x [V] Plain Curd|
+A < |------------------------------------------------|
+A*< |MAINS Total                                Rs.30|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |2x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.480|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST extra | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-02|
+A < |--------------------------------|
+A < |2x Chicken 65               480|
+A < |1x Plain Curd                30|
+A < |2x Kingfisher Premium 650ml   640|
+A < |1x Filter Coffee             25|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.1160|
+A < |Paid                        CARD|
+A > |20/09 20:02|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST extra | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Indiranagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-03|
+A ^ |Date        20/09/2026 14:33|
+A ^ |----------------------------|
+A ^ |3x [V] Veg Club Sandwich 300|
+A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.999|
+A ^ |GST                    Rs.80|
+A ^ |Discount             -Rs.137|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.942|
+A ^ |Paid via                CASH|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST extra | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road, Indiranagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-03|
+A ^ |Date                        20/09/2026 14:33|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Veg Club Sandwich                 300|
+A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.999|
+A ^ |GST                                    Rs.80|
+A ^ |Discount                             -Rs.137|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.942|
+A ^ |Paid via                                CASH|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST extra | paise, an item discount and a flat discount ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-03|
+A < |Date : 20/09/2026 20:03|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Veg Club Sandwich                        3   300|
+A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.999|
+A < |GST                                        Rs.80|
+A < |Discount                                 -Rs.137|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.942|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.699|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |3x [V] Veg Club Sandwich|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.300|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST extra | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-03|
+A < |--------------------------------|
+A < |3x Veg Club Sandwich        300|
+A < |2x Paneer Tikka Masala with   699|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.942|
+A < |Paid                        CASH|
+A > |20/09 20:03|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST extra | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Indiranagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-04|
+A ^ |Date        20/09/2026 14:34|
+A ^ |Table                     T1|
+A ^ |----------------------------|
+A ^ |13x [V] Masala Dosa     1170|
+A ^ |7x [N] Chicken 65       1680|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.2850|
+A ^ |GST                   Rs.142|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.2993|
+A*^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST extra | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Indiranagar|
+A ^ |No. 12, 100 Feet Road, Indiranagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-04|
+A ^ |Date                        20/09/2026 14:34|
+A ^ |Table                                     T1|
+A ^ |--------------------------------------------|
+A ^ |13x [V] Masala Dosa                     1170|
+A ^ |7x [N] Chicken 65                       1680|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.2850|
+A ^ |GST                                   Rs.142|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.2993|
+A*^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST extra | big order, not paid yet ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-04|
+A < |Date : 20/09/2026 20:04|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                             13  1170|
+A < |Chicken 65                               7  1680|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.2850|
+A < |GST                                       Rs.142|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.2993|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |13x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                              Rs.1170|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |7x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                           Rs.1680|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST extra | big order, not paid yet ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Indiranagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-04|
+A < |--------------------------------|
+A < |13x Masala Dosa             1170|
+A < |7x Chicken 65              1680|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.2993|
+A > |20/09 20:04|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST included | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Koramangala, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-10|
+A ^ |Date        20/09/2026 14:30|
+A ^ |Table                     T4|
+A ^ |----------------------------|
+A ^ |2x [V] Masala Dosa       180|
+A ^ |1x [N] Chicken 65        240|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.400|
+A ^ |GST (incl.)            Rs.20|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.420|
+A ^ |Paid via                CASH|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST included | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road, Koramangala, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-10|
+A ^ |Date                        20/09/2026 14:30|
+A ^ |Table                                     T4|
+A ^ |--------------------------------------------|
+A ^ |2x [V] Masala Dosa                       180|
+A ^ |1x [N] Chicken 65                        240|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.400|
+A ^ |GST (incl.)                            Rs.20|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.420|
+A ^ |Paid via                                CASH|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST included | dine-in, cash ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-10|
+A < |Date : 20/09/2026 20:00|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                              2   180|
+A < |Chicken 65                               1   240|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.400|
+A < |GST                                        Rs.20|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.420|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.180|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |1x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.240|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST included | dine-in, cash ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-10|
+A < |--------------------------------|
+A < |2x Masala Dosa              180|
+A < |1x Chicken 65               240|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.420|
+A < |Paid                        CASH|
+A > |20/09 20:00|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST included | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Koramangala, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-11|
+A ^ |Date        20/09/2026 14:31|
+A ^ |Token                     17|
+A ^ |----------------------------|
+A ^ |3x [V] Filter Coffee      75|
+A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.404|
+A ^ |GST (incl.)            Rs.20|
+A ^ |Parcel                 Rs.20|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.445|
+A ^ |Paid via                 UPI|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST included | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road, Koramangala, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-11|
+A ^ |Date                        20/09/2026 14:31|
+A ^ |Token                                     17|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Filter Coffee                      75|
+A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.404|
+A ^ |GST (incl.)                            Rs.20|
+A ^ |Parcel                                 Rs.20|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.445|
+A ^ |Paid via                                 UPI|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST included | parcel with a token, UPI ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A*< 2x2 |Token #17|
+A < |Date : 20/09/2026 20:01|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Filter Coffee                            3    75|
+A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.404|
+A < |GST                                        Rs.20|
+A < |Parcel Charge                              Rs.20|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.445|
+A < |Paid via                                     UPI|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |3x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.75|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.350|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST included | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |TOKEN #17|
+A < |--------------------------------|
+A < |3x Filter Coffee             75|
+A < |1x Paneer Tikka Masala with   350|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.445|
+A < |Paid                         UPI|
+A > |20/09 20:01|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Koramangala, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-12|
+A ^ |Date        20/09/2026 14:32|
+A ^ |Table                    T12|
+A ^ |----------------------------|
+A ^ |2x [N] Chicken 65        480|
+A ^ |1x [V] Plain Curd         30|
+A ^ |2x [V] Kingfisher Premiu 640|
+A ^ |1x [V] Filter Coffee      25|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.927|
+A ^ |GST (incl.)           Rs.108|
+A ^ |Discount             -Rs.115|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.1035|
+A ^ |Paid via                CARD|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road, Koramangala, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-12|
+A ^ |Date                        20/09/2026 14:32|
+A ^ |Table                                    T12|
+A ^ |--------------------------------------------|
+A ^ |2x [N] Chicken 65                        480|
+A ^ |1x [V] Plain Curd                         30|
+A ^ |2x [V] Kingfisher Premium 650ml          640|
+A ^ |1x [V] Filter Coffee                      25|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.927|
+A ^ |GST (incl.)                           Rs.108|
+A ^ |Discount                             -Rs.115|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.1035|
+A ^ |Paid via                                CARD|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-12|
+A < |Date : 20/09/2026 20:02|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Chicken 65                               2   480|
+A < |Plain Curd                               1    30|
+A < |Kingfisher Premium 650ml                 2   640|
+A < |Filter Coffee                            1    25|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.927|
+A < |GST                                       Rs.108|
+A < |Discount                                 -Rs.115|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.1035|
+A < |Paid via                                    CARD|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BAR|
+A < |------------------------------------------------|
+A*< |2x [V] Kingfisher Premium 650ml|
+A < |------------------------------------------------|
+A*< |BAR Total                                 Rs.640|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A < |------------------------------------------------|
+A*< |1x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.25|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |1x [V] Plain Curd|
+A < |------------------------------------------------|
+A*< |MAINS Total                                Rs.30|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |2x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.480|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-12|
+A < |--------------------------------|
+A < |2x Chicken 65               480|
+A < |1x Plain Curd                30|
+A < |2x Kingfisher Premium 650ml   640|
+A < |1x Filter Coffee             25|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.1035|
+A < |Paid                        CARD|
+A > |20/09 20:02|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST included | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Koramangala, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-13|
+A ^ |Date        20/09/2026 14:33|
+A ^ |----------------------------|
+A ^ |3x [V] Veg Club Sandwich 300|
+A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.791|
+A ^ |GST (incl.)            Rs.71|
+A ^ |Discount             -Rs.137|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.862|
+A ^ |Paid via                CASH|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST included | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road, Koramangala, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-13|
+A ^ |Date                        20/09/2026 14:33|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Veg Club Sandwich                 300|
+A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.791|
+A ^ |GST (incl.)                            Rs.71|
+A ^ |Discount                             -Rs.137|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.862|
+A ^ |Paid via                                CASH|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST included | paise, an item discount and a flat discount ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-13|
+A < |Date : 20/09/2026 20:03|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Veg Club Sandwich                        3   300|
+A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.791|
+A < |GST                                        Rs.71|
+A < |Discount                                 -Rs.137|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.862|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.699|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |3x [V] Veg Club Sandwich|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.300|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST included | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-13|
+A < |--------------------------------|
+A < |3x Veg Club Sandwich        300|
+A < |2x Paneer Tikka Masala with   699|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.862|
+A < |Paid                        CASH|
+A > |20/09 20:03|
+~~~ cut FULL ~~~
+==== bill, 32 chars | GST included | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Koramangala, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-14|
+A ^ |Date        20/09/2026 14:34|
+A ^ |Table                     T1|
+A ^ |----------------------------|
+A ^ |13x [V] Masala Dosa     1170|
+A ^ |7x [N] Chicken 65       1680|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.2714|
+A ^ |GST (incl.)           Rs.136|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.2850|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | GST included | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Koramangala|
+A ^ |No. 12, 100 Feet Road, Koramangala, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-14|
+A ^ |Date                        20/09/2026 14:34|
+A ^ |Table                                     T1|
+A ^ |--------------------------------------------|
+A ^ |13x [V] Masala Dosa                     1170|
+A ^ |7x [N] Chicken 65                       1680|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.2714|
+A ^ |GST (incl.)                           Rs.136|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.2850|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | GST included | big order, not paid yet ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |------------------------------------------------|
+A < |Bill : GOLD-14|
+A < |Date : 20/09/2026 20:04|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                             13  1170|
+A < |Chicken 65                               7  1680|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.2714|
+A < |GST                                       Rs.136|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.2850|
+A < |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |13x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                              Rs.1170|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |7x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                           Rs.1680|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | GST included | big order, not paid yet ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Koramangala|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-14|
+A < |--------------------------------|
+A < |13x Masala Dosa             1170|
+A < |7x Chicken 65              1680|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.2850|
+A > |20/09 20:04|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Jayanagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-20|
+A ^ |Date        20/09/2026 14:30|
+A ^ |Table                     T4|
+A ^ |----------------------------|
+A ^ |2x [V] Masala Dosa       180|
+A ^ |1x [N] Chicken 65        240|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.420|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.420|
+A ^ |Paid via                CASH|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road, Jayanagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-20|
+A ^ |Date                        20/09/2026 14:30|
+A ^ |Table                                     T4|
+A ^ |--------------------------------------------|
+A ^ |2x [V] Masala Dosa                       180|
+A ^ |1x [N] Chicken 65                        240|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.420|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.420|
+A ^ |Paid via                                CASH|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition | dine-in, cash ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-20|
+A < |Date : 20/09/2026 20:00|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                              2   180|
+A < |Chicken 65                               1   240|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.420|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.420|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.180|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |1x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.240|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition | dine-in, cash ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-20|
+A < |--------------------------------|
+A < |2x Masala Dosa              180|
+A < |1x Chicken 65               240|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.420|
+A < |Paid                        CASH|
+A > |20/09 20:00|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Jayanagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-21|
+A ^ |Date        20/09/2026 14:31|
+A ^ |Token                     17|
+A ^ |----------------------------|
+A ^ |3x [V] Filter Coffee      75|
+A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.424|
+A ^ |Parcel                 Rs.20|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.445|
+A ^ |Paid via                 UPI|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road, Jayanagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-21|
+A ^ |Date                        20/09/2026 14:31|
+A ^ |Token                                     17|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Filter Coffee                      75|
+A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.424|
+A ^ |Parcel                                 Rs.20|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.445|
+A ^ |Paid via                                 UPI|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition | parcel with a token, UPI ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A*< 2x2 |Token #17|
+A < |Date : 20/09/2026 20:01|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Filter Coffee                            3    75|
+A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.424|
+A < |Parcel Charge                              Rs.20|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.445|
+A < |Paid via                                     UPI|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |3x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.75|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.350|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |TOKEN #17|
+A < |--------------------------------|
+A < |3x Filter Coffee             75|
+A < |1x Paneer Tikka Masala with   350|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.445|
+A < |Paid                         UPI|
+A > |20/09 20:01|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Jayanagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-22|
+A ^ |Date        20/09/2026 14:32|
+A ^ |Table                    T12|
+A ^ |----------------------------|
+A ^ |2x [N] Chicken 65        480|
+A ^ |1x [V] Plain Curd         30|
+A ^ |2x [V] Kingfisher Premiu 640|
+A ^ |1x [V] Filter Coffee      25|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.1150|
+A ^ |Discount             -Rs.115|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.1035|
+A ^ |Paid via                CARD|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road, Jayanagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-22|
+A ^ |Date                        20/09/2026 14:32|
+A ^ |Table                                    T12|
+A ^ |--------------------------------------------|
+A ^ |2x [N] Chicken 65                        480|
+A ^ |1x [V] Plain Curd                         30|
+A ^ |2x [V] Kingfisher Premium 650ml          640|
+A ^ |1x [V] Filter Coffee                      25|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.1150|
+A ^ |Discount                             -Rs.115|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.1035|
+A ^ |Paid via                                CARD|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition | mixed rates, 10% off, one voided and one free dish ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-22|
+A < |Date : 20/09/2026 20:02|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Chicken 65                               2   480|
+A < |Plain Curd                               1    30|
+A < |Kingfisher Premium 650ml                 2   640|
+A < |Filter Coffee                            1    25|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.1150|
+A < |Discount                                 -Rs.115|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.1035|
+A < |Paid via                                    CARD|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BAR|
+A < |------------------------------------------------|
+A*< |2x [V] Kingfisher Premium 650ml|
+A < |------------------------------------------------|
+A*< |BAR Total                                 Rs.640|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A < |------------------------------------------------|
+A*< |1x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.25|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |1x [V] Plain Curd|
+A < |------------------------------------------------|
+A*< |MAINS Total                                Rs.30|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |2x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.480|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-22|
+A < |--------------------------------|
+A < |2x Chicken 65               480|
+A < |1x Plain Curd                30|
+A < |2x Kingfisher Premium 650ml   640|
+A < |1x Filter Coffee             25|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.1035|
+A < |Paid                        CARD|
+A > |20/09 20:02|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Jayanagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-23|
+A ^ |Date        20/09/2026 14:33|
+A ^ |----------------------------|
+A ^ |3x [V] Veg Club Sandwich 300|
+A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.999|
+A ^ |Discount             -Rs.137|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.862|
+A ^ |Paid via                CASH|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road, Jayanagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-23|
+A ^ |Date                        20/09/2026 14:33|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Veg Club Sandwich                 300|
+A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.999|
+A ^ |Discount                             -Rs.137|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.862|
+A ^ |Paid via                                CASH|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition | paise, an item discount and a flat discount ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-23|
+A < |Date : 20/09/2026 20:03|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Veg Club Sandwich                        3   300|
+A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.999|
+A < |Discount                                 -Rs.137|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.862|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.699|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |3x [V] Veg Club Sandwich|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.300|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-23|
+A < |--------------------------------|
+A < |3x Veg Club Sandwich        300|
+A < |2x Paneer Tikka Masala with   699|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.862|
+A < |Paid                        CASH|
+A > |20/09 20:03|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road,|
+A ^ |Jayanagar, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-24|
+A ^ |Date        20/09/2026 14:34|
+A ^ |Table                     T1|
+A ^ |----------------------------|
+A ^ |13x [V] Masala Dosa     1170|
+A ^ |7x [N] Chicken 65       1680|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.2850|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.2850|
+A*^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro Jayanagar|
+A ^ |No. 12, 100 Feet Road, Jayanagar, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-24|
+A ^ |Date                        20/09/2026 14:34|
+A ^ |Table                                     T1|
+A ^ |--------------------------------------------|
+A ^ |13x [V] Masala Dosa                     1170|
+A ^ |7x [N] Chicken 65                       1680|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.2850|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.2850|
+A*^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition | big order, not paid yet ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-24|
+A < |Date : 20/09/2026 20:04|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                             13  1170|
+A < |Chicken 65                               7  1680|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.2850|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.2850|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |13x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                              Rs.1170|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |7x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                           Rs.1680|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition | big order, not paid yet ====
+A*^ |Golden Bistro|
+A < |Golden Bistro Jayanagar|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-24|
+A < |--------------------------------|
+A < |13x Masala Dosa             1170|
+A < |7x Chicken 65              1680|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.2850|
+A > |20/09 20:04|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition, GST included | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR|
+A ^ |Layout, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-30|
+A ^ |Date        20/09/2026 14:30|
+A ^ |Table                     T4|
+A ^ |----------------------------|
+A ^ |2x [V] Masala Dosa       180|
+A ^ |1x [N] Chicken 65        240|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.420|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.420|
+A ^ |Paid via                CASH|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition, GST included | dine-in, cash ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR Layout, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-30|
+A ^ |Date                        20/09/2026 14:30|
+A ^ |Table                                     T4|
+A ^ |--------------------------------------------|
+A ^ |2x [V] Masala Dosa                       180|
+A ^ |1x [N] Chicken 65                        240|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.420|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.420|
+A ^ |Paid via                                CASH|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition, GST included | dine-in, cash ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-30|
+A < |Date : 20/09/2026 20:00|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                              2   180|
+A < |Chicken 65                               1   240|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.420|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.420|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.180|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |1x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.240|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition, GST included | dine-in, cash ====
+A*^ |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-30|
+A < |--------------------------------|
+A < |2x Masala Dosa              180|
+A < |1x Chicken 65               240|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.420|
+A < |Paid                        CASH|
+A > |20/09 20:00|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition, GST included | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR|
+A ^ |Layout, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-31|
+A ^ |Date        20/09/2026 14:31|
+A ^ |Token                     17|
+A ^ |----------------------------|
+A ^ |3x [V] Filter Coffee      75|
+A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.424|
+A ^ |Parcel                 Rs.20|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.445|
+A ^ |Paid via                 UPI|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition, GST included | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR Layout, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-31|
+A ^ |Date                        20/09/2026 14:31|
+A ^ |Token                                     17|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Filter Coffee                      75|
+A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.424|
+A ^ |Parcel                                 Rs.20|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.445|
+A ^ |Paid via                                 UPI|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition, GST included | parcel with a token, UPI ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A*< 2x2 |Token #17|
+A < |Date : 20/09/2026 20:01|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Filter Coffee                            3    75|
+A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.424|
+A < |Parcel Charge                              Rs.20|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.445|
+A < |Paid via                                     UPI|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |3x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.75|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A*^ |Token #17|
+A < |------------------------------------------------|
+A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.350|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition, GST included | parcel with a token, UPI ====
+A*^ |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |TOKEN #17|
+A < |--------------------------------|
+A < |3x Filter Coffee             75|
+A < |1x Paneer Tikka Masala with   350|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.445|
+A < |Paid                         UPI|
+A > |20/09 20:01|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition, GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR|
+A ^ |Layout, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-32|
+A ^ |Date        20/09/2026 14:32|
+A ^ |Table                    T12|
+A ^ |----------------------------|
+A ^ |2x [N] Chicken 65        480|
+A ^ |1x [V] Plain Curd         30|
+A ^ |2x [V] Kingfisher Premiu 640|
+A ^ |1x [V] Filter Coffee      25|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.1035|
+A ^ |Discount             -Rs.115|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.1035|
+A ^ |Paid via                CARD|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition, GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR Layout, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-32|
+A ^ |Date                        20/09/2026 14:32|
+A ^ |Table                                    T12|
+A ^ |--------------------------------------------|
+A ^ |2x [N] Chicken 65                        480|
+A ^ |1x [V] Plain Curd                         30|
+A ^ |2x [V] Kingfisher Premium 650ml          640|
+A ^ |1x [V] Filter Coffee                      25|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.1035|
+A ^ |Discount                             -Rs.115|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.1035|
+A ^ |Paid via                                CARD|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition, GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-32|
+A < |Date : 20/09/2026 20:02|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Chicken 65                               2   480|
+A < |Plain Curd                               1    30|
+A < |Kingfisher Premium 650ml                 2   640|
+A < |Filter Coffee                            1    25|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.1035|
+A < |Discount                                 -Rs.115|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.1035|
+A < |Paid via                                    CARD|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BAR|
+A < |------------------------------------------------|
+A*< |2x [V] Kingfisher Premium 650ml|
+A < |------------------------------------------------|
+A*< |BAR Total                                 Rs.640|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |BEVERAGES|
+A < |------------------------------------------------|
+A*< |1x [V] Filter Coffee|
+A < |------------------------------------------------|
+A*< |BEVERAGES Total                            Rs.25|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |1x [V] Plain Curd|
+A < |------------------------------------------------|
+A*< |MAINS Total                                Rs.30|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |2x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.480|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition, GST included | mixed rates, 10% off, one voided and one free dish ====
+A*^ |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-32|
+A < |--------------------------------|
+A < |2x Chicken 65               480|
+A < |1x Plain Curd                30|
+A < |2x Kingfisher Premium 650ml   640|
+A < |1x Filter Coffee             25|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.1035|
+A < |Paid                        CARD|
+A > |20/09 20:02|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition, GST included | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR|
+A ^ |Layout, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-33|
+A ^ |Date        20/09/2026 14:33|
+A ^ |----------------------------|
+A ^ |3x [V] Veg Club Sandwich 300|
+A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |----------------------------|
+A ^ |Subtotal              Rs.862|
+A ^ |Discount             -Rs.137|
+A ^ |----------------------------|
+A*^ |TOTAL                 Rs.862|
+A ^ |Paid via                CASH|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition, GST included | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR Layout, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-33|
+A ^ |Date                        20/09/2026 14:33|
+A ^ |--------------------------------------------|
+A ^ |3x [V] Veg Club Sandwich                 300|
+A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                              Rs.862|
+A ^ |Discount                             -Rs.137|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                 Rs.862|
+A ^ |Paid via                                CASH|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition, GST included | paise, an item discount and a flat discount ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-33|
+A < |Date : 20/09/2026 20:03|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Veg Club Sandwich                        3   300|
+A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |------------------------------------------------|
+A < |Subtotal                                  Rs.862|
+A < |Discount                                 -Rs.137|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                     Rs.862|
+A < |Paid via                                    CASH|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
+A < |------------------------------------------------|
+A*< |MAINS Total                               Rs.699|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |3x [V] Veg Club Sandwich|
+A < |------------------------------------------------|
+A*< |STARTERS Total                            Rs.300|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition, GST included | paise, an item discount and a flat discount ====
+A*^ |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-33|
+A < |--------------------------------|
+A < |3x Veg Club Sandwich        300|
+A < |2x Paneer Tikka Masala with   699|
+A < |--------------------------------|
+A*< |TOTAL                     Rs.862|
+A < |Paid                        CASH|
+A > |20/09 20:03|
+~~~ cut FULL ~~~
+==== bill, 32 chars | composition, GST included | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR|
+A ^ |Layout, Bengaluru 560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |--------------------------------|
+A ^ |Bill No.             GOLD-34|
+A ^ |Date        20/09/2026 14:34|
+A ^ |Table                     T1|
+A ^ |----------------------------|
+A ^ |13x [V] Masala Dosa     1170|
+A ^ |7x [N] Chicken 65       1680|
+A ^ |----------------------------|
+A ^ |Subtotal             Rs.2850|
+A ^ |----------------------------|
+A*^ |TOTAL                Rs.2850|
+A ^ |(prices include GST)|
+A ^ |----------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== bill, 48 chars | composition, GST included | big order, not paid yet ====
+A*^ |Golden Bistro|
+A ^ |Golden Bistro HSR Layout|
+A ^ |No. 12, 100 Feet Road, HSR Layout, Bengaluru|
+A ^ |560038|
+A ^ |Ph: 080 4123 4567|
+A ^ |GSTIN: 29ABCDE1234F1Z5|
+A ^ |FSSAI: 11223344556677|
+A ^ |SAC: 996331|
+A ^ |------------------------------------------------|
+A ^ |Bill No.                             GOLD-34|
+A ^ |Date                        20/09/2026 14:34|
+A ^ |Table                                     T1|
+A ^ |--------------------------------------------|
+A ^ |13x [V] Masala Dosa                     1170|
+A ^ |7x [N] Chicken 65                       1680|
+A ^ |--------------------------------------------|
+A ^ |Subtotal                             Rs.2850|
+A ^ |--------------------------------------------|
+A*^ |TOTAL                                Rs.2850|
+A ^ |(prices include GST)|
+A ^ |--------------------------------------------|
+B ^ |Thank you for visiting!|
+B ^ |Powered by Rasova POS|
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+B ^ ||
+~~~ cut FULL ~~~
+==== split bill, 48 chars | composition, GST included | big order, not paid yet ====
+A*^ 2x2 |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A*< |BILL OF SUPPLY|
+A < |------------------------------------------------|
+A < |Bill : GOLD-34|
+A < |Date : 20/09/2026 20:04|
+A < |------------------------------------------------|
+A*< |Item                                   Qty   Amt|
+A < |------------------------------------------------|
+A < |Masala Dosa                             13  1170|
+A < |Chicken 65                               7  1680|
+A < |------------------------------------------------|
+A < |Subtotal                                 Rs.2850|
+A < |------------------------------------------------|
+A*< 1x2 |TOTAL                                    Rs.2850|
+A < |------------------------------------------------|
+A ^ |Bill of Supply|
+A ^ |------------------------------------------------|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |MAINS|
+A < |------------------------------------------------|
+A*< |13x [V] Masala Dosa|
+A < |------------------------------------------------|
+A*< |MAINS Total                              Rs.1170|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut PART ~~~
+A*^ 2x2 |STARTERS|
+A < |------------------------------------------------|
+A*< |7x [N] Chicken 65|
+A < |------------------------------------------------|
+A*< |STARTERS Total                           Rs.1680|
+A ^ |Powered by Rasova|
+A ^ ||
+~~~ cut FULL ~~~
+==== token receipt, 32 chars | composition, GST included | big order, not paid yet ====
+A*^ |Golden Bistro|
+A < |Golden Bistro HSR Layout|
+A < |GSTIN: 29ABCDE1234F1Z5|
+A < |SAC: 996331|
+A < |--------------------------------|
+A*^ 2x2 |#GOLD-34|
+A < |--------------------------------|
+A < |13x Masala Dosa             1170|
+A < |7x Chicken 65              1680|
+A < |--------------------------------|
+A*< |TOTAL                    Rs.2850|
+A > |20/09 20:04|
+~~~ cut FULL ~~~

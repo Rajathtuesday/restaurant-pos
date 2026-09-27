@@ -52,7 +52,7 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-test.txt
 
       - name: Run Django system check
         env:

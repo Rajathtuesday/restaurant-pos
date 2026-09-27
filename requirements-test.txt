@@ -1,0 +1,9 @@
+# Test-only dependencies. NOT needed in production.
+# CI installs these next to requirements.txt:
+#   pip install -r requirements.txt -r requirements-test.txt
+#
+# hypothesis: property tests for the bill maths (orders/tests/test_totals_properties.py)
+# coverage:   shows which lines of the tax code the tests actually reach
+
+hypothesis==6.168.2
+coverage==7.16.2

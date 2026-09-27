@@ -2,6 +2,8 @@
 # Install with: pip install -r requirements-dev.txt
 # These are NOT needed in production
 
+-r requirements-test.txt
+
 graphviz==0.21
 pydotplus==2.0.2
 pyparsing==3.3.2
