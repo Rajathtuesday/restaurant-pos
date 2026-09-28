@@ -561,7 +561,7 @@ class GrossMarginReportRefundTest(TestCase):
             reference="REFUND-1", created_by=self.user,
         )
 
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), self.outlet)
         result = gross_margin_report(self.tenant, self.outlet, today, today)
 
         # 500 collected - 150 refunded = 350 net, NOT 500.
@@ -572,7 +572,7 @@ class GrossMarginReportRefundTest(TestCase):
 
         create_paid_order(self.tenant, self.outlet, self.user, self.item, grand_total=500)
 
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), self.outlet)
         result = gross_margin_report(self.tenant, self.outlet, today, today)
 
         self.assertEqual(result["gross_revenue"], 500.0)

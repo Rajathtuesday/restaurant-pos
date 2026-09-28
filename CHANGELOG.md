@@ -29,7 +29,7 @@ A restaurant open past midnight sells at 12:30 AM on the day still trading. Dail
 - **One day, one meaning** - every report counts business days through two helpers in `core/utils.py`: `get_business_period()` for a range of days and `business_date_of()` for one bar per day. On the golden month the P&L now matches daily sales exactly in every outlet: 100 bills and ₹87,455, where it counted 99 bills and ₹89,602.
 - **Stock reports after midnight** - consumption and variance for a day include the sales and stock movements of its night, and "today" means the day still trading.
 - **Order history** - a waiter's "today", the cashier's and captain's windows and the date filters count business days, so a waiter at 1 AM still sees the evening's bills.
-- **Tests that failed between midnight and 6 AM** - five tests asked for the calendar day while the reports count business days, so CI failed for any push in those hours and nothing deployed. They pass at any hour now.
+- **Tests that failed between midnight and 6 AM** - tests of the stock, profit, finance and CRM reports asked for the calendar day while the reports count business days; five of them failed between midnight and 6 AM even before this change, so CI failed for any push in those hours and nothing deployed. They all ask for the business day now, and the stock tests' helpers no longer pass the calendar date to work around the old mix-up. Run at 2 AM, they pass.
 
 ### Tests
 - `reports/tests/test_business_day.py` (4): standing at 1 AM with sales at 10 PM, 12:30 AM and 7 AM, the P&L, comparison and daily sales agree, the daily chart, the stock reports and a waiter's history put the night on its business day. Putting back any one report's calendar-day version fails them.

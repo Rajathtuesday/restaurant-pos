@@ -11,6 +11,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+from core.utils import get_business_date
+
 try:
     import weasyprint  # noqa: F401 -- real import, used if native libs are present
 except OSError:
@@ -37,20 +39,13 @@ from notifications.models import Notification
 
 def _variance_report_url():
     """
-    inventory_variance defaults to get_business_date(now) when no ?date=
-    is given, which treats anything before 6 AM local time as still
-    yesterday's business day. Orders created via auto_now_add in these
-    tests stamp the real calendar date, so passing that date explicitly
-    bypasses the cutoff — these tests shouldn't pass or fail depending on
-    what time of day they happen to run.
-
-    Must use localtime, not a bare UTC date: Order.created_at__date is
-    evaluated by Django against TIME_ZONE (Asia/Kolkata), so the date
-    that actually matches a just-created order is the local calendar
-    date, not whatever date() a raw UTC `now()` happens to land on.
+    The variance report for today's business day (6 AM to 6 AM), the day the
+    report counts: an order the test makes at 1 AM belongs to the business
+    day that began the previous morning. (These helpers used to pass the
+    calendar date, to match a report that defaulted to the business day but
+    filtered calendar days; the report counts business days all through now.)
     """
-    local_today = timezone.localtime(timezone.now()).date()
-    return reverse("inventory_variance") + f"?date={local_today.isoformat()}"
+    return reverse("inventory_variance") + f"?date={get_business_date(timezone.now()).isoformat()}"
 
 _NO_MANIFEST = override_settings(STORAGES={
     "default":     {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -1310,10 +1305,8 @@ class VarianceReportBugFixTests(TestCase):
 
 
 def _consumption_report_url():
-    """Same business-date reasoning as _variance_report_url() — consumption_report
-    also defaults to get_business_date(now) when no ?date= is given."""
-    local_today = timezone.localtime(timezone.now()).date()
-    return reverse("inventory_consumption") + f"?date={local_today.isoformat()}"
+    """The consumption report for today's business day, as _variance_report_url()."""
+    return reverse("inventory_consumption") + f"?date={get_business_date(timezone.now()).isoformat()}"
 
 
 class VarianceReportRecipeUnitConversionTests(TestCase):
@@ -1876,7 +1869,7 @@ class GrossMarginCogsUnitConversionTests(TestCase):
             total_price=Decimal("120"), status="served",
         )
 
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), self.outlet)
         result = gross_margin_report(self.tenant, self.outlet, today, today)
 
         # 200g = 0.2kg * Rs 100/kg = Rs 20 COGS. The old bug would have
@@ -1916,7 +1909,7 @@ class GrossMarginCogsUnitConversionTests(TestCase):
         )
         OrderItemModifier.objects.create(order_item=oi, modifier=mod, name=mod.name, price=mod.price)
 
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), self.outlet)
         result = gross_margin_report(self.tenant, self.outlet, today, today)
 
         # 200g sugar = 0.2kg * Rs 100/kg = Rs 20 — previously Rs 0 (excluded).

@@ -93,7 +93,7 @@ class LoyaltyTrendTest(TestCase):
         from reports.services.crm_reports import crm_analytics_report
         report = crm_analytics_report(self.tenant, self.outlet, self.yesterday, self.today)
         by_day_type = {(row["day"], row["transaction_type"]): (row["points"], row["count"]) for row in report["loyalty_trend"]}
-        today_entry = next(v for k, v in by_day_type.items() if k[0] == timezone.localdate() and k[1] == "earn")
+        today_entry = next(v for k, v in by_day_type.items() if k[0] == self.today and k[1] == "earn")
         self.assertEqual(today_entry, (150, 2))
 
 
@@ -121,7 +121,7 @@ class FeedbackTrendTest(TestCase):
         from reports.services.crm_reports import crm_analytics_report
         report = crm_analytics_report(self.tenant, self.outlet, self.yesterday, self.today)
         by_day = {row["day"]: (row["avg_rating"], row["count"]) for row in report["feedback_trend"]}
-        today_avg, today_count = by_day[timezone.localdate()]
+        today_avg, today_count = by_day[self.today]
         self.assertEqual(today_count, 2)
         self.assertEqual(round(today_avg, 2), 4.5)
 

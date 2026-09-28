@@ -10,6 +10,8 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
+from core.utils import get_business_date
+
 from accounts.models import User
 from finance.models import Expense
 from inventory.models import InventoryItem, Recipe
@@ -57,7 +59,7 @@ class NetProfitReportTest(TestCase):
             quantity_required=Decimal("2"), unit="g",
         )
 
-        self.today = timezone.localdate()
+        self.today = get_business_date(timezone.now(), self.outlet)   # reports count business days
         self.order = Order.objects.create(
             tenant=self.tenant, outlet=self.outlet, created_by=self.user,
             status="paid", subtotal=Decimal("500.00"), gst_total=Decimal("0.00"),
@@ -149,7 +151,7 @@ class NetProfitReportGSTMathTest(TestCase):
         outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN, gst_inclusive=False)
         user = User.objects.create_user(username="gst_excl_owner", password="pw", role="owner", tenant=tenant, outlet=outlet)
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Food")
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), outlet)
 
         order = self._order(tenant, outlet, user, category, 100, 18)
         self.assertEqual(order.grand_total, Decimal("118"))
@@ -170,7 +172,7 @@ class NetProfitReportGSTMathTest(TestCase):
         outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN, gst_inclusive=True)
         user = User.objects.create_user(username="gst_incl_owner", password="pw", role="owner", tenant=tenant, outlet=outlet)
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Food")
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), outlet)
 
         order = self._order(tenant, outlet, user, category, 118, 18)
         self.assertEqual(order.grand_total, Decimal("118"))
@@ -197,7 +199,7 @@ class NetProfitReportGSTMathTest(TestCase):
         outlet = Outlet.objects.create(tenant=tenant, name="Main", is_composition_scheme=True)
         user = User.objects.create_user(username="gst_comp_owner", password="pw", role="owner", tenant=tenant, outlet=outlet)
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Food")
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), outlet)
 
         order = self._order(tenant, outlet, user, category, 100, 18)
         # Order model itself must already zero this for composition scheme.
@@ -219,7 +221,7 @@ class NetProfitOutletScopingTest(TestCase):
         self.tenant = Tenant.objects.create(name="Multi Outlet Finance")
         self.outlet_a = Outlet.objects.create(tenant=self.tenant, name="A")
         self.outlet_b = Outlet.objects.create(tenant=self.tenant, name="B")
-        self.today = timezone.localdate()
+        self.today = get_business_date(timezone.now(), self.outlet_a)
 
         Expense.objects.create(
             tenant=self.tenant, outlet=None, category="marketing",
@@ -246,7 +248,7 @@ class ExpenseCrossTenantIsolationTest(TestCase):
         outlet_a = Outlet.objects.create(tenant=tenant_a, name="A")
         tenant_b = Tenant.objects.create(name="Tenant B Fin")
         outlet_b = Outlet.objects.create(tenant=tenant_b, name="B")
-        today = timezone.localdate()
+        today = get_business_date(timezone.now(), outlet_a)
 
         Expense.objects.create(
             tenant=tenant_b, outlet=outlet_b, category="rent",
