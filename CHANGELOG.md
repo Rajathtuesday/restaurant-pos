@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-09-28: a paid bill stays paid, whatever another screen does
+
+### Fixed
+- **Adding items could re-open a paid bill** - the add-items request (`create_order`) read the order without a lock and later saved the whole row back. A payment landing in between, on another screen, was undone: the bill went back to open and the new items went onto it. The request now locks the order before changing it, checks its status under the lock, saves only the fields it changes, and says the order was just paid (409).
+- **The parcel toggle could re-total a paid bill** - the same race: it now locks the order for the whole change, and a bill paid meanwhile is refused (404) and left as it was.
+- **The model checks the database, not only its own copy** - `Order.recalculate_totals()` refuses an issued bill when either the copy in hand or the database says it is paid or closed, reading the row under a lock inside a transaction. `IssuedBillError` moved to `orders/exceptions.py` and is now an `OrderError` with a plain message ("This bill is already paid, so it can't be changed. Correct it with a refund."), so screens that handle order errors show it instead of an error page.
+- **Item discount and "make complimentary" on a locked bill** answered with a server error; they now give the reason (400).
+
+### Tests
+- `orders/tests/test_issued_bill_guard.py` (10). Its two race tests hold the order's row lock (as a payment does), start the request, take the payment, then let the request go on: the same interleaving every time, whichever thread runs first. Against the old views both failed (the paid bill was re-opened with the new dish on it; the parcel charge was written onto the paid bill). With the fixes both pass.
+- Every place that re-totals a bill was checked: voids, quantity changes, cancelling, adding items, order and item discounts, complimentary dishes, generating the bill, the parcel toggle, Swiggy/Zomato imports, the demo seed and the test commands. The others already locked the order and checked its status.
+
+---
+
 ## 2026-09-27 (evening): one tax engine for every bill, and today's GST problems fixed
 
 Phase 0 of the liquor VAT plan. Every bill without a taxed parcel charge still totals exactly as before: all 5,000 golden bills were checked line by line against the version committed that morning.

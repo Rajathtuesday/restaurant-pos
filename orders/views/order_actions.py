@@ -159,43 +159,49 @@ def toggle_parcel(request, order_id):
     Toggle parcel surcharge on/off for an order.
     Uses the outlet's configured parcel_charge_amount.
     Returns updated grand_total and parcel_surcharge so the UI can update instantly.
+
+    The order row is locked for the whole change, and its status read under
+    the lock, so a payment on another screen can't land between reading the
+    bill and re-totalling it.
     """
     from decimal import Decimal
+    from django.db import transaction
     try:
-        order = Order.objects.get(
-            id=order_id,
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-            status__in=["open", "billing"],
-        )
-        charge   = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
-        per_item = getattr(order.outlet, "parcel_charge_per_item", True)
-
-        # Toggle: if already set → remove; if zero → add
-        if order.parcel_surcharge > 0:
-            order.parcel_surcharge = Decimal("0")
-            order.parcel_gst_rate = None
-        else:
-            # The rate is copied now, so a later change to the outlet setting
-            # never changes this bill (see Order.parcel_gst_rate).
-            order.parcel_gst_rate = order.outlet.parcel_gst_rate
-            active_items = list(order.items.exclude(status="voided").select_related("menu_item"))
-            # Per-item mode: if ANY menu item has its own parcel_charge set, sum those
-            per_item_total = sum(
-                (item.menu_item.parcel_charge or Decimal("0")) * item.quantity
-                for item in active_items
-                if item.menu_item and (item.menu_item.parcel_charge or Decimal("0")) > 0
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(
+                id=order_id,
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                status__in=["open", "billing"],
             )
-            if per_item_total > 0:
-                order.parcel_surcharge = per_item_total
-            elif per_item:
-                total_qty = sum(item.quantity for item in active_items)
-                order.parcel_surcharge = charge * Decimal(total_qty)
-            else:
-                order.parcel_surcharge = charge
+            charge   = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
+            per_item = getattr(order.outlet, "parcel_charge_per_item", True)
 
-        order.save(update_fields=["parcel_surcharge", "parcel_gst_rate"])
-        order.recalculate_totals()
+            # Toggle: if already set → remove; if zero → add
+            if order.parcel_surcharge > 0:
+                order.parcel_surcharge = Decimal("0")
+                order.parcel_gst_rate = None
+            else:
+                # The rate is copied now, so a later change to the outlet setting
+                # never changes this bill (see Order.parcel_gst_rate).
+                order.parcel_gst_rate = order.outlet.parcel_gst_rate
+                active_items = list(order.items.exclude(status="voided").select_related("menu_item"))
+                # Per-item mode: if ANY menu item has its own parcel_charge set, sum those
+                per_item_total = sum(
+                    (item.menu_item.parcel_charge or Decimal("0")) * item.quantity
+                    for item in active_items
+                    if item.menu_item and (item.menu_item.parcel_charge or Decimal("0")) > 0
+                )
+                if per_item_total > 0:
+                    order.parcel_surcharge = per_item_total
+                elif per_item:
+                    total_qty = sum(item.quantity for item in active_items)
+                    order.parcel_surcharge = charge * Decimal(total_qty)
+                else:
+                    order.parcel_surcharge = charge
+
+            order.save(update_fields=["parcel_surcharge", "parcel_gst_rate"])
+            order.recalculate_totals()
 
         return JsonResponse({
             "success": True,
@@ -206,6 +212,8 @@ def toggle_parcel(request, order_id):
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found or already closed"}, status=404)
+    except OrderError as e:
+        return JsonResponse({"error": str(e)}, status=409)
     except Exception as e:
         logger.error("toggle_parcel error for order %s: %s", order_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)

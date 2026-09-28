@@ -713,6 +713,7 @@ All bill maths lives in one place, `orders/services/tax_engine.py`; its docstrin
 | Golden printouts | `test_golden_receipts.py`, `test_golden_html_bills.py` | Thermal receipts (the real bytes) and the web bills |
 | Golden reports | `reports/tests/test_golden_reports.py` | A fixed month through every money report and the GSTR-1 workbook |
 | Tax record | `orders/tests/test_tax_record.py` | Stored record, issued bills never re-totalled, parcel GST |
+| Issued bills | `orders/tests/test_issued_bill_guard.py` | A paid bill never changes, even from a screen holding an older copy; race tests hold the row lock and pay mid-request |
 | Cart copy | `orders/tests/test_cart_tax_js.py` | `static/js/cart_tax.js` run in Node against the real engine |
 
 **Changing the maths on purpose:** change the engine, then regenerate the golden files and read every changed line before committing:

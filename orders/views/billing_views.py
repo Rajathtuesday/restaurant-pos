@@ -214,11 +214,6 @@ def create_order(request):
                     # when no order_id is sent at all.
                     order = get_or_create_open_order(user, table, tenant=tenant, outlet=outlet)
 
-                order.source = source
-                if aggregator_id: order.aggregator_order_id = aggregator_id
-                if cust_name: order.customer_name = cust_name
-                if cust_phone: order.customer_phone = cust_phone
-
             # For 3rd party/takeaway/counter orders there's no table to merge
             # onto, so always create a fresh order. Branch on table, not on
             # source: a guest scanning a table QR always sends source="web"
@@ -245,13 +240,29 @@ def create_order(request):
                 )
             else:
                 order = get_or_create_open_order(user, table, tenant=tenant, outlet=outlet)
-                order.source = source
-                if aggregator_id:
-                    order.aggregator_order_id = aggregator_id
-                if cust_name:
-                    order.customer_name = cust_name
-                if cust_phone:
-                    order.customer_phone = cust_phone
+
+            # Lock the order for the rest of this request and read it again.
+            # It was looked up above without a lock, so a payment on another
+            # screen may have landed since, and saving that older copy used to
+            # re-open the paid bill. From here on no payment can land until
+            # this request is done. (A brand-new order is this request's own.)
+            order = Order.objects.select_for_update().get(pk=order.pk)
+            if order.status not in ("open", "billing"):
+                message = (
+                    "This order has already been billed. Please call a waiter for more items."
+                    if user is None else
+                    "This order was just paid on another screen. Start a new order for more items."
+                )
+                return JsonResponse({"error": message}, status=409)
+
+            order.source = source
+            if aggregator_id:
+                order.aggregator_order_id = aggregator_id
+            if cust_name:
+                order.customer_name = cust_name
+            if cust_phone:
+                order.customer_phone = cust_phone
+            changed = ["source", "aggregator_order_id", "customer_name", "customer_phone"]
 
             # Franchise / Cafe Token Generation
             # Uses the row-locked DailyTokenCounter helper — NEVER MAX()+1,
@@ -288,10 +299,11 @@ def create_order(request):
                             d_val = Decimal("100")
                         order.discount_type = d_type
                         order.discount_value = d_val
+                        changed += ["discount_type", "discount_value"]
                     except (ValueError, TypeError, InvalidOperation):
                         pass
 
-            order.save()
+            order.save(update_fields=changed)
             add_items_to_order(user, order, cart, tenant=tenant, outlet=outlet)
 
             # Important: recalculate after adding items so the discount applies to the total

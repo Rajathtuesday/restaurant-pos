@@ -6,6 +6,7 @@ import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
 from core.models import TenantScopedModel
+from orders.exceptions import IssuedBillError  # noqa: F401 -- also imported from here
 from orders.services.tax_engine import GST, Line, compute as compute_tax, rows_from_summary
 from django.db.models import Q
 from django.utils import timezone
@@ -58,11 +59,11 @@ class Table(TenantScopedModel):
 # =====================================================
 
 
-class IssuedBillError(Exception):
-    """Something tried to re-total a bill that is paid or closed. An issued
-    bill is a tax invoice and never changes; a correction is a refund. Every
-    screen already stops before this; the model makes sure nothing new can
-    get past."""
+def _is_issued_bill(status, grand_total, tax_summary):
+    """A paid or closed bill that has been totalled: an issued tax invoice.
+    (One created paid, like an aggregator order, isn't issued until its
+    first totalling.)"""
+    return status in ("paid", "closed") and (tax_summary is not None or bool(grand_total))
 
 
 class Order(TenantScopedModel):
@@ -334,11 +335,8 @@ class Order(TenantScopedModel):
         and is never re-totalled: this raises IssuedBillError. (An order that
         arrives already paid, from an aggregator, is totalled once.)
         """
-        if self.pk and self.status in ("paid", "closed") and (
-                self.tax_summary is not None or self.grand_total):
-            raise IssuedBillError(
-                f"Order {self.pk} is {self.status}: an issued bill is never re-totalled."
-            )
+        if self.pk:
+            self._refuse_if_issued()
 
         items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
         bill = self._run_tax_engine(items)
@@ -358,6 +356,21 @@ class Order(TenantScopedModel):
                                  "grand_total", "round_off", "discount_type",
                                  "discount_value", "parcel_surcharge",
                                  "tax_summary", "gst_breakdown_cache"])
+
+    def _refuse_if_issued(self):
+        """Raise IssuedBillError if this bill is issued, by this copy or by
+        the database: a screen can hold a copy read before another screen
+        took the payment. Inside a transaction the row is locked while it is
+        read, so a payment can't land between this check and the save; every
+        screen that changes a bill already runs in one."""
+        if _is_issued_bill(self.status, self.grand_total, self.tax_summary):
+            raise IssuedBillError(self.pk, self.status)
+        rows = Order.objects.filter(pk=self.pk)
+        if transaction.get_connection().in_atomic_block:
+            rows = rows.select_for_update()
+        current = rows.values("status", "grand_total", "tax_summary").first()
+        if current and _is_issued_bill(current["status"], current["grand_total"], current["tax_summary"]):
+            raise IssuedBillError(self.pk, current["status"])
 
     def _run_tax_engine(self, items):
         """The engine's result for these (live) lines, this bill's discount

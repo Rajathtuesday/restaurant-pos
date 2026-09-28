@@ -19,6 +19,20 @@ class OrderError(Exception):
     pass
 
 
+class IssuedBillError(OrderError):
+    """Something tried to re-total a bill that is paid or closed. An issued
+    bill is a tax invoice and never changes; a correction is a refund. Every
+    screen stops before this; Order.recalculate_totals() makes sure nothing
+    gets past, including a screen holding an out-of-date copy of the bill.
+    Being an OrderError, it reaches the user as a plain message wherever a
+    screen already handles those."""
+
+    def __init__(self, order_id=None, status="paid"):
+        self.order_id = order_id
+        self.status = status
+        super().__init__(f"This bill is already {status}, so it can't be changed. Correct it with a refund.")
+
+
 class CartError(Exception):
     """Raised when the cart payload is invalid or empty."""
     pass

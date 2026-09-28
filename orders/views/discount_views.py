@@ -4,6 +4,7 @@ import logging
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
@@ -129,6 +130,9 @@ def make_item_complimentary(request, item_id):
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+    except ValidationError as e:
+        # validate_order_editable: the bill is being paid or already closed
+        return JsonResponse({"error": " ".join(e.messages)}, status=400)
 
 
 # -------------------------------------------------
@@ -170,6 +174,9 @@ def apply_item_discount(request, item_id):
         logger.warning("User %s applied %s%% discount to item #%s", request.user.username, discount_pct, item_id)
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
+    except ValidationError as e:
+        # validate_order_editable: the bill is being paid or already closed
+        return JsonResponse({"error": " ".join(e.messages)}, status=400)
     except Exception:
         logger.exception("Error applying item discount to item #%s", item_id)
         return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)
