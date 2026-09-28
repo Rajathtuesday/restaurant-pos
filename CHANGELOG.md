@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-09-28 (night): the demo gets its GSTIN at deploy
+
+### Fixed
+- **No window without GST on the live demo** - an outlet without a GSTIN charges no GST (P25), and the demo reset puts the demo's sample GSTIN back only every two hours. A data migration (`tenants` 0036) sets it during the deploy. It does nothing where there is no demo restaurant.
+
 ## 2026-09-28 (night): no GSTIN, no GST (P25)
 
 Stage 2 starts. Only a business registered for GST may collect it (CGST Act, section 32), and a tax invoice must show the seller's GSTIN (CGST Rules, rule 46). Until now an outlet with no GSTIN charged GST anyway and printed "Tax Invoice" without one. Outlets with a GSTIN bill exactly as before: every golden bill, receipt, HTML bill and report is unchanged.

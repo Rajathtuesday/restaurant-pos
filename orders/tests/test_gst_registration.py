@@ -14,7 +14,9 @@ Run: python manage.py test orders.tests.test_gst_registration
 """
 import json
 from decimal import Decimal as D
+from importlib import import_module
 
+from django.apps import apps as django_apps
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils.html import escape
@@ -219,6 +221,17 @@ class SavingTheGstinTest(GstinWorld):
 
 class DemoRestaurantTest(TestCase):
     """The demo is there to show GST bills, so its outlet always has a GSTIN."""
+
+    def test_the_deploy_gives_the_demo_its_gstin_and_nobody_else(self):
+        migration = import_module("tenants.migrations.0036_demo_outlet_sample_gstin")
+        self.assertEqual(migration.SAMPLE_GSTIN, SAMPLE_GSTIN)
+        demo = Outlet.objects.create(tenant=Tenant.objects.create(name="Demo Bistro", slug="demo-bistro"),
+                                     name="Demo Bistro - Main")
+        cafe = Outlet.objects.create(tenant=Tenant.objects.create(name="Real Cafe"), name="Main")
+        migration.give_the_demo_its_gstin(django_apps, None)
+        demo.refresh_from_db()
+        cafe.refresh_from_db()
+        self.assertEqual((demo.gst_no, cafe.gst_no), (SAMPLE_GSTIN, None))
 
     def test_the_demo_outlet_gets_a_sample_gstin_back_on_every_reset(self):
         tenant = create_or_reset_demo_tenant()
