@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-09-28 (night): the tenants app's tests run
+
+### Fixed
+- **72 tests that never ran** - `tenants/tests` had no `__init__.py`, so test discovery skipped it and CI's `tenants` label ran nothing: tenant isolation, the settings service, the GSTIN and FSSAI validators and the suspension middleware went untested. They run now. One had gone stale unnoticed: the setup page sends anyone who isn't an owner or manager to the dashboard, so the suspension test's superuser now sits in the owner's seat, where only the suspension middleware could stop them.
+
 ## 2026-09-28 (later): liquor on the bill, behind a switch
 
 Phase 1 of the liquor VAT plan. Nothing changes for any restaurant until a superuser turns on the new `liquor_vat` feature for it; with it off, every line is GST exactly as before, and all 5,000 golden bills are unchanged.

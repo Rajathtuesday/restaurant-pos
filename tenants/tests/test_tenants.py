@@ -331,9 +331,11 @@ class SubscriptionSuspensionMiddlewareTest(TestCase):
             username="suspend_owner", password="pass123",
             role="owner", tenant=self.tenant, outlet=self.outlet,
         )
+        # Support staff in the owner's seat, so the page itself lets them in
+        # and only the suspension middleware could stop them.
         self.superuser = User.objects.create_superuser(
             username="suspend_admin", password="pass123", email="admin@rasova.net",
-            tenant=self.tenant, outlet=self.outlet,
+            role="owner", tenant=self.tenant, outlet=self.outlet,
         )
         self.host = f"{self.tenant.slug}.rasova.net"
 
