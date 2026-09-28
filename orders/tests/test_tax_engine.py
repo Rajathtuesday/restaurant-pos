@@ -13,7 +13,8 @@ from decimal import Decimal as D
 from django.test import SimpleTestCase
 
 from orders.services.tax_engine import (
-    GST, Line, RateRow, allocate, compute, rows_from_summary, split_gst,
+    GST, VAT, Line, RateRow, allocate, compute, rows_from_summary, sections_from_summary,
+    split_gst,
 )
 
 
@@ -158,6 +159,91 @@ class OtherTaxKindsTest(SimpleTestCase):
         bill = compute([dish("100"), beer], composition=True)
         self.assertEqual(bill.gst, 0)
         self.assertEqual([(r.kind, r.tax) for r in bill.rows], [("vat", D("11.00"))])
+
+
+def liquor(amount, rate="0", inclusive=None):
+    return Line(amount=D(amount), rate=D(rate), kind=VAT, inclusive=inclusive)
+
+
+# The plan's sample pub bill: chicken wings 260, paneer tikka 220, two fresh
+# lime sodas 180 (food, 5% GST); three pints of beer 750 and two 60 ml rums
+# 440 (liquor).
+PUB_FOOD = [dish("260"), dish("220"), dish("180")]
+
+
+def pub_drinks(rate="0", inclusive=None):
+    return [liquor("750", rate, inclusive), liquor("440", rate, inclusive)]
+
+
+class LiquorTest(SimpleTestCase):
+    """Liquor under the liquor_vat feature: its own kind of tax, never GST.
+    Karnataka has charged no VAT on liquor at the bar since July 2017 (a 0%
+    class); other states charge some, so the rate is a setting. The worked
+    bills are the plan's (md_files/liquor_vat_food_gst_plan_2026-09-27.html,
+    part 5)."""
+
+    def test_a_karnataka_bill_has_no_tax_on_the_drinks(self):
+        bill = compute(PUB_FOOD + pub_drinks("0"))
+        # 660 + 33 GST + 1,190 = 1,883
+        self.assertEqual((bill.gst, bill.cgst, bill.sgst, bill.vat), (D("33.00"), D("16.50"), D("16.50"), D("0.00")))
+        self.assertEqual((bill.grand_total, bill.round_off), (D("1883"), D("0.00")))
+
+    def test_zero_percent_liquor_still_has_its_row_for_the_return(self):
+        # the non-GST column of GSTR-1 Table 8 needs the liquor's value
+        bill = compute(PUB_FOOD + pub_drinks("0"))
+        self.assertIn(RateRow(kind=VAT, rate=D("0.00"), taxable=D("1190.00"), tax=D("0.00")), bill.rows)
+        self.assertEqual([(s.kind, s.menu, s.taxable, s.tax) for s in bill.sections],
+                         [(GST, D("660.00"), D("660.00"), D("33.00")), (VAT, D("1190.00"), D("1190.00"), D("0.00"))])
+
+    def test_liquor_at_zero_is_not_nil_rated_food(self):
+        bill = compute([dish("100"), dish("100", "0"), liquor("100")])
+        self.assertEqual([(r.kind, r.rate, r.taxable) for r in bill.rows],
+                         [(GST, D("0.00"), D("100.00")), (GST, D("5.00"), D("100.00")), (VAT, D("0.00"), D("100.00"))])
+
+    def test_the_plan_bill_at_five_and_a_half_percent(self):
+        bill = compute(PUB_FOOD + pub_drinks("5.5"))
+        # 1,190 x 5.5% = 65.45; 660 + 33 + 1,190 + 65.45 = 1,948.45
+        self.assertEqual((bill.gst, bill.vat), (D("33.00"), D("65.45")))
+        self.assertEqual((bill.grand_total, bill.round_off), (D("1948"), D("-0.45")))
+        self.assertEqual((bill.cgst, bill.sgst), (D("16.50"), D("16.50")))   # VAT never enters CGST/SGST
+
+    def test_the_order_discount_is_spread_over_food_and_drinks(self):
+        bill = compute(PUB_FOOD + pub_drinks("5.5"), discount_type="percentage", discount_value=D("10"))
+        # 10% of 1,850 = 185: food 594.00, GST 29.70; drinks 1,071.00, VAT
+        # exactly 37.125 + 21.78 = 58.905, rounded once to 58.91
+        self.assertEqual((bill.discount, bill.gst, bill.vat), (D("185.00"), D("29.70"), D("58.91")))
+        self.assertEqual([(s.kind, s.discount, s.taxable, s.tax) for s in bill.sections],
+                         [(GST, D("66.00"), D("594.00"), D("29.70")), (VAT, D("119.00"), D("1071.00"), D("58.91"))])
+        # 1,665 + 29.70 + 58.91 = 1,753.61
+        self.assertEqual((bill.grand_total, bill.round_off), (D("1754"), D("0.39")))
+
+    def test_the_paisa_owed_goes_to_the_larger_remainder(self):
+        bill = compute(PUB_FOOD + pub_drinks("5.5"), discount_type="percentage", discount_value=D("10"))
+        vat_row = [r for r in bill.rows if r.kind == VAT][0]
+        self.assertEqual(allocate([D("37.125"), D("21.78")], vat_row.tax), [D("37.13"), D("21.78")])
+
+    def test_drinks_can_include_vat_while_food_adds_gst(self):
+        bill = compute(PUB_FOOD + [liquor("1190", "5.5", inclusive=True)])
+        # VAT inside: 1,190 x 5.5 / 105.5 = 62.037..., rounded 62.04; the
+        # guest pays the drinks' menu price
+        self.assertEqual((bill.gst, bill.vat), (D("33.00"), D("62.04")))
+        self.assertEqual(bill.grand_total, D("1883"))
+        self.assertEqual([s.taxable for s in bill.sections if s.kind == VAT], [D("1127.96")])
+
+    def test_every_mixed_bill_adds_up_to_its_total(self):
+        for rate in ("0", "5.5", "10", "20"):
+            for inclusive in (False, True):
+                for discount in (("amount", D("99.99")), ("percentage", D("12.5")), (None, D("0"))):
+                    bill = compute(PUB_FOOD + pub_drinks(rate, inclusive),
+                                   discount_type=discount[0], discount_value=discount[1])
+                    parts = sum((s.taxable + s.tax for s in bill.sections), D("0")) + bill.round_off
+                    self.assertEqual(parts, bill.grand_total, (rate, inclusive, discount))
+                    self.assertEqual(sum((r.tax for r in bill.rows if r.kind == VAT), D("0")), bill.vat)
+
+    def test_the_stored_record_keeps_the_sections(self):
+        bill = compute(PUB_FOOD + pub_drinks("5.5"), discount_type="amount", discount_value=D("50"))
+        self.assertEqual(sections_from_summary(bill.summary()), list(bill.sections))
+        self.assertIsNone(sections_from_summary({"v": 1, "rows": [], "charges": []}))
 
 
 class RecordTest(SimpleTestCase):

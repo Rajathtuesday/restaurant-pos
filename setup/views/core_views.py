@@ -1037,7 +1037,14 @@ def outlet_settings(request):
         outlet.sac_code     = sac_code
         outlet.gst_inclusive = gst_inclusive
         outlet.use_qz_tray            = "use_qz_tray"            in request.POST
-        outlet.is_composition_scheme  = "is_composition_scheme"  in request.POST
+        # D7: the composition scheme stays off while the outlet sells liquor.
+        wants_composition = "is_composition_scheme" in request.POST
+        from menu.liquor import composition_refusal
+        refusal = composition_refusal(outlet) if wants_composition else None
+        if refusal:
+            messages.error(request, refusal)
+        else:
+            outlet.is_composition_scheme = wants_composition
         outlet.is_union_territory     = "is_union_territory"     in request.POST
         outlet.split_bill_by_category = "split_bill_by_category" in request.POST
         from core.features import has_feature

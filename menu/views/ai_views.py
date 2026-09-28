@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 
 from core.celery_utils import dispatch
 from core.decorators import tenant_required, feature_required, role_required
-from menu.models import MenuCategory, MenuItem
+from menu.models import MenuCategory, MenuItem, VatClass
 
 logger = logging.getLogger("pos.menu")
 
@@ -188,14 +188,24 @@ def sync_menu_to_outlets(request):
     if not target_outlets.exists():
         return JsonResponse({"error": "No other branches found to sync to."}, status=400)
 
-    source_categories = MenuCategory.objects.filter(tenant=tenant, outlet=source_outlet)
+    from django.db.models import Prefetch
+    source_categories = MenuCategory.objects.filter(tenant=tenant, outlet=source_outlet).prefetch_related(
+        Prefetch("items", queryset=MenuItem.objects.select_related("vat_class")),
+    )
     stats = {
         "categories_created": 0, "items_created": 0,
         "recipes_created": 0, "outlets_updated": target_outlets.count(),
+        # drinks whose VAT class doesn't exist at a target outlet
+        "liquor_unclassified": [],
     }
 
     with transaction.atomic():
         for target_outlet in target_outlets:
+            # VAT classes are per outlet (the rate depends on the state), so a
+            # drink takes the target outlet's class of the same name. Without
+            # one, the rate there is unknown: the drink is synced unavailable
+            # until someone classifies it, never sold under a guessed tax.
+            target_classes = {c.name: c for c in VatClass.objects.for_outlet(tenant, target_outlet)}
             for src_cat in source_categories:
                 target_cat, cat_created = MenuCategory.objects.update_or_create(
                     tenant=tenant, outlet=target_outlet, name=src_cat.name,
@@ -205,6 +215,12 @@ def sync_menu_to_outlets(request):
                     stats["categories_created"] += 1
 
                 for src_item in src_cat.items.all():
+                    vat_class, is_available = None, src_item.is_available
+                    if src_item.vat_class_id:
+                        vat_class = target_classes.get(src_item.vat_class.name)
+                        if vat_class is None:
+                            is_available = False
+                            stats["liquor_unclassified"].append(f"{target_outlet.name}: {src_item.name}")
                     target_item, item_created = MenuItem.objects.update_or_create(
                         tenant=tenant, outlet=target_outlet, name=src_item.name,
                         defaults={
@@ -213,7 +229,8 @@ def sync_menu_to_outlets(request):
                             "description":         src_item.description,
                             "estimated_prep_time": src_item.estimated_prep_time,
                             "gst_percentage":      src_item.gst_percentage,
-                            "is_available":        src_item.is_available,
+                            "vat_class":           vat_class,
+                            "is_available":        is_available,
                             "available_takeaway":  src_item.available_takeaway,
                             "available_zomato":    src_item.available_zomato,
                             "available_swiggy":    src_item.available_swiggy,

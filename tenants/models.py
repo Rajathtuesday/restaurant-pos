@@ -366,6 +366,7 @@ class Outlet(models.Model):
         max_digits=5,
         decimal_places=2,
         default=Decimal("5.00"),
+        db_default=Decimal("5.00"),   # kept in the database, so a deploy's old code can still save outlets
         help_text=(
             "GST on the parcel charge, in percent. Packing is part of the "
             "restaurant service, so it carries the food's rate: 5% for most "
@@ -373,6 +374,36 @@ class Outlet(models.Model):
             "Added on top when prices exclude GST, taken out of the charge "
             "when they include it, and never charged on the composition scheme."
         )
+    )
+
+    # ── Liquor VAT (the liquor_vat feature) ──────────────────────────────
+    # Alcohol is outside GST: the state taxes it with VAT, at the rates in
+    # menu.VatClass. orders/services/tax_engine.py carries both on one bill.
+    vat_registration_no = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        db_default="",
+        help_text="State VAT registration (TIN) number, printed on the liquor part of the bill.",
+    )
+    vat_inclusive = models.BooleanField(
+        default=False,
+        db_default=False,
+        help_text=(
+            "True: liquor menu prices already include VAT. Separate from GST "
+            "inclusive, because many bars price food with tax added and drinks "
+            "with tax included, or the other way round."
+        ),
+    )
+    LIQUOR_BILLING_MODES = [
+        ("one_bill", "One bill, food and liquor in two sections"),
+        ("two_bills", "A separate bill for liquor"),
+    ]
+    liquor_billing_mode = models.CharField(
+        max_length=10,
+        choices=LIQUOR_BILLING_MODES,
+        default="one_bill",
+        db_default="one_bill",
     )
 
     is_composition_scheme = models.BooleanField(

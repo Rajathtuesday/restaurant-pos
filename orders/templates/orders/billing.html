@@ -303,6 +303,7 @@
       {% if not outlet.is_composition_scheme %}
       <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
       {% endif %}
+      <div class="summary-row vat-row" style="display:none;"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
       {% if outlet.parcel_charge_amount %}
       <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
         <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -379,6 +380,7 @@
         {% if not outlet.is_composition_scheme %}
         <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
         {% endif %}
+        <div class="summary-row vat-row" style="display:none;"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
         {% if outlet.parcel_charge_amount %}
         <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
           <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -501,8 +503,11 @@
 
 {% block extra_js %}
 <script src="{% static 'js/order_edit.js' %}"></script>
+{{ dish_tax|json_script:"dish-tax" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
+  // Each dish's tax as the bill will charge it (GST, or VAT for liquor)
+  const DISH_TAX = RasovaCartTax.readTable("dish-tax");
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -736,15 +741,20 @@
     // composition scheme, and the parcel charge (once toggled on, see
     // toggleParcel/_syncParcelUI) taxed like the food.
     const t = RasovaCartTax.totals(
-      cart.map(i => ({ amount: i.price * i.quantity, gstRate: i.gst_percentage })),
+      cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage)),
       {
         inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
+        vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
         composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
         parcel: _parcelOn ? _parcelChargeAmount : 0,
         parcelGstRate: {{ outlet.parcel_gst_rate|default:0 }},
       });
     document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + t.subtotal);
     document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + t.gst.toFixed(2));
+    document.querySelectorAll(".view-vat").forEach(e => {
+      e.innerText = "₹" + t.vat.toFixed(2);
+      e.closest(".summary-row").style.display = t.vat > 0 ? "" : "none";
+    });
     document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + t.roundedTotal);
   }
 

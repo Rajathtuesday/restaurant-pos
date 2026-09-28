@@ -60,6 +60,7 @@
 
     /* ── RETIRED RATES (12% / 28% before GST 2.0) ── */
     .retired-banner { border-left-color: var(--orange); }
+    .vat-tag { font-size: 0.75rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 4px; padding: 0.2rem 0.5rem; }
     .retired-tag {
         display: inline-block; margin-left: 0.4rem; padding: 0 0.4rem;
         border: 1px solid var(--orange); border-radius: 3px; color: var(--orange);
@@ -183,6 +184,9 @@
                         <div class="item-price">₹{{ item.price }}</div>
                     </div>
                     <div class="item-gst-control">
+                        {% if item.vat_class_id %}
+                        <span class="vat-tag">Liquor: VAT {{ item.vat_class }}, no GST</span>
+                        {% else %}
                         <select class="gst-select" id="gst-{{ item.id }}" onchange="updateItemGST({{ item.id }}, this.value)">
                             {% if current not in valid_rates %}
                             <option value="{{ current }}" selected disabled>{{ item.gst_percentage|floatformat:"-2" }}%, no longer a GST rate</option>
@@ -194,6 +198,7 @@
                             {% endfor %}
                         </select>
                         <div class="saving-dot" id="dot-{{ item.id }}"></div>
+                        {% endif %}
                     </div>
                     {% endwith %}
                 </div>

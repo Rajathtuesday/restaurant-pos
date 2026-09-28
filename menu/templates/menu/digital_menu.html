@@ -735,6 +735,10 @@
                 <span>₹<span id="billGst">0</span></span>
             </div>
             {% endif %}
+            <div class="bill-row" id="billVatRow" style="display:none;">
+                <span>{% if outlet.vat_inclusive %}VAT on liquor (included in prices){% else %}VAT on liquor{% endif %}</span>
+                <span>₹<span id="billVat">0</span></span>
+            </div>
             <div class="bill-total">
                 <span>Total</span>
                 <span>₹<span id="billTotal">0</span></span>
@@ -758,6 +762,7 @@
     </div>
 
 {{ item_modifier_data|json_script:"item-modifiers-raw" }}
+{{ dish_tax|json_script:"dish-tax" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
     const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
@@ -1098,7 +1103,7 @@
         for(let key in cart) {
             const item = cart[key];
             const itemTotal = item.qty * (item.price + (item.modifierPrice || 0));
-            lines.push({ amount: itemTotal, gstRate: item.gstRate });
+            lines.push(RasovaCartTax.line(itemTotal, DISH_TAX, item.id, item.gstRate));
 
             const modNames = item.modifiers && item.modifiers.length > 0
                 ? `<div class="cart-modifier-names">${item.modifiers.map(m => escapeHtml(m.name)).join(', ')}</div>` : '';
@@ -1124,12 +1129,15 @@
         // composition scheme.
         const t = RasovaCartTax.totals(lines, {
             inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
+            vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
             composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
         });
 
         document.getElementById('billSubtotal').innerText = t.subtotal.toFixed(2);
         const gstEl = document.getElementById('billGst');
         if (gstEl) gstEl.innerText = t.gst.toFixed(2);
+        document.getElementById('billVat').innerText = t.vat.toFixed(2);
+        document.getElementById('billVatRow').style.display = t.vat > 0 ? '' : 'none';
         document.getElementById('billTotal').innerText = t.total.toFixed(2);
     }
 

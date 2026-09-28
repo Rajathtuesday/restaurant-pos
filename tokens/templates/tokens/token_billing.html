@@ -747,6 +747,7 @@
             {% if not request.user.outlet.is_composition_scheme %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
             {% endif %}
+            <div class="summary-row vat-row" style="display:none;"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
             {% if request.user.outlet.parcel_charge_amount %}
             <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
                 <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -878,6 +879,7 @@
             {% if not request.user.outlet.is_composition_scheme %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
             {% endif %}
+            <div class="summary-row vat-row" style="display:none;"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
             {% if request.user.outlet.parcel_charge_amount %}
             <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
                 <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
@@ -929,6 +931,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/order_edit.js' %}"></script>
+{{ dish_tax|json_script:"dish-tax" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
     /* ── Resizable 3-panel layout (desktop only) ───────────────────────
@@ -1041,6 +1044,9 @@
     let cart = [];
     const GST_INCLUSIVE = {{ request.user.outlet.gst_inclusive|yesno:"true,false" }};
     const IS_COMPOSITION = {{ request.user.outlet.is_composition_scheme|yesno:"true,false" }};
+    const VAT_INCLUSIVE = {{ request.user.outlet.vat_inclusive|yesno:"true,false" }};
+    // Each dish's tax as the bill will charge it (GST, or VAT for liquor)
+    const DISH_TAX = RasovaCartTax.readTable('dish-tax');
     const PARCEL_GST_RATE = {{ request.user.outlet.parcel_gst_rate|default:0 }};
     let selectedItem = null;
     let sending = false;
@@ -1162,8 +1168,8 @@
         // scheme, and the parcel charge (once toggled on, see
         // toggleParcel/_syncParcelUI) taxed like the food.
         const t = RasovaCartTax.totals(
-            cart.map(i => ({ amount: i.price * i.quantity, gstRate: i.gst_percentage })),
-            { inclusive: GST_INCLUSIVE, composition: IS_COMPOSITION,
+            cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage)),
+            { inclusive: GST_INCLUSIVE, vatInclusive: VAT_INCLUSIVE, composition: IS_COMPOSITION,
               parcel: _parcelOn ? _parcelChargeAmount : 0, parcelGstRate: PARCEL_GST_RATE });
         document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + t.subtotal);
         document.querySelectorAll('.view-gst').forEach(e => {
@@ -1171,6 +1177,10 @@
             // Show label hint so cashier knows it's included, not added
             const label = e.closest('.summary-row')?.querySelector('span:first-child');
             if (label) label.textContent = GST_INCLUSIVE ? 'GST (incl.)' : 'GST';
+        });
+        document.querySelectorAll('.view-vat').forEach(e => {
+            e.textContent = '₹' + t.vat.toFixed(2);
+            e.closest('.summary-row').style.display = t.vat > 0 ? '' : 'none';
         });
         document.querySelectorAll('.view-total').forEach(e => e.textContent = '₹' + t.roundedTotal);
 

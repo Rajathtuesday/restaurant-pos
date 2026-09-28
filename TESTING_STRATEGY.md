@@ -714,16 +714,18 @@ All bill maths lives in one place, `orders/services/tax_engine.py`; its docstrin
 | Golden reports | `reports/tests/test_golden_reports.py` | A fixed month through every money report and the GSTR-1 workbook |
 | Tax record | `orders/tests/test_tax_record.py` | Stored record, issued bills never re-totalled, parcel GST |
 | Issued bills | `orders/tests/test_issued_bill_guard.py` | A paid bill never changes, even from a screen holding an older copy; race tests hold the row lock and pay mid-request |
-| Cart copy | `orders/tests/test_cart_tax_js.py` | `static/js/cart_tax.js` run in Node against the real engine |
+| Liquor bills | `orders/tests/test_golden_liquor.py` + `golden/liquor_totals_v1.jsonl` | 1,000 fixed pub bills (food on GST, liquor on VAT at 0%, 5.5%, 10%, 20%), against the engine and against `legacy_totals.liquor_totals` |
+| Liquor rules | `orders/tests/test_liquor_vat.py` | Line snapshots, the feature switch, Swiggy/Zomato refusal, menu sync, the GST Rates page, the composition guard (D7), Karnataka's 0% default |
+| Cart copy | `orders/tests/test_cart_tax_js.py` | `static/js/cart_tax.js` run in Node against the real engine, food and pub carts |
 
 **Changing the maths on purpose:** change the engine, then regenerate the golden files and read every changed line before committing:
 
 ```bash
-GOLDEN_UPDATE=1 python manage.py test orders.tests.test_golden_totals orders.tests.test_golden_receipts orders.tests.test_golden_html_bills reports.tests.test_golden_reports
+GOLDEN_UPDATE=1 python manage.py test orders.tests.test_golden_totals orders.tests.test_golden_liquor orders.tests.test_golden_receipts orders.tests.test_golden_html_bills reports.tests.test_golden_reports
 git diff orders/tests/golden reports/tests/golden
 ```
 
-The independent copy (`legacy_totals.py`) changes only in the same commit as a deliberate rule change, and its docstring lists every such change.
+The independent copy (`legacy_totals.py`) changes only in the same commit as a deliberate rule change, and its docstring lists every such change. Bills with liquor have their own function in it (`liquor_totals`), so the frozen food maths stayed untouched when liquor arrived.
 
 **A deeper search** before a release that touches money (about 17 minutes):
 

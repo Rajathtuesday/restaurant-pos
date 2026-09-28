@@ -7,6 +7,7 @@ the target tenant/outlet, completely separate from the superuser's own
 account context.
 """
 import logging
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count
@@ -183,7 +184,8 @@ def tenant_config(request, tenant_id):
             return redirect("superuser_tenant", tenant_id=tenant_id)
 
         if action == "update_outlet":
-            tcs.update_outlet_from_post(outlet, request.POST)
+            for note in tcs.update_outlet_from_post(outlet, request.POST):
+                messages.error(request, note)
             return redirect("superuser_tenant", tenant_id=tenant_id)
 
         if action == "update_subscription":

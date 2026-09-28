@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.db.models import UniqueConstraint, Index
 from core.models import TenantScopedModel
@@ -7,6 +9,13 @@ from core.validators import validate_image_size, process_uploaded_image
 import logging
 
 logger = logging.getLogger("pos.menu")
+
+# D7: the composition scheme is closed to anyone who sells something
+# outside GST (CGST Act section 10(2)(b)), and liquor is exactly that.
+COMPOSITION_SELLS_NO_LIQUOR = (
+    "An outlet on the composition scheme can't sell liquor: the law bars composition "
+    "for anyone selling something outside GST. Turn composition off first."
+)
 
 
 
@@ -55,6 +64,41 @@ class MenuCategory(TenantScopedModel):
 
 
 
+class VatClass(TenantScopedModel):
+    """A state VAT rate for one kind of liquor at one outlet, such as
+    "Beer 5.5%". Alcohol is outside GST; the state taxes it with VAT. A drink
+    points at its class, so a rate change is one edit instead of eighty, and
+    a bill line copies the rate when it is ordered (OrderItem.vat_rate), so
+    no bill already made ever changes. Per outlet, because the rate depends
+    on the state, and sometimes the area, the outlet is in. A 0% class is
+    valid: that liquor is still a non-GST supply, never nil-rated GST."""
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    name = models.CharField(max_length=40)
+    rate = models.DecimalField(max_digits=5, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            UniqueConstraint(fields=["outlet", "name"], name="unique_vat_class_per_outlet"),
+            models.CheckConstraint(
+                condition=models.Q(rate__gte=Decimal("0")) & models.Q(rate__lte=Decimal("100")),
+                name="vat_class_rate_0_to_100",
+            ),
+        ]
+        indexes = [Index(fields=["tenant", "outlet"])]
+
+    def __str__(self):
+        return f"{self.name} {self.rate.normalize():f}%"
+
+    def clean(self):
+        if self.outlet_id and self.outlet.is_composition_scheme:
+            raise ValidationError(COMPOSITION_SELLS_NO_LIQUOR)
+
+
 class MenuItem(TenantScopedModel):
 
     tenant = models.ForeignKey(
@@ -94,6 +138,17 @@ class MenuItem(TenantScopedModel):
         max_digits=5,
         decimal_places=2,
         default=5.00
+    )
+
+    # Liquor: taxed by the state's VAT, not GST. Set only with the liquor_vat
+    # feature; a drink with a class carries 0% GST (enforced below and in the
+    # database). PROTECT: a class in use can't be deleted from under a drink.
+    vat_class = models.ForeignKey(
+        VatClass,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="items",
     )
 
     estimated_prep_time = models.IntegerField(
@@ -139,15 +194,27 @@ class MenuItem(TenantScopedModel):
                 condition=models.Q(price__gte=0),
                 name="menu_item_price_non_negative"
             ),
-            # GST rate validation is enforced at the view layer via _VALID_GST in
-            # gst_views.py — a DB-level CheckConstraint on a DecimalField fails on
-            # SQLite due to TEXT storage vs. integer literal comparison.
+            # Which GST rates may be chosen is enforced where they are chosen
+            # (GST_RATES in orders/services/tax_service.py); older dishes may
+            # still carry a retired rate, so the database doesn't forbid them.
+            # A drink taxed by VAT carries no GST at all.
+            models.CheckConstraint(
+                condition=models.Q(vat_class__isnull=True) | models.Q(gst_percentage=Decimal("0")),
+                name="vat_item_has_no_gst",
+            ),
         ]
 
     def clean(self):
 
         if self.price < 0:
             raise ValidationError("Price cannot be negative")
+        if self.vat_class_id:
+            if self.vat_class.outlet_id != self.outlet_id:
+                raise ValidationError("That VAT class belongs to another outlet.")
+            if self.gst_percentage:
+                raise ValidationError("A drink taxed by VAT carries no GST: set its GST to 0%.")
+            if self.outlet.is_composition_scheme:
+                raise ValidationError(COMPOSITION_SELLS_NO_LIQUOR)
 
     def save(self, *args, **kwargs):
         # Only compress when a genuinely new image file is being uploaded.

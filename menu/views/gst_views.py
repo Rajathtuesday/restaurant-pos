@@ -19,9 +19,10 @@ logger = logging.getLogger("pos.menu")
 def gst_management(request):
     if request.user.role not in ["owner", "manager"]:
         return HttpResponseForbidden()
+    from django.db.models import Prefetch
     categories = MenuCategory.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet, is_active=True
-    ).prefetch_related("items")
+    ).prefetch_related(Prefetch("items", queryset=MenuItem.objects.select_related("vat_class")))
     # Dishes still on a rate that no longer exists (12% and 28% before GST 2.0)
     retired = MenuItem.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet,
@@ -40,8 +41,13 @@ def update_item_gst(request, item_id):
     if request.user.role not in ["owner", "manager"]:
         return JsonResponse({"error": "Permission denied"}, status=403)
     item = get_object_or_404(
-        MenuItem, id=item_id, tenant=request.user.tenant, outlet=request.user.outlet
+        MenuItem.objects.select_related("vat_class"),
+        id=item_id, tenant=request.user.tenant, outlet=request.user.outlet,
     )
+    if item.vat_class_id:
+        return JsonResponse(
+            {"error": f"{item.name} is liquor, taxed by VAT ({item.vat_class}), not GST."}, status=400,
+        )
     try:
         data = json.loads(request.body)
         gst  = Decimal(str(data.get("gst_percentage", "5.00")))
@@ -73,8 +79,9 @@ def update_category_gst(request, category_id):
         gst     = Decimal(str(data.get("gst_percentage", "5.00")))
         if gst not in GST_RATES:
             return JsonResponse({"error": "Invalid GST rate"}, status=400)
+        # Liquor in the category is taxed by VAT and keeps its 0% GST.
         updated = category.items.filter(
-            tenant=request.user.tenant, outlet=request.user.outlet
+            tenant=request.user.tenant, outlet=request.user.outlet, vat_class__isnull=True,
         ).update(gst_percentage=gst)
         logger.info(
             "User %s bulk-set GST for category '%s' → %s%% (%s items)",

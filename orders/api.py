@@ -94,6 +94,7 @@ def notification_api(request):
 from orders.models import Table, Order, OrderItem, Payment
 from tenants.models import Tenant, Outlet
 from setup.models import AggregatorConfig
+from orders.services.tax_service import tax_snapshot_for
 from menu.models import MenuItem
 
 logger = logging.getLogger("pos.api")
@@ -256,7 +257,7 @@ def api_ingest_order(request):
         for i in items:
             menu_item_id = i.get("menu_item_id")
             try:
-                menu_items_by_id[menu_item_id] = MenuItem.objects.get(
+                menu_items_by_id[menu_item_id] = MenuItem.objects.select_related("vat_class").get(
                     id=menu_item_id, tenant=tenant, outlet=outlet
                 )
             except MenuItem.DoesNotExist:
@@ -264,6 +265,19 @@ def api_ingest_order(request):
                     {"error": f"Menu item id={menu_item_id} not found or not available at this outlet"},
                     status=422
                 )
+
+        # Liquor may not be sold through an aggregator or the web, so an
+        # order with any liquor line is refused whole, before anything is
+        # written. (Liquor lines exist only with the liquor_vat feature.)
+        liquor = sorted({
+            menu_item.name for menu_item in menu_items_by_id.values()
+            if tax_snapshot_for(menu_item, tenant)["tax_kind"] == "vat"
+        })
+        if liquor:
+            return JsonResponse(
+                {"error": "Liquor can't be ordered through an aggregator: " + ", ".join(liquor)},
+                status=422,
+            )
 
         try:
             with transaction.atomic():
@@ -297,7 +311,7 @@ def api_ingest_order(request):
                         menu_item=menu_item,
                         quantity=qty,
                         price=menu_item.price,
-                        gst_percentage=menu_item.gst_percentage,
+                        **tax_snapshot_for(menu_item, tenant),
                         total_price=menu_item.price * qty,
                         status=initial_item_status,
                     )

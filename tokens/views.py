@@ -531,11 +531,19 @@ def token_billing(request, order_id):
     can_discount = request.user.role in _STAFF_CAN_DISCOUNT or request.user.is_superuser
     can_bypass   = request.user.role == "owner" or request.user.is_superuser
 
+    # Each dish's tax as the bill will charge it (GST, or VAT for liquor), for the cart
+    from orders.services.tax_service import sale_tax_map
+    dish_tax = sale_tax_map(
+        [item for category in categories for item in category.items.all()] + list(popular_items),
+        request.user.tenant,
+    )
+
     return render(request, "tokens/token_billing.html", {
         "order":          order,
         "token":          token,
         "categories":     categories,
         "popular_items":  popular_items,
+        "dish_tax":       dish_tax,
         "config":         config,
         "remaining":      remaining,
         "total_paid":     total_paid,

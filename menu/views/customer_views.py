@@ -12,6 +12,13 @@ from waiter.models import WaiterCall
 logger = logging.getLogger("pos.menu")
 
 
+def _dish_tax(categories, tenant):
+    """Each dish's tax as the bill will charge it (GST, or VAT for liquor),
+    for the cart (static/js/cart_tax.js)."""
+    from orders.services.tax_service import sale_tax_map
+    return sale_tax_map((item for category in categories for item in category.items.all()), tenant)
+
+
 def _build_modifier_data(categories):
     """Return a plain dict: {item_id: [{group}]} for items that have modifier groups.
 
@@ -86,6 +93,7 @@ def menu_view(request, qr_token):
         "tenant":              tenant,
         "outlet":              outlet,
         "item_modifier_data":  _build_modifier_data(categories),
+        "dish_tax":            _dish_tax(categories, tenant),
         # The token this page was reached with -- a Table's if one matched,
         # otherwise the Outlet's counter token. submitOrder() sends this
         # straight back as table_token; it must never fall back to
@@ -259,5 +267,6 @@ def digital_menu(request):
     return render(request, "menu/digital_menu.html", {
         "categories": categories, "table": table, "tenant": tenant, "outlet": outlet,
         "item_modifier_data": _build_modifier_data(categories),
+        "dish_tax": _dish_tax(categories, tenant),
         "qr_token": str(table.qr_token) if table else str(outlet.qr_token),
     })

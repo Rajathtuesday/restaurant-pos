@@ -7,6 +7,36 @@ the source of truth.
 
 ---
 
+## 2026-09-28 (later): liquor on the bill, behind a switch
+
+Phase 1 of the liquor VAT plan. Nothing changes for any restaurant until a superuser turns on the new `liquor_vat` feature for it; with it off, every line is GST exactly as before, and all 5,000 golden bills are unchanged.
+
+### Added
+- **Liquor classes** - `menu.VatClass`: the state's VAT rate for one kind of liquor at one outlet ("Beer 0%"). A drink points at its class (`MenuItem.vat_class`) and carries no GST, which the database enforces. A 0% class is valid: that liquor is still a non-GST supply, kept apart from nil-rated food.
+- **Karnataka starts at 0%** - Karnataka has charged no VAT on liquor at the bar since July 2017 (its 5.5% ran from March 2014; the state now takes its share as excise, by alcohol content since 11 May 2026). `menu/liquor.py` records the rate for the states we have checked, Karnataka so far, and a new liquor class at a Karnataka outlet starts at 0%. Elsewhere the owner has to give the rate: states differ.
+- **Every bill line remembers its tax** - `OrderItem.tax_kind` ("gst" or "vat"), `vat_rate` and `vat_class_name` are copied when the line is ordered: at the POS, from the QR menu, from Swiggy/Zomato, and onto the split line when a quantity is reduced. Changing a class's rate never changes a bill already made.
+- **Food and liquor on one bill** - the tax engine totals liquor as a second kind of tax. VAT never enters CGST or SGST, each kind's tax is rounded once, the order discount is spread over food and drinks by value, and food and drinks can each be priced with or without their tax (new outlet fields `vat_inclusive`, `vat_registration_no`, `liquor_billing_mode`). `Order.vat_total` and the tax record's new sections keep the two apart. The plan's sample bill comes out as worked by hand: ₹1,948 (round-off -₹0.45) at 5.5%, ₹1,754 with 10% off, and ₹1,883 with no liquor tax in Karnataka.
+- **The carts know each dish's tax** - the POS, the QSR counter and the QR menu get a table of every dish's tax from the same rule the bill uses (`sale_tax_map`, two queries however many dishes), and show a VAT line only when there is VAT.
+- **The switch on the superuser feature page** - "Liquor (State VAT)", in Ordering & Billing.
+
+### Rules enforced
+- **No liquor on the composition scheme (D7)** - the law bars composition for anyone selling something outside GST. A liquor class can't be created, and a drink can't be classified, at an outlet on composition. Outlet Settings and the superuser portal refuse to turn composition on while an outlet sells liquor, and say why (the two portal pages now show such messages).
+- **Swiggy and Zomato orders with liquor are refused whole** (422), before anything is written.
+- **The menu sync** gives a drink the target outlet's class of the same name; without one, the drink arrives unavailable instead of being sold under a guessed tax.
+- **The GST Rates page** never gives a drink a GST rate, and moving a whole category leaves its drinks alone.
+
+### Tests
+- `orders/tests/test_liquor_vat.py` (23): line snapshots, the feature switch, the bill's sections, Swiggy/Zomato, the menu sync, the GST Rates page, D7 on every path, Karnataka's default.
+- Nine hand-worked liquor bills in `test_tax_engine.py`; liquor carts in `test_cart_wiring.py` (4) and `test_cart_tax_js.py` (400 random pub carts in Node against the real engine, and the dish-tax lookup).
+- **1,000 golden pub bills** - `orders/tests/test_golden_liquor.py` + `golden/liquor_totals_v1.jsonl`, every mode of food and drink pricing, liquor at 0%, 5.5%, 10% and 20%. An independent implementation of the liquor rules (`legacy_totals.liquor_totals`, written from the rules, not the engine's code) agrees with all 1,000; the frozen food maths is untouched.
+- Seven rules for pub bills in `test_totals_properties.py`, and random pub bills through the real `recalculate_totals()` against the independent copy.
+
+### Upgrade notes
+- Migrations: `menu 0016` (VatClass, MenuItem.vat_class, the no-GST-on-liquor rule), `orders 0063` (each line's tax kind and VAT, Order.vat_total), `tenants 0035` (the outlet's liquor settings, and a database default for `parcel_gst_rate`). The new columns carry database defaults, so the previous release keeps writing orders while the deploy runs.
+- The feature is custom-only: it is off everywhere until turned on for a tenant.
+
+---
+
 ## 2026-09-28: a paid bill stays paid, whatever another screen does
 
 ### Fixed

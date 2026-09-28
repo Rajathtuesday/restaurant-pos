@@ -16,6 +16,9 @@ Two kinds of test live here:
     catches a food-only bill that no longer totals the same, and Hypothesis
     shrinks the failure down to the smallest bill that shows it.
 
+Bills with liquor (Phase 1) get the same two kinds of test, against their
+own independent copy of the rules (legacy_totals.liquor_totals).
+
 In CI the random bills are the same on every run (derandomize), so a red
 build always means the code changed, never bad luck. For a deeper search:
     MONEY_THOROUGH=1 python manage.py test orders.tests.test_totals_properties
@@ -27,9 +30,10 @@ from django.test import SimpleTestCase
 from hypothesis import HealthCheck, given, settings, strategies as st
 from hypothesis.extra.django import TestCase as HypothesisTestCase
 
-from orders.tests.legacy_totals import legacy_totals
+from orders.tests.legacy_totals import legacy_totals, liquor_totals
 from orders.tests.money_scenarios import (
-    GST_RATES, OUTLET_CONFIGS, build_world, create_orders, make_item, make_spec, row_head, snapshot,
+    CURRENT_GST_RATES, GST_RATES, LIQUOR_CONFIGS, LIQUOR_RATES, OUTLET_CONFIGS, build_liquor_world,
+    build_world, create_orders, liquor_item, liquor_snapshot, make_item, make_spec, row_head, snapshot,
 )
 
 THOROUGH = os.environ.get("MONEY_THOROUGH") == "1"
@@ -239,3 +243,138 @@ class RealMathsMatchesFrozenCopyTest(HypothesisTestCase):
         order.recalculate_totals()
         expected = {**row_head(0, spec), **legacy_totals(spec, OUTLET_CONFIGS)}
         self.assertEqual(snapshot(order, 0, spec), expected)
+
+
+# ---------------------------------------------------------------------------
+# Bills with liquor
+# ---------------------------------------------------------------------------
+
+liquor_lines = st.builds(
+    liquor_item,
+    price=prices,
+    qty=st.integers(1, 25),
+    vat=st.sampled_from(LIQUOR_RATES),
+    disc=st.one_of(st.just("0"), _paise(0.01, 100)),
+    status=st.sampled_from(["pending", "sent", "served", "served", "voided"]),
+    comp=st.sampled_from([False, False, False, True]),
+    modifier=st.sampled_from(["0", "0", "0", "10", "25"]),
+)
+food_lines = st.builds(
+    make_item,
+    price=prices,
+    qty=st.integers(1, 25),
+    gst=st.sampled_from(CURRENT_GST_RATES),
+    disc=st.one_of(st.just("0"), _paise(0.01, 100)),
+    status=st.sampled_from(["pending", "sent", "served", "served", "voided"]),
+    comp=st.sampled_from([False, False, False, True]),
+    modifier=st.sampled_from(["0", "0", "0", "10", "25"]),
+)
+
+
+@st.composite
+def pub_bills(draw, cfgs=tuple(range(len(LIQUOR_CONFIGS))), discounts=order_discounts):
+    cfg = draw(st.sampled_from(list(cfgs)))
+    dtype, dval = draw(discounts)
+    items = draw(st.lists(st.one_of(food_lines, liquor_lines), max_size=10))
+    return make_spec(cfg, items, dtype, dval, draw(parcels), draw(st.sampled_from([None, "5", "5", "18"])))
+
+
+def pub_totals(spec):
+    out = liquor_totals(spec, LIQUOR_CONFIGS)
+    return {"pgst": D("0"), **{key: (value if key in ("bd", "sec") else D(value)) for key, value in out.items()}}
+
+
+def is_liquor(item):
+    return item.get("kind") == "vat"
+
+
+class PubBillRulesTest(SimpleTestCase):
+    """Rules every bill with liquor obeys, on the independent copy."""
+
+    @PURE
+    @given(pub_bills())
+    def test_the_bill_adds_up(self, spec):
+        """Taxable value plus tax over both sections, the parcel charge (and
+        its GST when added on top) and the round-off make the grand total."""
+        t = pub_totals(spec)
+        gst_inclusive, _ = LIQUOR_CONFIGS[spec["cfg"]]
+        sections = sum((D(sec[3]) + D(sec[4]) for sec in t["sec"]), D("0"))
+        parcel = D(spec["parcel"]) + (D("0") if gst_inclusive else t["pgst"])
+        self.assertEqual(sections + parcel + t["ro"], t["grand"])
+
+    @PURE
+    @given(pub_bills())
+    def test_grand_total_is_whole_rupees_and_round_off_is_at_most_fifty_paise(self, spec):
+        t = pub_totals(spec)
+        self.assertEqual(t["grand"], t["grand"].to_integral_value())
+        self.assertLessEqual(abs(t["ro"]), D("0.50"))
+
+    @PURE
+    @given(pub_bills())
+    def test_vat_never_enters_cgst_and_sgst(self, spec):
+        t = pub_totals(spec)
+        self.assertEqual(t["cgst"] + t["sgst"], t["gst"])
+        for kind, rate, taxable, tax, cgst, sgst in t["bd"]:
+            if kind == "vat":
+                self.assertEqual((D(cgst), D(sgst)), (0, 0))
+
+    @PURE
+    @given(pub_bills())
+    def test_rows_and_sections_add_up_to_the_bill(self, spec):
+        t = pub_totals(spec)
+        for kind in ("gst", "vat"):
+            rows = sum((D(row[3]) for row in t["bd"] if row[0] == kind), D("0"))
+            self.assertEqual(rows, t[kind], kind)
+        self.assertEqual(sum((D(sec[4]) for sec in t["sec"]), D("0")), t["gst"] - t["pgst"] + t["vat"])
+        self.assertEqual(sum((D(sec[2]) for sec in t["sec"]), D("0")), t["disc"])
+
+    @PURE
+    @given(pub_bills(discounts=st.just((None, "0"))))
+    def test_liquor_never_changes_the_foods_tax(self, spec):
+        """Without an order discount to share, the food's tax is what it
+        would be with no drinks on the bill at all, row by row. (Taxable
+        values can move a paisa between food and drinks: the bill's discount
+        is rounded once, over both.)"""
+        with_drinks = pub_totals(spec)
+        food_only = pub_totals(dict(spec, items=[it for it in spec["items"] if not is_liquor(it)]))
+        self.assertEqual((with_drinks["gst"], with_drinks["cgst"], with_drinks["sgst"]),
+                         (food_only["gst"], food_only["cgst"], food_only["sgst"]))
+        tax_only = lambda rows: [(r[1], r[3], r[4], r[5]) for r in rows if r[0] == "gst" and D(r[3])]
+        self.assertEqual(tax_only(with_drinks["bd"]), tax_only(food_only["bd"]))
+
+    @PURE
+    @given(pub_bills(cfgs=(1, 3), discounts=st.just((None, "0"))))
+    def test_drinks_priced_with_vat_cost_their_menu_price(self, spec):
+        items = [dict(it, disc="0") for it in spec["items"] if is_liquor(it)]
+        spec = dict(spec, items=items, parcel="0")
+        menu_total = sum((D(it["total"]) for it in live_items(spec)), D("0"))
+        self.assertEqual(pub_totals(spec)["grand"], menu_total.quantize(D("1"), rounding=ROUND_HALF_UP))
+
+    @PURE
+    @given(pub_bills(discounts=st.just((None, "0"))))
+    def test_zero_percent_liquor_is_still_reported_as_liquor(self, spec):
+        """A 0% class makes no VAT, but its drinks keep a row of their own at
+        their full value: on the return they are a non-GST supply, never
+        nil-rated food (which has its own GST 0% row)."""
+        spec = dict(spec, items=[dict(it, disc="0") for it in spec["items"]])
+        t = pub_totals(spec)
+        value = sum((D(it["total"]) for it in live_items(spec) if is_liquor(it) and D(it["vat"]) == 0), D("0"))
+        rows = [r for r in t["bd"] if r[:2] == ["vat", "0.00"]]
+        expected = [["vat", "0.00", f"{value:.2f}", "0.00", "0.00", "0.00"]] if value else []
+        self.assertEqual(rows, expected)
+
+
+class RealPubMathsMatchesIndependentCopyTest(HypothesisTestCase):
+    """Random bills with liquor through the real recalculate_totals()."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.world = build_liquor_world()
+
+    @REAL
+    @given(pub_bills())
+    def test_real_pub_bill_matches_the_independent_copy(self, spec):
+        [order] = create_orders(self.world, [spec])
+        order.recalculate_totals()
+        expected = {**row_head(0, spec), **liquor_totals(spec, LIQUOR_CONFIGS)}
+        self.assertEqual(liquor_snapshot(order, 0, spec), expected)

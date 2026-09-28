@@ -56,7 +56,7 @@ def billing_view(request):
         if not locked:
             return render(request, "orders/order_locked.html", {"locked_by": locked_user, "order": order})
 
-    categories = (
+    categories = list(
         MenuCategory.objects
         .filter(tenant=request.user.tenant, outlet=request.user.outlet, is_active=True)
         .prefetch_related(Prefetch("items", queryset=MenuItem.objects.filter(is_available=True)))
@@ -85,8 +85,13 @@ def billing_view(request):
         tenant=tenant, outlet=outlet, is_active=True
     ).exclude(printer_ip__isnull=True).exclude(printer_ip="").first()
 
+    # Each dish's tax as the bill will charge it (GST, or VAT for liquor), for the cart
+    from orders.services.tax_service import sale_tax_map
+    dish_tax = sale_tax_map((item for category in categories for item in category.items.all()), tenant)
+
     return render(request, "orders/billing.html", {
         "categories":      categories,
+        "dish_tax":        dish_tax,
         "tables":          tables,
         "order":           order,
         "selected_table":  table_id,

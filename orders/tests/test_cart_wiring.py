@@ -7,6 +7,7 @@ never a made-up 5%) (P3, P10).
 
 Run: python manage.py test orders.tests.test_cart_wiring
 """
+import json
 import re
 from decimal import Decimal as D
 
@@ -16,7 +17,8 @@ from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
 from setup.models import PaymentConfig
-from tenants.models import Outlet, Tenant
+from menu.liquor import add_liquor_class
+from tenants.models import Outlet, Tenant, TenantFeatureOverride
 from tokens.models import TokenOrder
 
 
@@ -101,3 +103,63 @@ class CompositionOutletTest(CartWiringBase):
         self.assertIn("const IS_COMPOSITION = true;", qsr)
         for page in (pos, qsr, qr):
             self.assertIsNone(re.search(r'class="view-gst"|id="billGst"', page))
+
+
+class LiquorOutletTest(CartWiringBase):
+    """With the liquor_vat feature, each cart gets every dish's tax from the
+    server (the dish-tax table, from the same rule the bill uses) and shows a
+    VAT line only when there is VAT to show."""
+    liquor_vat = True
+
+    def setUp(self):
+        super().setUp()
+        if self.liquor_vat:
+            TenantFeatureOverride.objects.create(tenant=self.tenant, feature="liquor_vat", enabled=True)
+        self.outlet.gst_no = "29ABCDE1234F1Z5"
+        self.outlet.save(update_fields=["gst_no"])
+        bar = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Bar")
+        self.beer = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=bar, name="Pint", price=D("250"),
+            gst_percentage=D("0"), vat_class=add_liquor_class(self.outlet, "Beer"),
+        )
+        self.rum = MenuItem.objects.create(
+            tenant=self.tenant, outlet=self.outlet, category=bar, name="Rum", price=D("220"),
+            gst_percentage=D("0"), vat_class=add_liquor_class(self.outlet, "Spirits", rate="5.5"),
+        )
+
+    def dish_tax(self, page):
+        match = re.search(r'<script id="dish-tax" type="application/json">(.*?)</script>', page, re.S)
+        self.assertIsNotNone(match, "the page has no dish tax table")
+        return json.loads(match.group(1))
+
+    def test_every_cart_is_told_each_dishs_tax(self):
+        for name, page in (("pos", self.pos()), ("qsr", self.qsr()), ("qr", self.qr_menu())):
+            with self.subTest(page=name):
+                taxes = self.dish_tax(page)
+                self.assertEqual(taxes[str(self.beer.id)], {"kind": "vat", "rate": "0.00"})
+                self.assertEqual(taxes[str(self.rum.id)], {"kind": "vat", "rate": "5.50"})
+                self.assertEqual(taxes[str(self.curd.id)], {"kind": "gst", "rate": "0.00"})
+                self.assertIn("RasovaCartTax.line(", page)
+
+    def test_every_cart_has_a_vat_line_hidden_until_there_is_vat(self):
+        pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
+        self.assertIn('class="view-vat"', pos)
+        self.assertIn("vatInclusive: false", pos)
+        self.assertIn('class="view-vat"', qsr)
+        self.assertIn("const VAT_INCLUSIVE = false;", qsr)
+        self.assertIn('id="billVat"', qr)
+        self.assertIn("vatInclusive: false", qr)
+        for page in (pos, qsr):
+            self.assertIn("t.vat > 0", page)
+
+
+class LiquorFeatureOffCartTest(LiquorOutletTest):
+    liquor_vat = False
+
+    def test_every_cart_is_told_each_dishs_tax(self):
+        for page in (self.pos(), self.qsr(), self.qr_menu()):
+            self.assertEqual({tax["kind"] for tax in self.dish_tax(page).values()}, {"gst"})
+
+    def test_every_cart_has_a_vat_line_hidden_until_there_is_vat(self):
+        # the rows are there, and stay hidden: without the feature there is no VAT
+        self.assertIn('class="view-vat"', self.pos())

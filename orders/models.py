@@ -7,7 +7,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
 from core.models import TenantScopedModel
 from orders.exceptions import IssuedBillError  # noqa: F401 -- also imported from here
-from orders.services.tax_engine import GST, Line, compute as compute_tax, rows_from_summary
+from orders.services.tax_engine import (
+    GST, VAT, Line, compute as compute_tax, rows_from_summary, sections_from_summary,
+)
 from django.db.models import Q
 from django.utils import timezone
 
@@ -131,6 +133,9 @@ class Order(TenantScopedModel):
 
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     gst_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    # State VAT on liquor lines (the liquor_vat feature); outside GST.
+    vat_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"),
+                                    db_default=Decimal("0.00"))
 
     # Discount fields
     discount_type = models.CharField(
@@ -285,6 +290,17 @@ class Order(TenantScopedModel):
         items = [i for i in self.items.all() if i.status != "voided" and not i.is_complimentary]
         return list(self._run_tax_engine(items).rows)
 
+    def tax_sections(self):
+        """The bill's dishes by kind of tax (tax_engine.Section): food under
+        GST, liquor under VAT, each with its menu value, discount share,
+        taxable value and tax. From the tax record, or worked out by the
+        engine for bills whose record predates sections."""
+        sections = sections_from_summary(self.tax_summary)
+        if sections is not None:
+            return sections
+        items = [i for i in self.items.all() if i.status != "voided" and not i.is_complimentary]
+        return list(self._run_tax_engine(items).sections)
+
     @property
     def parcel_tax(self):
         """GST on the parcel charge (inside it when prices include GST), from
@@ -344,6 +360,7 @@ class Order(TenantScopedModel):
         self.subtotal       = bill.subtotal
         self.discount_total = bill.discount
         self.gst_total      = bill.gst
+        self.vat_total      = bill.vat
         self.grand_total    = bill.grand_total
         self.round_off      = bill.round_off
         self.tax_summary    = bill.summary()
@@ -352,7 +369,7 @@ class Order(TenantScopedModel):
              "cgst_amount": str(row["cgst_amount"]), "sgst_amount": str(row["sgst_amount"])}
             for row in self.gst_breakdown
         ]
-        self.save(update_fields=["subtotal", "gst_total", "discount_total",
+        self.save(update_fields=["subtotal", "gst_total", "vat_total", "discount_total",
                                  "grand_total", "round_off", "discount_type",
                                  "discount_value", "parcel_surcharge",
                                  "tax_summary", "gst_breakdown_cache"])
@@ -374,27 +391,35 @@ class Order(TenantScopedModel):
 
     def _run_tax_engine(self, items):
         """The engine's result for these (live) lines, this bill's discount
-        and parcel charge, and the outlet's GST settings."""
+        and parcel charge, and the outlet's tax settings. Each line is taxed
+        as it was snapshotted when ordered (OrderItem.tax_kind); GST prices
+        and VAT prices can each include their tax or not."""
         try:
-            prices_include_tax = bool(self.outlet.gst_inclusive)
-            composition        = bool(self.outlet.is_composition_scheme)
+            gst_inclusive = bool(self.outlet.gst_inclusive)
+            vat_inclusive = bool(self.outlet.vat_inclusive)
+            composition   = bool(self.outlet.is_composition_scheme)
         except Exception:
-            prices_include_tax = composition = False
+            gst_inclusive = vat_inclusive = composition = False
 
-        lines = [
-            Line(amount=item.total_price, rate=item.gst_percentage,
-                 item_discount_pct=item.item_discount_pct or Decimal("0"))
-            for item in items
-        ]
+        lines = []
+        for item in items:
+            if item.tax_kind == VAT:
+                lines.append(Line(amount=item.total_price, rate=item.vat_rate, kind=VAT,
+                                  item_discount_pct=item.item_discount_pct or Decimal("0"),
+                                  inclusive=vat_inclusive))
+            else:
+                lines.append(Line(amount=item.total_price, rate=item.gst_percentage, kind=GST,
+                                  item_discount_pct=item.item_discount_pct or Decimal("0"),
+                                  inclusive=gst_inclusive))
         parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
         if parcel > 0:
             # A bill from before parcel GST has no rate: its charge stays untaxed.
             taxed = self.parcel_gst_rate is not None
             lines.append(Line(amount=parcel, rate=self.parcel_gst_rate if taxed else Decimal("0"),
-                              kind=GST if taxed else None, charge="parcel"))
+                              kind=GST if taxed else None, charge="parcel", inclusive=gst_inclusive))
 
         return compute_tax(
-            lines, prices_include_tax=prices_include_tax, composition=composition,
+            lines, prices_include_tax=gst_inclusive, composition=composition,
             discount_type=self.discount_type, discount_value=self.discount_value,
         )
 
@@ -447,6 +472,24 @@ class OrderItem(models.Model):
         decimal_places=2
     )
 
+    # The line's tax, copied from the dish the moment it is ordered, so a
+    # later change to the menu never changes a bill already made. GST lines
+    # use gst_percentage; liquor (the liquor_vat feature) is taxed by the
+    # state's VAT at vat_rate and carries 0% GST. vat_class_name is kept for
+    # the VAT register, since a class can be renamed later.
+    # db_default keeps the database's own default, so rows written by the
+    # previous release's code while a deploy is running still save.
+    TAX_KINDS = (("gst", "GST"), ("vat", "VAT"))
+    tax_kind = models.CharField(max_length=3, choices=TAX_KINDS, default="gst", db_default="gst")
+    vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"),
+                                   db_default=Decimal("0.00"))
+    vat_class_name = models.CharField(max_length=40, blank=True, default="", db_default="")
+
+    # Every field above that makes up the line's tax. Anything that copies a
+    # line (reduce_item_quantity splits one) copies all of them through
+    # tax_snapshot(), so a new tax field can't be forgotten in one copy.
+    TAX_SNAPSHOT_FIELDS = ("gst_percentage", "tax_kind", "vat_rate", "vat_class_name")
+
     total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2
@@ -464,6 +507,15 @@ class OrderItem(models.Model):
     is_complimentary = models.BooleanField(default=False)
 
     notes = models.TextField(blank=True)
+
+    def tax_snapshot(self):
+        """This line's tax fields, to copy onto another line."""
+        return {field: getattr(self, field) for field in self.TAX_SNAPSHOT_FIELDS}
+
+    @property
+    def tax_rate(self):
+        """The rate of the line's own tax: VAT for liquor, GST otherwise."""
+        return self.vat_rate if self.tax_kind == "vat" else self.gst_percentage
 
     @property
     def discounted_price(self):

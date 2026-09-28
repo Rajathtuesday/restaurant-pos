@@ -122,14 +122,24 @@ def get_feature_summary(tenant):
 
 
 def update_outlet_from_post(outlet, post):
-    """Applies the "update_outlet" POST action. Saves the outlet."""
+    """Applies the "update_outlet" POST action. Saves the outlet, and
+    returns messages for the user about settings it refused (a list, empty
+    when everything was applied)."""
+    from menu.liquor import composition_refusal
+    notes = []
     outlet.phone       = post.get("phone", "").strip() or None
     outlet.gst_no      = post.get("gst_no", "").strip().upper() or None
     outlet.fssai_no    = post.get("fssai_no", "").strip() or None
     outlet.address     = post.get("address", "").strip()
     outlet.sac_code    = post.get("sac_code", "996331").strip() or "996331"
     outlet.gst_inclusive          = post.get("gst_inclusive") == "true"
-    outlet.is_composition_scheme  = "is_composition_scheme" in post
+    # D7: the composition scheme stays off while the outlet sells liquor.
+    wants_composition = "is_composition_scheme" in post
+    refusal = composition_refusal(outlet) if wants_composition else None
+    if refusal:
+        notes.append(refusal)
+    else:
+        outlet.is_composition_scheme = wants_composition
     outlet.split_bill_by_category = "split_bill_by_category" in post
     try:
         outlet.parcel_charge_amount = Decimal(post.get("parcel_charge_amount", "0") or "0")
@@ -152,6 +162,7 @@ def update_outlet_from_post(outlet, post):
         else:
             logger.warning("Ignored parcel_gst_rate=%r for outlet %s", post["parcel_gst_rate"], outlet.id)
     outlet.save()
+    return notes
 
 
 def update_printer_from_post(tenant, post):

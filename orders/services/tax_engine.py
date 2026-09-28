@@ -13,18 +13,21 @@ tested on its own.
 The rules
 ---------
 A bill is a list of lines: dishes, and charges such as the parcel charge.
-Each line has an amount as the outlet prices it (tax extra, or tax
-included), a tax kind ("gst" today; liquor VAT will add "vat"; None for a
-line outside any tax) and a rate in percent.
+Each line has an amount as the outlet prices it, a tax kind ("gst", or
+"vat" for liquor under the liquor_vat feature; None for a line outside any
+tax), a rate in percent, and whether its tax is already inside its price.
+An outlet chooses that separately for GST and for VAT, because many bars
+price food with tax added and drinks with tax included.
 
 1. Discounts. A dish's own discount comes off first. The order discount (a
    percentage of the dishes after their own discounts, or a flat amount) is
-   then spread over the dishes in proportion to their value. Charges are
-   never discounted. The discount never exceeds the dishes' value.
+   then spread over all the dishes, food and liquor alike, in proportion to
+   their value. Charges are never discounted. The discount never exceeds
+   the dishes' value.
 2. Tax on each line, exactly (nothing rounded yet): on top of the line's
-   value when prices exclude tax (value x rate / 100), or inside it when
-   they include tax (value x rate / (100 + rate)). An outlet on the
-   composition scheme collects no GST.
+   value when its price excludes tax (value x rate / 100), or inside it
+   when its price includes tax (value x rate / (100 + rate)). An outlet on
+   the composition scheme collects no GST (liquor VAT is not GST).
 3. The dishes' tax of each kind is the exact sum over them, rounded once to
    the paisa, half up. This is how Rasova has always totalled GST, so no
    bill's total changed when the engine arrived. Each charge's tax is
@@ -34,12 +37,17 @@ line outside any tax) and a rate in percent.
    exactly those totals. The dishes' rounded tax is allocated back to them:
    each dish's exact figure is rounded down to the paisa, and the paise
    still owed go to the largest remainders (ties: the larger figure first,
-   then line order). Taxable values are allocated the same way, to the
-   bill's taxable total. CGST is half the GST rounded half up and SGST the
-   rest; each row's CGST is allocated the same way, so the rows add up to
-   both.
-5. The grand total is rounded to the rupee, half up; the difference is the
-   round-off.
+   then line order). Each dish's value after discounts is allocated the same
+   way, to the bill's value after discounts. CGST is half the GST rounded
+   half up and SGST the rest; each row's CGST is allocated the same way, so
+   the rows add up to both. Each kind also gets a section: its dishes' menu
+   value, their share of the discount, their taxable value and their tax,
+   which is how a bill shows food and liquor apart.
+5. The guest pays the dishes after discounts, plus the tax of every line
+   priced without it, plus the charges. That is rounded to the rupee, half
+   up; the difference is the round-off. So taxable value plus tax, over
+   every section and taxed charge, plus any untaxed charge and the
+   round-off, is always exactly the grand total.
 
 The expressions in _dish_figures() and compute() deliberately match the
 maths of the bills totalled before the engine, digit for digit: the golden
@@ -49,6 +57,7 @@ from dataclasses import dataclass
 from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
 GST = "gst"
+VAT = "vat"
 
 PAISA = Decimal("0.01")
 RUPEE = Decimal("1")
@@ -68,9 +77,10 @@ class Line:
     """One line of a bill, as the outlet prices it."""
     amount: Decimal                          # quantity x (price + modifiers)
     rate: Decimal = ZERO                     # percent
-    kind: str | None = GST                   # None: outside any tax
+    kind: str | None = GST                   # "gst", "vat", or None: outside any tax
     item_discount_pct: Decimal = ZERO
     charge: str | None = None                # e.g. "parcel": a charge, never discounted
+    inclusive: bool | None = None            # tax inside the price; None: the bill's default
 
 
 @dataclass(frozen=True)
@@ -96,18 +106,30 @@ class ChargeTax:
 
 
 @dataclass(frozen=True)
+class Section:
+    """One kind of tax's dishes on a bill: food under GST, liquor under VAT."""
+    kind: str | None
+    menu: Decimal            # the dishes' value as the menu prices them
+    discount: Decimal        # their share of the discounts
+    taxable: Decimal
+    tax: Decimal
+
+
+@dataclass(frozen=True)
 class Bill:
     """Everything the engine works out for one bill."""
-    subtotal: Decimal        # dishes: menu value (tax extra) or value before GST (tax included)
+    subtotal: Decimal        # tax-extra dishes at menu value, tax-included ones at taxable value
     discount: Decimal
     charges: Decimal         # charges as billed
     gst: Decimal
     cgst: Decimal
     sgst: Decimal
+    vat: Decimal
     grand_total: Decimal
     round_off: Decimal
     rows: tuple              # RateRow, sorted by kind and rate
     charge_taxes: tuple      # ChargeTax, in line order
+    sections: tuple = ()     # Section, one per kind of dish, sorted by kind
 
     @property
     def charge_tax(self):
@@ -127,6 +149,11 @@ class Bill:
                  "taxable": _s(c.taxable), "tax": _s(c.tax)}
                 for c in self.charge_taxes
             ],
+            "sections": [
+                {"kind": s.kind, "menu": _s(s.menu), "discount": _s(s.discount),
+                 "taxable": _s(s.taxable), "tax": _s(s.tax)}
+                for s in self.sections
+            ],
         }
 
 
@@ -136,6 +163,18 @@ def rows_from_summary(summary):
         RateRow(kind=row["kind"], rate=Decimal(row["rate"]), taxable=Decimal(row["taxable"]),
                 tax=Decimal(row["tax"]), cgst=Decimal(row["cgst"]), sgst=Decimal(row["sgst"]))
         for row in (summary or {}).get("rows", [])
+    ]
+
+
+def sections_from_summary(summary):
+    """Section objects back from a stored tax record, or None when the record
+    predates sections (so the caller can work them out again)."""
+    if not summary or "sections" not in summary:
+        return None
+    return [
+        Section(kind=s["kind"], menu=Decimal(s["menu"]), discount=Decimal(s["discount"]),
+                taxable=Decimal(s["taxable"]), tax=Decimal(s["tax"]))
+        for s in summary["sections"]
     ]
 
 
@@ -175,7 +214,7 @@ def _taxed(line, composition):
     return True
 
 
-def _dish_figures(dishes, factor, prices_include_tax, composition):
+def _dish_figures(dishes, factor, inside, composition):
     """For each dish: its exact value after discounts, and the exact tax on or
     inside it (rule 2)."""
     values, taxes = [], []
@@ -187,19 +226,28 @@ def _dish_figures(dishes, factor, prices_include_tax, composition):
         values.append(value)
         if not _taxed(line, composition):
             taxes.append(Decimal("0"))
-        elif prices_include_tax:
+        elif inside(line):
             taxes.append(value * line.rate / (HUNDRED + line.rate) if line.rate > 0 else Decimal("0"))
         else:
             taxes.append((value * line.rate) / Decimal("100.0"))
     return values, taxes
 
 
+def _kinds(lines):
+    """The tax kinds present, in a fixed order (None, outside tax, last)."""
+    return sorted({line.kind for line in lines}, key=lambda kind: (kind is None, kind or ""))
+
+
 def compute(lines, *, prices_include_tax=False, composition=False,
             discount_type=None, discount_value=ZERO):
-    """Total one bill. See the module docstring for the rules."""
+    """Total one bill. See the module docstring for the rules.
+    prices_include_tax is the default for lines that don't say (inclusive=None)."""
     lines = list(lines)
     dishes = [line for line in lines if line.charge is None]
     charges = [line for line in lines if line.charge is not None]
+
+    def inside(line):
+        return prices_include_tax if line.inclusive is None else line.inclusive
 
     # Rule 1: discounts, on the dishes only
     raw = sum((line.amount for line in dishes), Decimal("0.0"))
@@ -230,13 +278,13 @@ def compute(lines, *, prices_include_tax=False, composition=False,
         factor = Decimal("1.0")
 
     # Rule 2: exact tax on every line
-    dish_values, dish_taxes = _dish_figures(dishes, factor, prices_include_tax, composition)
+    dish_values, dish_taxes = _dish_figures(dishes, factor, inside, composition)
     charge_amounts = [to_paisa(line.amount) for line in charges]
     charge_taxes = []
     for line, amount in zip(charges, charge_amounts):
         if not _taxed(line, composition) or line.rate <= 0:
             charge_taxes.append(Decimal("0"))
-        elif prices_include_tax:
+        elif inside(line):
             charge_taxes.append(amount * line.rate / (HUNDRED + line.rate))
         else:
             charge_taxes.append(amount * line.rate / HUNDRED)
@@ -244,7 +292,9 @@ def compute(lines, *, prices_include_tax=False, composition=False,
     # Rules 3 and 4: the dishes' tax of each kind rounded once and allocated
     # back to them; each charge's tax rounded on its own.
     dish_tax = [ZERO] * len(dishes)
-    for kind in sorted({line.kind for line in dishes if line.kind is not None}):
+    for kind in _kinds(dishes):
+        if kind is None:
+            continue
         positions = [i for i, line in enumerate(dishes) if line.kind == kind]
         exact = Decimal("0.00")
         for i in positions:
@@ -256,37 +306,55 @@ def compute(lines, *, prices_include_tax=False, composition=False,
     all_lines = dishes + charges
     line_tax = dish_tax + charge_tax
     gst = sum((tax for line, tax in zip(all_lines, line_tax) if line.kind == GST), ZERO)
+    vat = sum((tax for line, tax in zip(all_lines, line_tax) if line.kind == VAT), ZERO)
     cgst, sgst = split_gst(gst)
     charges_total = sum(charge_amounts, ZERO)
 
-    # Totals (rule 5), and each line's taxable value
-    if prices_include_tax:
-        after_discount = to_paisa(raw - discount)
-        subtotal = to_paisa(after_discount - sum(dish_tax, ZERO))   # the dishes' value before tax
-        grand_total = (after_discount + charges_total).quantize(RUPEE, rounding=ROUND_HALF_UP)
-        round_off = grand_total - after_discount - charges_total
-        gross = allocate(dish_values, after_discount)
-        dish_taxable = [value - tax for value, tax in zip(gross, dish_tax)]
-        charge_taxable = [amount - tax for amount, tax in zip(charge_amounts, charge_tax)]
-    else:
-        subtotal = subtotal_menu
-        taxable_total = subtotal - discount
-        final_total = to_paisa(taxable_total + sum(line_tax, ZERO))   # every kind of tax on top
-        grand_total = (final_total + charges_total).quantize(RUPEE, rounding=ROUND_HALF_UP)
-        round_off = grand_total - final_total - charges_total
-        dish_taxable = allocate(dish_values, taxable_total)
-        charge_taxable = list(charge_amounts)
+    # Rule 5: what the guest pays. Each dish's value after discounts, to the
+    # paisa, adds up to the dishes' value after discounts; its taxable value
+    # is that value, less the tax inside it when its price includes tax.
+    paid_for_dishes = to_paisa(raw - discount)
+    gross = allocate(dish_values, paid_for_dishes)
+    dish_taxable = [value - tax if inside(line) else value
+                    for line, value, tax in zip(dishes, gross, dish_tax)]
+    charge_taxable = [amount - tax if inside(line) else amount
+                      for line, amount, tax in zip(charges, charge_amounts, charge_tax)]
+    tax_on_top = sum((tax for line, tax in zip(all_lines, line_tax) if not inside(line)), ZERO)
+    final_total = to_paisa(paid_for_dishes + tax_on_top)
+    grand_total = (final_total + charges_total).quantize(RUPEE, rounding=ROUND_HALF_UP)
+    round_off = grand_total - final_total - charges_total
+
+    # A tax-extra dish counts at its menu value, a tax-included one at its
+    # taxable value: exactly what a bill priced one way or the other showed.
+    subtotal = to_paisa(sum(
+        (taxable if inside(line) else line.amount
+         for line, taxable in zip(dishes, dish_taxable)),
+        Decimal("0.0"),
+    ))
+
+    sections = []
+    for kind in _kinds(dishes):
+        positions = [i for i, line in enumerate(dishes) if line.kind == kind]
+        menu = to_paisa(sum((dishes[i].amount for i in positions), Decimal("0.0")))
+        sections.append(Section(
+            kind=kind,
+            menu=menu,
+            discount=menu - sum((gross[i] for i in positions), ZERO),
+            taxable=sum((dish_taxable[i] for i in positions), ZERO),
+            tax=sum((dish_tax[i] for i in positions), ZERO),
+        ))
 
     rows = _rate_rows(all_lines, dish_taxable + charge_taxable, line_tax, composition, cgst)
     return Bill(
         subtotal=subtotal, discount=discount, charges=charges_total,
-        gst=gst, cgst=cgst, sgst=sgst, grand_total=grand_total, round_off=round_off,
+        gst=gst, cgst=cgst, sgst=sgst, vat=vat, grand_total=grand_total, round_off=round_off,
         rows=tuple(rows),
         charge_taxes=tuple(
             ChargeTax(name=line.charge, amount=amount, kind=line.kind if _taxed(line, composition) else None,
                       rate=line.rate, taxable=taxable, tax=tax)
             for line, amount, taxable, tax in zip(charges, charge_amounts, charge_taxable, charge_tax)
         ),
+        sections=tuple(sections),
     )
 
 

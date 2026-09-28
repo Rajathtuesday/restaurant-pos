@@ -104,6 +104,11 @@ FEATURE_GROUPS = {
         'counter_billing',    # food court / multi-section counter billing
         'composition_scheme', # GST Composition dealer: Bill of Supply
         'parcel_charge',      # extra charge for takeaway/parcel orders
+        # Custom-only. Liquor taxed by state VAT instead of GST (menu.VatClass,
+        # orders/services/tax_engine.py). Off for every tenant until a
+        # superuser enables it for a bar; switching it off again is the
+        # instant rollback: new lines go back to GST, old bills never change.
+        'liquor_vat',
     ],
     'Kitchen': [
         'kot_system',

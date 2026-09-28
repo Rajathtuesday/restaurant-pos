@@ -243,7 +243,7 @@ def reduce_item_quantity(user, item_id, reduce_by, reason, made=None):
         quantity=reduce_by,
         price=item.price,
         item_discount_pct=item.item_discount_pct,
-        gst_percentage=item.gst_percentage,
+        **item.tax_snapshot(),      # the same tax as the line it was split from
         total_price=removed_total,
         status="voided",
         is_takeaway=item.is_takeaway,

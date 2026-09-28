@@ -8,6 +8,7 @@ from menu.models import MenuItem, Modifier
 from orders.exceptions import OrderError, CartError, MenuItemError, ModifierError
 from orders.services.event_service import log_event
 from orders.services.inventory_service import check_inventory_availability
+from orders.services.tax_service import tax_snapshot_for
 
 
 # -------------------------------------------------
@@ -104,7 +105,7 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             id=item.get("id"),
             tenant=t,
             outlet=o
-        ).first()
+        ).select_related("vat_class").first()
 
         if not menu_item:
             raise MenuItemError("Menu item not found.")
@@ -157,7 +158,7 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             quantity=quantity,
             price=menu_item.price,
             item_discount_pct=item_discount_pct,
-            gst_percentage=menu_item.gst_percentage,
+            **tax_snapshot_for(menu_item, t),   # GST, or VAT for liquor, as sold today
             total_price=base_price,
             notes=item.get("note", ""),
             is_takeaway=item.get("is_takeaway", False),
