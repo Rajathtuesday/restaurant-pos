@@ -8,6 +8,7 @@ from django.utils import timezone
 from orders.models import Order, OrderItem, Payment
 from core.utils import get_business_date_range
 from orders.services.tax_engine import GST
+from reports.services.documents_issued import NATURE, documents_issued
 from reports.services.tax_totals import rate_totals
 import openpyxl
 from openpyxl.styles import Font, Alignment
@@ -174,6 +175,46 @@ def _autosize_columns(ws):
         ws.column_dimensions[get_column_letter(index)].width = max(longest + 2, 10)
 
 
+def _documents_issued_sheet(wb, tenant, outlet, start_date, end_date):
+    """GSTR-1 Table 13, documents issued: one row per bill number series in
+    the period (reports/services/documents_issued.py, P23)."""
+    ws = wb.create_sheet("GSTR-1 Table 13 (Docs)")
+    ws.merge_cells('A1:F1')
+    ws['A1'].value = f"GSTR-1 Table 13: Documents Issued - {tenant.name}"
+    ws['A1'].font = Font(size=14, bold=True)
+    ws['A1'].alignment = Alignment(horizontal='center')
+    ws.merge_cells('A2:F2')
+    ws['A2'].value = f"Period: {start_date.strftime('%d-%b-%Y')} to {end_date.strftime('%d-%b-%Y')}"
+    ws['A2'].font = Font(italic=True)
+    ws['A2'].alignment = Alignment(horizontal='center')
+
+    headers = ['Nature of Document', 'Sr. No. From', 'Sr. No. To', 'Total Number', 'Cancelled', 'Net Issued']
+    ws.append([])
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=4, column=col).font = Font(bold=True)
+
+    rows = documents_issued(tenant, outlet, start_date, end_date)
+    for row in rows:
+        ws.append([NATURE, row["first"], row["last"], row["total"], row["cancelled"], row["net"]])
+    ws.append([])
+    ws.append(['TOTAL', '', '',
+               sum(r["total"] for r in rows), sum(r["cancelled"] for r in rows), sum(r["net"] for r in rows)])
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=ws.max_row, column=col).font = Font(bold=True)
+
+    ws.append([])
+    ws.append(["One row per bill number series. Total counts the bills in the period. Old-style "
+               "numbers (INV-...) were also taken by orders cancelled before their bill, so those "
+               "series can skip numbers."])
+    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=6)
+    ws.cell(row=ws.max_row, column=1).font = Font(italic=True)
+    ws.cell(row=ws.max_row, column=1).alignment = Alignment(wrap_text=True, vertical='top')
+    ws.row_dimensions[ws.max_row].height = 45
+
+    _autosize_columns(ws)
+
+
 def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     """
     Generates a GSTR-1 compliant Excel report for B2C sales, plus the
@@ -305,11 +346,13 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     # A restaurant's whole menu is one GST service classification (SAC 996331,
     # "restaurant/catering services"), so this reuses gst_groups from above,
     # one row per rate actually used.
-    ws12 = wb.create_sheet("GSTR-1 Table 12 (HSN)")
+    # Since the May 2025 returns Table 12 has a B2B tab and a B2C tab. Rasova
+    # issues only B2C bills, so this is the B2C tab, and says so (P24).
+    ws12 = wb.create_sheet("GSTR-1 Table 12 (HSN, B2C)")
 
     ws12.merge_cells('A1:K1')
     t12_title = ws12['A1']
-    t12_title.value = f"GSTR-1 Table 12 — HSN/SAC Summary - {tenant.name}"
+    t12_title.value = f"GSTR-1 Table 12: HSN/SAC Summary, B2C tab - {tenant.name}"
     t12_title.font = Font(size=14, bold=True)
     t12_title.alignment = Alignment(horizontal='center')
 
@@ -376,6 +419,8 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         ws12.cell(row=ws12.max_row, column=col).font = Font(bold=True)
 
     _autosize_columns(ws12)
+
+    _documents_issued_sheet(wb, tenant, outlet, start_date, end_date)
 
     output = io.BytesIO()
     wb.save(output)

@@ -156,9 +156,9 @@
      6108.9
     ]
    ],
-   "GSTR-1 Table 12 (HSN)": [
+   "GSTR-1 Table 12 (HSN, B2C)": [
     [
-     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     "GSTR-1 Table 12: HSN/SAC Summary, B2C tab - Golden Month",
      null,
      null,
      null,
@@ -260,6 +260,72 @@
      3054.6,
      3054.3,
      0
+    ]
+   ],
+   "GSTR-1 Table 13 (Docs)": [
+    [
+     "GSTR-1 Table 13: Documents Issued - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of Document",
+     "Sr. No. From",
+     "Sr. No. To",
+     "Total Number",
+     "Cancelled",
+     "Net Issued"
+    ],
+    [
+     "Invoices for outward supply",
+     "GM/2627/000003",
+     "GM/2627/000038",
+     35,
+     0,
+     35
+    ],
+    [
+     "Invoices for outward supply",
+     "GM2/2627/000003",
+     "GM2/2627/000039",
+     36,
+     0,
+     36
+    ],
+    [
+     "Invoices for outward supply",
+     "GM3/2627/000003",
+     "GM3/2627/000032",
+     29,
+     0,
+     29
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     100,
+     0,
+     100
+    ],
+    [
+     "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
+     null,
+     null,
+     null,
+     null,
+     null
     ]
    ]
   },
@@ -619,9 +685,9 @@
      0
     ]
    ],
-   "GSTR-1 Table 12 (HSN)": [
+   "GSTR-1 Table 12 (HSN, B2C)": [
     [
-     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     "GSTR-1 Table 12: HSN/SAC Summary, B2C tab - Golden Month",
      null,
      null,
      null,
@@ -671,6 +737,56 @@
      0,
      0,
      0
+    ]
+   ],
+   "GSTR-1 Table 13 (Docs)": [
+    [
+     "GSTR-1 Table 13: Documents Issued - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of Document",
+     "Sr. No. From",
+     "Sr. No. To",
+     "Total Number",
+     "Cancelled",
+     "Net Issued"
+    ],
+    [
+     "Invoices for outward supply",
+     "GM3/2627/000003",
+     "GM3/2627/000032",
+     29,
+     0,
+     29
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     29,
+     0,
+     29
+    ],
+    [
+     "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
+     null,
+     null,
+     null,
+     null,
+     null
     ]
    ]
   },
@@ -1873,9 +1989,9 @@
      3595.03
     ]
    ],
-   "GSTR-1 Table 12 (HSN)": [
+   "GSTR-1 Table 12 (HSN, B2C)": [
     [
-     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     "GSTR-1 Table 12: HSN/SAC Summary, B2C tab - Golden Month",
      null,
      null,
      null,
@@ -1977,6 +2093,56 @@
      1797.57,
      1797.46,
      0
+    ]
+   ],
+   "GSTR-1 Table 13 (Docs)": [
+    [
+     "GSTR-1 Table 13: Documents Issued - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of Document",
+     "Sr. No. From",
+     "Sr. No. To",
+     "Total Number",
+     "Cancelled",
+     "Net Issued"
+    ],
+    [
+     "Invoices for outward supply",
+     "GM/2627/000003",
+     "GM/2627/000038",
+     35,
+     0,
+     35
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     35,
+     0,
+     35
+    ],
+    [
+     "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
+     null,
+     null,
+     null,
+     null,
+     null
     ]
    ]
   },
@@ -3173,9 +3339,9 @@
      2513.87
     ]
    ],
-   "GSTR-1 Table 12 (HSN)": [
+   "GSTR-1 Table 12 (HSN, B2C)": [
     [
-     "GSTR-1 Table 12 — HSN/SAC Summary - Golden Month",
+     "GSTR-1 Table 12: HSN/SAC Summary, B2C tab - Golden Month",
      null,
      null,
      null,
@@ -3277,6 +3443,56 @@
      1257.03,
      1256.84,
      0
+    ]
+   ],
+   "GSTR-1 Table 13 (Docs)": [
+    [
+     "GSTR-1 Table 13: Documents Issued - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of Document",
+     "Sr. No. From",
+     "Sr. No. To",
+     "Total Number",
+     "Cancelled",
+     "Net Issued"
+    ],
+    [
+     "Invoices for outward supply",
+     "GM2/2627/000003",
+     "GM2/2627/000039",
+     36,
+     0,
+     36
+    ],
+    [
+     "TOTAL",
+     null,
+     null,
+     36,
+     0,
+     36
+    ],
+    [
+     "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
+     null,
+     null,
+     null,
+     null,
+     null
     ]
    ]
   },

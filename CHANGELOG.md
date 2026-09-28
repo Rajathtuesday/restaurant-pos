@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-09-29: GSTR-1 Table 13, documents issued (P23, P24)
+
+Table 13 of the GST return, documents issued, can't be left blank since the May 2025 returns. Rasova's export had no such sheet, so the CA counted bill numbers by hand.
+
+### Added
+- **A Table 13 sheet in the GSTR-1 workbook** - one row per bill number series in the period ("Invoices for outward supply"): the first and last number, how many bills, how many were cancelled, and how many stand (`reports/services/documents_issued.py`). A bill cancelled after it was billed counts as cancelled; an order cancelled before its bill never had a number and isn't a document. Bills count in the period of their business day, as in every report. Total counts the bills, so a bill opened at the end of one period and billed after the next began never inflates the next period's count. Old-style numbers (INV-...) make one series a day, as they were.
+
+### Changed
+- **Table 12 is labelled the B2C tab** (P24) - since the May 2025 returns Table 12 has a B2B and a B2C tab; Rasova issues only B2C bills, and the sheet and its title now say so.
+
+### Tests
+- `reports/tests/test_documents_issued.py` (6): splitting bill numbers, series rows, cancelled bills, a bill from the next period, old daily series, and the real workbook with two outlets (paid, cancelled after billing, cancelled before billing, shown but unpaid).
+- Golden reports: the Table 13 sheet added (on the golden month, 100 bills in three series, the same 100 bills daily sales counts) and Table 12 renamed; nothing else moved.
+
 ## 2026-09-29: every report counts the business day (P16)
 
 A restaurant open past midnight sells at 12:30 AM on the day still trading. Daily sales and the GST return counted business days (6 AM to 6 AM), but the profit and comparison reports, the stock consumption and variance reports, the daily chart, CRM trends and order history counted calendar days, so they put those sales on the next day. The same month showed one total in the P&L and another in daily sales.

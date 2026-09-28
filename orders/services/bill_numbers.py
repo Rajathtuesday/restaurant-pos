@@ -20,10 +20,24 @@ year is the one of the order's business day, the day the reports count it on.
 Bills issued before bill numbers came in keep the order number they were
 printed with: a migration copied it into Order.bill_number.
 """
+import re
+
 from core.utils import get_business_date
 
 # Statuses of a bill that has been presented or settled.
 BILLED = ("billing", "paid", "closed")
+
+# A bill number: its series, then its place in the series after the last "/"
+# (SG/2627/000123) or "-" (the old INV-6-20260928-0001, one series a day).
+_NUMBER = re.compile(r"^(?P<series>.+)[/-](?P<serial>\d+)$")
+
+
+def split_bill_number(number):
+    """The series and the place in it: ("SG/2627", 123) for SG/2627/000123,
+    ("INV-6-20260928", 1) for an old INV-6-20260928-0001. None for anything
+    else."""
+    match = _NUMBER.match(number or "")
+    return (match["series"], int(match["serial"])) if match else None
 
 
 def financial_year(day):

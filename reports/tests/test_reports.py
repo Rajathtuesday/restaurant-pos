@@ -403,8 +403,8 @@ class ExportServicesTest(TestCase):
         result = generate_gstr1_excel(self.tenant, self.outlet, self.today, self.today)
         wb = openpyxl.load_workbook(io.BytesIO(result))
 
-        self.assertIn("GSTR-1 Table 12 (HSN)", wb.sheetnames)
-        ws12 = wb["GSTR-1 Table 12 (HSN)"]
+        self.assertIn("GSTR-1 Table 12 (HSN, B2C)", wb.sheetnames)
+        ws12 = wb["GSTR-1 Table 12 (HSN, B2C)"]
 
         header_values = [ws12.cell(row=4, column=i).value for i in range(1, 12)]
         self.assertIn("HSN/SAC", header_values)
