@@ -120,6 +120,29 @@ class Gstr1Test(Base):
         self.assertEqual(with_record, without_record)
 
 
+class Gstr1LayoutTest(Base):
+    """Every header and figure in the workbook can be read without widening a
+    column (P26), on both sheets, under their merged titles."""
+
+    def book(self):
+        self.paid_bill((self.dosa, 3), (self.sandwich, 2), (self.curd, 1), parcel="20")
+        return openpyxl.load_workbook(io.BytesIO(generate_gstr1_excel(self.tenant, self.outlet, self.today, self.today)))
+
+    def test_nothing_is_cut_off(self):
+        for sheet in self.book().worksheets:
+            merged = {cell for span in sheet.merged_cells.ranges for cell in span.cells}
+            for row in sheet.iter_rows():
+                for cell in row:
+                    if cell.value is None or (cell.row, cell.column) in merged:
+                        continue
+                    with self.subTest(sheet=sheet.title, cell=cell.coordinate, value=cell.value):
+                        self.assertGreaterEqual(sheet.column_dimensions[cell.column_letter].width, len(str(cell.value)))
+
+    def test_the_merged_title_does_not_widen_the_first_column(self):
+        for sheet in self.book().worksheets:
+            self.assertLess(sheet.column_dimensions["A"].width, len(sheet["A1"].value), sheet.title)
+
+
 class InspectionTest(Base):
 
     def test_taxable_value_is_the_value_not_the_tax(self):

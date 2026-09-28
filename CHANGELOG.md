@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-09-28 (night): every GSTR-1 column readable (P26)
+
+### Fixed
+- **Cut-off headers in the GSTR-1 workbook** - the column sizing found each column from its top cell, which under the merged title row is a merged cell, so it skipped every column but the first and sized that one to the title: "Type" came out huge while "Place of Supply", "Central Tax (CGST)" and the rest were cut off, on both the B2CS and the Table 12 sheet. Each column is now sized to its longest header or figure, and a title merged across columns sizes none of them. `reports/tests/test_tax_reports.py` checks that every cell on both sheets fits its column (it fails on the old sizing), and both sheets were checked in Excel itself.
+
 ## 2026-09-28 (night): the demo gets its GSTIN at deploy
 
 ### Fixed

@@ -11,6 +11,7 @@ from orders.services.tax_engine import GST
 from reports.services.tax_totals import rate_totals
 import openpyxl
 from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
 
 logger = logging.getLogger("pos.reports")
 
@@ -150,20 +151,26 @@ def generate_items_csv(tenant, outlet, start_date, end_date):
 
 
 def _autosize_columns(ws):
-    """Auto-adjust column widths (skip MergedCells which lack column_letter)."""
-    for col in ws.columns:
-        max_length = 0
-        first_cell = col[0]
-        if not hasattr(first_cell, "column_letter"):
-            continue
-        column = first_cell.column_letter
-        for cell in col:
-            try:
-                if cell.value and len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except Exception:
-                pass
-        ws.column_dimensions[column].width = max_length + 2
+    """Make every column wide enough for its longest value, so no header or
+    figure is cut off. A title merged across several columns already has
+    their combined width, so it sizes none of them. (Each column used to be
+    found from its top cell, which under a merged title is a MergedCell: every
+    column but the first was skipped, and the first was sized to the title.)"""
+    spanning = {
+        (row, col)
+        for merged in ws.merged_cells.ranges if merged.max_col > merged.min_col
+        for row in range(merged.min_row, merged.max_row + 1)
+        for col in range(merged.min_col, merged.max_col + 1)
+    }
+    for index, column in enumerate(ws.iter_cols(), start=1):
+        longest = max(
+            (len(line)
+             for cell in column
+             if cell.value is not None and (cell.row, index) not in spanning
+             for line in str(cell.value).splitlines()),
+            default=0,
+        )
+        ws.column_dimensions[get_column_letter(index)].width = max(longest + 2, 10)
 
 
 def generate_gstr1_excel(tenant, outlet, start_date, end_date):
