@@ -189,7 +189,7 @@
 
         <!-- Order meta -->
         <div class="meta">
-            <div><span class="label">{% if is_composition %}Bill of Supply{% else %}Tax Invoice{% endif %}</span><span>{{ order.order_number|default:order.id }}</span></div>
+            <div><span class="label">{% if is_composition %}Bill of Supply{% elif is_unregistered %}Bill{% else %}Tax Invoice{% endif %}</span><span>{{ order.order_number|default:order.id }}</span></div>
             <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
         </div>
         <div class="meta" style="margin-top:-6px">
@@ -288,6 +288,8 @@
         </div>
         {% if is_composition %}
         <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">Bill of Supply — GST not applicable (Composition Scheme)</div>
+        {% elif is_unregistered %}
+        <div class="no-print" style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">No GST: this outlet has no GSTIN (Outlet Settings)</div>
         {% elif gst_inclusive %}
         <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">All prices inclusive of GST</div>
         {% endif %}

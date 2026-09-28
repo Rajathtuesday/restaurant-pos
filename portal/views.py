@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
-from tenants.models import Tenant, Outlet
+from tenants.models import Tenant, Outlet, read_gstin
 from setup.models import KitchenStation, PaymentConfig
 from tenants.services import tenant_config_service as tcs
 
@@ -59,12 +59,14 @@ def create_restaurant(request):
     tenant_type    = request.POST.get("tenant_type", "cafe")
     outlet_name    = request.POST.get("outlet_name", "").strip() or "Main Counter"
     phone          = request.POST.get("phone", "").strip()
-    gst_no         = request.POST.get("gst_no", "").strip().upper()
+    gst_no, gstin_error = read_gstin(request.POST.get("gst_no"))
     owner_username = request.POST.get("owner_username", "").strip()
     owner_password = request.POST.get("owner_password", "").strip()
     preset_key     = request.POST.get("preset", "")
     if not name or not owner_username or not owner_password:
         return JsonResponse({"error": "Name, username and password required."}, status=400)
+    if gstin_error:
+        return JsonResponse({"error": gstin_error}, status=400)
     if User.objects.filter(username=owner_username).exists():
         return JsonResponse({"error": f"Username '{owner_username}' already taken."}, status=400)
     try:

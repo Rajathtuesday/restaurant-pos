@@ -16,7 +16,7 @@ from django.test import TestCase
 
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ from tenants.models import Tenant, Outlet
 
 def _setup(gst_inclusive=False):
     tenant = Tenant.objects.create(name=f"TestRest_{gst_inclusive}")
-    outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_inclusive=gst_inclusive)
+    outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN, gst_inclusive=gst_inclusive)
     cat    = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Food")
     return tenant, outlet, cat
 

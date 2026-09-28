@@ -8,7 +8,8 @@
  *     a 0% line stays 0%
  *   - tax added on top when prices exclude it, inside the price when they
  *     include it, chosen separately for GST and for VAT; an outlet on the
- *     composition scheme collects no GST (VAT is not GST)
+ *     composition scheme collects no GST, nor does one without a GSTIN
+ *     (VAT is not GST)
  *   - each kind's tax on the dishes is added up exactly and rounded once to
  *     the paisa, half up; the parcel charge is taxed at its own GST rate and
  *     rounded on its own
@@ -20,6 +21,7 @@
  *   lines:  [{amount: price x quantity in rupees, kind: "gst" | "vat", rate: percent}]
  *           ({amount, gstRate} is still read as a GST line)
  *   outlet: {inclusive (GST prices include GST), vatInclusive, composition,
+ *            gstRegistered (false: no GSTIN, so no GST; true if left out),
  *            parcel (rupees), parcelGstRate (percent)}
  * returns, in rupees: {subtotal, gst, vat, parcel, parcelGst, total, roundedTotal, roundOff}
  *   subtotal  the sum of the line amounts, as the menu shows them
@@ -59,6 +61,7 @@
 
   function totals(lines, outlet) {
     const o = outlet || {};
+    const collectsGst = !o.composition && o.gstRegistered !== false;
     const inside = { gst: !!o.inclusive, vat: !!o.vatInclusive };
     const byKind = { gst: new Map(), vat: new Map() };
     const amountByKind = { gst: 0, vat: 0 };
@@ -69,7 +72,7 @@
       const rateBp = toBasisPoints(line.rate !== undefined ? line.rate : line.gstRate);
       subtotal += amount;
       amountByKind[kind] += amount;
-      if (kind === "gst" && o.composition) continue;
+      if (kind === "gst" && !collectsGst) continue;
       if (rateBp > 0) byKind[kind].set(rateBp, (byKind[kind].get(rateBp) || 0) + amount);
     }
 
@@ -80,7 +83,7 @@
     const parcel = toPaise(o.parcel);
     const parcelRateBp = toBasisPoints(o.parcelGstRate);
     let parcelGst = 0;
-    if (parcel > 0 && parcelRateBp > 0 && !o.composition) {
+    if (parcel > 0 && parcelRateBp > 0 && collectsGst) {
       parcelGst = inside.gst
         ? insidePaise((parcel * parcelRateBp) / (10000 + parcelRateBp))
         : onTopPaise(parcel * parcelRateBp);

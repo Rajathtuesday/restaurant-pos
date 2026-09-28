@@ -84,7 +84,7 @@ body {
 
 <!-- Page 1: Summary bill (customer keeps) -->
 <div style="page-break-after: always;">
-{% with is_comp=order.outlet.is_composition_scheme %}
+{% with is_comp=order.is_bill_of_supply %}
 <div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
@@ -141,7 +141,7 @@ body {
 
 {% else %}
 <!-- ── Normal single receipt ──────────────────────────────────── -->
-{% with is_comp=order.outlet.is_composition_scheme %}
+{% with is_comp=order.is_bill_of_supply %}
 <div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
 {% if order.outlet.address %}<div class="center small">{{ order.outlet.address }}</div>{% endif %}
@@ -176,7 +176,7 @@ body {
 <div class="sep"></div>
 
 <div class="row"><span class="label small">Subtotal</span><span class="value small">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
-{% if not is_comp %}<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
+{% if order.is_tax_invoice %}<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
 {% if order.parcel_surcharge %}<div class="row"><span class="label small">Parcel Charge</span><span class="value small">Rs.{{ order.parcel_surcharge|floatformat:0 }}</span></div>{% endif %}
 {% if order.discount_total %}<div class="row"><span class="label small">Discount</span><span class="value small">-Rs.{{ order.discount_total|floatformat:0 }}</span></div>{% endif %}
 

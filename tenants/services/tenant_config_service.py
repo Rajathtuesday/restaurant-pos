@@ -123,12 +123,17 @@ def get_feature_summary(tenant):
 
 def update_outlet_from_post(outlet, post):
     """Applies the "update_outlet" POST action. Saves the outlet, and
-    returns messages for the user about settings it refused (a list, empty
-    when everything was applied)."""
+    returns messages for the user about settings it refused or that change
+    the bills (a list, empty when everything was applied as asked)."""
     from menu.liquor import composition_refusal
+    from tenants.models import NO_GSTIN_MESSAGE, read_gstin
     notes = []
     outlet.phone       = post.get("phone", "").strip() or None
-    outlet.gst_no      = post.get("gst_no", "").strip().upper() or None
+    gstin, gstin_error = read_gstin(post.get("gst_no"))
+    if gstin_error:
+        notes.append(gstin_error)
+    else:
+        outlet.gst_no = gstin
     outlet.fssai_no    = post.get("fssai_no", "").strip() or None
     outlet.address     = post.get("address", "").strip()
     outlet.sac_code    = post.get("sac_code", "996331").strip() or "996331"
@@ -162,6 +167,8 @@ def update_outlet_from_post(outlet, post):
         else:
             logger.warning("Ignored parcel_gst_rate=%r for outlet %s", post["parcel_gst_rate"], outlet.id)
     outlet.save()
+    if not outlet.is_gst_registered:
+        notes.append(NO_GSTIN_MESSAGE)
     return notes
 
 

@@ -60,6 +60,7 @@
 
     /* ── RETIRED RATES (12% / 28% before GST 2.0) ── */
     .retired-banner { border-left-color: var(--orange); }
+    .gst-off-banner { border-left-color: var(--orange); }
     .vat-tag { font-size: 0.75rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 4px; padding: 0.2rem 0.5rem; }
     .retired-tag {
         display: inline-block; margin-left: 0.4rem; padding: 0 0.4rem;
@@ -141,6 +142,13 @@
         Exempt or nil-rated items: <strong>0%</strong><br>
         Alcohol is not under GST at all: it is taxed by the state, not on this page.
     </div>
+
+    {% if gst_off %}
+    <div class="info-banner gst-off-banner" id="gst-off-banner">
+        <strong>This outlet has no GSTIN, so its bills carry no GST.</strong>
+        Only a GST-registered business may collect GST. The rates below are kept and apply as soon as you enter the GSTIN in <a href="{% url 'outlet_settings' %}">Outlet Settings</a>.
+    </div>
+    {% endif %}
 
     {% if retired_count %}
     <div class="info-banner retired-banner" id="retired-banner">

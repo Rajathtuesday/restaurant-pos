@@ -327,12 +327,13 @@ class CompositionGuardTest(PubBase):
         self.assertFalse(self.outlet.is_composition_scheme)
 
     def test_the_superuser_portal_keeps_composition_off_too(self):
-        notes = update_outlet_from_post(self.outlet, {"is_composition_scheme": "on"})
+        # The form always sends the outlet's GSTIN along with the box
+        notes = update_outlet_from_post(self.outlet, {"is_composition_scheme": "on", "gst_no": KARNATAKA_GSTIN})
         self.assertEqual(notes, [composition_refusal(self.outlet)])
         self.outlet.refresh_from_db()
         self.assertFalse(self.outlet.is_composition_scheme)
 
-        cafe = Outlet.objects.create(tenant=self.tenant, name="Cafe")
-        self.assertEqual(update_outlet_from_post(cafe, {"is_composition_scheme": "on"}), [])
+        cafe = Outlet.objects.create(tenant=self.tenant, name="Cafe", gst_no=KARNATAKA_GSTIN)
+        self.assertEqual(update_outlet_from_post(cafe, {"is_composition_scheme": "on", "gst_no": KARNATAKA_GSTIN}), [])
         cafe.refresh_from_db()
         self.assertTrue(cafe.is_composition_scheme)

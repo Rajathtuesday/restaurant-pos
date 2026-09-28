@@ -150,8 +150,11 @@ def bill_view(request, order_id):
         direct_billing_mode = has_feature(tenant, "direct_billing_mode")
         razorpay_feature_enabled = has_feature(tenant, "razorpay_gateway")
         is_qsr        = tenant.tenant_type in ("franchise", "cafe")
-        gst_inclusive  = getattr(order.outlet, "gst_inclusive", False)
-        is_composition = getattr(order.outlet, "is_composition_scheme", False)
+        # Worded by the GST scheme the bill was totalled under, not by the
+        # outlet's settings today, so an issued bill reads the same forever.
+        is_composition  = order.is_bill_of_supply
+        is_unregistered = not order.is_tax_invoice and not is_composition
+        gst_inclusive   = getattr(order.outlet, "gst_inclusive", False) and order.is_tax_invoice
 
         station = get_default_station(request.user)
         paper_width_mm = station.paper_width_mm if station else 80
@@ -170,6 +173,7 @@ def bill_view(request, order_id):
             "is_qsr":        is_qsr,
             "gst_inclusive":  gst_inclusive,
             "is_composition": is_composition,
+            "is_unregistered": is_unregistered,
             "paper_width_mm":  paper_width_mm,
             "auto_print":      auto_print,
             "default_station": station,

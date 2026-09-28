@@ -364,7 +364,7 @@ class PrintingService:
 
     def _print_summary_slip(self, p, order, group_list):
         W = self.W
-        is_comp = getattr(order.outlet, "is_composition_scheme", False)
+        is_comp = order.is_bill_of_supply   # as the bill was totalled, not today's setting
 
         p.set(align="center", bold=True, double_width=True, double_height=True)
         p.text(f"{str(order.tenant.name)[:W//2]}\n")

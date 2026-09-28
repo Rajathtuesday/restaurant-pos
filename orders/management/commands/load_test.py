@@ -43,7 +43,7 @@ from django.utils import timezone
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
 from kitchen.services.kot_service import create_kot
@@ -87,7 +87,8 @@ class Command(BaseCommand):
         tenant, _ = Tenant.objects.get_or_create(
             slug=LOADTEST_SLUG, defaults={"name": "LoadTest"}
         )
-        outlet, _ = Outlet.objects.get_or_create(tenant=tenant, name="LoadTest Outlet")
+        outlet, _ = Outlet.objects.get_or_create(
+            tenant=tenant, name="LoadTest Outlet", defaults={"gst_no": SAMPLE_GSTIN})
         user, created = User.objects.get_or_create(
             username="loadtest_owner",
             defaults={"role": "owner", "tenant": tenant, "outlet": outlet},

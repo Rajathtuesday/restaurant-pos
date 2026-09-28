@@ -1,6 +1,7 @@
 # setup/views/onboarding_views.py
 import logging
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -12,7 +13,7 @@ from menu.models import MenuCategory, MenuItem
 from setup.models import PaymentConfig
 from core.decorators import tenant_required
 from accounts.models import User
-from tenants.models import Tenant, RESERVED_SLUGS
+from tenants.models import Tenant, RESERVED_SLUGS, read_gstin
 
 logger = logging.getLogger("pos.setup")
 
@@ -59,12 +60,19 @@ def onboarding_wizard(request):
 
             outlet.address      = request.POST.get("address", "").strip()
             outlet.phone        = request.POST.get("phone", "").strip()
-            outlet.gst_no       = request.POST.get("gst_no", "").strip().upper()
             outlet.fssai_no     = request.POST.get("fssai_no", "").strip()
             outlet.gst_inclusive = request.POST.get("gst_inclusive") == "true"
-            outlet.save(update_fields=["address", "phone", "gst_no", "fssai_no", "gst_inclusive"])
+            fields = ["address", "phone", "fssai_no", "gst_inclusive"]
+            gstin, gstin_error = read_gstin(request.POST.get("gst_no"))
+            if gstin_error:
+                messages.error(request, gstin_error)
+            else:
+                outlet.gst_no = gstin
+                fields.append("gst_no")
+            outlet.save(update_fields=fields)
 
-            return redirect(f"/setup/onboard/?step=2")
+            # A GSTIN that isn't one stays on this step, with the reason.
+            return redirect("/setup/onboard/?step=1" if gstin_error else "/setup/onboard/?step=2")
 
     # ── STEP 2: First menu items ─────────────────
     elif step == 2:

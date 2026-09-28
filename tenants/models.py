@@ -2,6 +2,7 @@
 # tenants/models.py
 
 import logging
+import re
 import uuid
 from decimal import Decimal
 
@@ -13,10 +14,40 @@ from core.validators import validate_image_size, process_uploaded_image
 
 logger = logging.getLogger("pos.tenants")
 
+GSTIN_REGEX = r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$'
+
+# A made-up Karnataka GSTIN in the right format (the help text's example),
+# for the demo restaurant and local test setups, never a real business.
+SAMPLE_GSTIN = "29ABCDE1234F1Z5"
+
 gstin_validator = RegexValidator(
-    regex=r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$',
+    regex=GSTIN_REGEX,
     message="Enter a valid 15-character GSTIN (e.g. 29ABCDE1234F1Z5)."
 )
+
+# Only a business registered for GST may collect it (CGST Act, section 32),
+# and a tax invoice must show its GSTIN (CGST Rules, rule 46), so an outlet
+# without a valid GSTIN bills without GST.
+NO_GSTIN_MESSAGE = (
+    "No GSTIN saved, so this outlet's bills carry no GST: only a GST-registered "
+    "business may collect it. If the outlet is registered, enter its GSTIN."
+)
+INVALID_GSTIN_MESSAGE = (
+    "{value} is not a valid GSTIN, so it was not saved. "
+    "A GSTIN has 15 characters, like 29ABCDE1234F1Z5."
+)
+
+
+def read_gstin(raw):
+    """A GSTIN typed into a form. Returns (gstin, None) when it is valid,
+    (None, None) when it is blank, and (None, message) when it isn't a GSTIN:
+    then keep the outlet's old one and show the message."""
+    value = re.sub(r"\s+", "", raw or "").upper()
+    if not value:
+        return None, None
+    if re.fullmatch(GSTIN_REGEX, value):
+        return value, None
+    return None, INVALID_GSTIN_MESSAGE.format(value=value)
 
 fssai_validator = RegexValidator(
     regex=r'^\d{14}$',
@@ -576,6 +607,19 @@ class Outlet(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"
+
+    @property
+    def is_gst_registered(self) -> bool:
+        """Whether this outlet may collect GST: it has a valid GSTIN (in any
+        case: one saved in lowercase is still the outlet's GSTIN). Without
+        one its bills carry no GST (see NO_GSTIN_MESSAGE)."""
+        return re.fullmatch(GSTIN_REGEX, (self.gst_no or "").strip().upper()) is not None
+
+    @property
+    def collects_gst(self) -> bool:
+        """Whether this outlet's new bills carry GST: it is registered and
+        not on the composition scheme."""
+        return self.is_gst_registered and not self.is_composition_scheme
 
     # State codes for Union Territories under Indian GST law.
     # First 2 digits of GSTIN always encode the state/UT.

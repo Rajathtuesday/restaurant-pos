@@ -18,18 +18,19 @@ from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
 from setup.models import PaymentConfig
 from menu.liquor import add_liquor_class
-from tenants.models import Outlet, Tenant, TenantFeatureOverride
+from tenants.models import SAMPLE_GSTIN, Outlet, Tenant, TenantFeatureOverride
 from tokens.models import TokenOrder
 
 
 class CartWiringBase(TestCase):
     inclusive = False
     composition = False
+    gstin = SAMPLE_GSTIN
 
     def setUp(self):
         self.tenant = Tenant.objects.create(name="Cart Wiring Test", tenant_type="cafe")
         self.outlet = Outlet.objects.create(
-            tenant=self.tenant, name="Main", gst_inclusive=self.inclusive,
+            tenant=self.tenant, name="Main", gst_no=self.gstin, gst_inclusive=self.inclusive,
             is_composition_scheme=self.composition, parcel_charge_amount=D("10"),
             parcel_gst_rate=D("18"),
         )
@@ -75,8 +76,10 @@ class GstExtraOutletTest(CartWiringBase):
         pos, qsr = self.pos(), self.qsr()
         self.assertIn("inclusive: false", pos)
         self.assertIn("composition: false", pos)
+        self.assertIn("gstRegistered: true", pos)
         self.assertIn("parcelGstRate: 18.00", pos)
         self.assertIn("const IS_COMPOSITION = false;", qsr)
+        self.assertIn("const GST_REGISTERED = true;", qsr)
         self.assertIn("const PARCEL_GST_RATE = 18.00;", qsr)
 
     def test_the_qr_cart_no_longer_claims_5_percent(self):
@@ -101,6 +104,19 @@ class CompositionOutletTest(CartWiringBase):
         pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
         self.assertIn("composition: true", pos)
         self.assertIn("const IS_COMPOSITION = true;", qsr)
+        for page in (pos, qsr, qr):
+            self.assertIsNone(re.search(r'class="view-gst"|id="billGst"', page))
+
+
+class UnregisteredOutletTest(CartWiringBase):
+    """No GSTIN, so no GST (P25): each cart is told, and shows no GST line."""
+    gstin = None
+
+    def test_carts_show_no_gst_line(self):
+        pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
+        self.assertIn("gstRegistered: false", pos)
+        self.assertIn("const GST_REGISTERED = false;", qsr)
+        self.assertIn("gstRegistered: false", qr)
         for page in (pos, qsr, qr):
             self.assertIsNone(re.search(r'class="view-gst"|id="billGst"', page))
 

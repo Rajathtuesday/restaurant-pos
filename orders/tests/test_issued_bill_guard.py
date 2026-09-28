@@ -30,14 +30,14 @@ from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.exceptions import OrderError
 from orders.models import IssuedBillError, Order, OrderItem, Table
-from tenants.models import Outlet, Tenant
+from tenants.models import SAMPLE_GSTIN, Outlet, Tenant
 
 
 def _world(test):
     """An outlet with a ₹10 flat parcel charge, a table and a 5% ₹100 curry."""
     test.tenant = Tenant.objects.create(name="Issued Bill Guard")
     test.outlet = Outlet.objects.create(
-        tenant=test.tenant, name="Main",
+        tenant=test.tenant, name="Main", gst_no=SAMPLE_GSTIN,
         parcel_charge_amount=D("10"), parcel_charge_per_item=False,
     )
     test.owner = User.objects.create_user(

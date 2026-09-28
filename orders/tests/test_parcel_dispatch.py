@@ -67,7 +67,7 @@ from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Table
 from setup.models import PaymentConfig
-from tenants.models import Outlet, Tenant
+from tenants.models import SAMPLE_GSTIN, Outlet, Tenant
 
 
 # ── Shared fixture ─────────────────────────────────────────────────────────────
@@ -80,6 +80,7 @@ class ParcelBase(TestCase):
         self.outlet = Outlet.objects.create(
             tenant=self.tenant,
             name="Counter",
+            gst_no=SAMPLE_GSTIN,
             parcel_charge_amount=Decimal("5"),
             parcel_charge_per_item=True,
         )

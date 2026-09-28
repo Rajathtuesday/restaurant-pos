@@ -23,13 +23,13 @@ from django.urls import reverse
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
 from orders.views.public_views import make_order_status_token
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 
 
 class _Base(TestCase):
     def setUp(self):
         self.tenant = Tenant.objects.create(name="QR Tenant", slug="qr-tenant")
-        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main", gst_no=SAMPLE_GSTIN)
         self.category = MenuCategory.objects.create(
             tenant=self.tenant, outlet=self.outlet, name="Mains"
         )
@@ -174,7 +174,7 @@ class _FranchiseBase(TestCase):
         self.tenant = Tenant.objects.create(
             name="QSR Tenant", slug="qsr-tenant", tenant_type="franchise",
         )
-        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main", gst_no=SAMPLE_GSTIN)
         self.category = MenuCategory.objects.create(
             tenant=self.tenant, outlet=self.outlet, name="Mains"
         )

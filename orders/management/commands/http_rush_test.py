@@ -48,7 +48,7 @@ from django.db import connection
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 
 from ._loadtest_common import (
     RunLogger, ResourceSampler, db_snapshot, format_resource_line,
@@ -82,7 +82,8 @@ class Command(BaseCommand):
     def _setup_tenant(self, i):
         slug = f"{RUSH_SLUG_PREFIX}{i}"
         tenant, _ = Tenant.objects.get_or_create(slug=slug, defaults={"name": f"LoadTest Rush {i}"})
-        outlet, _ = Outlet.objects.get_or_create(tenant=tenant, name="Rush Outlet")
+        outlet, _ = Outlet.objects.get_or_create(
+            tenant=tenant, name="Rush Outlet", defaults={"gst_no": SAMPLE_GSTIN})
 
         category, _ = MenuCategory.objects.get_or_create(
             tenant=tenant, outlet=outlet, name="Rush Menu"

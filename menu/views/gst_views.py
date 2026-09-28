@@ -27,10 +27,12 @@ def gst_management(request):
     retired = MenuItem.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet,
     ).exclude(gst_percentage__in=GST_RATES).count()
+    outlet = request.user.outlet
     return render(request, "menu/gst_management.html", {
         "categories": categories, "gst_rates": GST_RATE_CHOICES,
         "valid_rates": [choice["value"] for choice in GST_RATE_CHOICES],
         "retired_count": retired,
+        "gst_off": outlet is not None and not outlet.is_gst_registered,
     })
 
 

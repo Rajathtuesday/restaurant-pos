@@ -19,7 +19,7 @@ from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 
-from tenants.models import Tenant, TenantFeatureOverride
+from tenants.models import SAMPLE_GSTIN, Tenant, TenantFeatureOverride
 from accounts.models import User
 from orders.models import Table, Order, OrderItem, Payment
 from menu.models import MenuCategory, MenuItem
@@ -29,6 +29,8 @@ from inventory.models import InventoryItem
 DEMO_TENANT_NAME = "Demo Bistro"
 DEMO_TENANT_SLUG = "demo-bistro"
 DEMO_OWNER_USERNAME = "demo_owner"
+# Bills carry GST only with a GSTIN, and the demo is there to show GST bills.
+DEMO_GSTIN = SAMPLE_GSTIN
 
 # Generic, deliberately not a real client's actual menu or branding -- this
 # is shown to strangers on the open internet.
@@ -101,6 +103,9 @@ def _ensure_tenant_and_owner():
     outlet = tenant.outlets.first()
     if outlet is None:
         outlet = tenant.outlets.create(name="Demo Bistro - Main")
+    if not outlet.is_gst_registered:
+        outlet.gst_no = DEMO_GSTIN
+        outlet.save(update_fields=["gst_no"])
 
     owner, created = User.objects.get_or_create(
         username=DEMO_OWNER_USERNAME,

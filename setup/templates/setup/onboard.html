@@ -118,6 +118,10 @@
         <h2 class="wiz-title">Your Restaurant</h2>
         <p class="wiz-sub">This appears on every receipt and bill. Takes 2 minutes.</p>
 
+        {% for message in messages %}
+        <div role="alert" style="border-left:3px solid #ef4444;background:rgba(239,68,68,0.07);color:#ef4444;padding:0.7rem 1rem;margin-bottom:1rem;font-size:0.85rem;">{{ message }}</div>
+        {% endfor %}
+
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
 
@@ -143,7 +147,7 @@
                 <div class="field">
                     <label>GSTIN</label>
                     <input type="text" name="gst_no" value="{{ outlet.gst_no|default:'' }}" maxlength="15" placeholder="27AAAAA0000A1Z5">
-                    <div class="field-hint">15-character GST number. Leave blank if not registered.</div>
+                    <div class="field-hint">15-character GST number. Leave blank if not registered: bills then carry no GST.</div>
                 </div>
             </div>
 

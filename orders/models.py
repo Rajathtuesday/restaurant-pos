@@ -8,7 +8,7 @@ from django.db import models, transaction
 from core.models import TenantScopedModel
 from orders.exceptions import IssuedBillError  # noqa: F401 -- also imported from here
 from orders.services.tax_engine import (
-    GST, VAT, Line, compute as compute_tax, rows_from_summary, sections_from_summary,
+    COMPOSITION, GST, REGULAR, VAT, Line, compute as compute_tax, rows_from_summary, sections_from_summary,
 )
 from django.db.models import Q
 from django.utils import timezone
@@ -288,7 +288,7 @@ class Order(TenantScopedModel):
         if self.tax_summary is not None:
             return rows_from_summary(self.tax_summary)
         items = [i for i in self.items.all() if i.status != "voided" and not i.is_complimentary]
-        return list(self._run_tax_engine(items).rows)
+        return list(self._run_tax_engine(items, as_billed_before_record=True).rows)
 
     def tax_sections(self):
         """The bill's dishes by kind of tax (tax_engine.Section): food under
@@ -299,7 +299,29 @@ class Order(TenantScopedModel):
         if sections is not None:
             return sections
         items = [i for i in self.items.all() if i.status != "voided" and not i.is_complimentary]
-        return list(self._run_tax_engine(items).sections)
+        return list(self._run_tax_engine(items, as_billed_before_record=True).sections)
+
+    @property
+    def gst_scheme(self):
+        """The GST scheme this bill was totalled under (tax_engine rule 2):
+        REGULAR (a tax invoice), COMPOSITION (a bill of supply) or
+        UNREGISTERED (the outlet had no GSTIN, so no GST). From the tax
+        record, so a later change to the outlet never rewords an issued bill.
+        A record from before the scheme was kept (28 September 2026) belongs
+        to a bill that followed the outlet's composition setting, GSTIN or not.
+        """
+        scheme = (self.tax_summary or {}).get("scheme")
+        if scheme:
+            return scheme
+        return COMPOSITION if getattr(self.outlet, "is_composition_scheme", False) else REGULAR
+
+    @property
+    def is_tax_invoice(self):
+        return self.gst_scheme == REGULAR
+
+    @property
+    def is_bill_of_supply(self):
+        return self.gst_scheme == COMPOSITION
 
     @property
     def parcel_tax(self):
@@ -389,17 +411,26 @@ class Order(TenantScopedModel):
         if current and _is_issued_bill(current["status"], current["grand_total"], current["tax_summary"]):
             raise IssuedBillError(self.pk, current["status"])
 
-    def _run_tax_engine(self, items):
+    def _run_tax_engine(self, items, *, as_billed_before_record=False):
         """The engine's result for these (live) lines, this bill's discount
         and parcel charge, and the outlet's tax settings. Each line is taxed
         as it was snapshotted when ordered (OrderItem.tax_kind); GST prices
-        and VAT prices can each include their tax or not."""
+        and VAT prices can each include their tax or not. An outlet without
+        a valid GSTIN collects no GST (tax_engine rule 2).
+
+        as_billed_before_record works out a bill totalled before the tax
+        record existed, the way it was billed: back then every outlet charged
+        GST, GSTIN or not, so its reports never change."""
         try:
             gst_inclusive = bool(self.outlet.gst_inclusive)
             vat_inclusive = bool(self.outlet.vat_inclusive)
             composition   = bool(self.outlet.is_composition_scheme)
         except Exception:
             gst_inclusive = vat_inclusive = composition = False
+        try:
+            gst_registered = as_billed_before_record or bool(self.outlet.is_gst_registered)
+        except Exception:
+            gst_registered = True   # no outlet to read: as billed before the rule
 
         lines = []
         for item in items:
@@ -420,6 +451,7 @@ class Order(TenantScopedModel):
 
         return compute_tax(
             lines, prices_include_tax=gst_inclusive, composition=composition,
+            gst_registered=gst_registered,
             discount_type=self.discount_type, discount_value=self.discount_value,
         )
 

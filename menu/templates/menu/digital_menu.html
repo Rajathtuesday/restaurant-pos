@@ -729,7 +729,7 @@
                 <span>Subtotal</span>
                 <span>₹<span id="billSubtotal">0</span></span>
             </div>
-            {% if not outlet.is_composition_scheme %}
+            {% if outlet.collects_gst %}
             <div class="bill-row">
                 <span>{% if outlet.gst_inclusive %}GST (included in prices){% else %}GST{% endif %}</span>
                 <span>₹<span id="billGst">0</span></span>
@@ -1126,11 +1126,12 @@
 
         // The same rules as the bill (static/js/cart_tax.js): each dish at
         // its own rate, GST inside the price or on top, none at all on the
-        // composition scheme.
+        // composition scheme or without a GSTIN.
         const t = RasovaCartTax.totals(lines, {
             inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
             vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
             composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
+            gstRegistered: {{ outlet.is_gst_registered|yesno:"true,false" }},
         });
 
         document.getElementById('billSubtotal').innerText = t.subtotal.toFixed(2);

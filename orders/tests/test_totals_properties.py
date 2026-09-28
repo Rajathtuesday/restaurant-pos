@@ -31,6 +31,7 @@ from hypothesis import HealthCheck, given, settings, strategies as st
 from hypothesis.extra.django import TestCase as HypothesisTestCase
 
 from orders.tests.legacy_totals import legacy_totals, liquor_totals
+from tenants.models import Outlet
 from orders.tests.money_scenarios import (
     CURRENT_GST_RATES, GST_RATES, LIQUOR_CONFIGS, LIQUOR_RATES, OUTLET_CONFIGS, build_liquor_world,
     build_world, create_orders, liquor_item, liquor_snapshot, make_item, make_spec, row_head, snapshot,
@@ -243,6 +244,35 @@ class RealMathsMatchesFrozenCopyTest(HypothesisTestCase):
         order.recalculate_totals()
         expected = {**row_head(0, spec), **legacy_totals(spec, OUTLET_CONFIGS)}
         self.assertEqual(snapshot(order, 0, spec), expected)
+
+
+class UnregisteredOutletTest(HypothesisTestCase):
+    """An outlet with no GSTIN may not collect GST (CGST Act, section 32). Its
+    bill costs exactly what the same bill costs on the composition scheme,
+    where GST is off too, and its tax record says it was unregistered."""
+
+    MONEY = ("sub", "gst", "disc", "grand", "ro", "cgst", "sgst", "pgst", "bd")
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.world = build_world()
+
+    @REAL
+    @given(bills(cfgs=GST_CFGS))
+    def test_no_gstin_bills_like_the_composition_scheme(self, spec):
+        inclusive, _ = OUTLET_CONFIGS[spec["cfg"]]
+        same_bill_on_composition = {**spec, "cfg": OUTLET_CONFIGS.index((inclusive, True))}
+        unregistered, composition = create_orders(self.world, [spec, same_bill_on_composition])
+        Outlet.objects.filter(pk=unregistered.outlet_id).update(gst_no=None)
+        unregistered.outlet = Outlet.objects.get(pk=unregistered.outlet_id)
+
+        unregistered.recalculate_totals()
+        composition.recalculate_totals()
+
+        mine, theirs = snapshot(unregistered, 0, spec), snapshot(composition, 0, same_bill_on_composition)
+        self.assertEqual({k: v for k, v in mine.items() if k in self.MONEY},
+                         {k: v for k, v in theirs.items() if k in self.MONEY})
+        self.assertEqual((unregistered.gst_scheme, composition.gst_scheme), ("unregistered", "composition"))
 
 
 # ---------------------------------------------------------------------------

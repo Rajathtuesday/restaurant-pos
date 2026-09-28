@@ -27,7 +27,11 @@ price food with tax added and drinks with tax included.
 2. Tax on each line, exactly (nothing rounded yet): on top of the line's
    value when its price excludes tax (value x rate / 100), or inside it
    when its price includes tax (value x rate / (100 + rate)). An outlet on
-   the composition scheme collects no GST (liquor VAT is not GST).
+   the composition scheme collects no GST, and neither does one that is not
+   registered for GST (no GSTIN): only a registered business may collect it
+   (CGST Act, section 32). Liquor VAT is not GST. The bill records which of
+   the three it was totalled under, its scheme: "regular" (a tax invoice),
+   "composition" (a bill of supply) or "unregistered".
 3. The dishes' tax of each kind is the exact sum over them, rounded once to
    the paisa, half up. This is how Rasova has always totalled GST, so no
    bill's total changed when the engine arrived. Each charge's tax is
@@ -58,6 +62,11 @@ from decimal import ROUND_FLOOR, ROUND_HALF_UP, Decimal
 
 GST = "gst"
 VAT = "vat"
+
+# The GST scheme a bill is totalled under (rule 2).
+REGULAR = "regular"              # registered: GST collected, a tax invoice
+COMPOSITION = "composition"      # composition scheme: no GST, a bill of supply
+UNREGISTERED = "unregistered"    # no GSTIN: no GST
 
 PAISA = Decimal("0.01")
 RUPEE = Decimal("1")
@@ -130,15 +139,18 @@ class Bill:
     rows: tuple              # RateRow, sorted by kind and rate
     charge_taxes: tuple      # ChargeTax, in line order
     sections: tuple = ()     # Section, one per kind of dish, sorted by kind
+    scheme: str = REGULAR    # REGULAR, COMPOSITION or UNREGISTERED (rule 2)
 
     @property
     def charge_tax(self):
         return sum((c.tax for c in self.charge_taxes), ZERO)
 
     def summary(self):
-        """The bill's tax record, as stored in Order.tax_summary (JSON)."""
+        """The bill's tax record, as stored in Order.tax_summary (JSON).
+        Records from before 28 September 2026 have no "scheme"."""
         return {
             "v": SUMMARY_VERSION,
+            "scheme": self.scheme,
             "rows": [
                 {"kind": r.kind, "rate": _s(r.rate), "taxable": _s(r.taxable), "tax": _s(r.tax),
                  "cgst": _s(r.cgst), "sgst": _s(r.sgst)}
@@ -205,16 +217,23 @@ def _s(amount):
     return f"{Decimal(amount):.2f}"
 
 
-def _taxed(line, composition):
-    """Whether tax applies to this line at all."""
+def _taxed(line, collects_gst):
+    """Whether tax applies to this line at all (rule 2)."""
     if line.kind is None:
         return False
-    if line.kind == GST and composition:
+    if line.kind == GST and not collects_gst:
         return False
     return True
 
 
-def _dish_figures(dishes, factor, inside, composition):
+def _scheme(composition, gst_registered):
+    """The GST scheme a bill is totalled under (rule 2)."""
+    if composition:
+        return COMPOSITION
+    return REGULAR if gst_registered else UNREGISTERED
+
+
+def _dish_figures(dishes, factor, inside, collects_gst):
     """For each dish: its exact value after discounts, and the exact tax on or
     inside it (rule 2)."""
     values, taxes = [], []
@@ -224,7 +243,7 @@ def _dish_figures(dishes, factor, inside, composition):
             value = value * (1 - line.item_discount_pct / HUNDRED)
         value = value * factor
         values.append(value)
-        if not _taxed(line, composition):
+        if not _taxed(line, collects_gst):
             taxes.append(Decimal("0"))
         elif inside(line):
             taxes.append(value * line.rate / (HUNDRED + line.rate) if line.rate > 0 else Decimal("0"))
@@ -238,11 +257,14 @@ def _kinds(lines):
     return sorted({line.kind for line in lines}, key=lambda kind: (kind is None, kind or ""))
 
 
-def compute(lines, *, prices_include_tax=False, composition=False,
+def compute(lines, *, prices_include_tax=False, composition=False, gst_registered=True,
             discount_type=None, discount_value=ZERO):
     """Total one bill. See the module docstring for the rules.
-    prices_include_tax is the default for lines that don't say (inclusive=None)."""
+    prices_include_tax is the default for lines that don't say (inclusive=None).
+    gst_registered is False for an outlet with no GSTIN (rule 2)."""
     lines = list(lines)
+    scheme = _scheme(composition, gst_registered)
+    collects_gst = scheme == REGULAR
     dishes = [line for line in lines if line.charge is None]
     charges = [line for line in lines if line.charge is not None]
 
@@ -278,11 +300,11 @@ def compute(lines, *, prices_include_tax=False, composition=False,
         factor = Decimal("1.0")
 
     # Rule 2: exact tax on every line
-    dish_values, dish_taxes = _dish_figures(dishes, factor, inside, composition)
+    dish_values, dish_taxes = _dish_figures(dishes, factor, inside, collects_gst)
     charge_amounts = [to_paisa(line.amount) for line in charges]
     charge_taxes = []
     for line, amount in zip(charges, charge_amounts):
-        if not _taxed(line, composition) or line.rate <= 0:
+        if not _taxed(line, collects_gst) or line.rate <= 0:
             charge_taxes.append(Decimal("0"))
         elif inside(line):
             charge_taxes.append(amount * line.rate / (HUNDRED + line.rate))
@@ -344,26 +366,27 @@ def compute(lines, *, prices_include_tax=False, composition=False,
             tax=sum((dish_tax[i] for i in positions), ZERO),
         ))
 
-    rows = _rate_rows(all_lines, dish_taxable + charge_taxable, line_tax, composition, cgst)
+    rows = _rate_rows(all_lines, dish_taxable + charge_taxable, line_tax, collects_gst, cgst)
     return Bill(
         subtotal=subtotal, discount=discount, charges=charges_total,
         gst=gst, cgst=cgst, sgst=sgst, vat=vat, grand_total=grand_total, round_off=round_off,
         rows=tuple(rows),
         charge_taxes=tuple(
-            ChargeTax(name=line.charge, amount=amount, kind=line.kind if _taxed(line, composition) else None,
+            ChargeTax(name=line.charge, amount=amount, kind=line.kind if _taxed(line, collects_gst) else None,
                       rate=line.rate, taxable=taxable, tax=tax)
             for line, amount, taxable, tax in zip(charges, charge_amounts, charge_taxable, charge_tax)
         ),
         sections=tuple(sections),
+        scheme=scheme,
     )
 
 
-def _rate_rows(lines, taxable, tax, composition, cgst_total):
+def _rate_rows(lines, taxable, tax, collects_gst, cgst_total):
     """Group the lines' allocated figures by kind and rate (rule 4). Lines
-    outside tax, and all GST on the composition scheme, make no rows."""
+    outside tax, and all GST on a bill that collects none, make no rows."""
     grouped = {}
     for line, line_taxable, line_tax in zip(lines, taxable, tax):
-        if not _taxed(line, composition):
+        if not _taxed(line, collects_gst):
             continue
         key = (line.kind, Decimal(line.rate).quantize(PAISA))
         row = grouped.setdefault(key, [ZERO, ZERO])

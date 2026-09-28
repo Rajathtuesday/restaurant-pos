@@ -29,7 +29,7 @@ from orders.models import (
     OrderItem,
     Payment,
 )
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 
 
 # ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ from tenants.models import Tenant, Outlet
 
 def _tenant(name="TestRest"):
     t = Tenant.objects.create(name=name)
-    o = Outlet.objects.create(tenant=t, name=f"{name} HQ")
+    o = Outlet.objects.create(tenant=t, name=f"{name} HQ", gst_no=SAMPLE_GSTIN)
     return t, o
 
 

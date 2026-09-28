@@ -21,7 +21,7 @@ from menu.models import MenuCategory, MenuItem
 from orders.models import IssuedBillError, Order, OrderItem
 from orders.services.tax_engine import RateRow
 from setup.models import PaymentConfig
-from tenants.models import Outlet, Tenant
+from tenants.models import SAMPLE_GSTIN, Outlet, Tenant
 from tenants.services.tenant_config_service import update_outlet_from_post
 
 
@@ -33,7 +33,7 @@ class Base(TestCase):
     def setUp(self):
         self.tenant = Tenant.objects.create(name="Tax Record Test")
         self.outlet = Outlet.objects.create(
-            tenant=self.tenant, name="Main", gst_inclusive=self.inclusive,
+            tenant=self.tenant, name="Main", gst_no=SAMPLE_GSTIN, gst_inclusive=self.inclusive,
             is_composition_scheme=self.composition,
             parcel_charge_amount=D("10"), parcel_charge_per_item=False,
         )

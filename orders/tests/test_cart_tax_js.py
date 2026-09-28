@@ -23,6 +23,7 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase, TestCase
 
+from orders.services.tax_engine import Line, compute
 from orders.tests.money_scenarios import (
     LIQUOR_CONFIGS, LIQUOR_RATES, OUTLET_CONFIGS, build_liquor_world, build_world, create_orders,
     liquor_item, make_item, make_spec,
@@ -134,12 +135,54 @@ class CartTaxRulesTest(SimpleTestCase):
             # a missing rate is 0%, never a guessed 5%
             ({"lines": [{"amount": 100}], "outlet": {}},
              {"gst": 0, "total": 100}),
+            # no GSTIN: no GST, not even on the parcel
+            ({"lines": [{"amount": 100, "gstRate": 5}], "outlet": {"gstRegistered": False, "parcel": 20, "parcelGstRate": 5}},
+             {"gst": 0, "parcelGst": 0, "total": 120, "roundedTotal": 120}),
+            # no GSTIN and prices marked as including GST: the price is what the guest pays
+            ({"lines": [{"amount": 105, "gstRate": 5}], "outlet": {"inclusive": True, "gstRegistered": False}},
+             {"gst": 0, "total": 105, "roundedTotal": 105}),
+            # no GSTIN switches off GST only: liquor VAT stays
+            ({"lines": [{"amount": 100, "kind": "gst", "rate": 5}, {"amount": 200, "kind": "vat", "rate": 5.5}],
+              "outlet": {"gstRegistered": False}},
+             {"gst": 0, "vat": 11, "total": 311, "roundedTotal": 311}),
         ]
         results = run_js([cart for cart, _ in cases])
         for n, ((cart, expected), got) in enumerate(zip(cases, results)):
             for field, value in expected.items():
                 with self.subTest(case=n, field=field):
                     self.assertAlmostEqual(got[field], value, places=9)
+
+
+class UnregisteredCartTest(SimpleTestCase):
+    """An outlet with no GSTIN: random carts come to exactly what the engine
+    bills (tax_engine.compute with gst_registered=False), with no GST."""
+
+    def setUp(self):
+        _needs_node(self)
+
+    def test_random_carts_match_the_engine(self):
+        rng = random.Random(20260929)
+        carts, bills = [], []
+        for _ in range(300):
+            inclusive = rng.random() < 0.5
+            dishes = [(Decimal(rng.randint(1, 500000)) / 100, rng.choice(["0", "5", "5", "18"]))
+                      for _ in range(rng.randint(1, 6))]
+            parcel, parcel_rate = Decimal(rng.choice(["0", "10", "20", "17.50"])), rng.choice(["5", "18"])
+            carts.append({
+                "lines": [{"amount": float(amount), "gstRate": float(rate)} for amount, rate in dishes],
+                "outlet": {"inclusive": inclusive, "gstRegistered": False,
+                           "parcel": float(parcel), "parcelGstRate": float(parcel_rate)},
+            })
+            lines = [Line(amount=amount, rate=Decimal(rate)) for amount, rate in dishes]
+            if parcel > 0:
+                lines.append(Line(amount=parcel, rate=Decimal(parcel_rate), charge="parcel"))
+            bills.append(compute(lines, prices_include_tax=inclusive, gst_registered=False))
+        for n, (bill, got) in enumerate(zip(bills, run_js(carts))):
+            with self.subTest(cart=n):
+                self.assertEqual(bill.gst, 0)
+                self.assertEqual(got["gst"], 0)
+                self.assertEqual(got["roundedTotal"], int(bill.grand_total))
+                self.assertAlmostEqual(got["roundOff"], float(bill.round_off), places=9)
 
 
 def random_pub_carts(count, seed=20260928):

@@ -84,6 +84,36 @@ class CompositionTest(SimpleTestCase):
         self.assertEqual(bill.grand_total, D("120"))
 
 
+class UnregisteredTest(SimpleTestCase):
+    """An outlet with no GSTIN is not registered for GST, and only a registered
+    business may collect it (CGST Act, section 32)."""
+
+    def test_no_gst_on_the_dishes_or_the_parcel_charge(self):
+        # 100 at 5% and a 20 parcel charge at 5%: nothing added on top
+        bill = compute([dish("100"), parcel("20")], gst_registered=False)
+        self.assertEqual((bill.gst, bill.cgst, bill.sgst, bill.charge_tax), (0, 0, 0, 0))
+        self.assertEqual(bill.rows, ())
+        self.assertEqual(bill.grand_total, D("120"))
+
+    def test_prices_marked_as_including_gst_are_charged_as_they_stand(self):
+        # 105 "including GST": there is no GST inside it either
+        bill = compute([dish("105")], prices_include_tax=True, gst_registered=False)
+        self.assertEqual((bill.gst, bill.subtotal, bill.grand_total), (0, D("105.00"), D("105")))
+
+    def test_liquor_vat_is_not_gst(self):
+        beer = Line(amount=D("200"), rate=D("5.5"), kind="vat")
+        bill = compute([dish("100"), beer], gst_registered=False)
+        self.assertEqual(bill.gst, 0)
+        self.assertEqual([(r.kind, r.tax) for r in bill.rows], [("vat", D("11.00"))])
+
+    def test_the_bill_records_the_scheme_it_was_totalled_under(self):
+        self.assertEqual(compute([dish("100")]).summary()["scheme"], "regular")
+        self.assertEqual(compute([dish("100")], composition=True).summary()["scheme"], "composition")
+        self.assertEqual(compute([dish("100")], gst_registered=False).summary()["scheme"], "unregistered")
+        # Composition names the bill (a bill of supply) whether or not the GSTIN is saved yet
+        self.assertEqual(compute([dish("100")], composition=True, gst_registered=False).scheme, "composition")
+
+
 class DiscountTest(SimpleTestCase):
 
     def test_order_discount_is_spread_over_the_dishes_by_value(self):

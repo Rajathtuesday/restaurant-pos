@@ -21,7 +21,7 @@ from orders.models import (
     Order, OrderItem, Table,
 )
 from orders.services.order_service import add_items_to_order, get_or_create_open_order
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 
 
 # ─────────────────────────────────────────────
@@ -30,7 +30,7 @@ from tenants.models import Tenant, Outlet
 
 def _make_tenant(name="RestaurantA"):
     t = Tenant.objects.create(name=name)
-    o = Outlet.objects.create(tenant=t, name=f"{name} Main")
+    o = Outlet.objects.create(tenant=t, name=f"{name} Main", gst_no=SAMPLE_GSTIN)
     return t, o
 
 

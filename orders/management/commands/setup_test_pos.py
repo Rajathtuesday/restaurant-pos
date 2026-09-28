@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from tenants.models import Tenant, Outlet
+from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 from accounts.models import User
 from orders.models import Table
 from menu.models import MenuCategory, MenuItem
@@ -13,7 +13,7 @@ class Command(BaseCommand):
         print("Creating test tenant...")
 
         tenant = Tenant.objects.create(name="Test Restaurant")
-        outlet = Outlet.objects.create(name="Main Outlet", tenant=tenant)
+        outlet = Outlet.objects.create(name="Main Outlet", tenant=tenant, gst_no=SAMPLE_GSTIN)
 
         owner = User.objects.create_user(
             username="owner",

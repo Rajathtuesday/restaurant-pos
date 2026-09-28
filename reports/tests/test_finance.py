@@ -15,7 +15,7 @@ from finance.models import Expense
 from inventory.models import InventoryItem, Recipe
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Payment
-from tenants.models import Outlet, Tenant
+from tenants.models import SAMPLE_GSTIN, Outlet, Tenant
 
 
 class NetProfitReportTest(TestCase):
@@ -146,7 +146,7 @@ class NetProfitReportGSTMathTest(TestCase):
         """Rs100 base @ 18% exclusive -> grand_total=118, gst_total=18.
         gross_revenue (Payment) = 118. net_revenue = 118 - 18 = 100 exactly."""
         tenant = Tenant.objects.create(name="GST Excl Cafe")
-        outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_inclusive=False)
+        outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN, gst_inclusive=False)
         user = User.objects.create_user(username="gst_excl_owner", password="pw", role="owner", tenant=tenant, outlet=outlet)
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Food")
         today = timezone.localdate()
@@ -167,7 +167,7 @@ class NetProfitReportGSTMathTest(TestCase):
         exclusive case above -- proves the report nets out GST identically
         in both modes, not just when GST happens to be zero."""
         tenant = Tenant.objects.create(name="GST Incl Cafe")
-        outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_inclusive=True)
+        outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN, gst_inclusive=True)
         user = User.objects.create_user(username="gst_incl_owner", password="pw", role="owner", tenant=tenant, outlet=outlet)
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Food")
         today = timezone.localdate()

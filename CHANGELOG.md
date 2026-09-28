@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-09-28 (night): no GSTIN, no GST (P25)
+
+Stage 2 starts. Only a business registered for GST may collect it (CGST Act, section 32), and a tax invoice must show the seller's GSTIN (CGST Rules, rule 46). Until now an outlet with no GSTIN charged GST anyway and printed "Tax Invoice" without one. Outlets with a GSTIN bill exactly as before: every golden bill, receipt, HTML bill and report is unchanged.
+
+### Changed
+- **An outlet without a valid GSTIN bills without GST** - on the dishes and on the parcel charge, as on the composition scheme. The tax engine takes `gst_registered` (`Outlet.is_gst_registered`: a GSTIN in the right format); liquor VAT is not GST and stays. The three carts follow (`cart_tax.js` takes `gstRegistered`) and hide their GST line.
+- **Each bill records its GST scheme** - the tax record keeps `scheme`: "regular" (a tax invoice), "composition" (a bill of supply) or "unregistered". The bill page, the thermal receipt and the printer word the bill from it, so an issued bill reads as it was issued whatever the outlet changes later. An unregistered outlet's bill is titled "Bill", and the thermal receipt no longer prints a "GST Rs.0" line on it.
+- **Bills from before this keep their GST** - a bill with no tax record is worked out as it was billed (every outlet charged GST then), so no report of a past month moves.
+
+### Added
+- **A GSTIN that isn't one is never saved** - Outlet Settings, the onboarding wizard, and the superuser and agency pages (new restaurant and outlet settings) check it and say why ("12345 is not a valid GSTIN, so it was not saved."), keeping the old one (`tenants.models.read_gstin`). A blank GSTIN is stored as none.
+- **The owner is told** - Outlet Settings says "No GSTIN, so bills carry no GST" under the GSTIN box and warns on save, the GST Rates page carries a banner, and the superuser and agency pages show the same note.
+- **The demo restaurant keeps a sample GSTIN** (`SAMPLE_GSTIN`, made up), put back on every 2-hour reset, so it still shows GST bills. The local load, rush and POS setup commands use it too.
+
+### Tests
+- `orders/tests/test_gst_registration.py` (18): bills, the bill page and receipt, the GST Rates and settings pages, all five places a GSTIN is saved, old bills, an issued bill after the GSTIN goes, the demo reset. Breaking each part of the rule on purpose (every outlet registered, old bills re-totalled, wording from today's outlet, any GSTIN saved) fails them.
+- Engine: `UnregisteredTest` (4) in `test_tax_engine.py`. Random real bills in `test_totals_properties.py`: no GSTIN costs exactly what the composition scheme costs. Carts: 3 hand-worked and 300 random carts in Node against the engine, and the wiring on all three pages.
+- Test outlets that bill GST now carry a GSTIN, as real ones do.
+
 ## 2026-09-28 (night): the tenants app's tests run
 
 ### Fixed

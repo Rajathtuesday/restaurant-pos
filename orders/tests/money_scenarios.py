@@ -16,7 +16,7 @@ from decimal import Decimal
 
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem
-from tenants.models import Outlet, Tenant
+from tenants.models import SAMPLE_GSTIN, Outlet, Tenant
 
 SEED = 20260927
 COUNT = 5000
@@ -135,7 +135,7 @@ def build_world(name="Money Safety Net"):
     outlets, dishes = [], []
     for i, (inclusive, composition) in enumerate(OUTLET_CONFIGS):
         outlet = Outlet.objects.create(
-            tenant=tenant, name=f"Mode {i}",
+            tenant=tenant, name=f"Mode {i}", gst_no=SAMPLE_GSTIN,
             gst_inclusive=inclusive, is_composition_scheme=composition,
         )
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Everything")
@@ -296,7 +296,8 @@ def build_liquor_world(name="Liquor Safety Net"):
     outlets, dishes = [], []
     for i, (gst_inclusive, vat_inclusive) in enumerate(LIQUOR_CONFIGS):
         outlet = Outlet.objects.create(
-            tenant=tenant, name=f"Bar mode {i}", gst_inclusive=gst_inclusive, vat_inclusive=vat_inclusive,
+            tenant=tenant, name=f"Bar mode {i}", gst_no=SAMPLE_GSTIN,
+            gst_inclusive=gst_inclusive, vat_inclusive=vat_inclusive,
         )
         category = MenuCategory.objects.create(tenant=tenant, outlet=outlet, name="Everything")
         dish = MenuItem.objects.create(

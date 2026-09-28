@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 
 from orders.models import Table
 from menu.models import MenuCategory, MenuItem
-from tenants.models import Outlet
+from tenants.models import NO_GSTIN_MESSAGE, Outlet, read_gstin
 from setup.models import KitchenStation, PaymentConfig
 from core.decorators import tenant_required, role_required
 from accounts.demo_restrictions import is_demo_trailer, blocked_in_demo_trailer, BLOCKED_MESSAGE
@@ -1022,7 +1022,7 @@ def outlet_settings(request):
         phone = request.POST.get("phone", "").strip()
         whatsapp_no = request.POST.get("whatsapp_no", "").strip()
         email = request.POST.get("email", "").strip()
-        gst_no        = request.POST.get("gst_no",   "").strip().upper()
+        gstin, gstin_error = read_gstin(request.POST.get("gst_no"))
         fssai_no      = request.POST.get("fssai_no", "").strip()
         sac_code      = request.POST.get("sac_code", "996331").strip() or "996331"
         gst_inclusive = request.POST.get("gst_inclusive") == "true"
@@ -1032,7 +1032,10 @@ def outlet_settings(request):
         outlet.address      = address
         outlet.phone        = phone
         outlet.email        = email
-        outlet.gst_no       = gst_no
+        if gstin_error:
+            messages.error(request, gstin_error)
+        else:
+            outlet.gst_no = gstin
         outlet.fssai_no     = fssai_no
         outlet.sac_code     = sac_code
         outlet.gst_inclusive = gst_inclusive
@@ -1098,6 +1101,8 @@ def outlet_settings(request):
             tenant.save(update_fields=["logo"])
 
         messages.success(request, "Outlet details saved successfully.")
+        if not outlet.is_gst_registered:
+            messages.warning(request, NO_GSTIN_MESSAGE)
         return redirect("outlet_settings")
 
     from orders.services.tax_service import GST_RATE_CHOICES

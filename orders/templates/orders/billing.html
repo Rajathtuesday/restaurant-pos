@@ -300,7 +300,7 @@
 
     <div class="cart-summary" id="cartSummaryBlock">
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-      {% if not outlet.is_composition_scheme %}
+      {% if outlet.collects_gst %}
       <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
       {% endif %}
       <div class="summary-row vat-row" style="display:none;"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
@@ -377,7 +377,7 @@
       <div id="cartItemsContainerMobile"></div>
       <div class="cart-page-breakdown">
         <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-        {% if not outlet.is_composition_scheme %}
+        {% if outlet.collects_gst %}
         <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
         {% endif %}
         <div class="summary-row vat-row" style="display:none;"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
@@ -738,7 +738,7 @@
     });
     // The same rules as the bill (static/js/cart_tax.js): each line at its
     // own rate (0% stays 0%), GST inside the price or on top, none on the
-    // composition scheme, and the parcel charge (once toggled on, see
+    // composition scheme or without a GSTIN, and the parcel charge (once toggled on, see
     // toggleParcel/_syncParcelUI) taxed like the food.
     const t = RasovaCartTax.totals(
       cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage)),
@@ -746,6 +746,7 @@
         inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
         vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
         composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
+        gstRegistered: {{ outlet.is_gst_registered|yesno:"true,false" }},
         parcel: _parcelOn ? _parcelChargeAmount : 0,
         parcelGstRate: {{ outlet.parcel_gst_rate|default:0 }},
       });
