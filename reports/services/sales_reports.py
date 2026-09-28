@@ -6,9 +6,9 @@ from datetime import timedelta
 
 from django.utils import timezone
 from django.db.models import Sum
-from django.db.models.functions import ExtractHour, TruncDate
+from django.db.models.functions import ExtractHour
 from orders.models import Order, Payment
-from core.utils import get_business_date, get_business_date_range
+from core.utils import business_date_of, get_business_date, get_business_date_range
 
 logger = logging.getLogger("pos.reports")
 
@@ -131,7 +131,8 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
         payments = payments.filter(order__outlet=outlet)
 
     if start_date != end_date:
-        payments = payments.annotate(date=TruncDate('paid_at'))
+        # one bar per business day: a payment at 1 AM is on the day still trading
+        payments = payments.annotate(date=business_date_of('paid_at', outlet))
         data = payments.values("date").annotate(total=Sum("amount")).order_by("date")
 
         days_diff = (end_date - start_date).days

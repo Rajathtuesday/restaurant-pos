@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from django.db.models import Sum, Count, Avg, Q
 
+from core.utils import get_business_period
 from orders.models import Order, Payment, OrderItem
 
 
@@ -26,10 +27,11 @@ def period_comparison(tenant, outlet=None, start_date=None, end_date=None):
     prev_start  = prev_end - timedelta(days=span - 1)
 
     def _fetch(s, e):
+        start, end = get_business_period(s, e, outlet)   # business days, as every sales report
         qs = Order.objects.filter(
             tenant=tenant,
-            created_at__date__gte=s,
-            created_at__date__lte=e,
+            created_at__gte=start,
+            created_at__lt=end,
             status__in=["closed", "paid"],
         )
         if outlet:

@@ -773,7 +773,7 @@ def consumption_report(request):
     from orders.models import OrderItem
     from inventory.models import Recipe
     from inventory.unit_conversion import recipe_expected_quantity
-    from core.utils import get_business_date
+    from core.utils import get_business_date, get_business_date_range
 
     tenant = request.user.tenant
     outlet = request.user.outlet
@@ -787,6 +787,9 @@ def consumption_report(request):
         )
     except ValueError:
         report_date = get_business_date(timezone.now(), outlet)
+    # The business day, 6 AM to 6 AM: a sale or a wastage at 1 AM belongs to
+    # the day still trading, not to the calendar's next day.
+    day_start, day_end = get_business_date_range(report_date, outlet)
 
     # All non-voided items sold today for this outlet
     sold_items = (
@@ -794,7 +797,8 @@ def consumption_report(request):
         .filter(
             order__tenant=tenant,
             order__outlet=outlet,
-            order__created_at__date=report_date,
+            order__created_at__gte=day_start,
+            order__created_at__lt=day_end,
             order__status__in=["closed", "paid"],
         )
         .exclude(status="voided")
@@ -1005,7 +1009,7 @@ def variance_report(request):
 
     import csv
     from datetime import date as dt_date
-    from core.utils import get_business_date
+    from core.utils import get_business_date, get_business_date_range
     from orders.models import OrderItem
     from .models import InventoryTransaction
     from .unit_conversion import recipe_expected_quantity
@@ -1020,6 +1024,9 @@ def variance_report(request):
         )
     except ValueError:
         report_date = get_business_date(timezone.now(), outlet)
+    # The business day, 6 AM to 6 AM: a sale or a wastage at 1 AM belongs to
+    # the day still trading, not to the calendar's next day.
+    day_start, day_end = get_business_date_range(report_date, outlet)
 
     # Step 1 — recipe-expected consumption per inventory item (from actual orders sold)
     sold_items = (
@@ -1027,7 +1034,8 @@ def variance_report(request):
         .filter(
             order__tenant=tenant,
             order__outlet=outlet,
-            order__created_at__date=report_date,
+            order__created_at__gte=day_start,
+            order__created_at__lt=day_end,
             order__status__in=["closed", "paid"],
         )
         .exclude(status="voided")
@@ -1074,7 +1082,8 @@ def variance_report(request):
     for item in items:
         txns = InventoryTransaction.objects.filter(
             item=item, tenant=tenant, outlet=outlet,
-            created_at__date=report_date,
+            created_at__gte=day_start,
+            created_at__lt=day_end,
         )
         restocked        = sum(t.quantity for t in txns if t.transaction_type == "restock")
         txn_consumed     = abs(sum(t.quantity for t in txns if t.transaction_type == "consume"))

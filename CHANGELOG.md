@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-09-29: every report counts the business day (P16)
+
+A restaurant open past midnight sells at 12:30 AM on the day still trading. Daily sales and the GST return counted business days (6 AM to 6 AM), but the profit and comparison reports, the stock consumption and variance reports, the daily chart, CRM trends and order history counted calendar days, so they put those sales on the next day. The same month showed one total in the P&L and another in daily sales.
+
+### Fixed
+- **One day, one meaning** - every report counts business days through two helpers in `core/utils.py`: `get_business_period()` for a range of days and `business_date_of()` for one bar per day. On the golden month the P&L now matches daily sales exactly in every outlet: 100 bills and ₹87,455, where it counted 99 bills and ₹89,602.
+- **Stock reports after midnight** - consumption and variance for a day include the sales and stock movements of its night, and "today" means the day still trading.
+- **Order history** - a waiter's "today", the cashier's and captain's windows and the date filters count business days, so a waiter at 1 AM still sees the evening's bills.
+- **Tests that failed between midnight and 6 AM** - five tests asked for the calendar day while the reports count business days, so CI failed for any push in those hours and nothing deployed. They pass at any hour now.
+
+### Tests
+- `reports/tests/test_business_day.py` (4): standing at 1 AM with sales at 10 PM, 12:30 AM and 7 AM, the P&L, comparison and daily sales agree, the daily chart, the stock reports and a waiter's history put the night on its business day. Putting back any one report's calendar-day version fails them.
+- Golden reports: gross margin, net profit, period comparison, the P&L sheet and the several-day chart moved to the business-day figures, now equal to daily sales; nothing else moved.
+
 ## 2026-09-29: bill numbers within the law (P18)
 
 A tax invoice's number may have at most 16 characters and must be unique in its financial year (CGST Rules, rule 46(b)). Rasova's had 19 or more (`INV-6-20260928-0001`), in a new series every day, and every order took one when it was opened, so orders cancelled before their bill left gaps.

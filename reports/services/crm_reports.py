@@ -12,9 +12,8 @@ filtered accordingly. This is a real schema constraint, not an oversight --
 noted here and in the report template rather than silently ignored.
 """
 from django.db.models import Avg, Count, Sum
-from django.db.models.functions import TruncDate
 
-from core.utils import get_business_date_range
+from core.utils import business_date_of, get_business_date_range
 from crm.models import GuestFeedback, LoyaltyTransaction
 
 
@@ -49,7 +48,7 @@ def crm_analytics_report(tenant, outlet=None, start_date=None, end_date=None):
         created_at__gte=range_start, created_at__lt=range_end,
     )
     loyalty_trend = list(
-        loyalty_qs.annotate(day=TruncDate("created_at"))
+        loyalty_qs.annotate(day=business_date_of("created_at", outlet))
         .values("day", "transaction_type")
         .annotate(points=Sum("points"), count=Count("id"))
         .order_by("day")
@@ -62,7 +61,7 @@ def crm_analytics_report(tenant, outlet=None, start_date=None, end_date=None):
     if outlet:
         feedback_qs = feedback_qs.filter(outlet=outlet)
     feedback_trend = list(
-        feedback_qs.annotate(day=TruncDate("created_at"))
+        feedback_qs.annotate(day=business_date_of("created_at", outlet))
         .values("day")
         .annotate(avg_rating=Avg("rating"), count=Count("id"))
         .order_by("day")

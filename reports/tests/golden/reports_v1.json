@@ -43,18 +43,18 @@
    "total_sales": 87455.0
   },
   "gross_margin": {
-   "avg_order_value": 905.07,
+   "avg_order_value": 874.55,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 303 items have no recipe — their cost is excluded.",
-   "discounts": 2121.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 302 items have no recipe — their cost is excluded.",
+   "discounts": 2353.5,
    "gross_margin_pct": 100.0,
-   "gross_profit": 83222.51,
-   "gross_revenue": 89602.0,
-   "gst_collected": 6379.49,
+   "gross_profit": 81346.1,
+   "gross_revenue": 87455.0,
+   "gst_collected": 6108.9,
    "items_with_recipe": 0,
-   "items_without_recipe": 303,
-   "net_revenue": 83222.51,
-   "order_count": 99,
+   "items_without_recipe": 302,
+   "net_revenue": 81346.1,
+   "order_count": 100,
    "recipe_coverage_pct": 0.0
   },
   "gstr1_workbook": {
@@ -270,27 +270,27 @@
    },
    {
     "label": "Sep 02",
-    "total": 2831.0
+    "total": 3911.0
    },
    {
     "label": "Sep 03",
-    "total": 2426.0
+    "total": 3538.0
    },
    {
     "label": "Sep 04",
-    "total": 3711.0
+    "total": 1857.0
    },
    {
     "label": "Sep 05",
-    "total": 692.0
+    "total": 1703.0
    },
    {
     "label": "Sep 06",
-    "total": 2104.0
+    "total": 1565.0
    },
    {
     "label": "Sep 07",
-    "total": 1745.0
+    "total": 935.0
    },
    {
     "label": "Sep 08",
@@ -298,71 +298,71 @@
    },
    {
     "label": "Sep 09",
-    "total": 2199.0
+    "total": 2401.0
    },
    {
     "label": "Sep 10",
-    "total": 1152.0
+    "total": 3388.0
    },
    {
     "label": "Sep 11",
-    "total": 3660.0
+    "total": 4114.0
    },
    {
     "label": "Sep 12",
-    "total": 7062.0
+    "total": 6724.0
    },
    {
     "label": "Sep 13",
-    "total": 3209.0
+    "total": 655.0
    },
    {
     "label": "Sep 14",
-    "total": 2855.0
+    "total": 4795.0
    },
    {
     "label": "Sep 15",
-    "total": 5406.0
+    "total": 3466.0
    },
    {
     "label": "Sep 16",
-    "total": 0
+    "total": 310.0
    },
    {
     "label": "Sep 17",
-    "total": 1410.0
+    "total": 1100.0
    },
    {
     "label": "Sep 18",
-    "total": 2199.0
+    "total": 3687.0
    },
    {
     "label": "Sep 19",
-    "total": 2023.0
+    "total": 1929.0
    },
    {
     "label": "Sep 20",
-    "total": 5718.0
+    "total": 6628.0
    },
    {
     "label": "Sep 21",
-    "total": 6048.0
+    "total": 3744.0
    },
    {
     "label": "Sep 22",
-    "total": 630.0
+    "total": 1280.0
    },
    {
     "label": "Sep 23",
-    "total": 2886.0
+    "total": 3957.0
    },
    {
     "label": "Sep 24",
-    "total": 4802.0
+    "total": 6887.0
    },
    {
     "label": "Sep 25",
-    "total": 3906.0
+    "total": 100.0
    },
    {
     "label": "Sep 26",
@@ -374,60 +374,60 @@
    },
    {
     "label": "Sep 28",
-    "total": 2390.0
+    "total": 3333.0
    },
    {
     "label": "Sep 29",
-    "total": 2206.0
+    "total": 1263.0
    },
    {
     "label": "Sep 30",
-    "total": 3110.0
+    "total": 4947.0
    }
   ],
   "net_profit": {
-   "avg_order_value": 905.07,
+   "avg_order_value": 874.55,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 303 items have no recipe — their cost is excluded.",
-   "discounts": 2121.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 302 items have no recipe — their cost is excluded.",
+   "discounts": 2353.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
-   "gross_profit": 83222.51,
-   "gross_revenue": 89602.0,
-   "gst_collected": 6379.49,
+   "gross_profit": 81346.1,
+   "gross_revenue": 87455.0,
+   "gst_collected": 6108.9,
    "items_with_recipe": 0,
-   "items_without_recipe": 303,
+   "items_without_recipe": 302,
    "net_margin_pct": 100.0,
-   "net_profit": 83222.51,
-   "net_revenue": 83222.51,
+   "net_profit": 81346.1,
+   "net_revenue": 81346.1,
    "operating_expenses": 0.0,
-   "order_count": 99,
+   "order_count": 100,
    "recipe_coverage_pct": 0.0
   },
   "period_comparison": {
    "current": {
-    "avg_order": 911.93,
-    "discounts": 2121.0,
-    "gst": 6379.49,
-    "orders": 99,
-    "revenue": 90281.0,
-    "subtotal": 84573.39
+    "avg_order": 881.34,
+    "discounts": 2353.5,
+    "gst": 6108.9,
+    "orders": 100,
+    "revenue": 88134.0,
+    "subtotal": 82718.06
    },
    "deltas": {
-    "avg_order": -13.9,
-    "discounts": 523.8,
-    "orders": 3200.0,
-    "revenue": 2740.8
+    "avg_order": -25.5,
+    "discounts": 574.4,
+    "orders": 1566.7,
+    "revenue": 1141.0
    },
    "prev_end": "2026-08-31",
    "prev_start": "2026-08-02",
    "previous": {
-    "avg_order": 1059.33,
-    "discounts": 340.0,
-    "gst": 325.77,
-    "orders": 3,
-    "revenue": 3178.0,
-    "subtotal": 3191.28
+    "avg_order": 1183.67,
+    "discounts": 349.0,
+    "gst": 713.35,
+    "orders": 6,
+    "revenue": 7102.0,
+    "subtotal": 6727.5
    }
   },
   "top_items": [
@@ -554,17 +554,17 @@
    "total_sales": 23459.0
   },
   "gross_margin": {
-   "avg_order_value": 840.0,
+   "avg_order_value": 808.93,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 92 items have no recipe — their cost is excluded.",
-   "discounts": 417.5,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 88 items have no recipe — their cost is excluded.",
+   "discounts": 438.5,
    "gross_margin_pct": 100.0,
-   "gross_profit": 24360.0,
-   "gross_revenue": 24360.0,
+   "gross_profit": 23459.0,
+   "gross_revenue": 23459.0,
    "gst_collected": 0.0,
    "items_with_recipe": 0,
-   "items_without_recipe": 92,
-   "net_revenue": 24360.0,
+   "items_without_recipe": 88,
+   "net_revenue": 23459.0,
    "order_count": 29,
    "recipe_coverage_pct": 0.0
   },
@@ -681,27 +681,27 @@
    },
    {
     "label": "Sep 02",
-    "total": 1945.0
+    "total": 3025.0
    },
    {
     "label": "Sep 03",
-    "total": 1670.0
+    "total": 590.0
    },
    {
     "label": "Sep 04",
-    "total": 1519.0
+    "total": 1857.0
    },
    {
     "label": "Sep 05",
-    "total": 338.0
-   },
-   {
-    "label": "Sep 06",
     "total": 1160.0
    },
    {
+    "label": "Sep 06",
+    "total": 810.0
+   },
+   {
     "label": "Sep 07",
-    "total": 1745.0
+    "total": 935.0
    },
    {
     "label": "Sep 08",
@@ -709,11 +709,11 @@
    },
    {
     "label": "Sep 09",
-    "total": 650.0
+    "total": 852.0
    },
    {
     "label": "Sep 10",
-    "total": 202.0
+    "total": 0
    },
    {
     "label": "Sep 11",
@@ -729,11 +729,11 @@
    },
    {
     "label": "Sep 14",
-    "total": 0
+    "total": 1940.0
    },
    {
     "label": "Sep 15",
-    "total": 1940.0
+    "total": 0
    },
    {
     "label": "Sep 16",
@@ -745,19 +745,19 @@
    },
    {
     "label": "Sep 18",
-    "total": 1110.0
+    "total": 1880.0
    },
    {
     "label": "Sep 19",
-    "total": 770.0
+    "total": 0
    },
    {
     "label": "Sep 20",
-    "total": 1290.0
+    "total": 1520.0
    },
    {
     "label": "Sep 21",
-    "total": 230.0
+    "total": 0
    },
    {
     "label": "Sep 22",
@@ -793,7 +793,7 @@
    },
    {
     "label": "Sep 30",
-    "total": 0
+    "total": 119.0
    }
   ],
   "items_csv": [
@@ -883,20 +883,20 @@
    ]
   ],
   "net_profit": {
-   "avg_order_value": 840.0,
+   "avg_order_value": 808.93,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 92 items have no recipe — their cost is excluded.",
-   "discounts": 417.5,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 88 items have no recipe — their cost is excluded.",
+   "discounts": 438.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
-   "gross_profit": 24360.0,
-   "gross_revenue": 24360.0,
+   "gross_profit": 23459.0,
+   "gross_revenue": 23459.0,
    "gst_collected": 0.0,
    "items_with_recipe": 0,
-   "items_without_recipe": 92,
+   "items_without_recipe": 88,
    "net_margin_pct": 100.0,
-   "net_profit": 24360.0,
-   "net_revenue": 24360.0,
+   "net_profit": 23459.0,
+   "net_revenue": 23459.0,
    "operating_expenses": 0.0,
    "order_count": 29,
    "recipe_coverage_pct": 0.0
@@ -1557,28 +1557,28 @@
   ],
   "period_comparison": {
    "current": {
-    "avg_order": 842.34,
-    "discounts": 417.5,
+    "avg_order": 811.28,
+    "discounts": 438.5,
     "gst": 0.0,
     "orders": 29,
-    "revenue": 24428.0,
-    "subtotal": 24704.81
+    "revenue": 23527.0,
+    "subtotal": 23824.81
    },
    "deltas": {
-    "avg_order": 3.0,
-    "discounts": 53.2,
-    "orders": 2800.0,
-    "revenue": 2886.3
+    "avg_order": -11.7,
+    "discounts": 60.9,
+    "orders": 1350.0,
+    "revenue": 1180.0
    },
    "prev_end": "2026-08-31",
    "prev_start": "2026-08-02",
    "previous": {
-    "avg_order": 818.0,
+    "avg_order": 919.0,
     "discounts": 272.5,
     "gst": 0.0,
-    "orders": 1,
-    "revenue": 818.0,
-    "subtotal": 1090.0
+    "orders": 2,
+    "revenue": 1838.0,
+    "subtotal": 2110.0
    }
   },
   "pl_csv": [
@@ -1589,7 +1589,7 @@
    [],
    [
     "Gross Revenue",
-    "24360.0"
+    "23459.0"
    ],
    [
     "GST Collected",
@@ -1597,11 +1597,11 @@
    ],
    [
     "Net Revenue",
-    "24360.0"
+    "23459.0"
    ],
    [
     "Discounts Given",
-    "417.5"
+    "438.5"
    ],
    [
     "COGS",
@@ -1609,7 +1609,7 @@
    ],
    [
     "Gross Profit",
-    "24360.0"
+    "23459.0"
    ],
    [
     "Gross Margin %",
@@ -1621,7 +1621,7 @@
    ],
    [
     "NET PROFIT",
-    "24360.0"
+    "23459.0"
    ],
    [
     "Net Margin %",
@@ -1760,17 +1760,17 @@
    "total_sales": 35946.0
   },
   "gross_margin": {
-   "avg_order_value": 1052.03,
+   "avg_order_value": 1027.03,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 106 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
    "discounts": 639.5,
    "gross_margin_pct": 100.0,
-   "gross_profit": 33091.57,
-   "gross_revenue": 36821.0,
-   "gst_collected": 3729.43,
+   "gross_profit": 32350.97,
+   "gross_revenue": 35946.0,
+   "gst_collected": 3595.03,
    "items_with_recipe": 0,
-   "items_without_recipe": 106,
-   "net_revenue": 33091.57,
+   "items_without_recipe": 107,
+   "net_revenue": 32350.97,
    "order_count": 35,
    "recipe_coverage_pct": 0.0
   },
@@ -1991,19 +1991,19 @@
    },
    {
     "label": "Sep 03",
-    "total": 756.0
+    "total": 2948.0
    },
    {
     "label": "Sep 04",
-    "total": 2192.0
+    "total": 0
    },
    {
     "label": "Sep 05",
-    "total": 354.0
+    "total": 543.0
    },
    {
     "label": "Sep 06",
-    "total": 189.0
+    "total": 0
    },
    {
     "label": "Sep 07",
@@ -2019,19 +2019,19 @@
    },
    {
     "label": "Sep 10",
-    "total": 0
+    "total": 2438.0
    },
    {
     "label": "Sep 11",
-    "total": 2690.0
+    "total": 3144.0
    },
    {
     "label": "Sep 12",
-    "total": 2892.0
+    "total": 2554.0
    },
    {
     "label": "Sep 13",
-    "total": 3089.0
+    "total": 535.0
    },
    {
     "label": "Sep 14",
@@ -2051,15 +2051,15 @@
    },
    {
     "label": "Sep 18",
-    "total": 1089.0
+    "total": 1299.0
    },
    {
     "label": "Sep 19",
-    "total": 210.0
+    "total": 1394.0
    },
    {
     "label": "Sep 20",
-    "total": 1394.0
+    "total": 0
    },
    {
     "label": "Sep 21",
@@ -2071,15 +2071,15 @@
    },
    {
     "label": "Sep 23",
-    "total": 861.0
+    "total": 2582.0
    },
    {
     "label": "Sep 24",
-    "total": 4742.0
+    "total": 4737.0
    },
    {
     "label": "Sep 25",
-    "total": 1716.0
+    "total": 0
    },
    {
     "label": "Sep 26",
@@ -2091,15 +2091,15 @@
    },
    {
     "label": "Sep 28",
-    "total": 0
+    "total": 943.0
    },
    {
     "label": "Sep 29",
-    "total": 1136.0
+    "total": 193.0
    },
    {
     "label": "Sep 30",
-    "total": 2290.0
+    "total": 2548.0
    }
   ],
   "items_csv": [
@@ -2189,20 +2189,20 @@
    ]
   ],
   "net_profit": {
-   "avg_order_value": 1052.03,
+   "avg_order_value": 1027.03,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 106 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
    "discounts": 639.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
-   "gross_profit": 33091.57,
-   "gross_revenue": 36821.0,
-   "gst_collected": 3729.43,
+   "gross_profit": 32350.97,
+   "gross_revenue": 35946.0,
+   "gst_collected": 3595.03,
    "items_with_recipe": 0,
-   "items_without_recipe": 106,
+   "items_without_recipe": 107,
    "net_margin_pct": 100.0,
-   "net_profit": 33091.57,
-   "net_revenue": 33091.57,
+   "net_profit": 32350.97,
+   "net_revenue": 32350.97,
    "operating_expenses": 0.0,
    "order_count": 35,
    "recipe_coverage_pct": 0.0
@@ -2857,28 +2857,28 @@
   ],
   "period_comparison": {
    "current": {
-    "avg_order": 1052.03,
+    "avg_order": 1027.03,
     "discounts": 639.5,
-    "gst": 3729.43,
+    "gst": 3595.03,
     "orders": 35,
-    "revenue": 36821.0,
-    "subtotal": 33649.79
+    "revenue": 35946.0,
+    "subtotal": 32909.77
    },
    "deltas": {
-    "avg_order": 67.0,
+    "avg_order": 16.5,
     "discounts": 847.4,
-    "orders": 3400.0,
-    "revenue": 5744.6
+    "orders": 1650.0,
+    "revenue": 1938.9
    },
    "prev_end": "2026-08-31",
    "prev_start": "2026-08-02",
    "previous": {
-    "avg_order": 630.0,
+    "avg_order": 881.5,
     "discounts": 67.5,
-    "gst": 67.12,
-    "orders": 1,
-    "revenue": 630.0,
-    "subtotal": 629.97
+    "gst": 239.92,
+    "orders": 2,
+    "revenue": 1763.0,
+    "subtotal": 1589.97
    }
   },
   "pl_csv": [
@@ -2889,15 +2889,15 @@
    [],
    [
     "Gross Revenue",
-    "36821.0"
+    "35946.0"
    ],
    [
     "GST Collected",
-    "3729.43"
+    "3595.03"
    ],
    [
     "Net Revenue",
-    "33091.57"
+    "32350.97"
    ],
    [
     "Discounts Given",
@@ -2909,7 +2909,7 @@
    ],
    [
     "Gross Profit",
-    "33091.57"
+    "32350.97"
    ],
    [
     "Gross Margin %",
@@ -2921,7 +2921,7 @@
    ],
    [
     "NET PROFIT",
-    "33091.57"
+    "32350.97"
    ],
    [
     "Net Margin %",
@@ -3060,18 +3060,18 @@
    "total_sales": 28050.0
   },
   "gross_margin": {
-   "avg_order_value": 812.03,
+   "avg_order_value": 779.17,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 105 items have no recipe — their cost is excluded.",
-   "discounts": 1064.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
+   "discounts": 1275.5,
    "gross_margin_pct": 100.0,
-   "gross_profit": 25770.94,
-   "gross_revenue": 28421.0,
-   "gst_collected": 2650.06,
+   "gross_profit": 25536.13,
+   "gross_revenue": 28050.0,
+   "gst_collected": 2513.87,
    "items_with_recipe": 0,
-   "items_without_recipe": 105,
-   "net_revenue": 25770.94,
-   "order_count": 35,
+   "items_without_recipe": 107,
+   "net_revenue": 25536.13,
+   "order_count": 36,
    "recipe_coverage_pct": 0.0
   },
   "gstr1_workbook": {
@@ -3343,43 +3343,43 @@
    },
    {
     "label": "Sep 16",
-    "total": 0
+    "total": 310.0
    },
    {
     "label": "Sep 17",
-    "total": 670.0
+    "total": 360.0
    },
    {
     "label": "Sep 18",
-    "total": 0
+    "total": 508.0
    },
    {
     "label": "Sep 19",
-    "total": 1043.0
+    "total": 535.0
    },
    {
     "label": "Sep 20",
-    "total": 3034.0
+    "total": 5108.0
    },
    {
     "label": "Sep 21",
-    "total": 5818.0
+    "total": 3744.0
    },
    {
     "label": "Sep 22",
-    "total": 630.0
+    "total": 1280.0
    },
    {
     "label": "Sep 23",
-    "total": 650.0
+    "total": 0
    },
    {
     "label": "Sep 24",
-    "total": 60.0
+    "total": 2150.0
    },
    {
     "label": "Sep 25",
-    "total": 2190.0
+    "total": 100.0
    },
    {
     "label": "Sep 26",
@@ -3399,7 +3399,7 @@
    },
    {
     "label": "Sep 30",
-    "total": 820.0
+    "total": 2280.0
    }
   ],
   "items_csv": [
@@ -3489,22 +3489,22 @@
    ]
   ],
   "net_profit": {
-   "avg_order_value": 812.03,
+   "avg_order_value": 779.17,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 105 items have no recipe — their cost is excluded.",
-   "discounts": 1064.0,
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
+   "discounts": 1275.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
-   "gross_profit": 25770.94,
-   "gross_revenue": 28421.0,
-   "gst_collected": 2650.06,
+   "gross_profit": 25536.13,
+   "gross_revenue": 28050.0,
+   "gst_collected": 2513.87,
    "items_with_recipe": 0,
-   "items_without_recipe": 105,
+   "items_without_recipe": 107,
    "net_margin_pct": 100.0,
-   "net_profit": 25770.94,
-   "net_revenue": 25770.94,
+   "net_profit": 25536.13,
+   "net_revenue": 25536.13,
    "operating_expenses": 0.0,
-   "order_count": 35,
+   "order_count": 36,
    "recipe_coverage_pct": 0.0
   },
   "orders_csv": [
@@ -4157,28 +4157,28 @@
   ],
   "period_comparison": {
    "current": {
-    "avg_order": 829.49,
-    "discounts": 1064.0,
-    "gst": 2650.06,
-    "orders": 35,
-    "revenue": 29032.0,
-    "subtotal": 26218.79
+    "avg_order": 796.14,
+    "discounts": 1275.5,
+    "gst": 2513.87,
+    "orders": 36,
+    "revenue": 28661.0,
+    "subtotal": 25983.48
    },
    "deltas": {
-    "avg_order": -52.1,
-    "discounts": null,
-    "orders": 3400.0,
-    "revenue": 1578.2
+    "avg_order": -54.5,
+    "discounts": 14072.2,
+    "orders": 1700.0,
+    "revenue": 718.7
    },
    "prev_end": "2026-08-31",
    "prev_start": "2026-08-02",
    "previous": {
-    "avg_order": 1730.0,
-    "discounts": 0.0,
-    "gst": 258.65,
-    "orders": 1,
-    "revenue": 1730.0,
-    "subtotal": 1471.31
+    "avg_order": 1750.5,
+    "discounts": 9.0,
+    "gst": 473.43,
+    "orders": 2,
+    "revenue": 3501.0,
+    "subtotal": 3027.53
    }
   },
   "pl_csv": [
@@ -4189,19 +4189,19 @@
    [],
    [
     "Gross Revenue",
-    "28421.0"
+    "28050.0"
    ],
    [
     "GST Collected",
-    "2650.06"
+    "2513.87"
    ],
    [
     "Net Revenue",
-    "25770.94"
+    "25536.13"
    ],
    [
     "Discounts Given",
-    "1064.0"
+    "1275.5"
    ],
    [
     "COGS",
@@ -4209,7 +4209,7 @@
    ],
    [
     "Gross Profit",
-    "25770.94"
+    "25536.13"
    ],
    [
     "Gross Margin %",
@@ -4221,7 +4221,7 @@
    ],
    [
     "NET PROFIT",
-    "25770.94"
+    "25536.13"
    ],
    [
     "Net Margin %",

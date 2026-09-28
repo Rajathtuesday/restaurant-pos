@@ -24,6 +24,7 @@ from decimal import Decimal
 
 from django.db.models import Sum, Count
 
+from core.utils import get_business_period
 from orders.models import Order, OrderItem, Payment
 from reports.services.cogs import item_cogs_map
 import logging
@@ -38,10 +39,12 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     if not start_date or not end_date:
         return _empty()
 
+    # Business days (6 AM to 6 AM), as every sales report counts them
+    period_start, period_end = get_business_period(start_date, end_date, outlet)
     order_qs = Order.objects.filter(
         tenant=tenant,
-        created_at__date__gte=start_date,
-        created_at__date__lte=end_date,
+        created_at__gte=period_start,
+        created_at__lt=period_end,
         status__in=["closed", "paid"],
     )
     if outlet:

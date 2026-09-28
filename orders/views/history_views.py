@@ -20,6 +20,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from core.decorators import tenant_required, role_required
+from core.utils import get_business_date, get_business_date_range, get_business_period
 from orders.models import Order, OrderItem, Payment, OrderEvent
 from payments.models import Refund
 
@@ -41,7 +42,8 @@ def _base_queryset(request):
     tenant = user.tenant
     outlet = user.outlet
     role   = user.role
-    today  = timezone.localdate()
+    # Today is the business day (6 AM to 6 AM): a bill at 1 AM is still today's
+    today  = get_business_date(timezone.now(), outlet)
 
     if role == "chef":
         return None, False  # no access
@@ -58,21 +60,22 @@ def _base_queryset(request):
 
     if role == "waiter":
         # Only their own orders, today only
-        base = base.filter(created_by=user, created_at__date=today)
+        day_start, day_end = get_business_date_range(today, outlet)
+        base = base.filter(created_by=user, created_at__gte=day_start, created_at__lt=day_end)
         return base, True
 
     if role == "cashier":
         # All outlet orders, last 30 days
-        cutoff = today - timedelta(days=30)
-        base   = base.filter(created_at__date__gte=cutoff)
+        cutoff, _ = get_business_date_range(today - timedelta(days=30), outlet)
+        base   = base.filter(created_at__gte=cutoff)
         return base, True
 
     if role == "captain":
         # All outlet orders (captain supervises multiple waiters, not just
         # their own tickets) but a tighter window than cashier's 30 days —
         # a middle tier between waiter (own orders, today) and cashier.
-        cutoff = today - timedelta(days=7)
-        base   = base.filter(created_at__date__gte=cutoff)
+        cutoff, _ = get_business_date_range(today - timedelta(days=7), outlet)
+        base   = base.filter(created_at__gte=cutoff)
         return base, True
 
     # owner / manager — everything. NOTE: this is a fail-open default —
@@ -82,9 +85,9 @@ def _base_queryset(request):
     return base, False
 
 
-def _apply_filters(qs, params, is_restricted):
-    """Apply GET filter params to queryset, respecting role restrictions."""
-    today = timezone.localdate()
+def _apply_filters(qs, params, is_restricted, outlet=None):
+    """Apply GET filter params to queryset, respecting role restrictions.
+    Dates are business days (6 AM to 6 AM), as in every report."""
 
     # Date range — restricted roles cannot go beyond their allowed window
     date_from = params.get("date_from", "")
@@ -93,7 +96,7 @@ def _apply_filters(qs, params, is_restricted):
     if date_from:
         try:
             df = date.fromisoformat(date_from)
-            qs = qs.filter(created_at__date__gte=df)
+            qs = qs.filter(created_at__gte=get_business_period(df, df, outlet)[0])
         except ValueError:
             pass
     elif not is_restricted:
@@ -104,7 +107,7 @@ def _apply_filters(qs, params, is_restricted):
     if date_to:
         try:
             dt = date.fromisoformat(date_to)
-            qs = qs.filter(created_at__date__lte=dt)
+            qs = qs.filter(created_at__lt=get_business_period(dt, dt, outlet)[1])
         except ValueError:
             pass
 
@@ -164,7 +167,7 @@ def order_history_view(request):
         return HttpResponseForbidden("Kitchen staff cannot access order history.")
 
     qs, is_restricted = _base_queryset(request)
-    qs = _apply_filters(qs, request.GET, is_restricted)
+    qs = _apply_filters(qs, request.GET, is_restricted, request.user.outlet)
 
     # Summary stats for the filtered set (before pagination)
     summary = qs.exclude(status="cancelled").aggregate(
@@ -378,7 +381,7 @@ def export_orders_csv(request):
     user = request.user
 
     qs, is_restricted = _base_queryset(request)
-    qs = _apply_filters(qs, request.GET, is_restricted)
+    qs = _apply_filters(qs, request.GET, is_restricted, request.user.outlet)
     # Annotate the item count in the same query instead of calling
     # order.items.count() per row below — that was one extra query per CSV
     # row, up to EXPORT_LIMIT (2000) round trips for a single export.

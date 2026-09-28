@@ -717,6 +717,7 @@ All bill maths lives in one place, `orders/services/tax_engine.py`; its docstrin
 | Liquor bills | `orders/tests/test_golden_liquor.py` + `golden/liquor_totals_v1.jsonl` | 1,000 fixed pub bills (food on GST, liquor on VAT at 0%, 5.5%, 10%, 20%), against the engine and against `legacy_totals.liquor_totals` |
 | Liquor rules | `orders/tests/test_liquor_vat.py` | Line snapshots, the feature switch, Swiggy/Zomato refusal, menu sync, the GST Rates page, the composition guard (D7), Karnataka's 0% default |
 | Cart copy | `orders/tests/test_cart_tax_js.py` | `static/js/cart_tax.js` run in Node against the real engine, food and pub carts |
+| Business day | `reports/tests/test_business_day.py` | Standing at 1 AM: every report (P&L, comparison, daily sales, the daily chart, stock consumption and variance, order history) puts a 12:30 AM sale on the business day still trading |
 | Bill numbers | `orders/tests/test_bill_numbers.py` | One series per outlet per financial year, at most 16 characters, given at billing with no gaps; stale copies and screens billing at once (Postgres row locks); both migrations on real rows |
 | No GSTIN, no GST | `orders/tests/test_gst_registration.py` | An outlet without a valid GSTIN bills no GST and its bill says "Bill"; every screen that saves a GSTIN refuses one that isn't; old bills keep the GST they were billed with; an issued bill keeps its wording; the demo keeps its sample GSTIN |
 

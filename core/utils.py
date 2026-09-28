@@ -1,4 +1,7 @@
 from datetime import timedelta, datetime, time
+
+from django.db.models import DateTimeField, ExpressionWrapper, F
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 
 
@@ -26,6 +29,13 @@ def get_client_ip(request):
     return request.META.get("REMOTE_ADDR", "")
 
 
+def _cutoff_hour(outlet=None):
+    """The hour a business day starts: the outlet's, 6 AM by default."""
+    if outlet and hasattr(outlet, 'business_day_start_hour'):
+        return outlet.business_day_start_hour
+    return 6
+
+
 def get_business_date(dt=None, outlet=None):
     """
     Returns the business date for a given datetime based on the outlet's
@@ -37,11 +47,7 @@ def get_business_date(dt=None, outlet=None):
     # Convert to local time
     local_dt = timezone.localtime(dt)
     
-    # Get cutoff from outlet, default to 6 AM
-    cutoff_hour = 6
-    if outlet and hasattr(outlet, 'business_day_start_hour'):
-        cutoff_hour = outlet.business_day_start_hour
-        
+    cutoff_hour = _cutoff_hour(outlet)
     if local_dt.hour < cutoff_hour:
         return local_dt.date() - timedelta(days=1)
 
@@ -62,12 +68,29 @@ def get_business_date_range(business_date, outlet=None):
     as still belonging to the previous business day. Use this range with
     `created_at__gte=start, created_at__lt=end` to match that.
     """
-    cutoff_hour = 6
-    if outlet and hasattr(outlet, 'business_day_start_hour'):
-        cutoff_hour = outlet.business_day_start_hour
-
-    naive_start = datetime.combine(business_date, time(hour=cutoff_hour))
+    naive_start = datetime.combine(business_date, time(hour=_cutoff_hour(outlet)))
     current_tz = timezone.get_current_timezone()
     start = timezone.make_aware(naive_start, current_tz)
     end = start + timedelta(days=1)
     return start, end
+
+
+def get_business_period(start_date, end_date, outlet=None):
+    """The (start, end) bounds of the business days start_date to end_date,
+    both included: from the cutoff hour on start_date to the cutoff hour after
+    end_date. Filter with `created_at__gte=start, created_at__lt=end`, as for
+    one day with get_business_date_range(). Every report that counts a day, a
+    week or a month counts it this way, so they all agree on where a sale at
+    1 AM belongs."""
+    start, _ = get_business_date_range(start_date, outlet)
+    _, end = get_business_date_range(end_date, outlet)
+    return start, end
+
+
+def business_date_of(field, outlet=None):
+    """A database expression for the business day a timestamp falls in, to
+    group rows by day: the local date once the clock is moved back by the
+    cutoff hour, so a payment at 1 AM counts on the day still trading. (A
+    plain TruncDate groups by the calendar day.)"""
+    shifted = ExpressionWrapper(F(field) - timedelta(hours=_cutoff_hour(outlet)), output_field=DateTimeField())
+    return TruncDate(shifted)

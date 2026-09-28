@@ -27,6 +27,7 @@ from django.utils import timezone
 
 from accounts.models import User
 from core.db_guard import require_postgres_in_production
+from core.utils import get_business_date
 from inventory.models import InventoryItem, InventoryTransaction, Recipe
 from kitchen.models import KOTBatch
 from kitchen.services.kot_service import create_kot
@@ -305,7 +306,9 @@ class LedgerAndReportTests(TestCase):
 
     def setUp(self):
         _world(self)
-        self.day = timezone.localdate()
+        # Reports count the business day (6 AM to 6 AM): between midnight and
+        # 6 AM the calendar is already on the next day.
+        self.day = get_business_date(timezone.now(), self.outlet)
 
     def _net(self, kind):
         return InventoryTransaction.objects.filter(

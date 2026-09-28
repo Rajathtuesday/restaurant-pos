@@ -15,6 +15,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from core.utils import get_business_date
 from inventory.models import InventoryItem, InventoryTransaction
 from reports.services.inventory_reports import inventory_cost, inventory_usage, inventory_wastage
 from reports.tests.test_reports import create_base_fixtures
@@ -24,7 +25,9 @@ class InventoryReportAmountsTest(TestCase):
 
     def setUp(self):
         self.tenant, self.outlet, self.user, _ = create_base_fixtures()
-        self.day = timezone.localdate()
+        # Reports count the business day (6 AM to 6 AM): between midnight and
+        # 6 AM the calendar is already on the next day.
+        self.day = get_business_date(timezone.now(), self.outlet)
         self.rice = self._item("Basmati Rice", "120")
         self.paneer = self._item("Paneer", "400")
         self.oil = self._item("Oil", "150")
