@@ -112,7 +112,8 @@ def _bill(rng, tenant, outlet, dishes, number, opened_at, edge):
         dtype, dval = "amount", Decimal(rng.choice(["50", "100"]))
     parcel = Decimal(rng.choice(["10", "20", "30"])) if rng.random() < 0.2 else Decimal("0")
     order = Order.objects.create(
-        tenant=tenant, outlet=outlet, status=status, order_number=number, source="dine_in",
+        tenant=tenant, outlet=outlet, status="open" if status in ("paid", "closed") else status,
+        order_number=number, source="dine_in",
         discount_type=dtype, discount_value=dval, parcel_surcharge=parcel,
         # as toggle_parcel does: the outlet's parcel GST rate, copied onto the bill
         parcel_gst_rate=outlet.parcel_gst_rate if parcel else None,
@@ -128,8 +129,13 @@ def _bill(rng, tenant, outlet, dishes, number, opened_at, edge):
             item_discount_pct=Decimal(rng.choice(["10", "25"])) if 0.09 <= roll < 0.17 else Decimal("0"),
         )
     order.recalculate_totals()
+    # Opened on its day, then settled: the bill number's year comes from the
+    # day the order was opened, so the month never depends on today.
+    order.created_at = opened_at
     Order.objects.filter(pk=order.pk).update(created_at=opened_at)
     if status in ("paid", "closed"):
+        order.status = status
+        order.save(update_fields=["status"])
         _pay(rng, order, opened_at + dt.timedelta(minutes=45))
 
 

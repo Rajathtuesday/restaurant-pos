@@ -190,7 +190,7 @@ def make_order(tenant, outlet, dishes, mode_index, bill_index, bill):
     order = Order.objects.create(
         tenant=tenant, outlet=outlet, table=table,
         source="dine_in" if table else "counter",
-        status="paid" if bill.get("pay") else "open",
+        status="open",
         order_number=f"GOLD-{mode_index}{bill_index}",
         discount_type=dtype, discount_value=Decimal(dval),
         parcel_surcharge=Decimal(bill.get("parcel", "0")),
@@ -208,9 +208,14 @@ def make_order(tenant, outlet, dishes, mode_index, bill_index, bill):
         TokenOrder.objects.create(tenant=tenant, outlet=outlet, order=order,
                                   token_number=bill["token"], date=BILLED_AT.date())
     order.recalculate_totals()
+    # Opened on the fixed day, then billed: the bill number's year comes from
+    # the day the order was opened, so the printouts never depend on today.
+    order.created_at = BILLED_AT + dt.timedelta(minutes=bill_index)
+    Order.objects.filter(pk=order.pk).update(created_at=order.created_at)
     if bill.get("pay"):
+        order.status = "paid"
+        order.save(update_fields=["status"])
         Payment.objects.create(order=order, method=bill["pay"], amount=order.grand_total)
-    Order.objects.filter(pk=order.pk).update(created_at=BILLED_AT + dt.timedelta(minutes=bill_index))
     return Order.objects.get(pk=order.pk)
 
 

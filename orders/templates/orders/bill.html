@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 {% load static %}
-{% block title %}Invoice #{{ order.order_number|default:order.id }} | {{ order.outlet.name }}{% endblock %}
+{% block title %}Invoice #{{ order.display_number }} | {{ order.outlet.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -189,7 +189,7 @@
 
         <!-- Order meta -->
         <div class="meta">
-            <div><span class="label">{% if is_composition %}Bill of Supply{% elif is_unregistered %}Bill{% else %}Tax Invoice{% endif %}</span><span>{{ order.order_number|default:order.id }}</span></div>
+            <div><span class="label">{% if is_composition %}Bill of Supply{% elif is_unregistered %}Bill{% else %}Tax Invoice{% endif %}</span><span>{{ order.display_number }}</span></div>
             <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
         </div>
         <div class="meta" style="margin-top:-6px">
@@ -484,7 +484,7 @@ trying to pay, even if the path had been right.
 // manual edit to the payment field) changed it. Now re-callable any time
 // the amount changes, from updateChange() below.
 function renderUpiQR(amount) {
-    const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am=" + amount + "&cu=INR&tn=Order%20{{ order.order_number|default:order.id }}";
+    const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am=" + amount + "&cu=INR&tn=Bill%20{{ order.display_number|urlencode }}";
     const canvasWrap = document.getElementById('upi-qr-canvas');
     const fallback = document.getElementById('upi-qr-fallback');
     canvasWrap.innerHTML = '';       // clear the previous canvas -- otherwise

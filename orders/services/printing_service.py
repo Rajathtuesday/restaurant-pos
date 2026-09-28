@@ -256,7 +256,7 @@ class PrintingService:
 
         # ── INVOICE INFO — centered block, Font A ───────────────────────
         p.set(align="center", bold=False, font='a')
-        p.text(tc("Bill No.", str(order.order_number or order.id)) + "\n")
+        p.text(tc("Bill No.", order.display_number) + "\n")
         # created_at is stored in UTC; the bill shows the outlet's local time
         p.text(tc("Date", timezone.localtime(order.created_at).strftime("%d/%m/%Y %H:%M")) + "\n")
         if order.table:
@@ -386,7 +386,7 @@ class PrintingService:
             p.text(f"Token {order.token.display_number}\n")
             p.set(bold=False, double_width=False, double_height=False)
         else:
-            p.text(f"Bill : {order.order_number or order.id}\n")
+            p.text(f"Bill : {order.display_number}\n")
         p.text(f"Date : {timezone.localtime(order.created_at).strftime('%d/%m/%Y %H:%M')}\n")
         p.text(self._sep() + "\n")
 

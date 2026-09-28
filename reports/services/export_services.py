@@ -57,7 +57,7 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
         writer.writerow([])  # blank separator row
 
     writer.writerow([
-        'Order ID', 'Order No', 'Date', 'Time', 'Outlet', 'Source',
+        'Order ID', 'Order No', 'Bill No', 'Date', 'Time', 'Outlet', 'Source',
         'Status', 'Customer Name', 'Subtotal', 'Discount', 'GST',
         'Round Off', 'Grand Total', 'Payment Methods'
     ])
@@ -82,6 +82,7 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
         writer.writerow([
             order.id,
             order.order_number or '-',
+            order.bill_number or '-',
             opened.strftime('%Y-%m-%d'),
             opened.strftime('%H:%M:%S'),
             order.outlet.name if order.outlet else 'Unknown',

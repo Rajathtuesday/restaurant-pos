@@ -316,7 +316,7 @@
       {% for order in page.object_list %}
       <tr onclick="openDetail({{ order.id }})"
           class="{% if order.status == 'cancelled' %}cancelled{% endif %}">
-        <td><span class="order-num">{{ order.order_number|default:order.id }}</span></td>
+        <td><span class="order-num">{{ order.display_number }}</span></td>
         <td>
           <div style="font-size:0.85rem;">{{ order.created_at|date:"d M y" }}</div>
           <div style="font-size:0.72rem;color:var(--text-muted);">{{ order.created_at|date:"H:i" }}</div>

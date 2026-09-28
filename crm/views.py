@@ -130,7 +130,7 @@ def link_guest_to_order(request, order_id):
                     guest=guest, order=order,
                     transaction_type="earn",
                     points=earned,
-                    description=f"Order #{order.order_number}"
+                    description=f"Bill {order.display_number}"
                 )
 
             if redeem_points > 0:
@@ -138,7 +138,7 @@ def link_guest_to_order(request, order_id):
                     guest=guest, order=order,
                     transaction_type="redeem",
                     points=-redeem_points,
-                    description=f"Redeemed on Order #{order.order_number}"
+                    description=f"Redeemed on bill {order.display_number}"
                 )
 
             # Atomic update

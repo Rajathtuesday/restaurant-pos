@@ -287,6 +287,7 @@ class ExportServicesTest(TestCase):
 
         self.assertIn("Order ID", headers)
         self.assertIn("Order No", headers)
+        self.assertIn("Bill No", headers)
         self.assertIn("Grand Total", headers)
 
     def test_generate_orders_csv_contains_order_data(self):
@@ -294,12 +295,12 @@ class ExportServicesTest(TestCase):
         from reports.services.export_services import generate_orders_csv
         result = generate_orders_csv(self.tenant, self.outlet, self.today, self.today)
         reader = csv.reader(io.StringIO(result))
-        next(reader)  # skip header
+        headers = next(reader)
         rows = list(reader)
 
         self.assertEqual(len(rows), 1)
-        # Grand total column (index 12) should be 500
-        self.assertIn("500", rows[0][12])
+        # found by its header, so a new column never moves it
+        self.assertIn("500", rows[0][headers.index("Grand Total")])
 
     def test_generate_items_csv_returns_string(self):
         """Should return a non-empty CSV string."""

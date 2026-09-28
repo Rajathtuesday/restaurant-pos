@@ -21,7 +21,7 @@ from datetime import timedelta
 
 from tenants.models import SAMPLE_GSTIN, Tenant, TenantFeatureOverride
 from accounts.models import User
-from orders.models import Table, Order, OrderItem, Payment
+from orders.models import BillSeries, Table, Order, OrderItem, Payment
 from menu.models import MenuCategory, MenuItem
 from setup.models import PaymentConfig
 from inventory.models import InventoryItem
@@ -253,6 +253,8 @@ def _clear_transactional_data(tenant):
     # including the scheduled one every 2 hours. Payments must go first.
     Payment.objects.filter(order__tenant=tenant).delete()
     Order.objects.filter(tenant=tenant).delete()
+    # With the bills gone, their series start again from 000001.
+    BillSeries.objects.for_tenant(tenant).delete()
 
 
 def _seed_sample_orders(tenant, outlet, tables, items_by_name, owner):

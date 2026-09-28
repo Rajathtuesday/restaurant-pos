@@ -7,6 +7,24 @@ the source of truth.
 
 ---
 
+## 2026-09-29: bill numbers within the law (P18)
+
+A tax invoice's number may have at most 16 characters and must be unique in its financial year (CGST Rules, rule 46(b)). Rasova's had 19 or more (`INV-6-20260928-0001`), in a new series every day, and every order took one when it was opened, so orders cancelled before their bill left gaps.
+
+### Changed
+- **Bills are numbered like SG/2627/000123** - one series per outlet per financial year (April to March): the outlet's code, the year, the bill's place in the series. At most 16 characters, for up to 9,999,999 bills an outlet a year (`orders/services/bill_numbers.py`).
+- **A number is given when the order is billed** - the Bill button, a payment, or an order that arrives paid; never when it is opened. An order cancelled before its bill leaves no gap, and a bill cancelled after keeps its number. Two screens billing at once still give one number, and a screen holding an older copy can't wipe it. The year is the one of the order's business day, as in the reports.
+- **Every bill shows it** - the bill page, the thermal and printed receipts, the WhatsApp bill and message, the QSR bill, order history (searchable), refunds and loyalty entries, and a new "Bill No" column in the orders CSV. Before an order is billed, screens show its order number as before; the kitchen keeps the order number.
+- **Old bills keep their numbers** - bills already presented or paid keep the number they were printed with (copied into the new `Order.bill_number`). Orders still open when this goes live get a new number when billed.
+
+### Added
+- **A bill number code for each outlet** - up to 3 letters or digits, set from the restaurant's name ("Spice Garden" -> SG, a second outlet SG2), editable in Outlet Settings, which shows what the next number looks like. A code that isn't one, or that another outlet uses, is refused with the reason; a new code starts a new series. Every existing outlet gets one when this goes live.
+- `BillSeries` keeps each series and its last number, for the Table 13 work (P23). The admin lists and searches bill numbers, and the demo's series start again with each reset.
+
+### Tests
+- `orders/tests/test_bill_numbers.py` (22): the year and code rules; numbering at billing with no gaps, per outlet and per year; stale copies; screens billing at once on real row locks (eight bills together, and one bill on two screens); both migrations run on rows as they are in production; the settings, the printouts and the demo reset. Breaking each rule on purpose (numbering at opening, no re-read under the lock, stale saves, the year from today, shared codes) fails them.
+- Golden receipts: the 44 bill number lines changed from their test labels to GB/2627/000001 and on, nothing else. Golden reports: the orders CSV gains its "Bill No" column, nothing else. Both golden builders now bill an order after giving it its fixed date, so the goldens never depend on today's date.
+
 ## 2026-09-28 (night): every GSTR-1 column readable (P26)
 
 ### Fixed

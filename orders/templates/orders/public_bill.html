@@ -66,7 +66,7 @@
   </div>
 
   <div class="meta">
-    <div><span class="lbl">Bill No.</span>{{ order.order_number|default:order.id }}</div>
+    <div><span class="lbl">Bill No.</span>{{ order.display_number }}</div>
     <div><span class="lbl">Date</span>{{ order.created_at|date:"d M Y, h:i A" }}</div>
   </div>
 

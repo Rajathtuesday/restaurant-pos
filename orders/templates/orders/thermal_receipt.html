@@ -91,7 +91,7 @@ body {
 {% if is_comp %}<div class="center bold small">BILL OF SUPPLY</div>{% endif %}
 <div class="sep-solid"></div>
 {% if token %}<div class="token-num">TOKEN {{ token }}</div>
-{% else %}<div class="row small"><span class="label">Bill</span><span class="value">{{ order.order_number }}</span></div>{% endif %}
+{% else %}<div class="row small"><span class="label">Bill</span><span class="value">{{ order.display_number }}</span></div>{% endif %}
 <div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
 <div class="sep"></div>
 
@@ -157,7 +157,7 @@ body {
 <div class="token-num">TOKEN {{ token }}</div>
 <div class="sep"></div>
 {% else %}
-<div class="row small"><span class="label">Bill No.</span><span class="value">{{ order.order_number }}</span></div>
+<div class="row small"><span class="label">Bill No.</span><span class="value">{{ order.display_number }}</span></div>
 {% if order.table %}<div class="row small"><span class="label">Table</span><span class="value">{{ order.table.name }}</span></div>{% endif %}
 <div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
 <div class="sep"></div>

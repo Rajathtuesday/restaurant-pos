@@ -7,6 +7,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.db import models, transaction
 from core.models import TenantScopedModel
 from orders.exceptions import IssuedBillError  # noqa: F401 -- also imported from here
+from orders.services.bill_numbers import BILLED, next_bill_number
 from orders.services.tax_engine import (
     COMPOSITION, GST, REGULAR, VAT, Line, compute as compute_tax, rows_from_summary, sections_from_summary,
 )
@@ -116,6 +117,17 @@ class Order(TenantScopedModel):
         blank=True
     )
 
+    # The number printed on the bill: SG/2627/000123, the next in the outlet's
+    # series for the financial year, given the first time the order is billed
+    # (orders/services/bill_numbers.py). Bills issued before bill numbers came
+    # in keep the order number they were printed with, copied in here.
+    bill_number = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        editable=False,
+    )
+
     source = models.CharField(
         max_length=20,
         choices=SOURCE_CHOICES,
@@ -195,11 +207,21 @@ class Order(TenantScopedModel):
                 fields=["outlet", "aggregator_order_id"],
                 condition=~Q(aggregator_order_id="") & Q(aggregator_order_id__isnull=False),
                 name="unique_aggregator_order_per_outlet"
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["outlet", "bill_number"],
+                name="unique_bill_number_per_outlet",
+            ),
         ]
 
     def __str__(self):
         return f"Order {self.order_number or self.id}"
+
+    @property
+    def display_number(self):
+        """The number to print for this order: its bill number once it has
+        been billed, its order number before that."""
+        return self.bill_number or self.order_number or str(self.id)
 
     # -------------------------------------------------
     # SAFE ORDER NUMBER GENERATION
@@ -211,13 +233,38 @@ class Order(TenantScopedModel):
     # -------------------------------------------------
     def save(self, *args, **kwargs):
         creating = self._state.adding
+        if not creating and not self.bill_number and kwargs.get("update_fields") is None:
+            # A copy read before another screen billed the order must never
+            # wipe the bill number that screen gave it. (Fields the copy was
+            # read without stay out, as Django leaves them out of a full save.)
+            deferred = self.get_deferred_fields()
+            kwargs["update_fields"] = [field.name for field in self._meta.concrete_fields
+                                       if not field.primary_key and field.name != "bill_number"
+                                       and field.attname not in deferred]
+        # The first save of the order as billed gives it its bill number.
+        needs_bill_number = self.status in BILLED and not self.bill_number and self.outlet_id
 
-        if creating and not self.order_number:
+        if (creating and not self.order_number) or needs_bill_number:
             with transaction.atomic():
                 super().save(*args, **kwargs)
-                self._generate_order_number()
+                if creating and not self.order_number:
+                    self._generate_order_number()
+                if needs_bill_number:
+                    self._issue_bill_number()
         else:
             super().save(*args, **kwargs)
+
+    def _issue_bill_number(self):
+        """Give the order its bill number (orders/services/bill_numbers.py).
+        Runs inside save()'s transaction with the order's row locked, so two
+        screens billing it at once give it one number, never two."""
+        current = (Order.objects.select_for_update().filter(pk=self.pk)
+                   .values_list("bill_number", flat=True).first())
+        if current:
+            self.bill_number = current
+            return
+        self.bill_number = next_bill_number(self)
+        Order.objects.filter(pk=self.pk).update(bill_number=self.bill_number)
 
     def _generate_order_number(self):
         from core.utils import get_business_date
@@ -307,8 +354,8 @@ class Order(TenantScopedModel):
         REGULAR (a tax invoice), COMPOSITION (a bill of supply) or
         UNREGISTERED (the outlet had no GSTIN, so no GST). From the tax
         record, so a later change to the outlet never rewords an issued bill.
-        A record from before the scheme was kept (28 September 2026) belongs
-        to a bill that followed the outlet's composition setting, GSTIN or not.
+        A record from before the scheme was kept belongs to a bill that
+        followed the outlet's composition setting, GSTIN or not.
         """
         scheme = (self.tax_summary or {}).get("scheme")
         if scheme:
@@ -879,6 +926,27 @@ class DailyOrderCounter(TenantScopedModel):
 
     def __str__(self):
         return f"{self.tenant} | {self.outlet} | {self.date} -> {self.value}"
+
+
+class BillSeries(TenantScopedModel):
+    """One outlet's series of bill numbers for one financial year ("SG/2627")
+    and the last number it gave out (orders/services/bill_numbers.py). A
+    changed bill_code starts a new series; the old one stays, for the
+    return's list of documents issued."""
+
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE, related_name="bill_series")
+    prefix = models.CharField(max_length=12)
+    last_number = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = "bill series"
+        constraints = [
+            models.UniqueConstraint(fields=["outlet", "prefix"], name="unique_bill_series_per_outlet"),
+        ]
+
+    def __str__(self):
+        return f"{self.prefix}: {self.last_number}"
     
 
 # TableMerge moved to tablemerge/models.py (Phase 5 of the orders app split,

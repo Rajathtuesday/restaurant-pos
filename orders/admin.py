@@ -24,10 +24,12 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "order_number",
+        "bill_number",
         "table",
         "status",
         "grand_total",
         "created_at"
     )
+    search_fields = ("order_number", "bill_number")
 
     inlines = [OrderItemInline]

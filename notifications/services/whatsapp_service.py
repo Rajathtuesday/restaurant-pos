@@ -180,7 +180,7 @@ def _build_message(order, bill_url: str) -> str:
         f"*{tenant_name}*",
         f"Thank you for your visit!",
         f"",
-        f"*Order #{order.order_number or order.id}*",
+        f"*Bill {order.display_number}*",
     ]
 
     try:

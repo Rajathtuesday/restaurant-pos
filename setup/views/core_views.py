@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 
 from orders.models import Table
 from menu.models import MenuCategory, MenuItem
-from tenants.models import NO_GSTIN_MESSAGE, Outlet, read_gstin
+from tenants.models import NO_GSTIN_MESSAGE, Outlet, read_bill_code, read_gstin
 from setup.models import KitchenStation, PaymentConfig
 from core.decorators import tenant_required, role_required
 from accounts.demo_restrictions import is_demo_trailer, blocked_in_demo_trailer, BLOCKED_MESSAGE
@@ -1036,6 +1036,11 @@ def outlet_settings(request):
             messages.error(request, gstin_error)
         else:
             outlet.gst_no = gstin
+        bill_code, bill_code_error = read_bill_code(request.POST.get("bill_code"), outlet)
+        if bill_code_error:
+            messages.error(request, bill_code_error)
+        elif bill_code:
+            outlet.bill_code = bill_code
         outlet.fssai_no     = fssai_no
         outlet.sac_code     = sac_code
         outlet.gst_inclusive = gst_inclusive
@@ -1105,11 +1110,14 @@ def outlet_settings(request):
             messages.warning(request, NO_GSTIN_MESSAGE)
         return redirect("outlet_settings")
 
+    from core.utils import get_business_date
+    from orders.services.bill_numbers import series_prefix
     from orders.services.tax_service import GST_RATE_CHOICES
     return render(request, "setup/outlet_settings.html", {
         "outlet": outlet,
         "tenant": tenant,
         "parcel_gst_rates": GST_RATE_CHOICES,
+        "bill_number_example": f"{series_prefix(outlet, get_business_date(timezone.now(), outlet))}/000001",
     })
 
 

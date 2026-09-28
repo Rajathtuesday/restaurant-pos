@@ -143,6 +143,7 @@ def _apply_filters(qs, params, is_restricted):
     if q:
         qs = qs.filter(
             Q(order_number__icontains=q) |
+            Q(bill_number__icontains=q) |
             Q(customer_phone__icontains=q) |
             Q(customer_name__icontains=q)
         )
@@ -343,7 +344,7 @@ def order_detail_api(request, order_id):
 
     return JsonResponse({
         "id":             order.id,
-        "order_number":   order.order_number or str(order.id),
+        "order_number":   order.display_number,
         "status":         order.status,
         "user_role":      user.role,
         "can_refund":     user.role in ("manager", "owner") and order.status in ("closed", "paid"),
@@ -394,7 +395,7 @@ def export_orders_csv(request):
 
     writer = csv.writer(response)
     writer.writerow([
-        "Order #", "Date", "Time", "Location", "Source",
+        "Order #", "Bill No.", "Date", "Time", "Location", "Source",
         "Waiter", "Items", "Subtotal (Rs)",
         "GST (Rs)", "Discount (Rs)", "Total (Rs)",
         "Cash (Rs)", "UPI (Rs)", "Card (Rs)", "Refund (Rs)",
@@ -438,6 +439,7 @@ def export_orders_csv(request):
         local_created = timezone.localtime(order.created_at)
         writer.writerow([
             order.order_number or order.id,
+            order.bill_number or "",
             local_created.strftime("%d/%m/%Y"),
             local_created.strftime("%H:%M"),
             location,

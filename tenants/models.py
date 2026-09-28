@@ -38,6 +38,41 @@ INVALID_GSTIN_MESSAGE = (
 )
 
 
+BILL_CODE_REGEX = r'^[A-Z0-9]{1,3}$'
+BILL_CODE_RULE = "A bill number code is up to 3 capital letters or digits, like SG."
+
+
+def suggest_bill_code(name, taken=()):
+    """A code for an outlet's bill numbers (orders/services/bill_numbers.py),
+    from the restaurant's name: its initials ("Spice Garden" -> "SG"), or the
+    first three letters of a one-word name ("Malenadu" -> "MAL"). A digit
+    keeps it apart from the codes in `taken` ("SG2")."""
+    words = re.findall(r"[A-Za-z0-9]+", name or "")
+    base = ("".join(word[0] for word in words) if len(words) > 1 else "".join(words))[:3].upper() or "R"
+    if base not in taken:
+        return base
+    for n in range(2, 1000):
+        candidate = base[:3 - len(str(n))] + str(n)
+        if candidate not in taken:
+            return candidate
+    raise ValueError(f"no free bill number code for {name!r}")
+
+
+def read_bill_code(raw, outlet):
+    """A bill number code typed into Outlet Settings. Returns (code, None) to
+    save, (None, None) when left blank (the outlet keeps its code), and
+    (None, message) when it can't be used."""
+    value = re.sub(r"\s+", "", raw or "").upper()
+    if not value:
+        return None, None
+    if not re.fullmatch(BILL_CODE_REGEX, value):
+        return None, f"{value} can't start bill numbers. {BILL_CODE_RULE}"
+    clash = Outlet.objects.filter(tenant_id=outlet.tenant_id, bill_code=value).exclude(pk=outlet.pk).first()
+    if clash:
+        return None, f"{value} already starts the bills of {clash.name}: each outlet needs its own code."
+    return value, None
+
+
 def read_gstin(raw):
     """A GSTIN typed into a form. Returns (gstin, None) when it is valid,
     (None, None) when it is blank, and (None, message) when it isn't a GSTIN:
@@ -289,6 +324,19 @@ class Outlet(models.Model):
 
     address = models.TextField(
         blank=True
+    )
+
+    bill_code = models.CharField(
+        max_length=3,
+        blank=True,
+        default="",
+        db_default="",
+        validators=[RegexValidator(BILL_CODE_REGEX, BILL_CODE_RULE)],
+        help_text=(
+            "Starts this outlet's bill numbers, as in SG/2627/000123: up to 3 letters or "
+            "digits, different for each outlet of the restaurant. Set from the restaurant's "
+            "name when the outlet is made; changing it starts a new series."
+        ),
     )
 
     gst_no = models.CharField(
@@ -583,6 +631,12 @@ class Outlet(models.Model):
                 fields=["tenant", "outlet_number"],
                 name="unique_outlet_number_per_tenant",
             ),
+            # Two outlets of one restaurant never share a bill number.
+            models.UniqueConstraint(
+                fields=["tenant", "bill_code"],
+                condition=~models.Q(bill_code=""),
+                name="unique_bill_code_per_tenant",
+            ),
 
         ]
 
@@ -591,19 +645,31 @@ class Outlet(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if self.pk is None and self.outlet_number is None:
+        if self.pk is None and (self.outlet_number is None or not self.bill_code):
             from django.db import transaction as _tx
             with _tx.atomic():
-                last = (
-                    Outlet.objects
-                    .select_for_update()
-                    .filter(tenant=self.tenant)
-                    .order_by("-outlet_number")
-                    .values_list("outlet_number", flat=True)
-                    .first()
-                )
-                self.outlet_number = (last or 0) + 1
+                # The restaurant's outlets stay locked until this one is saved,
+                # so two new outlets never get the same number or bill code.
+                siblings = Outlet.objects.select_for_update().filter(tenant=self.tenant)
+                if self.outlet_number is None:
+                    last = siblings.order_by("-outlet_number").values_list("outlet_number", flat=True).first()
+                    self.outlet_number = (last or 0) + 1
+                if not self.bill_code:
+                    self.bill_code = suggest_bill_code(
+                        self.tenant.name, set(siblings.values_list("bill_code", flat=True)))
+                super().save(*args, **kwargs)
+            return
         super().save(*args, **kwargs)
+
+    def ensure_bill_code(self):
+        """This outlet's bill number code, set from the restaurant's name if it
+        has none yet (an outlet saved before codes existed)."""
+        if not self.bill_code:
+            taken = set(Outlet.objects.filter(tenant_id=self.tenant_id).exclude(pk=self.pk)
+                        .values_list("bill_code", flat=True))
+            self.bill_code = suggest_bill_code(self.tenant.name, taken)
+            Outlet.objects.filter(pk=self.pk).update(bill_code=self.bill_code)
+        return self.bill_code
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"

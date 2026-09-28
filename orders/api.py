@@ -178,6 +178,7 @@ def api_active_orders(request):
         data.append({
             "id": order.id,
             "order_number": order.order_number,
+            "bill_number": order.bill_number,
             "table_id": order.table_id if order.table else None,
             "table_name": order.table.name if order.table else "Walk-in",
             "status": order.status,
@@ -352,7 +353,8 @@ def api_ingest_order(request):
                         tok.display_number, order.id, source,
                     )
 
-            return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number})
+            return JsonResponse({"success": True, "order_id": order.id, "order_number": order.order_number,
+                                 "bill_number": order.bill_number})
 
         except IntegrityError:
             # A genuine simultaneous-delivery race: two webhook deliveries for

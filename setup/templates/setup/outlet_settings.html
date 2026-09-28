@@ -187,6 +187,14 @@
                             Leave as 996331 unless your CA specifies otherwise.
                         </div>
                     </div>
+                    <div class="field-row">
+                        <label class="field-label" for="bill_code">Bill Number Code</label>
+                        <input type="text" id="bill_code" name="bill_code" class="field-input field-mono" value="{{ outlet.bill_code }}" maxlength="3" placeholder="SG" oninput="this.value = this.value.toUpperCase()">
+                        <div class="field-hint">
+                            Bills are numbered <strong>{{ bill_number_example }}</strong> and on: one series for this outlet each financial year (April to March), within the 16 characters the GST rules allow.
+                            Up to 3 letters or digits, different for each outlet. Changing it starts a new series; earlier bills keep their numbers.
+                        </div>
+                    </div>
 
                     <div class="field-row" style="margin-top:1.25rem;">
                         <label class="field-label">GST Pricing Mode</label>

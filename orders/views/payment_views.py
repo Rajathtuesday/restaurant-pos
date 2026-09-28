@@ -237,6 +237,7 @@ def pay_order(request, order_id):
                         "change_due": float(change_due),
                         "auto_kot": _auto_kot,
                         "order_number": order.order_number or str(order.id),
+                        "bill_number": order.bill_number,
                     })
 
                 remaining = payment_result["remaining"]

@@ -103,7 +103,7 @@
             </div>
 
             <div class="meta">
-                <div><span class="label">Invoice</span><span>{{ order.order_number|default:order.id }}</span></div>
+                <div><span class="label">Invoice</span><span>{{ order.display_number }}</span></div>
                 <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
             </div>
             <div class="meta" style="margin-top:-8px">
