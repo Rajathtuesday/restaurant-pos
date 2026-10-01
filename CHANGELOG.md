@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-10-02: GSTR-1 Table 8, nil rated and non-GST supplies (P20)
+
+The GSTR-1 export put dishes sold at 0% GST in the B2CS sheet, as a 0% row. B2CS is for taxed supplies; nil rated supplies belong in Table 8. Liquor, which is outside GST altogether, was in no sheet at all.
+
+### Fixed
+- **A Table 8 sheet** ("GSTR-1 Table 8 (Nil, non-GST)") with the return's four rows. Every Rasova bill is to an unregistered guest in the outlet's own state, so the figures go on the intra-State, unregistered row: nil rated is the value of dishes sold at 0%, non-GST is liquor at its value before VAT (Karnataka has none). Exempted stays 0.
+- **B2CS has only taxed rates** - the 0% row is gone; its tax totals are unchanged. Table 12 (the HSN summary) keeps its 0% row, as it covers every GST supply.
+
+### Tests
+- `reports/tests/test_tax_reports.py` (4 new): a 0% dish is nil rated and not in B2CS, Karnataka liquor is a non-GST supply, liquor priced with VAT counts at its value before VAT, and a period with neither is all zeros. All four fail on the old export.
+- Golden reports: on the golden month the ₹1,481.33 0% row moved from B2CS to Table 8 and B2CS's taxable total fell by exactly that; nothing else moved.
+
 ## 2026-10-02: every bill adds up (P12, P13, P14, P15, P19)
 
 A guest or an inspector adding up a Rasova bill could get a different total. The printed bill rounded every amount to the rupee (GST ₹125.28 printed as Rs.125) and showed one "GST" line; with prices including GST it printed the discount again after a subtotal that was already the value after discount (927 + 108 − 115 is not 1035); a free dish printed at full price; the WhatsApp bill had no discount or parcel line; and the 58 mm token receipt ran past the paper edge on a long dish name. Each of the five bills a guest can get worked out its own lines, so each had its own faults.

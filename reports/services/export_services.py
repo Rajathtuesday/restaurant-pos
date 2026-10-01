@@ -7,7 +7,7 @@ from django.db.models import Prefetch, Sum, F
 from django.utils import timezone
 from orders.models import Order, OrderItem, Payment
 from core.utils import get_business_date_range
-from orders.services.tax_engine import GST
+from orders.services.tax_engine import GST, VAT
 from reports.services.documents_issued import NATURE, documents_issued
 from reports.services.tax_totals import rate_totals
 import openpyxl
@@ -215,6 +215,60 @@ def _documents_issued_sheet(wb, tenant, outlet, start_date, end_date):
     _autosize_columns(ws)
 
 
+TABLE_8_ROWS = (
+    "Inter-State supplies to registered persons",
+    "Intra-State supplies to registered persons",
+    "Inter-State supplies to unregistered persons",
+    "Intra-State supplies to unregistered persons",
+)
+
+
+def nil_and_non_gst(totals_by_rate):
+    """(nil rated, non-GST) values from rate_totals(): dishes sold at 0% GST,
+    and liquor at its value before VAT. Liquor is outside GST altogether
+    (Constitution, Article 366(12A)), so it is a non-GST supply."""
+    nil_rated = sum((f["taxable"] for (kind, rate), f in totals_by_rate.items()
+                     if kind == GST and rate == 0), Decimal("0.00"))
+    non_gst = sum((f["taxable"] for (kind, rate), f in totals_by_rate.items() if kind == VAT),
+                  Decimal("0.00"))
+    return nil_rated, non_gst
+
+
+def _nil_and_non_gst_sheet(wb, tenant, totals_by_rate, start_date, end_date):
+    """GSTR-1 Table 8: nil rated, exempted and non-GST outward supplies.
+    Every Rasova bill is to an unregistered guest in the outlet's own state,
+    so everything goes on the intra-State, unregistered row."""
+    ws = wb.create_sheet("GSTR-1 Table 8 (Nil, non-GST)")
+    ws.merge_cells("A1:D1")
+    ws["A1"].value = f"GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - {tenant.name}"
+    ws["A1"].font = Font(size=14, bold=True)
+    ws["A1"].alignment = Alignment(horizontal="center")
+    ws.merge_cells("A2:D2")
+    ws["A2"].value = f"Period: {start_date.strftime('%d-%b-%Y')} to {end_date.strftime('%d-%b-%Y')}"
+    ws["A2"].font = Font(italic=True)
+    ws["A2"].alignment = Alignment(horizontal="center")
+
+    headers = ["Description", "Nil Rated Supplies",
+               "Exempted (other than nil rated/non-GST supply)", "Non-GST Supplies"]
+    ws.append([])
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=4, column=col).font = Font(bold=True)
+
+    nil_rated, non_gst = nil_and_non_gst(totals_by_rate)
+    for description in TABLE_8_ROWS:
+        ours = description == TABLE_8_ROWS[-1]
+        ws.append([description, round(float(nil_rated), 2) if ours else 0.0, 0.0,
+                   round(float(non_gst), 2) if ours else 0.0])
+
+    ws.append([])
+    ws.append(["Nil rated: dishes sold at 0% GST. Non-GST: liquor, at its value before VAT."])
+    # Merged across the table so the note doesn't size the first column.
+    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=len(headers))
+    ws.cell(row=ws.max_row, column=1).font = Font(italic=True)
+    _autosize_columns(ws)
+
+
 def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     """
     Generates a GSTR-1 compliant Excel report for B2C sales, plus the
@@ -270,9 +324,14 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     # record: the rate each line was sold at, the parcel charge included, so
     # the return adds up to exactly the bills it covers. Composition bills
     # carry no GST rows.
+    totals_by_rate = rate_totals(orders)
     gst_groups = sorted(
-        (rate, figures) for (kind, rate), figures in rate_totals(orders).items() if kind == GST
+        (rate, figures) for (kind, rate), figures in totals_by_rate.items() if kind == GST
     )
+    # B2CS is for taxed supplies. Dishes sold at 0% are nil rated and belong in
+    # Table 8, with non-GST supplies such as liquor (P20); a 0% row here was
+    # the wrong table.
+    b2cs_groups = [(rate, figures) for rate, figures in gst_groups if rate > 0]
 
     total_taxable = Decimal("0.0")
     total_central = Decimal("0.0")
@@ -301,7 +360,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         else:
             pos_state = "Unknown — set outlet GSTIN"
     
-    for rate, data in gst_groups:
+    for rate, data in b2cs_groups:
         taxable = data['taxable']
         gst = data['tax']
         cgst, sgst = data['cgst'], data['sgst']
@@ -309,7 +368,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         total_taxable += taxable
         total_central += cgst
         total_state += sgst
-        
+
         ws.append([
             'OE', # Outward Supplies
             pos_state,
@@ -420,6 +479,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
 
     _autosize_columns(ws12)
 
+    _nil_and_non_gst_sheet(wb, tenant, totals_by_rate, start_date, end_date)
     _documents_issued_sheet(wb, tenant, outlet, start_date, end_date)
 
     output = io.BytesIO()

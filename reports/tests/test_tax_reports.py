@@ -120,6 +120,56 @@ class Gstr1Test(Base):
         self.assertEqual(with_record, without_record)
 
 
+class Gstr1Table8Test(Base):
+    """Nil rated and non-GST supplies go in Table 8, not B2CS (P20): B2CS
+    is for taxed supplies, and liquor is outside GST altogether."""
+
+    SHEET = "GSTR-1 Table 8 (Nil, non-GST)"
+    OURS = "Intra-State supplies to unregistered persons"
+
+    def table8(self):
+        book = openpyxl.load_workbook(io.BytesIO(generate_gstr1_excel(self.tenant, self.outlet, self.today, self.today)))
+        rows = book[self.SHEET].iter_rows(min_row=5, max_row=8, values_only=True)
+        return {row[0]: tuple(D(str(value)) for value in row[1:4]) for row in rows}
+
+    def liquor_bill(self, price, qty, vat_rate):
+        beer = MenuItem.objects.create(tenant=self.tenant, outlet=self.outlet, category=self.dosa.category,
+                                       name="Draught Beer", price=D(price), gst_percentage=D("0"))
+        order = self.paid_bill((self.dosa, 2))
+        Order.objects.filter(pk=order.pk).update(status="open")
+        order.refresh_from_db()
+        OrderItem.objects.create(order=order, menu_item=beer, quantity=qty, price=beer.price,
+                                 gst_percentage=D("0"), tax_kind="vat", vat_rate=D(vat_rate),
+                                 total_price=beer.price * qty)
+        order.recalculate_totals()
+        Order.objects.filter(pk=order.pk).update(status="paid")
+        return order
+
+    def test_zero_percent_dishes_are_nil_rated_not_in_b2cs(self):
+        self.paid_bill((self.dosa, 2), (self.curd, 1))
+        rows, _ = self.b2cs_rows()
+        self.assertEqual(set(rows), {5})
+        table = self.table8()
+        self.assertEqual(table[self.OURS], (D("30"), D("0"), D("0")))
+        self.assertEqual({row for row, values in table.items() if any(values)}, {self.OURS})
+
+    def test_liquor_is_a_non_gst_supply(self):
+        self.liquor_bill("320", 2, "0")              # Karnataka: no VAT on liquor
+        rows, _ = self.b2cs_rows()
+        self.assertEqual(set(rows), {5})
+        self.assertEqual(self.table8()[self.OURS], (D("0"), D("0"), D("640")))
+
+    def test_liquor_counts_at_its_value_before_vat(self):
+        self.outlet.vat_inclusive = True
+        self.outlet.save(update_fields=["vat_inclusive"])
+        self.liquor_bill("330", 1, "10")             # 330 includes 30 VAT
+        self.assertEqual(self.table8()[self.OURS], (D("0"), D("0"), D("300")))
+
+    def test_a_period_without_either_is_all_zeros(self):
+        self.paid_bill((self.dosa, 1))
+        self.assertTrue(all(value == 0 for values in self.table8().values() for value in values))
+
+
 class Gstr1LayoutTest(Base):
     """Every header and figure in the workbook can be read without widening a
     column (P26), on both sheets, under their merged titles."""

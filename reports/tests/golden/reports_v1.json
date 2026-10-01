@@ -98,18 +98,6 @@
     [
      "OE",
      "Karnataka",
-     0,
-     1481.33,
-     0,
-     0,
-     0,
-     0,
-     null,
-     0
-    ],
-    [
-     "OE",
-     "Karnataka",
      5,
      31529.03,
      788.33,
@@ -147,7 +135,7 @@
      "TOTAL",
      null,
      null,
-     58495.64,
+     57014.31,
      3054.6,
      3054.3,
      0,
@@ -323,6 +311,56 @@
      "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
      null,
      null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "GSTR-1 Table 8 (Nil, non-GST)": [
+    [
+     "GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - Golden Month",
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null
+    ],
+    [
+     "Description",
+     "Nil Rated Supplies",
+     "Exempted (other than nil rated/non-GST supply)",
+     "Non-GST Supplies"
+    ],
+    [
+     "Inter-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Inter-State supplies to unregistered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to unregistered persons",
+     1481.33,
+     0,
+     0
+    ],
+    [
+     "Nil rated: dishes sold at 0% GST. Non-GST: liquor, at its value before VAT.",
      null,
      null,
      null
@@ -784,6 +822,56 @@
      "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
      null,
      null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "GSTR-1 Table 8 (Nil, non-GST)": [
+    [
+     "GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - Golden Month",
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null
+    ],
+    [
+     "Description",
+     "Nil Rated Supplies",
+     "Exempted (other than nil rated/non-GST supply)",
+     "Non-GST Supplies"
+    ],
+    [
+     "Inter-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Inter-State supplies to unregistered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to unregistered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Nil rated: dishes sold at 0% GST. Non-GST: liquor, at its value before VAT.",
      null,
      null,
      null
@@ -1931,18 +2019,6 @@
     [
      "OE",
      "Karnataka",
-     0,
-     701.33,
-     0,
-     0,
-     0,
-     0,
-     null,
-     0
-    ],
-    [
-     "OE",
-     "Karnataka",
      5,
      15857.16,
      396.46,
@@ -1980,7 +2056,7 @@
      "TOTAL",
      null,
      null,
-     32350.27,
+     31648.94,
      1797.57,
      1797.46,
      0,
@@ -2140,6 +2216,56 @@
      "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
      null,
      null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "GSTR-1 Table 8 (Nil, non-GST)": [
+    [
+     "GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - Golden Month",
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null
+    ],
+    [
+     "Description",
+     "Nil Rated Supplies",
+     "Exempted (other than nil rated/non-GST supply)",
+     "Non-GST Supplies"
+    ],
+    [
+     "Inter-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Inter-State supplies to unregistered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to unregistered persons",
+     701.33,
+     0,
+     0
+    ],
+    [
+     "Nil rated: dishes sold at 0% GST. Non-GST: liquor, at its value before VAT.",
      null,
      null,
      null
@@ -3281,18 +3407,6 @@
     [
      "OE",
      "Karnataka",
-     0,
-     780,
-     0,
-     0,
-     0,
-     0,
-     null,
-     0
-    ],
-    [
-     "OE",
-     "Karnataka",
      5,
      15671.87,
      391.87,
@@ -3330,7 +3444,7 @@
      "TOTAL",
      null,
      null,
-     26145.37,
+     25365.37,
      1257.03,
      1256.84,
      0,
@@ -3490,6 +3604,56 @@
      "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
      null,
      null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "GSTR-1 Table 8 (Nil, non-GST)": [
+    [
+     "GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - Golden Month",
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null
+    ],
+    [
+     "Description",
+     "Nil Rated Supplies",
+     "Exempted (other than nil rated/non-GST supply)",
+     "Non-GST Supplies"
+    ],
+    [
+     "Inter-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to registered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Inter-State supplies to unregistered persons",
+     0,
+     0,
+     0
+    ],
+    [
+     "Intra-State supplies to unregistered persons",
+     780,
+     0,
+     0
+    ],
+    [
+     "Nil rated: dishes sold at 0% GST. Non-GST: liquor, at its value before VAT.",
      null,
      null,
      null
