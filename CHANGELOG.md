@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-10-02: UTGST only where the law charges it
+
+### Fixed
+- **Which bills say UTGST** - a bill names UTGST instead of SGST only in the union territories without a legislature (CGST Act, section 2(114)): Chandigarh, Ladakh, Lakshadweep, Andaman and Nicobar, and Dadra and Nagar Haveli and Daman and Diu. The list of GSTIN state codes had Delhi (07), Puducherry (34) and Andhra Pradesh (37, a state) and lacked Dadra and Nagar Haveli and Daman and Diu (26) and Other Territory (97), so an Andhra Pradesh or Delhi restaurant's bill said UTGST. The manual switch's help text and the outlet settings page said the same wrong thing and now list the right places (migration tenants 0038, help text only).
+
+### Tests
+- `tenants/tests/test_utgst.py` (5): every UTGST territory and seven states and territories with a legislature by GSTIN code, the manual switch without a GSTIN, a GSTIN winning over the switch, and the label on a real bill. 7 checks fail on the old list.
+
 ## 2026-10-02: Zomato and Swiggy orders carry no GST of their own (P22)
 
 Since 1 January 2022 an e-commerce operator pays the GST on restaurant service supplied through it (CGST Act, section 9(5)): Zomato or Swiggy charges the guest GST and issues the tax invoice, and the restaurant reports the order's value in GSTR-1 Table 14. Rasova totalled those orders with GST at the dish's rate and counted them in B2CS, so a restaurant filing from the export paid GST the app had already paid: a ₹500 Zomato order was billed ₹525.

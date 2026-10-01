@@ -508,9 +508,11 @@ class Outlet(models.Model):
     is_union_territory = models.BooleanField(
         default=False,
         help_text=(
-            "True → Outlet is in a Union Territory (Delhi, J&K, Chandigarh, "
-            "Puducherry, Daman & Diu, etc.). "
-            "Invoices will show UTGST instead of SGST as required by GST law."
+            "True: the outlet is in a union territory without a legislature "
+            "(Chandigarh, Ladakh, Lakshadweep, Andaman and Nicobar, Dadra and "
+            "Nagar Haveli and Daman and Diu), so bills show UTGST instead of "
+            "SGST. Delhi, Puducherry and Jammu and Kashmir charge SGST. "
+            "Used only when the outlet has no GSTIN; a GSTIN decides it."
         )
     )
 
@@ -697,9 +699,15 @@ class Outlet(models.Model):
         not on the composition scheme."""
         return self.is_gst_registered and not self.is_composition_scheme
 
-    # State codes for Union Territories under Indian GST law.
-    # First 2 digits of GSTIN always encode the state/UT.
-    _UT_STATE_CODES = {"04", "07", "25", "31", "34", "35", "37", "38"}
+    # GSTIN state codes (the first 2 digits) of the union territories that
+    # charge UTGST: those without a legislature (CGST Act, section 2(114)).
+    # 04 Chandigarh, 25 and 26 Dadra and Nagar Haveli and Daman and Diu (25
+    # is Daman and Diu's code from before the 2020 merger), 31 Lakshadweep,
+    # 35 Andaman and Nicobar, 38 Ladakh, 97 Other Territory. Delhi (07),
+    # Puducherry (34) and Jammu and Kashmir (01) have legislatures and charge
+    # SGST; 37 is Andhra Pradesh, a state. The list once had 07, 34 and 37 and
+    # lacked 26 and 97.
+    _UT_STATE_CODES = {"04", "25", "26", "31", "35", "38", "97"}
 
     @property
     def uses_utgst(self) -> bool:
