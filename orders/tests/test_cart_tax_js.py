@@ -185,6 +185,38 @@ class UnregisteredCartTest(SimpleTestCase):
                 self.assertAlmostEqual(got["roundOff"], float(bill.round_off), places=9)
 
 
+class AppOrderCartTest(SimpleTestCase):
+    """An order through Zomato or Swiggy: the app pays its GST (section 9(5)),
+    so the POS cart shows none, exactly as the engine bills it
+    (tax_engine.compute with gst_paid_by_operator=True)."""
+
+    def setUp(self):
+        _needs_node(self)
+
+    def test_random_carts_match_the_engine(self):
+        rng = random.Random(20261002)
+        carts, bills = [], []
+        for _ in range(300):
+            inclusive = rng.random() < 0.5
+            dishes = [(Decimal(rng.randint(1, 500000)) / 100, rng.choice(["0", "5", "5", "18"]))
+                      for _ in range(rng.randint(1, 6))]
+            parcel, parcel_rate = Decimal(rng.choice(["0", "10", "20", "17.50"])), rng.choice(["5", "18"])
+            carts.append({
+                "lines": [{"amount": float(amount), "gstRate": float(rate)} for amount, rate in dishes],
+                "outlet": {"inclusive": inclusive, "gstPaidByOperator": True,
+                           "parcel": float(parcel), "parcelGstRate": float(parcel_rate)},
+            })
+            lines = [Line(amount=amount, rate=Decimal(rate)) for amount, rate in dishes]
+            if parcel > 0:
+                lines.append(Line(amount=parcel, rate=Decimal(parcel_rate), charge="parcel"))
+            bills.append(compute(lines, prices_include_tax=inclusive, gst_paid_by_operator=True))
+        for n, (bill, got) in enumerate(zip(bills, run_js(carts))):
+            with self.subTest(cart=n):
+                self.assertEqual((bill.gst, got["gst"], got["parcelGst"]), (0, 0, 0))
+                self.assertEqual(got["roundedTotal"], int(bill.grand_total))
+                self.assertAlmostEqual(got["roundOff"], float(bill.round_off), places=9)
+
+
 def random_pub_carts(count, seed=20260928):
     """Pub carts: food and liquor at any rate, in every liquor outlet mode."""
     rng = random.Random(seed)

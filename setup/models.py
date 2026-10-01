@@ -149,11 +149,22 @@ class AggregatorConfig(TenantScopedModel):
     swiggy_webhook_secret = EncryptedCharField(max_length=255, null=True, blank=True)
 
     auto_accept_orders = models.BooleanField(
-        default=True, 
+        default=True,
         help_text="Automatically accept online orders and send KOT to kitchen"
     )
 
+    # Each app's GSTIN in the outlet's state. The app pays the GST on orders
+    # taken through it (CGST Act, section 9(5)); the restaurant reports their
+    # value against this GSTIN in GSTR-1 Table 14.
+    zomato_gstin = models.CharField(max_length=15, blank=True, default="")
+    swiggy_gstin = models.CharField(max_length=15, blank=True, default="")
+    uber_eats_gstin = models.CharField(max_length=15, blank=True, default="")
+
     updated_at = models.DateTimeField(auto_now=True)
+
+    def operator_gstin(self, source):
+        """The GSTIN saved for an app ("zomato", "swiggy", "uber_eats"), or ""."""
+        return getattr(self, f"{source}_gstin", "") or ""
 
     @classmethod
     def for_outlet(cls, outlet, tenant=None):

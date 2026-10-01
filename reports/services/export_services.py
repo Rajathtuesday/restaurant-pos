@@ -9,7 +9,7 @@ from orders.models import Order, OrderItem, Payment
 from core.utils import get_business_date_range
 from orders.services.tax_engine import GST, VAT
 from reports.services.documents_issued import NATURE, documents_issued
-from reports.services.tax_totals import rate_totals
+from reports.services.tax_totals import operator_supplies, rate_totals
 import openpyxl
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
@@ -269,6 +269,51 @@ def _nil_and_non_gst_sheet(wb, tenant, totals_by_rate, start_date, end_date):
     _autosize_columns(ws)
 
 
+_OPERATOR_NAMES = {"zomato": "Zomato", "swiggy": "Swiggy", "uber_eats": "Uber Eats"}
+
+
+def _operator_supplies_sheet(wb, tenant, orders, start_date, end_date):
+    """GSTR-1 Table 14: supplies through e-commerce operators. Orders through
+    Zomato, Swiggy or Uber Eats carry no GST of their own: the app pays it
+    (CGST Act, section 9(5)), and the restaurant reports their value here,
+    against the app's GSTIN, with no tax (and in GSTR-3B 3.1.1(ii))."""
+    from setup.models import AggregatorConfig
+
+    ws = wb.create_sheet("GSTR-1 Table 14 (App orders)")
+    headers = ["Nature of supply", "GSTIN of e-commerce operator", "E-commerce operator",
+               "Net value of supplies", "Integrated Tax (IGST)", "Central Tax (CGST)",
+               "State Tax (SGST)", "Cess Amount"]
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+    ws["A1"].value = f"GSTR-1 Table 14: Supplies through e-commerce operators - {tenant.name}"
+    ws["A1"].font = Font(size=14, bold=True)
+    ws["A1"].alignment = Alignment(horizontal="center")
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
+    ws["A2"].value = f"Period: {start_date.strftime('%d-%b-%Y')} to {end_date.strftime('%d-%b-%Y')}"
+    ws["A2"].font = Font(italic=True)
+    ws["A2"].alignment = Alignment(horizontal="center")
+    ws.append([])
+    ws.append(headers)
+    for col in range(1, len(headers) + 1):
+        ws.cell(row=4, column=col).font = Font(bold=True)
+
+    configs = {c.outlet_id: c for c in AggregatorConfig.objects.filter(tenant=tenant)}
+    by_gstin = {}
+    for (outlet_id, source), value in sorted(operator_supplies(orders).items()):
+        config = configs.get(outlet_id)
+        gstin = (config.operator_gstin(source) if config else "") or "Not set: add it in Aggregator settings"
+        key = (gstin, _OPERATOR_NAMES.get(source, source))
+        by_gstin[key] = by_gstin.get(key, Decimal("0.00")) + value
+    for (gstin, name), value in by_gstin.items():
+        ws.append(["Liable to pay tax u/s 9(5)", gstin, name, round(float(value), 2), 0.0, 0.0, 0.0, 0.0])
+
+    ws.append([])
+    ws.append(["The app pays the GST on these orders (CGST Act, section 9(5)): their value is reported "
+               "here with no tax, and in GSTR-3B Table 3.1.1(ii)."])
+    ws.merge_cells(start_row=ws.max_row, start_column=1, end_row=ws.max_row, end_column=len(headers))
+    ws.cell(row=ws.max_row, column=1).font = Font(italic=True)
+    _autosize_columns(ws)
+
+
 def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     """
     Generates a GSTR-1 compliant Excel report for B2C sales, plus the
@@ -480,6 +525,7 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     _autosize_columns(ws12)
 
     _nil_and_non_gst_sheet(wb, tenant, totals_by_rate, start_date, end_date)
+    _operator_supplies_sheet(wb, tenant, orders, start_date, end_date)
     _documents_issued_sheet(wb, tenant, outlet, start_date, end_date)
 
     output = io.BytesIO()

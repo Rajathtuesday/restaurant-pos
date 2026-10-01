@@ -73,16 +73,26 @@ def read_bill_code(raw, outlet):
     return value, None
 
 
-def read_gstin(raw):
+def read_gstin(raw, pattern=GSTIN_REGEX):
     """A GSTIN typed into a form. Returns (gstin, None) when it is valid,
     (None, None) when it is blank, and (None, message) when it isn't a GSTIN:
     then keep the outlet's old one and show the message."""
     value = re.sub(r"\s+", "", raw or "").upper()
     if not value:
         return None, None
-    if re.fullmatch(GSTIN_REGEX, value):
+    if re.fullmatch(pattern, value):
         return value, None
     return None, INVALID_GSTIN_MESSAGE.format(value=value)
+
+
+# An e-commerce operator's GSTIN may be its tax-collection registration,
+# which has C where a normal GSTIN has Z (the 14th character).
+OPERATOR_GSTIN_REGEX = r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[ZC][0-9A-Z]{1}$'
+
+
+def read_operator_gstin(raw):
+    """An app's GSTIN (Zomato, Swiggy) typed into a form, as read_gstin."""
+    return read_gstin(raw, OPERATOR_GSTIN_REGEX)
 
 fssai_validator = RegexValidator(
     regex=r'^\d{14}$',

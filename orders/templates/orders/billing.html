@@ -514,6 +514,14 @@
     });
   }
 
+  // Orders.OPERATOR_SOURCES: an order through one of these apps carries no
+  // GST of its own, because the app pays it (orders/services/tax_engine.py).
+  const OPERATOR_SOURCES = {{ operator_sources_json|safe }};
+  function currentSource() {
+    const select = document.getElementById(window.innerWidth < 992 ? "sourceSelectMobile" : "sourceSelectDesktop");
+    return select ? select.value : "dine_in";
+  }
+
   function toggleAggregator(val, view) {
     const inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
     const el = document.getElementById(inputId);
@@ -523,6 +531,7 @@
       if (!isAggregator) el.value = '';
     }
     updateOrderSummaryText(view);
+    if (typeof renderCart === 'function') renderCart();   // GST on or off with the source
   }
 
   /* ── Collapsed table/source summary ─────────────────────────── */
@@ -747,6 +756,8 @@
         vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
         composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
         gstRegistered: {{ outlet.is_gst_registered|yesno:"true,false" }},
+        // Zomato / Swiggy / Uber Eats: the app pays the GST (section 9(5))
+        gstPaidByOperator: OPERATOR_SOURCES.includes(currentSource()),
         parcel: _parcelOn ? _parcelChargeAmount : 0,
         parcelGstRate: {{ outlet.parcel_gst_rate|default:0 }},
       });

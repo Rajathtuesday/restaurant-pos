@@ -1,4 +1,5 @@
 # orders/views/billing_core.py
+import json
 import logging
 from decimal import Decimal
 
@@ -98,6 +99,7 @@ def billing_view(request):
         "auto_kot_mode":   auto_kot_mode,
         "outlet":          request.user.outlet,
         "station_printer_ip": default_station.printer_ip if default_station else "",
+        "operator_sources_json": json.dumps(list(Order.OPERATOR_SOURCES)),
     })
 
 
@@ -153,7 +155,7 @@ def bill_view(request, order_id):
         # Worded by the GST scheme the bill was totalled under, not by the
         # outlet's settings today, so an issued bill reads the same forever.
         is_composition  = order.is_bill_of_supply
-        is_unregistered = not order.is_tax_invoice and not is_composition
+        is_unregistered = order.gst_scheme == "unregistered"
         gst_inclusive   = getattr(order.outlet, "gst_inclusive", False) and order.is_tax_invoice
 
         station = get_default_station(request.user)

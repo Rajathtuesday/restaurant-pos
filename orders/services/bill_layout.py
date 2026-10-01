@@ -25,17 +25,25 @@ subtotal that was already the taxable value, is what made the old bills
 not add up (927 + 108 - 115 is not 1035).
 
 A composition outlet's bill is a bill of supply and says it can't collect
-tax (rule 49); an outlet without a GSTIN issues a plain bill.
+tax (rule 49); an outlet without a GSTIN issues a plain bill. So does an
+order through Zomato or Swiggy, which says the app pays its GST: the app
+charges it and issues the guest's tax invoice (CGST Act, section 9(5)).
 """
 from dataclasses import dataclass
 from decimal import Decimal
 
-from orders.services.tax_engine import COMPOSITION, GST, REGULAR, UNREGISTERED, VAT, ZERO
+from orders.services.tax_engine import COMPOSITION, GST, OPERATOR, REGULAR, UNREGISTERED, VAT, ZERO
 
 TAX_INVOICE = "Tax Invoice"
 BILL_OF_SUPPLY = "Bill of Supply"
 PLAIN_BILL = "Bill"
 COMPOSITION_STATEMENT = "Composition taxable person, not eligible to collect tax on supplies"
+_OPERATOR_NAMES = {"zomato": "Zomato", "swiggy": "Swiggy", "uber_eats": "Uber Eats"}
+
+
+def operator_statement(source):
+    name = _OPERATOR_NAMES.get(source, "the e-commerce operator")
+    return f"GST on this order is paid by {name} (CGST Act, section 9(5))"
 
 _KIND_LABEL = {GST: "GST", VAT: "VAT"}
 
@@ -122,9 +130,17 @@ def money(amount):
 def _title(scheme):
     if scheme == COMPOSITION:
         return BILL_OF_SUPPLY
-    if scheme == UNREGISTERED:
+    if scheme in (UNREGISTERED, OPERATOR):
         return PLAIN_BILL
     return TAX_INVOICE
+
+
+def _statement(scheme, source):
+    if scheme == COMPOSITION:
+        return COMPOSITION_STATEMENT
+    if scheme == OPERATOR:
+        return operator_statement(source)
+    return ""
 
 
 def _charges(order, live_items):
@@ -222,7 +238,7 @@ def bill_layout(order):
     return BillLayout(
         title=_title(scheme),
         scheme=scheme,
-        statement=COMPOSITION_STATEMENT if scheme == COMPOSITION else "",
+        statement=_statement(scheme, order.source),
         lines=lines,
         rows=tuple(money_rows),
         total=Decimal(order.grand_total),

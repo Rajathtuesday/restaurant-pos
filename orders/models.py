@@ -87,6 +87,9 @@ class Order(TenantScopedModel):
         ("uber_eats", "Uber Eats"),
         ("web",       "Website"),
     )
+    # Orders taken through an e-commerce operator, which pays their GST
+    # (CGST Act, section 9(5)): the restaurant's bill carries none.
+    OPERATOR_SOURCES = ("zomato", "swiggy", "uber_eats")
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
@@ -499,6 +502,9 @@ class Order(TenantScopedModel):
         return compute_tax(
             lines, prices_include_tax=gst_inclusive, composition=composition,
             gst_registered=gst_registered,
+            # An order through Zomato or Swiggy: the app pays its GST (s. 9(5)).
+            # Bills from before the record were all billed with GST.
+            gst_paid_by_operator=not as_billed_before_record and self.source in self.OPERATOR_SOURCES,
             discount_type=self.discount_type, discount_value=self.discount_value,
         )
 

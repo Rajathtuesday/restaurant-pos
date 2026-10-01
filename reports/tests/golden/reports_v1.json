@@ -316,6 +316,48 @@
      null
     ]
    ],
+   "GSTR-1 Table 14 (App orders)": [
+    [
+     "GSTR-1 Table 14: Supplies through e-commerce operators - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of supply",
+     "GSTIN of e-commerce operator",
+     "E-commerce operator",
+     "Net value of supplies",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "The app pays the GST on these orders (CGST Act, section 9(5)): their value is reported here with no tax, and in GSTR-3B Table 3.1.1(ii).",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   ],
    "GSTR-1 Table 8 (Nil, non-GST)": [
     [
      "GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - Golden Month",
@@ -820,6 +862,48 @@
     ],
     [
      "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "GSTR-1 Table 14 (App orders)": [
+    [
+     "GSTR-1 Table 14: Supplies through e-commerce operators - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of supply",
+     "GSTIN of e-commerce operator",
+     "E-commerce operator",
+     "Net value of supplies",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "The app pays the GST on these orders (CGST Act, section 9(5)): their value is reported here with no tax, and in GSTR-3B Table 3.1.1(ii).",
+     null,
+     null,
      null,
      null,
      null,
@@ -2221,6 +2305,48 @@
      null
     ]
    ],
+   "GSTR-1 Table 14 (App orders)": [
+    [
+     "GSTR-1 Table 14: Supplies through e-commerce operators - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of supply",
+     "GSTIN of e-commerce operator",
+     "E-commerce operator",
+     "Net value of supplies",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "The app pays the GST on these orders (CGST Act, section 9(5)): their value is reported here with no tax, and in GSTR-3B Table 3.1.1(ii).",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   ],
    "GSTR-1 Table 8 (Nil, non-GST)": [
     [
      "GSTR-1 Table 8: Nil rated, exempted and non-GST supplies - Golden Month",
@@ -3602,6 +3728,48 @@
     ],
     [
      "One row per bill number series. Total counts the bills in the period. Old-style numbers (INV-...) were also taken by orders cancelled before their bill, so those series can skip numbers.",
+     null,
+     null,
+     null,
+     null,
+     null
+    ]
+   ],
+   "GSTR-1 Table 14 (App orders)": [
+    [
+     "GSTR-1 Table 14: Supplies through e-commerce operators - Golden Month",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Period: 01-Sep-2026 to 30-Sep-2026",
+     null,
+     null,
+     null,
+     null,
+     null,
+     null,
+     null
+    ],
+    [
+     "Nature of supply",
+     "GSTIN of e-commerce operator",
+     "E-commerce operator",
+     "Net value of supplies",
+     "Integrated Tax (IGST)",
+     "Central Tax (CGST)",
+     "State Tax (SGST)",
+     "Cess Amount"
+    ],
+    [
+     "The app pays the GST on these orders (CGST Act, section 9(5)): their value is reported here with no tax, and in GSTR-3B Table 3.1.1(ii).",
+     null,
+     null,
      null,
      null,
      null,

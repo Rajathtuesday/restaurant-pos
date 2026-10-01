@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-10-02: Zomato and Swiggy orders carry no GST of their own (P22)
+
+Since 1 January 2022 an e-commerce operator pays the GST on restaurant service supplied through it (CGST Act, section 9(5)): Zomato or Swiggy charges the guest GST and issues the tax invoice, and the restaurant reports the order's value in GSTR-1 Table 14. Rasova totalled those orders with GST at the dish's rate and counted them in B2CS, so a restaurant filing from the export paid GST the app had already paid: a ₹500 Zomato order was billed ₹525.
+
+### Fixed
+- **No GST on an app's order** - an order through Zomato, Swiggy or Uber Eats, whether it arrived by webhook or a cashier typed it in, is totalled under a fourth scheme, "operator": no GST on the dishes or the parcel charge, as on the composition scheme. A composition or unregistered outlet keeps its own scheme (no GST either way). Bills totalled before keep the GST they were billed with: each bill's tax record holds its scheme. The POS cart follows the source picker (`static/js/cart_tax.js`, `gstPaidByOperator`).
+- **The bill says so** - headed "Bill", with "GST on this order is paid by Zomato (CGST Act, section 9(5))".
+- **GSTR-1 Table 14** ("GSTR-1 Table 14 (App orders)") - the app orders' value by app, against each app's GSTIN, as "Liable to pay tax u/s 9(5)", with no tax; they are no longer in B2CS. The same value goes in GSTR-3B Table 3.1.1(ii), which the sheet notes.
+- **Each app's GSTIN** in Aggregator settings (`setup.AggregatorConfig.zomato_gstin`, `swiggy_gstin`, `uber_eats_gstin`, migration setup 0012), shown whether or not the app's webhook is on, since a cashier can enter app orders by hand. An operator's tax-collection GSTIN (C where a GSTIN has Z) is accepted; anything else is refused with a message and the old one stays. Table 14 says where to add a missing one.
+
+### Tests
+- `orders/tests/test_operator_orders.py` (13): the engine's operator scheme, prices marked as including GST, composition and unregistered keeping their scheme; a webhook Zomato order and one typed in at the POS carry no GST while a takeaway does; the bill's wording; an app order from before the tax record keeps its GST; Table 14 has the orders and B2CS doesn't; a missing GSTIN; saving, cleaning and refusing GSTINs; and on random bills an app order costs exactly what the same bill costs on the composition scheme. Without the order-side change 6 of them fail, showing the ₹525 bill and ₹37.50 of GST in B2CS.
+- `orders/tests/test_cart_tax_js.py`: 300 random app-order carts in Node match the engine to the paisa.
+
 ## 2026-10-02: GSTR-1 Table 8, nil rated and non-GST supplies (P20)
 
 The GSTR-1 export put dishes sold at 0% GST in the B2CS sheet, as a 0% row. B2CS is for taxed supplies; nil rated supplies belong in Table 8. Liquor, which is outside GST altogether, was in no sheet at all.

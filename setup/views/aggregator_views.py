@@ -40,8 +40,24 @@ def aggregator_setup(request):
             config.zomato_webhook_secret = zomato_secret
         if swiggy_secret:
             config.swiggy_webhook_secret = swiggy_secret
+
+        # Each app's GSTIN, for GSTR-1 Table 14. Blank clears it; one that
+        # isn't a GSTIN is not saved and the old one stays.
+        from tenants.models import read_operator_gstin
+        problems = []
+        for source in ("zomato", "swiggy", "uber_eats"):
+            field = f"{source}_gstin"
+            if field not in request.POST:
+                continue
+            gstin, problem = read_operator_gstin(request.POST.get(field))
+            if problem:
+                problems.append(problem)
+            else:
+                setattr(config, field, gstin or "")
         config.save()
 
+        for problem in problems:
+            messages.error(request, problem)
         messages.success(request, "Aggregator configuration saved.")
         return redirect("setup_aggregators")
 
@@ -49,6 +65,11 @@ def aggregator_setup(request):
 
     return render(request, "setup/aggregator_config.html", {
         "config": config,
+        "operator_gstins": [
+            ("zomato", "Zomato", config.zomato_gstin),
+            ("swiggy", "Swiggy", config.swiggy_gstin),
+            ("uber_eats", "Uber Eats", config.uber_eats_gstin),
+        ],
         "webhook_url": webhook_url,
         "tenant_id": request.user.tenant.id,
         "outlet_id": request.user.outlet.id

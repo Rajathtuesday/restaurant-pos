@@ -148,6 +148,20 @@
                        placeholder="{% if config.swiggy_webhook_secret %}•••••••••• (saved — leave blank to keep){% else %}SWG-APP-ID{% endif %}">
             </div>
 
+            <div style="padding:1rem 0;margin-bottom:1rem;border-bottom:1px solid var(--border-color);">
+                <strong style="font-size:1rem;">Each app's GSTIN, for your GST return</strong>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin:4px 0 0.75rem;">
+                    Zomato, Swiggy and Uber Eats pay the GST on orders taken through them, so those bills carry no GST.
+                    Your GST return (GSTR-1 Table 14) lists the orders' value against the app's GSTIN in your state.
+                    It is on the app's tax invoices to you or in its partner dashboard.
+                </div>
+                {% for source, label, value in operator_gstins %}
+                <label class="form-label" for="{{ source }}_gstin">{{ label }} GSTIN</label>
+                <input type="text" class="form-control mb-2" id="{{ source }}_gstin" name="{{ source }}_gstin"
+                       value="{{ value }}" maxlength="15" placeholder="29ABCDE1234F1Z5" autocomplete="off">
+                {% endfor %}
+            </div>
+
             <div class="switch-wrapper">
                 <div>
                     <strong style="font-size:1rem;">Uber Eats Integration</strong>

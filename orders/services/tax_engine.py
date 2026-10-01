@@ -29,9 +29,14 @@ price food with tax added and drinks with tax included.
    when its price includes tax (value x rate / (100 + rate)). An outlet on
    the composition scheme collects no GST, and neither does one that is not
    registered for GST (no GSTIN): only a registered business may collect it
-   (CGST Act, section 32). Liquor VAT is not GST. The bill records which of
-   the three it was totalled under, its scheme: "regular" (a tax invoice),
-   "composition" (a bill of supply) or "unregistered".
+   (CGST Act, section 32). Nor does a registered restaurant on an order
+   taken through Zomato, Swiggy or another e-commerce operator: since
+   1 January 2022 the operator charges and pays the GST on restaurant
+   service supplied through it (section 9(5)), so the restaurant's bill
+   carries none and it reports the value in GSTR-1 Table 14. Liquor VAT is
+   not GST. The bill records which of the four it was totalled under, its
+   scheme: "regular" (a tax invoice), "composition" (a bill of supply),
+   "unregistered" or "operator" (GST paid by the e-commerce operator).
 3. The dishes' tax of each kind is the exact sum over them, rounded once to
    the paisa, half up. This is how Rasova has always totalled GST, so no
    bill's total changed when the engine arrived. Each charge's tax is
@@ -67,6 +72,7 @@ VAT = "vat"
 REGULAR = "regular"              # registered: GST collected, a tax invoice
 COMPOSITION = "composition"      # composition scheme: no GST, a bill of supply
 UNREGISTERED = "unregistered"    # no GSTIN: no GST
+OPERATOR = "operator"            # through an e-commerce operator: it pays the GST (s. 9(5))
 
 PAISA = Decimal("0.01")
 RUPEE = Decimal("1")
@@ -226,11 +232,15 @@ def _taxed(line, collects_gst):
     return True
 
 
-def _scheme(composition, gst_registered):
-    """The GST scheme a bill is totalled under (rule 2)."""
+def _scheme(composition, gst_registered, gst_paid_by_operator=False):
+    """The GST scheme a bill is totalled under (rule 2). A composition or
+    unregistered outlet collects no GST either way, so its own scheme stands
+    on an operator's order too."""
     if composition:
         return COMPOSITION
-    return REGULAR if gst_registered else UNREGISTERED
+    if not gst_registered:
+        return UNREGISTERED
+    return OPERATOR if gst_paid_by_operator else REGULAR
 
 
 def _dish_figures(dishes, factor, inside, collects_gst):
@@ -258,12 +268,13 @@ def _kinds(lines):
 
 
 def compute(lines, *, prices_include_tax=False, composition=False, gst_registered=True,
-            discount_type=None, discount_value=ZERO):
+            gst_paid_by_operator=False, discount_type=None, discount_value=ZERO):
     """Total one bill. See the module docstring for the rules.
     prices_include_tax is the default for lines that don't say (inclusive=None).
-    gst_registered is False for an outlet with no GSTIN (rule 2)."""
+    gst_registered is False for an outlet with no GSTIN, gst_paid_by_operator
+    True for an order taken through an e-commerce operator (rule 2)."""
     lines = list(lines)
-    scheme = _scheme(composition, gst_registered)
+    scheme = _scheme(composition, gst_registered, gst_paid_by_operator)
     collects_gst = scheme == REGULAR
     dishes = [line for line in lines if line.charge is None]
     charges = [line for line in lines if line.charge is not None]
