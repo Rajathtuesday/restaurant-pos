@@ -224,6 +224,9 @@ def order_history_view(request):
         "f_source":    request.GET.get("source",    ""),
         "f_staff_id":  request.GET.get("staff_id",  ""),
         "f_q":         request.GET.get("q",         ""),
+        # The filter offers exactly the values orders are saved with (a
+        # hand-written list once offered "qr_menu", which no order has).
+        "source_choices": Order.SOURCE_CHOICES,
     })
 
 

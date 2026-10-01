@@ -7,6 +7,17 @@ the source of truth.
 
 ---
 
+## 2026-10-01: security fixes from the code review
+
+An outside review of the code listed holes in guest ordering, the aggregator webhook and the client IP. Each was checked against the code before it was fixed.
+
+### Fixed
+- **A QR guest can no longer say where an order came from** - `create_order` saved the `source` and `aggregator_id` the caller sent, guests included. A guest could label a QR order "zomato", or claim a real Zomato order's ID; that ID is unique per outlet, so Zomato's own webhook for it would then be turned away as a duplicate. A guest now always places a website order with no aggregator ID (the menu page always sent "web", so nothing changes for real guests). Staff values must be real choices, which Django doesn't enforce on save: an unknown source is refused, an aggregator ID is kept only for Zomato, Swiggy, Uber Eats and Website orders (the ones the billing screen shows the box for), and an over-long ID is a clear error instead of a failed save.
+- **The order history "QR Menu" filter found nothing** - it looked for orders from "qr_menu", but QR orders are saved as "web". The filter now lists exactly the sources orders are saved with (adding Counter and Uber Eats, which were missing), and shows "Dine In" where it showed "Dinein".
+
+### Tests
+- `orders/tests/test_order_source.py` (11): a table guest and a counter guest claiming Zomato or Swiggy place website orders, a guest can't take a real aggregator ID, a guest's nonsense source doesn't break the menu, staff unknown and non-text sources are refused with nothing saved, a Zomato order keeps its ID, a takeaway drops one, an over-long ID is refused, and the history filter offers every saved source and no "qr_menu". 10 of the 11 fail on the old code.
+
 ## 2026-09-29: GSTR-1 Table 13, documents issued (P23, P24)
 
 Table 13 of the GST return, documents issued, can't be left blank since the May 2025 returns. Rasova's export had no such sheet, so the CA counted bill numbers by hand.

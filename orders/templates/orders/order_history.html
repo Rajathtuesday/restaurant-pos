@@ -235,11 +235,9 @@
       <label>Source</label>
       <select name="source">
         <option value="">All</option>
-        <option value="dine_in"  {% if f_source == "dine_in"  %}selected{% endif %}>Dine-in</option>
-        <option value="takeaway" {% if f_source == "takeaway" %}selected{% endif %}>Takeaway</option>
-        <option value="zomato"   {% if f_source == "zomato"   %}selected{% endif %}>Zomato</option>
-        <option value="swiggy"   {% if f_source == "swiggy"   %}selected{% endif %}>Swiggy</option>
-        <option value="qr_menu"  {% if f_source == "qr_menu"  %}selected{% endif %}>QR Menu</option>
+        {% for value, label in source_choices %}
+        <option value="{{ value }}" {% if f_source == value %}selected{% endif %}>{% if value == "web" %}QR / Website{% else %}{{ label }}{% endif %}</option>
+        {% endfor %}
       </select>
     </div>
     {% if not is_restricted and staff_list %}
@@ -333,8 +331,8 @@
         <td style="font-size:0.75rem;color:var(--text-muted);">
           {% if order.source == "zomato" %}<i class="bi bi-bag" style="color:#e23744;"></i> Zomato
           {% elif order.source == "swiggy" %}<i class="bi bi-bag" style="color:#fc8019;"></i> Swiggy
-          {% elif order.source == "qr_menu" %}<i class="bi bi-qr-code"></i> QR
-          {% else %}{{ order.source|title|cut:"_" }}{% endif %}
+          {% elif order.source == "web" %}<i class="bi bi-qr-code"></i> QR / Website
+          {% else %}{{ order.get_source_display }}{% endif %}
         </td>
         <td style="font-size:0.78rem;">
           {% if order.created_by %}

@@ -68,6 +68,37 @@ __all__ = [
 # CREATE ORDER
 # -------------------------------------------------
 
+ORDER_SOURCES = frozenset(key for key, _label in Order.SOURCE_CHOICES)
+# The sources whose orders carry the platform's own order ID; the billing
+# screen shows the "Aggregator Order ID" box for exactly these.
+EXTERNAL_ID_SOURCES = frozenset({"zomato", "swiggy", "uber_eats", "web"})
+
+
+def order_source(data, user):
+    """
+    (source, aggregator_id) for an order, or ValueError with a message.
+
+    Where an order came from is staff-only information. A guest (QR, no
+    login) always places a website order and never names an aggregator
+    order: the ID is part of the (outlet, aggregator_order_id) unique
+    constraint, so a guest-chosen one could squat a real Zomato order's ID,
+    and a guest-chosen source could label a QR order "zomato". Staff values
+    must be real choices, which Django does not enforce on save.
+    """
+    if user is None:
+        return "web", ""
+    source = data.get("source") or "dine_in"
+    if not isinstance(source, str) or source not in ORDER_SOURCES:
+        raise ValueError("Unknown order source.")
+    aggregator_id = data.get("aggregator_id") or ""
+    if not isinstance(aggregator_id, str):
+        raise ValueError("Aggregator order ID must be text.")
+    aggregator_id = aggregator_id.strip() if source in EXTERNAL_ID_SOURCES else ""
+    if len(aggregator_id) > Order._meta.get_field("aggregator_order_id").max_length:
+        raise ValueError("Aggregator order ID is too long.")
+    return source, aggregator_id
+
+
 # @login_required -- Removed to allow QR guest ordering
 # Rate-limit BEFORE require_POST so the check runs before any body parsing.
 # 20 requests/minute per IP. Guests hit this via QR; staff calls are authenticated
@@ -108,8 +139,6 @@ def create_order(request):
     cart = data.get("cart")
     table_id = data.get("table_id")
     table_token = data.get("table_token")
-    source = data.get("source", "dine_in")
-    aggregator_id = data.get("aggregator_id", "")
     discount_type = data.get("discount_type", "")
     discount_value = data.get("discount_value", 0)
 
@@ -151,6 +180,11 @@ def create_order(request):
     else:
         # 3. Unauthorized: No token and no user
         return JsonResponse({"error": "Unauthorized. Please scan a QR code."}, status=401)
+
+    try:
+        source, aggregator_id = order_source(data, user)
+    except ValueError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     if table:
         # A QR code (or a staff-picked table) may point at a table that's
