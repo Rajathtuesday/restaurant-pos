@@ -82,8 +82,10 @@ class LoginLockoutsUseTheSameAnswerTest(SimpleTestCase):
 @override_settings(RATELIMIT_ENABLE=True)
 class RateLimitCannotBeDodgedTest(TestCase):
     def setUp(self):
+        from orders.tests.test_create_order_ratelimit import freeze_ratelimit_clock
         cache.clear()
         self.addCleanup(cache.clear)
+        freeze_ratelimit_clock(self)
 
     def _post(self, **headers):
         return self.client.post(

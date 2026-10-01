@@ -20,9 +20,23 @@ Run: python manage.py test orders.tests.test_create_order_ratelimit
 import json
 from decimal import Decimal
 
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
+
+
+def freeze_ratelimit_clock(test):
+    """django_ratelimit counts in fixed one-minute windows. Twenty real
+    orders on a busy machine can take long enough to cross into the next
+    window, which starts the count again and lets request 21 through (seen
+    in a full-suite run on 1 Oct 2026). Its clock, and only its clock, is
+    held still for the test."""
+    patcher = patch("django_ratelimit.core.time", SimpleNamespace(time=lambda: 1_800_000_000))
+    patcher.start()
+    test.addCleanup(patcher.stop)
 
 from menu.models import MenuCategory, MenuItem
 from tenants.models import Tenant, Outlet
@@ -40,6 +54,7 @@ class CreateOrderRateLimitTest(TestCase):
 
     def setUp(self):
         cache.clear()
+        freeze_ratelimit_clock(self)
         self.tenant = Tenant.objects.create(name="Rate Limit Order Cafe", tenant_type="cafe")
         self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
         self.category = MenuCategory.objects.create(
