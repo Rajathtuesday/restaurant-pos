@@ -336,11 +336,10 @@ def order_detail_api(request, order_id):
     if order.table:
         location = f"Table {order.table.name}"
     else:
-        try:
-            if order.token:
-                location = f"Token #{order.token.display_number}"
-        except Exception:
-            pass
+        # No token is RelatedObjectDoesNotExist (an AttributeError): getattr's default.
+        order_token = getattr(order, "token", None)
+        if order_token:
+            location = f"Token #{order_token.display_number}"
     if not location:
         location = order.source.replace("_", " ").title()
 
@@ -421,11 +420,9 @@ def export_orders_csv(request):
         if order.table:
             location = f"T:{order.table.name}"
         else:
-            try:
-                if hasattr(order, "token") and order.token:
-                    location = f"Token:{order.token.display_number}"
-            except Exception:
-                pass
+            order_token = getattr(order, "token", None)   # None when the order has no token
+            if order_token:
+                location = f"Token:{order_token.display_number}"
         if not location:
             location = order.source
 

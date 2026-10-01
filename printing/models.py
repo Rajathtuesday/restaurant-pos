@@ -1,4 +1,6 @@
 # printing/models.py
+import logging
+
 from django.db import models
 
 from core.models import TenantScopedModel
@@ -78,4 +80,8 @@ class PrintJob(TenantScopedModel):
                 from django.core.cache import cache
                 cache.set(self.pending_flag_key(self.outlet_id), 1, timeout=3600)
             except Exception:
-                pass
+                # Still never blocks the job, but a cache (Redis) that is down
+                # now shows in the log instead of passing in silence.
+                logging.getLogger("pos.printing").warning(
+                    "Could not set the print-pending flag for outlet %s", self.outlet_id, exc_info=True,
+                )

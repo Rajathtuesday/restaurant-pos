@@ -117,7 +117,9 @@ def print_kot_task(self, station_id, order_id, kot_id):
             if outlet_id:
                 _store_printer_error(outlet_id, str(station_id), kot_id, str(exc))
         except Exception:
-            pass
+            # Recording the error for the screen is best effort while a print
+            # is already failing, but its own failure is logged, not dropped.
+            logger.warning("Could not record the printer error for KOT #%s", kot_id, exc_info=True)
         raise self.retry(exc=exc)
 
 

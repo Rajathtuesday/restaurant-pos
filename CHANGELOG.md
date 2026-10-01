@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-10-02: errors that were swallowed, and the crash one of them hid
+
+The code review counted six `except Exception: pass`. Each was looked at: one hid a real crash, three hid nothing they should, two were deliberate but silent.
+
+### Fixed
+- **A switched-off default kitchen station broke the bill page** - an outlet has one default station (the `one_default_station_per_outlet` constraint). `get_default_station` looked only for an active default and otherwise created a new one, which the constraint refused, on every call: the bill page failed, and the thermal print view hid it behind `except Exception: pass` and printed at a guessed width. Now the active default is used; if the default is switched off, the first active station stands in (or the switched-off default when nothing is active); with no default at all an active station becomes it, or a "General" one is made, safe when two requests do it at once. The print view no longer swallows anything there.
+- **Deleting the default station failed** - it promoted the next station while the old one was still the default, which the same constraint refused. The old one now stops being the default first, in one transaction with the promotion.
+- **Three `order.token` checks** (thermal print view, order history detail and CSV) caught every exception to cope with an order that has no token. `getattr(order, "token", None)` does that without hiding anything else.
+- **Two deliberate ones now log** - a cache (Redis) failure while queuing a print job still never blocks the job, and failing to record a printer error while a KOT print is already failing still doesn't stop the retry, but both are now warnings in the log instead of silence.
+
+### Tests
+- `setup/test_default_station.py` (8): the station lookup in each case, the bill page with a switched-off default, deleting the default station, and the logged cache failure. On the old code the bill page, the lookup and the delete fail with the constraint's IntegrityError, and nothing is logged.
+
 ## 2026-10-02: a QR guest's special instructions reach the kitchen
 
 ### Fixed

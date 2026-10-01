@@ -168,12 +168,10 @@ def qz_receipt_data(request, order_id):
         ).get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
 
         split_mode = request.GET.get("split") == "1"
-        station = None
-        try:
-            from setup.services.station_service import get_default_station
-            station = get_default_station(request.user)
-        except Exception:
-            pass
+        # get_default_station no longer raises for a switched-off default
+        # station (the reason this was wrapped in except Exception: pass).
+        from setup.services.station_service import get_default_station
+        station = get_default_station(request.user)
 
         chars = station.chars_per_line if station else 48
         cut   = station.cut_type if station else "full"
@@ -398,12 +396,12 @@ def thermal_receipt_view(request, order_id):
             .select_related("station")
             .order_by("kot_number")
         )
-        # Token number for QSR
-        try:
-            if hasattr(order, "token") and order.token:
-                token = order.token.display_number
-        except Exception:
-            pass
+        # Token number for QSR. An order without a token raises
+        # RelatedObjectDoesNotExist, an AttributeError, which getattr's
+        # default catches; nothing else is hidden.
+        order_token = getattr(order, "token", None)
+        if order_token:
+            token = order_token.display_number
 
     # Payment and change
     payment    = order.payments.order_by("-paid_at").first()

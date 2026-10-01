@@ -820,13 +820,19 @@ def delete_station(request, station_id):
         if next_station:
             # Reassign any menu items pointing to this station
             from menu.models import MenuItem
-            MenuItem.objects.filter(
-                tenant=request.user.tenant,
-                outlet=request.user.outlet,
-                station=station,
-            ).update(station=next_station)
-            next_station.is_default = True
-            next_station.save(update_fields=["is_default"])
+            with transaction.atomic():
+                MenuItem.objects.filter(
+                    tenant=request.user.tenant,
+                    outlet=request.user.outlet,
+                    station=station,
+                ).update(station=next_station)
+                # An outlet has one default station (one_default_station_per_outlet):
+                # this one stops being it before the next one starts, or the
+                # promotion is refused and the delete fails.
+                station.is_default = False
+                station.save(update_fields=["is_default"])
+                next_station.is_default = True
+                next_station.save(update_fields=["is_default"])
     else:
         # Edge case 3 — non-default station with menu items assigned
         # Reassign those items to the default station
