@@ -183,14 +183,6 @@ def api_active_orders(request):
 
 
 
-def _as_id(value):
-    """A positive database id from JSON or a query string, else None."""
-    if isinstance(value, bool):
-        return None
-    text = str(value).strip() if value is not None else ""
-    return int(text) if text.isdigit() and int(text) > 0 else None
-
-
 def _ingested(order, duplicate=False):
     return JsonResponse({
         "success": True,
@@ -223,6 +215,7 @@ def api_ingest_order(request):
     and every order must carry its ID.
     """
     from core.utils import get_client_ip
+    from core.validators import positive_int
     from orders.services import aggregator_webhook
     from orders.services.cart_limits import MAX_CART_LINES, line_quantity
 
@@ -245,8 +238,8 @@ def api_ingest_order(request):
     if not secret_field:
         return JsonResponse({"error": "Unknown aggregator source"}, status=401)
 
-    tenant_pk = _as_id(request.GET.get("tenant_id") or data.get("tenant_id"))
-    outlet_pk = _as_id(request.GET.get("outlet_id") or data.get("outlet_id"))
+    tenant_pk = positive_int(request.GET.get("tenant_id") or data.get("tenant_id"))
+    outlet_pk = positive_int(request.GET.get("outlet_id") or data.get("outlet_id"))
     config = None
     if tenant_pk and outlet_pk:
         config = (
@@ -293,7 +286,7 @@ def api_ingest_order(request):
     for line in items:
         if not isinstance(line, dict):
             return JsonResponse({"error": "Each item must be an object"}, status=400)
-        menu_item_id = _as_id(line.get("menu_item_id"))
+        menu_item_id = positive_int(line.get("menu_item_id"))
         try:
             quantity = line_quantity(line.get("quantity", 1))
         except ValueError as e:

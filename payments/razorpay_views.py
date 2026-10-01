@@ -16,6 +16,7 @@ from django_ratelimit.decorators import ratelimit
 
 from core.decorators import tenant_required, feature_required
 from core.features import has_feature
+from core.validators import positive_int
 from orders.models import Order, OrderEvent, Payment
 from payments.models import RazorpayQRCode
 from orders.services.payment_service import process_payment
@@ -122,6 +123,14 @@ def razorpay_qr_status(request, qr_code_id):
 # WEBHOOK (Razorpay-facing — no login, external caller)
 # -------------------------------------------------
 
+def _entity(payload, kind):
+    """payload["payload"][kind]["entity"], or {} if any level is missing or isn't an object."""
+    node = payload.get("payload")
+    for key in (kind, "entity"):
+        node = node.get(key) if isinstance(node, dict) else None
+    return node if isinstance(node, dict) else {}
+
+
 @csrf_exempt
 @require_POST
 def razorpay_webhook(request):
@@ -138,8 +147,11 @@ def razorpay_webhook(request):
     pointed at the wrong tenant's outlet — rather than silently succeeding
     because outlet_id alone happened to be enough.
     """
-    tenant_id = request.GET.get("tenant_id")
-    outlet_id = request.GET.get("outlet_id")
+    # Checked as numbers before the lookup: Outlet.objects.get(id="abc")
+    # raises rather than finding nothing, which made any caller's junk URL a
+    # logged 500 before the signature was ever looked at.
+    tenant_id = positive_int(request.GET.get("tenant_id"))
+    outlet_id = positive_int(request.GET.get("outlet_id"))
     if not tenant_id or not outlet_id:
         return JsonResponse({"error": "tenant_id and outlet_id required"}, status=400)
 
@@ -162,13 +174,15 @@ def razorpay_webhook(request):
         payload = json.loads(request.body)
     except ValueError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     event = payload.get("event", "")
 
     # QR closed/expired without payment — no-op, not an error. Razorpay
     # retries on non-2xx, so always return 200 for events we don't act on.
     if event in ("qr_code.closed",):
-        qr_code_id = payload.get("payload", {}).get("qr_code", {}).get("entity", {}).get("id")
+        qr_code_id = _entity(payload, "qr_code").get("id")
         # Scoped by tenant+outlet even though qr_code_id is already a Razorpay-
         # issued unique string — a valid signature only proves the caller knows
         # *this* outlet's webhook secret, not that qr_code_id belongs to it.
@@ -185,12 +199,16 @@ def razorpay_webhook(request):
     # qr_code.credited payload shape: the QR entity carries the `notes` we set
     # at creation time; the payment entity carries the actual transaction id
     # and amount. Notes are NOT mirrored onto the payment entity.
-    qr_entity = payload.get("payload", {}).get("qr_code", {}).get("entity", {}) or {}
-    payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {}) or {}
-    notes = qr_entity.get("notes", {}) or {}
+    qr_entity = _entity(payload, "qr_code")
+    payment_entity = _entity(payload, "payment")
+    notes = qr_entity.get("notes") if isinstance(qr_entity.get("notes"), dict) else {}
     razorpay_payment_id = payment_entity.get("id")
-    order_id = notes.get("order_id")
-    webhook_amount_paise = payment_entity.get("amount")
+    if not isinstance(razorpay_payment_id, str):
+        razorpay_payment_id = None
+    order_id = positive_int(notes.get("order_id"))
+    # Paise, a positive whole number. A non-number used to reach int() and
+    # 500, and Razorpay retries a non-2xx for a day.
+    webhook_amount_paise = positive_int(payment_entity.get("amount"))
 
     if not order_id or not razorpay_payment_id or webhook_amount_paise is None:
         # Logging only field-presence, not the full payload -- payment.entity
@@ -218,7 +236,7 @@ def razorpay_webhook(request):
         )
         return JsonResponse({"error": "Tenant/outlet mismatch"}, status=400)
 
-    webhook_amount = paise_to_decimal(int(webhook_amount_paise))
+    webhook_amount = paise_to_decimal(webhook_amount_paise)
 
     # The .exists() check above closes the common case (retries seconds/minutes
     # apart), but is a plain SELECT-then-INSERT with no atomicity of its own —

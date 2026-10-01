@@ -74,3 +74,21 @@ def normalize_phone(raw):
     if not re.fullmatch(r"[6-9]\d{9}", s):
         raise ValidationError("Enter a valid 10-digit Indian mobile number.")
     return s
+
+
+def positive_int(value):
+    """
+    A positive whole number from JSON or a query string (7, "7", " 7 "),
+    else None. For IDs and amounts that arrive from outside: a lookup like
+    Outlet.objects.get(id="abc") raises instead of finding nothing, which in
+    a webhook is a logged 500 any caller can trigger. JSON true/false are
+    not numbers here, and neither are 7.5, "-7" or "7e2".
+    """
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    text = value.strip() if isinstance(value, str) else ""
+    if text.isascii() and text.isdigit() and int(text) > 0:
+        return int(text)
+    return None

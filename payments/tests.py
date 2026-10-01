@@ -463,6 +463,40 @@ class RazorpayWebhookTest(CounterBillingBase):
             ).exists()
         )
 
+    def test_junk_ids_in_the_url_are_a_400_not_a_logged_500(self):
+        # The outlet lookup runs before the signature check, so these come
+        # from anyone; they used to raise inside the lookup.
+        for query in ("tenant_id=abc&outlet_id=1", "tenant_id=1&outlet_id=1.5",
+                      "tenant_id=-1&outlet_id=1", "tenant_id=%C2%B2&outlet_id=1"):
+            with self.assertNoLogs("django.request", level="ERROR"):
+                response = self.client.post(
+                    reverse("razorpay-webhook") + "?" + query, data="{}", content_type="application/json",
+                )
+            self.assertEqual(response.status_code, 400, query)
+
+    def test_a_payload_of_the_wrong_shape_is_a_400(self):
+        order = self._make_order()
+        good = self._credited_payload(order)
+        shapes = [
+            [1, 2],
+            {"event": "qr_code.credited", "payload": "x"},
+            {"event": "qr_code.credited", "payload": {"qr_code": None, "payment": []}},
+            {**good, "payload": {**good["payload"], "payment": {"entity": {"id": "pay_s", "amount": "lots"}}}},
+            {**good, "payload": {**good["payload"], "payment": {"entity": {"id": "pay_s", "amount": 12.5}}}},
+            {**good, "payload": {**good["payload"], "payment": {"entity": {"id": "pay_s", "amount": True}}}},
+            {**good, "payload": {**good["payload"], "payment": {"entity": {"id": "pay_s", "amount": 0}}}},
+            {**good, "payload": {**good["payload"], "payment": {"entity": {"id": ["pay_s"], "amount": 100}}}},
+        ]
+        for shape in shapes:
+            with self.assertNoLogs("django.request", level="ERROR"):
+                response = self._post_webhook(shape)
+            self.assertEqual(response.status_code, 400, shape)
+        self.assertFalse(Payment.objects.filter(order=order).exists())
+
+    def test_a_closed_qr_without_its_entity_is_still_a_200(self):
+        response = self._post_webhook({"event": "qr_code.closed", "payload": {"qr_code": None}})
+        self.assertEqual(response.status_code, 200)
+
     def test_amount_mismatch_flagged_and_capped_to_remaining(self):
         """
         If the order changed after the QR was shown (e.g. item added), the
