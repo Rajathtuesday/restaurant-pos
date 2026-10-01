@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-10-02: a QR guest's special instructions reach the kitchen
+
+### Fixed
+- **"Special instructions" were dropped** - the guest menu sent its instructions box ("less spicy") as `notes` with the cart, and `create_order` never read it, so the kitchen never saw it. It is now the kitchen note of each dish in that cart, shown on the KOT and the kitchen screen; a dish's own note wins. The box takes up to 200 characters, the length of any note.
+
+### Tests
+- `orders/tests/test_guest_instructions.py` (5): the instructions on every dish, a dish's own note winning, blank instructions leaving no note, too-long instructions refused, and the instructions printed on the KOT. 4 fail on the old code.
+
 ## 2026-10-02: UTGST only where the law charges it
 
 ### Fixed

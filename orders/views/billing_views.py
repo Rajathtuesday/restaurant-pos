@@ -100,6 +100,17 @@ def order_source(data, user):
     return source, aggregator_id
 
 
+def with_cart_note(cart, note):
+    """The cart with a note for the whole cart (the guest menu's "special
+    instructions" box, sent as "notes") on each dish, where the kitchen sees
+    it: on the KOT and the kitchen screen. A dish's own note wins. The note
+    used to be sent and never read, so the kitchen never saw it."""
+    if not isinstance(note, str) or not note.strip() or not isinstance(cart, list):
+        return cart
+    note = note.strip()
+    return [{**line, "note": line.get("note") or note} if isinstance(line, dict) else line for line in cart]
+
+
 # @login_required -- Removed to allow QR guest ordering
 # Rate-limit BEFORE require_POST so the check runs before any body parsing.
 # 20 requests/minute per IP. Guests hit this via QR; staff calls are authenticated
@@ -339,6 +350,7 @@ def create_order(request):
                         pass
 
             order.save(update_fields=changed)
+            cart = with_cart_note(cart, data.get("notes"))
             add_items_to_order(user, order, cart, tenant=tenant, outlet=outlet)
 
             # Important: recalculate after adding items so the discount applies to the total
