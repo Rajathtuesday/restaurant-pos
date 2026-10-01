@@ -6,6 +6,10 @@ from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
 
 from orders.exceptions import OrderError, CartError, MenuItemError, ModifierError
+from orders.services.cart_limits import (
+    GUEST_MAX_CART_LINES, GUEST_MAX_LINE_QUANTITY, MAX_CART_LINES, MAX_LINE_QUANTITY,
+    MAX_MODIFIERS_PER_LINE, MAX_NOTE_LENGTH, line_quantity,
+)
 from orders.services.event_service import log_event
 from orders.services.inventory_service import check_inventory_availability
 from orders.services.tax_service import tax_snapshot_for
@@ -98,8 +102,18 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
 
     if not cart_items:
         raise CartError("Cart is empty.")
+    if not isinstance(cart_items, list):
+        raise CartError("Cart must be a list of items.")
+
+    # A guest (QR, no login) gets tighter limits than staff; see cart_limits.
+    guest = user is None
+    max_lines = GUEST_MAX_CART_LINES if guest else MAX_CART_LINES
+    if len(cart_items) > max_lines:
+        raise CartError(f"A cart can have at most {max_lines} lines.")
 
     for item in cart_items:
+        if not isinstance(item, dict):
+            raise CartError("Each cart item must be an object.")
 
         menu_item = MenuItem.objects.filter(
             id=item.get("id"),
@@ -114,12 +128,27 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             raise MenuItemError(f"'{menu_item.name}' is currently unavailable.")
 
         try:
-            quantity = int(item.get("quantity", 1))
-        except (TypeError, ValueError):
-            raise CartError("Quantity must be a valid integer.")
+            quantity = line_quantity(
+                item.get("quantity", 1),
+                GUEST_MAX_LINE_QUANTITY if guest else MAX_LINE_QUANTITY,
+            )
+        except ValueError as e:
+            raise CartError(str(e))
 
-        if quantity <= 0:
-            raise CartError("Quantity must be greater than zero.")
+        note = item.get("note") or ""
+        if not isinstance(note, str):
+            raise CartError("A note must be text.")
+        note = note.strip()
+        if len(note) > MAX_NOTE_LENGTH:
+            raise CartError(f"A note can be at most {MAX_NOTE_LENGTH} characters.")
+
+        modifier_ids = item.get("modifiers") or []
+        if not isinstance(modifier_ids, list):
+            raise CartError("Modifiers must be a list.")
+        if len(modifier_ids) > MAX_MODIFIERS_PER_LINE:
+            raise CartError(f"A dish can have at most {MAX_MODIFIERS_PER_LINE} modifiers.")
+        if any(isinstance(mod_id, bool) or not str(mod_id).isdigit() for mod_id in modifier_ids):
+            raise ModifierError("Modifier not found or access denied.")
 
         # -------------------------------------------------
         # INVENTORY CHECK — warn-only by design (see check_inventory_availability's
@@ -160,8 +189,8 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             item_discount_pct=item_discount_pct,
             **tax_snapshot_for(menu_item, t),   # GST, or VAT for liquor, as sold today
             total_price=base_price,
-            notes=item.get("note", ""),
-            is_takeaway=item.get("is_takeaway", False),
+            notes=note,
+            is_takeaway=item.get("is_takeaway") is True,
             status="review" if user is None else "pending"
         )
 
@@ -183,7 +212,6 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
         # ADD MODIFIERS
         # -------------------------------------------------
 
-        modifier_ids = item.get("modifiers", [])
         modifier_total = Decimal("0")
 
         for mod_id in modifier_ids:

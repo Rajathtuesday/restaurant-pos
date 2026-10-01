@@ -22,6 +22,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
+from orders.exceptions import CartError, MenuItemError, ModifierError, OrderError
 from orders.models import Order, Table
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
 
@@ -355,6 +356,11 @@ def create_order(request):
             "order_id": order.id,
             "status_token": make_order_status_token(order.id),
         })
+    except (CartError, MenuItemError, ModifierError, OrderError) as e:
+        # Written for the person ordering ("A cart can have at most 30
+        # lines.", "'Lassi' is currently unavailable."), so they are shown
+        # as they are; the guest menu displays data.error.
+        return JsonResponse({"error": str(e)}, status=400)
     except Exception:
         # Never leak internal exception text (DB constraints, table names) to
         # the client — especially unauthenticated QR guests. Log full trace,

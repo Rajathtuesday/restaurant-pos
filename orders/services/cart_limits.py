@@ -8,6 +8,13 @@ can't write thousands of rows or a bill in the crores. Every entry point
 
 MAX_LINE_QUANTITY = 999        # of one dish on one line
 MAX_CART_LINES = 100           # lines in one request
+MAX_NOTE_LENGTH = 200          # characters in a line's kitchen note
+MAX_MODIFIERS_PER_LINE = 20
+
+# A QR guest (no login) gets tighter limits: their items wait in review for
+# staff, but nobody should have to clear a 999-portion line from a stranger.
+GUEST_MAX_LINE_QUANTITY = 50
+GUEST_MAX_CART_LINES = 30
 
 
 def line_quantity(value, maximum=MAX_LINE_QUANTITY):
