@@ -20,6 +20,8 @@ import logging
 
 from django.utils import timezone
 
+from orders.services.bill_layout import bill_layout, money, rate_text
+
 logger = logging.getLogger("pos.orders")
 
 
@@ -119,8 +121,65 @@ class PrintingService:
         # "none" → skip cut; staff tears manually
 
     def _currency(self, amount) -> str:
-        """₹ doesn't exist in CP437 — always use Rs. for safety."""
-        return f"Rs.{float(amount):.0f}"
+        """₹ doesn't exist in CP437 — always use Rs. for safety. To the paisa:
+        a bill rounded to the rupee line by line doesn't add up."""
+        return f"Rs.{money(amount)}"
+
+    def _dish_rows(self, line, width) -> list:
+        """A bill's dish on as many lines as its name needs: quantity, veg
+        mark, name and amount on the first, the rest of the name below it,
+        never past the paper edge."""
+        prefix = f"{line.quantity}x {'[V]' if line.is_veg else '[N]'} "
+        amount = "FREE" if line.free else money(line.amount)
+        name_width = max(width - len(prefix) - len(amount) - 1, 6)
+        chunks = self._wrap_text(line.name, name_width)
+        first = f"{prefix}{chunks[0]}"
+        rows = [first[:width - len(amount) - 1].ljust(width - len(amount)) + amount]
+        indent = " " * len(prefix)
+        for chunk in self._wrap_text(" ".join(chunks[1:]), width - len(prefix)) if chunks[1:] else []:
+            rows.append(f"{indent}{chunk}"[:width])
+        return rows
+
+    def _print_money(self, p, layout, width, align="center", tall_total=False):
+        """The bill's money rows and its total, from
+        orders/services/bill_layout.py: what every printed bill says.
+        Returns the two-column formatter for the lines that follow."""
+        def two(left, right):
+            right = str(right)
+            return str(left)[:width - len(right) - 1].ljust(width - len(right)) + right
+
+        for row in layout.rows:
+            p.text(two(row.label, money(row.amount)) + "\n")
+        p.text("-" * width + "\n")
+        p.set(align=align, bold=True, font="a", double_height=tall_total)
+        p.text(two("TOTAL", self._currency(layout.total)) + "\n")
+        p.set(align=align, bold=False, font="a")
+        return two
+
+    def _print_included(self, p, layout, two):
+        """Tax already inside the prices: shown with its taxable value, never
+        added again (a tax invoice states the rate and amount of tax)."""
+        if not layout.included:
+            return
+        p.text(("Prices include GST:" if layout.prices_include_gst else "Prices include tax:") + "\n")
+        for tax in layout.included:
+            p.text(f"{tax.label} on {money(tax.taxable)}\n")
+            if tax.kind == "gst":
+                half = rate_text(tax.rate / 2)
+                p.text(two(f"  CGST {half}", money(tax.cgst)) + "\n")
+                p.text(two(f"  {layout.state_tax} {half}", money(tax.sgst)) + "\n")
+            else:
+                p.text(two("  " + tax.label.split()[0], money(tax.tax)) + "\n")
+        if len(layout.included) > 1:
+            p.text(two("Total tax included", money(layout.included_total)) + "\n")
+
+    def _print_title(self, p, layout, width):
+        """Tax Invoice, Bill of Supply (with the composition statement) or Bill."""
+        p.set(align="center", bold=True, font="a")
+        p.text(f"{layout.title.upper()}\n")
+        p.set(align="center", bold=False, font="a")
+        for chunk in self._wrap_text(layout.statement, width) if layout.statement else []:
+            p.text(f"{chunk}\n")
 
     def _sep(self) -> str:
         return "-" * self.W
@@ -218,7 +277,7 @@ class PrintingService:
 
     def _print_bill_body(self, p, order):
         W = self.W
-        gst_inclusive = getattr(order.outlet, 'gst_inclusive', False)
+        layout = bill_layout(order)
         profile = getattr(order.outlet, "print_profile", None)
         bill_margin = profile.bill_inner_margin if profile else 4
 
@@ -254,6 +313,9 @@ class PrintingService:
 
         sep_inner = "-" * C
 
+        # ── TITLE — Tax Invoice / Bill of Supply / Bill ─────────────────
+        self._print_title(p, layout, C)
+
         # ── INVOICE INFO — centered block, Font A ───────────────────────
         p.set(align="center", bold=False, font='a')
         p.text(tc("Bill No.", order.display_number) + "\n")
@@ -268,42 +330,21 @@ class PrintingService:
 
         # ── ITEMS — centered block, Font A ──────────────────────────────
         p.set(align="center", bold=False, font='a')
-        for item in order.items.exclude(status="voided").select_related("menu_item"):
-            veg_flag = "[V]" if getattr(item.menu_item, 'is_veg', False) else "[N]"
-            prefix   = f"{item.quantity}x {veg_flag} "
-            amt      = f"{float(item.total_price):.0f}"
-            max_name = C - len(prefix) - len(amt) - 1
-            name     = str(item.menu_item.name)[:max_name]
-            p.text(tc(f"{prefix}{name}", amt) + "\n")
+        for line in layout.lines:
+            for row in self._dish_rows(line, C):
+                p.text(row + "\n")
 
         p.text(sep_inner + "\n")
 
-        # ── SUBTOTALS — centered block, Font A ──────────────────────────
+        # ── MONEY — rows that add up to the total (bill_layout) ─────────
         p.set(align="center", bold=False, font='a')
-        p.text(tc("Subtotal", self._currency(order.subtotal)) + "\n")
-        if order.gst_total:
-            label = "GST (incl.)" if gst_inclusive else "GST"
-            p.text(tc(label, self._currency(order.gst_total)) + "\n")
-        if order.discount_total > 0:
-            p.text(tc("Discount", f"-{self._currency(order.discount_total)}") + "\n")
-        parcel = getattr(order, 'parcel_surcharge', 0)
-        if parcel and parcel > 0:
-            p.text(tc("Parcel", self._currency(parcel)) + "\n")
-
-        p.text(sep_inner + "\n")
-
-        # ── TOTAL — centered block, Font A bold ─────────────────────────
-        p.set(align="center", bold=True, font='a')
-        p.text(tc("TOTAL", self._currency(order.grand_total)) + "\n")
+        two = self._print_money(p, layout, C)
 
         payment = order.payments.order_by("-paid_at").first()
         if payment:
-            p.set(align="center", bold=False, font='a')
-            p.text(tc("Paid via", payment.method.upper()) + "\n")
+            p.text(two("Paid via", payment.method.upper()) + "\n")
 
-        if gst_inclusive:
-            p.set(align="center", bold=False, font='a')
-            p.text("(prices include GST)\n")
+        self._print_included(p, layout, two)
 
         p.text(sep_inner + "\n")
 
@@ -341,7 +382,8 @@ class PrintingService:
                         "total": 0,
                     }
                 groups[key]["items"].append(item)
-                groups[key]["total"] += item.total_price
+                if not item.is_complimentary:   # a free dish costs nothing here either
+                    groups[key]["total"] += item.total_price
 
             group_list = list(groups.values())
             if not group_list:
@@ -364,7 +406,7 @@ class PrintingService:
 
     def _print_summary_slip(self, p, order, group_list):
         W = self.W
-        is_comp = order.is_bill_of_supply   # as the bill was totalled, not today's setting
+        layout = bill_layout(order)
 
         p.set(align="center", bold=True, double_width=True, double_height=True)
         p.text(f"{str(order.tenant.name)[:W//2]}\n")
@@ -372,10 +414,7 @@ class PrintingService:
         p.text(f"{order.outlet.name}\n")
         if order.outlet.gst_no:
             p.text(f"GSTIN: {order.outlet.gst_no}\n")
-        if is_comp:
-            p.set(bold=True)
-            p.text("BILL OF SUPPLY\n")
-            p.set(bold=False)
+        self._print_title(p, layout, W)
 
         p.text(self._sep() + "\n")
         p.set(align="left")
@@ -385,48 +424,23 @@ class PrintingService:
             p.set(bold=True, double_width=True, double_height=True)
             p.text(f"Token {order.token.display_number}\n")
             p.set(bold=False, double_width=False, double_height=False)
-        else:
-            p.text(f"Bill : {order.display_number}\n")
+        p.text(f"Bill : {order.display_number}\n")
         p.text(f"Date : {timezone.localtime(order.created_at).strftime('%d/%m/%Y %H:%M')}\n")
         p.text(self._sep() + "\n")
 
         # FULL item list — same as a normal bill (customer needs this for records)
-        name_w = W - 10
-        p.set(bold=True)
-        p.text(f"{'Item':<{name_w}} {'Qty':>3} {'Amt':>5}\n")
-        p.set(bold=False)
+        for line in layout.lines:
+            for row in self._dish_rows(line, W):
+                p.text(row + "\n")
         p.text(self._sep() + "\n")
 
-        for item in order.items.exclude(status="voided").select_related("menu_item"):
-            name = str(item.menu_item.name)[:name_w]
-            qty  = str(item.quantity)
-            amt  = f"{float(item.total_price):.0f}"
-            p.text(f"{name:<{name_w}} {qty:>3} {amt:>5}\n")
-
-        p.text(self._sep() + "\n")
-        # Subtotal, GST (or Bill of Supply note), parcel
-        p.text(self._two_col("Subtotal", self._currency(order.subtotal)) + "\n")
-        if not is_comp and order.gst_total:
-            p.text(self._two_col("GST", self._currency(order.gst_total)) + "\n")
-        parcel = getattr(order, "parcel_surcharge", 0)
-        if parcel and parcel > 0:
-            p.text(self._two_col("Parcel Charge", self._currency(parcel)) + "\n")
-        if order.discount_total > 0:
-            p.text(self._two_col("Discount", f"-{self._currency(order.discount_total)}") + "\n")
-
-        p.text(self._sep() + "\n")
-        p.set(bold=True, double_height=True)
-        p.text(self._two_col("TOTAL", self._currency(order.grand_total)) + "\n")
-        p.set(bold=False, double_height=False)
+        two = self._print_money(p, layout, W, align="left", tall_total=True)
 
         payment = order.payments.order_by("-paid_at").first()
         if payment:
-            p.text(self._two_col("Paid via", payment.method.upper()) + "\n")
+            p.text(two("Paid via", payment.method.upper()) + "\n")
 
-        if is_comp:
-            p.text(self._sep() + "\n")
-            p.set(align="center")
-            p.text("Bill of Supply\n")
+        self._print_included(p, layout, two)
 
         p.text(self._sep() + "\n")
         p.set(align="center")
@@ -507,6 +521,7 @@ class PrintingService:
 
     def _print_qsr_token_body(self, p, order):
         W = self.W
+        layout = bill_layout(order)
 
         # Restaurant name + compliance header
         p.set(align="center", bold=True, double_width=False, double_height=False)
@@ -517,6 +532,10 @@ class PrintingService:
             p.text(f"GSTIN: {order.outlet.gst_no}\n")
         sac = getattr(order.outlet, "sac_code", None) or "996331"
         p.text(f"SAC: {sac}\n")
+        # At a QSR counter this receipt is the guest's bill: it says what
+        # kind of bill it is and carries its number, like any other.
+        self._print_title(p, layout, W)
+        p.text(f"Bill No. {order.display_number}\n")
         p.text(self._sep() + "\n")
 
         # Token number — as large as the printer supports
@@ -535,23 +554,20 @@ class PrintingService:
         p.set(align="left", bold=False, double_width=False, double_height=False)
         p.text(self._sep() + "\n")
 
-        # Items
-        name_w = W - 8
-        for item in order.items.exclude(status="voided").select_related("menu_item"):
-            name = str(item.menu_item.name)[:name_w]
-            amt  = f"{float(item.total_price):.0f}"
-            p.text(f"{item.quantity}x {name:<{name_w - 2}} {amt:>5}\n")
+        # Items: a long name wraps instead of running past the paper edge
+        for line in layout.lines:
+            for row in self._dish_rows(line, W):
+                p.text(row + "\n")
 
         p.text(self._sep() + "\n")
 
-        # Totals
-        p.set(bold=True)
-        p.text(self._two_col("TOTAL", self._currency(order.grand_total)) + "\n")
-        p.set(bold=False)
+        two = self._print_money(p, layout, W, align="left")
 
         payment = order.payments.order_by("-paid_at").first()
         if payment:
-            p.text(self._two_col("Paid", payment.method.upper()) + "\n")
+            p.text(two("Paid", payment.method.upper()) + "\n")
+
+        self._print_included(p, layout, two)
 
         p.set(align="right")
         p.text(f"{timezone.localtime(order.created_at).strftime('%d/%m %H:%M')}\n")

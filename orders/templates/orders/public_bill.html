@@ -33,6 +33,9 @@
   .item-name { flex: 1; padding-right: 1rem; color: #d8d2c8; }
   .item-val { font-family: 'Courier New', monospace; color: #c8c0b4; }
 
+  .r-title { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: #c5a059; margin-top: .5rem; }
+  .included { margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed #2a2a2a; }
+  .included .lbl { font-size: .58rem; text-transform: uppercase; letter-spacing: 2px; color: #6a655e; margin-bottom: 4px; }
   .total-row { display: flex; justify-content: space-between; padding: .2rem 0; font-size: .85rem; color: #b0a89c; }
   .grand-total {
     display: flex; justify-content: space-between;
@@ -63,6 +66,9 @@
   <div class="r-header">
     <div class="r-logo">{{ tenant.name }}</div>
     <div class="r-addr">{{ outlet.name }}{% if outlet.address %}<br>{{ outlet.address }}{% endif %}</div>
+    {% if outlet.gst_no %}<div class="r-addr">GSTIN: {{ outlet.gst_no }}</div>{% endif %}
+    <div class="r-title">{{ layout.title }}</div>
+    {% if layout.statement %}<div class="r-addr">{{ layout.statement }}</div>{% endif %}
   </div>
 
   <div class="meta">
@@ -70,24 +76,33 @@
     <div><span class="lbl">Date</span>{{ order.created_at|date:"d M Y, h:i A" }}</div>
   </div>
 
+  {# Lines and rows from orders/services/bill_layout.py: they add up to the total. #}
   <div class="items">
-    {% for item in order.items.all %}{% if item.status != 'voided' %}
+    {% for line in layout.lines %}
     <div class="item">
-      <div class="item-name">{{ item.menu_item.name }} <span style="color:#5a564f;">&times; {{ item.quantity }}</span></div>
-      <div class="item-val">&#8377;{{ item.total_price }}</div>
+      <div class="item-name">{{ line.name }} <span style="color:#5a564f;">&times; {{ line.quantity }}</span></div>
+      <div class="item-val">{% if line.free %}Free{% else %}&#8377;{{ line.amount|floatformat:2 }}{% endif %}</div>
     </div>
-    {% endif %}{% endfor %}
+    {% endfor %}
   </div>
 
-  <div class="total-row"><span>Subtotal</span><span>&#8377;{{ order.subtotal }}</span></div>
-  {% if order.gst_total %}
-  <div class="total-row"><span>CGST</span><span>&#8377;{{ order.cgst_total }}</span></div>
-  <div class="total-row"><span>SGST</span><span>&#8377;{{ order.sgst_total }}</span></div>
+  {% for row in layout.rows %}
+  <div class="total-row"><span>{{ row.label }}</span><span>{% if row.negative %}&minus;{% endif %}&#8377;{{ row.magnitude|floatformat:2 }}</span></div>
+  {% endfor %}
+  <div class="grand-total"><span>Total</span><span>&#8377;{{ layout.total|floatformat:2 }}</span></div>
+  {% if layout.included %}
+  <div class="included">
+    <div class="lbl">{% if layout.prices_include_gst %}Prices include GST{% else %}Prices include tax{% endif %}</div>
+    {% for tax in layout.included %}
+    {% if tax.kind == "gst" %}
+    <div class="total-row"><span>CGST {{ tax.half_rate }} on &#8377;{{ tax.taxable|floatformat:2 }}</span><span>&#8377;{{ tax.cgst|floatformat:2 }}</span></div>
+    <div class="total-row"><span>{{ layout.state_tax }} {{ tax.half_rate }} on &#8377;{{ tax.taxable|floatformat:2 }}</span><span>&#8377;{{ tax.sgst|floatformat:2 }}</span></div>
+    {% else %}
+    <div class="total-row"><span>{{ tax.label }} on &#8377;{{ tax.taxable|floatformat:2 }}</span><span>&#8377;{{ tax.tax|floatformat:2 }}</span></div>
+    {% endif %}
+    {% endfor %}
+  </div>
   {% endif %}
-  {% if order.round_off %}
-  <div class="total-row"><span>Round Off</span><span>{% if order.round_off > 0 %}+{% endif %}&#8377;{{ order.round_off }}</span></div>
-  {% endif %}
-  <div class="grand-total"><span>Total</span><span>&#8377;{{ order.grand_total }}</span></div>
 
   {% if remaining > 0 %}
   <div class="balance">

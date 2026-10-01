@@ -8,17 +8,19 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.      GB/2627/000001|
 A ^ |Date        20/09/2026 20:00|
 A ^ |Table                     T4|
 A ^ |----------------------------|
-A ^ |2x [V] Masala Dosa       180|
-A ^ |1x [N] Chicken 65        240|
+A ^ |2x [V] Masala Dosa    180.00|
+A ^ |1x [N] Chicken 65     240.00|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.420|
-A ^ |GST                    Rs.21|
+A ^ |Subtotal              420.00|
+A ^ |CGST 2.5%              10.50|
+A ^ |SGST 2.5%              10.50|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.441|
+A*^ |TOTAL              Rs.441.00|
 A ^ |Paid via                CASH|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -40,17 +42,19 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                      GB/2627/000001|
 A ^ |Date                        20/09/2026 20:00|
 A ^ |Table                                     T4|
 A ^ |--------------------------------------------|
-A ^ |2x [V] Masala Dosa                       180|
-A ^ |1x [N] Chicken 65                        240|
+A ^ |2x [V] Masala Dosa                    180.00|
+A ^ |1x [N] Chicken 65                     240.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.420|
-A ^ |GST                                    Rs.21|
+A ^ |Subtotal                              420.00|
+A ^ |CGST 2.5%                              10.50|
+A ^ |SGST 2.5%                              10.50|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.441|
+A*^ |TOTAL                              Rs.441.00|
 A ^ |Paid via                                CASH|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -66,19 +70,19 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GB/2627/000001|
 A < |Date : 20/09/2026 20:00|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [V] Masala Dosa                        180.00|
+A < |1x [N] Chicken 65                         240.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                              2   180|
-A < |Chicken 65                               1   240|
+A < |Subtotal                                  420.00|
+A < |CGST 2.5%                                  10.50|
+A < |SGST 2.5%                                  10.50|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.420|
-A < |GST                                        Rs.21|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.441|
+A*< 1x2 |TOTAL                                  Rs.441.00|
 A < |Paid via                                    CASH|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
@@ -88,7 +92,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.180|
+A*< |MAINS Total                            Rs.180.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -96,7 +100,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |1x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.240|
+A*< |STARTERS Total                         Rs.240.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -105,13 +109,19 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB/2627/000001|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-00|
 A < |--------------------------------|
-A < |2x Masala Dosa              180|
-A < |1x Chicken 65               240|
+A < |2x [V] Masala Dosa        180.00|
+A < |1x [N] Chicken 65         240.00|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.441|
+A < |Subtotal                  420.00|
+A < |CGST 2.5%                  10.50|
+A < |SGST 2.5%                  10.50|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.441.00|
 A < |Paid                        CASH|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
@@ -125,18 +135,23 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.      GB/2627/000002|
 A ^ |Date        20/09/2026 20:01|
 A ^ |Token                     17|
 A ^ |----------------------------|
-A ^ |3x [V] Filter Coffee      75|
-A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |3x [V] Filter Coffee   75.00|
+A ^ |1x [V] Paneer Tikka   349.50|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.424|
-A ^ |GST                    Rs.22|
-A ^ |Parcel                 Rs.20|
+A ^ |Subtotal              424.50|
+A ^ |CGST 2.5%              11.12|
+A ^ |SGST 2.5%              11.11|
+A ^ |Parcel charge          20.00|
+A ^ |Round off               0.27|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.467|
+A*^ |TOTAL              Rs.467.00|
 A ^ |Paid via                 UPI|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -158,18 +173,22 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                      GB/2627/000002|
 A ^ |Date                        20/09/2026 20:01|
 A ^ |Token                                     17|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Filter Coffee                      75|
-A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |3x [V] Filter Coffee                   75.00|
+A ^ |1x [V] Paneer Tikka Masala with       349.50|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.424|
-A ^ |GST                                    Rs.22|
-A ^ |Parcel                                 Rs.20|
+A ^ |Subtotal                              424.50|
+A ^ |CGST 2.5%                              11.12|
+A ^ |SGST 2.5%                              11.11|
+A ^ |Parcel charge                          20.00|
+A ^ |Round off                               0.27|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.467|
+A*^ |TOTAL                              Rs.467.00|
 A ^ |Paid via                                 UPI|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -185,20 +204,23 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A*< 2x2 |Token #17|
+A < |Bill : GB/2627/000002|
 A < |Date : 20/09/2026 20:01|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Filter Coffee                       75.00|
+A < |1x [V] Paneer Tikka Masala with Butter    349.50|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Filter Coffee                            3    75|
-A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |Subtotal                                  424.50|
+A < |CGST 2.5%                                  11.12|
+A < |SGST 2.5%                                  11.11|
+A < |Parcel charge                              20.00|
+A < |Round off                                   0.27|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.424|
-A < |GST                                        Rs.22|
-A < |Parcel Charge                              Rs.20|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.467|
+A*< 1x2 |TOTAL                                  Rs.467.00|
 A < |Paid via                                     UPI|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
@@ -209,7 +231,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |3x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.75|
+A*< |BEVERAGES Total                         Rs.75.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -218,7 +240,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.350|
+A*< |MAINS Total                            Rs.349.50|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -227,13 +249,23 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB/2627/000002|
+A ^ |--------------------------------|
 A*^ 2x2 |TOKEN #17|
 A < |--------------------------------|
-A < |3x Filter Coffee             75|
-A < |1x Paneer Tikka Masala with   350|
+A < |3x [V] Filter Coffee       75.00|
+A < |1x [V] Paneer Tikka       349.50|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.467|
+A < |Subtotal                  424.50|
+A < |CGST 2.5%                  11.12|
+A < |SGST 2.5%                  11.11|
+A < |Parcel charge              20.00|
+A < |Round off                   0.27|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.467.00|
 A < |Paid                         UPI|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
@@ -247,20 +279,26 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.      GB/2627/000003|
 A ^ |Date        20/09/2026 20:02|
 A ^ |Table                    T12|
 A ^ |----------------------------|
-A ^ |2x [N] Chicken 65        480|
-A ^ |1x [V] Plain Curd         30|
-A ^ |2x [V] Kingfisher Premiu 640|
-A ^ |1x [V] Filter Coffee      25|
+A ^ |2x [N] Chicken 65     480.00|
+A ^ |1x [V] Plain Curd      30.00|
+A ^ |2x [V] Kingfisher     640.00|
+A ^ |       Premium 650ml|
+A ^ |1x [V] Filter Coffee    FREE|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.1150|
-A ^ |GST                   Rs.125|
-A ^ |Discount             -Rs.115|
+A ^ |Subtotal             1150.00|
+A ^ |Discount             -115.00|
+A ^ |CGST 2.5%              10.80|
+A ^ |SGST 2.5%              10.80|
+A ^ |CGST 9%                51.84|
+A ^ |SGST 9%                51.84|
+A ^ |Round off              -0.28|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.1160|
+A*^ |TOTAL             Rs.1160.00|
 A ^ |Paid via                CARD|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -282,20 +320,25 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                      GB/2627/000003|
 A ^ |Date                        20/09/2026 20:02|
 A ^ |Table                                    T12|
 A ^ |--------------------------------------------|
-A ^ |2x [N] Chicken 65                        480|
-A ^ |1x [V] Plain Curd                         30|
-A ^ |2x [V] Kingfisher Premium 650ml          640|
-A ^ |1x [V] Filter Coffee                      25|
+A ^ |2x [N] Chicken 65                     480.00|
+A ^ |1x [V] Plain Curd                      30.00|
+A ^ |2x [V] Kingfisher Premium 650ml       640.00|
+A ^ |1x [V] Filter Coffee                    FREE|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.1150|
-A ^ |GST                                   Rs.125|
-A ^ |Discount                             -Rs.115|
+A ^ |Subtotal                             1150.00|
+A ^ |Discount                             -115.00|
+A ^ |CGST 2.5%                              10.80|
+A ^ |SGST 2.5%                              10.80|
+A ^ |CGST 9%                                51.84|
+A ^ |SGST 9%                                51.84|
+A ^ |Round off                              -0.28|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.1160|
+A*^ |TOTAL                             Rs.1160.00|
 A ^ |Paid via                                CARD|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -311,22 +354,25 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GB/2627/000003|
 A < |Date : 20/09/2026 20:02|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [N] Chicken 65                         480.00|
+A < |1x [V] Plain Curd                          30.00|
+A < |2x [V] Kingfisher Premium 650ml           640.00|
+A < |1x [V] Filter Coffee                        FREE|
 A < |------------------------------------------------|
-A < |Chicken 65                               2   480|
-A < |Plain Curd                               1    30|
-A < |Kingfisher Premium 650ml                 2   640|
-A < |Filter Coffee                            1    25|
+A < |Subtotal                                 1150.00|
+A < |Discount                                 -115.00|
+A < |CGST 2.5%                                  10.80|
+A < |SGST 2.5%                                  10.80|
+A < |CGST 9%                                    51.84|
+A < |SGST 9%                                    51.84|
+A < |Round off                                  -0.28|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.1150|
-A < |GST                                       Rs.125|
-A < |Discount                                 -Rs.115|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.1160|
+A*< 1x2 |TOTAL                                 Rs.1160.00|
 A < |Paid via                                    CARD|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
@@ -336,7 +382,7 @@ A*^ 2x2 |BAR|
 A < |------------------------------------------------|
 A*< |2x [V] Kingfisher Premium 650ml|
 A < |------------------------------------------------|
-A*< |BAR Total                                 Rs.640|
+A*< |BAR Total                              Rs.640.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -344,7 +390,7 @@ A*^ 2x2 |BEVERAGES|
 A < |------------------------------------------------|
 A*< |1x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.25|
+A*< |BEVERAGES Total                          Rs.0.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -352,7 +398,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |1x [V] Plain Curd|
 A < |------------------------------------------------|
-A*< |MAINS Total                                Rs.30|
+A*< |MAINS Total                             Rs.30.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -360,7 +406,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |2x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.480|
+A*< |STARTERS Total                         Rs.480.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -369,15 +415,26 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB/2627/000003|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-02|
 A < |--------------------------------|
-A < |2x Chicken 65               480|
-A < |1x Plain Curd                30|
-A < |2x Kingfisher Premium 650ml   640|
-A < |1x Filter Coffee             25|
+A < |2x [N] Chicken 65         480.00|
+A < |1x [V] Plain Curd          30.00|
+A < |2x [V] Kingfisher Premium 640.00|
+A < |       650ml|
+A < |1x [V] Filter Coffee        FREE|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.1160|
+A < |Subtotal                 1150.00|
+A < |Discount                 -115.00|
+A < |CGST 2.5%                  10.80|
+A < |SGST 2.5%                  10.80|
+A < |CGST 9%                    51.84|
+A < |SGST 9%                    51.84|
+A < |Round off                  -0.28|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.1160.00|
 A < |Paid                        CARD|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
@@ -391,17 +448,25 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.      GB/2627/000004|
 A ^ |Date        20/09/2026 20:03|
 A ^ |----------------------------|
-A ^ |3x [V] Veg Club Sandwich 300|
-A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |3x [V] Veg Club       299.97|
+A ^ |       Sandwich|
+A ^ |2x [V] Paneer Tikka   699.00|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.999|
-A ^ |GST                    Rs.80|
-A ^ |Discount             -Rs.137|
+A ^ |Subtotal              998.97|
+A ^ |Discount             -137.37|
+A ^ |CGST 2.5%              14.45|
+A ^ |SGST 2.5%              14.46|
+A ^ |CGST 9%                25.52|
+A ^ |SGST 9%                25.51|
+A ^ |Round off               0.46|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.942|
+A*^ |TOTAL              Rs.942.00|
 A ^ |Paid via                CASH|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -423,17 +488,23 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                      GB/2627/000004|
 A ^ |Date                        20/09/2026 20:03|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Veg Club Sandwich                 300|
-A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |3x [V] Veg Club Sandwich              299.97|
+A ^ |2x [V] Paneer Tikka Masala with       699.00|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.999|
-A ^ |GST                                    Rs.80|
-A ^ |Discount                             -Rs.137|
+A ^ |Subtotal                              998.97|
+A ^ |Discount                             -137.37|
+A ^ |CGST 2.5%                              14.45|
+A ^ |SGST 2.5%                              14.46|
+A ^ |CGST 9%                                25.52|
+A ^ |SGST 9%                                25.51|
+A ^ |Round off                               0.46|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.942|
+A*^ |TOTAL                              Rs.942.00|
 A ^ |Paid via                                CASH|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -449,20 +520,24 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GB/2627/000004|
 A < |Date : 20/09/2026 20:03|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Veg Club Sandwich                  299.97|
+A < |2x [V] Paneer Tikka Masala with Butter    699.00|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Veg Club Sandwich                        3   300|
-A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |Subtotal                                  998.97|
+A < |Discount                                 -137.37|
+A < |CGST 2.5%                                  14.45|
+A < |SGST 2.5%                                  14.46|
+A < |CGST 9%                                    25.52|
+A < |SGST 9%                                    25.51|
+A < |Round off                                   0.46|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.999|
-A < |GST                                        Rs.80|
-A < |Discount                                 -Rs.137|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.942|
+A*< 1x2 |TOTAL                                  Rs.942.00|
 A < |Paid via                                    CASH|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
@@ -472,7 +547,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.699|
+A*< |MAINS Total                            Rs.699.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -480,7 +555,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |3x [V] Veg Club Sandwich|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.300|
+A*< |STARTERS Total                         Rs.299.97|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -489,13 +564,25 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB/2627/000004|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-03|
 A < |--------------------------------|
-A < |3x Veg Club Sandwich        300|
-A < |2x Paneer Tikka Masala with   699|
+A < |3x [V] Veg Club Sandwich  299.97|
+A < |2x [V] Paneer Tikka       699.00|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.942|
+A < |Subtotal                  998.97|
+A < |Discount                 -137.37|
+A < |CGST 2.5%                  14.45|
+A < |SGST 2.5%                  14.46|
+A < |CGST 9%                    25.52|
+A < |SGST 9%                    25.51|
+A < |Round off                   0.46|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.942.00|
 A < |Paid                        CASH|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
@@ -509,18 +596,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.             GOLD-04|
 A ^ |Date        20/09/2026 20:04|
 A ^ |Table                     T1|
 A ^ |----------------------------|
-A ^ |13x [V] Masala Dosa     1170|
-A ^ |7x [N] Chicken 65       1680|
+A ^ |13x [V] Masala Dosa  1170.00|
+A ^ |7x [N] Chicken 65    1680.00|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.2850|
-A ^ |GST                   Rs.142|
+A ^ |Subtotal             2850.00|
+A ^ |CGST 2.5%              71.25|
+A ^ |SGST 2.5%              71.25|
+A ^ |Round off               0.50|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.2993|
-A*^ |----------------------------|
+A*^ |TOTAL             Rs.2993.00|
+A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
 B ^ ||
@@ -540,18 +630,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                             GOLD-04|
 A ^ |Date                        20/09/2026 20:04|
 A ^ |Table                                     T1|
 A ^ |--------------------------------------------|
-A ^ |13x [V] Masala Dosa                     1170|
-A ^ |7x [N] Chicken 65                       1680|
+A ^ |13x [V] Masala Dosa                  1170.00|
+A ^ |7x [N] Chicken 65                    1680.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.2850|
-A ^ |GST                                   Rs.142|
+A ^ |Subtotal                             2850.00|
+A ^ |CGST 2.5%                              71.25|
+A ^ |SGST 2.5%                              71.25|
+A ^ |Round off                               0.50|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.2993|
-A*^ |--------------------------------------------|
+A*^ |TOTAL                             Rs.2993.00|
+A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
 B ^ ||
@@ -565,19 +658,20 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GOLD-04|
 A < |Date : 20/09/2026 20:04|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |13x [V] Masala Dosa                      1170.00|
+A < |7x [N] Chicken 65                        1680.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                             13  1170|
-A < |Chicken 65                               7  1680|
+A < |Subtotal                                 2850.00|
+A < |CGST 2.5%                                  71.25|
+A < |SGST 2.5%                                  71.25|
+A < |Round off                                   0.50|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.2850|
-A < |GST                                       Rs.142|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.2993|
+A*< 1x2 |TOTAL                                 Rs.2993.00|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
@@ -586,7 +680,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |13x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                              Rs.1170|
+A*< |MAINS Total                           Rs.1170.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -594,7 +688,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |7x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                           Rs.1680|
+A*< |STARTERS Total                        Rs.1680.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -603,13 +697,20 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Indiranagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GOLD-04|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-04|
 A < |--------------------------------|
-A < |13x Masala Dosa             1170|
-A < |7x Chicken 65              1680|
+A < |13x [V] Masala Dosa      1170.00|
+A < |7x [N] Chicken 65        1680.00|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.2993|
+A < |Subtotal                 2850.00|
+A < |CGST 2.5%                  71.25|
+A < |SGST 2.5%                  71.25|
+A < |Round off                   0.50|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.2993.00|
 A > |20/09 20:04|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST included | dine-in, cash ====
@@ -622,19 +723,22 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.     GB2/2627/000001|
 A ^ |Date        20/09/2026 20:00|
 A ^ |Table                     T4|
 A ^ |----------------------------|
-A ^ |2x [V] Masala Dosa       180|
-A ^ |1x [N] Chicken 65        240|
+A ^ |2x [V] Masala Dosa    180.00|
+A ^ |1x [N] Chicken 65     240.00|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.400|
-A ^ |GST (incl.)            Rs.20|
+A ^ |Subtotal              420.00|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.420|
+A*^ |TOTAL              Rs.420.00|
 A ^ |Paid via                CASH|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 400.00|
+A ^ |  CGST 2.5%            10.00|
+A ^ |  SGST 2.5%            10.00|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -655,19 +759,22 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                     GB2/2627/000001|
 A ^ |Date                        20/09/2026 20:00|
 A ^ |Table                                     T4|
 A ^ |--------------------------------------------|
-A ^ |2x [V] Masala Dosa                       180|
-A ^ |1x [N] Chicken 65                        240|
+A ^ |2x [V] Masala Dosa                    180.00|
+A ^ |1x [N] Chicken 65                     240.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.400|
-A ^ |GST (incl.)                            Rs.20|
+A ^ |Subtotal                              420.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.420|
+A*^ |TOTAL                              Rs.420.00|
 A ^ |Paid via                                CASH|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 400.00|
+A ^ |  CGST 2.5%                            10.00|
+A ^ |  SGST 2.5%                            10.00|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -682,20 +789,22 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GB2/2627/000001|
 A < |Date : 20/09/2026 20:00|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [V] Masala Dosa                        180.00|
+A < |1x [N] Chicken 65                         240.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                              2   180|
-A < |Chicken 65                               1   240|
+A < |Subtotal                                  420.00|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.400|
-A < |GST                                        Rs.20|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.420|
+A*< 1x2 |TOTAL                                  Rs.420.00|
 A < |Paid via                                    CASH|
+A < |Prices include GST:|
+A < |GST 5% on 400.00|
+A < |  CGST 2.5%                                10.00|
+A < |  SGST 2.5%                                10.00|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
@@ -704,7 +813,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.180|
+A*< |MAINS Total                            Rs.180.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -712,7 +821,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |1x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.240|
+A*< |STARTERS Total                         Rs.240.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -721,14 +830,22 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB2/2627/000001|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-10|
 A < |--------------------------------|
-A < |2x Masala Dosa              180|
-A < |1x Chicken 65               240|
+A < |2x [V] Masala Dosa        180.00|
+A < |1x [N] Chicken 65         240.00|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.420|
+A < |Subtotal                  420.00|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.420.00|
 A < |Paid                        CASH|
+A < |Prices include GST:|
+A < |GST 5% on 400.00|
+A < |  CGST 2.5%                10.00|
+A < |  SGST 2.5%                10.00|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST included | parcel with a token, UPI ====
@@ -741,20 +858,26 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.     GB2/2627/000002|
 A ^ |Date        20/09/2026 20:01|
 A ^ |Token                     17|
 A ^ |----------------------------|
-A ^ |3x [V] Filter Coffee      75|
-A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |3x [V] Filter Coffee   75.00|
+A ^ |1x [V] Paneer Tikka   349.50|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.404|
-A ^ |GST (incl.)            Rs.21|
-A ^ |Parcel                 Rs.20|
+A ^ |Subtotal              424.50|
+A ^ |Parcel charge          20.00|
+A ^ |Round off               0.50|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.445|
+A*^ |TOTAL              Rs.445.00|
 A ^ |Paid via                 UPI|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 423.34|
+A ^ |  CGST 2.5%            10.58|
+A ^ |  SGST 2.5%            10.58|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -775,20 +898,25 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                     GB2/2627/000002|
 A ^ |Date                        20/09/2026 20:01|
 A ^ |Token                                     17|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Filter Coffee                      75|
-A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |3x [V] Filter Coffee                   75.00|
+A ^ |1x [V] Paneer Tikka Masala with       349.50|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.404|
-A ^ |GST (incl.)                            Rs.21|
-A ^ |Parcel                                 Rs.20|
+A ^ |Subtotal                              424.50|
+A ^ |Parcel charge                          20.00|
+A ^ |Round off                               0.50|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.445|
+A*^ |TOTAL                              Rs.445.00|
 A ^ |Paid via                                 UPI|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 423.34|
+A ^ |  CGST 2.5%                            10.58|
+A ^ |  SGST 2.5%                            10.58|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -803,21 +931,26 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A*< 2x2 |Token #17|
+A < |Bill : GB2/2627/000002|
 A < |Date : 20/09/2026 20:01|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Filter Coffee                       75.00|
+A < |1x [V] Paneer Tikka Masala with Butter    349.50|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Filter Coffee                            3    75|
-A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |Subtotal                                  424.50|
+A < |Parcel charge                              20.00|
+A < |Round off                                   0.50|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.404|
-A < |GST                                        Rs.21|
-A < |Parcel Charge                              Rs.20|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.445|
+A*< 1x2 |TOTAL                                  Rs.445.00|
 A < |Paid via                                     UPI|
+A < |Prices include GST:|
+A < |GST 5% on 423.34|
+A < |  CGST 2.5%                                10.58|
+A < |  SGST 2.5%                                10.58|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
@@ -827,7 +960,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |3x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.75|
+A*< |BEVERAGES Total                         Rs.75.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -836,7 +969,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.350|
+A*< |MAINS Total                            Rs.349.50|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -845,14 +978,26 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB2/2627/000002|
+A ^ |--------------------------------|
 A*^ 2x2 |TOKEN #17|
 A < |--------------------------------|
-A < |3x Filter Coffee             75|
-A < |1x Paneer Tikka Masala with   350|
+A < |3x [V] Filter Coffee       75.00|
+A < |1x [V] Paneer Tikka       349.50|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.445|
+A < |Subtotal                  424.50|
+A < |Parcel charge              20.00|
+A < |Round off                   0.50|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.445.00|
 A < |Paid                         UPI|
+A < |Prices include GST:|
+A < |GST 5% on 423.34|
+A < |  CGST 2.5%                10.58|
+A < |  SGST 2.5%                10.58|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST included | mixed rates, 10% off, one voided and one free dish ====
@@ -865,22 +1010,30 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.     GB2/2627/000003|
 A ^ |Date        20/09/2026 20:02|
 A ^ |Table                    T12|
 A ^ |----------------------------|
-A ^ |2x [N] Chicken 65        480|
-A ^ |1x [V] Plain Curd         30|
-A ^ |2x [V] Kingfisher Premiu 640|
-A ^ |1x [V] Filter Coffee      25|
+A ^ |2x [N] Chicken 65     480.00|
+A ^ |1x [V] Plain Curd      30.00|
+A ^ |2x [V] Kingfisher     640.00|
+A ^ |       Premium 650ml|
+A ^ |1x [V] Filter Coffee    FREE|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.927|
-A ^ |GST (incl.)           Rs.108|
-A ^ |Discount             -Rs.115|
+A ^ |Subtotal             1150.00|
+A ^ |Discount             -115.00|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.1035|
+A*^ |TOTAL             Rs.1035.00|
 A ^ |Paid via                CARD|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 411.43|
+A ^ |  CGST 2.5%            10.28|
+A ^ |  SGST 2.5%            10.29|
+A ^ |GST 18% on 488.13|
+A ^ |  CGST 9%              43.94|
+A ^ |  SGST 9%              43.93|
+A ^ |Total tax included    108.44|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -901,22 +1054,29 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                     GB2/2627/000003|
 A ^ |Date                        20/09/2026 20:02|
 A ^ |Table                                    T12|
 A ^ |--------------------------------------------|
-A ^ |2x [N] Chicken 65                        480|
-A ^ |1x [V] Plain Curd                         30|
-A ^ |2x [V] Kingfisher Premium 650ml          640|
-A ^ |1x [V] Filter Coffee                      25|
+A ^ |2x [N] Chicken 65                     480.00|
+A ^ |1x [V] Plain Curd                      30.00|
+A ^ |2x [V] Kingfisher Premium 650ml       640.00|
+A ^ |1x [V] Filter Coffee                    FREE|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.927|
-A ^ |GST (incl.)                           Rs.108|
-A ^ |Discount                             -Rs.115|
+A ^ |Subtotal                             1150.00|
+A ^ |Discount                             -115.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.1035|
+A*^ |TOTAL                             Rs.1035.00|
 A ^ |Paid via                                CARD|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 411.43|
+A ^ |  CGST 2.5%                            10.28|
+A ^ |  SGST 2.5%                            10.29|
+A ^ |GST 18% on 488.13|
+A ^ |  CGST 9%                              43.94|
+A ^ |  SGST 9%                              43.93|
+A ^ |Total tax included                    108.44|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -931,23 +1091,29 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GB2/2627/000003|
 A < |Date : 20/09/2026 20:02|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [N] Chicken 65                         480.00|
+A < |1x [V] Plain Curd                          30.00|
+A < |2x [V] Kingfisher Premium 650ml           640.00|
+A < |1x [V] Filter Coffee                        FREE|
 A < |------------------------------------------------|
-A < |Chicken 65                               2   480|
-A < |Plain Curd                               1    30|
-A < |Kingfisher Premium 650ml                 2   640|
-A < |Filter Coffee                            1    25|
+A < |Subtotal                                 1150.00|
+A < |Discount                                 -115.00|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.927|
-A < |GST                                       Rs.108|
-A < |Discount                                 -Rs.115|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.1035|
+A*< 1x2 |TOTAL                                 Rs.1035.00|
 A < |Paid via                                    CARD|
+A < |Prices include GST:|
+A < |GST 5% on 411.43|
+A < |  CGST 2.5%                                10.28|
+A < |  SGST 2.5%                                10.29|
+A < |GST 18% on 488.13|
+A < |  CGST 9%                                  43.94|
+A < |  SGST 9%                                  43.93|
+A < |Total tax included                        108.44|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
@@ -956,7 +1122,7 @@ A*^ 2x2 |BAR|
 A < |------------------------------------------------|
 A*< |2x [V] Kingfisher Premium 650ml|
 A < |------------------------------------------------|
-A*< |BAR Total                                 Rs.640|
+A*< |BAR Total                              Rs.640.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -964,7 +1130,7 @@ A*^ 2x2 |BEVERAGES|
 A < |------------------------------------------------|
 A*< |1x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.25|
+A*< |BEVERAGES Total                          Rs.0.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -972,7 +1138,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |1x [V] Plain Curd|
 A < |------------------------------------------------|
-A*< |MAINS Total                                Rs.30|
+A*< |MAINS Total                             Rs.30.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -980,7 +1146,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |2x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.480|
+A*< |STARTERS Total                         Rs.480.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -989,16 +1155,30 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB2/2627/000003|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-12|
 A < |--------------------------------|
-A < |2x Chicken 65               480|
-A < |1x Plain Curd                30|
-A < |2x Kingfisher Premium 650ml   640|
-A < |1x Filter Coffee             25|
+A < |2x [N] Chicken 65         480.00|
+A < |1x [V] Plain Curd          30.00|
+A < |2x [V] Kingfisher Premium 640.00|
+A < |       650ml|
+A < |1x [V] Filter Coffee        FREE|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.1035|
+A < |Subtotal                 1150.00|
+A < |Discount                 -115.00|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.1035.00|
 A < |Paid                        CARD|
+A < |Prices include GST:|
+A < |GST 5% on 411.43|
+A < |  CGST 2.5%                10.28|
+A < |  SGST 2.5%                10.29|
+A < |GST 18% on 488.13|
+A < |  CGST 9%                  43.94|
+A < |  SGST 9%                  43.93|
+A < |Total tax included        108.44|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST included | paise, an item discount and a flat discount ====
@@ -1011,19 +1191,30 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.     GB2/2627/000004|
 A ^ |Date        20/09/2026 20:03|
 A ^ |----------------------------|
-A ^ |3x [V] Veg Club Sandwich 300|
-A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |3x [V] Veg Club       299.97|
+A ^ |       Sandwich|
+A ^ |2x [V] Paneer Tikka   699.00|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.791|
-A ^ |GST (incl.)            Rs.71|
-A ^ |Discount             -Rs.137|
+A ^ |Subtotal              998.97|
+A ^ |Discount             -137.37|
+A ^ |Round off               0.40|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.862|
+A*^ |TOTAL              Rs.862.00|
 A ^ |Paid via                CASH|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 550.55|
+A ^ |  CGST 2.5%            13.76|
+A ^ |  SGST 2.5%            13.77|
+A ^ |GST 18% on 240.27|
+A ^ |  CGST 9%              21.63|
+A ^ |  SGST 9%              21.62|
+A ^ |Total tax included     70.78|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -1044,19 +1235,28 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                     GB2/2627/000004|
 A ^ |Date                        20/09/2026 20:03|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Veg Club Sandwich                 300|
-A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |3x [V] Veg Club Sandwich              299.97|
+A ^ |2x [V] Paneer Tikka Masala with       699.00|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.791|
-A ^ |GST (incl.)                            Rs.71|
-A ^ |Discount                             -Rs.137|
+A ^ |Subtotal                              998.97|
+A ^ |Discount                             -137.37|
+A ^ |Round off                               0.40|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.862|
+A*^ |TOTAL                              Rs.862.00|
 A ^ |Paid via                                CASH|
-A ^ |(prices include GST)|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 550.55|
+A ^ |  CGST 2.5%                            13.76|
+A ^ |  SGST 2.5%                            13.77|
+A ^ |GST 18% on 240.27|
+A ^ |  CGST 9%                              21.63|
+A ^ |  SGST 9%                              21.62|
+A ^ |Total tax included                     70.78|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -1071,21 +1271,29 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GB2/2627/000004|
 A < |Date : 20/09/2026 20:03|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Veg Club Sandwich                  299.97|
+A < |2x [V] Paneer Tikka Masala with Butter    699.00|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Veg Club Sandwich                        3   300|
-A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |Subtotal                                  998.97|
+A < |Discount                                 -137.37|
+A < |Round off                                   0.40|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.791|
-A < |GST                                        Rs.71|
-A < |Discount                                 -Rs.137|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.862|
+A*< 1x2 |TOTAL                                  Rs.862.00|
 A < |Paid via                                    CASH|
+A < |Prices include GST:|
+A < |GST 5% on 550.55|
+A < |  CGST 2.5%                                13.76|
+A < |  SGST 2.5%                                13.77|
+A < |GST 18% on 240.27|
+A < |  CGST 9%                                  21.63|
+A < |  SGST 9%                                  21.62|
+A < |Total tax included                         70.78|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
@@ -1094,7 +1302,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.699|
+A*< |MAINS Total                            Rs.699.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1102,7 +1310,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |3x [V] Veg Club Sandwich|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.300|
+A*< |STARTERS Total                         Rs.299.97|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1111,14 +1319,30 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GB2/2627/000004|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-13|
 A < |--------------------------------|
-A < |3x Veg Club Sandwich        300|
-A < |2x Paneer Tikka Masala with   699|
+A < |3x [V] Veg Club Sandwich  299.97|
+A < |2x [V] Paneer Tikka       699.00|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.862|
+A < |Subtotal                  998.97|
+A < |Discount                 -137.37|
+A < |Round off                   0.40|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.862.00|
 A < |Paid                        CASH|
+A < |Prices include GST:|
+A < |GST 5% on 550.55|
+A < |  CGST 2.5%                13.76|
+A < |  SGST 2.5%                13.77|
+A < |GST 18% on 240.27|
+A < |  CGST 9%                  21.63|
+A < |  SGST 9%                  21.62|
+A < |Total tax included         70.78|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST included | big order, not paid yet ====
@@ -1131,18 +1355,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.             GOLD-14|
 A ^ |Date        20/09/2026 20:04|
 A ^ |Table                     T1|
 A ^ |----------------------------|
-A ^ |13x [V] Masala Dosa     1170|
-A ^ |7x [N] Chicken 65       1680|
+A ^ |13x [V] Masala Dosa  1170.00|
+A ^ |7x [N] Chicken 65    1680.00|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.2714|
-A ^ |GST (incl.)           Rs.136|
+A ^ |Subtotal             2850.00|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.2850|
-A ^ |(prices include GST)|
+A*^ |TOTAL             Rs.2850.00|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 2714.29|
+A ^ |  CGST 2.5%            67.86|
+A ^ |  SGST 2.5%            67.85|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -1163,18 +1390,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |TAX INVOICE|
 A ^ |Bill No.                             GOLD-14|
 A ^ |Date                        20/09/2026 20:04|
 A ^ |Table                                     T1|
 A ^ |--------------------------------------------|
-A ^ |13x [V] Masala Dosa                     1170|
-A ^ |7x [N] Chicken 65                       1680|
+A ^ |13x [V] Masala Dosa                  1170.00|
+A ^ |7x [N] Chicken 65                    1680.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.2714|
-A ^ |GST (incl.)                           Rs.136|
+A ^ |Subtotal                             2850.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.2850|
-A ^ |(prices include GST)|
+A*^ |TOTAL                             Rs.2850.00|
+A ^ |Prices include GST:|
+A ^ |GST 5% on 2714.29|
+A ^ |  CGST 2.5%                            67.86|
+A ^ |  SGST 2.5%                            67.85|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -1189,19 +1419,21 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A < |------------------------------------------------|
+A*^ |TAX INVOICE|
+A ^ |------------------------------------------------|
 A < |Bill : GOLD-14|
 A < |Date : 20/09/2026 20:04|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |13x [V] Masala Dosa                      1170.00|
+A < |7x [N] Chicken 65                        1680.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                             13  1170|
-A < |Chicken 65                               7  1680|
+A < |Subtotal                                 2850.00|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.2714|
-A < |GST                                       Rs.136|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.2850|
+A*< 1x2 |TOTAL                                 Rs.2850.00|
+A < |Prices include GST:|
+A < |GST 5% on 2714.29|
+A < |  CGST 2.5%                                67.86|
+A < |  SGST 2.5%                                67.85|
 A < |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
@@ -1210,7 +1442,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |13x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                              Rs.1170|
+A*< |MAINS Total                           Rs.1170.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1218,7 +1450,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |7x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                           Rs.1680|
+A*< |STARTERS Total                        Rs.1680.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1227,13 +1459,21 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Koramangala|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |TAX INVOICE|
+A ^ |Bill No. GOLD-14|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-14|
 A < |--------------------------------|
-A < |13x Masala Dosa             1170|
-A < |7x Chicken 65              1680|
+A < |13x [V] Masala Dosa      1170.00|
+A < |7x [N] Chicken 65        1680.00|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.2850|
+A < |Subtotal                 2850.00|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.2850.00|
+A < |Prices include GST:|
+A < |GST 5% on 2714.29|
+A < |  CGST 2.5%                67.86|
+A < |  SGST 2.5%                67.85|
 A > |20/09 20:04|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition | dine-in, cash ====
@@ -1246,16 +1486,20 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB3/2627/000001|
 A ^ |Date        20/09/2026 20:00|
 A ^ |Table                     T4|
 A ^ |----------------------------|
-A ^ |2x [V] Masala Dosa       180|
-A ^ |1x [N] Chicken 65        240|
+A ^ |2x [V] Masala Dosa    180.00|
+A ^ |1x [N] Chicken 65     240.00|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.420|
+A ^ |Subtotal              420.00|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.420|
+A*^ |TOTAL              Rs.420.00|
 A ^ |Paid via                CASH|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -1277,16 +1521,19 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB3/2627/000001|
 A ^ |Date                        20/09/2026 20:00|
 A ^ |Table                                     T4|
 A ^ |--------------------------------------------|
-A ^ |2x [V] Masala Dosa                       180|
-A ^ |1x [N] Chicken 65                        240|
+A ^ |2x [V] Masala Dosa                    180.00|
+A ^ |1x [N] Chicken 65                     240.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.420|
+A ^ |Subtotal                              420.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.420|
+A*^ |TOTAL                              Rs.420.00|
 A ^ |Paid via                                CASH|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -1302,23 +1549,21 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GB3/2627/000001|
 A < |Date : 20/09/2026 20:00|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [V] Masala Dosa                        180.00|
+A < |1x [N] Chicken 65                         240.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                              2   180|
-A < |Chicken 65                               1   240|
+A < |Subtotal                                  420.00|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.420|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.420|
+A*< 1x2 |TOTAL                                  Rs.420.00|
 A < |Paid via                                    CASH|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1326,7 +1571,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.180|
+A*< |MAINS Total                            Rs.180.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1334,7 +1579,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |1x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.240|
+A*< |STARTERS Total                         Rs.240.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1343,13 +1588,20 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB3/2627/000001|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-20|
 A < |--------------------------------|
-A < |2x Masala Dosa              180|
-A < |1x Chicken 65               240|
+A < |2x [V] Masala Dosa        180.00|
+A < |1x [N] Chicken 65         240.00|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.420|
+A < |Subtotal                  420.00|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.420.00|
 A < |Paid                        CASH|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
@@ -1363,17 +1615,24 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB3/2627/000002|
 A ^ |Date        20/09/2026 20:01|
 A ^ |Token                     17|
 A ^ |----------------------------|
-A ^ |3x [V] Filter Coffee      75|
-A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |3x [V] Filter Coffee   75.00|
+A ^ |1x [V] Paneer Tikka   349.50|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.424|
-A ^ |Parcel                 Rs.20|
+A ^ |Subtotal              424.50|
+A ^ |Parcel charge          20.00|
+A ^ |Round off               0.50|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.445|
+A*^ |TOTAL              Rs.445.00|
 A ^ |Paid via                 UPI|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -1395,17 +1654,22 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB3/2627/000002|
 A ^ |Date                        20/09/2026 20:01|
 A ^ |Token                                     17|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Filter Coffee                      75|
-A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |3x [V] Filter Coffee                   75.00|
+A ^ |1x [V] Paneer Tikka Masala with       349.50|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.424|
-A ^ |Parcel                                 Rs.20|
+A ^ |Subtotal                              424.50|
+A ^ |Parcel charge                          20.00|
+A ^ |Round off                               0.50|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.445|
+A*^ |TOTAL                              Rs.445.00|
 A ^ |Paid via                                 UPI|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -1421,24 +1685,25 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A*< 2x2 |Token #17|
+A < |Bill : GB3/2627/000002|
 A < |Date : 20/09/2026 20:01|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Filter Coffee                       75.00|
+A < |1x [V] Paneer Tikka Masala with Butter    349.50|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Filter Coffee                            3    75|
-A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |Subtotal                                  424.50|
+A < |Parcel charge                              20.00|
+A < |Round off                                   0.50|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.424|
-A < |Parcel Charge                              Rs.20|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.445|
+A*< 1x2 |TOTAL                                  Rs.445.00|
 A < |Paid via                                     UPI|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1447,7 +1712,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |3x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.75|
+A*< |BEVERAGES Total                         Rs.75.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1456,7 +1721,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.350|
+A*< |MAINS Total                            Rs.349.50|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1465,13 +1730,24 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB3/2627/000002|
+A ^ |--------------------------------|
 A*^ 2x2 |TOKEN #17|
 A < |--------------------------------|
-A < |3x Filter Coffee             75|
-A < |1x Paneer Tikka Masala with   350|
+A < |3x [V] Filter Coffee       75.00|
+A < |1x [V] Paneer Tikka       349.50|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.445|
+A < |Subtotal                  424.50|
+A < |Parcel charge              20.00|
+A < |Round off                   0.50|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.445.00|
 A < |Paid                         UPI|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
@@ -1485,19 +1761,24 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB3/2627/000003|
 A ^ |Date        20/09/2026 20:02|
 A ^ |Table                    T12|
 A ^ |----------------------------|
-A ^ |2x [N] Chicken 65        480|
-A ^ |1x [V] Plain Curd         30|
-A ^ |2x [V] Kingfisher Premiu 640|
-A ^ |1x [V] Filter Coffee      25|
+A ^ |2x [N] Chicken 65     480.00|
+A ^ |1x [V] Plain Curd      30.00|
+A ^ |2x [V] Kingfisher     640.00|
+A ^ |       Premium 650ml|
+A ^ |1x [V] Filter Coffee    FREE|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.1150|
-A ^ |Discount             -Rs.115|
+A ^ |Subtotal             1150.00|
+A ^ |Discount             -115.00|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.1035|
+A*^ |TOTAL             Rs.1035.00|
 A ^ |Paid via                CARD|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -1519,19 +1800,22 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB3/2627/000003|
 A ^ |Date                        20/09/2026 20:02|
 A ^ |Table                                    T12|
 A ^ |--------------------------------------------|
-A ^ |2x [N] Chicken 65                        480|
-A ^ |1x [V] Plain Curd                         30|
-A ^ |2x [V] Kingfisher Premium 650ml          640|
-A ^ |1x [V] Filter Coffee                      25|
+A ^ |2x [N] Chicken 65                     480.00|
+A ^ |1x [V] Plain Curd                      30.00|
+A ^ |2x [V] Kingfisher Premium 650ml       640.00|
+A ^ |1x [V] Filter Coffee                    FREE|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.1150|
-A ^ |Discount                             -Rs.115|
+A ^ |Subtotal                             1150.00|
+A ^ |Discount                             -115.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.1035|
+A*^ |TOTAL                             Rs.1035.00|
 A ^ |Paid via                                CARD|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -1547,26 +1831,24 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GB3/2627/000003|
 A < |Date : 20/09/2026 20:02|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [N] Chicken 65                         480.00|
+A < |1x [V] Plain Curd                          30.00|
+A < |2x [V] Kingfisher Premium 650ml           640.00|
+A < |1x [V] Filter Coffee                        FREE|
 A < |------------------------------------------------|
-A < |Chicken 65                               2   480|
-A < |Plain Curd                               1    30|
-A < |Kingfisher Premium 650ml                 2   640|
-A < |Filter Coffee                            1    25|
+A < |Subtotal                                 1150.00|
+A < |Discount                                 -115.00|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.1150|
-A < |Discount                                 -Rs.115|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.1035|
+A*< 1x2 |TOTAL                                 Rs.1035.00|
 A < |Paid via                                    CARD|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1574,7 +1856,7 @@ A*^ 2x2 |BAR|
 A < |------------------------------------------------|
 A*< |2x [V] Kingfisher Premium 650ml|
 A < |------------------------------------------------|
-A*< |BAR Total                                 Rs.640|
+A*< |BAR Total                              Rs.640.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1582,7 +1864,7 @@ A*^ 2x2 |BEVERAGES|
 A < |------------------------------------------------|
 A*< |1x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.25|
+A*< |BEVERAGES Total                          Rs.0.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1590,7 +1872,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |1x [V] Plain Curd|
 A < |------------------------------------------------|
-A*< |MAINS Total                                Rs.30|
+A*< |MAINS Total                             Rs.30.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1598,7 +1880,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |2x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.480|
+A*< |STARTERS Total                         Rs.480.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1607,15 +1889,24 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB3/2627/000003|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-22|
 A < |--------------------------------|
-A < |2x Chicken 65               480|
-A < |1x Plain Curd                30|
-A < |2x Kingfisher Premium 650ml   640|
-A < |1x Filter Coffee             25|
+A < |2x [N] Chicken 65         480.00|
+A < |1x [V] Plain Curd          30.00|
+A < |2x [V] Kingfisher Premium 640.00|
+A < |       650ml|
+A < |1x [V] Filter Coffee        FREE|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.1035|
+A < |Subtotal                 1150.00|
+A < |Discount                 -115.00|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.1035.00|
 A < |Paid                        CARD|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
@@ -1629,16 +1920,24 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB3/2627/000004|
 A ^ |Date        20/09/2026 20:03|
 A ^ |----------------------------|
-A ^ |3x [V] Veg Club Sandwich 300|
-A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |3x [V] Veg Club       299.97|
+A ^ |       Sandwich|
+A ^ |2x [V] Paneer Tikka   699.00|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.999|
-A ^ |Discount             -Rs.137|
+A ^ |Subtotal              998.97|
+A ^ |Discount             -137.37|
+A ^ |Round off               0.40|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.862|
+A*^ |TOTAL              Rs.862.00|
 A ^ |Paid via                CASH|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
@@ -1660,16 +1959,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB3/2627/000004|
 A ^ |Date                        20/09/2026 20:03|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Veg Club Sandwich                 300|
-A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |3x [V] Veg Club Sandwich              299.97|
+A ^ |2x [V] Paneer Tikka Masala with       699.00|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.999|
-A ^ |Discount                             -Rs.137|
+A ^ |Subtotal                              998.97|
+A ^ |Discount                             -137.37|
+A ^ |Round off                               0.40|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.862|
+A*^ |TOTAL                              Rs.862.00|
 A ^ |Paid via                                CASH|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
@@ -1685,24 +1989,24 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GB3/2627/000004|
 A < |Date : 20/09/2026 20:03|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Veg Club Sandwich                  299.97|
+A < |2x [V] Paneer Tikka Masala with Butter    699.00|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Veg Club Sandwich                        3   300|
-A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |Subtotal                                  998.97|
+A < |Discount                                 -137.37|
+A < |Round off                                   0.40|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.999|
-A < |Discount                                 -Rs.137|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.862|
+A*< 1x2 |TOTAL                                  Rs.862.00|
 A < |Paid via                                    CASH|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1710,7 +2014,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.699|
+A*< |MAINS Total                            Rs.699.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1718,7 +2022,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |3x [V] Veg Club Sandwich|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.300|
+A*< |STARTERS Total                         Rs.299.97|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1727,13 +2031,24 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB3/2627/000004|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-23|
 A < |--------------------------------|
-A < |3x Veg Club Sandwich        300|
-A < |2x Paneer Tikka Masala with   699|
+A < |3x [V] Veg Club Sandwich  299.97|
+A < |2x [V] Paneer Tikka       699.00|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.862|
+A < |Subtotal                  998.97|
+A < |Discount                 -137.37|
+A < |Round off                   0.40|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.862.00|
 A < |Paid                        CASH|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
@@ -1747,17 +2062,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.             GOLD-24|
 A ^ |Date        20/09/2026 20:04|
 A ^ |Table                     T1|
 A ^ |----------------------------|
-A ^ |13x [V] Masala Dosa     1170|
-A ^ |7x [N] Chicken 65       1680|
+A ^ |13x [V] Masala Dosa  1170.00|
+A ^ |7x [N] Chicken 65    1680.00|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.2850|
+A ^ |Subtotal             2850.00|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.2850|
-A*^ |----------------------------|
+A*^ |TOTAL             Rs.2850.00|
+A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
 B ^ ||
@@ -1777,17 +2096,20 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                             GOLD-24|
 A ^ |Date                        20/09/2026 20:04|
 A ^ |Table                                     T1|
 A ^ |--------------------------------------------|
-A ^ |13x [V] Masala Dosa                     1170|
-A ^ |7x [N] Chicken 65                       1680|
+A ^ |13x [V] Masala Dosa                  1170.00|
+A ^ |7x [N] Chicken 65                    1680.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.2850|
+A ^ |Subtotal                             2850.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.2850|
-A*^ |--------------------------------------------|
+A*^ |TOTAL                             Rs.2850.00|
+A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
 B ^ ||
@@ -1801,22 +2123,20 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GOLD-24|
 A < |Date : 20/09/2026 20:04|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |13x [V] Masala Dosa                      1170.00|
+A < |7x [N] Chicken 65                        1680.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                             13  1170|
-A < |Chicken 65                               7  1680|
+A < |Subtotal                                 2850.00|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.2850|
+A*< 1x2 |TOTAL                                 Rs.2850.00|
 A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.2850|
-A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1824,7 +2144,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |13x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                              Rs.1170|
+A*< |MAINS Total                           Rs.1170.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1832,7 +2152,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |7x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                           Rs.1680|
+A*< |STARTERS Total                        Rs.1680.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1841,13 +2161,20 @@ A*^ |Golden Bistro|
 A < |Golden Bistro Jayanagar|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GOLD-24|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-24|
 A < |--------------------------------|
-A < |13x Masala Dosa             1170|
-A < |7x Chicken 65              1680|
+A < |13x [V] Masala Dosa      1170.00|
+A < |7x [N] Chicken 65        1680.00|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.2850|
+A < |Subtotal                 2850.00|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.2850.00|
 A > |20/09 20:04|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition, GST included | dine-in, cash ====
@@ -1860,18 +2187,21 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB4/2627/000001|
 A ^ |Date        20/09/2026 20:00|
 A ^ |Table                     T4|
 A ^ |----------------------------|
-A ^ |2x [V] Masala Dosa       180|
-A ^ |1x [N] Chicken 65        240|
+A ^ |2x [V] Masala Dosa    180.00|
+A ^ |1x [N] Chicken 65     240.00|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.420|
+A ^ |Subtotal              420.00|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.420|
+A*^ |TOTAL              Rs.420.00|
 A ^ |Paid via                CASH|
-A ^ |(prices include GST)|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -1892,18 +2222,20 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB4/2627/000001|
 A ^ |Date                        20/09/2026 20:00|
 A ^ |Table                                     T4|
 A ^ |--------------------------------------------|
-A ^ |2x [V] Masala Dosa                       180|
-A ^ |1x [N] Chicken 65                        240|
+A ^ |2x [V] Masala Dosa                    180.00|
+A ^ |1x [N] Chicken 65                     240.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.420|
+A ^ |Subtotal                              420.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.420|
+A*^ |TOTAL                              Rs.420.00|
 A ^ |Paid via                                CASH|
-A ^ |(prices include GST)|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -1918,23 +2250,21 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GB4/2627/000001|
 A < |Date : 20/09/2026 20:00|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [V] Masala Dosa                        180.00|
+A < |1x [N] Chicken 65                         240.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                              2   180|
-A < |Chicken 65                               1   240|
+A < |Subtotal                                  420.00|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.420|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.420|
+A*< 1x2 |TOTAL                                  Rs.420.00|
 A < |Paid via                                    CASH|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1942,7 +2272,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.180|
+A*< |MAINS Total                            Rs.180.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -1950,7 +2280,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |1x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.240|
+A*< |STARTERS Total                         Rs.240.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -1959,13 +2289,20 @@ A*^ |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB4/2627/000001|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-30|
 A < |--------------------------------|
-A < |2x Masala Dosa              180|
-A < |1x Chicken 65               240|
+A < |2x [V] Masala Dosa        180.00|
+A < |1x [N] Chicken 65         240.00|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.420|
+A < |Subtotal                  420.00|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.420.00|
 A < |Paid                        CASH|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
@@ -1979,19 +2316,25 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB4/2627/000002|
 A ^ |Date        20/09/2026 20:01|
 A ^ |Token                     17|
 A ^ |----------------------------|
-A ^ |3x [V] Filter Coffee      75|
-A ^ |1x [V] Paneer Tikka Masa 350|
+A ^ |3x [V] Filter Coffee   75.00|
+A ^ |1x [V] Paneer Tikka   349.50|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.424|
-A ^ |Parcel                 Rs.20|
+A ^ |Subtotal              424.50|
+A ^ |Parcel charge          20.00|
+A ^ |Round off               0.50|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.445|
+A*^ |TOTAL              Rs.445.00|
 A ^ |Paid via                 UPI|
-A ^ |(prices include GST)|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2012,19 +2355,23 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB4/2627/000002|
 A ^ |Date                        20/09/2026 20:01|
 A ^ |Token                                     17|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Filter Coffee                      75|
-A ^ |1x [V] Paneer Tikka Masala with Butter N 350|
+A ^ |3x [V] Filter Coffee                   75.00|
+A ^ |1x [V] Paneer Tikka Masala with       349.50|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.424|
-A ^ |Parcel                                 Rs.20|
+A ^ |Subtotal                              424.50|
+A ^ |Parcel charge                          20.00|
+A ^ |Round off                               0.50|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.445|
+A*^ |TOTAL                              Rs.445.00|
 A ^ |Paid via                                 UPI|
-A ^ |(prices include GST)|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2039,24 +2386,25 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A*< 2x2 |Token #17|
+A < |Bill : GB4/2627/000002|
 A < |Date : 20/09/2026 20:01|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Filter Coffee                       75.00|
+A < |1x [V] Paneer Tikka Masala with Butter    349.50|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Filter Coffee                            3    75|
-A < |Paneer Tikka Masala with Butter Naan C   1   350|
+A < |Subtotal                                  424.50|
+A < |Parcel charge                              20.00|
+A < |Round off                                   0.50|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.424|
-A < |Parcel Charge                              Rs.20|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.445|
+A*< 1x2 |TOTAL                                  Rs.445.00|
 A < |Paid via                                     UPI|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2065,7 +2413,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |3x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.75|
+A*< |BEVERAGES Total                         Rs.75.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2074,7 +2422,7 @@ A*^ |Token #17|
 A < |------------------------------------------------|
 A*< |1x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.350|
+A*< |MAINS Total                            Rs.349.50|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -2083,13 +2431,24 @@ A*^ |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB4/2627/000002|
+A ^ |--------------------------------|
 A*^ 2x2 |TOKEN #17|
 A < |--------------------------------|
-A < |3x Filter Coffee             75|
-A < |1x Paneer Tikka Masala with   350|
+A < |3x [V] Filter Coffee       75.00|
+A < |1x [V] Paneer Tikka       349.50|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.445|
+A < |Subtotal                  424.50|
+A < |Parcel charge              20.00|
+A < |Round off                   0.50|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.445.00|
 A < |Paid                         UPI|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
@@ -2103,21 +2462,25 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB4/2627/000003|
 A ^ |Date        20/09/2026 20:02|
 A ^ |Table                    T12|
 A ^ |----------------------------|
-A ^ |2x [N] Chicken 65        480|
-A ^ |1x [V] Plain Curd         30|
-A ^ |2x [V] Kingfisher Premiu 640|
-A ^ |1x [V] Filter Coffee      25|
+A ^ |2x [N] Chicken 65     480.00|
+A ^ |1x [V] Plain Curd      30.00|
+A ^ |2x [V] Kingfisher     640.00|
+A ^ |       Premium 650ml|
+A ^ |1x [V] Filter Coffee    FREE|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.1035|
-A ^ |Discount             -Rs.115|
+A ^ |Subtotal             1150.00|
+A ^ |Discount             -115.00|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.1035|
+A*^ |TOTAL             Rs.1035.00|
 A ^ |Paid via                CARD|
-A ^ |(prices include GST)|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2138,21 +2501,23 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB4/2627/000003|
 A ^ |Date                        20/09/2026 20:02|
 A ^ |Table                                    T12|
 A ^ |--------------------------------------------|
-A ^ |2x [N] Chicken 65                        480|
-A ^ |1x [V] Plain Curd                         30|
-A ^ |2x [V] Kingfisher Premium 650ml          640|
-A ^ |1x [V] Filter Coffee                      25|
+A ^ |2x [N] Chicken 65                     480.00|
+A ^ |1x [V] Plain Curd                      30.00|
+A ^ |2x [V] Kingfisher Premium 650ml       640.00|
+A ^ |1x [V] Filter Coffee                    FREE|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.1035|
-A ^ |Discount                             -Rs.115|
+A ^ |Subtotal                             1150.00|
+A ^ |Discount                             -115.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.1035|
+A*^ |TOTAL                             Rs.1035.00|
 A ^ |Paid via                                CARD|
-A ^ |(prices include GST)|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2167,26 +2532,24 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GB4/2627/000003|
 A < |Date : 20/09/2026 20:02|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |2x [N] Chicken 65                         480.00|
+A < |1x [V] Plain Curd                          30.00|
+A < |2x [V] Kingfisher Premium 650ml           640.00|
+A < |1x [V] Filter Coffee                        FREE|
 A < |------------------------------------------------|
-A < |Chicken 65                               2   480|
-A < |Plain Curd                               1    30|
-A < |Kingfisher Premium 650ml                 2   640|
-A < |Filter Coffee                            1    25|
+A < |Subtotal                                 1150.00|
+A < |Discount                                 -115.00|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.1035|
-A < |Discount                                 -Rs.115|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.1035|
+A*< 1x2 |TOTAL                                 Rs.1035.00|
 A < |Paid via                                    CARD|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2194,7 +2557,7 @@ A*^ 2x2 |BAR|
 A < |------------------------------------------------|
 A*< |2x [V] Kingfisher Premium 650ml|
 A < |------------------------------------------------|
-A*< |BAR Total                                 Rs.640|
+A*< |BAR Total                              Rs.640.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2202,7 +2565,7 @@ A*^ 2x2 |BEVERAGES|
 A < |------------------------------------------------|
 A*< |1x [V] Filter Coffee|
 A < |------------------------------------------------|
-A*< |BEVERAGES Total                            Rs.25|
+A*< |BEVERAGES Total                          Rs.0.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2210,7 +2573,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |1x [V] Plain Curd|
 A < |------------------------------------------------|
-A*< |MAINS Total                                Rs.30|
+A*< |MAINS Total                             Rs.30.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2218,7 +2581,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |2x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.480|
+A*< |STARTERS Total                         Rs.480.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -2227,15 +2590,24 @@ A*^ |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB4/2627/000003|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-32|
 A < |--------------------------------|
-A < |2x Chicken 65               480|
-A < |1x Plain Curd                30|
-A < |2x Kingfisher Premium 650ml   640|
-A < |1x Filter Coffee             25|
+A < |2x [N] Chicken 65         480.00|
+A < |1x [V] Plain Curd          30.00|
+A < |2x [V] Kingfisher Premium 640.00|
+A < |       650ml|
+A < |1x [V] Filter Coffee        FREE|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.1035|
+A < |Subtotal                 1150.00|
+A < |Discount                 -115.00|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.1035.00|
 A < |Paid                        CARD|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
@@ -2249,18 +2621,25 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.     GB4/2627/000004|
 A ^ |Date        20/09/2026 20:03|
 A ^ |----------------------------|
-A ^ |3x [V] Veg Club Sandwich 300|
-A ^ |2x [V] Paneer Tikka Masa 699|
+A ^ |3x [V] Veg Club       299.97|
+A ^ |       Sandwich|
+A ^ |2x [V] Paneer Tikka   699.00|
+A ^ |       Masala with Butter|
+A ^ |       Naan Combo Special|
 A ^ |----------------------------|
-A ^ |Subtotal              Rs.862|
-A ^ |Discount             -Rs.137|
+A ^ |Subtotal              998.97|
+A ^ |Discount             -137.37|
+A ^ |Round off               0.40|
 A ^ |----------------------------|
-A*^ |TOTAL                 Rs.862|
+A*^ |TOTAL              Rs.862.00|
 A ^ |Paid via                CASH|
-A ^ |(prices include GST)|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2281,18 +2660,22 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                     GB4/2627/000004|
 A ^ |Date                        20/09/2026 20:03|
 A ^ |--------------------------------------------|
-A ^ |3x [V] Veg Club Sandwich                 300|
-A ^ |2x [V] Paneer Tikka Masala with Butter N 699|
+A ^ |3x [V] Veg Club Sandwich              299.97|
+A ^ |2x [V] Paneer Tikka Masala with       699.00|
+A ^ |       Butter Naan Combo Special|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                              Rs.862|
-A ^ |Discount                             -Rs.137|
+A ^ |Subtotal                              998.97|
+A ^ |Discount                             -137.37|
+A ^ |Round off                               0.40|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                 Rs.862|
+A*^ |TOTAL                              Rs.862.00|
 A ^ |Paid via                                CASH|
-A ^ |(prices include GST)|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2307,24 +2690,24 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GB4/2627/000004|
 A < |Date : 20/09/2026 20:03|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |3x [V] Veg Club Sandwich                  299.97|
+A < |2x [V] Paneer Tikka Masala with Butter    699.00|
+A < |       Naan Combo Special|
 A < |------------------------------------------------|
-A < |Veg Club Sandwich                        3   300|
-A < |Paneer Tikka Masala with Butter Naan C   2   699|
+A < |Subtotal                                  998.97|
+A < |Discount                                 -137.37|
+A < |Round off                                   0.40|
 A < |------------------------------------------------|
-A < |Subtotal                                  Rs.862|
-A < |Discount                                 -Rs.137|
-A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                     Rs.862|
+A*< 1x2 |TOTAL                                  Rs.862.00|
 A < |Paid via                                    CASH|
 A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2332,7 +2715,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |2x [V] Paneer Tikka Masala with Butter Naan C|
 A < |------------------------------------------------|
-A*< |MAINS Total                               Rs.699|
+A*< |MAINS Total                            Rs.699.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2340,7 +2723,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |3x [V] Veg Club Sandwich|
 A < |------------------------------------------------|
-A*< |STARTERS Total                            Rs.300|
+A*< |STARTERS Total                         Rs.299.97|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -2349,13 +2732,24 @@ A*^ |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GB4/2627/000004|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-33|
 A < |--------------------------------|
-A < |3x Veg Club Sandwich        300|
-A < |2x Paneer Tikka Masala with   699|
+A < |3x [V] Veg Club Sandwich  299.97|
+A < |2x [V] Paneer Tikka       699.00|
+A < |       Masala with Butter Naan|
+A < |       Combo Special|
 A < |--------------------------------|
-A*< |TOTAL                     Rs.862|
+A < |Subtotal                  998.97|
+A < |Discount                 -137.37|
+A < |Round off                   0.40|
+A < |--------------------------------|
+A*< |TOTAL                  Rs.862.00|
 A < |Paid                        CASH|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
@@ -2369,17 +2763,20 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person,|
+A ^ |not eligible to collect tax|
+A ^ |on supplies|
 A ^ |Bill No.             GOLD-34|
 A ^ |Date        20/09/2026 20:04|
 A ^ |Table                     T1|
 A ^ |----------------------------|
-A ^ |13x [V] Masala Dosa     1170|
-A ^ |7x [N] Chicken 65       1680|
+A ^ |13x [V] Masala Dosa  1170.00|
+A ^ |7x [N] Chicken 65    1680.00|
 A ^ |----------------------------|
-A ^ |Subtotal             Rs.2850|
+A ^ |Subtotal             2850.00|
 A ^ |----------------------------|
-A*^ |TOTAL                Rs.2850|
-A ^ |(prices include GST)|
+A*^ |TOTAL             Rs.2850.00|
 A ^ |----------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2400,17 +2797,19 @@ A ^ |GSTIN: 29ABCDE1234F1Z5|
 A ^ |FSSAI: 11223344556677|
 A ^ |SAC: 996331|
 A ^ |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
 A ^ |Bill No.                             GOLD-34|
 A ^ |Date                        20/09/2026 20:04|
 A ^ |Table                                     T1|
 A ^ |--------------------------------------------|
-A ^ |13x [V] Masala Dosa                     1170|
-A ^ |7x [N] Chicken 65                       1680|
+A ^ |13x [V] Masala Dosa                  1170.00|
+A ^ |7x [N] Chicken 65                    1680.00|
 A ^ |--------------------------------------------|
-A ^ |Subtotal                             Rs.2850|
+A ^ |Subtotal                             2850.00|
 A ^ |--------------------------------------------|
-A*^ |TOTAL                                Rs.2850|
-A ^ |(prices include GST)|
+A*^ |TOTAL                             Rs.2850.00|
 A ^ |--------------------------------------------|
 B ^ |Thank you for visiting!|
 B ^ |Powered by Rasova POS|
@@ -2425,22 +2824,20 @@ B ^ ||
 A*^ 2x2 |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
-A*< |BILL OF SUPPLY|
-A < |------------------------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not eligible to|
+A ^ |collect tax on supplies|
+A ^ |------------------------------------------------|
 A < |Bill : GOLD-34|
 A < |Date : 20/09/2026 20:04|
 A < |------------------------------------------------|
-A*< |Item                                   Qty   Amt|
+A < |13x [V] Masala Dosa                      1170.00|
+A < |7x [N] Chicken 65                        1680.00|
 A < |------------------------------------------------|
-A < |Masala Dosa                             13  1170|
-A < |Chicken 65                               7  1680|
+A < |Subtotal                                 2850.00|
 A < |------------------------------------------------|
-A < |Subtotal                                 Rs.2850|
+A*< 1x2 |TOTAL                                 Rs.2850.00|
 A < |------------------------------------------------|
-A*< 1x2 |TOTAL                                    Rs.2850|
-A < |------------------------------------------------|
-A ^ |Bill of Supply|
-A ^ |------------------------------------------------|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2448,7 +2845,7 @@ A*^ 2x2 |MAINS|
 A < |------------------------------------------------|
 A*< |13x [V] Masala Dosa|
 A < |------------------------------------------------|
-A*< |MAINS Total                              Rs.1170|
+A*< |MAINS Total                           Rs.1170.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut PART ~~~
@@ -2456,7 +2853,7 @@ A*^ 2x2 |STARTERS|
 A < |------------------------------------------------|
 A*< |7x [N] Chicken 65|
 A < |------------------------------------------------|
-A*< |STARTERS Total                           Rs.1680|
+A*< |STARTERS Total                        Rs.1680.00|
 A ^ |Powered by Rasova|
 A ^ ||
 ~~~ cut FULL ~~~
@@ -2465,12 +2862,19 @@ A*^ |Golden Bistro|
 A < |Golden Bistro HSR Layout|
 A < |GSTIN: 29ABCDE1234F1Z5|
 A < |SAC: 996331|
-A < |--------------------------------|
+A*^ |BILL OF SUPPLY|
+A ^ |Composition taxable person, not|
+A ^ |eligible to collect tax on|
+A ^ |supplies|
+A ^ |Bill No. GOLD-34|
+A ^ |--------------------------------|
 A*^ 2x2 |#GOLD-34|
 A < |--------------------------------|
-A < |13x Masala Dosa             1170|
-A < |7x Chicken 65              1680|
+A < |13x [V] Masala Dosa      1170.00|
+A < |7x [N] Chicken 65        1680.00|
 A < |--------------------------------|
-A*< |TOTAL                    Rs.2850|
+A < |Subtotal                 2850.00|
+A < |--------------------------------|
+A*< |TOTAL                 Rs.2850.00|
 A > |20/09 20:04|
 ~~~ cut FULL ~~~

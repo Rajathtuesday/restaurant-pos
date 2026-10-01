@@ -1,0 +1,19 @@
+{# The money part of a thermal web bill: rows that add up to the total, and the tax inside the prices, from orders/services/bill_layout.py (layout). #}
+{% for row in layout.rows %}<div class="row small"><span class="label">{{ row.label }}</span><span class="value">{{ row.amount|floatformat:2 }}</span></div>
+{% endfor %}<div class="sep-solid"></div>
+<div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ layout.total|floatformat:2 }}</span></div>
+{% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
+{% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:2 }}</span></div>{% endif %}
+{% if layout.included %}
+<div class="small" style="margin-top:1mm;">{% if layout.prices_include_gst %}Prices include GST:{% else %}Prices include tax:{% endif %}</div>
+{% for tax in layout.included %}
+<div class="small">{{ tax.label }} on {{ tax.taxable|floatformat:2 }}</div>
+{% if tax.kind == "gst" %}
+<div class="row small"><span class="label">&nbsp;&nbsp;CGST {{ tax.half_rate }}</span><span class="value">{{ tax.cgst|floatformat:2 }}</span></div>
+<div class="row small"><span class="label">&nbsp;&nbsp;{{ layout.state_tax }} {{ tax.half_rate }}</span><span class="value">{{ tax.sgst|floatformat:2 }}</span></div>
+{% else %}
+<div class="row small"><span class="label">&nbsp;&nbsp;VAT</span><span class="value">{{ tax.tax|floatformat:2 }}</span></div>
+{% endif %}
+{% endfor %}
+{% if layout.included|length > 1 %}<div class="row small"><span class="label">Total tax included</span><span class="value">{{ layout.included_total|floatformat:2 }}</span></div>{% endif %}
+{% endif %}

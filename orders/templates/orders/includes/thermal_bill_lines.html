@@ -1,0 +1,9 @@
+{# A thermal web bill's title and dish lines, from orders/services/bill_layout.py (layout). #}
+{% for line in layout.lines %}
+<div class="item-line">
+  <span class="item-qty">{{ line.quantity }}x</span>
+  <span>{% if line.is_veg %}[V]{% else %}[N]{% endif %} {{ line.name }}</span>
+  <span class="right" style="float:right;">{% if line.free %}FREE{% else %}{{ line.amount|floatformat:2 }}{% endif %}</span>
+</div>
+{% if show_notes and line.note %}<div class="item-note">* {{ line.note }}</div>{% endif %}
+{% endfor %}

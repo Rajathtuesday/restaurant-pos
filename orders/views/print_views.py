@@ -346,7 +346,10 @@ def download_pdf_bill(request, order_id):
     # This mirrors the correct calculation already used in bill_view and pay_order.
     remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
 
-    html_string = render_to_string("orders/bill.html", {"order": order, "request": request, "remaining": remaining})
+    from orders.services.bill_layout import bill_layout
+    html_string = render_to_string("orders/bill.html", {
+        "order": order, "layout": bill_layout(order), "request": request, "remaining": remaining,
+    })
     # bill.html renders guest-supplied text (item notes, names) -- explicit
     # presentational_hints=False (already the library default, made explicit
     # here) closes GHSA-jhhc-3hcp-qhm5 / CVE-2026-49452, a CSS-injection bug
@@ -435,11 +438,14 @@ def thermal_receipt_view(request, order_id):
                     "total": 0,
                 }
             groups[key]["items"].append(item)
-            groups[key]["total"] += item.total_price
+            if not item.is_complimentary:   # a free dish costs nothing here either
+                groups[key]["total"] += item.total_price
         category_groups = list(groups.values())
 
+    from orders.services.bill_layout import bill_layout
     return render(request, "orders/thermal_receipt.html", {
         "order":           order,
+        "layout":          bill_layout(order),
         "items":           items,
         "kots":            kots,
         "token":           token,

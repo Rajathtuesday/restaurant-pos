@@ -162,8 +162,10 @@ def bill_view(request, order_id):
         # Auto-print: after payment reload, pass print=1 so template opens receipt
         auto_print = request.GET.get("print") == "1"
 
+        from orders.services.bill_layout import bill_layout
         return render(request, "orders/bill.html", {
             "order": order,
+            "layout": bill_layout(order),
             "config": config,
             "remaining": remaining,
             "total_paid": total_paid,

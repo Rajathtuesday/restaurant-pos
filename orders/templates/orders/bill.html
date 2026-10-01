@@ -189,7 +189,7 @@
 
         <!-- Order meta -->
         <div class="meta">
-            <div><span class="label">{% if is_composition %}Bill of Supply{% elif is_unregistered %}Bill{% else %}Tax Invoice{% endif %}</span><span>{{ order.display_number }}</span></div>
+            <div><span class="label">{{ layout.title }}</span><span>{{ order.display_number }}</span></div>
             <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
         </div>
         <div class="meta" style="margin-top:-6px">
@@ -219,79 +219,51 @@
                     </div>
                     {% endif %}
                 </span>
+                {# At menu price, so the lines add up to the subtotal; a dish's own discount is in the Discount row, like the bill's. #}
                 <span class="item-val">
-                    {% if item.is_complimentary %}COMP
-                    {% elif item.item_discount_pct > 0 %}
-                        <div style="text-decoration:line-through;font-size:0.7rem;color:var(--text-muted);">₹{{ item.total_price }}</div>
-                        <div>₹{{ item.discounted_price }}</div>
-                    {% else %}₹{{ item.total_price }}{% endif %}
+                    {% if item.is_complimentary %}Free
+                    {% else %}₹{{ item.total_price }}{% if item.item_discount_pct > 0 %}
+                        <div style="font-size:0.7rem;color:var(--text-muted);">{{ item.item_discount_pct|floatformat:"-2" }}% off</div>{% endif %}
+                    {% endif %}
                 </span>
             </div>
             {% endif %}{% endfor %}
         </div>
 
-        <!-- Totals -->
-        {% if is_composition %}
-        <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
-        {% elif gst_inclusive %}
-        <div class="total-row"><span>Subtotal (excl. GST)</span><span>₹{{ order.subtotal }}</span></div>
-        {% else %}
-        <div class="total-row"><span>Subtotal</span><span>₹{{ order.subtotal }}</span></div>
-        {% endif %}
-        {% if order.discount_total > 0 %}
-        <div class="total-row" style="color:#ef4444"><span>Discount</span><span>−₹{{ order.discount_total }}</span></div>
-        {% endif %}
-
-        {% if order.parcel_surcharge %}
-        <div class="total-row" style="color:var(--text-muted);font-size:0.85rem;">
-            <span><i class="bi bi-bag me-1"></i>Parcel Charge</span>
-            <span>₹{{ order.parcel_surcharge|floatformat:0 }}</span>
+        <!-- Totals: rows that add up to the total (orders/services/bill_layout.py) -->
+        {% for row in layout.rows %}
+        <div class="total-row"{% if row.key == "discount" %} style="color:#ef4444"{% elif row.key == "round_off" %} style="color:var(--text-muted)"{% endif %}>
+            <span>{% if row.key == "charge" %}<i class="bi bi-bag me-1"></i>{% endif %}{{ row.label }}</span>
+            <span>{% if row.negative %}−{% elif row.key == "round_off" %}+{% endif %}₹{{ row.magnitude }}</span>
         </div>
-        {% endif %}
-
-        {% if order.gst_breakdown and not is_composition %}
-        {# Screen: collapsible detail block #}
-        <div class="gst-breakdown no-print">
-            <div class="gst-breakdown-title">
-                Tax Breakdown
-                {% if gst_inclusive %}<span style="font-size:0.65rem;font-weight:400;color:var(--text-muted);"> (included in price)</span>{% endif %}
-            </div>
-            {% for gst in order.gst_breakdown %}
-            <div style="margin-bottom:0.4rem;">
-                <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;margin-bottom:0.2rem;">
-                    GST @ {{ gst.rate }}%{% if gst_inclusive %} (incl.){% endif %}
-                </div>
-                <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
-                <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span style="color:var(--text-muted)">{% if order.outlet.uses_utgst %}UTGST{% else %}SGST{% endif %} @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
-            </div>
-            {% endfor %}
-            <div class="total-row" style="font-size:0.82rem;font-weight:700;border-top:1px solid var(--border-color);padding-top:0.4rem;margin-top:0.3rem;">
-                <span>Total GST{% if gst_inclusive %} (incl.){% endif %}</span><span>₹{{ order.gst_total }}</span>
-            </div>
-        </div>
-        {# Print: compact CGST+SGST/UTGST lines — legally required on GST invoice #}
-        <div class="print-gst" style="border-top:1px dashed #000;border-bottom:1px dashed #000;padding:0.35rem 0;margin:0.4rem 0;">
-            {% if gst_inclusive %}<div style="font-size:0.72rem;font-style:italic;">(All prices inclusive of GST)</div>{% endif %}
-            {% for gst in order.gst_breakdown %}
-            <div class="total-row" style="font-size:0.78rem;"><span>CGST @ {{ gst.cgst_rate }}%</span><span>₹{{ gst.cgst_amount }}</span></div>
-            <div class="total-row" style="font-size:0.78rem;"><span>{% if order.outlet.uses_utgst %}UTGST{% else %}SGST{% endif %} @ {{ gst.sgst_rate }}%</span><span>₹{{ gst.sgst_amount }}</span></div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if order.round_off != 0 %}
-        <div class="total-row" style="color:var(--text-muted)"><span>Round Off</span><span>{% if order.round_off > 0 %}+{% endif %}₹{{ order.round_off }}</span></div>
-        {% endif %}
+        {% endfor %}
 
         <div class="grand-total">
-            <span>TOTAL</span><span>₹{{ order.grand_total }}</span>
+            <span>TOTAL</span><span>₹{{ layout.total }}</span>
         </div>
-        {% if is_composition %}
-        <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">Bill of Supply — GST not applicable (Composition Scheme)</div>
+
+        {% if layout.included %}
+        {# Tax inside the prices: shown with its taxable value, never added again #}
+        <div class="tax-included" style="border-top:1px dashed var(--border-color);padding:0.35rem 0;margin:0.4rem 0;">
+            <div style="font-size:0.72rem;font-style:italic;">{% if layout.prices_include_gst %}Prices include GST{% else %}Prices include tax{% endif %}</div>
+            {% for tax in layout.included %}
+            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;margin-top:0.2rem;">{{ tax.label }} on ₹{{ tax.taxable }}</div>
+            {% if tax.kind == "gst" %}
+            <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span>CGST @ {{ tax.half_rate }}</span><span>₹{{ tax.cgst }}</span></div>
+            <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span>{{ layout.state_tax }} @ {{ tax.half_rate }}</span><span>₹{{ tax.sgst }}</span></div>
+            {% else %}
+            <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span>VAT</span><span>₹{{ tax.tax }}</span></div>
+            {% endif %}
+            {% endfor %}
+            {% if layout.included|length > 1 %}
+            <div class="total-row" style="font-size:0.82rem;font-weight:700;"><span>Total tax included</span><span>₹{{ layout.included_total }}</span></div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if layout.statement %}
+        <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">{{ layout.statement }}</div>
         {% elif is_unregistered %}
         <div class="no-print" style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">No GST: this outlet has no GSTIN (Outlet Settings)</div>
-        {% elif gst_inclusive %}
-        <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">All prices inclusive of GST</div>
         {% endif %}
 
         <!-- Payment splits -->

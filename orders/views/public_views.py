@@ -56,8 +56,10 @@ def public_bill(request, signed_token):
         remaining <= 0 and has_feature(order.tenant, "guest_feedback")
     )
 
+    from orders.services.bill_layout import bill_layout
     return render(request, "orders/public_bill.html", {
         "order": order,
+        "layout": bill_layout(order),
         "tenant": order.tenant,
         "outlet": order.outlet,
         "remaining": remaining,

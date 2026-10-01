@@ -7,17 +7,9 @@ Tax Invoice
 ₹240.00
 Subtotal
 ₹420.00
-Tax Breakdown
-GST @ 5.00%
-CGST @ 2.50%
+CGST 2.5%
 ₹10.50
-SGST @ 2.50%
-₹10.50
-Total GST
-₹21.00
-CGST @ 2.50%
-₹10.50
-SGST @ 2.50%
+SGST 2.5%
 ₹10.50
 TOTAL
 ₹441.00
@@ -28,21 +20,28 @@ FULLY PAID
 ==== thermal HTML | GST extra | dine-in, cash ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+180.00
+240.00
 Subtotal
-Rs.420
-GST
-Rs.21
+420.00
+CGST 2.5%
+10.50
+SGST 2.5%
+10.50
 TOTAL
-Rs.441
+Rs.441.00
 Paid via
 ==== public bill | GST extra | dine-in, cash ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹180.00
 ₹240.00
 Subtotal
 ₹420.00
-CGST
+CGST 2.5%
 ₹10.50
-SGST
+SGST 2.5%
 ₹10.50
 Total
 ₹441.00
@@ -56,21 +55,13 @@ Tax Invoice
 ₹349.50
 Subtotal
 ₹424.50
-Parcel Charge
-₹20
-Tax Breakdown
-GST @ 5.00%
-CGST @ 2.50%
+CGST 2.5%
 ₹11.12
-SGST @ 2.50%
+SGST 2.5%
 ₹11.11
-Total GST
-₹22.23
-CGST @ 2.50%
-₹11.12
-SGST @ 2.50%
-₹11.11
-Round Off
+Parcel charge
+₹20.00
+Round off
 +₹0.27
 TOTAL
 ₹467.00
@@ -81,26 +72,37 @@ FULLY PAID
 ==== thermal HTML | GST extra | parcel with a token, UPI ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+75.00
+349.50
 Subtotal
-Rs.425
-GST
-Rs.22
-Parcel Charge
-Rs.20
+424.50
+CGST 2.5%
+11.12
+SGST 2.5%
+11.11
+Parcel charge
+20.00
+Round off
+0.27
 TOTAL
-Rs.467
+Rs.467.00
 Paid via
 ==== public bill | GST extra | parcel with a token, UPI ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹75.00
 ₹349.50
 Subtotal
 ₹424.50
-CGST
+CGST 2.5%
 ₹11.12
-SGST
+SGST 2.5%
 ₹11.11
-Round Off
-+₹0.27
+Parcel charge
+₹20.00
+Round off
+₹0.27
 Total
 ₹467.00
 Paid in full
@@ -112,33 +114,21 @@ Tax Invoice
 ₹480.00
 ₹30.00
 ₹640.00
+Free
 Subtotal
 ₹1150.00
 Discount
 −₹115.00
-Tax Breakdown
-GST @ 5.00%
-CGST @ 2.50%
+CGST 2.5%
 ₹10.80
-SGST @ 2.50%
+SGST 2.5%
 ₹10.80
-GST @ 18.00%
-CGST @ 9.00%
+CGST 9%
 ₹51.84
-SGST @ 9.00%
+SGST 9%
 ₹51.84
-Total GST
-₹125.28
-CGST @ 2.50%
-₹10.80
-SGST @ 2.50%
-₹10.80
-CGST @ 9.00%
-₹51.84
-SGST @ 9.00%
-₹51.84
-Round Off
-₹-0.28
+Round off
+−₹0.28
 TOTAL
 ₹1160.00
 −₹1160.00
@@ -148,28 +138,49 @@ FULLY PAID
 ==== thermal HTML | GST extra | mixed rates, 10% off, one voided and one free dish ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+480.00
+30.00
+640.00
+FREE
 Subtotal
-Rs.1150
-GST
-Rs.125
+1150.00
 Discount
--Rs.115
+-115.00
+CGST 2.5%
+10.80
+SGST 2.5%
+10.80
+CGST 9%
+51.84
+SGST 9%
+51.84
+Round off
+-0.28
 TOTAL
-Rs.1160
+Rs.1160.00
 Paid via
 ==== public bill | GST extra | mixed rates, 10% off, one voided and one free dish ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹480.00
 ₹30.00
 ₹640.00
-₹25.00
+Free
 Subtotal
 ₹1150.00
-CGST
-₹62.64
-SGST
-₹62.64
-Round Off
-₹-0.28
+Discount
+−₹115.00
+CGST 2.5%
+₹10.80
+SGST 2.5%
+₹10.80
+CGST 9%
+₹51.84
+SGST 9%
+₹51.84
+Round off
+−₹0.28
 Total
 ₹1160.00
 Paid in full
@@ -180,33 +191,20 @@ SAC: 996331
 Tax Invoice
 ₹299.97
 ₹699.00
-₹611.63
+12.50% off
 Subtotal
 ₹998.97
 Discount
 −₹137.37
-Tax Breakdown
-GST @ 5.00%
-CGST @ 2.50%
+CGST 2.5%
 ₹14.45
-SGST @ 2.50%
+SGST 2.5%
 ₹14.46
-GST @ 18.00%
-CGST @ 9.00%
+CGST 9%
 ₹25.52
-SGST @ 9.00%
+SGST 9%
 ₹25.51
-Total GST
-₹79.94
-CGST @ 2.50%
-₹14.45
-SGST @ 2.50%
-₹14.46
-CGST @ 9.00%
-₹25.52
-SGST @ 9.00%
-₹25.51
-Round Off
+Round off
 +₹0.46
 TOTAL
 ₹942.00
@@ -217,26 +215,45 @@ FULLY PAID
 ==== thermal HTML | GST extra | paise, an item discount and a flat discount ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+299.97
+699.00
 Subtotal
-Rs.999
-GST
-Rs.80
+998.97
 Discount
--Rs.137
+-137.37
+CGST 2.5%
+14.45
+SGST 2.5%
+14.46
+CGST 9%
+25.52
+SGST 9%
+25.51
+Round off
+0.46
 TOTAL
-Rs.942
+Rs.942.00
 Paid via
 ==== public bill | GST extra | paise, an item discount and a flat discount ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹299.97
 ₹699.00
 Subtotal
 ₹998.97
-CGST
-₹39.97
-SGST
-₹39.97
-Round Off
-+₹0.46
+Discount
+−₹137.37
+CGST 2.5%
+₹14.45
+SGST 2.5%
+₹14.46
+CGST 9%
+₹25.52
+SGST 9%
+₹25.51
+Round off
+₹0.46
 Total
 ₹942.00
 Paid in full
@@ -249,19 +266,11 @@ Tax Invoice
 ₹1680.00
 Subtotal
 ₹2850.00
-Tax Breakdown
-GST @ 5.00%
-CGST @ 2.50%
+CGST 2.5%
 ₹71.25
-SGST @ 2.50%
+SGST 2.5%
 ₹71.25
-Total GST
-₹142.50
-CGST @ 2.50%
-₹71.25
-SGST @ 2.50%
-₹71.25
-Round Off
+Round off
 +₹0.50
 TOTAL
 ₹2993.00
@@ -274,23 +283,32 @@ Change to Give Back
 ==== thermal HTML | GST extra | big order, not paid yet ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+1170.00
+1680.00
 Subtotal
-Rs.2850
-GST
-Rs.143
+2850.00
+CGST 2.5%
+71.25
+SGST 2.5%
+71.25
+Round off
+0.50
 TOTAL
-Rs.2993
+Rs.2993.00
 ==== public bill | GST extra | big order, not paid yet ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹1170.00
 ₹1680.00
 Subtotal
 ₹2850.00
-CGST
+CGST 2.5%
 ₹71.25
-SGST
+SGST 2.5%
 ₹71.25
-Round Off
-+₹0.50
+Round off
+₹0.50
 Total
 ₹2993.00
 Balance Due
@@ -302,25 +320,16 @@ SAC: 996331
 Tax Invoice
 ₹180.00
 ₹240.00
-Subtotal (excl. GST)
-₹400.00
-Tax Breakdown
-(included in price)
-GST @ 5.00% (incl.)
-CGST @ 2.50%
-₹10.00
-SGST @ 2.50%
-₹10.00
-Total GST (incl.)
-₹20.00
-(All prices inclusive of GST)
-CGST @ 2.50%
-₹10.00
-SGST @ 2.50%
-₹10.00
+Subtotal
+₹420.00
 TOTAL
 ₹420.00
-All prices inclusive of GST
+Prices include GST
+GST 5% on ₹400.00
+CGST @ 2.5%
+₹10.00
+SGST @ 2.5%
+₹10.00
 −₹420.00
 Balance Due
 ₹0.00
@@ -328,24 +337,34 @@ FULLY PAID
 ==== thermal HTML | GST included | dine-in, cash ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+180.00
+240.00
 Subtotal
-Rs.400
-GST
-Rs.20
+420.00
 TOTAL
-Rs.420
+Rs.420.00
 Paid via
+Prices include GST:
+GST 5% on 400.00
+CGST 2.5%
+10.00
+SGST 2.5%
+10.00
 ==== public bill | GST included | dine-in, cash ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹180.00
 ₹240.00
 Subtotal
-₹400.00
-CGST
-₹10.00
-SGST
-₹10.00
+₹420.00
 Total
 ₹420.00
+Prices include GST
+CGST 2.5% on ₹400.00
+₹10.00
+SGST 2.5% on ₹400.00
+₹10.00
 Paid in full
 ==== bill page | GST included | parcel with a token, UPI ====
 Invoice
@@ -354,29 +373,20 @@ SAC: 996331
 Tax Invoice
 ₹75.00
 ₹349.50
-Subtotal (excl. GST)
-₹404.29
-Parcel Charge
-₹20
-Tax Breakdown
-(included in price)
-GST @ 5.00% (incl.)
-CGST @ 2.50%
-₹10.58
-SGST @ 2.50%
-₹10.58
-Total GST (incl.)
-₹21.16
-(All prices inclusive of GST)
-CGST @ 2.50%
-₹10.58
-SGST @ 2.50%
-₹10.58
-Round Off
+Subtotal
+₹424.50
+Parcel charge
+₹20.00
+Round off
 +₹0.50
 TOTAL
 ₹445.00
-All prices inclusive of GST
+Prices include GST
+GST 5% on ₹423.34
+CGST @ 2.5%
+₹10.58
+SGST @ 2.5%
+₹10.58
 −₹445.00
 Balance Due
 ₹0.00
@@ -384,28 +394,42 @@ FULLY PAID
 ==== thermal HTML | GST included | parcel with a token, UPI ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+75.00
+349.50
 Subtotal
-Rs.404
-GST
-Rs.21
-Parcel Charge
-Rs.20
+424.50
+Parcel charge
+20.00
+Round off
+0.50
 TOTAL
-Rs.445
+Rs.445.00
 Paid via
+Prices include GST:
+GST 5% on 423.34
+CGST 2.5%
+10.58
+SGST 2.5%
+10.58
 ==== public bill | GST included | parcel with a token, UPI ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹75.00
 ₹349.50
 Subtotal
-₹404.29
-CGST
-₹10.58
-SGST
-₹10.58
-Round Off
-+₹0.50
+₹424.50
+Parcel charge
+₹20.00
+Round off
+₹0.50
 Total
 ₹445.00
+Prices include GST
+CGST 2.5% on ₹423.34
+₹10.58
+SGST 2.5% on ₹423.34
+₹10.58
 Paid in full
 ==== bill page | GST included | mixed rates, 10% off, one voided and one free dish ====
 Invoice
@@ -415,36 +439,26 @@ Tax Invoice
 ₹480.00
 ₹30.00
 ₹640.00
-Subtotal (excl. GST)
-₹926.56
+Free
+Subtotal
+₹1150.00
 Discount
 −₹115.00
-Tax Breakdown
-(included in price)
-GST @ 5.00% (incl.)
-CGST @ 2.50%
-₹10.28
-SGST @ 2.50%
-₹10.29
-GST @ 18.00% (incl.)
-CGST @ 9.00%
-₹43.94
-SGST @ 9.00%
-₹43.93
-Total GST (incl.)
-₹108.44
-(All prices inclusive of GST)
-CGST @ 2.50%
-₹10.28
-SGST @ 2.50%
-₹10.29
-CGST @ 9.00%
-₹43.94
-SGST @ 9.00%
-₹43.93
 TOTAL
 ₹1035.00
-All prices inclusive of GST
+Prices include GST
+GST 5% on ₹411.43
+CGST @ 2.5%
+₹10.28
+SGST @ 2.5%
+₹10.29
+GST 18% on ₹488.13
+CGST @ 9%
+₹43.94
+SGST @ 9%
+₹43.93
+Total tax included
+₹108.44
 −₹1035.00
 Balance Due
 ₹0.00
@@ -452,28 +466,53 @@ FULLY PAID
 ==== thermal HTML | GST included | mixed rates, 10% off, one voided and one free dish ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+480.00
+30.00
+640.00
+FREE
 Subtotal
-Rs.927
-GST
-Rs.108
+1150.00
 Discount
--Rs.115
+-115.00
 TOTAL
-Rs.1035
+Rs.1035.00
 Paid via
+Prices include GST:
+GST 5% on 411.43
+CGST 2.5%
+10.28
+SGST 2.5%
+10.29
+GST 18% on 488.13
+CGST 9%
+43.94
+SGST 9%
+43.93
+Total tax included
+108.44
 ==== public bill | GST included | mixed rates, 10% off, one voided and one free dish ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹480.00
 ₹30.00
 ₹640.00
-₹25.00
+Free
 Subtotal
-₹926.56
-CGST
-₹54.22
-SGST
-₹54.22
+₹1150.00
+Discount
+−₹115.00
 Total
 ₹1035.00
+Prices include GST
+CGST 2.5% on ₹411.43
+₹10.28
+SGST 2.5% on ₹411.43
+₹10.29
+CGST 9% on ₹488.13
+₹43.94
+SGST 9% on ₹488.13
+₹43.93
 Paid in full
 ==== bill page | GST included | paise, an item discount and a flat discount ====
 Invoice
@@ -482,39 +521,28 @@ SAC: 996331
 Tax Invoice
 ₹299.97
 ₹699.00
-₹611.63
-Subtotal (excl. GST)
-₹790.82
+12.50% off
+Subtotal
+₹998.97
 Discount
 −₹137.37
-Tax Breakdown
-(included in price)
-GST @ 5.00% (incl.)
-CGST @ 2.50%
-₹13.76
-SGST @ 2.50%
-₹13.77
-GST @ 18.00% (incl.)
-CGST @ 9.00%
-₹21.63
-SGST @ 9.00%
-₹21.62
-Total GST (incl.)
-₹70.78
-(All prices inclusive of GST)
-CGST @ 2.50%
-₹13.76
-SGST @ 2.50%
-₹13.77
-CGST @ 9.00%
-₹21.63
-SGST @ 9.00%
-₹21.62
-Round Off
+Round off
 +₹0.40
 TOTAL
 ₹862.00
-All prices inclusive of GST
+Prices include GST
+GST 5% on ₹550.55
+CGST @ 2.5%
+₹13.76
+SGST @ 2.5%
+₹13.77
+GST 18% on ₹240.27
+CGST @ 9%
+₹21.63
+SGST @ 9%
+₹21.62
+Total tax included
+₹70.78
 −₹862.00
 Balance Due
 ₹0.00
@@ -522,28 +550,53 @@ FULLY PAID
 ==== thermal HTML | GST included | paise, an item discount and a flat discount ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+299.97
+699.00
 Subtotal
-Rs.791
-GST
-Rs.71
+998.97
 Discount
--Rs.137
+-137.37
+Round off
+0.40
 TOTAL
-Rs.862
+Rs.862.00
 Paid via
+Prices include GST:
+GST 5% on 550.55
+CGST 2.5%
+13.76
+SGST 2.5%
+13.77
+GST 18% on 240.27
+CGST 9%
+21.63
+SGST 9%
+21.62
+Total tax included
+70.78
 ==== public bill | GST included | paise, an item discount and a flat discount ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹299.97
 ₹699.00
 Subtotal
-₹790.82
-CGST
-₹35.39
-SGST
-₹35.39
-Round Off
-+₹0.40
+₹998.97
+Discount
+−₹137.37
+Round off
+₹0.40
 Total
 ₹862.00
+Prices include GST
+CGST 2.5% on ₹550.55
+₹13.76
+SGST 2.5% on ₹550.55
+₹13.77
+CGST 9% on ₹240.27
+₹21.63
+SGST 9% on ₹240.27
+₹21.62
 Paid in full
 ==== bill page | GST included | big order, not paid yet ====
 Invoice
@@ -552,25 +605,16 @@ SAC: 996331
 Tax Invoice
 ₹1170.00
 ₹1680.00
-Subtotal (excl. GST)
-₹2714.29
-Tax Breakdown
-(included in price)
-GST @ 5.00% (incl.)
-CGST @ 2.50%
-₹67.86
-SGST @ 2.50%
-₹67.85
-Total GST (incl.)
-₹135.71
-(All prices inclusive of GST)
-CGST @ 2.50%
-₹67.86
-SGST @ 2.50%
-₹67.85
+Subtotal
+₹2850.00
 TOTAL
 ₹2850.00
-All prices inclusive of GST
+Prices include GST
+GST 5% on ₹2714.29
+CGST @ 2.5%
+₹67.86
+SGST @ 2.5%
+₹67.85
 Balance Due
 ₹2850.00
 Apply Discount
@@ -580,23 +624,33 @@ Change to Give Back
 ==== thermal HTML | GST included | big order, not paid yet ====
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
+TAX INVOICE
+1170.00
+1680.00
 Subtotal
-Rs.2714
-GST
-Rs.136
+2850.00
 TOTAL
-Rs.2850
+Rs.2850.00
+Prices include GST:
+GST 5% on 2714.29
+CGST 2.5%
+67.86
+SGST 2.5%
+67.85
 ==== public bill | GST included | big order, not paid yet ====
+GSTIN: 29ABCDE1234F1Z5
+Tax Invoice
 ₹1170.00
 ₹1680.00
 Subtotal
-₹2714.29
-CGST
-₹67.86
-SGST
-₹67.85
+₹2850.00
 Total
 ₹2850.00
+Prices include GST
+CGST 2.5% on ₹2714.29
+₹67.86
+SGST 2.5% on ₹2714.29
+₹67.85
 Balance Due
 ₹2850.00
 ==== bill page | composition | dine-in, cash ====
@@ -610,7 +664,7 @@ Subtotal
 ₹420.00
 TOTAL
 ₹420.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹420.00
 Balance Due
 ₹0.00
@@ -619,12 +673,18 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+180.00
+240.00
 Subtotal
-Rs.420
+420.00
 TOTAL
-Rs.420
+Rs.420.00
 Paid via
 ==== public bill | composition | dine-in, cash ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹180.00
 ₹240.00
 Subtotal
@@ -641,13 +701,13 @@ Bill of Supply
 ₹349.50
 Subtotal
 ₹424.50
-Parcel Charge
-₹20
-Round Off
+Parcel charge
+₹20.00
+Round off
 +₹0.50
 TOTAL
 ₹445.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹445.00
 Balance Due
 ₹0.00
@@ -656,20 +716,30 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+75.00
+349.50
 Subtotal
-Rs.425
-Parcel Charge
-Rs.20
+424.50
+Parcel charge
+20.00
+Round off
+0.50
 TOTAL
-Rs.445
+Rs.445.00
 Paid via
 ==== public bill | composition | parcel with a token, UPI ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹75.00
 ₹349.50
 Subtotal
 ₹424.50
-Round Off
-+₹0.50
+Parcel charge
+₹20.00
+Round off
+₹0.50
 Total
 ₹445.00
 Paid in full
@@ -681,13 +751,14 @@ Bill of Supply
 ₹480.00
 ₹30.00
 ₹640.00
+Free
 Subtotal
 ₹1150.00
 Discount
 −₹115.00
 TOTAL
 ₹1035.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹1035.00
 Balance Due
 ₹0.00
@@ -696,20 +767,30 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+480.00
+30.00
+640.00
+FREE
 Subtotal
-Rs.1150
+1150.00
 Discount
--Rs.115
+-115.00
 TOTAL
-Rs.1035
+Rs.1035.00
 Paid via
 ==== public bill | composition | mixed rates, 10% off, one voided and one free dish ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹480.00
 ₹30.00
 ₹640.00
-₹25.00
+Free
 Subtotal
 ₹1150.00
+Discount
+−₹115.00
 Total
 ₹1035.00
 Paid in full
@@ -720,16 +801,16 @@ SAC: 996331
 Bill of Supply
 ₹299.97
 ₹699.00
-₹611.63
+12.50% off
 Subtotal
 ₹998.97
 Discount
 −₹137.37
-Round Off
+Round off
 +₹0.40
 TOTAL
 ₹862.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹862.00
 Balance Due
 ₹0.00
@@ -738,20 +819,30 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+299.97
+699.00
 Subtotal
-Rs.999
+998.97
 Discount
--Rs.137
+-137.37
+Round off
+0.40
 TOTAL
-Rs.862
+Rs.862.00
 Paid via
 ==== public bill | composition | paise, an item discount and a flat discount ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹299.97
 ₹699.00
 Subtotal
 ₹998.97
-Round Off
-+₹0.40
+Discount
+−₹137.37
+Round off
+₹0.40
 Total
 ₹862.00
 Paid in full
@@ -766,7 +857,7 @@ Subtotal
 ₹2850.00
 TOTAL
 ₹2850.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 Balance Due
 ₹2850.00
 Apply Discount
@@ -777,11 +868,17 @@ Change to Give Back
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+1170.00
+1680.00
 Subtotal
-Rs.2850
+2850.00
 TOTAL
-Rs.2850
+Rs.2850.00
 ==== public bill | composition | big order, not paid yet ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹1170.00
 ₹1680.00
 Subtotal
@@ -801,7 +898,7 @@ Subtotal
 ₹420.00
 TOTAL
 ₹420.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹420.00
 Balance Due
 ₹0.00
@@ -810,12 +907,18 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+180.00
+240.00
 Subtotal
-Rs.420
+420.00
 TOTAL
-Rs.420
+Rs.420.00
 Paid via
 ==== public bill | composition, GST included | dine-in, cash ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹180.00
 ₹240.00
 Subtotal
@@ -832,13 +935,13 @@ Bill of Supply
 ₹349.50
 Subtotal
 ₹424.50
-Parcel Charge
-₹20
-Round Off
+Parcel charge
+₹20.00
+Round off
 +₹0.50
 TOTAL
 ₹445.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹445.00
 Balance Due
 ₹0.00
@@ -847,20 +950,30 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+75.00
+349.50
 Subtotal
-Rs.425
-Parcel Charge
-Rs.20
+424.50
+Parcel charge
+20.00
+Round off
+0.50
 TOTAL
-Rs.445
+Rs.445.00
 Paid via
 ==== public bill | composition, GST included | parcel with a token, UPI ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹75.00
 ₹349.50
 Subtotal
 ₹424.50
-Round Off
-+₹0.50
+Parcel charge
+₹20.00
+Round off
+₹0.50
 Total
 ₹445.00
 Paid in full
@@ -872,13 +985,14 @@ Bill of Supply
 ₹480.00
 ₹30.00
 ₹640.00
+Free
 Subtotal
-₹1035.00
+₹1150.00
 Discount
 −₹115.00
 TOTAL
 ₹1035.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹1035.00
 Balance Due
 ₹0.00
@@ -887,20 +1001,30 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+480.00
+30.00
+640.00
+FREE
 Subtotal
-Rs.1035
+1150.00
 Discount
--Rs.115
+-115.00
 TOTAL
-Rs.1035
+Rs.1035.00
 Paid via
 ==== public bill | composition, GST included | mixed rates, 10% off, one voided and one free dish ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹480.00
 ₹30.00
 ₹640.00
-₹25.00
+Free
 Subtotal
-₹1035.00
+₹1150.00
+Discount
+−₹115.00
 Total
 ₹1035.00
 Paid in full
@@ -911,16 +1035,16 @@ SAC: 996331
 Bill of Supply
 ₹299.97
 ₹699.00
-₹611.63
+12.50% off
 Subtotal
-₹861.60
+₹998.97
 Discount
 −₹137.37
-Round Off
+Round off
 +₹0.40
 TOTAL
 ₹862.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 −₹862.00
 Balance Due
 ₹0.00
@@ -929,20 +1053,30 @@ FULLY PAID
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+299.97
+699.00
 Subtotal
-Rs.862
+998.97
 Discount
--Rs.137
+-137.37
+Round off
+0.40
 TOTAL
-Rs.862
+Rs.862.00
 Paid via
 ==== public bill | composition, GST included | paise, an item discount and a flat discount ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹299.97
 ₹699.00
 Subtotal
-₹861.60
-Round Off
-+₹0.40
+₹998.97
+Discount
+−₹137.37
+Round off
+₹0.40
 Total
 ₹862.00
 Paid in full
@@ -957,7 +1091,7 @@ Subtotal
 ₹2850.00
 TOTAL
 ₹2850.00
-Bill of Supply — GST not applicable (Composition Scheme)
+Composition taxable person, not eligible to collect tax on supplies
 Balance Due
 ₹2850.00
 Apply Discount
@@ -968,11 +1102,17 @@ Change to Give Back
 GSTIN: 29ABCDE1234F1Z5
 SAC: 996331
 BILL OF SUPPLY
+Composition taxable person, not eligible to collect tax on supplies
+1170.00
+1680.00
 Subtotal
-Rs.2850
+2850.00
 TOTAL
-Rs.2850
+Rs.2850.00
 ==== public bill | composition, GST included | big order, not paid yet ====
+GSTIN: 29ABCDE1234F1Z5
+Bill of Supply
+Composition taxable person, not eligible to collect tax on supplies
 ₹1170.00
 ₹1680.00
 Subtotal

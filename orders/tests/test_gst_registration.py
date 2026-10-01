@@ -92,7 +92,7 @@ class NoGstinTest(GstinWorld):
         page = self.page(self.bill())
         self.assertIn('<span class="label">Bill</span>', page)
         self.assertNotIn("Tax Invoice", page)
-        self.assertNotIn("CGST @", page)
+        self.assertNotIn("CGST 2.5%", page)
         self.assertIn("No GST: this outlet has no GSTIN", page)
 
     def test_the_receipt_prints_no_gst_line(self):
@@ -140,7 +140,7 @@ class WithGstinTest(GstinWorld):
         self.assertEqual(order.gst_scheme, "regular")
         page = self.page(order)
         self.assertIn("Tax Invoice", page)
-        self.assertIn("CGST @", page)
+        self.assertIn("CGST 2.5%", page)
 
 
 class BillsFromBeforeTheRuleTest(GstinWorld):

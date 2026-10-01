@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-10-02: every bill adds up (P12, P13, P14, P15, P19)
+
+A guest or an inspector adding up a Rasova bill could get a different total. The printed bill rounded every amount to the rupee (GST ₹125.28 printed as Rs.125) and showed one "GST" line; with prices including GST it printed the discount again after a subtotal that was already the value after discount (927 + 108 − 115 is not 1035); a free dish printed at full price; the WhatsApp bill had no discount or parcel line; and the 58 mm token receipt ran past the paper edge on a long dish name. Each of the five bills a guest can get worked out its own lines, so each had its own faults.
+
+### Fixed
+- **One layout for every bill** (`orders/services/bill_layout.py`) - the printed bill, the split-bill summary slip, the QSR token receipt, the thermal web bill, the A4 bill page and its PDF, and the WhatsApp bill all draw the same lines from the bill's tax record. Read top to bottom they add up: Subtotal (the dishes at menu prices), Discount (every discount, a dish's own and the bill's), CGST and SGST by rate when GST is added on top, VAT by rate likewise, the parcel charge, the round-off, TOTAL. Money is shown to the paisa everywhere.
+- **Tax inside the prices is stated, not added again** - when prices include GST, the bill shows under the total each rate's taxable value and its CGST and SGST, as a tax invoice must (CGST Rules, rule 46), and the total included.
+- **What kind of bill it is** - every bill is headed Tax Invoice, Bill of Supply or Bill, from the scheme it was totalled under. A composition outlet's bill carries "Composition taxable person, not eligible to collect tax on supplies" (P13), and no longer says its prices include GST. UTGST is named in place of SGST in a union territory, on every bill (it was only on the A4 page).
+- **Free dishes** show FREE (or Free) at no cost on every bill, and count nothing in a counter slip's total.
+- **Long dish names wrap** onto the next line on every printout instead of being cut off ("Kingfisher Pre") or, on the token receipt, running past the paper edge (P19).
+- **The QSR token receipt is a proper bill** - at a counter it is the only bill the guest gets, and it showed only a total. It now carries its title, its bill number and the full money lines. The split-bill summary slip carries the bill number even when it shows a token.
+- **The WhatsApp bill** shows the GSTIN, what kind of bill it is, the discount and the parcel charge.
+- **A dish's own discount on the A4 page** - the page showed the dish at its reduced price, and the discount again in the Discount row. The dish now shows its menu price with "12.5% off" under it, and the Discount row carries it once.
+
+### Tests
+- `orders/tests/test_bill_layout.py`: on random bills in every outlet mode and on pub bills with liquor (Hypothesis, through the real `recalculate_totals()`), the rows add up to the total, the dishes to the subtotal, tax-extra GST appears as rows and tax-included GST only as included, a composition bill has neither; bills from before the tax record add up too; worked examples (the 1035 bill, CGST and SGST by rate, parcel and round-off, composition, no GSTIN). And the bills as a guest gets them: every golden bill, printed at 58 and 80 mm and as the WhatsApp page, read back and added up. On the old renderers that test fails.
+- Golden receipts and HTML bills regenerated: every money line moved, as intended; the diff was read.
+- `orders/tests/test_gst_registration.py`: the CGST wording checks follow the new label ("CGST 2.5%").
+
 ## 2026-10-01: security fixes from the code review
 
 An outside review of the code listed holes in guest ordering, the aggregator webhook and the client IP. Each was checked against the code before it was fixed.

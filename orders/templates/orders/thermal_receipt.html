@@ -88,33 +88,20 @@ body {
 <div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
-{% if is_comp %}<div class="center bold small">BILL OF SUPPLY</div>{% endif %}
+<div class="center bold small">{{ layout.title|upper }}</div>
+{% if layout.statement %}<div class="center small">{{ layout.statement }}</div>{% endif %}
 <div class="sep-solid"></div>
-{% if token %}<div class="token-num">TOKEN {{ token }}</div>
-{% else %}<div class="row small"><span class="label">Bill</span><span class="value">{{ order.display_number }}</span></div>{% endif %}
+{% if token %}<div class="token-num">TOKEN {{ token }}</div>{% endif %}
+<div class="row small"><span class="label">Bill</span><span class="value">{{ order.display_number }}</span></div>
 <div class="row small"><span class="label">Date</span><span class="value">{{ order.created_at|date:"d/m/Y H:i" }}</span></div>
 <div class="sep"></div>
 
 <!-- FULL item list — customer keeps this as their complete bill -->
-{% for item in items %}
-<div class="item-line">
-  <span class="item-qty">{{ item.quantity }}x</span>
-  <span> {% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
-  <span class="right" style="float:right;">{{ item.total_price|floatformat:0 }}</span>
-</div>
-{% endfor %}
+{% include "orders/includes/thermal_bill_lines.html" with show_notes=False %}
 
 <div class="sep"></div>
-<div class="row small"><span class="label">Subtotal</span><span class="value">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
-{% if not is_comp and order.gst_total %}<div class="row small"><span class="label">GST</span><span class="value">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
-{% if order.parcel_surcharge %}<div class="row small"><span class="label">Parcel Charge</span><span class="value">Rs.{{ order.parcel_surcharge|floatformat:0 }}</span></div>{% endif %}
-
+{% include "orders/includes/thermal_bill_money.html" %}
 <div class="sep-solid"></div>
-<div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ order.grand_total|floatformat:0 }}</span></div>
-{% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
-{% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:0 }}</span></div>{% endif %}
-<div class="sep-solid"></div>
-{% if is_comp %}<div class="center small">Bill of Supply</div>{% endif %}
 <div class="center small">Powered by Rasova POS</div>
 {% endwith %}
 </div>
@@ -133,7 +120,7 @@ body {
 {% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
 {% endfor %}
 <div class="sep"></div>
-<div class="row bold"><span class="label">Total</span><span class="value">Rs.{{ group.total|floatformat:0 }}</span></div>
+<div class="row bold"><span class="label">Total</span><span class="value">Rs.{{ group.total|floatformat:2 }}</span></div>
 <div class="sep-solid"></div>
 <div class="center small">Powered by Rasova POS</div>
 </div>
@@ -149,7 +136,8 @@ body {
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
 {% if order.outlet.fssai_no %}<div class="center small">FSSAI: {{ order.outlet.fssai_no }}</div>{% endif %}
 <div class="center small">SAC: {{ order.outlet.sac_code|default:"996331" }}</div>
-{% if is_comp %}<div class="center bold small" style="margin-top:1mm;">BILL OF SUPPLY</div>{% endif %}
+<div class="center bold small" style="margin-top:1mm;">{{ layout.title|upper }}</div>
+{% if layout.statement %}<div class="center small">{{ layout.statement }}</div>{% endif %}
 
 <div class="sep-solid"></div>
 
@@ -164,26 +152,10 @@ body {
 {% endif %}
 
 <!-- Items -->
-{% for item in items %}
-<div class="item-line">
-  <span class="item-qty">{{ item.quantity }}x</span>
-  <span>{% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
-  <span class="right" style="float:right;">{{ item.total_price|floatformat:0 }}</span>
-</div>
-{% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
-{% endfor %}
+{% include "orders/includes/thermal_bill_lines.html" with show_notes=True %}
 
 <div class="sep"></div>
-
-<div class="row"><span class="label small">Subtotal</span><span class="value small">Rs.{{ order.subtotal|floatformat:0 }}</span></div>
-{% if order.is_tax_invoice %}<div class="row"><span class="label small">GST</span><span class="value small">Rs.{{ order.gst_total|floatformat:0 }}</span></div>{% endif %}
-{% if order.parcel_surcharge %}<div class="row"><span class="label small">Parcel Charge</span><span class="value small">Rs.{{ order.parcel_surcharge|floatformat:0 }}</span></div>{% endif %}
-{% if order.discount_total %}<div class="row"><span class="label small">Discount</span><span class="value small">-Rs.{{ order.discount_total|floatformat:0 }}</span></div>{% endif %}
-
-<div class="sep-solid"></div>
-<div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ order.grand_total|floatformat:0 }}</span></div>
-{% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
-{% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:0 }}</span></div>{% endif %}
+{% include "orders/includes/thermal_bill_money.html" %}
 
 <div class="sep-solid"></div>
 <div class="center small">Thank you for visiting!</div>
