@@ -399,24 +399,33 @@ AXES_USERNAME_FORM_FIELD = "username"
 AXES_ENABLE_ADMIN = False  # don't lock admin separately
 
 # Behind Cloudflare -> Nginx, request.META['REMOTE_ADDR'] is always Nginx's
-# own loopback connection (127.0.0.1), never the real visitor. Without this,
-# axes recorded every failed login on this server under the same IP, which
-# also meant IP-based lockout signal was useless for telling a genuine
-# brute-force attempt apart from an ordinary mistyped password. Nginx already
-# forwards the real chain correctly (nginx_rasova.conf); CF-Connecting-IP is
-# checked first since Cloudflare sets it itself and it can't be spoofed by
-# the client, falling back to X-Forwarded-For with 1 trusted proxy (Nginx).
-AXES_IPWARE_META_PRECEDENCE_ORDER = (
-    "HTTP_CF_CONNECTING_IP",
-    "HTTP_X_FORWARDED_FOR",
-    "REMOTE_ADDR",
-)
-AXES_IPWARE_PROXY_COUNT = 1
-
-# django-ratelimit's key="ip" has the identical REMOTE_ADDR problem — the
-# 20/min create_order limit and the 10/min login limit were effectively
-# shared across every visitor to the server, not scoped per real client.
+# own loopback connection (127.0.0.1), never the real visitor. Axes (login
+# lockouts) and django-ratelimit both ask core.utils.get_client_ip, which
+# believes a forwarded header only from a machine trusted to have set it.
+AXES_CLIENT_IP_CALLABLE = "core.utils.get_client_ip"
 RATELIMIT_IP_META_KEY = "core.utils.get_client_ip"
+
+# The proxies in front of gunicorn whose X-Real-IP is believed (nginx, on
+# the same machine).
+TRUSTED_PROXY_IPS = [
+    ip.strip() for ip in os.getenv("TRUSTED_PROXY_IPS", "127.0.0.1,::1").split(",") if ip.strip()
+]
+
+# Cloudflare's own addresses: CF-Connecting-IP is believed only from these.
+# From https://www.cloudflare.com/ips-v4 and /ips-v6, checked 1 Oct 2026.
+# If Cloudflare adds a range, set CLOUDFLARE_IP_RANGES in .env (comma-separated).
+_CLOUDFLARE_IP_RANGES = (
+    "173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,"
+    "108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,"
+    "162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22,"
+    "2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,"
+    "2a06:98c0::/29,2c0f:f248::/32"
+)
+CLOUDFLARE_IP_RANGES = [
+    cidr.strip()
+    for cidr in os.getenv("CLOUDFLARE_IP_RANGES", _CLOUDFLARE_IP_RANGES).split(",")
+    if cidr.strip()
+]
 
 # Friendly recovery page instead of Django's bare default 403 on a CSRF
 # failure (stale token after the tab's been open a while, the exact class

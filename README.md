@@ -435,7 +435,7 @@ Business logic lives in `orders/services/` - 9 service modules, none of which kn
 ## Security
 
 - **Brute-force protection** - django-axes, 5 failed attempts → 1-hour lockout, correctly scoped per real visitor IP (see below)
-- **Real client IP resolution behind Cloudflare + Nginx** - `core.utils.get_client_ip()`, checks `CF-Connecting-IP` then `X-Forwarded-For`, wired into both axes and rate limiting. Without this, every visitor to the server shared one IP bucket.
+- **Real client IP resolution behind Cloudflare + Nginx** - `core.utils.get_client_ip()` believes nginx's `X-Real-IP` only from a trusted proxy (`TRUSTED_PROXY_IPS`), and `CF-Connecting-IP` only when that address is Cloudflare's (`CLOUDFLARE_IP_RANGES`); `X-Forwarded-For` is never believed. Used by axes, rate limiting and the aggregator allowlist, so a caller reaching the server around Cloudflare can't pick its own IP.
 - **Tenant isolation** - every query scoped, cross-tenant access raises 403
 - **Role-based access** - `@role_required` decorator on all sensitive endpoints
 - **Feature gating** - `@feature_required` - disabled features return JSON 403 (not HTML) for API calls
