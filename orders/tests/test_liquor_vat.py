@@ -22,8 +22,6 @@ The engine's arithmetic for liquor is in test_tax_engine.LiquorTest.
 
 Run: python manage.py test orders.tests.test_liquor_vat
 """
-import hashlib
-import hmac
 import json
 from decimal import Decimal as D
 from unittest.mock import patch
@@ -37,6 +35,7 @@ from accounts.models import User
 from menu.liquor import add_liquor_class, composition_refusal, default_liquor_vat_rate
 from menu.models import COMPOSITION_SELLS_NO_LIQUOR, MenuCategory, MenuItem, VatClass
 from orders.models import Order, OrderItem
+from orders.services.aggregator_webhook import signed_headers
 from orders.services.order_service import add_items_to_order
 from orders.services.tax_engine import GST, VAT, RateRow
 from orders.services.tax_service import sale_tax_map
@@ -186,9 +185,8 @@ class AggregatorLiquorTest(PubBase):
             "aggregator_order_id": "ZMT-1",
             "items": [{"menu_item_id": item.id, "quantity": 1} for item in items],
         })
-        signature = hmac.new(self.SECRET.encode(), body.encode(), hashlib.sha256).hexdigest()
         return self.client.post(reverse("api-ingest-order"), data=body, content_type="application/json",
-                                HTTP_X_SIGNATURE=signature)
+                                headers=signed_headers(self.SECRET, body.encode()))
 
     def test_an_app_order_with_liquor_is_refused_whole(self):
         response = self.post(self.paneer, self.pint)

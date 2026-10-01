@@ -624,10 +624,12 @@ LOGGING = {
     },
 }
 
-# Aggregator webhook IP allowlist
-AGGREGATOR_IP_ALLOWLIST = os.getenv(
-    'AGGREGATOR_IP_ALLOWLIST', '127.0.0.1'
-).split(',')
+# Aggregator webhook IP allowlist: addresses or ranges (CIDR), comma-separated.
+AGGREGATOR_IP_ALLOWLIST = [
+    ip.strip() for ip in os.getenv('AGGREGATOR_IP_ALLOWLIST', '127.0.0.1').split(',') if ip.strip()
+]
+# How far a webhook's signed timestamp may be from now (orders/services/aggregator_webhook.py).
+AGGREGATOR_WEBHOOK_MAX_AGE_SECONDS = int(os.getenv('AGGREGATOR_WEBHOOK_MAX_AGE_SECONDS', '300'))
 
 # -------------------------------------------------------
 # AUTH REDIRECT

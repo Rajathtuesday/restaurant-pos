@@ -440,7 +440,7 @@ Business logic lives in `orders/services/` - 9 service modules, none of which kn
 - **Role-based access** - `@role_required` decorator on all sensitive endpoints
 - **Feature gating** - `@feature_required` - disabled features return JSON 403 (not HTML) for API calls
 - **`@tenant_required` superuser bypass** - superusers (`tenant=None` by design) no longer get locked out of views stacked with this decorator
-- **HMAC webhook verification** - Zomato/Swiggy webhooks verified with `hmac.compare_digest`
+- **HMAC webhook verification** - Zomato/Swiggy webhooks sign `"<X-Timestamp>.<body>"` with the outlet's secret (`orders/services/aggregator_webhook.py`), checked with `hmac.compare_digest` before any order data is read; a timestamp more than 5 minutes off is refused, and a repeated order ID answers 200 with the existing order
 - **CSRF** - Django middleware + `CSRF_TRUSTED_ORIGINS` configured, cookie renamed (`csrftoken2`) to eliminate stale-duplicate-cookie collisions after a domain-scope change, and a custom `CSRF_FAILURE_VIEW` (`core.views.csrf_failure`) returns a friendly reload page for real navigation or clean JSON for fetch/apiClient calls, instead of Django's bare default 403
 - **QR ordering is token-only** - `digital_menu()` used to also accept a plain `?table=<id>`, letting anyone enumerate table ids and receive that table's real secret `qr_token` with no scan required. Removed outright after confirming it had zero real callers.
 - **Rate limiting** - `django-ratelimit` on public QR ordering endpoint (20 req/min per IP) and login (10/min)

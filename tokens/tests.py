@@ -1280,17 +1280,12 @@ class TestDailyCounterNoRedundantIndex(TestCase):
 #  through the real HTTP endpoint by any existing test.)
 # ======================================================================
 
-import hashlib
-import hmac
 from unittest.mock import patch as _patch
 
+from orders.services.aggregator_webhook import signed_headers
 from setup.models import AggregatorConfig
 
 _WEBHOOK_SECRET = "test_zomato_secret_tokens"
-
-
-def _sign_ingest_body(body_str, secret=_WEBHOOK_SECRET):
-    return hmac.new(secret.encode(), body_str.encode(), hashlib.sha256).hexdigest()
 
 
 class AggregatorIngestOnlineTokenTest(TestCase):
@@ -1316,12 +1311,11 @@ class AggregatorIngestOnlineTokenTest(TestCase):
 
     def _post(self, payload_dict):
         body = json.dumps(payload_dict)
-        sig = _sign_ingest_body(body)
         return Client().post(
             reverse("api-ingest-order"),
             data=body,
             content_type="application/json",
-            HTTP_X_SIGNATURE=sig,
+            headers=signed_headers(_WEBHOOK_SECRET, body.encode()),
         )
 
     def test_online_token_assigned_for_franchise_tenant(self):
