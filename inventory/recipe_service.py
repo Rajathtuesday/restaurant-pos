@@ -6,7 +6,7 @@ Modifier->InventoryItem recipe links. Both the manual "add ingredient" views
 add_modifier_recipe) and the AI recipe importer's confirm step call these
 functions — so the two paths can never silently drift apart on validation.
 """
-from inventory.models import InventoryItem, ModifierRecipe, Recipe
+from inventory.models import ModifierRecipe, Recipe
 from inventory.unit_conversion import units_compatible
 
 

@@ -18,6 +18,9 @@ the source of truth.
 
 - **64 unused imports** in 48 files, found by a scan and checked one by one: none is imported from those modules elsewhere or patched by a test. Two stay on purpose: `crm/models.py` imports `GuestFeedback` so Django registers the model (now marked so), and `core/gemma_service.py` is kept untouched as the start of a local-model fallback for the AI import.
 
+### Added
+- **A lint step in CI** (`ruff check .`, `ruff.toml`) - unused or undefined names, unused variables, redefinitions and syntax errors now fail the build, so dead code can't pile up again; style isn't enforced. Getting to zero removed what was left: unused variables in views (`create_order` read the discount fields twice, the thermal receipt worked out a character width it never used, the floor plan built a lookup it never used, the category report an expression it never used), `except ... as e` with no `e`, f-strings with nothing in them, and test variables that were created and never read (the objects are still created). `core/gemma_service.py`, parked for a planned local-model fallback, is exempt.
+
 ### Moved
 - **Documents into `docs/`** - `DEPLOY.md`, `ELI5_PRINTING_ARCHITECTURE.md`, `MEDIA_AND_BACKUPS.md`, `TESTING_STRATEGY.md`, `USER_MANUAL.md`, `parcel_charge_explainer.md`, and the tracked schema diagrams into `docs/diagrams/`. `README.md`, `CHANGELOG.md` and `PRINTING_SYSTEM.md` stay at the top. Links in the README, `deploy.sh` and the backup scripts follow.
 - **Developer tools into a `devtools` app** - the 13 load-test, seeding and print-preview commands (`load_test`, `pub_night_test`, `http_rush_test`, `seed_restaurant`, ...) and the scripts they wrap move out of `orders`; they run by the same names. `reset_demo_tenant` stays in `orders` (the live demo uses it), and the live demo's seed moves from `orders/scripts/demo_seed.py` to `orders/services/demo_seed.py`, since it is product code. `orders/scripts/` is gone.

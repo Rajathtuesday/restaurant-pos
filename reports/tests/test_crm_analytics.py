@@ -46,7 +46,7 @@ class RepeatRateTest(TestCase):
         LoyaltyTransaction.objects.create(guest=self.guest_b, transaction_type="earn", points=10)
         LoyaltyTransaction.objects.create(guest=self.guest_b, transaction_type="earn", points=20)
 
-        in_period_txn = LoyaltyTransaction.objects.create(guest=self.guest_c, transaction_type="earn", points=10)
+        LoyaltyTransaction.objects.create(guest=self.guest_c, transaction_type="earn", points=10)
         old_txn = LoyaltyTransaction.objects.create(guest=self.guest_c, transaction_type="earn", points=15)
         old_time = timezone.now() - timedelta(days=30)
         LoyaltyTransaction.objects.filter(pk=old_txn.pk).update(created_at=old_time)

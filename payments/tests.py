@@ -680,7 +680,7 @@ class RefundCrossTenantIDORTest(TestCase):
     def test_owner_a_cannot_approve_tenant_b_refund(self):
         client = Client()
         client.force_login(self.owner_a)
-        resp = client.post(
+        client.post(
             reverse("approve-refund", args=[self.refund_b.id]),
             content_type="application/json",
         )

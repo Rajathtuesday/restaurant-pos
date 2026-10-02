@@ -4,6 +4,8 @@
 #
 # hypothesis: property tests for the bill maths (orders/tests/test_totals_properties.py)
 # coverage:   shows which lines of the tax code the tests actually reach
+# ruff:       CI lint for unused or undefined names and syntax errors (ruff.toml)
 
 hypothesis==6.168.2
 coverage==7.16.2
+ruff==0.16.10

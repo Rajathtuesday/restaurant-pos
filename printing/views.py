@@ -91,7 +91,7 @@ def print_queue_add(request):
     # on raw control characters (\x1B ESC, \x1D GS, etc.)
     try:
         data_b64 = _build_receipt_b64(order, chars, cut, encoding)
-    except Exception as e:
+    except Exception:
         logger.exception("print_queue_add: ESC/POS build failed for order %s", order_id)
         return JsonResponse({"error": "Could not generate receipt"}, status=500)
 

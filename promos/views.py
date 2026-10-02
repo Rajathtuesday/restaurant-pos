@@ -20,7 +20,6 @@ def list_active_promos(request):
     Includes outlet-specific and tenant-wide (all-outlet) promos.
     """
     from django.db.models import Q
-    from decimal import Decimal
 
     # Promos that are either for this outlet OR all outlets
     promos = Promo.objects.filter(

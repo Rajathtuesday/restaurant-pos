@@ -68,6 +68,7 @@ __all__ = [
     "edit_pay_rate",
     "set_default_station",
     "delete_station",
+    "set_print_mode",
     "rename_table",
     "outlet_settings",
     "printer_setup",

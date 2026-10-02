@@ -302,7 +302,7 @@ def refund_payment(request, payment_id):
         )
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error refunding payment #%s", payment_id)
         return JsonResponse({"error": "Refund could not be processed. Please try again."}, status=500)
 

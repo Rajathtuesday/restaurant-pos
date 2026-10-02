@@ -32,7 +32,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Count, Prefetch, Q, Sum
 from django.http import Http404, JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST

@@ -98,7 +98,7 @@ class ReorderMergeTest(_Base):
         first = self._place(self.table_a, self.item)
         self.assertEqual(first.status_code, 200)
 
-        second = self._place(self.table_a, self.item2)  # no order_id on purpose
+        self._place(self.table_a, self.item2)  # no order_id on purpose
         # Must not silently create a second OPEN order for the same table.
         open_orders = Order.objects.filter(
             tenant=self.tenant, outlet=self.outlet, table=self.table_a, status="open"

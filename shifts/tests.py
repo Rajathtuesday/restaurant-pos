@@ -465,10 +465,10 @@ class ZReportBusinessDateTest(TestCase):
             _dt(2026, 7, 17, 21, 0), timezone.get_current_timezone()
         )
         # Prior evening's dinner service — clearly "yesterday" by any measure.
-        evening_order = self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
         # Same business day, but past midnight — the exact case the old
         # created_at__date filter got wrong.
-        late_order = self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
 
         # Cashier closes out at 4 AM, still before the 6 AM cutoff, so this
         # whole window (evening_order + late_order) is one business day.
@@ -499,7 +499,7 @@ class ZReportBusinessDateTest(TestCase):
         # A single order — the point here is that Payment totals must come
         # from this exact order set (order__in=orders_qs), not an
         # independently paid_at-filtered query that could silently diverge.
-        order = self._order_at(_dt(2026, 7, 17, 20, 0), "500.00")
+        self._order_at(_dt(2026, 7, 17, 20, 0), "500.00")
 
         mock_now.return_value = timezone.make_aware(
             _dt(2026, 7, 18, 3, 0), timezone.get_current_timezone()

@@ -54,6 +54,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt -r requirements-test.txt
 
+      # Unused or undefined names, unused variables and syntax errors fail the
+      # build (ruff.toml), so dead code can't pile up again.
+      - name: Lint
+        run: ruff check .
+
       - name: Run Django system check
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod

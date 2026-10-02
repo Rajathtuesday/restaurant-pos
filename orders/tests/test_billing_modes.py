@@ -15,7 +15,7 @@ from django.urls import reverse
 from accounts.models import User
 from tenants.models import Tenant, Outlet
 from menu.models import MenuCategory, MenuItem
-from orders.models import Order, OrderItem, Payment
+from orders.models import Order, OrderItem
 from setup.models import PaymentConfig
 
 

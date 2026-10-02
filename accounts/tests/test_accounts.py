@@ -107,7 +107,7 @@ class DashboardPermissionTest(TestCase):
 
     def test_waiter_cannot_access_dashboard(self):
 
-        waiter = User.objects.create_user(
+        User.objects.create_user(
             username="waiter1",
             password="pass123",
             role="waiter",

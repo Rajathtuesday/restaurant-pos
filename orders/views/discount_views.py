@@ -91,7 +91,7 @@ def apply_discount(request, order_id):
             "total": float(order.grand_total)
         })
 
-    except Exception as e:
+    except Exception:
         logger.exception("Error applying discount for order #%s", order_id)
         return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)
 

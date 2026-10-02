@@ -211,7 +211,7 @@ class TopItemsServiceTest(TestCase):
             name="Chicken Wings", price=Decimal("300.00"),
             gst_percentage=Decimal("5.00"), is_available=True
         )
-        order1 = create_paid_order(self.tenant, self.outlet, self.user, self.item)
+        create_paid_order(self.tenant, self.outlet, self.user, self.item)
         order2 = create_paid_order(self.tenant, self.outlet, self.user, None, grand_total=600)
         # Add 5 wings to order2 to make it the top item
         for _ in range(3):
@@ -455,7 +455,7 @@ class ReportsDashboardViewTest(TestCase):
 
     def test_dashboard_forbidden_for_staff_without_role(self):
         """A user with no special role should be forbidden."""
-        staff = User.objects.create_user(
+        User.objects.create_user(
             username="plain_staff", password="pass",
             tenant=self.tenant, outlet=self.outlet, role="staff"
         )
@@ -619,9 +619,9 @@ class OwnerDashboardMetricsBusinessDateTest(TestCase):
         mock_now.return_value = timezone.make_aware(
             _dt(2026, 7, 17, 21, 0), timezone.get_current_timezone()
         )
-        evening_order = self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
+        self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
         # Past midnight, before the 6 AM cutoff — same business day.
-        late_order = self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
+        self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
 
         # Owner checks the dashboard at 4 AM, still the same business day
         # as both orders above.
@@ -794,7 +794,7 @@ class KitchenDashboardPosLinkTest(TestCase):
         floor_outlet = Outlet.objects.create(tenant=floor_tenant, name="Main")
         from tenants.models import TenantFeatureOverride
         TenantFeatureOverride.objects.create(tenant=floor_tenant, feature="floor_plan", enabled=True)
-        owner = User.objects.create_user(
+        User.objects.create_user(
             username="floor_owner", password="pw", tenant=floor_tenant,
             outlet=floor_outlet, role="owner",
         )

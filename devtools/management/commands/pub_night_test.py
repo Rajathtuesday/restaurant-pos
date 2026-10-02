@@ -364,10 +364,6 @@ class Command(BaseCommand):
                     if not cancelled_this_tab and random.random() < 0.08:
                         item_row = order.items.order_by("-id").first()
                         if item_row:
-                            before = item_row.menu_item.name
-                            stock_before = None
-                            match = next((s for m, s, q in
-                                          [(mi, si, qp) for mi, _, si, qp in round_items] if m.name == before), None)
                             void_order_item(owner, item_row.id, "Simulated pub-night cancel")
                             cancelled_this_tab = True
                             bump("items_cancelled")

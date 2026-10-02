@@ -1,20 +1,11 @@
 # reports/services/category_reports.py
-from django.db.models import Sum, F, ExpressionWrapper, DecimalField
+from django.db.models import Sum
 from orders.models import OrderItem
 from django.utils import timezone
 from core.utils import get_business_date, get_business_date_range
 
 
 def category_sales(tenant, outlet=None, start_date=None, end_date=None):
-
-    # ---------------------------------------------
-    # SAFE REVENUE EXPRESSION
-    # ---------------------------------------------
-
-    revenue_expr = ExpressionWrapper(
-        F("price") * F("quantity"),
-        output_field=DecimalField()
-    )
 
     # ---------------------------------------------
     # QUERY — business-day bounds, not plain calendar dates

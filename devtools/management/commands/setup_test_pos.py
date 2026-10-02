@@ -15,7 +15,7 @@ class Command(BaseCommand):
         tenant = Tenant.objects.create(name="Test Restaurant")
         outlet = Outlet.objects.create(name="Main Outlet", tenant=tenant, gst_no=SAMPLE_GSTIN)
 
-        owner = User.objects.create_user(
+        User.objects.create_user(
             username="owner",
             password="1234",
             role="owner",
@@ -23,7 +23,7 @@ class Command(BaseCommand):
             outlet=outlet
         )
 
-        kitchen = User.objects.create_user(
+        User.objects.create_user(
             username="kitchen",
             password="1234",
             role="kitchen",

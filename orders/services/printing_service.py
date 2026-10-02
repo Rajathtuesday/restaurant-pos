@@ -678,7 +678,7 @@ class PrintingService:
             p.set(bold=True)
             p.text(f"2x  {'Chicken Burger'[:W-4]}\n")
             p.set(bold=False)
-            p.text(f"   * Extra spicy\n")
+            p.text("   * Extra spicy\n")
             p.set(bold=True)
             p.text(f"1x  {'Masala Chai'[:W-4]}\n")
             p.set(bold=False)

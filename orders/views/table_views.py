@@ -32,7 +32,6 @@ def tables_data(request):
         now = timezone.now()
 
         tables = list(Table.objects.filter(tenant=tenant, outlet=outlet, is_active=True).order_by("name"))
-        table_name_lookup = {t.id: t.name for t in tables}
 
         merges = (
             TableMerge.objects
@@ -146,7 +145,7 @@ def tables_data(request):
                     "waiter_name": (order.created_by.get_full_name() or order.created_by.username) if order and order.created_by else ("Guest (QR)" if order else ""),
                     "waiter_initials": "".join([n[0] for n in (order.created_by.get_full_name() or order.created_by.username).split()])[:2].upper() if order and order.created_by else ("QR" if order else "")
                 })
-            except Exception as e:
+            except Exception:
                 data.append({"id": table.id, "name": table.name, "section": table.section, "status": "error",
                              "order_id": None, "cooking_items": 0, "elapsed": 0,
                              "merged": False, "primary_table": None, "primary_table_name": None})

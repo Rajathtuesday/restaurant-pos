@@ -82,7 +82,7 @@ class QrOrderRespectsTableMergeTest(_Base):
         self.assertEqual(order.table_id, self.table_a.id)
 
     def test_qr_reorder_second_round_at_secondary_table_still_merges_correctly(self):
-        merge = merge_tables(self.manager, self.table_a.id, [self.table_b.id])
+        merge_tables(self.manager, self.table_a.id, [self.table_b.id])
 
         first = self._place(self.table_b, self.item)
         order_id = first.json()["order_id"]
@@ -162,7 +162,7 @@ class MergeTablesViewTest(_Base):
         table got force-reset to "free" as if there were no active order
         at all, silently discarding the fact that the group's bill was
         still open."""
-        order = Order.objects.create(
+        Order.objects.create(
             tenant=self.tenant, outlet=self.outlet, table=self.table_a,
             created_by=self.manager, status="billing",
         )
@@ -203,7 +203,7 @@ class MergeTablesViewTest(_Base):
         # natural "feature off" fixture, no TenantFeatureOverride needed.
         qsr_tenant = Tenant.objects.create(name="QSR No Merge", tenant_type="franchise")
         qsr_outlet = Outlet.objects.create(tenant=qsr_tenant, name="Main")
-        qsr_manager = User.objects.create_user(
+        User.objects.create_user(
             username="qsr_mgr", password="pw", tenant=qsr_tenant,
             outlet=qsr_outlet, role="manager",
         )

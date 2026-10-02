@@ -66,7 +66,6 @@ class CeleryTraceIdPropagationTests(TestCase):
 
     def test_task_sees_the_dispatching_requests_trace_id(self):
         from celery import shared_task
-        from core.celery_utils import dispatch
 
         seen = {}
 

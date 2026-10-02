@@ -166,7 +166,6 @@ def production_capacity(tenant, outlet):
     (min stock/qty_required across all recipe lines).
     """
     from menu.models import MenuItem
-    from inventory.models import Recipe
     from inventory.unit_conversion import recipe_expected_quantity
 
     menu_items = (

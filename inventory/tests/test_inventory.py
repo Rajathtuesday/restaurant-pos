@@ -1707,7 +1707,7 @@ class RecipeDeductionUnitConversionTests(TestCase):
             quantity_required=Decimal(str(recipe_qty)), unit=recipe_unit,
         )
         order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="open")
-        oi = OrderItem.objects.create(
+        OrderItem.objects.create(
             order=order, menu_item=item, quantity=order_qty,
             price=Decimal("60"), gst_percentage=Decimal("0"),
             total_price=Decimal("60"), status="confirmed",

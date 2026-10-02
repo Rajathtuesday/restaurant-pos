@@ -456,7 +456,7 @@ class CancelWholeOrderTests(TestCase):
 
     def test_made_dish_asks_first_and_changes_nothing(self):
         order, fresh = _order_in_kitchen(self)
-        cooking = self._add_line(order, "preparing")
+        self._add_line(order, "preparing")
 
         resp = _post(self.cashier, "cancel-order", order.id, {"reason": "Guest left"})
 

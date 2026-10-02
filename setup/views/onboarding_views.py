@@ -103,7 +103,7 @@ def onboarding_wizard(request):
                                 "Onboarding: could not create menu item %r "
                                 "(price=%r) for tenant %s", iname, iprice, tenant.id,
                             )
-            return redirect(f"/setup/onboard/?step=3")
+            return redirect("/setup/onboard/?step=3")
 
     # ── STEP 3: First staff member ───────────────
     elif step == 3:
@@ -134,7 +134,7 @@ def onboarding_wizard(request):
                         "Onboarding: could not create staff user %r for tenant %s",
                         uname, tenant.id,
                     )
-            return redirect(f"/setup/onboard/?step=4")
+            return redirect("/setup/onboard/?step=4")
 
     # ── STEP 4: Tables (skip for QSR/Café) ──────
     elif step == 4:
@@ -160,7 +160,7 @@ def onboarding_wizard(request):
                         tenant=tenant, outlet=outlet, name=custom_name,
                         defaults={"is_active": True}
                     )
-            return redirect(f"/setup/onboard/?step=5")
+            return redirect("/setup/onboard/?step=5")
 
     # ── STEP 5: Payment + done ───────────────────
     elif step == 5:

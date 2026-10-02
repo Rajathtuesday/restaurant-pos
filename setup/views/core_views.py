@@ -413,7 +413,6 @@ def setup_staff(request):
         return redirect("/dashboard/")
 
     tenant = request.user.tenant
-    outlet = request.user.outlet
 
     # select_related("outlet") -- setup_staff.html renders member.outlet.name
     # per row; without it, that's one extra query per staff member.
@@ -461,7 +460,7 @@ def setup_staff(request):
                 messages.error(request, "Invalid outlet selected")
                 return redirect("setup_staff")
 
-        user = User.objects.create_user(
+        User.objects.create_user(
             username=username,
             password=password,
             role=role,

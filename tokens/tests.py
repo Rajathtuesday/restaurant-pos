@@ -25,7 +25,7 @@ Section 1 below (QSR upgrade features):
 """
 
 import json
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import Decimal
 from threading import Thread
 
@@ -1283,7 +1283,6 @@ class TestDailyCounterNoRedundantIndex(TestCase):
 from unittest.mock import patch as _patch
 
 from orders.services.aggregator_webhook import signed_headers
-from setup.models import AggregatorConfig
 
 _WEBHOOK_SECRET = "test_zomato_secret_tokens"
 

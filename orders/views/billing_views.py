@@ -157,8 +157,6 @@ def create_order(request):
     cart = data.get("cart")
     table_id = data.get("table_id")
     table_token = data.get("table_token")
-    discount_type = data.get("discount_type", "")
-    discount_value = data.get("discount_value", 0)
 
     if not cart:
         return JsonResponse({"error": "Cart empty"}, status=400)

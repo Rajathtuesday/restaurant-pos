@@ -1,0 +1,11 @@
+# Linting: only the checks that usually mean a bug (pyflakes: unused or
+# undefined names, unused variables, redefinitions) and syntax errors.
+# Style isn't enforced. CI runs `ruff check .` and fails on any finding.
+extend-exclude = ["md_files", "graft", "staticfiles", "*/migrations/*", ".claude", ".code-review-graph"]
+
+[lint]
+select = ["E9", "F"]
+
+[lint.per-file-ignores]
+# Parked: the start of a local-model fallback for the AI import, kept as written.
+"core/gemma_service.py" = ["F"]

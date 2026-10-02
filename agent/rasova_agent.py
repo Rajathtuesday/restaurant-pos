@@ -385,9 +385,9 @@ def install_autostart():
     try:
         with open(vbs_file, "w", encoding="utf-8") as f:
             f.write(vbs)
-        print(f"  Auto-start installed with crash-restart watchdog.")
-        print(f"  Rasova Agent will start silently at every Windows login,")
-        print(f"  and restart automatically within 3s if it ever crashes.")
+        print("  Auto-start installed with crash-restart watchdog.")
+        print("  Rasova Agent will start silently at every Windows login,")
+        print("  and restart automatically within 3s if it ever crashes.")
         print(f"  Launcher: {vbs_file}")
         print(f"  Watchdog: {watchdog_bat}")
         print(f"  Logs:     {LOG_PATH}")
@@ -396,7 +396,7 @@ def install_autostart():
         print("  To remove auto-start:   python rasova_agent.py --uninstall")
     except Exception as e:
         print(f"  Failed to write startup file: {e}")
-        print(f"  Try running as Administrator or manually copy to:")
+        print("  Try running as Administrator or manually copy to:")
         print(f"  {_startup_dir()}")
         sys.exit(1)
 
@@ -958,7 +958,7 @@ if __name__ == "__main__":
 
     # ── Normal run (WebSocket server — desktop) ───────────────────────────────
     try:
-        import websockets
+        import websockets  # noqa: F401 (only checks it is installed)
     except ImportError:
         logger.error("websockets not installed -- run: pip install websockets")
         sys.exit(1)

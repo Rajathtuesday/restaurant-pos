@@ -178,8 +178,8 @@ def _build_message(order, bill_url: str) -> str:
     tenant_name = order.tenant.name if order.tenant else "Restaurant"
     lines = [
         f"*{tenant_name}*",
-        f"Thank you for your visit!",
-        f"",
+        "Thank you for your visit!",
+        "",
         f"*Bill {order.display_number}*",
     ]
 

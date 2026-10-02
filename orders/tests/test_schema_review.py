@@ -203,7 +203,7 @@ class TestGSTBreakdownCache(TestCase):
     def test_cache_updated_on_second_recalculate(self):
         mi = _menu_item(self.tenant, self.outlet, price=100, gst=5)
         order = _order(self.tenant, self.outlet)
-        oi = OrderItem.objects.create(
+        OrderItem.objects.create(
             order=order, menu_item=mi, quantity=1,
             price=Decimal("100"), gst_percentage=Decimal("5"),
             total_price=Decimal("100"), status="pending",

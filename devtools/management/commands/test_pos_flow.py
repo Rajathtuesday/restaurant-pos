@@ -112,7 +112,7 @@ class Command(BaseCommand):
 
         self.stdout.write("Sending to kitchen...")
 
-        kot = create_kot(user, order)
+        create_kot(user, order)
 
         # -------------------------------------------------
         # Kitchen preparing

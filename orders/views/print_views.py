@@ -182,7 +182,7 @@ def qz_receipt_data(request, order_id):
             def text(self, t): self.parts.append(t)
             def set(self, **kw): pass
             def cut(self, mode="FULL"):
-                ESC, GS = '\x1B', '\x1D'
+                GS = '\x1D'
                 if mode == "FULL":
                     self.parts.append(GS + 'V\x00')   # full cut
                 else:
@@ -410,7 +410,6 @@ def thermal_receipt_view(request, order_id):
     # Paper dimensions from default station
     station       = get_default_station(request.user)
     paper_width   = station.paper_width_mm if station else 80
-    chars         = 32 if paper_width == 58 else 48
     font_size     = 10 if paper_width == 58 else 11
     big_font      = 12 if paper_width == 58 else 13
     small_font    = 9  if paper_width == 58 else 10

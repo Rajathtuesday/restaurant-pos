@@ -20,7 +20,6 @@ def shift_dashboard(request):
     tenant = request.user.tenant
     outlet = request.user.outlet
     from django.utils.timezone import localdate
-    from datetime import timedelta
 
     date_str = request.GET.get("date")
     if date_str:
@@ -232,7 +231,7 @@ def open_cash_session(request):
 def close_cash_session(request):
     """Close active session and reconcile totals."""
     from .models import CashSession
-    from orders.models import Payment, Order
+    from orders.models import Payment
     from payments.models import Refund
     from django.db.models import Sum
 
@@ -602,7 +601,6 @@ def create_schedule_entry(request):
             status=400
         )
 
-    from datetime import time
     start_time = end_time = None
     if not template:
         try:

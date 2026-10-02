@@ -771,7 +771,6 @@ def consumption_report(request):
     from django.utils import timezone
     from decimal import Decimal
     from orders.models import OrderItem
-    from inventory.models import Recipe
     from inventory.unit_conversion import recipe_expected_quantity
     from core.utils import get_business_date, get_business_date_range
 
