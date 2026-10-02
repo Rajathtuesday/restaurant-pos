@@ -1,5 +1,7 @@
 # menu/tests.py
 from django.core.cache import cache
+
+from core.testing import freeze_ratelimit_clock
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from decimal import Decimal
@@ -558,6 +560,7 @@ class PublicMenuRateLimitTest(TestCase):
 
     def setUp(self):
         cache.clear()
+        freeze_ratelimit_clock(self)
         self.tenant = Tenant.objects.create(name="Rate Limit Cafe", tenant_type="cafe")
         self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
 
@@ -712,10 +715,12 @@ class CallWaiterRateLimitTest(TestCase):
 
     def test_per_ip_limit_blocks_flood_across_many_different_tables(self):
         from orders.models import Table
-        # 10/min per IP -- 10 different tables should all succeed (the
-        # per-table debounce never applies here, they're all distinct
-        # tables), the 11th should be rejected by the per-IP limit instead.
-        for i in range(10):
+        freeze_ratelimit_clock(self)
+        # 60/min per IP (roomy enough for a restaurant's guests on one
+        # Wi-Fi; it was 10, which a busy evening could reach) -- 60 different
+        # tables all succeed (the per-table debounce never applies, they're
+        # all distinct), the 61st is rejected by the per-IP limit instead.
+        for i in range(60):
             table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name=f"T{i}")
             resp = self.client.post(reverse("call_waiter", args=[table.qr_token]))
             self.assertEqual(resp.status_code, 200)

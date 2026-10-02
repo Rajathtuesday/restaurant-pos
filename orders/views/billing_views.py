@@ -22,6 +22,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
+from core.ratelimit_keys import order_placer, order_rate
+
 from orders.exceptions import CartError, MenuItemError, ModifierError, OrderError
 from orders.models import Order, Table
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
@@ -125,7 +127,11 @@ def with_cart_note(cart, note):
 # django_ratelimit just record the hit and continue, so this check is the
 # thing that actually decides the response -- same pattern already proven
 # correct in accounts/views/auth_views.py::login_view.
-@ratelimit(key="ip", rate="20/m", method="POST", block=False)
+# Per caller (a guest by IP and table QR token, staff by login: shared
+# restaurant Wi-Fi no longer means a shared allowance), plus a looser cap per
+# IP so made-up tokens don't buy fresh allowances (core/ratelimit_keys.py).
+@ratelimit(group="create_order:ip", key="ip", rate="120/m", method="POST", block=False)
+@ratelimit(group="create_order", key=order_placer, rate=order_rate, method="POST", block=False)
 @require_POST
 # @tenant_required -- Removed to allow QR guest ordering
 def create_order(request):

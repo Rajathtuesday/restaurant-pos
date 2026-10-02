@@ -5,6 +5,8 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 
+from core.ratelimit_keys import guest_by_table_token, guest_by_url_token
+
 from menu.models import MenuCategory
 from orders.models import Table
 from waiter.models import WaiterCall
@@ -49,7 +51,10 @@ def _build_modifier_data(categories):
     return data
 
 
-@ratelimit(key="ip", rate="30/m", method="GET", block=False)
+# Per guest (IP and token: each table its own allowance on shared Wi-Fi)
+# plus a looser cap per IP; see core/ratelimit_keys.py.
+@ratelimit(group="menu_view:ip", key="ip", rate="300/m", method="GET", block=False)
+@ratelimit(group="menu_view", key=guest_by_url_token, rate="30/m", method="GET", block=False)
 def menu_view(request, qr_token):
     """QR-scan entry point. Renders the digital self-order menu.
 
@@ -103,15 +108,19 @@ def menu_view(request, qr_token):
     })
 
 
-@ratelimit(key="ip", rate="10/m", method="POST", block=False)
+# Per guest (IP and token: each table its own allowance on shared Wi-Fi)
+# plus a looser cap per IP; see core/ratelimit_keys.py.
+@ratelimit(group="call_waiter:ip", key="ip", rate="60/m", method="POST", block=False)
+@ratelimit(group="call_waiter", key=guest_by_url_token, rate="10/m", method="POST", block=False)
 @require_POST
 def call_waiter(request, qr_token):
     """Customer taps 'Call Waiter' from the QR menu.
 
     Two independent checks, not one: the 60s-per-table debounce below stops
     the same table pinging staff repeatedly, but does nothing to stop many
-    different tables being hit, or a flood from one IP -- the @ratelimit
-    above is the general per-IP guard, checked first.
+    different tables being hit, or a flood from one IP -- the per-IP
+    @ratelimit above (60 a minute, roomy enough for a whole restaurant on
+    one Wi-Fi) is the general guard, checked first.
     """
     if getattr(request, "limited", False):
         return JsonResponse({"error": "Too many requests. Please wait a moment."}, status=429)
@@ -135,7 +144,10 @@ def call_waiter(request, qr_token):
     return JsonResponse({"success": True})
 
 
-@ratelimit(key="ip", rate="30/m", method="GET", block=False)
+# Per guest (IP and token: each table its own allowance on shared Wi-Fi)
+# plus a looser cap per IP; see core/ratelimit_keys.py.
+@ratelimit(group="order_status:ip", key="ip", rate="300/m", method="GET", block=False)
+@ratelimit(group="order_status", key=guest_by_url_token, rate="30/m", method="GET", block=False)
 def order_status(request, signed_token):
     """
     Public, read-only status poll for a guest who just placed a QR order.
@@ -223,7 +235,10 @@ def order_status(request, signed_token):
     })
 
 
-@ratelimit(key="ip", rate="30/m", method="GET", block=False)
+# Per guest (IP and token: each table its own allowance on shared Wi-Fi)
+# plus a looser cap per IP; see core/ratelimit_keys.py.
+@ratelimit(group="digital_menu:ip", key="ip", rate="300/m", method="GET", block=False)
+@ratelimit(group="digital_menu", key=guest_by_table_token, rate="30/m", method="GET", block=False)
 def digital_menu(request):
     """Customer-facing self-order menu with category tabs and cart.
 

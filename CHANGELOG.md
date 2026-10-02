@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-10-02: guests on one Wi-Fi don't share a rate limit
+
+Every public QR page was rate limited per IP, so all the guests behind a restaurant's router counted as one: three phones following their orders (each checks about 10 times a minute) used up the order-status page's 30 a minute between them, two tables ordering at once shared the 20 orders a minute, and two cashiers on the shop Wi-Fi shared it too.
+
+### Fixed
+- **Counted per guest** (`core/ratelimit_keys.py`) - a guest is counted by IP and the token they came with (their table's or the counter's QR token, or their order's status token), so each table has its own allowance: menu 30 a minute, order status 30, call waiter 10, orders 20. Staff placing orders are counted by their login, 60 a minute.
+- **A looser cap per IP** on each page (menu and order status 300 a minute, orders 120, call waiter 60, which was 10 for the whole restaurant), so made-up tokens can't buy fresh allowances without end.
+- The rate-limit tests hold django_ratelimit's clock still (`core/testing.py`), as the create-order test already did, so a slow run can't cross a minute window.
+
+### Tests
+- `core/test_guest_ratelimits.py` (5): two tables each opening the menu 30 times, three phones following their orders for a minute, two tables each placing 20 orders, two cashiers each placing 25, and made-up tokens still stopped by the per-IP cap. All five fail on the old limits.
+- `menu/tests.py`: the call-waiter flood test now floods 60 tables, the new per-IP cap.
+
 ## 2026-10-02: errors that were swallowed, and the crash one of them hid
 
 The code review counted six `except Exception: pass`. Each was looked at: one hid a real crash, three hid nothing they should, two were deliberate but silent.
