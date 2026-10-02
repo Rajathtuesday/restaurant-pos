@@ -24,7 +24,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from orders.models import Order
         from kitchen.models import KOTBatch
-        from orders.services.printing_service import PrintingService
+        from printing.services.printing_service import PrintingService
 
         if options["list"]:
             orders = (

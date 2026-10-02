@@ -81,7 +81,7 @@ def print_bill_action(request, order_id):
       neither            → Fine dining with per-station printers: bill only
     """
     from kitchen.models import KOTBatch
-    from orders.services.printing_service import PrintingService
+    from printing.services.printing_service import PrintingService
     from setup.services.station_service import get_default_station
     from core.features import has_feature
 
@@ -159,7 +159,7 @@ def qz_receipt_data(request, order_id):
     QZ Tray sends these bytes directly to the USB printer,
     producing real partial cuts between sections and a full cut at the end.
     """
-    from orders.services.printing_service import PrintingService
+    from printing.services.printing_service import PrintingService
 
     try:
         order = Order.objects.prefetch_related(
@@ -231,7 +231,7 @@ def print_split_bill(request, order_id):
     Used when outlet.split_bill_by_category = True.
     Customer takes each category slip to the relevant counter.
     """
-    from orders.services.printing_service import PrintingService
+    from printing.services.printing_service import PrintingService
     from setup.services.station_service import get_default_station
     try:
         order = Order.objects.prefetch_related(
@@ -278,7 +278,7 @@ def print_split_bill(request, order_id):
 @role_required("manager", "cashier", "owner", "kitchen")
 def print_kot_action(request, kot_id):
     """Re-print a KOT on the station's thermal printer."""
-    from orders.services.printing_service import PrintingService
+    from printing.services.printing_service import PrintingService
     from kitchen.models import KOTBatch
     try:
         kot = KOTBatch.objects.select_related("order", "station").get(

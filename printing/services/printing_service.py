@@ -1,4 +1,4 @@
-# orders/services/printing_service.py
+# printing/services/printing_service.py
 """
 Thermal printer service using python-escpos.
 

@@ -325,7 +325,7 @@ def _build_receipt_b64(order, chars, cut, encoding) -> str:
     Base64 avoids PostgreSQL jsonb rejecting raw control characters (ESC \x1B, GS \x1D).
     """
     import base64
-    from orders.services.printing_service import PrintingService
+    from printing.services.printing_service import PrintingService
 
     class BytesPrinter:
         def __init__(self):   self.buf = b""

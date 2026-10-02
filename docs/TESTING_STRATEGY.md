@@ -107,7 +107,7 @@ core/decorators.py
   feature_required           ← returns JSON 403 for API, raises PermissionDenied for pages
   tenant_required            ← blocks users with no tenant
 
-orders/tasks.py
+printing/tasks.py
   print_kot_task             ← idempotency key prevents double print
   print_bill_task            ← outlet_id isolation skips wrong outlet
 ```
@@ -915,7 +915,7 @@ class TestPrintBillTask(TestCase):
         """If idempotency key exists, task returns True without printing."""
         cache.set(f"bill_printed_{self.order.id}", True)
 
-        with patch("orders.tasks.PrintingService") as mock_svc:
+        with patch("printing.tasks.PrintingService") as mock_svc:
             from orders.tasks import print_bill_task
             result = print_bill_task(self.order.id, self.station.id)
 
@@ -936,7 +936,7 @@ class TestPrintBillTask(TestCase):
             original = tasks_module._LOCAL_OUTLET_ID
             tasks_module._LOCAL_OUTLET_ID = other_outlet.id
 
-            with patch("orders.tasks.PrintingService") as mock_svc:
+            with patch("printing.tasks.PrintingService") as mock_svc:
                 from orders.tasks import print_bill_task
                 result = print_bill_task(self.order.id, self.station.id)
 
@@ -947,7 +947,7 @@ class TestPrintBillTask(TestCase):
 
     def test_successful_print_writes_idempotency_key(self):
         """After successful print, Redis key must be set."""
-        with patch("orders.tasks.PrintingService") as mock_cls:
+        with patch("printing.tasks.PrintingService") as mock_cls:
             mock_instance = MagicMock()
             mock_instance.print_bill_with_kots.return_value = True
             mock_cls.return_value = mock_instance
@@ -961,7 +961,7 @@ class TestPrintBillTask(TestCase):
 
     def test_failed_print_does_not_write_idempotency_key(self):
         """If print fails, key must NOT be set (so retry can try again)."""
-        with patch("orders.tasks.PrintingService") as mock_cls:
+        with patch("printing.tasks.PrintingService") as mock_cls:
             mock_instance = MagicMock()
             mock_instance.print_bill_with_kots.return_value = False
             mock_cls.return_value = mock_instance

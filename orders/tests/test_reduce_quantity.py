@@ -345,7 +345,7 @@ class ReduceQuantityTests(TestCase):
 
     def test_reprinted_ticket_leaves_out_cancelled_units(self):
         from kitchen.models import KOTBatch
-        from orders.services.printing_service import PrintingService
+        from printing.services.printing_service import PrintingService
         from orders.tests.test_printing_service import BP
 
         order, item = _sent_line(self, quantity=2)

@@ -62,7 +62,7 @@ class GuestInstructionsTest(TestCase):
     def test_the_kitchen_ticket_prints_them(self):
         from kitchen.services.kot_service import create_kot
         from orders.tests.test_golden_receipts import RecordingPrinter
-        from orders.services.printing_service import PrintingService
+        from printing.services.printing_service import PrintingService
         self.order([{"id": self.curry.id, "quantity": 1}], notes="less spicy")
         order = Order.objects.get()
         order.items.update(status="pending")     # as staff approving the guest's items

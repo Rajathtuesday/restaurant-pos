@@ -31,7 +31,7 @@ from django.test import TestCase
 
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Payment, Table
-from orders.services.printing_service import PrintingService
+from printing.services.printing_service import PrintingService
 from printing.views import _build_receipt_b64
 from tenants.models import Outlet, Tenant
 from tokens.models import TokenOrder

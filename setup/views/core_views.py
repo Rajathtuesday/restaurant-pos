@@ -312,7 +312,7 @@ def test_print_station(request, station_id):
     if not station.printer_ip:
         return JsonResponse({"error": "No printer IP set for this station."}, status=400)
 
-    from orders.services.printing_service import PrintingService
+    from printing.services.printing_service import PrintingService
     svc = PrintingService(
         printer_type="network",
         host=station.printer_ip,

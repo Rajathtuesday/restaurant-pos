@@ -1106,7 +1106,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 | `tenants/models.py` | Added `print_agent_key` UUID field to `Outlet` |
 | `orders/urls.py` | 4 new URL patterns for print queue API |
 | `orders/views/order_actions.py` | `parcel_surcharge` bug fix |
-| `orders/services/printing_service.py` | Compact bill layout: `_print_bill_body`, `_print_kot_body`, `_print_qsr_token_body`; added `_wrap_text`, `_pack_lines` |
+| `printing/services/printing_service.py` | Compact bill layout: `_print_bill_body`, `_print_kot_body`, `_print_qsr_token_body`; added `_wrap_text`, `_pack_lines` |
 | `orders/templates/orders/billing.html` | Print routing: nativeAndroid/iOS/Android/Desktop |
 | `templates/core/base.html` | `rasovaPlatform` (added `nativeAndroid`), auto-call `Android.startPrinting()` on login, install banner + offline hint aware of native app |
 | `setup/templates/setup/setup_kitchen_stations.html` | Test Print → direct agent WebSocket, Discover button |

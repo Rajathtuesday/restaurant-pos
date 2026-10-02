@@ -147,7 +147,7 @@ def create_kot(user, order, print_on_create=True):
         if not print_on_create:
             # Caller (pay_order auto-KOT mode) handles printing via print_bill_task
             return
-        from orders.tasks import print_kot_task
+        from printing.tasks import print_kot_task
         for station, kot in print_jobs:
             try:
                 dispatch(print_kot_task, station.id, order.id, kot.id)

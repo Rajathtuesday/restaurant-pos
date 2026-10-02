@@ -200,7 +200,7 @@ def pay_order(request, order_id):
                         _oid = order.id
                         def _auto_print():
                             try:
-                                from orders.tasks import print_bill_task
+                                from printing.tasks import print_bill_task
                                 from setup.services.station_service import get_default_station
                                 from orders.models import Order as _O
                                 _ord = _O.objects.get(id=_oid)

@@ -1,5 +1,5 @@
 """
-Tests for orders/tasks.py::print_kot_task.
+Tests for printing/tasks.py::print_kot_task.
 
 This Celery task had zero test coverage anywhere in the repo (confirmed by
 grep for the task name across orders/tests/ before Phase 3 of the orders
@@ -15,7 +15,7 @@ from django.test import TestCase
 
 from kitchen.models import KOTBatch
 from orders.models import Order
-from orders.tasks import print_kot_task
+from printing.tasks import print_kot_task
 from setup.models import KitchenStation
 from tenants.models import Outlet, Tenant
 
@@ -35,7 +35,7 @@ class PrintKotTaskTest(TestCase):
             kot_number=1, station=self.station,
         )
 
-    @patch("orders.tasks.PrintingService")
+    @patch("printing.tasks.PrintingService")
     def test_resolves_kitchen_kotbatch_and_prints(self, mock_service_cls):
         mock_service = mock_service_cls.return_value
         mock_service.print_kot.return_value = True
@@ -45,7 +45,7 @@ class PrintKotTaskTest(TestCase):
         self.assertTrue(result)
         mock_service.print_kot.assert_called_once_with(self.order, self.kot)
 
-    @patch("orders.tasks.PrintingService")
+    @patch("printing.tasks.PrintingService")
     def test_missing_kotbatch_returns_false_without_raising(self, mock_service_cls):
         result = print_kot_task(self.station.id, self.order.id, self.kot.id + 999)
 
