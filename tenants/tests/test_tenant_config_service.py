@@ -112,10 +112,11 @@ class TenantConfigServiceUnitTest(TestCase):
         self.assertIn("icon", preset)
 
 
-class TenantConfigPanelParityTest(TestCase):
+class SuperuserPanelTest(TestCase):
     """
-    Integration tests proving portal and superuser now agree with each
-    other for the same tenant — the actual bug this whole fix exists for.
+    The superuser panel uses the shared presets and outlet rules. It once had
+    a twin (/portal/) whose copy of them differed; the twin was removed on
+    2 Oct 2026, so these check the one panel against the shared library.
     """
 
     def setUp(self):
@@ -124,36 +125,14 @@ class TenantConfigPanelParityTest(TestCase):
         self.client = Client()
         self.client.force_login(self.su)
 
-    def test_both_panels_show_identical_feature_summary(self):
-        portal_resp = self.client.get(reverse("portal:tenant", args=[self.tenant.id]))
-        su_resp = self.client.get(reverse("superuser_tenant", args=[self.tenant.id]))
+    def test_the_panel_offers_every_shared_preset(self):
+        resp = self.client.get(reverse("superuser_tenant", args=[self.tenant.id]))
+        self.assertEqual(set(resp.context["presets"].keys()), set(tcs.PRESETS.keys()))
 
-        portal_summary = portal_resp.context["feature_summary"]
-        su_summary = su_resp.context["feature_summary"]
-        self.assertEqual(portal_summary, su_summary)
-
-    def test_both_panels_offer_identical_presets(self):
-        portal_resp = self.client.get(reverse("portal:tenant", args=[self.tenant.id]))
-        su_resp = self.client.get(reverse("superuser_tenant", args=[self.tenant.id]))
-        self.assertEqual(set(portal_resp.context["presets"].keys()), set(su_resp.context["presets"].keys()))
-
-    def test_applying_same_preset_from_either_panel_gives_same_outlet_state(self):
-        # Apply via superuser panel to one tenant...
+    def test_applying_a_preset_sets_its_outlet_fields(self):
         tenant_a, outlet_a = _tenant_outlet("Parity A")
-        self.client.post(
-            reverse("superuser_preset", args=[tenant_a.id]), {"preset": "counter_billing"}
-        )
+        self.client.post(reverse("superuser_preset", args=[tenant_a.id]), {"preset": "counter_billing"})
         outlet_a.refresh_from_db()
-
-        # ...and via portal to a separate, identical tenant.
-        tenant_b, outlet_b = _tenant_outlet("Parity B")
-        self.client.post(
-            reverse("portal:preset", args=[tenant_b.id]), {"preset": "counter_billing"}
-        )
-        outlet_b.refresh_from_db()
-
-        # Before this fix, only the portal path would have set this.
-        self.assertEqual(outlet_a.split_bill_by_category, outlet_b.split_bill_by_category)
         self.assertTrue(outlet_a.split_bill_by_category)
 
     def test_superuser_panel_can_now_set_previously_missing_outlet_fields(self):

@@ -22,13 +22,10 @@ from tenants.services import tenant_config_service as tcs
 
 logger = logging.getLogger("pos.superuser")
 
-# Canonical preset library now lives in tenants/services/tenant_config_service.py,
-# shared with portal/views.py — this used to be its own independent, less
-# complete copy (missing the "counter_billing" preset entirely, and every
-# shared preset was missing parcel_charge/composition_scheme/outlet
-# overrides that the portal copy had), so applying the "same" preset from
-# the two admin panels didn't actually produce the same result. Aliased
-# here so every existing reference in this file keeps working unchanged.
+# The preset library lives in tenants/services/tenant_config_service.py. A
+# second copy of this panel (/portal/) once had its own presets and gave a
+# different result for the "same" preset; that panel was removed on 2 Oct
+# 2026 (this one has subscription billing, which it never got).
 PRESETS = tcs.PRESETS
 
 

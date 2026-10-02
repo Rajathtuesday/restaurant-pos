@@ -76,7 +76,7 @@ Disallow: /inventory/
 Disallow: /crm/
 Disallow: /shifts/
 Disallow: /accounts/
-Disallow: /portal/
+Disallow: /superuser/
 Disallow: /agency/
 Disallow: /menu/
 
@@ -175,11 +175,6 @@ urlpatterns = [
     # agency module
     path('agency/', include('agency.urls')),
 
-    # portal — Rasova internal ops panel
-    path('portal/', include('portal.urls', namespace='portal')),
-    # backward compat: /superuser/ → /portal/
-    path('superuser/', lambda r: __import__('django.shortcuts', fromlist=['redirect']).redirect('/portal/')),
-    path('superuser/tenant/<int:tenant_id>/', lambda r, tenant_id: __import__('django.shortcuts', fromlist=['redirect']).redirect(f'/portal/tenant/{tenant_id}/')),
 
     # notifications module
     path('', include('notifications.urls')),

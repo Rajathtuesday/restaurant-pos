@@ -208,8 +208,9 @@ class UnscopedCallSiteAllowlistTest(TestCase):
     accounts/views/superuser_views.py, and a security fix landed in
     only one of them).
 
-    Currently empty: portal/views.py and accounts/views/superuser_views.py
-    are both gated to is_superuser=True (checked directly, not via a
+    Currently empty: accounts/views/superuser_views.py (the one superuser
+    panel since portal/ was removed on 2 Oct 2026) is gated to
+    is_superuser=True (checked directly, not via a
     decorator that could vary), and a superuser account always has
     tenant=None -- so the ambient auto-scope already no-ops for every
     query they run, with no explicit .unscoped() call needed. If a
@@ -280,7 +281,6 @@ class HeaderLeftHasWayBackTest(TestCase):
     EXEMPT = {
         "accounts/templates/accounts/superuser_panel.html",
         "accounts/templates/accounts/feature_flags.html",
-        "portal/templates/portal/home.html",
         "setup/templates/setup/onboard.html",
         "orders/templates/orders/bill.html",
     }

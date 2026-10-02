@@ -157,7 +157,6 @@ f:\pos\
 │   ├── tests/          414 tests across financial, security, API, concurrency
 │   └── views/          billing_core, payment, discount, print, kitchen, table, history
 ├── payments/           Razorpay QR codes and refunds
-├── portal/             Internal operations panel (superuser only)
 ├── printing/           Print jobs
 ├── promos/             Promotions
 ├── reports/            8 report services + dashboard metrics

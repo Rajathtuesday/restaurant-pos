@@ -127,7 +127,6 @@ INSTALLED_APPS = [
     'tablemerge',
     'payments',
     'agency',
-    'portal',
     'billing',
     'django_celery_results',
 ]

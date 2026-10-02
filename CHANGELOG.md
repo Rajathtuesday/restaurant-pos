@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-10-02: cleanup, one superuser panel
+
+### Removed
+- **The `/portal/` panel** (`portal/` app) - a second copy of the superuser panel at `/superuser/`. Both had been kept up in parallel, and `/superuser/` is the complete one: it also has subscription billing (plans, invoices, marking paid), which `/portal/` never got. `core/urls.py` tried to redirect `/superuser/` to `/portal/`, but `accounts/urls.py` registers `/superuser/` first, so those redirects never ran; they are gone. `robots.txt` now keeps crawlers off `/superuser/`. No database tables (the app had none).
+
+### Tests
+- `accounts/test_superuser_panel.py` (4): the access checks that covered `/portal/` (superuser yes, owner 403, logged out to login) now cover `/superuser/`, and `/portal/` is a 404.
+- `tenants/tests/test_tenant_config_service.py`: the tests comparing the two panels became tests of the one panel against the shared presets.
+- CI runs the print agent's tests (`agent`), which it never did while they sat at the repository root.
+
 ## 2026-10-02: the print agent is downloaded from rasova.net
 
 The Windows installer fetched `rasova_agent.py` from `raw.githubusercontent.com`, which only works while the GitHub repository is public. The repository was public, and it is being made private.
