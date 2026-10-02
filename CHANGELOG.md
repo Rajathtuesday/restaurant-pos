@@ -12,6 +12,9 @@ the source of truth.
 ### Removed
 - **The `/portal/` panel** (`portal/` app) - a second copy of the superuser panel at `/superuser/`. Both had been kept up in parallel, and `/superuser/` is the complete one: it also has subscription billing (plans, invoices, marking paid), which `/portal/` never got. `core/urls.py` tried to redirect `/superuser/` to `/portal/`, but `accounts/urls.py` registers `/superuser/` first, so those redirects never ran; they are gone. `robots.txt` now keeps crawlers off `/superuser/`. No database tables (the app had none).
 
+- **Dead templates** - `orders/qsr_bill.html` (no view rendered it), `core/landing.html` (an old copy of the marketing page; `/` is `public/index.html`), `inventory/purchase_order.html` (its view only redirects now), `orders/templates/errors/404.html` and `500.html` (the handlers render `templates/404.html` and `500.html`).
+- **Duplicate scripts** - `scripts/seed_restaurant.py` (a byte-for-byte copy of `orders/scripts/seed_restaurant.py`, which the `seed_restaurant` command uses) and `orders/scripts/simulate_restaurant_rush.py` (nothing imported it; the command has its own code).
+
 ### Tests
 - `accounts/test_superuser_panel.py` (4): the access checks that covered `/portal/` (superuser yes, owner 403, logged out to login) now cover `/superuser/`, and `/portal/` is a 404.
 - `tenants/tests/test_tenant_config_service.py`: the tests comparing the two panels became tests of the one panel against the shared presets.

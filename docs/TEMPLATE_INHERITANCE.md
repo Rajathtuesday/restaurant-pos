@@ -91,7 +91,6 @@ Every app template replaces its full `<!DOCTYPE html>...` boilerplate with:
 | `kitchen.html`              | No → **Yes**  | Auto-refresh every 10s       |
 | `tables.html`               | No → **Yes**  | Floor plan grid              |
 | `bill.html`                 | No → **Yes**  | Print bill receipt           |
-| `qsr_bill.html`             | No → **Yes**  | QSR thermal receipt          |
 | `running_order.html`        | No → **Yes**  | Live order tracker           |
 | `waiter_dashboard.html`     | No → **Yes**  | Waiter call view             |
 | `order_timeline.html`       | No → **Yes**  | Order event log              |
