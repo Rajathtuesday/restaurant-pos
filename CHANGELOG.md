@@ -17,6 +17,10 @@ the source of truth.
 
 - **64 unused imports** in 48 files, found by a scan and checked one by one: none is imported from those modules elsewhere or patched by a test. Two stay on purpose: `crm/models.py` imports `GuestFeedback` so Django registers the model (now marked so), and `core/gemma_service.py` is kept untouched as the start of a local-model fallback for the AI import.
 
+### Moved
+- **Documents into `docs/`** - `DEPLOY.md`, `ELI5_PRINTING_ARCHITECTURE.md`, `MEDIA_AND_BACKUPS.md`, `TESTING_STRATEGY.md`, `USER_MANUAL.md`, `parcel_charge_explainer.md`, and the tracked schema diagrams into `docs/diagrams/`. `README.md`, `CHANGELOG.md` and `PRINTING_SYSTEM.md` stay at the top. Links in the README, `deploy.sh` and the backup scripts follow.
+- **`.gitattributes`** - `.bat` files check out with Windows line endings (cmd.exe can misread an LF-only batch file, and the agent installer is downloaded and run as is), `.sh` files with Unix ones.
+
 ### Tests
 - `accounts/test_superuser_panel.py` (4): the access checks that covered `/portal/` (superuser yes, owner 403, logged out to login) now cover `/superuser/`, and `/portal/` is a 404.
 - `tenants/tests/test_tenant_config_service.py`: the tests comparing the two panels became tests of the one panel against the shared presets.

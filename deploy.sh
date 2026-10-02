@@ -35,7 +35,7 @@ fi
 # Ensure the backup/recovery cron jobs exist — idempotent via the marker
 # comment below, so re-running deploy.sh (or rebuilding the server from
 # scratch) never depends on someone remembering the manual runbook steps
-# in MEDIA_AND_BACKUPS.md. Does NOT touch postgresql.conf/archive_mode —
+# in docs/MEDIA_AND_BACKUPS.md. Does NOT touch postgresql.conf/archive_mode —
 # that's a rare, restart-requiring change, deliberately kept a one-time
 # manual step rather than something a routine deploy could ever re-trigger.
 if ! crontab -l 2>/dev/null | grep -q "rasova-backups-managed"; then

@@ -24,7 +24,7 @@ Cron (nightly at 2am):
     0 2 * * * cd /home/ubuntu/rasova && .venv/bin/python scripts/backup_to_r2.py \
               >> /home/ubuntu/rasova/logs/backup.log 2>&1
 
-Restore (see MEDIA_AND_BACKUPS.md):
+Restore (see docs/MEDIA_AND_BACKUPS.md):
     download the .sql.gz from R2  ->  gunzip  ->  psql < dump.sql
 """
 import os

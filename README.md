@@ -233,7 +233,7 @@ docker run -d -p 6379:6379 redis:alpine
 
 Visit `http://localhost:8000` → log in as superuser → go to `/superuser/` to create your first restaurant.
 
-**Alternative: Docker Compose** - `docker-compose up` brings up Postgres, Redis, the web server, and both a Celery worker and Celery beat (needed for the app's scheduled tasks) in one command, reading config from `.env`. This is a local/dev convenience, not how production is actually deployed - see [`DEPLOY.md`](DEPLOY.md) for the real EC2 runbook.
+**Alternative: Docker Compose** - `docker-compose up` brings up Postgres, Redis, the web server, and both a Celery worker and Celery beat (needed for the app's scheduled tasks) in one command, reading config from `.env`. This is a local/dev convenience, not how production is actually deployed - see [`docs/DEPLOY.md`](docs/DEPLOY.md) for the real EC2 runbook.
 
 ### Preview Printing Without a Printer
 
@@ -299,7 +299,7 @@ AWS_SECRET_ACCESS_KEY=your-r2-secret
 AWS_S3_ENDPOINT_URL=https://<account-id>.r2.cloudflarestorage.com
 AWS_S3_CUSTOM_DOMAIN=media.yourdomain.com
 
-# Database backups -- a separate PRIVATE bucket (see MEDIA_AND_BACKUPS.md)
+# Database backups -- a separate PRIVATE bucket (see docs/MEDIA_AND_BACKUPS.md)
 R2_BACKUP_BUCKET=rasova-backups
 R2_BACKUP_RETAIN_DAYS=30          # nightly dumps are kept this long
 R2_BASE_BACKUP_RETAIN_WEEKS=4     # weekly base backups, and the WAL after them, are kept this long
@@ -339,7 +339,7 @@ Media (logos, menu images) and database backups both live on Cloudflare R2, in t
 - **Health check** - `check_wal_archiving_health.py` runs every 15 minutes: the archiver's own status, any backlog of unarchived WAL on disk, and total R2 usage against the free tier.
 - **Restore** - `restore_wal_from_r2.py` fetches segments during a recovery, and `restore_drill.py` rehearses a restore into a throwaway database. Practise it before you need it.
 
-Bucket setup, the one-time server steps, the restore procedure and troubleshooting are in [`MEDIA_AND_BACKUPS.md`](MEDIA_AND_BACKUPS.md).
+Bucket setup, the one-time server steps, the restore procedure and troubleshooting are in [`docs/MEDIA_AND_BACKUPS.md`](docs/MEDIA_AND_BACKUPS.md).
 
 ---
 

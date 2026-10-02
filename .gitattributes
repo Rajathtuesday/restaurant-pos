@@ -1,0 +1,6 @@
+# Line endings that matter when the file is run, whatever machine checks it out.
+# Windows batch files need CRLF: cmd.exe can misread labels and GOTO in an
+# LF-only file (agent/rasova_agent_installer.bat is downloaded and run as is).
+*.bat text eol=crlf
+# Shell scripts run on the Linux server need LF.
+*.sh text eol=lf

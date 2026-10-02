@@ -5,7 +5,7 @@ Fetch one archived WAL segment back from R2 during a recovery.
 The mirror image of archive_wal_to_r2.py. Postgres calls this once per WAL
 segment it needs while replaying a recovery, via `restore_command` in
 postgresql.conf — that setting only does anything while a `recovery.signal`
-file exists in the data directory (see MEDIA_AND_BACKUPS.md for the full
+file exists in the data directory (see docs/MEDIA_AND_BACKUPS.md for the full
 recovery procedure). Postgres calling this and getting a non-zero exit is
 NORMAL at the very end of a recovery, that's how it knows it has replayed
 every segment that exists and can stop looking for more.
