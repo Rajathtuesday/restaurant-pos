@@ -66,12 +66,11 @@ def print_queue_add(request):
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
 
-    # Get station config (printer IP, paper width, encoding)
-    try:
-        from setup.services.station_service import get_default_station
-        station = get_default_station(request.user)
-    except Exception:
-        station = None
+    # Get station config (printer IP, paper width, encoding). get_default_station
+    # no longer raises for a switched-off default station, which is what this
+    # used to catch (along with every other error).
+    from setup.services.station_service import get_default_station
+    station = get_default_station(request.user)
 
     printer_ip   = station.printer_ip   if station and station.printer_ip   else ""
     printer_port = station.printer_port if station and station.printer_port else 9100
