@@ -22,7 +22,6 @@ Run: python manage.py test orders.tests.test_aggregator_ingest
 import hashlib
 import hmac
 import json
-import time
 from unittest.mock import patch
 
 from django.db.models.query import QuerySet
@@ -264,26 +263,47 @@ class SignatureFirstTest(AggregatorIngestBase):
 
 
 class ReplayTest(AggregatorIngestBase):
+    """
+    The webhook's clock is frozen here. With a live clock, "301 seconds in
+    the future" had under a second of margin (the timestamp is whole
+    seconds), so a slow run let the request through as 300.x seconds ahead.
+    """
+    NOW = 1_800_000_000.9    # a fraction near 1 is the case that used to slip
+
+    def setUp(self):
+        super().setUp()
+        clock = patch("orders.services.aggregator_webhook.time")
+        clock.start().time.return_value = self.NOW
+        self.addCleanup(clock.stop)
+
     def _post_at(self, sent_at, signature=None):
         body = json.dumps(self.payload())
         signature = signature or sign(WEBHOOK_SECRET, int(sent_at), body.encode())
         return self._post(body, headers={"X-Timestamp": str(int(sent_at)), "X-Signature": signature})
 
     def test_a_request_older_than_five_minutes_is_refused(self):
-        self.assertEqual(self._post_at(time.time() - 301).status_code, 401)
+        self.assertEqual(self._post_at(int(self.NOW) - 301).status_code, 401)
         self.assertEqual(Order.objects.count(), 0)
 
     def test_a_request_from_the_future_is_refused(self):
-        self.assertEqual(self._post_at(time.time() + 301).status_code, 401)
+        self.assertEqual(self._post_at(int(self.NOW) + 301).status_code, 401)
+        self.assertEqual(Order.objects.count(), 0)
 
     def test_a_request_within_the_window_is_taken(self):
-        self.assertEqual(self._post_at(time.time() - 60).status_code, 200)
+        self.assertEqual(self._post_at(int(self.NOW) - 60).status_code, 200)
+
+    def test_the_window_edge_is_exactly_five_minutes(self):
+        # sent_at is whole seconds, NOW is not: 299.9 s old is in, 300.9 s is out,
+        # and 300.1 s ahead is out.
+        self.assertEqual(self._post_at(int(self.NOW) - 299).status_code, 200)
+        self.assertEqual(self._post_at(int(self.NOW) - 300).status_code, 401)
+        self.assertEqual(self._post_at(int(self.NOW) + 301).status_code, 401)
 
     def test_moving_the_timestamp_breaks_the_signature(self):
-        old = int(time.time()) - 3600
+        old = int(self.NOW) - 3600
         body = json.dumps(self.payload())
         signature = sign(WEBHOOK_SECRET, old, body.encode())
-        resp = self._post(body, headers={"X-Timestamp": str(int(time.time())), "X-Signature": signature})
+        resp = self._post(body, headers={"X-Timestamp": str(int(self.NOW)), "X-Signature": signature})
         self.assertEqual(resp.status_code, 401)
 
     def test_a_body_only_signature_is_refused(self):
@@ -294,7 +314,7 @@ class ReplayTest(AggregatorIngestBase):
 
     def test_a_missing_or_garbage_timestamp_is_refused(self):
         body = json.dumps(self.payload())
-        signature = sign(WEBHOOK_SECRET, int(time.time()), body.encode())
+        signature = sign(WEBHOOK_SECRET, int(self.NOW), body.encode())
         for timestamp in (None, "", "yesterday"):
             headers = {"X-Signature": signature}
             if timestamp is not None:

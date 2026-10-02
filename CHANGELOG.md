@@ -28,6 +28,9 @@ the source of truth.
 - **One test layout** - `core`, `accounts`, `setup`, `menu` and `inventory` mixed a `tests.py` with `test_*.py` files beside the code; each now has a `tests/` package (the old `tests.py` is `tests/test_<app>.py`), as `orders`, `reports` and `tenants` already did. Apps with a single `tests.py` keep it. The tenant-scoping test helpers (`as_tenant`, `TenantScopedTestCase`, formerly `core/test_utils.py`, which looked like a test file) join `freeze_ratelimit_clock` in `core/testing.py`.
 - **`.gitattributes`** - `.bat` files check out with Windows line endings (cmd.exe can misread an LF-only batch file, and the agent installer is downloaded and run as is), `.sh` files with Unix ones.
 
+### Fixed
+- **A flaky webhook test** - `ReplayTest` in `orders/tests/test_aggregator_ingest.py` sent a request stamped 301 seconds ahead against the 300-second window, but in whole seconds, so it had under a second of margin: on a slow run the server saw it as 300.x seconds ahead and took it (the 2 Oct full run failed this way). The tests now freeze the webhook's clock, and a new test pins the exact edge (299.9 s in, 300.1 s out). The webhook code was right and is unchanged.
+
 ### Tests
 - `accounts/test_superuser_panel.py` (4): the access checks that covered `/portal/` (superuser yes, owner 403, logged out to login) now cover `/superuser/`, and `/portal/` is a 404.
 - `tenants/tests/test_tenant_config_service.py`: the tests comparing the two panels became tests of the one panel against the shared presets.
