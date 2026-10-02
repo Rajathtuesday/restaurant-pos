@@ -128,6 +128,7 @@ INSTALLED_APPS = [
     'payments',
     'agency',
     'billing',
+    'devtools',
     'django_celery_results',
 ]
 

@@ -1,4 +1,4 @@
-# orders/management/commands/audit_pos.py
+# devtools/management/commands/audit_pos.py
 from django.core.management.base import BaseCommand
 from django.db import models
 from django.db.models import Sum, Count

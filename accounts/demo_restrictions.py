@@ -26,7 +26,7 @@ def is_demo_trailer(request):
         return False
     if not request.user.is_authenticated:
         return False
-    from orders.scripts.demo_seed import DEMO_OWNER_USERNAME
+    from orders.services.demo_seed import DEMO_OWNER_USERNAME
     return request.user.username == DEMO_OWNER_USERNAME
 
 

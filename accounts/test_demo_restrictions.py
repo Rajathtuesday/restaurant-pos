@@ -15,7 +15,7 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 
 from accounts.models import User
-from orders.scripts.demo_seed import create_or_reset_demo_tenant
+from orders.services.demo_seed import create_or_reset_demo_tenant
 
 FOUNDER_KEY = "test-founder-secret"
 

@@ -31,7 +31,7 @@ from accounts.models import User
 from core.utils import get_business_date
 from menu.models import MenuCategory, MenuItem
 from orders.models import BillSeries, Order, OrderItem
-from orders.scripts.demo_seed import create_or_reset_demo_tenant
+from orders.services.demo_seed import create_or_reset_demo_tenant
 from orders.services.bill_numbers import financial_year
 from tenants.models import SAMPLE_GSTIN, Outlet, Tenant, suggest_bill_code
 

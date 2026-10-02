@@ -254,11 +254,11 @@ def _store_printer_error(outlet_id, station_name, kot_number, detail):
 # ── Public demo tenant upkeep ───────────────────────────────────────────────
 # Unrelated to the printing tasks above; lives here (rather than a new
 # tasks_demo.py) because Celery's autodiscover_tasks() only scans each app's
-# tasks.py, not orders/scripts/demo_seed.py directly.
+# tasks.py, not orders/services/demo_seed.py directly.
 @shared_task(name="orders.tasks.reset_demo_tenant_task")
 def reset_demo_tenant_task():
     """Re-seeds the public /live-demo/ tenant on a schedule, so whatever a
     visitor changed (new orders, bills) never accumulates for the next one.
     Menu/tables/owner are get_or_create and untouched; see demo_seed.py."""
-    from orders.scripts.demo_seed import create_or_reset_demo_tenant
+    from orders.services.demo_seed import create_or_reset_demo_tenant
     create_or_reset_demo_tenant()

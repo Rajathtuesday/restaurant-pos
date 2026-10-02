@@ -1,7 +1,7 @@
 # orders/management/commands/reset_demo_tenant.py
 from django.core.management.base import BaseCommand
 
-from orders.scripts.demo_seed import create_or_reset_demo_tenant
+from orders.services.demo_seed import create_or_reset_demo_tenant
 
 
 class Command(BaseCommand):

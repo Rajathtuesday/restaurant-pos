@@ -1,4 +1,4 @@
-# orders/scripts/demo_seed.py
+# orders/services/demo_seed.py
 """
 Creates (or resets) the public-facing "Demo Bistro" tenant -- the one a
 prospect lands in via the /live-demo/ magic link, not the DEBUG-only

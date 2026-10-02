@@ -24,7 +24,7 @@ from django.utils.html import escape
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem, Table
-from orders.scripts.demo_seed import create_or_reset_demo_tenant
+from orders.services.demo_seed import create_or_reset_demo_tenant
 from tenants.models import NO_GSTIN_MESSAGE, SAMPLE_GSTIN, Outlet, Tenant, read_gstin
 from tenants.services.tenant_config_service import update_outlet_from_post
 

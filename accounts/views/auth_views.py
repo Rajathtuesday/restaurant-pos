@@ -100,7 +100,7 @@ def demo_login(request):
         messages.error(request, "Too many requests. Please wait a minute and try again.")
         return redirect("landing")
 
-    from orders.scripts.demo_seed import DEMO_OWNER_USERNAME
+    from orders.services.demo_seed import DEMO_OWNER_USERNAME
 
     try:
         demo_owner = User.objects.get(username=DEMO_OWNER_USERNAME, role="owner")

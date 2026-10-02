@@ -1,4 +1,4 @@
-# orders/management/commands/test_pos_flow.py
+# devtools/management/commands/test_pos_flow.py
 from django.core.management.base import BaseCommand
 
 from tenants.models import Tenant, Outlet

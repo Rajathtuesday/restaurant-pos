@@ -19,6 +19,7 @@ the source of truth.
 
 ### Moved
 - **Documents into `docs/`** - `DEPLOY.md`, `ELI5_PRINTING_ARCHITECTURE.md`, `MEDIA_AND_BACKUPS.md`, `TESTING_STRATEGY.md`, `USER_MANUAL.md`, `parcel_charge_explainer.md`, and the tracked schema diagrams into `docs/diagrams/`. `README.md`, `CHANGELOG.md` and `PRINTING_SYSTEM.md` stay at the top. Links in the README, `deploy.sh` and the backup scripts follow.
+- **Developer tools into a `devtools` app** - the 13 load-test, seeding and print-preview commands (`load_test`, `pub_night_test`, `http_rush_test`, `seed_restaurant`, ...) and the scripts they wrap move out of `orders`; they run by the same names. `reset_demo_tenant` stays in `orders` (the live demo uses it), and the live demo's seed moves from `orders/scripts/demo_seed.py` to `orders/services/demo_seed.py`, since it is product code. `orders/scripts/` is gone.
 - **`.gitattributes`** - `.bat` files check out with Windows line endings (cmd.exe can misread an LF-only batch file, and the agent installer is downloaded and run as is), `.sh` files with Unix ones.
 
 ### Tests

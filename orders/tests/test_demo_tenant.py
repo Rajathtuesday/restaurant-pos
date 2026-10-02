@@ -3,7 +3,7 @@ The public /live-demo/ magic link lets a prospect skip signup entirely and
 land straight on a live-looking floor plan, replacing "here's a video" or
 "let's schedule a call" as the reply to an inbound demo request. Backing it
 is a dedicated "Demo Bistro" tenant, created and reset by
-orders/scripts/demo_seed.py -- idempotent, safe to run on a schedule so a
+orders/services/demo_seed.py -- idempotent, safe to run on a schedule so a
 visitor never inherits a mess left by an earlier one.
 
 Deliberately NOT the same thing as core/views.py's DEBUG-only /demo/
@@ -19,13 +19,13 @@ from accounts.models import User
 from tenants.models import Tenant
 from orders.models import Order, Table
 from menu.models import MenuItem
-from orders.scripts.demo_seed import (
+from orders.services.demo_seed import (
     create_or_reset_demo_tenant, DEMO_TENANT_NAME, DEMO_OWNER_USERNAME,
 )
 
 
 class DemoSeedTests(TestCase):
-    """orders/scripts/demo_seed.py -- the setup/reset logic itself."""
+    """orders/services/demo_seed.py -- the setup/reset logic itself."""
 
     def test_creates_the_demo_tenant_and_owner(self):
         tenant = create_or_reset_demo_tenant()
