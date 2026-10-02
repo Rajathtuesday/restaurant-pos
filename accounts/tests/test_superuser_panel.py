@@ -3,7 +3,7 @@ Who may open the superuser panel (/superuser/). It creates restaurants and
 staff, so only Rasova's own superusers. These checks used to cover /portal/,
 a second copy of this panel removed on 2 Oct 2026.
 
-Run: python manage.py test accounts.test_superuser_panel
+Run: python manage.py test accounts.tests.test_superuser_panel
 """
 from django.test import Client, TestCase
 from django.urls import reverse

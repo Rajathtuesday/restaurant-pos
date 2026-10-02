@@ -53,7 +53,7 @@ class TenantManager(models.Manager):
         while TENANT_AUTO_SCOPE_ENABLED is on -- for portal/superuser
         tooling that manages tenants rather than belonging to one.
         `reason` is required so every call site is self-documenting in
-        review, not a bare escape hatch; core/tests.py asserts an exact
+        review, not a bare escape hatch; core/tests/test_core.py asserts an exact
         allowlist of where this is called from, so a new, unreviewed
         call site fails CI until a human deliberately updates it.
 

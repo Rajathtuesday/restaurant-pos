@@ -8,7 +8,7 @@ every call: the bill page failed, and the thermal print view hid it behind
 `except Exception: pass`. Deleting the default station promoted the next
 one while the old one was still the default, so the delete failed too.
 
-Run: python manage.py test setup.test_default_station
+Run: python manage.py test setup.tests.test_default_station
 """
 import json
 from decimal import Decimal as D

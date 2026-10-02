@@ -9,7 +9,7 @@ Covers:
   3. onboarding_wizard — a low-privilege staff account can't POST wizard steps
      (name/slug rewrite, staff creation, UPI change).
 
-Run: python manage.py test setup.test_security_fixes
+Run: python manage.py test setup.tests.test_security_fixes
 """
 from django.test import TestCase, Client
 from django.test.utils import CaptureQueriesContext

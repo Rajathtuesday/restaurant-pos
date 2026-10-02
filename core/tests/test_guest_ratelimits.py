@@ -10,7 +10,7 @@ cashiers on the shop Wi-Fi shared it too. Now a guest is counted by IP and
 the token they came with, staff by login, and each page keeps a looser cap
 per IP.
 
-Run: python manage.py test core.test_guest_ratelimits
+Run: python manage.py test core.tests.test_guest_ratelimits
 """
 import json
 import uuid

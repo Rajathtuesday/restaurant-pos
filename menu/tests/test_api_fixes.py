@@ -6,7 +6,7 @@ Both endpoints previously referenced fields that don't exist
 'dietary_preference'/'spice_level' which were never defined), so they
 500'd on every call. They must now return 200 with real data.
 
-Run: python manage.py test menu.test_api_fixes
+Run: python manage.py test menu.tests.test_api_fixes
 """
 from decimal import Decimal
 

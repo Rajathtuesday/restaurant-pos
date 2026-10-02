@@ -3,7 +3,7 @@ The print agent is downloaded from rasova.net (/agent/<file>), not from the
 GitHub repository: the Windows installer used to fetch rasova_agent.py from
 raw.githubusercontent.com, which only works while the repository is public.
 
-Run: python manage.py test core.test_agent_download
+Run: python manage.py test core.tests.test_agent_download
 """
 from pathlib import Path
 

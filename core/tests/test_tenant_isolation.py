@@ -31,7 +31,7 @@ from setup.models import PaymentConfig
 from tenants.models import Outlet, Tenant
 from tokens.models import TokenOrder
 
-from core.test_utils import TenantScopedTestCase, as_tenant
+from core.testing import TenantScopedTestCase, as_tenant
 
 
 class CrossTenantLeakTest(TenantScopedTestCase):

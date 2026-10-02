@@ -1,4 +1,4 @@
-# core/tests.py
+# core/tests/test_core.py
 """
 Tests for core/decorators.py.
 
@@ -231,7 +231,7 @@ class UnscopedCallSiteAllowlistTest(TestCase):
     # Files that reference ".unscoped(" in prose (docstrings/comments)
     # rather than as an actual call -- the definition itself, and this
     # test's own docstring above.
-    _NOT_CALL_SITES = {"core/models.py", "core/tests.py"}
+    _NOT_CALL_SITES = {"core/models.py", "core/tests/test_core.py"}
 
     def test_unscoped_call_sites_match_allowlist(self):
         import re

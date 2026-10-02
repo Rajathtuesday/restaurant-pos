@@ -3,7 +3,7 @@ The GST Rates page (P1): it offers only the rates a restaurant bill can carry
 since GST 2.0 (0%, 5%, 18%), explains them honestly, refuses the retired 12%
 and 28%, and flags any dish still on one of them.
 
-Run: python manage.py test menu.test_gst_rates
+Run: python manage.py test menu.tests.test_gst_rates
 """
 import json
 from decimal import Decimal as D

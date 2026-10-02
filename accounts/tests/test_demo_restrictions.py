@@ -7,7 +7,7 @@ live walkthrough yourself in front of an actual restaurant owner.
 
 See md_files/rasova_demo_trailer_mode_plan_2026-09-07.html for the plan.
 
-Run: python manage.py test accounts.test_demo_restrictions
+Run: python manage.py test accounts.tests.test_demo_restrictions
 """
 import json
 

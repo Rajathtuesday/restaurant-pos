@@ -5,8 +5,8 @@ no Gemini API call). Runs the exact local-extraction + regex-parse path
 that fires when Gemini is unavailable: real pypdf/python-docx/openpyxl
 extraction -> real _manual_text_parse -> real _guess_veg classification.
 
-This is deliberately separate from the unit tests in core/test_ai_service.py
-and menu/tests.py (which mock the extractors to test the WIRING in
+This is deliberately separate from the unit tests in core/tests/test_ai_service.py
+and menu/tests/test_menu.py (which mock the extractors to test the WIRING in
 isolation). This script proves the wiring plus the real libraries plus a
 real file all actually agree with each other on real menu data.
 

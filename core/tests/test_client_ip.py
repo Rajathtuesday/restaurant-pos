@@ -13,7 +13,7 @@ CF-Connecting-IP only when the connecting address is Cloudflare's.
 These requests look the way gunicorn sees them in production: REMOTE_ADDR
 is nginx (127.0.0.1) and X-Real-IP is whoever connected to nginx.
 
-Run: python manage.py test core.test_client_ip
+Run: python manage.py test core.tests.test_client_ip
 """
 import json
 
