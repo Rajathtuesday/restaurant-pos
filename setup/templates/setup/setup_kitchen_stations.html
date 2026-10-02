@@ -384,7 +384,7 @@ async function checkAgentStatus() {
     text.style.color = '#10b981';
   } catch {
     dot.className  = 'dot red';
-    text.innerHTML = 'Agent not running — <a href="{% static "agent/rasova_agent_installer.bat" %}" download style="color:var(--accent-gold);">Download installer</a>';
+    text.innerHTML = 'Agent not running — <a href="{% url 'agent_download' 'rasova_agent_installer.bat' %}" download style="color:var(--accent-gold);">Download installer</a>';
     text.style.color = 'var(--text-muted)';
   }
 }

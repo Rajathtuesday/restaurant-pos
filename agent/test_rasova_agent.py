@@ -2,10 +2,10 @@
 """
 Tests for rasova_agent.py's Windows auto-start / crash-restart watchdog.
 
-Standalone script, not a Django app, so this uses plain unittest and is
-run directly rather than through `manage.py test`:
+Standalone script, not a Django app, so this uses plain unittest. It runs
+with the rest (`manage.py test` finds agent/test_*.py) or on its own:
 
-    python test_rasova_agent.py
+    python -m unittest agent.test_rasova_agent
 
 Background: the Android/Termux path has always had real crash recovery --
 its boot script is a shell loop ("run the agent; if it dies, sleep 3s and
@@ -28,7 +28,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import rasova_agent
+from agent import rasova_agent
 
 
 class _TempDirsMixin:

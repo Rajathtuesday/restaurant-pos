@@ -305,14 +305,14 @@ Think of it as a **post office worker** sitting inside the cafe:
 | Way | Who runs it | Best for |
 |-----|------------|---------|
 | **Native Android APK** | Background service inside the Rasova app | Android phones — zero setup |
-| **Python Polling (Termux)** | `rasova_agent.py --poll <url>` | Advanced Android / Raspberry Pi |
+| **Python Polling (Termux)** | `rasova_agent.py --server <site> --key <key>` | Advanced Android / Raspberry Pi |
 | **Python WebSocket** | `rasova_agent.py` (desktop) | Windows/Mac PC at the counter |
 
 ### What the agent does (polling mode)
 
 ```
 Every 2 seconds:
-  1. GET https://yourserver.com/orders/agent/<key>/jobs/
+  1. GET https://yourserver.com/orders/agent/jobs/  (X-Agent-Key: <key>)
   2. EC2 returns list of pending print jobs
   3. For each job:
        a. Base64 decode the ESC/POS data
@@ -363,7 +363,7 @@ Background PrintService → polls EC2 every 2s → TCP 9100 → Printer ✓
 **Android (Termux — fallback for advanced users):**
 ```
 Browser → POST /orders/agent/add-job/ (queues job on EC2)
-rasova_agent.py --poll → polls EC2 every 2s → TCP 9100 → Printer ✓
+rasova_agent.py --server/--key → polls EC2 every 2s → TCP 9100 → Printer ✓
 ```
 
 **Desktop (Windows/Mac):**
@@ -793,12 +793,12 @@ Desktop (Windows/Mac):
 ┌─────────────────────────────────────────────────────────┐
 │     PrintService (background, inside Rasova APK)        │
 │                                                         │
-│  GET /orders/agent/<key>/jobs/                          │
+│  GET /orders/agent/jobs/   (X-Agent-Key header)         │
 │  ← [{ id:99, data_b64:"...", host:"192...", port:9100 }]│
 │  → Base64 decode → raw ESC/POS bytes                    │
 │  → TCP connect to 192.168.1.100:9100                    │
 │  → write bytes → flush → close                          │
-│  POST /orders/agent/<key>/done/99/                      │
+│  POST /orders/agent/done/99/                            │
 └─────────────────────────────────────────────────────────┘
                     ↓ TCP port 9100 (same WiFi network)
 ┌─────────────────────────────────────────────────────────┐
@@ -820,7 +820,7 @@ Desktop (Windows/Mac):
 
 - Agent tries to connect to `192.168.1.100:9100`
 - Gets "Connection refused" or timeout (5 second timeout)
-- Agent calls `/orders/agent/<key>/failed/99/` with the error message
+- Agent calls `/orders/agent/failed/99/` (key in the header) with the error message
 - Job is marked `failed` — won't be tried again automatically
 - Cashier needs to re-tap "Print Bill"
 
@@ -969,28 +969,27 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 5. Press Enter. Wait until `$` appears again.
 
 **Step 3: Copy the agent file to your phone**
-1. On your computer, find `rasova_agent.py` in the project folder
-2. Copy it to your Google Drive / WhatsApp / USB cable to the phone
-3. In Termux, move it to your home folder:
+1. In Termux, download it from your Rasova site:
    ```
-   cp /sdcard/Download/rasova_agent.py ~/rasova_agent.py
+   curl -o ~/rasova_agent.py https://rasova.net/agent/rasova_agent.py
    ```
-   (adjust the path if you put it somewhere else)
+   (the same file lives in the project at `agent/rasova_agent.py`)
 
-**Step 4: Get your outlet's polling URL**
-1. Open Rasova POS in Chrome on the phone
-2. Go to **Setup → Printing**
-3. Find the "Android Polling URL" — it looks like:
+**Step 4: Get your outlet's setup command**
+1. Open Rasova POS in Chrome on the phone and log in
+2. The "Enable printing" sheet shows the command with your site and your
+   outlet's agent key filled in. It looks like:
    ```
-   https://yoursite.com/orders/agent/a3f9e2b1-4c5d-4e6f-8a7b-9c0d1e2f3a4b/
+   python rasova_agent.py --server 'https://yoursite.com' --key 'a3f9e2b1-4c5d-4e6f-8a7b-9c0d1e2f3a4b' --install-boot
    ```
-4. Copy that URL
+   The key is sent in the X-Agent-Key header, never in a URL, so it never
+   lands in a server log. Keep it like a password.
 
 **Step 5: Start the agent with auto-boot**
 1. Open Termux
-2. Paste this (replace `YOUR_URL` with the URL from Step 4):
+2. Paste the command from Step 4:
    ```
-   python rasova_agent.py --poll 'YOUR_URL' --install-boot
+   python rasova_agent.py --server 'YOUR_SITE' --key 'YOUR_KEY' --install-boot
    ```
 3. Press Enter
 4. You should see: `Polling mode started. Boot script installed.`
@@ -1164,17 +1163,21 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 | Endpoint | Method | Auth | Who calls it | What it does |
 |----------|--------|------|-------------|--------------|
 | `/orders/agent/add-job/` | POST | Session | Browser / WebView | Queue a print job |
-| `/orders/agent/<key>/jobs/` | GET | Key in URL | PrintService / rasova_agent.py | Fetch ≤5 pending jobs |
-| `/orders/agent/<key>/done/<id>/` | POST | Key in URL | PrintService / rasova_agent.py | Mark job done |
-| `/orders/agent/<key>/failed/<id>/` | POST | Key in URL | PrintService / rasova_agent.py | Record failure |
+| `/orders/agent/jobs/` | GET | `X-Agent-Key` header | PrintService / rasova_agent.py | Fetch ≤5 pending jobs |
+| `/orders/agent/done/<id>/` | POST | `X-Agent-Key` header | PrintService / rasova_agent.py | Mark job done |
+| `/orders/agent/failed/<id>/` | POST | `X-Agent-Key` header | PrintService / rasova_agent.py | Record failure |
+| `/agent/rasova_agent.py`, `/agent/rasova_agent_installer.bat` | GET | none | installer, Termux setup | Download the PC/Termux agent |
+
+Until 2 Oct 2026 the key was part of the path (`/orders/agent/<key>/jobs/`), which wrote it into every access log; those paths now return 404. Android app 1.1.0+ and PC agent 1.2.0+ use the header.
 
 ### Agent commands (Python / Termux)
 
 | Command | What it does |
 |---------|-------------|
 | `python rasova_agent.py` | WebSocket server mode (port 8765) for desktop |
-| `python rasova_agent.py --poll <url>` | Polling mode for Android/Pi |
-| `python rasova_agent.py --poll <url> --install-boot` | Polling mode + Termux auto-start on reboot |
+| `python rasova_agent.py --server <site> --key <key>` | Polling mode for Android/Pi |
+| `python rasova_agent.py --server <site> --key <key> --install-boot` | Polling mode + Termux auto-start on reboot |
+| `python rasova_agent.py --poll <old url with key>` | Still accepted: the key is taken out of the URL and sent as the header |
 | `python rasova_agent.py --install` | Windows auto-start at login |
 | `python rasova_agent.py --uninstall` | Remove all auto-start |
 

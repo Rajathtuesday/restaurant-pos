@@ -133,6 +133,7 @@ urlpatterns = [
     path('favicon.ico', lambda r: HttpResponse(status=204)),
     # PWA
     path('sw.js', views.serve_sw, name='service_worker'),
+    path('agent/<str:filename>', views.agent_download, name='agent_download'),
     path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/manifest+json')),
 
     # apps

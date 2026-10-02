@@ -82,9 +82,9 @@ if not exist "%APPDATA%\Rasova" (
 )
 echo.
 
-:: ── Step 3: Download rasova_agent.py from GitHub ────────────
-echo  [3/5] Downloading Rasova Print Agent from GitHub...
-set "AGENT_URL=https://raw.githubusercontent.com/Rajathtuesday/restaurant-pos/qsr/rasova_agent.py"
+:: ── Step 3: Download rasova_agent.py from rasova.net ─────────
+echo  [3/5] Downloading Rasova Print Agent from rasova.net...
+set "AGENT_URL=https://rasova.net/agent/rasova_agent.py"
 set "AGENT_PATH=%APPDATA%\Rasova\rasova_agent.py"
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^

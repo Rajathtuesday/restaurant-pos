@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-10-02: the print agent is downloaded from rasova.net
+
+The Windows installer fetched `rasova_agent.py` from `raw.githubusercontent.com`, which only works while the GitHub repository is public. The repository was public, and it is being made private.
+
+### Changed
+- **The agent lives in `agent/`** (`rasova_agent.py`, `rasova_agent_installer.bat` and their tests) and rasova.net serves the two files at `/agent/rasova_agent.py` and `/agent/rasova_agent_installer.bat` (`core/views.py::agent_download`, no login, only those two names). The installer, the kitchen stations page and the printing setup sheet point there. The second copy of the installer in `static/agent/` is gone.
+- **`CONTEXT_PROMPT.md` is out of the repository** (a working note; it is in `md_files/`, which git ignores). It held an out-of-date server IP and an e-mail address.
+- `PRINTING_SYSTEM.md` describes the header, `--server`/`--key`, and the download.
+
+### Tests
+- `core/test_agent_download.py` (4): both files served without login, nothing else in the folder (including `../`), and the installer downloading from rasova.net, not GitHub. The agent's own tests run from `agent/` with the rest of the suite.
+
 ## 2026-10-02: the print agent's key leaves the URL
 
 The phone and PC print agents poll for jobs every 2 seconds at `/orders/agent/<key>/jobs/`, with the outlet's secret key in the path, so the key was written into every nginx, proxy and Cloudflare log line.

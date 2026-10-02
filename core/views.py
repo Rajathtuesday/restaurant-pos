@@ -47,6 +47,25 @@ def landing(request):
     return redirect("/login/")
 
 
+# The print agent restaurants download (agent/), served from rasova.net. The
+# Windows installer fetches the script from here; it used to come straight
+# from the GitHub repository, which tied printing setups to the repository
+# being public.
+AGENT_DOWNLOADS = {
+    "rasova_agent.py": "text/x-python; charset=utf-8",
+    "rasova_agent_installer.bat": "application/octet-stream",
+}
+
+
+def agent_download(request, filename):
+    from django.http import FileResponse, Http404
+    if filename not in AGENT_DOWNLOADS:
+        raise Http404("No such file")
+    path = os.path.join(settings.BASE_DIR, "agent", filename)
+    return FileResponse(open(path, "rb"), as_attachment=True, filename=filename,
+                        content_type=AGENT_DOWNLOADS[filename])
+
+
 def serve_sw(request):
     sw_path = os.path.join(settings.BASE_DIR, "static", "sw.js")
     try:
