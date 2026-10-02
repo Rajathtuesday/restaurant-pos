@@ -1,9 +1,15 @@
 """
 Print queue — server-side job list consumed by Rasova Agent in polling mode.
 
-Browser (Android) → POST /orders/agent/add-job/   (CSRF, adds PrintJob row)
-Agent             → GET  /orders/agent/<key>/jobs/ (no CSRF, auth via outlet key)
-Agent             → POST /orders/agent/<key>/done/<id>/  (marks job done)
+Browser (Android) → POST /orders/agent/add-job/        (CSRF, adds PrintJob row)
+Agent             → GET  /orders/agent/jobs/            (no CSRF, auth: X-Agent-Key)
+Agent             → POST /orders/agent/done/<id>/       (marks job done)
+Agent             → POST /orders/agent/failed/<id>/     (marks job failed)
+
+The agent proves which outlet it prints for with the outlet's print_agent_key
+in the X-Agent-Key header. It used to be part of the URL
+(/orders/agent/<key>/jobs/), which put the secret in every access log, proxy
+log and Cloudflare log line, polled every 2 seconds.
 
 The agent polls every 2 s using plain HTTP — no WebSocket, no inbound port,
 no firewall issues.  Android cannot kill an outbound HTTP loop the same way
@@ -103,14 +109,17 @@ def print_queue_add(request):
     return JsonResponse({"success": True, "job_id": job.pk})
 
 
-# ── Agent side (no CSRF — auth via secret key in URL) ─────────────────────────
+# ── Agent side (no CSRF; auth via the X-Agent-Key header) ────────────────────
+
+AGENT_KEY_HEADER = "X-Agent-Key"
+
 
 @csrf_exempt
 @require_GET
-def print_queue_poll(request, agent_key):
+def print_queue_poll(request):
     """
     Agent calls this every 2 s to fetch pending jobs.
-    Auth: agent_key must match an Outlet.print_agent_key UUID.
+    Auth: the X-Agent-Key header must match an Outlet.print_agent_key UUID.
     Returns at most 5 jobs at a time.
 
     Atomic claim: jobs move PENDING → PROCESSING inside a transaction.
@@ -118,7 +127,7 @@ def print_queue_poll(request, agent_key):
     never receive the same job.  Stale PROCESSING jobs (device crashed) are
     reset to PENDING automatically after _CLAIM_TTL.
     """
-    outlet = _outlet_by_key(agent_key)
+    outlet = _agent_outlet(request)
     if outlet is None:
         return JsonResponse({"error": "Invalid key"}, status=403)
 
@@ -248,9 +257,9 @@ def print_queue_poll(request, agent_key):
 
 @csrf_exempt
 @require_POST
-def print_queue_done(request, agent_key, job_id):
+def print_queue_done(request, job_id):
     """Agent calls this after successfully printing a job."""
-    outlet = _outlet_by_key(agent_key)
+    outlet = _agent_outlet(request)
     if outlet is None:
         return JsonResponse({"error": "Invalid key"}, status=403)
 
@@ -271,17 +280,17 @@ def print_queue_done(request, agent_key, job_id):
 
 @csrf_exempt
 @require_POST
-def print_queue_failed(request, agent_key, job_id):
+def print_queue_failed(request, job_id):
     """Agent calls this when a print job fails (printer unreachable etc.)."""
     import json
-    outlet = _outlet_by_key(agent_key)
+    outlet = _agent_outlet(request)
     if outlet is None:
         return JsonResponse({"error": "Invalid key"}, status=403)
 
     try:
         body = json.loads(request.body)
         msg  = str(body.get("error", ""))[:512]
-    except Exception:
+    except (ValueError, AttributeError):    # not JSON, or not a JSON object
         msg = ""
 
     updated = PrintJob.objects.filter(
@@ -300,13 +309,14 @@ def print_queue_failed(request, agent_key, job_id):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _outlet_by_key(agent_key: str):
-    """Return Outlet matching the given UUID key, or None."""
+def _agent_outlet(request):
+    """The Outlet whose print_agent_key is in the X-Agent-Key header, or None."""
+    import uuid
     try:
-        import uuid
-        return Outlet.objects.get(print_agent_key=uuid.UUID(str(agent_key)))
-    except (Outlet.DoesNotExist, ValueError):
+        key = uuid.UUID(request.headers.get(AGENT_KEY_HEADER, ""))
+    except ValueError:
         return None
+    return Outlet.objects.filter(print_agent_key=key).first()
 
 
 def _build_receipt_b64(order, chars, cut, encoding) -> str:

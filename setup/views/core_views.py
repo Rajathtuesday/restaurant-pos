@@ -886,7 +886,8 @@ def printer_setup(request):
     """
     Printer setup for the phone-agent printing model.
 
-    The Rasova app (or a PC poll-agent) polls /orders/agent/<key>/jobs/ and prints
+    The Rasova app (or a PC poll-agent) polls /orders/agent/jobs/ (key in the
+    X-Agent-Key header) and prints
     to the printer at the default Kitchen Station's ``printer_ip``. That IP is the
     ONLY field that actually drives printing — so this page reads/writes the default
     station, not the legacy ``outlet.agent_host``/``use_qz_tray`` WebSocket fields.

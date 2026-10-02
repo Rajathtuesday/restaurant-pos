@@ -10,14 +10,15 @@ There's almost no native UI here on purpose. `MainActivity` is a single Activity
 
 - **`MainActivity.kt`**: full-screen WebView, first-launch setup screen (type a subdomain, or scan a QR code from the Rasova dashboard's Setup > Printer page), splash overlay, custom offline/SSL-error pages styled to match the brand.
 - **`PrintService.kt`**: a background `Service` (not bound) that owns the polling loop and printer communication. This is where almost all the real logic lives.
-- **`JSBridge.kt`**: the JS-to-native bridge, injected into the WebView as `window.Android`. Three methods the Django frontend's JS calls: `startPrinting(pollUrl)`, `getPrintingStatus()`, `isNativeApp()`.
-- **`BootReceiver.kt`**: restarts `PrintService` after a phone reboot, reading the saved poll URL from SharedPreferences, no user interaction needed.
+- **`JSBridge.kt`**: the JS-to-native bridge, injected into the WebView as `window.Android`. Methods the Django frontend's JS calls: `startPrintingWithKey(serverUrl, agentKey)`, `getPrintingStatus()`, `isNativeApp()`, and `startPrinting(pollUrl)` for pages from before 1.1.0.
+- **`BootReceiver.kt`**: restarts `PrintService` after a phone reboot, reading the saved server and agent key (`AgentConfig`), no user interaction needed.
+- **`AgentConfig.kt`**: where to poll and the outlet's agent key, saved in SharedPreferences as `agent_server_url` and `agent_key`; turns a pre-1.1.0 saved poll URL into the pair once.
 
 ## How polling works
 
-The poll URL is pushed in from Django JS via `JSBridge.startPrinting(pollUrl)` after login, not typed in by the user, and cached in SharedPreferences under `poll_url` (a separate value from the WebView's own `server_url`).
+The server and the outlet's agent key are pushed in from Django JS via `JSBridge.startPrintingWithKey(serverUrl, agentKey)` on every page, not typed in by the user, and saved as `agent_server_url` and `agent_key` (separate from the WebView's own `server_url`). Since 1.1.0 the key travels in the `X-Agent-Key` header of every request, never in a URL: the server no longer accepts it in the path, which wrote it into every access log.
 
-From that base URL, three endpoints get built: `jobs/` (GET, polled repeatedly), `done/{id}/` (POST on success), `failed/{id}/` (POST on failure). The expected `jobs/` response is a JSON object with a `jobs` array, each entry carrying `id`, `network_host`, `network_port`, and `data_b64` (base64-encoded raw ESC/POS bytes).
+From `<server>/orders/agent/`, three endpoints get built: `jobs/` (GET, polled repeatedly), `done/{id}/` (POST on success), `failed/{id}/` (POST on failure). A response that isn't a success (403 for a wrong key, 404) is an error the notification shows, not an empty job list. The expected `jobs/` response is a JSON object with a `jobs` array, each entry carrying `id`, `network_host`, `network_port`, and `data_b64` (base64-encoded raw ESC/POS bytes).
 
 The poll loop isn't fixed-interval, it's exponential backoff: starts at 2 seconds, doubles on any exception up to a 30-second cap, and resets to 2 seconds on every successful response. Before each poll it checks actual network availability and skips the HTTP call entirely if offline, delaying 5 seconds instead, specifically to avoid hammering the device with failed requests on a flaky WiFi connection.
 
@@ -57,9 +58,9 @@ Standard Gradle/Android Studio project, single `:app` module.
 
 ## Known gaps, worth knowing about
 
-- **No automated tests at all.** No `app/src/test/` or `app/src/androidTest/` directories exist. The polling backoff logic and the printer socket handling are exactly the kind of thing that would benefit from unit tests, neither has any right now.
+- **Few automated tests.** `app/src/test/` has JVM unit tests for `AgentConfig` (`./gradlew testDebugUnitTest`, needs JDK 17). The polling backoff logic and the printer socket handling still have none.
 - **`WebView.setWebContentsDebuggingEnabled(true)` is gated behind `BuildConfig.DEBUG`**, correctly, but it's worth being deliberate about keeping it that way. If this ever shipped unconditionally in a release build, anyone with USB access to a phone running the app could inspect the WebView's contents via Chrome DevTools.
-- **Single tenant per install, by design.** Only one `poll_url` and one `server_url` can be stored at a time, matching the current one-phone-per-cafe deployment model. Not a bug, just a real constraint if multi-printer or multi-location-per-device ever becomes a requirement.
+- **Single tenant per install, by design.** Only one agent target and one `server_url` can be stored at a time, matching the current one-phone-per-cafe deployment model. Not a bug, just a real constraint if multi-printer or multi-location-per-device ever becomes a requirement.
 
 ## Status
 

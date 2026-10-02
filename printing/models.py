@@ -11,7 +11,8 @@ class PrintJob(TenantScopedModel):
     Queued receipt/KOT print job consumed by the Rasova Agent in polling mode.
 
     The browser pushes a job here (HTTPS POST to EC2).
-    The agent running on the local device polls /orders/agent/<key>/jobs/ every 2 s,
+    The agent running on the local device polls /orders/agent/jobs/ (its key in the
+    X-Agent-Key header) every 2 s,
     prints to the local printer over TCP 9100, then marks the job done.
 
     This architecture means the agent never needs an open port or inbound connection —

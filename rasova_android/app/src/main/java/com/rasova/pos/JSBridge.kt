@@ -10,7 +10,8 @@ import android.webkit.JavascriptInterface
 
 /**
  * JavaScript bridge — methods here are callable from Django's JS as:
- *   Android.startPrinting(pollUrl)
+ *   Android.startPrintingWithKey(serverUrl, agentKey)
+ *   Android.startPrinting(oldPollUrl)        (pages from before 1.1.0)
  *   Android.getPrintingStatus()
  *   Android.isNativeApp()
  *
@@ -21,29 +22,37 @@ class JSBridge(private val context: Context) {
 
     companion object {
         const val PREFS = "rasova_prefs"
-        const val KEY_POLL_URL = "poll_url"
     }
 
     /**
-     * Called by Django after login when running inside the native app.
-     * Saves the poll URL, starts the print service, and asks Android
-     * to exempt this app from battery optimization (one-tap dialog).
+     * Called by Django on every page when running inside the native app.
+     * Saves the server and the outlet's agent key, starts the print service,
+     * and asks Android to exempt this app from battery optimization
+     * (one-tap dialog). The key is sent in a header, never in a URL.
      */
     @JavascriptInterface
+    fun startPrintingWithKey(serverUrl: String, agentKey: String) {
+        if (serverUrl.isBlank() || agentKey.isBlank()) return
+        start(AgentConfig.Target(serverUrl.trimEnd('/'), agentKey))
+    }
+
+    /** A page from before 1.1.0 hands over the old poll URL, key and all. */
+    @JavascriptInterface
     fun startPrinting(pollUrl: String) {
-        if (pollUrl.isBlank()) return
+        AgentConfig.fromOldPollUrl(pollUrl)?.let { start(it) }
+    }
 
-        // Skip if already polling this exact URL — prevents duplicate loops on page navigation
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val existing = prefs.getString(KEY_POLL_URL, null)
-        if (existing == pollUrl && PrintService.status in listOf("active", "printing")) return
+    private fun start(target: AgentConfig.Target) {
+        // Skip if already polling this exact target: prevents duplicate loops on page navigation
+        if (AgentConfig.load(context) == target && PrintService.status in listOf("active", "printing")) return
 
-        // 1. Persist the URL — BootReceiver reads this on reboot
-        prefs.edit().putString(KEY_POLL_URL, pollUrl).apply()
+        // 1. Persist it; BootReceiver reads this on reboot
+        AgentConfig.save(context, target)
 
         // 2. Start (or restart) the foreground print service
         val intent = Intent(context, PrintService::class.java)
-            .putExtra(PrintService.EXTRA_POLL_URL, pollUrl)
+            .putExtra(PrintService.EXTRA_SERVER_URL, target.serverUrl)
+            .putExtra(PrintService.EXTRA_AGENT_KEY, target.agentKey)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
         } else {

@@ -22,22 +22,26 @@ API SURFACE
       Server generates ESC/POS lines and stores with printer IP from KitchenStation.
       Returns 422 when no printer is configured for the outlet.
 
-  GET  /orders/agent/<key>/jobs/
+  GET  /orders/agent/jobs/                (key in the X-Agent-Key header)
       Agent polls.  Returns up to 5 pending non-expired jobs.
-      Invalid key → 403.  No CSRF needed (auth via key).
+      Missing or invalid key → 403.  No CSRF needed (auth via key).
 
-  POST /orders/agent/<key>/done/<id>/
+  POST /orders/agent/done/<id>/
       Agent marks a job done.  Wrong key or already-done → 404/403.
 
-  POST /orders/agent/<key>/failed/<id>/
+  POST /orders/agent/failed/<id>/
       Agent records a failure so operators can see it in the DB.
+
+  The key used to be part of these paths (/orders/agent/<key>/jobs/), which
+  wrote it into every access log; those paths now 404.
 
 SECURITY
 --------
   add-job requires Django session (login_required).
   All agent endpoints authenticate via the outlet's print_agent_key UUID.
   A wrong key always returns 403, even if the job exists.
-  The key is never sent to the browser (baked into the agent command only).
+  The key reaches the agent through the logged-in page (the Android app's
+  bridge, or the PC agent's setup command), never in a URL.
 
 Run: python manage.py test orders.tests.test_print_queue --keepdb
 """
@@ -108,19 +112,19 @@ class PrintQueueBase(TestCase):
             content_type="application/json",
         )
 
+    def _key(self, key=None):
+        return {"X-Agent-Key": key or str(self.outlet.print_agent_key)}
+
     def _poll(self, key=None):
-        key = key or str(self.outlet.print_agent_key)
-        return self.client.get(f"/orders/agent/{key}/jobs/")
+        return self.client.get("/orders/agent/jobs/", headers=self._key(key))
 
     def _done(self, job_id, key=None):
-        key = key or str(self.outlet.print_agent_key)
-        return self.client.post(f"/orders/agent/{key}/done/{job_id}/",
-                                content_type="application/json")
+        return self.client.post(f"/orders/agent/done/{job_id}/",
+                                content_type="application/json", headers=self._key(key))
 
     def _failed(self, job_id, key=None, error=""):
-        key = key or str(self.outlet.print_agent_key)
         return self.client.post(
-            f"/orders/agent/{key}/failed/{job_id}/",
+            f"/orders/agent/failed/{job_id}/", headers=self._key(key),
             data={"error": error},
             content_type="application/json",
         )
@@ -239,8 +243,19 @@ class PollTests(PrintQueueBase):
         self.assertEqual(r.status_code, 403)
 
     def test_poll_malformed_key_returns_403(self):
-        r = self.client.get("/orders/agent/not-a-uuid/jobs/")
-        self.assertEqual(r.status_code, 404)  # Django URL resolver rejects non-UUID
+        r = self._poll(key="not-a-uuid")
+        self.assertEqual(r.status_code, 403)
+
+    def test_poll_without_a_key_returns_403(self):
+        r = self.client.get("/orders/agent/jobs/")
+        self.assertEqual(r.status_code, 403)
+
+    def test_the_key_is_no_longer_accepted_in_the_url(self):
+        """It used to be /orders/agent/<key>/jobs/, which logged the secret."""
+        key = self.outlet.print_agent_key
+        self.assertEqual(self.client.get(f"/orders/agent/{key}/jobs/").status_code, 404)
+        self.assertEqual(self.client.post(f"/orders/agent/{key}/done/1/").status_code, 404)
+        self.assertEqual(self.client.post(f"/orders/agent/{key}/failed/1/").status_code, 404)
 
     def test_poll_does_not_return_done_jobs(self):
         """Done jobs must not be served again."""
@@ -434,8 +449,20 @@ class KeySecurityTests(PrintQueueBase):
         key_str = str(self.outlet.print_agent_key)
         # Flip last char
         bad_key = key_str[:-1] + ("0" if key_str[-1] != "0" else "1")
-        r = self.client.get(f"/orders/agent/{bad_key}/jobs/")
+        r = self._poll(key=bad_key)
         self.assertEqual(r.status_code, 403)
+
+    def test_pages_hand_the_key_over_without_putting_it_in_a_url(self):
+        """base.html gives the Android app the server and the key separately
+        and shows the PC agent --server/--key; it used to build
+        /orders/agent/<key>/ for both."""
+        self.client.force_login(self.owner)
+        html = self.client.get("/dashboard/").content.decode()
+        key = str(self.outlet.print_agent_key)
+        self.assertIn("Android.startPrintingWithKey(serverUrl, agentKey)", html)
+        self.assertIn(f"const agentKey = '{key}'", html)
+        self.assertIn("--server '${SERVER_URL}' --key '${AGENT_KEY}'", html)
+        self.assertNotIn(f"/orders/agent/{key}", html)
 
 
 # ── Tenant isolation (new tenant_id filter) ───────────────────────────────────
@@ -597,7 +624,7 @@ class PollEdgeCaseTests(PrintQueueBase):
         self.assertIn(b'\x1d\x56', raw, "ESC/POS cut sequence missing from receipt bytes")
 
     def test_post_method_not_allowed(self):
-        r = self.client.post(f"/orders/agent/{self.outlet.print_agent_key}/jobs/")
+        r = self.client.post("/orders/agent/jobs/", headers=self._key())
         self.assertEqual(r.status_code, 405)
 
     def test_same_tenant_different_outlet_isolated(self):
@@ -655,7 +682,7 @@ class DoneEdgeCaseTests(PrintQueueBase):
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
         r = self.client.get(
-            f"/orders/agent/{self.outlet.print_agent_key}/done/{job_id}/"
+            f"/orders/agent/done/{job_id}/", headers=self._key()
         )
         self.assertEqual(r.status_code, 405)
 
@@ -696,7 +723,7 @@ class FailedEdgeCaseTests(PrintQueueBase):
         job_id = self._add_job(order.id).json()["job_id"]
         self._poll()
         self.client.post(
-            f"/orders/agent/{self.outlet.print_agent_key}/failed/{job_id}/",
+            f"/orders/agent/failed/{job_id}/", headers=self._key(),
             data={},
             content_type="application/json",
         )
@@ -831,14 +858,14 @@ class RedisGatedPollTests(PrintQueueBase):
         anon = Client()  # the real agent isn't logged in → no session/user queries
         key  = str(self.outlet.print_agent_key)
 
-        anon.get(f"/orders/agent/{key}/jobs/")          # warm the sweep marker
+        anon.get("/orders/agent/jobs/", headers={"X-Agent-Key": key})          # warm the sweep marker
         with CaptureQueriesContext(connection) as cheap:
-            anon.get(f"/orders/agent/{key}/jobs/")       # flag empty + swept → cheap
+            anon.get("/orders/agent/jobs/", headers={"X-Agent-Key": key})       # flag empty + swept → cheap
 
         cache.set(PrintJob.pending_flag_key(self.outlet.id), 1)  # force full path
         cache.delete(PrintJob.sweep_key(self.outlet.id))
         with CaptureQueriesContext(connection) as full:
-            anon.get(f"/orders/agent/{key}/jobs/")
+            anon.get("/orders/agent/jobs/", headers={"X-Agent-Key": key})
 
         self.assertLess(len(cheap), len(full),
                         "an idle poll must issue fewer queries than a full poll")

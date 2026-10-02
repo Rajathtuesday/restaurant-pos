@@ -4,12 +4,12 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # Paths deliberately unchanged from their old orders/urls.py location --
-    # real print agents in the field poll these URLs directly (hardcoded in
-    # the agent app), so the path itself must never move even though the app
-    # serving it did.
+    # The agent's key travels in the X-Agent-Key header (views.py). It used
+    # to be part of these paths (/orders/agent/<key>/jobs/), which wrote the
+    # secret into every access and proxy log; those paths are gone, and an
+    # agent still using them gets a 404 until it is updated.
     path("orders/agent/add-job/", views.print_queue_add, name="print-queue-add"),
-    path("orders/agent/<uuid:agent_key>/jobs/", views.print_queue_poll, name="print-queue-poll"),
-    path("orders/agent/<uuid:agent_key>/done/<int:job_id>/", views.print_queue_done, name="print-queue-done"),
-    path("orders/agent/<uuid:agent_key>/failed/<int:job_id>/", views.print_queue_failed, name="print-queue-failed"),
+    path("orders/agent/jobs/", views.print_queue_poll, name="print-queue-poll"),
+    path("orders/agent/done/<int:job_id>/", views.print_queue_done, name="print-queue-done"),
+    path("orders/agent/failed/<int:job_id>/", views.print_queue_failed, name="print-queue-failed"),
 ]

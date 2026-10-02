@@ -45,7 +45,8 @@ class PrintService : Service() {
         .build()
 
     companion object {
-        const val EXTRA_POLL_URL = "poll_url"
+        const val EXTRA_SERVER_URL = "server_url"
+        const val EXTRA_AGENT_KEY  = "agent_key"
         const val CHANNEL_ID     = "rasova_print_channel"
         const val NOTIF_ID       = 101
         private const val TAG    = "RasovaPrint"
@@ -55,12 +56,13 @@ class PrintService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Read poll URL: either from the intent (fresh start) or SharedPreferences (reboot)
-        val pollUrl = intent?.getStringExtra(EXTRA_POLL_URL)
-            ?: getSharedPreferences(JSBridge.PREFS, MODE_PRIVATE)
-                .getString(JSBridge.KEY_POLL_URL, null)
+        // Server and agent key: from the intent (fresh start) or saved (reboot)
+        val server = intent?.getStringExtra(EXTRA_SERVER_URL)
+        val key    = intent?.getStringExtra(EXTRA_AGENT_KEY)
+        val target = if (!server.isNullOrBlank() && !key.isNullOrBlank()) AgentConfig.Target(server, key)
+                     else AgentConfig.load(this)
 
-        if (pollUrl.isNullOrBlank()) {
+        if (target == null) {
             status = "no_url"
             stopSelf()
             return START_NOT_STICKY
@@ -87,17 +89,18 @@ class PrintService : Service() {
         }
         status = "active"
 
-        startPolling(pollUrl)
+        startPolling(target)
         return START_STICKY
     }
 
     // ── Core polling loop ──────────────────────────────────────────────────────
 
-    private fun startPolling(pollUrl: String) {
-        // Cancel any previous loop so only ONE poller runs (with the latest URL).
+    private fun startPolling(target: AgentConfig.Target) {
+        // Cancel any previous loop so only ONE poller runs (with the latest target).
         pollingJob?.cancel()
 
-        val base     = pollUrl.trimEnd('/') + "/"
+        agentKey     = target.agentKey
+        val base     = target.agentBase
         val jobsUrl  = base + "jobs/"
         val doneBase = base + "done/"
         val failBase = base + "failed/"
@@ -171,9 +174,18 @@ class PrintService : Service() {
 
     // ── Network helpers ────────────────────────────────────────────────────────
 
+    // The outlet's key, sent with every request in the X-Agent-Key header.
+    @Volatile private var agentKey = ""
+
     private fun fetchJobs(url: String): JSONArray {
-        val req  = Request.Builder().url(url).get().build()
-        val body = http.newCall(req).execute().use { it.body?.string() ?: "{}" }
+        val req  = Request.Builder().url(url).header(AgentConfig.HEADER, agentKey).get().build()
+        val body = http.newCall(req).execute().use { response ->
+            // A refused key (403) or a moved endpoint (404) used to read as "no
+            // jobs", so printing stopped with nothing to show for it. Now it is
+            // an error: the notification says so and the loop backs off.
+            if (!response.isSuccessful) throw java.io.IOException("Server answered HTTP ${response.code}")
+            response.body?.string() ?: "{}"
+        }
         return JSONObject(body).optJSONArray("jobs") ?: JSONArray()
     }
 
@@ -206,7 +218,7 @@ class PrintService : Service() {
     private fun postJson(url: String, json: String) {
         try {
             val body = json.toRequestBody("application/json".toMediaType())
-            val req  = Request.Builder().url(url).post(body).build()
+            val req  = Request.Builder().url(url).header(AgentConfig.HEADER, agentKey).post(body).build()
             http.newCall(req).execute().close()
         } catch (e: Exception) {
             Log.e(TAG, "Post to $url failed: ${e.message}")

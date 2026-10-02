@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-10-02: the print agent's key leaves the URL
+
+The phone and PC print agents poll for jobs every 2 seconds at `/orders/agent/<key>/jobs/`, with the outlet's secret key in the path, so the key was written into every nginx, proxy and Cloudflare log line.
+
+### Changed
+- **The key travels in the `X-Agent-Key` header** - the agent endpoints are now `/orders/agent/jobs/`, `/orders/agent/done/<id>/` and `/orders/agent/failed/<id>/`. The old paths with the key in them are gone (404). A missing, malformed or wrong key is a 403, as a wrong one always was.
+- **Android app 1.1.0** (`rasova_android`, versionCode 2) - the page hands the app the server and the key separately (`Android.startPrintingWithKey`), and the app sends the key in the header. A phone that reboots before anyone logs in again keeps printing: a saved pre-1.1.0 poll URL is turned into the server and key once (`AgentConfig`). A refused key or a moved endpoint is now an error the notification shows; it used to read as "no jobs", so printing stopped silently. An app older than 1.1.0 can't print against this server; the page tells the user to update it. **Needs a signed release build from Android Studio, published as `public/android/rasova.apk`.**
+- **PC agent 1.2.0** (`rasova_agent.py`) - `--server https://... --key <key>`; an agent set up with the old `--poll <url>` keeps working, its key taken out of the URL. The setup sheet shows the new command.
+
+### Tests
+- `printing/tests.py`: every agent call sends the header; new checks for a missing key, a malformed key, and the old key-in-path URLs answering 404. On the old routes 9 key tests fail.
+- `test_rasova_agent.py` (4 new): reading `--server`/`--key` and the old `--poll` URL, and every poll carrying the key in a header and not the URL.
+- `rasova_android/app/src/test/.../AgentConfigTest.kt` (3, the app's first unit tests): old poll URLs, non-URLs, the agent address without the key.
+
 ## 2026-10-02: guests on one Wi-Fi don't share a rate limit
 
 Every public QR page was rate limited per IP, so all the guests behind a restaurant's router counted as one: three phones following their orders (each checks about 10 times a minute) used up the order-status page's 30 a minute between them, two tables ordering at once shared the 20 orders a minute, and two cashiers on the shop Wi-Fi shared it too.

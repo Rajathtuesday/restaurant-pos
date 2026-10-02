@@ -127,3 +127,43 @@ class UninstallRemovesWatchdogTest(_TempDirsMixin, unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PollTargetTest(unittest.TestCase):
+    """The agent's key goes in the X-Agent-Key header, never in a URL
+    (the server no longer accepts it in the path, which logged it)."""
+
+    KEY = "3f2b8a1c-9d4e-4f6a-8b7c-1a2b3c4d5e6f"
+
+    def test_server_and_key(self):
+        self.assertEqual(
+            rasova_agent.poll_target(["agent", "--server", "https://rasova.net/", "--key", self.KEY]),
+            ("https://rasova.net", self.KEY))
+
+    def test_an_old_poll_url_still_works(self):
+        old = f"https://rasova.net/orders/agent/{self.KEY}/"
+        self.assertEqual(rasova_agent.poll_target(["agent", "--poll", old]), ("https://rasova.net", self.KEY))
+
+    def test_nothing_usable(self):
+        for argv in (["agent", "--poll"], ["agent", "--poll", "https://rasova.net/orders/agent/"],
+                     ["agent", "--server", "https://rasova.net"]):
+            self.assertIsNone(rasova_agent.poll_target(argv), argv)
+
+    def test_every_request_carries_the_key_in_a_header_not_the_url(self):
+        seen = []
+
+        class _Response:
+            def read(self):
+                return b'{"jobs": []}'
+
+        def fake_urlopen(request, timeout):
+            seen.append(request)
+            raise KeyboardInterrupt      # stop the loop after the first poll
+
+        with patch("urllib.request.urlopen", fake_urlopen):
+            with self.assertRaises(KeyboardInterrupt):
+                rasova_agent.run_poll_mode("https://rasova.net", self.KEY, interval=0)
+        [request] = seen
+        self.assertEqual(request.full_url, "https://rasova.net/orders/agent/jobs/")
+        self.assertEqual(request.get_header("X-agent-key"), self.KEY)
+        self.assertNotIn(self.KEY, request.full_url)

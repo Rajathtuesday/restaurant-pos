@@ -37,6 +37,7 @@ import logging
 import logging.handlers
 import sys
 import os
+import re
 import socket
 import subprocess
 import time
@@ -45,7 +46,7 @@ from typing import Optional
 
 HOST = "127.0.0.1"
 PORT = 8765
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -758,31 +759,65 @@ async def main():
 
 # ── Polling mode (Android / low-power devices) ───────────────────────────────
 
-def run_poll_mode(poll_url: str, interval: float = 2.0):  # noqa: C901
+_OLD_POLL_URL = re.compile(r"^(?P<server>https?://[^/]+)/orders/agent/(?P<key>[0-9a-fA-F-]{36})/?$")
+
+
+def poll_target(argv):
+    """(server URL, agent key) from the command line, or None.
+
+        --server https://rasova.net --key <outlet print key>
+        --poll https://rasova.net/orders/agent/<key>/      (the old form, still read)
+
+    The key is sent in the X-Agent-Key header, never in a URL: the server no
+    longer accepts it in the path, which wrote it into every access log. An
+    agent set up with the old --poll URL keeps working: its key is taken out
+    of the URL here.
+    """
+    def value(flag):
+        if flag in argv:
+            idx = argv.index(flag)
+            if idx + 1 < len(argv):
+                return argv[idx + 1]
+        return None
+
+    server, key = value("--server"), value("--key")
+    if server and key:
+        return server.rstrip("/"), key
+    old = value("--poll")
+    if old:
+        match = _OLD_POLL_URL.match(old.strip())
+        if match:
+            return match.group("server"), match.group("key")
+    return None
+
+
+def run_poll_mode(server_url: str, agent_key: str, interval: float = 2.0):  # noqa: C901
     """
     Polling mode — no WebSocket server, no open port, no firewall config.
 
     The agent is now a simple HTTP client:
-      1. GET  <poll_url>jobs/          → list of pending print jobs
+      1. GET  <server>/orders/agent/jobs/        → list of pending print jobs
       2. Print each job to the local thermal printer
-      3. POST <poll_url>done/<id>/     → mark job done
+      3. POST <server>/orders/agent/done/<id>/   → mark job done
       4. Sleep `interval` seconds and repeat forever
+    Every request carries the outlet's key in the X-Agent-Key header.
 
     Android battery optimizer cannot kill outbound HTTP calls the same way
     it kills a WebSocket server.  Even if the process IS killed, it will
     be restarted by the Termux:Boot watchdog and pick up any queued jobs.
 
     Usage:
-        python rasova_agent.py --poll https://your-site.com/orders/agent/<key>/
+        python rasova_agent.py --server https://your-site.com --key <key>
     """
     import base64
     import urllib.request as _req
     import urllib.error   as _err
 
-    base = poll_url.rstrip("/") + "/"
+    base = server_url.rstrip("/") + "/orders/agent/"
     jobs_url = base + "jobs/"
     done_url  = base + "done/"
     fail_url  = base + "failed/"
+    auth = {"X-Agent-Key": agent_key}
 
     logger.info("=" * 56)
     logger.info("  Rasova Print Agent v%s — POLL MODE", VERSION)
@@ -793,14 +828,14 @@ def run_poll_mode(poll_url: str, interval: float = 2.0):  # noqa: C901
     logger.info("=" * 56)
 
     def _http_get(url):
-        r = _req.urlopen(_req.Request(url, headers={"User-Agent": f"RasovaAgent/{VERSION}"}), timeout=15)
+        r = _req.urlopen(_req.Request(url, headers={"User-Agent": f"RasovaAgent/{VERSION}", **auth}), timeout=15)
         return json.loads(r.read().decode())
 
     def _http_post(url, body=None):
         data = json.dumps(body or {}).encode()
         r = _req.urlopen(_req.Request(
             url, data=data,
-            headers={"Content-Type": "application/json", "User-Agent": f"RasovaAgent/{VERSION}"},
+            headers={"Content-Type": "application/json", "User-Agent": f"RasovaAgent/{VERSION}", **auth},
             method="POST",
         ), timeout=15)
         return json.loads(r.read().decode())
@@ -835,7 +870,7 @@ def run_poll_mode(poll_url: str, interval: float = 2.0):  # noqa: C901
 
         except _err.HTTPError as e:
             if e.code == 403:
-                logger.error("Invalid agent key — check the URL and regenerate key in Rasova settings")
+                logger.error("Invalid agent key: copy the setup command again from Rasova")
                 sys.exit(1)
             logger.warning("HTTP %d from server — will retry", e.code)
             consecutive_errors += 1
@@ -849,7 +884,7 @@ def run_poll_mode(poll_url: str, interval: float = 2.0):  # noqa: C901
         time.sleep(interval)
 
 
-def install_autostart_termux_poll(poll_url: str):
+def install_autostart_termux_poll(server_url: str, agent_key: str):
     """
     Install a Termux:Boot watchdog that auto-starts polling mode on boot.
     The watchdog loop means Android killing the process just restarts it in 3 s.
@@ -866,9 +901,10 @@ def install_autostart_termux_poll(poll_url: str):
         "# Rasova Agent — auto-generated boot script\n"
         "# termux-wake-lock prevents Android from pausing the CPU\n"
         "termux-wake-lock\n"
-        f"POLL_URL='{poll_url}'\n"
+        f"SERVER_URL='{server_url}'\n"
+        f"AGENT_KEY='{agent_key}'\n"
         "while true; do\n"
-        f"    python {agent_path} --poll \"$POLL_URL\" >> {log_path} 2>&1\n"
+        f"    python {agent_path} --server \"$SERVER_URL\" --key \"$AGENT_KEY\" >> {log_path} 2>&1\n"
         "    sleep 3\n"
         "done &\n"
     )
@@ -887,7 +923,7 @@ def install_autostart_termux_poll(poll_url: str):
     print("  2. Android Settings → Apps → Termux → Battery → Unrestricted")
     print()
     print("  To start printing NOW (no reboot needed):")
-    print(f"  python {agent_path} --poll '{poll_url}'")
+    print(f"  python {agent_path} --server '{server_url}' --key '{agent_key}'")
 
 
 if __name__ == "__main__":
@@ -905,19 +941,19 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # ── Poll mode — Android / low-power device ────────────────────────────────
-    if "--poll" in sys.argv:
-        idx = sys.argv.index("--poll")
-        if idx + 1 >= len(sys.argv):
-            print("Usage: python rasova_agent.py --poll https://your-site.com/orders/agent/<key>/")
+    if "--poll" in sys.argv or "--server" in sys.argv:
+        target = poll_target(sys.argv)
+        if target is None:
+            print("Usage: python rasova_agent.py --server https://your-site.com --key <outlet print key>")
             sys.exit(1)
-        poll_url = sys.argv[idx + 1]
+        server_url, agent_key = target
 
         # --install-boot also sets up the Termux:Boot watchdog
         if "--install-boot" in sys.argv:
-            install_autostart_termux_poll(poll_url)
+            install_autostart_termux_poll(server_url, agent_key)
         else:
             _agent_config = _load_config()
-            run_poll_mode(poll_url)
+            run_poll_mode(server_url, agent_key)
         sys.exit(0)
 
     # ── Normal run (WebSocket server — desktop) ───────────────────────────────

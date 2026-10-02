@@ -870,9 +870,22 @@
         // Always https — behind Cloudflare (Flexible SSL) request.scheme can be
         // 'http', which builds a cleartext URL the Android service rejects
         // (CLEARTEXT not permitted). The app always reaches the server over TLS.
-        const pollUrl = 'https://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
+        // The outlet's agent key goes to the app separately: the app sends it
+        // in a header, never in a URL (printing/views.py).
+        const serverUrl = 'https://{{ request.get_host }}';
+        const agentKey = '{{ request.user.outlet.print_agent_key }}';
         try {
-            Android.startPrinting(pollUrl);
+            if (typeof Android.startPrintingWithKey === 'function') {
+                Android.startPrintingWithKey(serverUrl, agentKey);
+            } else {
+                // An app from before 1.1.0 polls with the key in the URL, which
+                // the server no longer accepts: it must be updated to print.
+                console.warn('Rasova app is out of date: update it to keep printing.');
+                if (window.ui && ui.toast && !sessionStorage.getItem('rasova_app_update_shown')) {
+                    sessionStorage.setItem('rasova_app_update_shown', '1');
+                    ui.toast('Update the Rasova app to keep printing: download it again from rasova.net/android/rasova.apk', 'warning');
+                }
+            }
         } catch (e) {
             console.warn('Rasova native bridge error:', e);
         }
@@ -964,14 +977,16 @@
             if (rasovaPlatform.nativeAndroid) return;
             const p = rasovaPlatform;
 
-            // Poll URL shown in Android steps — baked in by Django template
-        const POLL_URL = '{{ request.scheme }}://{{ request.get_host }}/orders/agent/{{ request.user.outlet.print_agent_key }}/';
+            // Server and agent key shown in the Termux steps, baked in by Django.
+            // The agent sends the key in a header, never in a URL.
+        const SERVER_URL = 'https://{{ request.get_host }}';
+        const AGENT_KEY = '{{ request.user.outlet.print_agent_key }}';
 
         let title, steps, canTest;
             if (p.android) {
                 title   = 'Enable printing — 3 steps, once only';
                 const cmd1 = `pkg install python &amp;&amp; pip install requests`;
-                const cmd2 = `python rasova_agent.py --poll '${POLL_URL}' --install-boot`;
+                const cmd2 = `python rasova_agent.py --server '${SERVER_URL}' --key '${AGENT_KEY}' --install-boot`;
                 steps   = [
                     'Install <strong>Termux</strong> from <a href="https://f-droid.org/packages/com.termux/" target="_blank" style="color:var(--accent-gold);">F-Droid</a> &amp; <strong>Termux:Boot</strong>',
                     `In Termux: <code style="background:rgba(255,255,255,0.05);padding:2px 6px;font-size:0.78rem;">${cmd1}</code>`,
