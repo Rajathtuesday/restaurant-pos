@@ -202,7 +202,7 @@ import random
 
 from django.core.management.base import BaseCommand
 from accounts.models import User
-from orders.models import Table, Order
+from orders.models import Table
 from menu.models import MenuItem
 
 from orders.services.order_service import (

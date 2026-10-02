@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.core.serializers.json import DjangoJSONEncoder
 
 from core.decorators import tenant_required
-from menu.models import MenuCategory, MenuItem
+from menu.models import MenuCategory
 
 @login_required
 @tenant_required

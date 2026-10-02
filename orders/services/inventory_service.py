@@ -5,7 +5,6 @@ from django.db import transaction
 import logging
 
 logger = logging.getLogger("pos.inventory")
-from django.core.exceptions import ObjectDoesNotExist
 
 from inventory.models import InventoryItem
 from inventory.unit_conversion import convert_quantity, IncompatibleUnitsError

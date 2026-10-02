@@ -10,7 +10,6 @@ Run: python manage.py test orders.tests.test_public_feedback
 """
 from unittest.mock import patch
 
-from django.test import TestCase
 from django.urls import reverse
 
 from crm.feedback_models import GuestFeedback

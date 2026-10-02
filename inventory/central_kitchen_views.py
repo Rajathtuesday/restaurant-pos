@@ -13,12 +13,11 @@ Flow:
 """
 import json
 import logging
-from datetime import datetime
 
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from django.utils import timezone
 

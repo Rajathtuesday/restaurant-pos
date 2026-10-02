@@ -2170,7 +2170,6 @@ class ConvertToPOTests(TestCase):
         self._to_po(req)
         manual_po = PurchaseOrder.objects.get(supplier=self.supplier_b)
 
-        import re
         pattern = r"^PO-\d+-\d{4}-\d{4}$"
         self.assertRegex(auto_po.po_number, pattern)
         self.assertRegex(manual_po.po_number, pattern)

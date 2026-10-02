@@ -46,7 +46,6 @@ import requests
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
-from accounts.models import User
 from menu.models import MenuCategory, MenuItem
 from tenants.models import SAMPLE_GSTIN, Tenant, Outlet
 

@@ -17,9 +17,7 @@ moved to kitchen/tests.py, Phase 3.)
 """
 from decimal import Decimal
 
-from django.db import connection
 from django.test import TestCase
-from django.core.exceptions import ValidationError
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem

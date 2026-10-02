@@ -2,7 +2,6 @@ import random
 from decimal import Decimal
 
 from tenants.models import Tenant, Outlet
-from accounts.models import User
 from orders.models import Table
 from menu.models import MenuCategory, MenuItem
 from inventory.models import InventoryItem, Recipe

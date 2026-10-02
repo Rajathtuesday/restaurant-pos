@@ -1,8 +1,6 @@
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from decimal import Decimal
-from accounts.models import User
 from tenants.models import Tenant, Outlet
 from kitchen.models import KOTBatch
 from orders.models import Order, OrderItem, Table

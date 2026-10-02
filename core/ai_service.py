@@ -8,7 +8,6 @@ except ImportError:
 from PIL import Image
 import io
 
-from django.conf import settings
 import logging
 import os
 

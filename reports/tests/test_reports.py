@@ -13,7 +13,6 @@ import io
 import csv
 from decimal import Decimal
 from django.test import TestCase, Client
-from django.urls import reverse
 from django.utils import timezone
 
 from tenants.models import Tenant, Outlet

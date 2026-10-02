@@ -17,7 +17,7 @@ Run: python manage.py test orders.tests.test_qr_reorder
 import json
 from decimal import Decimal
 
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
 
 from menu.models import MenuCategory, MenuItem

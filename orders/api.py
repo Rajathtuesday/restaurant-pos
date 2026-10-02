@@ -2,7 +2,7 @@ import json
 import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 from django.core.serializers.json import DjangoJSONEncoder
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -90,7 +90,6 @@ def notification_api(request):
     })
 
 from orders.models import Table, Order, OrderItem, Payment
-from tenants.models import Tenant, Outlet
 from setup.models import AggregatorConfig
 from orders.services.tax_service import tax_snapshot_for
 from menu.models import MenuItem

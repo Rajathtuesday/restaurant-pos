@@ -3,12 +3,11 @@ Week-over-week and period comparison reports.
 Returns current period vs previous period for the same length of time.
 """
 from datetime import timedelta
-from decimal import Decimal
 
-from django.db.models import Sum, Count, Avg, Q
+from django.db.models import Sum, Count
 
 from core.utils import get_business_period
-from orders.models import Order, Payment, OrderItem
+from orders.models import Order
 
 
 def period_comparison(tenant, outlet=None, start_date=None, end_date=None):

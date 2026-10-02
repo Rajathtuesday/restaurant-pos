@@ -12,7 +12,7 @@ from django.urls import reverse
 
 from tenants.models import Tenant, Outlet, TenantFeatureOverride
 from menu.models import MenuCategory, MenuItem
-from inventory.models import InventoryItem, Recipe, RecipeImportJob, RecipeImportLine
+from inventory.models import InventoryItem, Recipe, RecipeImportJob
 
 
 class RecipeUnitTableTests(TestCase):

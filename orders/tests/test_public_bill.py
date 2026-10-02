@@ -6,7 +6,6 @@ Run: python manage.py test orders.tests.test_public_bill
 import json
 from unittest.mock import patch
 
-from django.test import TestCase
 from django.urls import reverse
 
 from orders.models import Payment

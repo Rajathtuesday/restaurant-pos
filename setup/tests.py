@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from tenants.models import Tenant, Outlet
 from accounts.models import User
-from menu.models import MenuCategory, MenuItem
+from menu.models import MenuItem
 from setup.models import PaymentConfig, KitchenStation
 
 

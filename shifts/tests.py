@@ -156,7 +156,7 @@ class TestShiftOvertimeHoursQueryBehaviour(TestCase):
         self.assertEqual(shift.overtime_hours, 0)
 
     def test_overtime_hours_zero_within_limit(self):
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         now = timezone.now()
         shift = Shift.objects.create(
             tenant=self.tenant, outlet=self.outlet, staff=self.staff,

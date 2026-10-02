@@ -9,11 +9,9 @@ Covers every HIGH/CRITICAL issue identified in the audit:
   - recalculate_totals uses a single aggregate (no Python loop)
   - Cross-tenant menu item injection blocked
 """
-import json
 from decimal import Decimal
 
-from django.test import TestCase, Client, override_settings
-from django.urls import reverse
+from django.test import TestCase, Client
 
 from accounts.models import User
 from menu.models import MenuCategory, MenuItem

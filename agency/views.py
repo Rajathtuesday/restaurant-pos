@@ -6,7 +6,6 @@ from tenants.models import Tenant
 from accounts.models import User
 from django.db.models import Sum, Count, Q
 from orders.models import Order
-from django.utils.timezone import now, timedelta
 
 @login_required
 def agency_performance_dashboard(request):

@@ -24,7 +24,7 @@ import logging
 from decimal import Decimal
 
 from accounts.models import User
-from setup.models import KitchenStation, PaymentConfig
+from setup.models import KitchenStation
 from tenants.models import TenantFeatureOverride, TenantFeatureAuditLog
 
 logger = logging.getLogger("pos.tenants")

@@ -1,7 +1,7 @@
 # reports/api.py
 
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 from django.core.serializers.json import DjangoJSONEncoder

@@ -10,7 +10,6 @@ created normally then backdated with a queryset .update(), which bypasses
 auto_now_add (that only fires inside Model.save(), not QuerySet.update()).
 """
 from datetime import timedelta
-from decimal import Decimal
 
 from django.test import TestCase
 from django.utils import timezone

@@ -1,9 +1,8 @@
 import csv
 import io
 import logging
-from datetime import timedelta
 from decimal import Decimal
-from django.db.models import Prefetch, Sum, F
+from django.db.models import Prefetch, Sum
 from django.utils import timezone
 from orders.models import Order, OrderItem, Payment
 from core.utils import get_business_date_range

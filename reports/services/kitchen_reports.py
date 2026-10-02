@@ -2,7 +2,7 @@
 
 import logging
 from django.utils import timezone
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum
 from orders.models import OrderItem
 from kitchen.models import KOTBatch
 from core.utils import get_business_date, get_business_date_range

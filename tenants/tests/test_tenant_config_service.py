@@ -22,8 +22,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 
 from accounts.models import User
-from tenants.models import Tenant, Outlet, TenantFeatureOverride
-from setup.models import KitchenStation, PaymentConfig
+from tenants.models import Tenant, Outlet
 from tenants.services import tenant_config_service as tcs
 
 

@@ -34,9 +34,8 @@ import time
 import uuid
 from decimal import Decimal
 
-from django.contrib.auth.models import AnonymousUser
 from django.core.management.base import BaseCommand
-from django.db import connection, transaction
+from django.db import connection
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone

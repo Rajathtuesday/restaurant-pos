@@ -2,10 +2,8 @@
 import json
 import logging
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.utils.timezone import localdate
 
 from core.decorators import tenant_required, role_required
 from promos.models import Promo

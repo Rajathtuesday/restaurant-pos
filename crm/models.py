@@ -105,4 +105,4 @@ class Reservation(TenantScopedModel):
         return f"Booking for {self.guest} @ {self.reservation_time}"
 
 
-from .feedback_models import GuestFeedback
+from .feedback_models import GuestFeedback  # noqa: F401 (imported so Django registers the model)

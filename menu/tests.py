@@ -735,7 +735,7 @@ class AIImportTaskErrorMessageTests(TestCase):
     browser -- that bypasses Django's own DEBUG=False protection entirely."""
 
     def test_task_failure_stores_a_generic_message_not_the_raw_exception(self):
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
         from menu.tasks import ai_import_menu
 
         with patch("core.ai_service.AIService.parse_menu") as mock_parse:

@@ -1,5 +1,4 @@
 # reports/services/table_reports.py
-from django.db.models import Count
 from orders.models import Order, OrderItem
 from django.utils import timezone
 from core.utils import get_business_date, get_business_date_range

@@ -9,7 +9,6 @@ import logging
 
 from django.test import TestCase, Client
 
-from accounts.models import User
 from core.log_filters import TenantOutletFilter
 from core.request_context import (
     set_current_trace_id, clear_current_trace_id, get_current_trace_id,

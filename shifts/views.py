@@ -3,10 +3,9 @@ import json
 import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.contrib import messages
 
 from core.decorators import tenant_required, role_required
 from .models import Shift
@@ -403,7 +402,7 @@ def export_z_report(request):
     writer.writerow([])
 
     # Detailed Item Sales for the Day
-    from django.db.models import Count, F, ExpressionWrapper, DecimalField
+    from django.db.models import F, ExpressionWrapper, DecimalField
     from orders.models import OrderItem
     
     item_sales = OrderItem.objects.filter(
@@ -560,7 +559,7 @@ def create_schedule_entry(request):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     from accounts.models import User
-    from datetime import date as date_type, datetime
+    from datetime import datetime
 
     staff_id = data.get("staff_id")
     date_str = data.get("date")

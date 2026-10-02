@@ -21,7 +21,6 @@ from inventory.models import (
     PurchaseOrder,
     Recipe,
     Supplier,
-    TenantPOCounter,
 )
 from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet, Tenant

@@ -159,8 +159,7 @@ def qz_receipt_data(request, order_id):
     QZ Tray sends these bytes directly to the USB printer,
     producing real partial cuts between sections and a full cut at the end.
     """
-    from orders.services.printing_service import PrintingService, ConsolePrinter
-    import io
+    from orders.services.printing_service import PrintingService
 
     try:
         order = Order.objects.prefetch_related(

@@ -2,7 +2,6 @@
 import logging
 from collections import defaultdict
 from django.db import transaction
-from django.db.models import F
 from django.utils import timezone
 
 logger = logging.getLogger("pos.orders")

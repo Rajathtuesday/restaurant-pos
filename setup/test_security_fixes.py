@@ -201,7 +201,6 @@ class ResetStaffPasswordTest(_Base):
         self.assertTrue(self.waiter.check_password("old-password"))
 
     def test_reset_clears_axes_lockout(self):
-        from axes.utils import reset as axes_reset
         from axes.models import AccessAttempt
 
         AccessAttempt.objects.create(
