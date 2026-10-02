@@ -30,6 +30,7 @@ the source of truth.
 
 ### Fixed
 - **A flaky webhook test** - `ReplayTest` in `orders/tests/test_aggregator_ingest.py` sent a request stamped 301 seconds ahead against the 300-second window, but in whole seconds, so it had under a second of margin: on a slow run the server saw it as 300.x seconds ahead and took it (the 2 Oct full run failed this way). The tests now freeze the webhook's clock, and a new test pins the exact edge (299.9 s in, 300.1 s out). The webhook code was right and is unchanged.
+- **An agent test that only passed on Windows** - `test_watchdog_bat_launches_pythonw_when_available` checked only that the watchdog script named some `.exe`, which is true on Windows and false on the Linux CI runner (so the 2 Oct push did not deploy). It now builds a Windows-style Python folder and checks the watchdog runs `pythonw.exe` when it's there and `python.exe` when it isn't, on any OS; breaking the pythonw preference fails it.
 
 ### Tests
 - `accounts/test_superuser_panel.py` (4): the access checks that covered `/portal/` (superuser yes, owner 403, logged out to login) now cover `/superuser/`, and `/portal/` is a 404.

@@ -84,14 +84,30 @@ class InstallWritesCrashRestartWatchdogTest(_TempDirsMixin, unittest.TestCase):
         self.assertIn(watchdog_path, vbs_contents)
         self.assertNotIn(os.path.abspath(rasova_agent.__file__), vbs_contents)
 
-    def test_watchdog_bat_launches_pythonw_when_available(self):
-        rasova_agent.install_autostart()
+    def _watchdog_for(self, *interpreters):
+        """The watchdog written when the Python folder holds `interpreters`
+        and the agent runs under python.exe from it (a Windows install,
+        on any OS the tests run on)."""
+        python_dir = os.path.join(self._tmp, "Python313")
+        os.makedirs(python_dir)
+        for name in interpreters:
+            open(os.path.join(python_dir, name), "w").close()
+        with patch.object(rasova_agent.sys, "executable", os.path.join(python_dir, "python.exe")):
+            rasova_agent.install_autostart()
         with open(rasova_agent._watchdog_bat_path(), encoding="utf-8") as f:
-            contents = f.read()
-        # Runs the agent by invoking a real python interpreter, not "start"
-        # or some other construct that would detach and defeat the loop's
-        # ability to notice the process died.
-        self.assertIn(".exe", contents.lower())
+            return python_dir, f.read()
+
+    def test_watchdog_bat_launches_pythonw_when_available(self):
+        # pythonw.exe runs with no console window. It's still a real
+        # interpreter started in the foreground of the loop (not "start"),
+        # so the loop notices when the agent dies.
+        python_dir, contents = self._watchdog_for("python.exe", "pythonw.exe")
+        self.assertIn(f'"{os.path.join(python_dir, "pythonw.exe")}" "', contents)
+
+    def test_watchdog_bat_falls_back_to_python_without_pythonw(self):
+        python_dir, contents = self._watchdog_for("python.exe")
+        self.assertIn(f'"{os.path.join(python_dir, "python.exe")}" "', contents)
+        self.assertNotIn("pythonw", contents)
 
 
 class UninstallRemovesWatchdogTest(_TempDirsMixin, unittest.TestCase):
