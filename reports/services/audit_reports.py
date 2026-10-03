@@ -26,7 +26,7 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
     if not start_date or not end_date:
         return {
             "discounts": [], "item_discounts": [], "comps": [], "voids": [],
-            "void_reasons": [],
+            "void_reasons": [], "discount_reasons": [], "comp_reasons": [], "promos_used": [],
         }
 
     range_start, _ = get_business_date_range(start_date, outlet)
@@ -49,15 +49,42 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
     # history isn't lost, but count is the metric (not a summed rupee value
     # -- metadata["value"] can be either a percentage or a flat amount
     # depending on metadata["type"], and the two aren't addable).
+    def _not_key(key, values):
+        """Events whose metadata[key] is not one of `values`, including events
+        that have no such key at all (older events; a plain exclude() would
+        drop them, because comparing a missing JSON key gives NULL)."""
+        return Q(**{f"metadata__{key}__isnull": True}) | ~Q(**{f"metadata__{key}__in": values})
+
+    # Taking a discount off (value 0) is not a discount given.
     discounts_qs = base_qs.filter(
         Q(event_type="discount_applied")
         | Q(event_type="status_changed", metadata__action="discount_applied")
-    )
+    ).filter(_not_key("via", ["removed"])).filter(_not_key("value", ["0", "0.00"]))
     discounts = _by_staff(discounts_qs)
 
     # Item-level discounts and comps -- new event types only, no pre-fix data.
-    item_discounts = _by_staff(base_qs.filter(event_type="item_discount_applied"))
-    comps = _by_staff(base_qs.filter(event_type="item_complimentary"))
+    item_discounts_qs = base_qs.filter(event_type="item_discount_applied").filter(
+        _not_key("discount_pct", ["0", "0.00"]))
+    item_discounts = _by_staff(item_discounts_qs)
+    comps_qs = base_qs.filter(event_type="item_complimentary")
+    comps = _by_staff(comps_qs)
+
+    def _by_reason(qs):
+        return list(
+            qs.exclude(metadata__reason__isnull=True)
+            .values("metadata__reason").annotate(count=Count("id")).order_by("-count")
+        )
+
+    # Reasons are required from 3 Oct 2026 (orders/services/discount_policy.py);
+    # older discounts have none and are simply not in these two lists.
+    discount_reasons = _by_reason(discounts_qs.filter(metadata__via__in=["manual", "order_api"])
+                                  | item_discounts_qs)
+    comp_reasons = _by_reason(comps_qs)
+    # Which promos were used, by the promo's name at the time.
+    promos_used = list(
+        discounts_qs.filter(metadata__via="promo")
+        .values("metadata__promo_name").annotate(count=Count("id")).order_by("-count")
+    )
 
     # Voids -- full history (item_voided has always been a dedicated,
     # reliable event type), staff attribution plus a reason breakdown.
@@ -75,4 +102,7 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
         "comps": comps,
         "voids": voids,
         "void_reasons": void_reasons,
+        "discount_reasons": discount_reasons,
+        "comp_reasons": comp_reasons,
+        "promos_used": promos_used,
     }

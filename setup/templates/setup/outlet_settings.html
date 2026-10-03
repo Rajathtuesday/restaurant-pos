@@ -232,6 +232,26 @@
                         </div>
                     </div>
 
+                    <!-- ── Staff discount limit ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label" for="staff_discount_limit_pct">
+                            Staff Discount Limit
+                            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:6px;">optional</span>
+                        </label>
+                        <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.4rem;">
+                            <input type="number" id="staff_discount_limit_pct" name="staff_discount_limit_pct"
+                                class="field-input" style="max-width:120px;"
+                                value="{% if outlet.staff_discount_limit_pct is not None %}{{ outlet.staff_discount_limit_pct|floatformat:"-2" }}{% endif %}"
+                                min="0" max="100" step="0.01" placeholder="no limit">
+                            <span style="font-size:1rem;font-weight:600;color:var(--text-muted);">%</span>
+                        </div>
+                        <div class="field-hint">
+                            The largest discount a cashier or captain can give on their own, as a percent of the bill.
+                            A free dish counts as 100%. Above it, a manager or the owner has to apply it.
+                            Leave blank for no limit.
+                        </div>
+                    </div>
+
                     <!-- ── Parcel Charge (gated: parcel_charge feature) ── -->
                     {% if 'parcel_charge' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">

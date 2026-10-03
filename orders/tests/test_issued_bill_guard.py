@@ -163,7 +163,7 @@ class IssuedBillScreensTest(TestCase):
                 "cart": [{"id": self.curry.id, "quantity": 1}],
                 "order_id": order.id, "table_id": self.table.id, "source": "dine_in",
                 "customer_name": "Asha", "customer_phone": "9876543210",
-                "discount_type": "percentage", "discount_value": "10",
+                "discount_type": "percentage", "discount_value": "10", "discount_reason": "regular guest",
             }),
         )
 

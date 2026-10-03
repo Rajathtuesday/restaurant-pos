@@ -14,7 +14,11 @@ from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderEvent, OrderItem
 from orders.utils.order_utils import validate_order_editable
 from orders.services.payment_service import mark_ready_items_served
+from orders.services.discount_policy import (
+    DiscountNeedsManager, DiscountRefused, bill_discount_percent, check_within_limit, read_reason,
+)
 from orders.services.row_locks import lock_order_of_item
+from promos.services import attach_promo, release_promo
 
 logger = logging.getLogger("pos.orders")
 
@@ -22,6 +26,13 @@ logger = logging.getLogger("pos.orders")
 # -------------------------------------------------
 # DISCOUNT
 # -------------------------------------------------
+# Who may give how much, and the reason it needs: orders/services/discount_policy.py.
+# A promo's use is taken and given back by promos/services.py.
+
+def _refused(e):
+    """A discount the policy refused, as the response staff see."""
+    return JsonResponse({"error": str(e)}, status=403 if isinstance(e, DiscountNeedsManager) else 400)
+
 
 @login_required
 @tenant_required
@@ -56,19 +67,33 @@ def apply_discount(request, order_id):
                 from promos.models import Promo
                 try:
                     promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
-                    ok, err = promo.validate_and_use(order.outlet, order.subtotal)
-                    if not ok:
-                        return JsonResponse({"error": err}, status=400)
-
-                    # Apply values from the promo
-                    discount_type = promo.discount_type
-                    value = promo.discount_value
                 except Promo.DoesNotExist:
                     return JsonResponse({"error": "Promo code not found"}, status=404)
+                ok, err = attach_promo(order, promo)
+                if not ok:
+                    return JsonResponse({"error": err}, status=400)
+                # The promo's own values, never what the screen sent.
+                discount_type = promo.discount_type
+                value = promo.discount_value
+                details = {"via": "promo", "promo_id": promo.id, "promo_name": promo.name,
+                           "promo_code": promo.code}
+            else:
+                if value > 0:
+                    reason = read_reason(data.get("reason"))
+                    check_within_limit(
+                        request.user, order.outlet,
+                        bill_discount_percent(discount_type, value, order.subtotal),
+                    )
+                    details = {"via": "manual", "reason": reason}
+                else:
+                    details = {"via": "removed"}
+                # A typed discount, or taking the discount off, replaces any
+                # promo the bill had, and gives that promo's use back.
+                release_promo(order)
 
             order.discount_type = discount_type
             order.discount_value = value
-            order.save(update_fields=["discount_type", "discount_value"])
+            order.save(update_fields=["discount_type", "discount_value", "promo", "promo_name"])
             order.recalculate_totals()
 
             logger.warning(
@@ -79,7 +104,7 @@ def apply_discount(request, order_id):
             OrderEvent.objects.create(
                 tenant=order.tenant, outlet=order.outlet, order=order,
                 event_type="discount_applied",
-                metadata={"action": "discount_applied", "type": discount_type, "value": str(value)},
+                metadata={"action": "discount_applied", "type": discount_type, "value": str(value), **details},
                 created_by=request.user
             )
 
@@ -91,6 +116,8 @@ def apply_discount(request, order_id):
             "total": float(order.grand_total)
         })
 
+    except DiscountRefused as e:
+        return _refused(e)
     except Exception:
         logger.exception("Error applying discount for order #%s", order_id)
         return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)
@@ -107,36 +134,48 @@ def apply_discount(request, order_id):
 def make_item_complimentary(request, item_id):
 
     try:
+        try:
+            data = json.loads(request.body or b"{}")
+        except ValueError:
+            data = {}
+        if not isinstance(data, dict):
+            data = {}
         # Lock the item's order row for the read-modify-recalculate, matching
         # apply_item_discount. Without the lock a concurrent discount/void/
         # payment on the same order can race with this write and lose an update.
         with transaction.atomic():
             lock_order_of_item(request.user, item_id)  # order before line, see row_locks
             item = (
-                OrderItem.objects.select_for_update().select_related("order")
+                OrderItem.objects.select_for_update().select_related("order", "order__outlet")
                 .get(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
             )
             validate_order_editable(item.order)
+            # A free dish is a 100% discount on it: the same reason and the
+            # same limit as any other discount.
+            reason = read_reason(data.get("reason"))
+            check_within_limit(request.user, item.order.outlet, Decimal("100"), what="A free dish")
             item.is_complimentary = True
             item.save(update_fields=["is_complimentary"])
             item.order.recalculate_totals()
             OrderEvent.objects.create(
                 tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
                 event_type="item_complimentary",
-                metadata={"item_id": item.id},
+                metadata={"item_id": item.id, "reason": reason},
                 created_by=request.user
             )
         logger.warning("User %s marked item #%s as complimentary", request.user.username, item_id)
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+    except DiscountRefused as e:
+        return _refused(e)
     except ValidationError as e:
         # validate_order_editable: the bill is being paid or already closed
         return JsonResponse({"error": " ".join(e.messages)}, status=400)
 
 
 # -------------------------------------------------
-# PER-ITEM DISCOUNT  (Manager/Owner only)
+# PER-ITEM DISCOUNT
 # -------------------------------------------------
 
 @login_required
@@ -154,11 +193,16 @@ def apply_item_discount(request, item_id):
         with transaction.atomic():
             lock_order_of_item(request.user, item_id)  # order before line, see row_locks
             item = (
-                OrderItem.objects.select_related("order")
+                OrderItem.objects.select_related("order", "order__outlet")
                 .select_for_update()
                 .get(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
             )
             validate_order_editable(item.order)
+
+            details = {}
+            if discount_pct > 0:
+                details["reason"] = read_reason(data.get("reason"))
+                check_within_limit(request.user, item.order.outlet, discount_pct, what="A dish discount")
 
             item.item_discount_pct = discount_pct
             item.save(update_fields=["item_discount_pct"])
@@ -167,13 +211,16 @@ def apply_item_discount(request, item_id):
             OrderEvent.objects.create(
                 tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
                 event_type="item_discount_applied",
-                metadata={"action": "item_discount_applied", "item_id": item.id, "discount_pct": str(discount_pct)},
+                metadata={"action": "item_discount_applied", "item_id": item.id,
+                          "discount_pct": str(discount_pct), **details},
                 created_by=request.user
             )
 
         logger.warning("User %s applied %s%% discount to item #%s", request.user.username, discount_pct, item_id)
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
+    except DiscountRefused as e:
+        return _refused(e)
     except ValidationError as e:
         # validate_order_editable: the bill is being paid or already closed
         return JsonResponse({"error": " ".join(e.messages)}, status=400)

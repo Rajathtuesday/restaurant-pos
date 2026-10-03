@@ -724,6 +724,24 @@ def generate_audit_csv(tenant, outlet, start_date, end_date):
     writer.writerow(['Reason', 'Count'])
     for row in report['void_reasons']:
         writer.writerow([row['metadata__reason'] or 'Unspecified', row['count']])
+    writer.writerow([])
+
+    writer.writerow(['DISCOUNT REASONS (from 3 Oct 2026)'])
+    writer.writerow(['Reason', 'Count'])
+    for row in report['discount_reasons']:
+        writer.writerow([row['metadata__reason'], row['count']])
+    writer.writerow([])
+
+    writer.writerow(['FREE DISH REASONS (from 3 Oct 2026)'])
+    writer.writerow(['Reason', 'Count'])
+    for row in report['comp_reasons']:
+        writer.writerow([row['metadata__reason'], row['count']])
+    writer.writerow([])
+
+    writer.writerow(['PROMOS USED'])
+    writer.writerow(['Promo', 'Bills'])
+    for row in report['promos_used']:
+        writer.writerow([row['metadata__promo_name'] or 'Unknown', row['count']])
 
     return output.getvalue()
 

@@ -60,6 +60,8 @@ class Promo(TenantScopedModel):
     valid_until = models.DateField(null=True, blank=True)
 
     is_active  = models.BooleanField(default=True)
+    # Set instead of deleting, so bills that used the promo still point at it.
+    archived_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -69,9 +71,10 @@ class Promo(TenantScopedModel):
             models.Index(fields=["tenant", "outlet", "is_active"], name="orders_prom_tenant__495286_idx"),
         ]
         constraints = [
+            # One live promo per code; an archived promo frees its code.
             models.UniqueConstraint(
                 fields=["tenant", "code"],
-                condition=Q(code__gt=""),
+                condition=Q(code__gt="") & Q(archived_at__isnull=True),
                 name="unique_promo_code_per_tenant",
             )
         ]
@@ -82,24 +85,49 @@ class Promo(TenantScopedModel):
         return f"{self.name} [{scope}] ({symbol}{self.discount_value})"
 
     # ── Validity helpers ──────────────────────────────────────────
+    # Dates are judged by the outlet's BUSINESS day (core.utils), not the
+    # calendar: a pub's Saturday night runs until the day's cutoff (6 am by
+    # default), so a promo "valid until Saturday" must still be valid at 1 am.
+    # A tenant-wide promo with no outlet uses the default cutoff.
+
+    def business_today(self, outlet=None):
+        from django.utils import timezone
+        from core.utils import get_business_date
+        return get_business_date(timezone.now(), outlet if outlet is not None else self.outlet)
+
+    def is_expired_for(self, outlet=None) -> bool:
+        return bool(self.valid_until and self.business_today(outlet) > self.valid_until)
+
+    def is_not_started_for(self, outlet=None) -> bool:
+        return bool(self.valid_from and self.business_today(outlet) < self.valid_from)
 
     @property
     def is_expired(self) -> bool:
-        from django.utils.timezone import localdate
-        return bool(self.valid_until and localdate() > self.valid_until)
+        return self.is_expired_for()
 
     @property
     def is_not_started(self) -> bool:
-        from django.utils.timezone import localdate
-        return bool(self.valid_from and localdate() < self.valid_from)
+        return self.is_not_started_for()
 
     @property
     def is_exhausted(self) -> bool:
         return bool(self.max_uses and self.usage_count >= self.max_uses)
 
     @property
+    def is_archived(self) -> bool:
+        return self.archived_at is not None
+
+    def is_live_for(self, outlet) -> bool:
+        """Usable at this outlet right now: active, not archived, covers the
+        outlet, inside its dates (business day), uses left."""
+        return (self.is_active and not self.is_archived and self.applies_to_outlet(outlet)
+                and not self.is_expired_for(outlet) and not self.is_not_started_for(outlet)
+                and not self.is_exhausted)
+
+    @property
     def is_currently_valid(self) -> bool:
-        return self.is_active and not self.is_expired and not self.is_not_started and not self.is_exhausted
+        return (self.is_active and not self.is_archived and not self.is_expired
+                and not self.is_not_started and not self.is_exhausted)
 
     def applies_to_outlet(self, outlet) -> bool:
         """True if this promo covers the given outlet (or is tenant-wide)."""
@@ -107,13 +135,13 @@ class Promo(TenantScopedModel):
 
     def validate(self, outlet, order_subtotal: Decimal) -> tuple:
         """(ok: bool, error: str) — call before applying the discount."""
-        if not self.is_active:
+        if not self.is_active or self.is_archived:
             return False, "Promo is not active."
         if not self.applies_to_outlet(outlet):
             return False, "Promo is not valid for this outlet."
-        if self.is_not_started:
+        if self.is_not_started_for(outlet):
             return False, f"Promo starts on {self.valid_from.strftime('%d %b %Y')}."
-        if self.is_expired:
+        if self.is_expired_for(outlet):
             return False, f"Promo expired on {self.valid_until.strftime('%d %b %Y')}."
         if self.is_exhausted:
             return False, "Promo usage limit has been reached."
@@ -140,3 +168,13 @@ class Promo(TenantScopedModel):
             # Keep in-memory object consistent so the caller sees updated count.
             self.usage_count = locked.usage_count
         return ok, error
+
+    def release_use(self):
+        """Give one use back (the discount was removed, replaced, or the bill
+        cancelled before it was paid). Locks the row; never goes below zero.
+        Must be called inside a transaction."""
+        locked = Promo.objects.select_for_update().get(pk=self.pk)
+        if locked.usage_count > 0:
+            locked.usage_count -= 1
+            locked.save(update_fields=["usage_count"])
+        self.usage_count = locked.usage_count

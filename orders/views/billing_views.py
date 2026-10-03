@@ -25,8 +25,10 @@ from django_ratelimit.decorators import ratelimit
 from core.ratelimit_keys import order_placer, order_rate
 
 from orders.exceptions import CartError, MenuItemError, ModifierError, OrderError
-from orders.models import Order, Table
+from orders.models import Order, OrderEvent, Table
+from orders.services.discount_policy import bill_discount_percent, check_within_limit, read_reason
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
+from promos.services import release_promo
 
 logger = logging.getLogger("pos.orders")
 
@@ -335,6 +337,7 @@ def create_order(request):
             # then post discount_value="999999" to drive the total to zero
             # (recalculate_totals clamps the discount to the subtotal → free
             # food). Guests have user=None and never reach this branch.
+            bill_discount = None
             if user and user.role in ["owner", "manager", "cashier"]:
                 d_type = data.get("discount_type")
                 d_val = data.get("discount_value")
@@ -350,6 +353,13 @@ def create_order(request):
                         order.discount_type = d_type
                         order.discount_value = d_val
                         changed += ["discount_type", "discount_value"]
+                        if d_val > 0:
+                            # The bill screen's rules: a reason, a limit, an
+                            # audit event (orders/services/discount_policy.py),
+                            # and it replaces any promo on the bill.
+                            bill_discount = (d_type, d_val, read_reason(data.get("discount_reason")))
+                            release_promo(order)
+                            changed += ["promo", "promo_name"]
                     except (ValueError, TypeError, InvalidOperation):
                         pass
 
@@ -359,6 +369,18 @@ def create_order(request):
 
             # Important: recalculate after adding items so the discount applies to the total
             order.recalculate_totals()
+
+            if bill_discount:
+                d_type, d_val, reason = bill_discount
+                # Checked against the bill with this request's dishes on it; a
+                # refusal rolls the whole request back.
+                check_within_limit(user, outlet, bill_discount_percent(d_type, d_val, order.subtotal))
+                OrderEvent.objects.create(
+                    tenant=order.tenant, outlet=order.outlet, order=order, event_type="discount_applied",
+                    metadata={"action": "discount_applied", "type": d_type, "value": str(d_val),
+                              "via": "order_api", "reason": reason},
+                    created_by=user,
+                )
 
             u_name = user.username if user else "Guest (QR)"
             logger.info(

@@ -139,6 +139,33 @@
       <div class="audit-empty">No item voids in this period.</div>
       {% endfor %}
     </div>
+
+    <div class="audit-card">
+      <h3>Discount Reasons</h3>
+      {% for row in report.discount_reasons %}
+      <div class="audit-row"><span>{{ row.metadata__reason }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No discounts with a reason in this period.</div>
+      {% endfor %}
+    </div>
+
+    <div class="audit-card">
+      <h3>Free Dish Reasons</h3>
+      {% for row in report.comp_reasons %}
+      <div class="audit-row"><span>{{ row.metadata__reason }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No free dishes with a reason in this period.</div>
+      {% endfor %}
+    </div>
+
+    <div class="audit-card">
+      <h3>Promos Used</h3>
+      {% for row in report.promos_used %}
+      <div class="audit-row"><span>{{ row.metadata__promo_name|default:"Unknown" }}</span><span class="count">{{ row.count }}</span></div>
+      {% empty %}
+      <div class="audit-empty">No promos used in this period.</div>
+      {% endfor %}
+    </div>
   </div>
 </div>
 {% endblock %}

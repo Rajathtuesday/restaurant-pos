@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-10-03: promos and discounts hardened
+
+A review of the promos, with each suspicion run against the real code first (`md_files/rasova_pub_offers_design_and_promo_review_2026-10-03.html`), found six problems and two more discount paths. All fixed, each with a test that fails on the old code (`orders/tests/test_discount_hardening.py`, 30 tests; four deliberate breaks of the fixes were each caught).
+
+### Fixed
+- **A promo's uses were counted per tap and never given back.** Applying the same promo three times on one bill used three of its uses; removing or replacing it, or cancelling the bill, gave none back. The order now remembers its promo (`Order.promo`, `Order.promo_name`, `orders.0065`), applying it again is free, and every way a promo stops applying returns its use (`promos/services.py`). A paid bill keeps it.
+- **A bill didn't say which promo it used**, and deleting a promo left no trace. The order and the audit event now name the promo; deleting is archiving (`Promo.archived_at`, `promos.0002`), and an archived promo frees its code.
+- **Promo dates followed the calendar, not the business day**, so a promo valid until Saturday stopped at midnight in the middle of Saturday night. Validity now uses the outlet's business day (until the day's cutoff, 6 am by default).
+- **A second, older copy of the promo endpoints** (`promos/views.py` create, toggle, delete) ignored the minimum order, the usage cap and the all-outlets choice. Removed; the Setup screen's endpoints are the only ones, and are now tested.
+- **The promo form saved mistakes**: an end date before the start, a usage cap of 0 (which means unlimited), a negative minimum; a bad date or a text cap was a 500. Each is refused with a message saying what to fix; a used code says so.
+- **Manual discounts had no reason and no ceiling.** A typed bill discount, a dish discount and a free dish now need a short reason, which goes on the audit event. Cashiers and captains may give up to the outlet's new **staff discount limit** (Outlet Settings; a free dish counts as 100%); above it a manager or the owner applies it. With no limit set nothing changes, as agreed for the captain role; the pub preset sets 10%. Promos need neither.
+- **Two discount paths no screen uses** (a bill discount and a dish discount sent with the order itself) had no limit, no reason and no audit event. They follow the same rules now, and a refusal rolls the whole request back.
+
+### Added
+- **The Discount / Void audit report** shows the reasons given for discounts and free dishes and which promos were used, and no longer counts taking a discount off as a discount.
+
 ## 2026-10-03: the QR menu's cart opens again
 
 ### Added

@@ -161,6 +161,14 @@ class Order(TenantScopedModel):
     )
     discount_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    # The promo behind the discount, if one was used: kept so a bill can say
+    # which promo it got and a promo's uses can be given back when the
+    # discount is removed. promo_name is a copy, so renaming or archiving the
+    # promo later never changes what an old bill says.
+    promo = models.ForeignKey(
+        "promos.Promo", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders",
+    )
+    promo_name = models.CharField(max_length=120, blank=True, default="")
 
     parcel_surcharge = models.DecimalField(
         max_digits=6, decimal_places=2, default=Decimal("0.00"),

@@ -5,6 +5,7 @@ from django.db import transaction, IntegrityError
 from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
 
+from orders.services.discount_policy import check_within_limit, read_reason
 from orders.exceptions import OrderError, CartError, MenuItemError, ModifierError
 from orders.services.cart_limits import (
     GUEST_MAX_CART_LINES, GUEST_MAX_LINE_QUANTITY, MAX_CART_LINES, MAX_LINE_QUANTITY,
@@ -180,6 +181,13 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             item_discount_pct = Decimal("0")
         elif item_discount_pct > 100:
             item_discount_pct = Decimal("100")
+        # The same rules as the bill screen's dish discount: a reason, and the
+        # outlet's staff limit (orders/services/discount_policy.py). Raises
+        # DiscountRefused, an OrderError, which the caller shows as it is.
+        discount_reason = None
+        if item_discount_pct > 0:
+            discount_reason = read_reason(item.get("discount_reason"))
+            check_within_limit(user, o, item_discount_pct, what="A dish discount")
 
         order_item = OrderItem.objects.create(
             order=order,
@@ -207,6 +215,11 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
                 "quantity": quantity
             }
         )
+        if discount_reason:
+            log_event(order, "item_discount_applied", user, {
+                "action": "item_discount_applied", "item_id": order_item.id,
+                "discount_pct": str(item_discount_pct), "reason": discount_reason, "via": "cart",
+            })
 
         # -------------------------------------------------
         # ADD MODIFIERS

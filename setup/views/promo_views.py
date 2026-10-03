@@ -11,6 +11,87 @@ from core.decorators import tenant_required
 logger = logging.getLogger("pos.setup")
 
 
+class PromoInputError(Exception):
+    """A promo form value the owner has to correct; the message says how."""
+
+
+def read_promo_fields(data):
+    """The promo form, checked: the Promo fields to save, or PromoInputError.
+
+    Everything a typo could get wrong is refused here with a message, instead
+    of being saved (an end date before the start, a negative minimum, a cap
+    of 0 that the model reads as unlimited) or turning into a 500.
+    """
+    from datetime import date
+    from decimal import Decimal, InvalidOperation
+
+    name = str(data.get("name") or "").strip()
+    if not name:
+        raise PromoInputError("Name is required.")
+    if len(name) > 120:
+        raise PromoInputError("The name can be at most 120 characters.")
+    code = str(data.get("code") or "").strip().upper()
+    if len(code) > 30 or (code and not code.replace("-", "").replace("_", "").isalnum()):
+        raise PromoInputError("The code can be up to 30 letters, numbers, - or _.")
+    discount_type = data.get("discount_type", "percentage")
+    if discount_type not in ("percentage", "amount"):
+        raise PromoInputError("Invalid discount type.")
+
+    def money(key, label):
+        raw = data.get(key)
+        if raw in (None, ""):
+            return Decimal("0")
+        try:
+            value = Decimal(str(raw))
+        except InvalidOperation:
+            raise PromoInputError(f"{label} must be a number.")
+        if not value.is_finite() or value < 0:
+            raise PromoInputError(f"{label} can't be negative.")
+        if value != value.quantize(Decimal("0.01")):
+            raise PromoInputError(f"{label} can have at most 2 decimal places.")
+        return value
+
+    discount_value = money("discount_value", "The discount")
+    if discount_value <= 0:
+        raise PromoInputError("The discount must be more than 0.")
+    if discount_type == "percentage" and discount_value > 100:
+        raise PromoInputError("A percentage can't be more than 100.")
+    if discount_value >= Decimal("1000000"):
+        raise PromoInputError("The discount is too large.")
+    min_order_value = money("min_order_value", "The minimum order")
+
+    max_uses = data.get("max_uses")
+    if max_uses in (None, ""):
+        max_uses = None
+    else:
+        if isinstance(max_uses, bool) or not str(max_uses).strip().isdigit():
+            raise PromoInputError("The usage cap must be a whole number, or blank for no cap.")
+        max_uses = int(str(max_uses).strip())
+        if max_uses < 1:
+            raise PromoInputError("The usage cap must be at least 1, or blank for no cap.")
+
+    def day(key, label):
+        raw = data.get(key)
+        if raw in (None, ""):
+            return None
+        try:
+            return date.fromisoformat(str(raw))
+        except ValueError:
+            raise PromoInputError(f"{label} must be a date like 2026-10-31.")
+
+    valid_from = day("valid_from", "The start date")
+    valid_until = day("valid_until", "The end date")
+    if valid_from and valid_until and valid_until < valid_from:
+        raise PromoInputError("The end date is before the start date.")
+
+    return {
+        "name": name, "code": code, "description": str(data.get("description") or "").strip()[:2000],
+        "discount_type": discount_type, "discount_value": discount_value,
+        "min_order_value": min_order_value, "max_uses": max_uses,
+        "valid_from": valid_from, "valid_until": valid_until,
+    }
+
+
 # ==================================
 # PROMO / DISCOUNT MANAGEMENT
 # ==================================
@@ -38,7 +119,7 @@ def setup_promos(request):
 
     # Promos scoped to this tenant (includes all-outlet ones + this outlet's) —
     # NOT every outlet's promos, matching the page heading below.
-    promos = Promo.objects.filter(tenant=tenant).filter(
+    promos = Promo.objects.filter(tenant=tenant, archived_at__isnull=True).filter(
         Q(outlet=outlet) | Q(outlet__isnull=True)
     ).select_related("outlet").order_by("-created_at")
 
@@ -60,7 +141,6 @@ def promo_create(request):
 
     from promos.models import Promo
     from tenants.models import Outlet
-    from decimal import Decimal, InvalidOperation
     from django.db import IntegrityError
 
     try:
@@ -68,31 +148,11 @@ def promo_create(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
-    name           = data.get("name", "").strip()
-    code           = data.get("code", "").strip().upper()
-    description    = data.get("description", "").strip()
-    discount_type  = data.get("discount_type", "percentage")
-    all_outlets_flag = data.get("all_outlets", False)
-
-    if not name:
-        return JsonResponse({"error": "Name is required"}, status=400)
-    if discount_type not in ("percentage", "amount"):
-        return JsonResponse({"error": "Invalid discount type"}, status=400)
-
     try:
-        discount_value  = Decimal(str(data.get("discount_value", "0")))
-        min_order_value = Decimal(str(data.get("min_order_value", "0")))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid numeric value"}, status=400)
-
-    if discount_value <= 0:
-        return JsonResponse({"error": "Discount value must be positive"}, status=400)
-    if discount_type == "percentage" and discount_value > 100:
-        return JsonResponse({"error": "Percentage cannot exceed 100"}, status=400)
-
-    max_uses    = data.get("max_uses") or None
-    valid_from  = data.get("valid_from") or None
-    valid_until = data.get("valid_until") or None
+        fields = read_promo_fields(data)
+    except PromoInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    all_outlets_flag = data.get("all_outlets", False) is True
 
     # Resolve outlet — None = all outlets
     outlet = None if all_outlets_flag else request.user.outlet
@@ -106,22 +166,10 @@ def promo_create(request):
             return JsonResponse({"error": "Outlet not found"}, status=404)
 
     try:
-        promo = Promo.objects.create(
-            tenant          = request.user.tenant,
-            outlet          = outlet,
-            name            = name,
-            code            = code,
-            description     = description,
-            discount_type   = discount_type,
-            discount_value  = discount_value,
-            min_order_value = min_order_value,
-            max_uses        = int(max_uses) if max_uses else None,
-            valid_from      = valid_from or None,
-            valid_until     = valid_until or None,
-        )
+        promo = Promo.objects.create(tenant=request.user.tenant, outlet=outlet, **fields)
     except IntegrityError:
-        logger.exception("Database error creating promo")
-        return JsonResponse({"error": "That promo code may already be in use."}, status=409)
+        # The only constraint a valid form can hit: the code is unique per tenant.
+        return JsonResponse({"error": f"The code {fields['code']} is already used by another promo."}, status=409)
     except Exception:
         logger.exception("Unexpected error creating promo")
         return JsonResponse({"error": "Could not create the promo. Please try again."}, status=500)
@@ -182,5 +230,10 @@ def promo_delete(request, promo_id):
     if request.user.role != "owner" and promo.outlet_id and promo.outlet_id != request.user.outlet_id:
         return JsonResponse({"error": "Promo not found"}, status=404)
 
-    promo.delete()
+    # Archived, not deleted: bills that used the promo keep pointing at it.
+    # Its code is free again (the unique rule skips archived promos).
+    from django.utils import timezone
+    promo.archived_at = timezone.now()
+    promo.is_active = False
+    promo.save(update_fields=["archived_at", "is_active"])
     return JsonResponse({"success": True})

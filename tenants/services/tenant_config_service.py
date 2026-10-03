@@ -95,7 +95,9 @@ PRESETS = {
         # No composition scheme: liquor sellers can't use it (s.10(2)(b)).
         "disable": ["token_system", "simple_billing", "direct_billing_mode",
                     "barcode_transfer", "counter_billing", "composition_scheme"],
-        "outlet":  {"split_bill_by_category": False},
+        # Free drinks are a pub's biggest leak: cashiers and captains may
+        # give up to 10% on their own; more needs a manager.
+        "outlet":  {"split_bill_by_category": False, "staff_discount_limit_pct": Decimal("10.00")},
     },
     "cafe": {
         "label": "Café — mixed counter + tables",

@@ -96,7 +96,7 @@ class CaptainGrantedPermissionsTest(_Base):
     def test_captain_can_apply_order_discount(self):
         resp = self._login(self.captain).post(
             reverse("apply-discount", args=[self.order.id]),
-            data=json.dumps({"type": "percentage", "value": 10}),
+            data=json.dumps({"type": "percentage", "value": 10, "reason": "regular guest"}),  # a typed discount needs a reason since 3 Oct 2026 (discount_policy)
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -104,13 +104,14 @@ class CaptainGrantedPermissionsTest(_Base):
     def test_captain_can_apply_item_discount(self):
         resp = self._login(self.captain).post(
             reverse("item-discount", args=[self.order_item.id]),
-            data=json.dumps({"percent": 10}),
+            data=json.dumps({"percent": 10, "reason": "regular guest"}),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
 
     def test_captain_can_make_item_complimentary(self):
-        resp = self._login(self.captain).post(reverse("make-complimentary", args=[self.order_item.id]))
+        resp = self._login(self.captain).post(reverse("make-complimentary", args=[self.order_item.id]),
+                                              data=json.dumps({"reason": "birthday"}), content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         self.order_item.refresh_from_db()
         self.assertTrue(self.order_item.is_complimentary)

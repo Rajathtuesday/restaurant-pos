@@ -442,6 +442,18 @@ class Outlet(models.Model):
         )
     )
 
+    staff_discount_limit_pct = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=(
+            "The largest discount a cashier or captain may give on their own, as a "
+            "percent of the bill (a free dish counts as 100%). Above it, a manager "
+            "or the owner has to apply it. Blank = no limit."
+        ),
+    )
+
     use_qz_tray = models.BooleanField(
         default=False,
         help_text=(

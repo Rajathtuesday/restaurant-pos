@@ -104,10 +104,11 @@ class TestPromoValidateAndUse(TestCase):
 
 class PromoEndpointsTest(TestCase):
     """
-    HTTP-level proof that promos/urls.py -> promos/views.py -> promos.models
-    wires up correctly end to end. No test exercised these URLs before the
-    move either (a pre-existing gap), so this is new coverage, not a
-    regression test against old behavior.
+    The Setup screen's promo endpoints (setup/views/promo_views.py) end to
+    end, and the bill screen's list (promos/views.py). A second, older set of
+    create/toggle/delete endpoints in promos/views.py, which ignored the
+    minimum, the cap and the scope, was removed on 3 Oct 2026; deleting is
+    now archiving, so bills that used a promo keep pointing at it.
     """
 
     def setUp(self):
@@ -119,9 +120,9 @@ class PromoEndpointsTest(TestCase):
         self.client = Client()
         self.client.force_login(self.owner)
 
-    def test_create_then_list_then_toggle_then_delete(self):
+    def test_create_then_list_then_toggle_then_archive(self):
         create_resp = self.client.post(
-            reverse("create-promo"),
+            reverse("promo_create"),
             data=json.dumps({
                 "name": "Happy Hour", "code": "HH10",
                 "discount_type": "percentage", "discount_value": "10",
@@ -137,14 +138,16 @@ class PromoEndpointsTest(TestCase):
         self.assertEqual(list_resp.status_code, 200)
         self.assertIn(promo_id, [p["id"] for p in list_resp.json()["promos"]])
 
-        toggle_resp = self.client.post(reverse("toggle-promo", args=[promo_id]), content_type="application/json")
+        toggle_resp = self.client.post(reverse("promo_toggle", args=[promo_id]), content_type="application/json")
         self.assertEqual(toggle_resp.status_code, 200)
         promo.refresh_from_db()
         self.assertFalse(promo.is_active)
 
-        delete_resp = self.client.post(reverse("delete-promo", args=[promo_id]), content_type="application/json")
+        delete_resp = self.client.post(reverse("promo_delete", args=[promo_id]), content_type="application/json")
         self.assertEqual(delete_resp.status_code, 200)
-        self.assertFalse(Promo.objects.filter(id=promo_id).exists())
+        promo.refresh_from_db()
+        self.assertIsNotNone(promo.archived_at)          # archived, not deleted
+        self.assertNotIn(promo_id, [p["id"] for p in self.client.get(reverse("list-promos")).json()["promos"]])
 
 
 class PromoAppliedFromOrdersDiscountViewTest(TestCase):

@@ -1086,6 +1086,20 @@ def outlet_settings(request):
             else:
                 logger.warning("Ignored parcel_gst_rate=%r for outlet %s", request.POST["parcel_gst_rate"], outlet.id)
 
+        # The most a cashier or captain may discount on their own
+        # (orders/services/discount_policy.py). Blank = no limit.
+        if "staff_discount_limit_pct" in request.POST:
+            from decimal import Decimal, InvalidOperation
+            raw = request.POST.get("staff_discount_limit_pct", "").strip()
+            try:
+                limit = None if raw == "" else Decimal(raw)
+                if limit is not None and not (limit.is_finite() and 0 <= limit <= 100):
+                    raise InvalidOperation
+                outlet.staff_discount_limit_pct = (
+                    None if limit is None else limit.quantize(Decimal("0.01")))
+            except InvalidOperation:
+                messages.error(request, "The staff discount limit must be a percent from 0 to 100, or blank for no limit.")
+
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):
             outlet.whatsapp_no = whatsapp_no

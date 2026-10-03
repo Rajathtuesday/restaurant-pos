@@ -80,6 +80,7 @@ class StaffDiscountBoundsTest(_Base):
                 "source": "takeaway",
                 "discount_type": "percentage",
                 "discount_value": "500",   # 500% -> must clamp to 100
+                "discount_reason": "owner's guest",
             }),
             content_type="application/json",
         )
@@ -138,7 +139,7 @@ class OrderEventDiscountLoggingTest(_Base):
         client.force_login(self.manager)
         resp = client.post(
             reverse("apply-discount", args=[self.order.id]),
-            data=json.dumps({"type": "percentage", "value": "10"}),
+            data=json.dumps({"type": "percentage", "value": "10", "reason": "regular guest"}),  # a typed discount needs a reason since 3 Oct 2026 (discount_policy)
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -156,7 +157,7 @@ class OrderEventDiscountLoggingTest(_Base):
         client.force_login(self.manager)
         resp = client.post(
             reverse("item-discount", args=[self.order_item.id]),
-            data=json.dumps({"percent": "20"}),
+            data=json.dumps({"percent": "20", "reason": "regular guest"}),
             content_type="application/json",
         )
         self.assertEqual(resp.status_code, 200)
@@ -173,7 +174,8 @@ class OrderEventDiscountLoggingTest(_Base):
         )
         client = Client()
         client.force_login(self.manager)
-        resp = client.post(reverse("make-complimentary", args=[self.order_item.id]))
+        resp = client.post(reverse("make-complimentary", args=[self.order_item.id]),
+                           data=json.dumps({"reason": "birthday"}), content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         # Previously this action created ZERO OrderEvent rows -- only a log line.
         events = OrderEvent.objects.filter(order=self.order, event_type="item_complimentary")

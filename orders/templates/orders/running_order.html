@@ -212,7 +212,14 @@
     }
 
     function serveItem(id){ simpleAction("{% url 'serve-item' 0 %}", id, "Couldn't serve this item."); }
-    function makeComplimentary(id){ simpleAction("{% url 'make-complimentary' 0 %}", id, "Couldn't mark this complimentary."); }
+    function makeComplimentary(id){
+        // A free dish goes on the discount audit report with its reason.
+        const reason = (prompt("Why is this dish free? (for example: birthday, food complaint)") || "").trim();
+        if (reason.length < 3) { OrderEdit.toast("A free dish needs a reason.", "warning"); return; }
+        OrderEdit.post("{% url 'make-complimentary' 0 %}".replace('/0/', '/' + id + '/'), { reason })
+            .then(() => refreshRunningOrder())
+            .catch(err => OrderEdit.toast(err.message || "Couldn't mark this complimentary.", "error"));
+    }
 
     function refreshRunningOrder(){
         if (busy || OrderEdit.sheetOpen()) return;
