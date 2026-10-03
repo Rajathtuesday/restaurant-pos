@@ -702,11 +702,12 @@ def edit_pay_rate(request, user_id):
     if pay_type not in ("monthly", "hourly"):
         return JsonResponse({"error": "Invalid pay type."}, status=400)
 
-    from decimal import Decimal, InvalidOperation
+    from core.validators import NumberInputError, read_number
     try:
-        amount = Decimal(str(data.get("amount", "")))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid amount."}, status=400)
+        amount = read_number(data.get("amount"), "The amount",
+                             field=StaffPayRate._meta.get_field("monthly_salary"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
     if amount <= 0:
         return JsonResponse({"error": "Amount must be positive."}, status=400)
 
@@ -1065,14 +1066,16 @@ def outlet_settings(request):
         if has_feature(tenant, "central_kitchen"):
             outlet.is_central_kitchen = "is_central_kitchen" in request.POST
         outlet.po_vendor_email_enabled = "po_vendor_email_enabled" in request.POST
+        # A negative parcel charge used to be saved (a discount on every
+        # parcel), and a bad value was dropped without a word.
+        from decimal import Decimal
+        from core.validators import NumberInputError, read_number
         try:
-            from decimal import Decimal
-            outlet.parcel_charge_amount = Decimal(request.POST.get("parcel_charge_amount", "0") or "0")
-        except Exception:
-            logger.warning(
-                "Could not parse parcel_charge_amount=%r for outlet %s — left unchanged",
-                request.POST.get("parcel_charge_amount"), outlet.id,
-            )
+            outlet.parcel_charge_amount = read_number(
+                request.POST.get("parcel_charge_amount"), "The parcel charge", blank=Decimal("0"),
+                field=type(outlet)._meta.get_field("parcel_charge_amount"))
+        except NumberInputError as e:
+            messages.error(request, f"{e} It was left as it was.")
         # Only on the form when the parcel_charge feature is on; a missing or
         # unknown value leaves the rate as it was.
         if "parcel_gst_rate" in request.POST:

@@ -92,3 +92,66 @@ def positive_int(value):
     if text.isascii() and text.isdigit() and int(text) > 0:
         return int(text)
     return None
+
+
+class NumberInputError(ValueError):
+    """A number from a form or JSON body that the person has to correct.
+    str(e) says what to fix and is safe to show as it is."""
+
+
+def read_number(raw, label, *, minimum=0, maximum=None, places=None, blank=None, field=None):
+    """
+    A Decimal from a form or JSON value, checked, or NumberInputError.
+
+    Python's Decimal happily reads "NaN", "Infinity" and "1e20", and a bare
+    Decimal() parse let all of them, and negatives, through: a negative
+    parcel charge or cost price was saved (quietly wrong money), and NaN or a
+    huge price reached the database and became a 500. Every number staff type
+    in goes through here instead:
+
+      * must be a finite number with at most `places` decimals;
+      * must be at least `minimum` (0 by default) and at most `maximum`;
+      * blank (None or "") returns `blank`, or is an error if `blank` is None
+        and the caller said nothing (pass blank=Decimal("0") to allow it);
+      * `field`, the model DecimalField it is saved to, gives the decimals
+        (unless `places` says otherwise) and the largest value its column
+        holds, so a huge number is refused here, not by the database.
+    """
+    from decimal import Decimal, InvalidOperation
+
+    column_top = None
+    if field is not None:
+        if places is None:
+            places = field.decimal_places
+        column_top = (Decimal(10) ** (field.max_digits - field.decimal_places)
+                      - Decimal(1).scaleb(-field.decimal_places))
+    if places is None:
+        places = 2
+
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        if blank is not None:
+            return blank
+        raise NumberInputError(f"{label} is required.")
+    if isinstance(raw, bool):
+        raise NumberInputError(f"{label} must be a number.")
+    try:
+        value = Decimal(str(raw).strip())
+    except (InvalidOperation, ValueError):
+        raise NumberInputError(f"{label} must be a number.")
+    if not value.is_finite():
+        raise NumberInputError(f"{label} must be a number.")
+    if minimum is not None and value < minimum:
+        raise NumberInputError(f"{label} can't be negative." if minimum == 0
+                               else f"{label} must be at least {minimum}.")
+    if maximum is not None and value > maximum:
+        raise NumberInputError(f"{label} can't be more than {maximum}.")
+    if column_top is not None and value > column_top:
+        raise NumberInputError(f"{label} is too large.")
+    step = Decimal(1).scaleb(-places)
+    try:
+        rounded = value.quantize(step)
+    except InvalidOperation:            # too many digits to hold at all
+        raise NumberInputError(f"{label} is too large.")
+    if value != rounded:
+        raise NumberInputError(f"{label} can have at most {places} decimal places.")
+    return rounded

@@ -15,7 +15,8 @@ from orders.models import Order, OrderEvent, OrderItem
 from orders.utils.order_utils import validate_order_editable
 from orders.services.payment_service import mark_ready_items_served
 from orders.services.discount_policy import (
-    DiscountNeedsManager, DiscountRefused, bill_discount_percent, check_within_limit, read_reason,
+    DiscountNeedsManager, DiscountRefused, bill_discount_percent, check_within_limit, read_discount,
+    read_reason,
 )
 from orders.services.row_locks import lock_order_of_item
 from promos.services import attach_promo, release_promo
@@ -43,14 +44,15 @@ def apply_discount(request, order_id):
     try:
         data = json.loads(request.body)
         discount_type = data.get("type", "percentage")
-        value = Decimal(str(data.get("value", 0)))
         promo_id = data.get("promo_id")
 
         if discount_type not in ["percentage", "amount"]:
             return JsonResponse({"error": "Invalid discount type"}, status=400)
 
-        if value < 0:
-            return JsonResponse({"error": "Invalid discount value"}, status=400)
+        try:
+            value = read_discount(data.get("value"))
+        except DiscountRefused as e:
+            return _refused(e)
 
         if discount_type == "percentage" and value > 100:
             return JsonResponse({"error": "Percentage cannot exceed 100"}, status=400)
@@ -185,9 +187,12 @@ def make_item_complimentary(request, item_id):
 def apply_item_discount(request, item_id):
     try:
         data = json.loads(request.body)
-        discount_pct = Decimal(str(data.get("percent", 0)))
+        try:
+            discount_pct = read_discount(data.get("percent"))
+        except DiscountRefused as e:
+            return _refused(e)
 
-        if discount_pct < 0 or discount_pct > 100:
+        if discount_pct > 100:
             return JsonResponse({"error": "Invalid percentage"}, status=400)
 
         with transaction.atomic():

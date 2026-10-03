@@ -1,7 +1,7 @@
 # payments/razorpay_views.py
 import json
 import logging
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 import requests
 from django.contrib.auth.decorators import login_required
@@ -16,7 +16,7 @@ from django_ratelimit.decorators import ratelimit
 
 from core.decorators import tenant_required, feature_required
 from core.features import has_feature
-from core.validators import positive_int
+from core.validators import NumberInputError, positive_int, read_number
 from orders.models import Order, OrderEvent, Payment
 from payments.models import RazorpayQRCode
 from orders.services.payment_service import process_payment
@@ -81,9 +81,9 @@ def create_razorpay_qr(request, order_id):
     raw_amount = body.get("amount")
     if raw_amount not in (None, ""):
         try:
-            requested_amount = Decimal(str(raw_amount))
-        except InvalidOperation:
-            return JsonResponse({"error": "Invalid amount."}, status=400)
+            requested_amount = read_number(raw_amount, "The amount", field=Payment._meta.get_field("amount"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
         if requested_amount <= 0 or requested_amount > remaining:
             return JsonResponse(
                 {"error": f"Amount must be between 0 and the remaining balance (₹{remaining})."},

@@ -146,7 +146,7 @@ class OrderEventDiscountLoggingTest(_Base):
         event = OrderEvent.objects.filter(order=self.order, event_type="discount_applied").first()
         self.assertIsNotNone(event)
         self.assertEqual(event.metadata["action"], "discount_applied")
-        self.assertEqual(event.metadata["value"], "10")
+        self.assertEqual(event.metadata["value"], "10.00")   # read_discount: 2 places since 3 Oct 2026
         self.assertEqual(event.created_by, self.manager)
         self.order.refresh_from_db()
         # Item price 200.00, 10% -> 20.00 discount, confirms the value actually applied.

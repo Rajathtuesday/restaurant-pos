@@ -26,7 +26,9 @@ from core.ratelimit_keys import order_placer, order_rate
 
 from orders.exceptions import CartError, MenuItemError, ModifierError, OrderError
 from orders.models import Order, OrderEvent, Table
-from orders.services.discount_policy import bill_discount_percent, check_within_limit, read_reason
+from orders.services.discount_policy import (
+    bill_discount_percent, check_within_limit, read_discount, read_reason,
+)
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
 from promos.services import release_promo
 
@@ -343,7 +345,7 @@ def create_order(request):
                 d_val = data.get("discount_value")
                 if d_type in ["percentage", "amount"]:
                     try:
-                        d_val = Decimal(str(d_val or 0))
+                        d_val = read_discount(d_val, minimum=None)
                         # Reject negatives (would be an upcharge) and cap a
                         # percentage at 100 so a discount can never exceed the bill.
                         if d_val < 0:

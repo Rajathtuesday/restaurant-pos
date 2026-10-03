@@ -108,8 +108,16 @@ def clock_out(request):
     except json.JSONDecodeError:
         return JsonResponse({"error": "Invalid request."}, status=400)
 
+    from decimal import Decimal
+    from core.validators import NumberInputError, read_number
+    try:
+        tips = read_number(data.get("tips"), "The tips", blank=Decimal("0"),
+                           field=Shift._meta.get_field("tips"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+
     shift.clocked_out_at = timezone.now()
-    shift.tips = data.get("tips", 0) or 0
+    shift.tips = tips
     shift.notes = data.get("notes", "") or ""
     shift.save(update_fields=["clocked_out_at", "tips", "notes"])
 
@@ -153,11 +161,16 @@ def update_shift_tips(request, shift_id):
         shift = Shift.objects.get(
             id=shift_id, tenant=request.user.tenant, outlet=request.user.outlet
         )
-        shift.tips = data.get("tips", 0)
+        from decimal import Decimal
+        from core.validators import read_number
+        shift.tips = read_number(data.get("tips"), "The tips", blank=Decimal("0"),
+                                 field=Shift._meta.get_field("tips"))
         shift.save(update_fields=["tips"])
         return JsonResponse({"success": True})
     except Shift.DoesNotExist:
         return JsonResponse({"error": "Shift not found"}, status=404)
+    except ValueError as e:         # NumberInputError: says what to fix
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 @login_required
@@ -198,7 +211,12 @@ def open_cash_session(request):
     try:
         data = json.loads(request.body)
         from decimal import Decimal
-        opening_balance = Decimal(str(data.get("opening_balance", "0")))
+        from core.validators import NumberInputError, read_number
+        try:
+            opening_balance = read_number(data.get("opening_balance"), "The opening cash", blank=Decimal("0"),
+                                          field=CashSession._meta.get_field("opening_balance"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         with transaction.atomic():
             # Lock to prevent race condition between two managers
@@ -238,7 +256,12 @@ def close_cash_session(request):
     try:
         data = json.loads(request.body)
         from decimal import Decimal
-        actual_cash = Decimal(str(data.get("actual_cash", "0")))
+        from core.validators import NumberInputError, read_number
+        try:
+            actual_cash = read_number(data.get("actual_cash"), "The cash counted", blank=Decimal("0"),
+                                      field=CashSession._meta.get_field("actual_cash"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         session = CashSession.objects.filter(
             tenant=request.user.tenant,
@@ -707,11 +730,13 @@ def create_shift_template(request):
     except ValueError:
         return JsonResponse({"error": "Invalid time format (HH:MM)"}, status=400)
 
-    from decimal import Decimal, InvalidOperation
+    from decimal import Decimal
+    from core.validators import NumberInputError, read_number
     try:
-        base_pay = Decimal(str(base_pay))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid base_pay value"}, status=400)
+        base_pay = read_number(base_pay, "The base pay", blank=Decimal("0"),
+                               field=ShiftTemplate._meta.get_field("base_pay"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     if ShiftTemplate.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet, name__iexact=name

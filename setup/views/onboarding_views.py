@@ -87,12 +87,24 @@ def onboarding_wizard(request):
                     iname  = request.POST.get(f"item_{i}_name", "").strip()
                     iprice = request.POST.get(f"item_{i}_price", "").strip()
                     if iname and iprice:
+                        # A negative price used to be saved here; NaN or a
+                        # huge number failed in the database.
+                        from core.validators import NumberInputError, read_number
                         try:
-                            from decimal import Decimal
+                            price = read_number(iprice, f"The price of {iname}",
+                                                field=MenuItem._meta.get_field("price"))
+                        except NumberInputError as e:
+                            logger.warning(
+                                "Onboarding: could not create menu item %r "
+                                "(price=%r) for tenant %s: %s", iname, iprice, tenant.id, e,
+                            )
+                            messages.warning(request, f"{e} {iname} was not added; add it from the menu screen.")
+                            continue
+                        try:
                             MenuItem.objects.get_or_create(
                                 tenant=tenant, outlet=outlet,
                                 name=iname, category=cat,
-                                defaults={"price": Decimal(iprice), "is_available": True}
+                                defaults={"price": price, "is_available": True}
                             )
                         except Exception:
                             # Wizard still redirects to the next step on

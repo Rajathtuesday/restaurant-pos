@@ -1,7 +1,7 @@
 """Menu item CRUD, availability toggles, station assignment."""
 import json
 import logging
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -10,6 +10,18 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, feature_required, role_required
 from accounts.demo_restrictions import blocked_in_demo_trailer
 from menu.models import MenuCategory, MenuItem
+from core.validators import NumberInputError, read_number
+
+
+def _read_price(raw):
+    """A dish's price: a real amount, 0 or more (a negative price used to be
+    saved, a discount on every order; Infinity or 1e20 was a 500)."""
+    return read_number(raw, "The price", field=MenuItem._meta.get_field("price"))
+
+
+def _read_parcel_charge(raw):
+    return read_number(raw, "The parcel charge", blank=Decimal("0"),
+                       field=MenuItem._meta.get_field("parcel_charge"))
 
 ON_BILLS = "'{name}' is on past bills, so it can't be deleted: the bills would lose it. Switch it off instead (it disappears from the menu and stays on the old bills)."
 from setup.models import KitchenStation
@@ -46,8 +58,15 @@ def create_menu_item(request):
             is_veg      = str(request.POST.get("is_veg", "true")).lower() == "true"
             image       = request.FILES.get("image")
 
-        if not name or not price:
+        if not name or price in (None, ""):
             return JsonResponse({"error": "Missing fields"}, status=400)
+        try:
+            price = _read_price(price)
+            parcel_charge = _read_parcel_charge(
+                data.get("parcel_charge") if request.content_type == "application/json"
+                else request.POST.get("parcel_charge"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         try:
             prep_time = max(1, int(prep_time))
@@ -63,15 +82,6 @@ def create_menu_item(request):
             station = KitchenStation.objects.get(
                 id=station_id, tenant=request.user.tenant, outlet=request.user.outlet
             )
-
-        parcel_charge = Decimal("0")
-        try:
-            parcel_charge = Decimal(str(data.get("parcel_charge", 0) if request.content_type == "application/json" else request.POST.get("parcel_charge", 0) or 0))
-            # Clamp negatives — a negative parcel charge would act as a stealth
-            # per-item discount on every order. (update_menu_item already clamps.)
-            parcel_charge = max(Decimal("0"), parcel_charge)
-        except Exception:
-            parcel_charge = Decimal("0")
 
         MenuItem.objects.create(
             tenant=request.user.tenant, outlet=request.user.outlet,
@@ -109,8 +119,15 @@ def update_menu_item(request, item_id):
         is_veg      = str(request.POST.get("is_veg", "true")).lower() == "true"
         image       = request.FILES.get("image")
 
-        if not name or not price or not category_id:
+        if not name or price in (None, "") or not category_id:
             return JsonResponse({"error": "Missing required fields"}, status=400)
+        try:
+            price = _read_price(price)
+            parcel_charge = request.POST.get("parcel_charge")
+            if parcel_charge is not None:
+                parcel_charge = _read_parcel_charge(parcel_charge)
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         category = get_object_or_404(
             MenuCategory, id=category_id,
@@ -123,7 +140,7 @@ def update_menu_item(request, item_id):
             )
 
         item.name        = name
-        item.price       = Decimal(price)
+        item.price       = price
         item.category    = category
         item.station     = station
         item.description = description
@@ -136,15 +153,8 @@ def update_menu_item(request, item_id):
             except (ValueError, TypeError):
                 pass
 
-        parcel_charge = request.POST.get("parcel_charge")
         if parcel_charge is not None:
-            try:
-                item.parcel_charge = max(Decimal("0"), Decimal(str(parcel_charge)))
-            except Exception:
-                logger.warning(
-                    "Could not parse parcel_charge=%r for item %s — left unchanged",
-                    parcel_charge, item.id,
-                )
+            item.parcel_charge = parcel_charge
 
         if image:
             item.image = image
@@ -186,11 +196,9 @@ def update_price(request, item_id):
     try:
         data = json.loads(request.body)
         try:
-            price = Decimal(str(data.get("price")))
-            if price < 0:
-                return JsonResponse({"error": "Invalid price"}, status=400)
-        except InvalidOperation:
-            return JsonResponse({"error": "Invalid price"}, status=400)
+            price = _read_price(data.get("price"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         item = get_object_or_404(
             MenuItem, id=item_id,

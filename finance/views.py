@@ -1,6 +1,5 @@
 # finance/views.py
 import json
-from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -8,6 +7,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, role_required, feature_required
+from core.validators import NumberInputError, read_number
 from tenants.models import Outlet
 from .models import Expense
 
@@ -44,9 +44,9 @@ def expense_create(request):
         return JsonResponse({"error": "Invalid category."}, status=400)
 
     try:
-        amount = Decimal(str(data.get("amount", "")))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid amount."}, status=400)
+        amount = read_number(data.get("amount"), "The amount", field=Expense._meta.get_field("amount"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
     if amount <= 0:
         return JsonResponse({"error": "Amount must be positive."}, status=400)
 

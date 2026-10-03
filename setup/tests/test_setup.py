@@ -84,9 +84,10 @@ class ChecklistStatusTest(TestCase):
 
 class OutletSettingsParcelChargeTest(TestCase):
     """
-    outlet_settings silently left parcel_charge_amount unchanged on bad
-    input with zero trace of why - this confirms that behavior is
-    preserved (no 500, no data corruption) and is now logged.
+    outlet_settings once left parcel_charge_amount unchanged on bad input
+    with zero trace of why, then only logged it. Since 3 Oct 2026 the owner
+    is told on screen (core.validators.read_number), and the rest of the
+    form still saves.
     """
 
     def setUp(self):
@@ -94,17 +95,16 @@ class OutletSettingsParcelChargeTest(TestCase):
         self.owner = _make_user(self.tenant, self.outlet, role="owner", username="parcel_owner")
         self.client.force_login(self.owner)
 
-    def test_unparseable_parcel_charge_amount_logs_a_warning(self):
+    def test_unparseable_parcel_charge_amount_is_shown_to_the_owner(self):
         original = self.outlet.parcel_charge_amount
-        with self.assertLogs("pos.setup", level="WARNING") as cm:
-            response = self.client.post(reverse("outlet_settings"), {
-                "outlet_name": self.outlet.name,
-                "parcel_charge_amount": "not-a-number",
-            })
-        self.assertEqual(response.status_code, 302)
+        response = self.client.post(reverse("outlet_settings"), {
+            "outlet_name": self.outlet.name,
+            "parcel_charge_amount": "not-a-number",
+        }, follow=True)
         self.outlet.refresh_from_db()
         self.assertEqual(self.outlet.parcel_charge_amount, original)
-        self.assertTrue(any("parcel_charge_amount" in msg for msg in cm.output))
+        self.assertIn("The parcel charge must be a number. It was left as it was.",
+                      [str(m) for m in response.context["messages"]])
 
 
 class OnboardingWizardSilentFailureTest(TestCase):

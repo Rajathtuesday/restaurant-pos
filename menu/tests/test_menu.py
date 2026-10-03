@@ -284,25 +284,24 @@ class MenuItemMutationTests(TestCase):
 
         self.assertEqual(self.item.price, Decimal("299.00"))
 
-    def test_update_menu_item_with_unparseable_parcel_charge_logs_a_warning(self):
-        # Bad input silently leaves parcel_charge unchanged rather than
-        # erroring (intentional best-effort default) - but that used to be
-        # completely invisible. Confirms both: existing behavior preserved,
-        # and the failure is now traceable in logs.
-        original = self.item.parcel_charge
-        with self.assertLogs("pos.menu", level="WARNING") as cm:
-            response = self.client.post(
-                reverse("update_menu_item", args=[self.item.id]),
-                data={
-                    "name": "Test Dish", "price": "150.00",
-                    "category": self.category.id,
-                    "parcel_charge": "not-a-number",
-                },
-            )
-        self.assertEqual(response.status_code, 200)
+    def test_update_menu_item_with_unparseable_parcel_charge_is_refused(self):
+        # Until 3 Oct 2026 a bad parcel charge was dropped with only a log
+        # warning while the rest of the edit saved. Now the edit is refused
+        # with a message saying what to fix, and nothing is half-saved
+        # (core.validators.read_number).
+        original_price, original_charge = self.item.price, self.item.parcel_charge
+        response = self.client.post(
+            reverse("update_menu_item", args=[self.item.id]),
+            data={
+                "name": "Test Dish", "price": "150.00",
+                "category": self.category.id,
+                "parcel_charge": "not-a-number",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "The parcel charge must be a number.")
         self.item.refresh_from_db()
-        self.assertEqual(self.item.parcel_charge, original)
-        self.assertTrue(any("parcel_charge" in msg for msg in cm.output))
+        self.assertEqual((self.item.price, self.item.parcel_charge), (original_price, original_charge))
 
     def test_create_item_with_is_veg_flag(self):
 

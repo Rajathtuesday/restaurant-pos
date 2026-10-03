@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-10-03: every number staff type is checked
+
+### Fixed
+- **Odd numbers were saved, or became a 500.** The screens read numbers with a bare `Decimal()`, which accepts "NaN", "Infinity" and "1e20" and lets negatives through. Run against the real code: a negative outlet parcel charge (-50) and opening cash (-500) were saved; a negative dish price, low-stock level, cost price, tip or shift base pay was saved; NaN in a payment, refund, expense, restock, cost price, pay rate or discount, and Infinity or 1e20 as a dish price, was a 500; negative stock on a new inventory item was a 500 (the database check); NaN as a discount on the order API was dropped without a word, and "Infinity" as a flat discount was a 500. All of these now go through `core.validators.read_number`, which refuses anything that isn't a real number, a negative where it makes no sense, too many decimals, and anything bigger than its database column holds, with a message that says what to fix ("The opening cash can't be negative."). A stock adjustment can still go down; the order API still clamps a negative discount to 0 and a percent to 100, as before.
+- **A refund over the amount left said "try again".** The refund view turned every refusal into a 500, so "Refund request exceeds available amount. Max: ..." never reached the manager; a wrong payment id was a 500 too. They are a 400 with the real reason and a 404 now.
+- **The setup wizard saved a negative dish price.** Its first-menu step read prices the same way; a bad price now skips that dish with a message saying why, and the wizard carries on.
+- A bad outlet parcel charge was dropped with only a log line; the owner now sees "The parcel charge must be a number. It was left as it was." and the rest of the form saves. A bad parcel charge on a dish now refuses that edit with a message instead of saving the rest and dropping it.
+- Tests: `core/tests/test_number_inputs.py` (every screen test fails on the old code).
+
 ## 2026-10-03: closing a bill without payment
 
 ### Fixed

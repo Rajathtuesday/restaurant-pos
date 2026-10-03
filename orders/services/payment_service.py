@@ -76,7 +76,11 @@ def process_payment(order, method, amount, user=None, reference=None):
     # Lock the order row to prevent concurrent over-payment.
     order = type(order).objects.select_for_update().get(id=order.id)
 
-    amount = Decimal(str(amount))
+    from core.validators import NumberInputError, read_number
+    try:
+        amount = read_number(amount, "The payment amount", field=Payment._meta.get_field("amount"))
+    except NumberInputError as e:
+        raise ValidationError(str(e))
 
     if amount <= 0:
         raise ValidationError("Payment amount must be greater than zero.")

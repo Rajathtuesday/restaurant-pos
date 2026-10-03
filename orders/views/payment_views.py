@@ -1,7 +1,7 @@
 # orders/views/payment_views.py
 import json
 import logging
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -13,6 +13,7 @@ from django_ratelimit.decorators import ratelimit
 
 from core.celery_utils import dispatch
 from core.decorators import tenant_required, role_required, feature_required
+from core.validators import NumberInputError, read_number
 from orders.models import Order, OrderEvent, Payment
 from shifts.models import CashSession
 from orders.services.payment_service import process_payment, mark_ready_items_served
@@ -70,11 +71,9 @@ def pay_order(request, order_id):
         if amount is None:
             return JsonResponse({"error": "Amount required"}, status=400)
         try:
-            amount = Decimal(str(amount))
-        except InvalidOperation:
-            return JsonResponse({"error": "Invalid amount"}, status=400)
-        if amount < 0:
-            return JsonResponse({"error": "Amount cannot be negative"}, status=400)
+            amount = read_number(amount, "The amount", field=Payment._meta.get_field("amount"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         try:
             with transaction.atomic():
@@ -282,6 +281,10 @@ def refund_payment(request, payment_id):
             return JsonResponse({"error": "Amount required"}, status=400)
         if not reason:
             return JsonResponse({"error": "Manager note is required"}, status=400)
+        try:
+            amount = read_number(amount, "The refund amount", field=Payment._meta.get_field("amount"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         payment = Payment.objects.select_related("order").get(
             id=payment_id,
@@ -302,6 +305,12 @@ def refund_payment(request, payment_id):
         )
         return JsonResponse({"success": True, "refund_id": refund.id, "amount": str(refund.amount)})
 
+    # These say what to fix ("exceeds available amount. Max: ..."): they used
+    # to fall into the 500 below, so the manager only saw "try again".
+    except Payment.DoesNotExist:
+        return JsonResponse({"error": "Payment not found"}, status=404)
+    except ValidationError as e:
+        return JsonResponse({"error": " ".join(e.messages)}, status=400)
     except Exception:
         logger.exception("Error refunding payment #%s", payment_id)
         return JsonResponse({"error": "Refund could not be processed. Please try again."}, status=500)

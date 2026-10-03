@@ -53,6 +53,19 @@ def read_reason(raw, missing=ASK_DISCOUNT_REASON):
     return reason[:REASON_MAX_LENGTH]
 
 
+def read_discount(raw, what="The discount", minimum=0):
+    """A discount figure staff typed (a percent or an amount): a real number
+    with at most 2 decimals, 0 or more unless `minimum` is None.
+    DiscountRefused otherwise, with what to fix."""
+    from core.validators import NumberInputError, read_number
+    from orders.models import Order
+    try:
+        return read_number(raw, what, minimum=minimum, blank=Decimal("0"),
+                           field=Order._meta.get_field("discount_value"))
+    except NumberInputError as e:
+        raise DiscountRefused(str(e))
+
+
 def percent_of(amount, subtotal):
     """A flat amount as a percent of the bill it comes off. Anything off a
     zero bill counts as 100%."""

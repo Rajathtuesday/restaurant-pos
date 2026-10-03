@@ -20,7 +20,11 @@ def process_refund(order, payment_id, amount, user, reason="", customer_complain
         raise PermissionDenied("Only managers or owners can initiate refunds")
 
     payment = Payment.objects.select_for_update().get(id=payment_id, order=order)
-    amount = Decimal(str(amount))
+    from core.validators import NumberInputError, read_number
+    try:
+        amount = read_number(amount, "The refund amount", field=Refund._meta.get_field("amount"))
+    except NumberInputError as e:
+        raise ValidationError(str(e))
 
     if amount <= 0:
         raise ValidationError("Invalid refund amount")

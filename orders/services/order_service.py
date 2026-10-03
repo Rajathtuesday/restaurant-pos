@@ -1,11 +1,11 @@
 # orders/services/order_service.py
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from django.db import transaction, IntegrityError
 
 from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
 
-from orders.services.discount_policy import check_within_limit, read_reason
+from orders.services.discount_policy import check_within_limit, read_discount, read_reason
 from orders.exceptions import OrderError, CartError, MenuItemError, ModifierError
 from orders.services.cart_limits import (
     GUEST_MAX_CART_LINES, GUEST_MAX_LINE_QUANTITY, MAX_CART_LINES, MAX_LINE_QUANTITY,
@@ -169,14 +169,11 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
         # guest has user=None and must never be able to set this at all,
         # otherwise discount_pct=100 zeroes an item's price for free with no
         # login required). Without this gate that's exactly what happened.
-        try:
-            item_discount_pct = (
-                Decimal(str(item.get("discount_pct", 0)))
-                if user and user.role in ["owner", "manager", "cashier", "captain"]
-                else Decimal("0")
-            )
-        except InvalidOperation:
-            item_discount_pct = Decimal("0")
+        item_discount_pct = (
+            read_discount(item.get("discount_pct"), "A dish discount", minimum=None)
+            if user and user.role in ["owner", "manager", "cashier", "captain"]
+            else Decimal("0")
+        )
         if item_discount_pct < 0:
             item_discount_pct = Decimal("0")
         elif item_discount_pct > 100:

@@ -13,6 +13,15 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import InventoryItem, Supplier, PurchaseOrder, PurchaseOrderItem, generate_po_number
+from core.validators import NumberInputError, read_number
+
+
+def _item_field(name):
+    return InventoryItem._meta.get_field(name)
+
+
+def _po_field(name):
+    return PurchaseOrderItem._meta.get_field(name)
 
 logger = logging.getLogger("pos.inventory")
 
@@ -78,9 +87,9 @@ def restock_item(request, item_id):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     try:
-        quantity = Decimal(str(data.get("quantity", "0")))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid quantity"}, status=400)
+        quantity = read_number(data.get("quantity"), "The quantity", field=_item_field("stock"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     if quantity <= 0:
         return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -188,13 +197,17 @@ def create_inventory_item(request):
     if unit not in ("pcs", "g", "kg", "ml", "l"):
         return JsonResponse({"error": "Invalid unit"}, status=400)
 
+    zero = Decimal("0")
     try:
-        stock = Decimal(str(data.get("stock", "0")))
-        threshold = Decimal(str(data.get("threshold", "0")))
-        cost_price = Decimal(str(data.get("cost_price", "0.00")))
-        reorder_qty = Decimal(str(data.get("reorder_quantity", "0")))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid numeric value"}, status=400)
+        stock = read_number(data.get("stock"), "The stock", blank=zero, field=_item_field("stock"))
+        threshold = read_number(data.get("threshold"), "The low-stock level", blank=zero,
+                                field=_item_field("low_stock_threshold"))
+        cost_price = read_number(data.get("cost_price"), "The cost price", blank=zero,
+                                 field=_item_field("cost_price"))
+        reorder_qty = read_number(data.get("reorder_quantity"), "The reorder quantity", blank=zero,
+                                  field=_item_field("reorder_quantity"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     # Resolve optional supplier
     supplier = None
@@ -252,15 +265,19 @@ def update_inventory_item(request, item_id):
     if "category" in data:
         item.category = (data.get("category") or "").strip()[:100]
 
+    zero = Decimal("0")
     try:
         if "threshold" in data:
-            item.low_stock_threshold = Decimal(str(data["threshold"]))
+            item.low_stock_threshold = read_number(data["threshold"], "The low-stock level", blank=zero,
+                                                   field=_item_field("low_stock_threshold"))
         if "cost_price" in data:
-            item.cost_price = Decimal(str(data["cost_price"]))
+            item.cost_price = read_number(data["cost_price"], "The cost price", blank=zero,
+                                          field=_item_field("cost_price"))
         if "reorder_quantity" in data:
-            item.reorder_quantity = Decimal(str(data["reorder_quantity"]))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid numeric value"}, status=400)
+            item.reorder_quantity = read_number(data["reorder_quantity"], "The reorder quantity", blank=zero,
+                                                field=_item_field("reorder_quantity"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     if "supplier_id" in data:
         supplier_id = data["supplier_id"]
@@ -450,10 +467,11 @@ def create_purchase_order(request):
     for entry in items_data:
         item_id = entry.get("item_id")
         try:
-            qty = Decimal(str(entry.get("quantity", "0")))
-            unit_price = Decimal(str(entry.get("unit_price", "0")))
-        except InvalidOperation:
-            return JsonResponse({"error": "Invalid quantity or price"}, status=400)
+            qty = read_number(entry.get("quantity"), "The quantity", field=_po_field("quantity"))
+            unit_price = read_number(entry.get("unit_price"), "The unit price", blank=Decimal("0"),
+                                     field=_po_field("unit_price"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         if qty <= 0:
             return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -548,10 +566,11 @@ def edit_purchase_order(request, po_id):
     for entry in items_data:
         item_id = entry.get("item_id")
         try:
-            qty = Decimal(str(entry.get("quantity", "0")))
-            unit_price = Decimal(str(entry.get("unit_price", "0")))
-        except InvalidOperation:
-            return JsonResponse({"error": "Invalid quantity or price"}, status=400)
+            qty = read_number(entry.get("quantity"), "The quantity", field=_po_field("quantity"))
+            unit_price = read_number(entry.get("unit_price"), "The unit price", blank=Decimal("0"),
+                                     field=_po_field("unit_price"))
+        except NumberInputError as e:
+            return JsonResponse({"error": str(e)}, status=400)
 
         if qty <= 0:
             return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -892,9 +911,9 @@ def log_wastage(request, item_id):
         return JsonResponse({"error": "Invalid JSON"}, status=400)
 
     try:
-        quantity = Decimal(str(data.get("quantity", "0")))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid quantity"}, status=400)
+        quantity = read_number(data.get("quantity"), "The quantity", field=_item_field("stock"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     if quantity <= 0:
         return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -965,12 +984,12 @@ def adjust_stock(request, item_id):
 
     try:
         if has_new_count:
-            new_count = Decimal(str(data["new_count"]))
+            new_count = read_number(data["new_count"], "The count", field=_item_field("stock"))
             delta = new_count - item.stock
         else:
-            delta = Decimal(str(data["delta"]))
-    except InvalidOperation:
-        return JsonResponse({"error": "Invalid quantity"}, status=400)
+            delta = read_number(data["delta"], "The change", minimum=None, field=_item_field("stock"))
+    except NumberInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     try:
         item.adjust_stock(delta, reference=reason)
