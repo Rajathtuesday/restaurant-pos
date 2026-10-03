@@ -36,6 +36,41 @@ TENANT_FEATURES = {
         'composition_scheme',
         'parcel_charge',
     ],
+    # A pub or bar: the fine-dining set (tables, kitchen, QR menu, split bills,
+    # reservations) plus liquor billed under the state's VAT, never GST. No
+    # composition scheme: a seller of liquor can't use it (CGST Act, s.10(2)(b)),
+    # and the liquor_vat guard refuses a composition outlet with liquor on.
+    # Offers such as buy-one-get-one will join this list when they are built;
+    # no other tenant type gets them by default.
+    'pub': [
+        # Ordering & tables
+        'floor_plan',
+        'merge_tables',
+        'running_order',
+        'split_bill',
+        'modifiers',
+        'platform_sync',
+        'waiter_call',
+        # Liquor
+        'liquor_vat',
+        # Kitchen
+        'kot_system',
+        'kitchen_display',
+        # Menu & ordering
+        'qr_menu',
+        'ai_menu_import',
+        # CRM
+        'crm',
+        'reservations',
+        # Operations
+        'inventory',
+        'purchase_orders',
+        'reports',
+        'role_based_access',
+        'multi_outlet',
+        'shift_management',
+        'parcel_charge',
+    ],
     'franchise': [
         # Ordering
         'token_system',
@@ -104,10 +139,11 @@ FEATURE_GROUPS = {
         'counter_billing',    # food court / multi-section counter billing
         'composition_scheme', # GST Composition dealer: Bill of Supply
         'parcel_charge',      # extra charge for takeaway/parcel orders
-        # Custom-only. Liquor taxed by state VAT instead of GST (menu.VatClass,
-        # orders/services/tax_engine.py). Off for every tenant until a
-        # superuser enables it for a bar; switching it off again is the
-        # instant rollback: new lines go back to GST, old bills never change.
+        # Liquor taxed by state VAT instead of GST (menu.VatClass,
+        # orders/services/tax_engine.py). On by default for the "pub" tenant
+        # type only; any other tenant needs a superuser to enable it. Switching
+        # it off again is the instant rollback: new lines go back to GST, old
+        # bills never change.
         'liquor_vat',
     ],
     'Kitchen': [

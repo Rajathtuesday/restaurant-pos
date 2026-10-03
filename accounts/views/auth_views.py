@@ -12,23 +12,23 @@ from accounts.models import User
 
 def _role_path(user):
     """Return the path the user should land on after login."""
-    tenant_type = user.tenant.tenant_type if user.tenant else "fine_dining"
+    table_service = user.tenant.is_table_service if user.tenant else True
     if user.role in ("owner", "manager"):
         return "/dashboard/"
     if user.role == "agent":
         return "/sales/"
     if user.role in ("waiter", "captain"):
-        return "/tables/" if tenant_type == "fine_dining" else "/token/"
+        return "/tables/" if table_service else "/token/"
     if user.role == "chef":
         return "/kitchen/"
     if user.role == "cashier":
-        if tenant_type != "fine_dining":
+        if not table_service:
             from core.features import has_feature
             if has_feature(user.tenant, "direct_billing_mode"):
                 return "/dashboard/"
             return "/token/"
         return "/billing/"
-    return "/tables/" if tenant_type == "fine_dining" else "/token/"
+    return "/tables/" if table_service else "/token/"
 
 
 def _subdomain_redirect(user, path):

@@ -9,6 +9,12 @@ the source of truth.
 
 ## 2026-10-03: the QR menu's cart opens again
 
+### Added
+- **A "Pub / Bar" tenant type** (`tenants.0039`, a choices-only migration). A pub gets the fine-dining set by default (floor plan, kitchen, QR menu, split bills, reservations, inventory, reports) plus `liquor_vat`, which stays off for every other type, and never the composition scheme (a liquor seller can't use it, s.10(2)(b)). Staff of a pub land on the floor plan and billing screen like fine dining: the login redirect asked "is this fine dining?" in three places, and now asks `Tenant.is_table_service` (fine dining and pub). The superuser panel offers it when creating a restaurant, and there is a "pub" preset. A pub created with no overrides bills drinks under VAT; the same cart at a fine-dining tenant stays GST (tested). Buy-one-get-one and other offers will be added to this type only, when built.
+
+### Fixed
+- **The superuser "create restaurant" form stored any text as the restaurant type** (a typo became an unknown type that quietly behaved as fine dining). It now refuses a type that isn't one of the choices.
+
 ### Fixed
 - **VIEW CART did nothing on the QR and digital menus** (since the 28 Sep deploy). The liquor work (`af6b70d`) made the cart read each dish's tax from a `DISH_TAX` table, and the billing and token screens got the line that reads it from the page, but `menu/digital_menu.html` didn't: opening the cart threw `ReferenceError: DISH_TAX is not defined` before the sheet appeared, so guests could add dishes but never see the cart or place the order. The page now reads the table like the other two carts.
 

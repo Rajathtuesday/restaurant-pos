@@ -94,6 +94,8 @@ def create_restaurant(request):
 
     if not name or not owner_username or not owner_password:
         return JsonResponse({"error": "Restaurant name, owner username and password are required."}, status=400)
+    if tenant_type not in Tenant.TenantType.values:
+        return JsonResponse({"error": f"Unknown restaurant type '{tenant_type}'."}, status=400)
     if gstin_error:
         return JsonResponse({"error": gstin_error}, status=400)
 

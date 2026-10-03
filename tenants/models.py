@@ -161,6 +161,7 @@ class Tenant(models.Model):
         FINE_DINING = 'fine_dining', 'Fine Dining'
         FRANCHISE = 'franchise', 'Franchise / QSR'
         CAFE = 'cafe', 'Cafe / Coffee Shop'
+        PUB = 'pub', 'Pub / Bar'
 
     tenant_type = models.CharField(
         max_length=20,
@@ -168,6 +169,13 @@ class Tenant(models.Model):
         default=TenantType.FINE_DINING,
         help_text="Controls which features are visible to the tenant"
     )
+
+    @property
+    def is_table_service(self):
+        """Guests are seated and served at tables (fine dining, pubs), as
+        opposed to the counter and token types (QSR, cafe). It decides where
+        staff land after login."""
+        return self.tenant_type in (self.TenantType.FINE_DINING, self.TenantType.PUB)
 
     # --------------------------------------------------
     # INTERNAL BILLING & SUBSCRIPTION (Only visible to Admin)

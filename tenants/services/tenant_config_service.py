@@ -84,6 +84,19 @@ PRESETS = {
                     "barcode_transfer", "counter_billing"],
         "outlet":  {"split_bill_by_category": False},
     },
+    "pub": {
+        "label": "Pub / Bar — tables, kitchen and liquor on state VAT",
+        "icon":  "bi-cup-straw",
+        "color": "#c8794a",
+        "enable":  ["floor_plan", "waiter_call", "kitchen_display", "kot_system",
+                    "merge_tables", "split_bill", "qr_menu", "running_order",
+                    "inventory", "reports", "ai_menu_import", "crm",
+                    "reservations", "parcel_charge", "liquor_vat"],
+        # No composition scheme: liquor sellers can't use it (s.10(2)(b)).
+        "disable": ["token_system", "simple_billing", "direct_billing_mode",
+                    "barcode_transfer", "counter_billing", "composition_scheme"],
+        "outlet":  {"split_bill_by_category": False},
+    },
     "cafe": {
         "label": "Café — mixed counter + tables",
         "icon":  "bi-cup-hot",
