@@ -766,6 +766,7 @@
 <script src="{% static 'js/cart_tax.js' %}"></script>
 <script>
     const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
+    const DISH_TAX = RasovaCartTax.readTable('dish-tax');
     let cart = {};
 
     // Menu item names (and, below, order-status item names) come from a

@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-10-03: the QR menu's cart opens again
+
+### Fixed
+- **VIEW CART did nothing on the QR and digital menus** (since the 28 Sep deploy). The liquor work (`af6b70d`) made the cart read each dish's tax from a `DISH_TAX` table, and the billing and token screens got the line that reads it from the page, but `menu/digital_menu.html` didn't: opening the cart threw `ReferenceError: DISH_TAX is not defined` before the sheet appeared, so guests could add dishes but never see the cart or place the order. The page now reads the table like the other two carts.
+
+### Added
+- **A test that runs the QR cart** (`menu/tests/test_qr_cart_js.py`) - the rendered page's scripts run in Node against a small stand-in for the browser, and a guest taps ADD and VIEW CART through the page's own buttons; it checks the cart opens with its dishes and the right GST and VAT. The existing cart tests only read the HTML, which is how this got through. It fails on the old page with the same ReferenceError.
+
 ## 2026-10-02: cleanup, one superuser panel
 
 ### Removed
