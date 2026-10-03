@@ -623,6 +623,17 @@ LOGGING = {
     },
 }
 
+# Tests never write to the real log files. They filled logs/ with test
+# tenants' events, and under `manage.py test --parallel` the workers all
+# rotated the same files, which Windows refuses ("being used by another
+# process"), printing a "Logging error" block each time. The console handler
+# stays, and assertLogs works as before (it adds its own handler).
+import sys as _sys
+if len(_sys.argv) > 1 and _sys.argv[1] == "test":
+    for _name, _handler in LOGGING["handlers"].items():
+        if "filename" in _handler:
+            LOGGING["handlers"][_name] = {"class": "logging.NullHandler"}
+
 # Aggregator webhook IP allowlist: addresses or ranges (CIDR), comma-separated.
 AGGREGATOR_IP_ALLOWLIST = [
     ip.strip() for ip in os.getenv('AGGREGATOR_IP_ALLOWLIST', '127.0.0.1').split(',') if ip.strip()

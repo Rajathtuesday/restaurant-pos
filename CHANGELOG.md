@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-10-03: the test suite runs in parallel
+
+### Changed
+- `python manage.py test ... --parallel 8` now works on Windows: all 1949 tests in about 25 minutes, where one process took over an hour. Two things stopped it before. `tblib` was missing, so the first failing test's traceback couldn't be sent back from its worker and the whole run crashed (now in `requirements-test.txt`). And the tests wrote to the real `logs/` files, which the workers all tried to rotate at once ("being used by another process"); during tests the file handlers are switched off (`core/settings.py`), the console log and `assertLogs` work as before.
+
 ## 2026-10-03: every number staff type is checked
 
 ### Fixed
