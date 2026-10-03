@@ -16,6 +16,14 @@ the source of truth.
 - A bad outlet parcel charge was dropped with only a log line; the owner now sees "The parcel charge must be a number. It was left as it was." and the rest of the form saves. A bad parcel charge on a dish now refuses that edit with a message instead of saving the rest and dropping it.
 - Tests: `core/tests/test_number_inputs.py` (every screen test fails on the old code).
 
+## 2026-10-03: the shifts and reservations pages open on the business day
+
+### Fixed
+- Both pages listed the calendar date, so at 1 AM the shifts page was empty while tonight's staff were still clocked in, and the reservations page showed tomorrow. They now use the business day (6 AM to 6 AM by default) like the rest of the app, for the default and for a chosen date; the weekly schedule opens on the business day's week. Tests: `core/tests/test_business_day_pages.py`.
+
+### Docs
+- README: the test list said a cashier cannot discount. A cashier or captain can, up to the outlet's staff limit and with a reason, and cannot close a bill without payment.
+
 ## 2026-10-03: closing a bill without payment
 
 ### Fixed

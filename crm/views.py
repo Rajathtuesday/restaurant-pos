@@ -177,22 +177,26 @@ def reservation_list(request):
 
     from .models import Reservation
     from orders.models import Table
-    from django.utils import timezone
 
+    # The business day, like the rest of the app: at 1 AM "today" is still
+    # tonight, and a 12:30 AM booking belongs to the night before.
+    from core.utils import get_business_date, get_business_date_range
+    outlet = request.user.outlet
     date_str = request.GET.get("date")
     if date_str:
         try:
             from datetime import datetime
             view_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
-            view_date = timezone.localdate()
+            view_date = get_business_date(None, outlet)
     else:
-        view_date = timezone.localdate()
+        view_date = get_business_date(None, outlet)
+    day_start, day_end = get_business_date_range(view_date, outlet)
 
     reservations = Reservation.objects.filter(
         tenant=request.user.tenant,
-        outlet=request.user.outlet,
-        reservation_time__date=view_date
+        outlet=outlet,
+        reservation_time__gte=day_start, reservation_time__lt=day_end,
     ).select_related("guest", "table").order_by("reservation_time")
 
     tables = Table.objects.filter(tenant=request.user.tenant, outlet=request.user.outlet, is_active=True)

@@ -19,7 +19,10 @@ def shift_dashboard(request):
     """Manager/Owner sees all shifts. Staff sees their own."""
     tenant = request.user.tenant
     outlet = request.user.outlet
-    from django.utils.timezone import localdate
+    # The business day (6 AM to 6 AM by default), not the calendar date: on
+    # the calendar date the page was empty after midnight while tonight's
+    # staff were still clocked in.
+    from core.utils import get_business_date, get_business_date_range
 
     date_str = request.GET.get("date")
     if date_str:
@@ -27,20 +30,21 @@ def shift_dashboard(request):
             from datetime import datetime
             view_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
-            view_date = localdate()
+            view_date = get_business_date(None, outlet)
     else:
-        view_date = localdate()
+        view_date = get_business_date(None, outlet)
+    day_start, day_end = get_business_date_range(view_date, outlet)
 
     if request.user.role in ("manager", "owner") or request.user.is_superuser:
         shifts = Shift.objects.filter(
             tenant=tenant, outlet=outlet,
-            clocked_in_at__date=view_date
+            clocked_in_at__gte=day_start, clocked_in_at__lt=day_end,
         ).select_related("staff").order_by("clocked_in_at")
     else:
         shifts = Shift.objects.filter(
             tenant=tenant, outlet=outlet,
             staff=request.user,
-            clocked_in_at__date=view_date
+            clocked_in_at__gte=day_start, clocked_in_at__lt=day_end,
         ).order_by("clocked_in_at")
 
     # Check if current user has active shift
@@ -491,7 +495,8 @@ def schedule_builder(request):
         # snap to Monday regardless of what date is passed
         week_start = week_start - timedelta(days=week_start.weekday())
     except (TypeError, ValueError):
-        today = timezone.localdate()
+        from core.utils import get_business_date
+        today = get_business_date(None, request.user.outlet)
         week_start = today - timedelta(days=today.weekday())
 
     week_days = [week_start + timedelta(days=i) for i in range(7)]

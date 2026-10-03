@@ -407,7 +407,7 @@ python manage.py test accounts tenants setup menu        # individual apps
 Test coverage includes:
 - Financial accuracy (Decimal math, GST rounding, no float bugs)
 - Tenant isolation (cross-restaurant data access blocked)
-- Role-based access (waiter cannot pay, cashier cannot discount)
+- Role-based access (waiter cannot pay; a cashier or captain discounts only up to the outlet's staff limit, needs a reason for every manual discount, and cannot close a bill without payment)
 - Concurrency (double-payment race condition, KOT number uniqueness under load)
 - Celery task idempotency (print job cannot fire twice)
 - API endpoints (notification, kitchen data, tables data)
