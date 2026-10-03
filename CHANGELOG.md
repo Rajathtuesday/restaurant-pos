@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-10-03: a sold dish can't be deleted
+
+### Fixed
+- **Deleting a dish deleted it from every bill that sold it.** `OrderItem.menu_item` was `on_delete=CASCADE`: run against the real code, a paid bill went from one line to none while its total and bill number stayed, so the bill, the item and category reports and the GSTR-1 HSN table lost the sale. Deleting the dish's category did the same. The line is now `RESTRICT` (`orders.0066`, no database change), and the menu screens refuse first with a message: a sold dish should be switched off, which hides it and keeps it on old bills; a category says which of its dishes were sold. A dish or category never sold can still be deleted, and deleting a whole restaurant (or the demo reset) still works, because the bills go in the same delete. Tests: `orders/tests/test_keep_sold_dishes.py`.
+
 ## 2026-10-03: promos and discounts hardened
 
 A review of the promos, with each suspicion run against the real code first (`md_files/rasova_pub_offers_design_and_promo_review_2026-10-03.html`), found six problems and two more discount paths. All fixed, each with a test that fails on the old code (`orders/tests/test_discount_hardening.py`, 30 tests; four deliberate breaks of the fixes were each caught).

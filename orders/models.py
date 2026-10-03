@@ -544,9 +544,14 @@ class OrderItem(models.Model):
         related_name="items"
     )
 
+    # RESTRICT, not CASCADE: deleting a dish used to delete every bill line
+    # that sold it, paid bills included, so old bills, item reports and the
+    # GSTR-1 export lost the sale while the bill's total stayed. A dish on any
+    # bill can't be deleted now (switch it off instead). Deleting a whole
+    # tenant still works: its orders go in the same delete.
     menu_item = models.ForeignKey(
         "menu.MenuItem",
-        on_delete=models.CASCADE
+        on_delete=models.RESTRICT
     )
 
     quantity = models.PositiveIntegerField(default=1)

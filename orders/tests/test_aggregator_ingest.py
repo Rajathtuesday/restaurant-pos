@@ -160,7 +160,9 @@ class RetriedDeliveryTest(AggregatorIngestBase):
 
     def test_repeat_delivery_after_the_dish_was_removed_still_answers_200(self):
         first = self._post(self.payload(aggregator_order_id="AGG-DUPE-2"))
-        self.menu_item.delete()
+        # Taken off the menu. (A dish on a bill can't be deleted since 3 Oct
+        # 2026: the bill would lose it. Switching it off is how it goes.)
+        MenuItem.objects.filter(pk=self.menu_item.pk).update(is_available=False)
         second = self._post(self.payload(aggregator_order_id="AGG-DUPE-2"))
         self.assertEqual(second.status_code, 200)
         self.assertEqual(second.json()["order_id"], first.json()["order_id"])

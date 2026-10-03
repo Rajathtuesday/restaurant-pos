@@ -46,6 +46,19 @@ def delete_category(request, category_id):
             tenant=request.user.tenant, outlet=request.user.outlet
         )
         name = category.name
+        # Deleting a category deletes its dishes; a dish that was ever sold
+        # must stay for its bills (OrderItem.menu_item is RESTRICT).
+        from orders.models import OrderItem
+        sold = list(
+            OrderItem.objects.filter(menu_item__category=category)
+            .values_list("menu_item__name", flat=True).distinct().order_by("menu_item__name")[:4]
+        )
+        if sold:
+            return JsonResponse({"error": (
+                f"'{name}' has dishes on past bills ({', '.join(sold)}), so it can't be deleted: "
+                "the bills would lose them. Switch those dishes off, or move them to another "
+                "category first."
+            )}, status=409)
         category.delete()
         logger.warning("User %s deleted category '%s' and all its items", request.user.username, name)
         return JsonResponse({"success": True})

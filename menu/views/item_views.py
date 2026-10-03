@@ -10,6 +10,8 @@ from django.views.decorators.http import require_POST
 from core.decorators import tenant_required, feature_required, role_required
 from accounts.demo_restrictions import blocked_in_demo_trailer
 from menu.models import MenuCategory, MenuItem
+
+ON_BILLS = "'{name}' is on past bills, so it can't be deleted: the bills would lose it. Switch it off instead (it disappears from the menu and stays on the old bills)."
 from setup.models import KitchenStation
 from inventory.models import InventoryItem
 from inventory.recipe_service import RecipeUnitMismatchError, upsert_recipe
@@ -166,6 +168,11 @@ def delete_menu_item(request, item_id):
         tenant=request.user.tenant, outlet=request.user.outlet
     )
     name = item.name
+    # A dish that was ever sold stays: old bills point at it (OrderItem.menu_item
+    # is RESTRICT). Say so up front instead of failing on the delete.
+    from orders.models import OrderItem
+    if OrderItem.objects.filter(menu_item=item).exists():
+        return JsonResponse({"error": ON_BILLS.format(name=name)}, status=409)
     item.delete()
     logger.warning("User %s deleted menu item '%s'", request.user.username, name)
     return JsonResponse({"success": True})
