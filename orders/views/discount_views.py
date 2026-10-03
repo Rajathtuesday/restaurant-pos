@@ -230,14 +230,34 @@ def apply_item_discount(request, item_id):
 
 
 # -------------------------------------------------
-# LOG PAYMENT BYPASS
+# CLOSE A BILL WITHOUT PAYMENT ("payment bypass")
 # -------------------------------------------------
+# The guest walked out, the owner's own guest, a bill that will be settled
+# another way: a manager or the owner closes the bill with money still owed.
+# Since 3 Oct 2026 it is its own button on the bill page (it used to be the
+# manager's back arrow, so going back to the tables closed the bill unpaid
+# without a word), it needs a reason, and a manager's limit counts by the
+# business day, not from midnight (a manager could close 3 before midnight
+# and 3 more after). Each one is on the audit report with the amount unpaid.
+
+BYPASS_DAILY_LIMIT = 3
+ASK_BYPASS_REASON = "Give a reason for closing the bill without payment (for example: guest walked out)."
+
 
 @login_required
 @tenant_required
 @require_POST
 @role_required("manager", "owner")
 def log_bypass(request, order_id):
+    try:
+        data = json.loads(request.body or b"{}")
+    except ValueError:
+        data = {}
+    try:
+        reason = read_reason(data.get("reason") if isinstance(data, dict) else None, missing=ASK_BYPASS_REASON)
+    except DiscountRefused as e:
+        return _refused(e)
+
     try:
         with transaction.atomic():
             order = Order.objects.select_for_update().get(
@@ -246,32 +266,42 @@ def log_bypass(request, order_id):
                 outlet=request.user.outlet
             )
 
-            if order.status in ["paid", "closed"]:
-                return JsonResponse({"error": "Order already completed"}, status=400)
+            if order.status not in ("open", "billing"):
+                return JsonResponse({"error": "This bill is already closed."
+                                     if order.status in ("paid", "closed") else "This bill was cancelled."},
+                                    status=400)
 
-            # Enforce daily bypass limit for non-owners
             if request.user.role != "owner":
-                import zoneinfo
-                ist = zoneinfo.ZoneInfo('Asia/Kolkata')
-                now_ist = timezone.now().astimezone(ist)
-                # Keep the datetime timezone-aware; stripping tzinfo causes Django ORM
-                # to compare a naive dt against a tz-aware field, giving wrong results.
-                today_ist_start = now_ist.replace(hour=0, minute=0, second=0, microsecond=0)
-
-                bypass_count = OrderEvent.objects.filter(
+                # One manager's closes, one at a time: lock their own row so
+                # two quick taps can't both count 2 and both go through.
+                from accounts.models import User
+                User.objects.select_for_update().filter(pk=request.user.pk).first()
+                from core.utils import get_business_date, get_business_date_range
+                day_start, day_end = get_business_date_range(
+                    get_business_date(timezone.now(), order.outlet), order.outlet)
+                closed_today = OrderEvent.objects.filter(
                     tenant=request.user.tenant,
                     outlet=request.user.outlet,
                     created_by=request.user,
                     event_type="status_changed",
-                    created_at__gte=today_ist_start
+                    created_at__gte=day_start,
+                    created_at__lt=day_end,
                 ).filter(metadata__action="payment_gate_bypassed").count()
 
-                if bypass_count >= 3:
-                    return JsonResponse({"error": "Daily payment bypass limit (3) reached. Contact owner."}, status=403)
+                if closed_today >= BYPASS_DAILY_LIMIT:
+                    return JsonResponse({"error": (
+                        f"You have closed {BYPASS_DAILY_LIMIT} bills without payment today, the most a "
+                        "manager can. Ask the owner to close this one."
+                    )}, status=403)
+
+            from django.db.models import Sum
+            paid = (order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"]
+                    or Decimal("0"))
+            unpaid = max(order.grand_total - paid, Decimal("0"))
 
             logger.warning(
-                "User %s bypassed payment gate for order #%s",
-                request.user.username, order_id,
+                "User %s closed order #%s without payment (unpaid %s)",
+                request.user.username, order_id, unpaid,
             )
 
             # Actually close the order
@@ -290,12 +320,15 @@ def log_bypass(request, order_id):
                 metadata={
                     "action": "payment_gate_bypassed",
                     "role": request.user.role,
-                    "bypassed_by": request.user.username
+                    "bypassed_by": request.user.username,
+                    "reason": reason,
+                    "unpaid": str(unpaid),
+                    "paid": str(paid),
                 },
                 created_by=request.user
             )
 
-        return JsonResponse({"success": True, "message": "Order closed via bypass"})
+        return JsonResponse({"success": True, "message": "Bill closed without payment"})
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

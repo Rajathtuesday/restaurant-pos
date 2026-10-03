@@ -45,6 +45,11 @@
   .audit-row .count { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
   .audit-empty { color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; }
   .coverage-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.75rem; }
+  .unpaid-card { margin-bottom: 1.5rem; }
+  .unpaid-row { display: grid; grid-template-columns: 6.5rem 1fr auto; gap: 0.25rem 1rem; }
+  .unpaid-row .count { text-align: right; }
+  .unpaid-by, .unpaid-reason { color: var(--text-muted); font-size: 0.78rem; }
+  .unpaid-reason { grid-column: 2 / -1; }
 </style>
 {% endblock %}
 
@@ -91,6 +96,21 @@
 <div class="page-wrap">
   <h1 class="section-title">Discount / Void Audit</h1>
   <p class="section-sub">Who's discounting, comping, and voiding — {{ start_date }} to {{ end_date }}</p>
+
+  <div class="audit-card unpaid-card">
+    <h3>Bills Closed Without Payment</h3>
+    {% for row in report.unpaid_closes %}
+    <div class="audit-row unpaid-row">
+      <span class="unpaid-when">{{ row.when|date:"d M, H:i" }}</span>
+      <span class="unpaid-bill">{{ row.bill }}</span>
+      <span class="count">&#8377;{{ row.unpaid }}</span>
+      <span class="unpaid-by">{{ row.by }}</span>
+      <span class="unpaid-reason">{{ row.reason|default:"(no reason recorded)" }}</span>
+    </div>
+    {% empty %}
+    <div class="audit-empty">No bills were closed without payment in this period.</div>
+    {% endfor %}
+  </div>
 
   <div class="audit-grid">
     <div class="audit-card">

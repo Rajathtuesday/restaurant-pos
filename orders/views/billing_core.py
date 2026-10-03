@@ -144,7 +144,7 @@ def bill_view(request, order_id):
             is_active=True
         ).filter(Q(outlet=request.user.outlet) | Q(outlet__isnull=True))
 
-        valid_promos = [p for p in promos if p.is_currently_valid]
+        valid_promos = [p for p in promos if p.is_live_for(request.user.outlet)]
 
         from core.features import has_feature
         from setup.services.station_service import get_default_station

@@ -42,11 +42,14 @@ def staff_limit(user, outlet):
     return outlet.staff_discount_limit_pct
 
 
-def read_reason(raw):
-    """The reason as one tidy line, or DiscountRefused if there isn't one."""
+ASK_DISCOUNT_REASON = "Give a reason for the discount (for example: regular guest, food complaint)."
+
+
+def read_reason(raw, missing=ASK_DISCOUNT_REASON):
+    """The reason as one tidy line, or DiscountRefused(missing) if there isn't one."""
     reason = " ".join(str(raw or "").split())
     if len(reason) < REASON_MIN_LENGTH:
-        raise DiscountRefused("Give a reason for the discount (for example: regular guest, food complaint).")
+        raise DiscountRefused(missing)
     return reason[:REASON_MAX_LENGTH]
 
 

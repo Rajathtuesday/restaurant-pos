@@ -428,7 +428,8 @@ class Command(BaseCommand):
             resp = split_pay(req, order.id)
             bump("closed_split" if resp.status_code == 200 else "close_error_split")
         elif roll < 0.20:
-            req = self._request("POST", f"/orders/{order.id}/log-bypass/", {}, owner, ip)
+            req = self._request("POST", f"/orders/{order.id}/log-bypass/",
+                                 {"reason": "load test walkout"}, owner, ip)
             resp = log_bypass(req, order.id)
             bump("closed_manager_bypass" if resp.status_code == 200 else "close_error_bypass")
         else:

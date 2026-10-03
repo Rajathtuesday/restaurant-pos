@@ -742,6 +742,13 @@ def generate_audit_csv(tenant, outlet, start_date, end_date):
     writer.writerow(['Promo', 'Bills'])
     for row in report['promos_used']:
         writer.writerow([row['metadata__promo_name'] or 'Unknown', row['count']])
+    writer.writerow([])
+
+    writer.writerow(['BILLS CLOSED WITHOUT PAYMENT'])
+    writer.writerow(['When', 'Bill', 'Unpaid', 'Closed by', 'Reason'])
+    for row in report['unpaid_closes']:
+        writer.writerow([timezone.localtime(row['when']).strftime('%Y-%m-%d %H:%M'), row['bill'],
+                         row['unpaid'], row['by'], row['reason'] or '(none recorded)'])
 
     return output.getvalue()
 

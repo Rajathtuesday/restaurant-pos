@@ -16,6 +16,8 @@ two categories is only available from then onward, the same way
 pl_reports.py is upfront about recipe coverage rather than pretending COGS
 is complete.
 """
+from decimal import Decimal
+
 from django.db.models import Count, Q
 
 from core.utils import get_business_date_range
@@ -27,6 +29,7 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
         return {
             "discounts": [], "item_discounts": [], "comps": [], "voids": [],
             "void_reasons": [], "discount_reasons": [], "comp_reasons": [], "promos_used": [],
+            "unpaid_closes": [],
         }
 
     range_start, _ = get_business_date_range(start_date, outlet)
@@ -96,7 +99,28 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
         .order_by("-count")
     )
 
+    # Bills closed without payment (a manager or the owner, log_bypass), one
+    # row each: they are rare and each one is money. The amount comes from
+    # the bill itself, so ones closed before 3 Oct 2026 (no amount or reason
+    # recorded) still show what was left unpaid.
+    unpaid_closes = []
+    for event in (base_qs.filter(event_type="status_changed", metadata__action="payment_gate_bypassed")
+                  .select_related("order", "created_by").order_by("created_at")):
+        order = event.order
+        unpaid = event.metadata.get("unpaid")
+        if unpaid is None and order is not None:
+            paid = sum((p.amount for p in order.payments.exclude(method="refund")), Decimal("0"))
+            unpaid = str(max(order.grand_total - paid, Decimal("0")))
+        unpaid_closes.append({
+            "when": event.created_at,
+            "bill": order.display_number if order is not None else "",
+            "unpaid": Decimal(unpaid or "0"),
+            "by": event.created_by.username if event.created_by else "Unknown",
+            "reason": event.metadata.get("reason") or "",
+        })
+
     return {
+        "unpaid_closes": unpaid_closes,
         "discounts": discounts,
         "item_discounts": item_discounts,
         "comps": comps,

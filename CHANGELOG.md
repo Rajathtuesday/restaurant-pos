@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-10-03: closing a bill without payment
+
+### Fixed
+- **A manager's back arrow on an unpaid bill closed it with no payment.** The link was labelled "Dashboard (Bypass)" and posted to `log-bypass` on the way out, freeing the table and ignoring any error, so going back to the tables lost the bill's money without a word. The back arrow now only goes back. Closing an unpaid bill is its own **Close Without Payment** button (manager or owner): it says how much stays unpaid, asks for a reason, and stays on the bill if the server refuses.
+- **The manager limit of 3 a day reset at midnight.** It counted from IST midnight, so a manager could close 3 bills before midnight and 3 more after, in one business night. It now counts the business day (6 AM to 6 AM by default), and two quick taps can't both slip under it (the manager's row is locked while counting).
+- **No reason, and no report.** A reason is required now, and each bill closed without payment is on the Discount / Void Audit report and its CSV: when, bill number, amount unpaid, who, why. Ones closed before today show their unpaid amount with "(no reason recorded)".
+- A cancelled bill could be "closed" this way; it is refused now.
+- The bill page's own promo list now uses the same rule as the rest of the promo fix (`is_live_for`, the business day).
+- Tests: `orders/tests/test_close_without_payment.py`.
+
 ## 2026-10-03: a sold dish can't be deleted
 
 ### Fixed

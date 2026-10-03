@@ -151,16 +151,12 @@
 <div class="bill-wrap">
 
     <!-- Back navigation — QSR goes to Tokens, fine-dining goes to Tables -->
-    {% if remaining > 0 %}
-        {% if request.user.role == 'owner' or request.user.role == 'manager' %}
-        <a href="#" onclick="logBypass({{ order.id }}); return false;" class="nav-back no-print">
-            <i class="bi bi-arrow-left"></i> Dashboard (Bypass)
-        </a>
-        {% else %}
+    {# Going back never closes the bill. A manager closes an unpaid bill #}
+    {# with the "Close without payment" button below, giving a reason.  #}
+    {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
         <a href="#" onclick="ui.toast('Complete payment before leaving','warning'); return false;" class="nav-back no-print">
             <i class="bi bi-arrow-left"></i> Back
         </a>
-        {% endif %}
     {% else %}
         {% if direct_billing_mode or is_qsr %}
         <a href="/dashboard/" class="nav-back no-print"><i class="bi bi-arrow-left"></i> Dashboard</a>
@@ -360,6 +356,12 @@
                     {% if razorpay_feature_enabled and config.razorpay_enabled %}<button class="btn-pay" onclick="openRazorpayQR()"><i class="bi bi-qr-code-scan"></i>Razorpay QR</button>{% endif %}
                 </div>
                 <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Bill</button>
+                {% if request.user.role == 'owner' or request.user.role == 'manager' %}
+                <button class="btn-action" id="close-unpaid" onclick="closeWithoutPayment()"
+                        style="border-color:var(--border-color);color:var(--text-muted);">
+                    <i class="bi bi-x-octagon me-2"></i>Close Without Payment
+                </button>
+                {% endif %}
             {% else %}
                 {% if order.status != 'closed' and order.status != 'paid' %}
                 <button class="btn-pay" style="width:100%;" onclick="recordPay('cash', 0)">
@@ -871,9 +873,20 @@ renderUpiQR({{ remaining }});
         }
     }
 
-    async function logBypass(orderId) {
-        try { await apiClient.post(`/log-bypass/${orderId}/`, {}); } catch(e) {}
-        window.location.href = {% if is_qsr %}'/token/'{% else %}'/tables/'{% endif %};
+    function closeWithoutPayment() {
+        ui.confirm('Close this bill without payment?',
+                   '₹{{ remaining }} stays unpaid. It goes on the audit report with your name and reason.',
+                   'Close Bill').then(r => {
+            if (!r.isConfirmed) return;
+            const reason = (prompt('Why is this bill closed without payment? (for example: guest walked out)') || '').trim();
+            if (reason.length < 3) { ui.toast('Closing without payment needs a reason.', 'warning'); return; }
+            apiClient.post('{% url "log-bypass" order.id %}', { reason })
+                .then(d => {
+                    if (!d.success) return;
+                    window.location.href = {% if is_qsr %}'/token/'{% else %}'/tables/'{% endif %};
+                })
+                .catch(() => { /* apiClient has already shown the error; the bill stays open */ });
+        });
     }
 
     function openThermalReceipt() {

@@ -364,7 +364,8 @@ class PaymentCompletionMovesTableToFreeTests(TestCase):
         client = Client()
         client.force_login(self.manager)
 
-        resp = client.post(reverse("log-bypass", args=[order.id]))
+        resp = client.post(reverse("log-bypass", args=[order.id]),
+                           data={"reason": "guest walked out"}, content_type="application/json")
 
         self.assertEqual(resp.status_code, 200)
         self.table.refresh_from_db()
