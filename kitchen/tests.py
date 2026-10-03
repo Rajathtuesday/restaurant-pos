@@ -698,7 +698,9 @@ class DineInOrderClearsFromKitchenOnCloseTest(TestCase):
 
     def test_manager_bypass_clears_ready_item(self):
         order, item = self._order(grand_total=105, item_status="ready")
-        resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]))
+        resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]),
+                                                     data={"reason": "guest walked out"},
+                                                     content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.status, "served")
@@ -715,7 +717,9 @@ class DineInOrderClearsFromKitchenOnCloseTest(TestCase):
         """
         order, item = self._order(grand_total=105, item_status="ready")
         with patch.dict(sys.modules, {"pytz": None}):
-            resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]))
+            resp = self._login(self.manager).post(reverse("log-bypass", args=[order.id]),
+                                                     data={"reason": "guest walked out"},
+                                                     content_type="application/json")
         self.assertEqual(resp.status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.status, "served")

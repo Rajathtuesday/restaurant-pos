@@ -17,7 +17,7 @@ each one is on the discount/void audit report with the amount unpaid.
 Run: python manage.py test orders.tests.test_close_without_payment
 """
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal as D
 from unittest import mock
 from zoneinfo import ZoneInfo
