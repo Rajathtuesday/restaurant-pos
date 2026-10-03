@@ -159,8 +159,13 @@ jobs:
           timeout:         120s     # SSH connection establish timeout
           command_timeout: 20m      # full deploy.sh runs long on t3.micro (collectstatic etc.)
           script: |
-            # Set git credentials so fetch works
+            # Let the server's fetch read the repository with this run's own
+            # token: read-only (permissions above) and revoked when the job
+            # ends, so no long-lived token stays in the server's .git/config.
+            # GitHub wants the token as the password: a token alone in the URL
+            # is a username with no password, which only worked while the
+            # repository was public (the 3 Oct deploy failed on exactly that).
             cd /home/ubuntu/rasova
-            git remote set-url origin https://${{ secrets.GH_PAT }}@github.com/Rajathtuesday/restaurant-pos.git
+            git remote set-url origin https://x-access-token:${{ github.token }}@github.com/Rajathtuesday/restaurant-pos.git
             # Run the deploy script — setsid handles celery detachment
             bash /home/ubuntu/rasova/deploy.sh
