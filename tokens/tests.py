@@ -1354,7 +1354,7 @@ class PickupReadinessTest(TestCase, TokenFixtureMixin):
         )
         self.token = TokenOrder.objects.create(
             tenant=self.tenant, outlet=self.outlet, order=self.order,
-            token_number=1, date=timezone.now().date(), is_online=False,
+            token_number=1, date=get_business_date(timezone.now(), self.outlet), is_online=False,  # the business day, as the board shows
         )
 
     def test_mark_ready_sets_timestamp(self):
@@ -1391,7 +1391,7 @@ class PickupReadinessTest(TestCase, TokenFixtureMixin):
         other_order = Order.objects.create(tenant=other_tenant, outlet=other_outlet, status="paid")
         other_token = TokenOrder.objects.create(
             tenant=other_tenant, outlet=other_outlet, order=other_order,
-            token_number=1, date=timezone.now().date(), is_online=False,
+            token_number=1, date=get_business_date(timezone.now(), self.outlet), is_online=False,  # the business day, as the board shows
         )
         resp = self.client.post(reverse("mark-token-ready", args=[other_token.id]))
         self.assertEqual(resp.status_code, 404)
@@ -1417,7 +1417,7 @@ class TokenDashboardPickupUITest(TestCase, TokenFixtureMixin):
         )
         TokenOrder.objects.create(
             tenant=self.tenant, outlet=self.outlet, order=self.order,
-            token_number=9, date=timezone.now().date(), is_online=False,
+            token_number=9, date=get_business_date(timezone.now(), self.outlet), is_online=False,  # the business day, as the board shows
         )
 
     def test_mark_ready_button_hidden_when_kitchen_display_on(self):
