@@ -174,3 +174,19 @@ class OfferWindow(models.Model):
         start = (self.start_time or time(0)).strftime("%H:%M") if self.start_time else "open"
         end = self.end_time.strftime("%H:%M") if self.end_time else "close"
         return f"{days} {start}-{end}"
+
+
+class OfferChange(models.Model):
+    """One edit of an offer: who, when, and each field from what to what, so
+    an owner can see that "Happy hour 25%" became 50% at 9 PM and by whom."""
+    offer = models.ForeignKey(Offer, on_delete=models.CASCADE, related_name="changes")
+    changed_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True)
+    changed_at = models.DateTimeField(auto_now_add=True)
+    # [{"field": "Percent off", "before": "50", "after": "5"}, ...]
+    changes = models.JSONField(default=list)
+
+    class Meta:
+        ordering = ["-changed_at", "-id"]
+
+    def __str__(self):
+        return f"{self.offer} changed by {self.changed_by} at {self.changed_at:%d %b %H:%M}"

@@ -46,6 +46,13 @@
     .tbl-btn-toggle { background: #f0fdf4; color: #15803d; }
     .tbl-btn-toggle.off { background: #fef2f2; color: #dc2626; }
     .tbl-btn-del { background: #fef2f2; color: #dc2626; }
+    .tbl-btn-edit { background: rgba(197,160,89,.12); color: var(--gold); }
+    .history { margin-top: 4px; }
+    .history summary { font-size: .65rem; color: var(--muted); cursor: pointer; text-transform: none; letter-spacing: 0; margin: 0; }
+    .history li { font-size: .7rem; color: var(--muted); list-style: none; }
+    .history ul { padding-left: .6rem; margin: .2rem 0 0; }
+    .btn-cancel { width: 100%; padding: .7rem; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .68rem; text-transform: uppercase; letter-spacing: 2px; border-radius: 6px; margin-top: .6rem; cursor: pointer; min-height: 44px; }
+    tr.editing td { background: rgba(197,160,89,.08); }
     .btn-pause-all { border: 1px solid var(--danger); background: transparent; color: var(--danger); border-radius: 6px; padding: .35rem .7rem; font-size: .65rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
 
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .85rem; }
@@ -133,6 +140,17 @@
                                 <div style="font-weight:600;">{{ o.name }}</div>
                                 <div class="sub">{{ o.summary }}{% if o.priority %} &middot; priority {{ o.priority }}{% endif %}</div>
                                 {% if not o.outlet %}<span class="badge badge-all" style="margin-top:4px;">All outlets</span>{% endif %}
+                                {% with o.changes.all as changes %}{% if changes %}
+                                <details class="history">
+                                    <summary>Edited {{ changes.0.changed_at|date:"d M, H:i" }} by {{ changes.0.changed_by.username|default:"someone" }}{% if changes|length > 1 %} ({{ changes|length }} edits){% endif %}</summary>
+                                    <ul>
+                                    {% for change in changes %}
+                                        <li><strong>{{ change.changed_at|date:"d M, H:i" }}, {{ change.changed_by.username|default:"someone" }}</strong>
+                                        {% for c in change.changes %}<div>{{ c.field }}: {{ c.before|default:"(none)" }} &rarr; {{ c.after|default:"(none)" }}</div>{% endfor %}</li>
+                                    {% endfor %}
+                                    </ul>
+                                </details>
+                                {% endif %}{% endwith %}
                             </td>
                             <td>
                                 {% for t in o.targets.all %}<div>{% if t.category %}{{ t.category.name }} <span class="sub">(category)</span>{% else %}{{ t.menu_item.name }}{% endif %}</div>{% empty %}<span class="sub">Whole menu</span>{% endfor %}
@@ -144,6 +162,9 @@
                             <td>{% if o.is_active %}<span class="badge badge-active">On</span>{% else %}<span class="badge badge-paused">Paused</span>{% endif %}</td>
                             <td>
                                 <div class="tbl-actions">
+                                    <button class="tbl-btn tbl-btn-edit" onclick="startEdit({{ o.id }})" title="Edit" aria-label="Edit {{ o.name }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
                                     <button class="tbl-btn tbl-btn-toggle {% if not o.is_active %}off{% endif %}" onclick="toggleOffer({{ o.id }})"
                                             title="{% if o.is_active %}Pause{% else %}Switch on{% endif %}" aria-label="{% if o.is_active %}Pause{% else %}Switch on{% endif %} {{ o.name }}">
                                         <i class="bi bi-{% if o.is_active %}pause{% else %}play{% endif %}-fill"></i>
@@ -166,7 +187,7 @@
 
         <div>
             <div class="card">
-                <div class="card-hdr"><i class="bi bi-plus-circle"></i><span class="card-hdr-title">New offer</span></div>
+                <div class="card-hdr" id="form-card"><i class="bi bi-plus-circle" id="form-icon"></i><span class="card-hdr-title" id="form-title">New offer</span></div>
                 <div class="card-body">
                     <div class="templates" role="group" aria-label="Kind of offer">
                         <button type="button" class="tpl" data-tpl="buy_get_free" aria-pressed="true"><b>Buy N, get free</b><span>2 pitchers, the 3rd free</span></button>
@@ -250,7 +271,9 @@
                         <div class="field-hint">Change the quantities to try it. The real bill works it out the same way.</div>
                     </div>
 
+                    <p class="field-hint" id="edit-hint" hidden>Saving changes it on open bills now (so a mistake stops costing money). Paid bills keep what they were billed. The change is recorded with your name.</p>
                     <button class="btn-create" id="create-btn" onclick="createOffer()"><i class="bi bi-plus-lg"></i> Save offer</button>
+                    <button class="btn-cancel" id="cancel-edit" onclick="cancelEdit()" hidden>Cancel editing</button>
                     <div id="form-msg" role="status"></div>
                 </div>
             </div>
@@ -261,11 +284,14 @@
 
 {% block extra_js %}
 {{ example_menu|json_script:"example-menu" }}
+{{ offer_forms|json_script:"offer-forms" }}
 {{ dish_tax|json_script:"dish-tax" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
 <script src="{% static 'js/offers.js' %}"></script>
 <script>
     const MENU = JSON.parse(document.getElementById('example-menu').textContent);
+    const OFFER_FORMS = JSON.parse(document.getElementById('offer-forms').textContent);
+    let editing = null;           // the offer being edited, or null for a new one
     const DISH_TAX = RasovaCartTax.readTable('dish-tax');
     const OUTLET = {
         inclusive: {{ current_outlet.gst_inclusive|yesno:"true,false" }},
@@ -395,11 +421,59 @@
         if (!payload.name) { showMsg('Give the offer a name, as the bill will show it.', false); return; }
         btn.disabled = true;
         try {
-            const data = await apiClient.post('{% url "offer_create" %}', payload);
-            if (data.success) { showMsg(`Saved: ${data.name} (${data.summary}).`, true); setTimeout(() => location.reload(), 900); }
+            const url = editing ? `/setup/offers/${editing}/edit/` : '{% url "offer_create" %}';
+            const data = await apiClient.post(url, payload);
+            if (data.success) {
+                const bills = editing && data.bills ? ` ${data.bills} open bill${data.bills === 1 ? '' : 's'} re-totalled.` : '';
+                const same = editing && !(data.changes || []).length ? ' Nothing was different.' : '';
+                showMsg(`Saved: ${data.name} (${data.summary}).${same}${bills}`, true);
+                setTimeout(() => location.reload(), 1200);
+            }
             else { showMsg(data.error || 'Could not save.', false); btn.disabled = false; }
         } catch (e) { btn.disabled = false; /* apiClient has shown the error */ }
     }
+
+    // Load an offer back into the form (the live example follows it).
+    function startEdit(id) {
+        const d = OFFER_FORMS[String(id)];
+        if (!d) return;
+        editing = id;
+        $('f-start').value = ''; $('f-end').value = '';
+        document.querySelectorAll('.day').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+        setTemplate(d.template);
+        $('f-name').value = d.name;
+        $('f-buy').value = d.buy_qty; $('f-free').value = d.free_qty;
+        if (d.percent) $('f-pct').value = d.percent;
+        if (d.amount) $('f-amt').value = d.amount;
+        document.querySelectorAll('.pick-cat').forEach((c) => {
+            c.checked = d.category_ids.includes(Number(c.value));
+        });
+        document.querySelectorAll('.pick-dish').forEach((x) => {
+            const inCategory = d.category_ids.includes(Number(x.dataset.cat));
+            x.disabled = inCategory;
+            x.checked = !inCategory && d.dish_ids.includes(Number(x.value));
+        });
+        document.querySelectorAll('.day').forEach((b) =>
+            b.setAttribute('aria-pressed', String(d.days.includes(Number(b.dataset.day)))));
+        $('f-start').value = d.start_time; $('f-end').value = d.end_time;
+        $('f-from').value = d.valid_from; $('f-until').value = d.valid_until;
+        $('f-priority').value = d.priority;
+        if ($('f-all')) $('f-all').checked = !!d.all_outlets;
+        $('form-title').textContent = 'Edit offer';
+        $('form-icon').className = 'bi bi-pencil';
+        $('create-btn').innerHTML = '<i class="bi bi-check-lg"></i> Save changes';
+        $('cancel-edit').hidden = false;
+        $('edit-hint').hidden = false;
+        $('form-msg').style.display = 'none';
+        document.querySelectorAll('tr.editing').forEach((r) => r.classList.remove('editing'));
+        const row = $(`row-${id}`);
+        if (row) row.classList.add('editing');
+        exampleQty = {};
+        renderExample();
+        if ($('form-card') && $('form-card').scrollIntoView) $('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function cancelEdit() { location.href = location.pathname; }
 
     async function toggleOffer(id) {
         try { const d = await apiClient.post(`/setup/offers/${id}/toggle/`, {}); if (d.success) location.reload(); } catch (e) {}

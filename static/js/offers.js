@@ -3,9 +3,10 @@
  * what an offer takes off before the order exists. The bill is always worked
  * out on the server; this follows the same rules to the paisa:
  *   - a unit takes an offer only if the offer was live when its line was
- *     added (dates, days and windows follow the business day: 1 AM Saturday
- *     is Friday night; a window whose end is not after its start runs past
- *     midnight; no times means the whole business day)
+ *     added (dates follow the business day; a window's times are clock
+ *     times, 05:00 to 20:00 is 5 AM to 8 PM that day; a window ending before
+ *     it starts runs past midnight and the part after midnight belongs to
+ *     the day it started; days without times mean the whole business day)
  *   - offers are tried by priority, then by what each is worth on its own,
  *     then oldest first; a line one offer touched is closed to the others
  *   - buy N get M free: eligible units dearest first (ties: earlier line,
@@ -57,19 +58,20 @@
     return { date: date, weekday: (shifted.getUTCDay() + 6) % 7, clock: p.h * 60 + p.mi + p.s / 60 };
   }
 
-  function inWindow(w, bm, cutoffHour) {
+  function inWindow(w, p, bm, cutoffHour) {
     const days = w.days || [];
-    if (days.length && !days.includes(bm.weekday)) return false;
+    const dayOk = (weekday) => !days.length || days.includes(weekday);
     let start = minutesOf(w.start), end = minutesOf(w.end);
-    if (start === null && end === null) return true;
+    if (start === null && end === null) return dayOk(bm.weekday);
     if (start === null) start = cutoffHour * 60;
     if (end === null) end = cutoffHour * 60;
-    const sinceOpen = (minutes) => (((minutes - cutoffHour * 60) % 1440) + 1440) % 1440;
-    const s = sinceOpen(start);
-    let e = sinceOpen(end);
-    const now = sinceOpen(bm.clock);
-    if (e <= s) e = 1440;
-    return s <= now && now < e;
+    if (start === end) return dayOk(bm.weekday);
+    const calendarWeekday = (new Date(Date.UTC(p.y, p.mo - 1, p.d)).getUTCDay() + 6) % 7;
+    const clock = bm.clock;
+    if (start < end) return start <= clock && clock < end && dayOk(calendarWeekday);
+    if (clock >= start) return dayOk(calendarWeekday);
+    if (clock < end) return dayOk((calendarWeekday + 6) % 7);
+    return false;
   }
 
   function liveAt(rule, moment, cutoffHour) {
@@ -81,7 +83,7 @@
     const bm = businessMoment(p, cutoffHour);
     if (rule.validFrom && bm.date < rule.validFrom) return false;
     if (rule.validUntil && bm.date > rule.validUntil) return false;
-    if (windows.length && !windows.some((w) => inWindow(w, bm, cutoffHour))) return false;
+    if (windows.length && !windows.some((w) => inWindow(w, p, bm, cutoffHour))) return false;
     return true;
   }
 

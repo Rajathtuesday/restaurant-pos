@@ -173,6 +173,83 @@ def _mine(request, offer_id):
     return offer
 
 
+def _save_covers_and_hours(offer, dishes, categories, window):
+    """Replace what an offer covers and when it runs."""
+    from offers.models import OfferTarget, OfferWindow
+    offer.targets.all().delete()
+    offer.windows.all().delete()
+    OfferTarget.objects.bulk_create(
+        [OfferTarget(offer=offer, menu_item=d) for d in dishes]
+        + [OfferTarget(offer=offer, category=c) for c in categories])
+    if window:
+        OfferWindow.objects.create(offer=offer, **window)
+
+
+def _snapshot(offer):
+    """An offer as an owner reads it, field by field, for its change record."""
+    def number(value):
+        return "" if value is None else f"{value:.2f}".rstrip("0").rstrip(".")
+    targets = list(offer.targets.select_related("menu_item", "category"))
+    return {
+        "Name": offer.name,
+        "Kind": offer.summary,
+        "Covers": ", ".join(sorted(f"{t.category.name} (category)" if t.category_id else t.menu_item.name
+                                   for t in targets)) or "Whole menu",
+        "When": "; ".join(str(w) for w in offer.windows.all()) or "Any time",
+        "First day": offer.valid_from.isoformat() if offer.valid_from else "",
+        "Last day": offer.valid_until.isoformat() if offer.valid_until else "",
+        "Priority": str(offer.priority),
+        "Outlet": offer.outlet.name if offer.outlet_id else "All outlets",
+    }
+
+
+def _differences(before, after):
+    return [{"field": key, "before": before[key], "after": after[key]}
+            for key in before if before[key] != after[key]]
+
+
+def form_data(offer):
+    """An offer as the Setup form holds it, so Edit can load it back."""
+    window = next(iter(offer.windows.all()), None)
+    targets = list(offer.targets.all())
+    if offer.kind == "percent_off":
+        template = "happy_hour" if window and (window.start_time or window.end_time) else "percent_off"
+    else:
+        template = offer.kind
+    return {
+        "id": offer.id, "template": template, "name": offer.name,
+        "buy_qty": offer.buy_qty or 2, "free_qty": offer.free_qty or 1,
+        "percent": str(offer.percent) if offer.percent is not None else "",
+        "amount": str(offer.amount) if offer.amount is not None else "",
+        "dish_ids": sorted(t.menu_item_id for t in targets if t.menu_item_id),
+        "category_ids": sorted(t.category_id for t in targets if t.category_id),
+        "days": sorted(window.day_set) if window else [],
+        "start_time": window.start_time.strftime("%H:%M") if window and window.start_time else "",
+        "end_time": window.end_time.strftime("%H:%M") if window and window.end_time else "",
+        "valid_from": offer.valid_from.isoformat() if offer.valid_from else "",
+        "valid_until": offer.valid_until.isoformat() if offer.valid_until else "",
+        "priority": offer.priority, "all_outlets": offer.outlet_id is None,
+    }
+
+
+def retotal_open_bills(tenant, outlet):
+    """Re-total the open bills an offer could reach (one outlet, or every
+    outlet for an all-outlets offer), so a corrected offer shows on them now.
+    Paid bills are never re-totalled. Returns how many."""
+    from orders.models import Order
+    open_ids = Order.objects.filter(tenant=tenant, status__in=["open", "billing"])
+    if outlet is not None:
+        open_ids = open_ids.filter(outlet=outlet)
+    count = 0
+    for order_id in list(open_ids.values_list("id", flat=True)):
+        with transaction.atomic():
+            order = Order.objects.select_for_update().filter(id=order_id, status__in=["open", "billing"]).first()
+            if order is not None:
+                order.recalculate_totals()
+                count += 1
+    return count
+
+
 @login_required
 @tenant_required
 @feature_required("offers")
@@ -191,7 +268,7 @@ def setup_offers(request):
         Offer.objects.filter(tenant=tenant, archived_at__isnull=True)
         .filter(Q(outlet=outlet) | Q(outlet__isnull=True))
         .select_related("outlet")
-        .prefetch_related("targets__menu_item", "targets__category", "windows")
+        .prefetch_related("targets__menu_item", "targets__category", "windows", "changes__changed_by")
         .order_by("-is_active", "-priority", "name")
     )
     categories = MenuCategory.objects.filter(tenant=tenant, outlet=outlet).order_by("display_order", "name")
@@ -200,6 +277,7 @@ def setup_offers(request):
     from core.utils import _cutoff_hour
     return render(request, "setup/setup_offers.html", {
         "offers": offers,
+        "offer_forms": {str(o.id): form_data(o) for o in offers},
         "categories": categories,
         "dishes": dishes,
         "example_menu": [{"id": d.id, "name": d.name, "price": str(d.price), "category": d.category_id}
@@ -218,7 +296,7 @@ def setup_offers(request):
 def offer_create(request):
     if request.user.role not in MANAGERS:
         return HttpResponseForbidden()
-    from offers.models import Offer, OfferTarget, OfferWindow
+    from offers.models import Offer
     try:
         data = json.loads(request.body)
     except ValueError:
@@ -230,17 +308,65 @@ def offer_create(request):
             offer = Offer(tenant=request.user.tenant, outlet=outlet, created_by=request.user, **fields)
             offer.full_clean()
             offer.save()
-            OfferTarget.objects.bulk_create(
-                [OfferTarget(offer=offer, menu_item=d) for d in dishes]
-                + [OfferTarget(offer=offer, category=c) for c in categories])
-            if window:
-                OfferWindow.objects.create(offer=offer, **window)
+            _save_covers_and_hours(offer, dishes, categories, window)
     except OfferInputError as e:
         return JsonResponse({"error": str(e)}, status=400)
     except ValidationError as e:
         return JsonResponse({"error": " ".join(e.messages)}, status=400)
     logger.info("User %s created offer %r (%s)", request.user.username, offer.name, offer.summary)
     return JsonResponse({"success": True, "id": offer.id, "name": offer.name, "summary": offer.summary})
+
+
+@login_required
+@tenant_required
+@feature_required("offers")
+@require_POST
+def offer_update(request, offer_id):
+    """Fix an offer, checked exactly like a new one. Paid bills keep what
+    they were billed; open bills are re-totalled now, so a mistake (50% for
+    5%) stops costing money at once. Every change is recorded."""
+    from offers.models import OfferChange
+    if request.user.role not in MANAGERS:
+        return HttpResponseForbidden()
+    offer = _mine(request, offer_id)
+    if offer is None:
+        return JsonResponse({"error": "Offer not found"}, status=404)
+    try:
+        data = json.loads(request.body)
+    except ValueError:
+        return JsonResponse({"error": "Nothing to save."}, status=400)
+    try:
+        outlet = _offer_outlet(request, data if isinstance(data, dict) else {})
+        fields, dishes, categories, window = read_offer_fields(data, outlet)
+        with transaction.atomic():
+            before = _snapshot(offer)
+            old_outlet = offer.outlet
+            offer.outlet = outlet
+            for name, value in fields.items():
+                setattr(offer, name, value)
+            offer.full_clean()
+            offer.save()
+            _save_covers_and_hours(offer, dishes, categories, window)
+            offer = type(offer).objects.get(pk=offer.pk)
+            changes = _differences(before, _snapshot(offer))
+            if changes:
+                OfferChange.objects.create(offer=offer, changed_by=request.user, changes=changes)
+    except OfferInputError as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    except ValidationError as e:
+        return JsonResponse({"error": " ".join(e.messages)}, status=400)
+    bills = 0
+    if changes:
+        # The outlet it was for and the one it is for now both gain or lose it.
+        scopes = {old_outlet, outlet}
+        if None in scopes:
+            bills = retotal_open_bills(request.user.tenant, None)
+        else:
+            bills = sum(retotal_open_bills(request.user.tenant, o) for o in scopes)
+    logger.warning("User %s edited offer %r: %s (open bills re-totalled: %s)",
+                   request.user.username, offer.name, changes, bills)
+    return JsonResponse({"success": True, "id": offer.id, "name": offer.name, "summary": offer.summary,
+                         "changes": changes, "bills": bills})
 
 
 @login_required

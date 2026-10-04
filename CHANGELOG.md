@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-10-04: edit an offer; offer hours are clock hours
+
+### Fixed
+- **An offer starting before 6 AM never showed.** Found live: "happy 60", every day 05:00 to 20:00, missed a Cold Coffee billed at 10:22. The window's times were counted from the 6 AM start of the business day, so 05:00 to 20:00 became 5 to 6 AM only. Times are now plain clock times as an owner reads them; a window ending before it starts (Friday 22:00 to 02:00) still runs past midnight, the part after midnight belonging to the day it started; days without times are still the whole business day. Fixed in `offers/engine.py` and its browser copy `static/js/offers.js` (checked against each other on 600 random carts).
+
+### Added
+- **Edit on the Offers screen.** Each offer has an Edit button that loads it back into the form, with the live example bill. Saving checks it exactly like a new offer. Open bills the offer can reach are re-totalled at once, so a mistake (50% for 5%) stops costing money immediately; paid bills keep what they were billed. Every edit is recorded (`offers.OfferChange`: who, when, each field from what to what) and shown on the offer's row. Tests in `setup/tests/test_offer_setup.py`.
+
 ## 2026-10-04: the Offers setup screen
 
 ### Added

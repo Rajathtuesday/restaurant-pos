@@ -135,6 +135,23 @@ class WhenAnOfferCountsTest(SimpleTestCase):
         self.assertFalse(live_at(late, at(2, 1), 6))           # Friday 1 AM: Thursday night
         self.assertFalse(live_at(late, at(3, 21), 6))          # Saturday 9 PM
 
+    def test_a_window_starting_before_six_is_plain_clock_time(self):
+        # Found live on 4 Oct 2026: "happy 60", every day 05:00 to 20:00, never
+        # showed on a 10:22 bill; the times were counted from the 6 AM start of
+        # the business day, so the window was 5 to 6 AM only.
+        all_day = Rule(id=14, name="happy 60", kind=PERCENT_OFF, percent=D("60"),
+                       windows=(Window(start=time(5), end=time(20)),))
+        self.assertTrue(live_at(all_day, at(4, 10, 22), 6))
+        self.assertTrue(live_at(all_day, at(4, 5, 30), 6))
+        self.assertTrue(live_at(all_day, at(4, 19, 59), 6))
+        self.assertFalse(live_at(all_day, at(4, 20, 0), 6))
+        self.assertFalse(live_at(all_day, at(4, 4, 59), 6))
+        # Its day is the day on the calendar: 4 Oct 2026 is a Sunday.
+        sundays = Rule(id=15, name="Sundays", kind=PERCENT_OFF, percent=D("10"),
+                       windows=(Window(days=frozenset({6}), start=time(5), end=time(20)),))
+        self.assertTrue(live_at(sundays, at(4, 5, 30), 6))
+        self.assertFalse(live_at(sundays, at(3, 10), 6))
+
     def test_dates_are_business_dates(self):
         weekend = Rule(id=9, name="Till Friday", kind=PERCENT_OFF, percent=D("10"),
                        valid_from=date(2026, 10, 2), valid_until=date(2026, 10, 2))

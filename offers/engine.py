@@ -21,10 +21,14 @@ The rules
    ordered at 7:55 is a happy-hour pitcher even if the bill comes at 8:20,
    and an offer switched off (paused) mid-meal keeps the units added before
    it was paused. "Live" means: inside the offer's dates and one of its
-   windows. Dates, days and windows follow the business day (6 AM to 6 AM
-   by default): 1 AM on Saturday is still Friday night, so a Friday window
-   of 8 PM to 2 AM covers it. A window whose end is not after its start runs
-   past midnight; a window with no times is the whole business day.
+   windows. Dates follow the business day (6 AM to 6 AM by default), so an
+   offer "until Friday" still covers 1 AM on Saturday. A window's times are
+   plain clock times, as an owner reads them: 05:00 to 20:00 is 5 AM to 8 PM
+   on that day. A window whose end is not after its start runs past
+   midnight, and the part after midnight belongs to the day it started:
+   Friday 20:00 to 02:00 covers 1 AM on Saturday. A window with days but no
+   times is the whole business day. A window with only a start runs to the
+   end of the business day; with only an end, from its start.
 
 3. One offer per line. Offers are tried in order: highest priority first,
    then the one worth more to the guest on its own, then the oldest. Each
@@ -130,25 +134,30 @@ def business_moment(moment, cutoff_hour):
     return business_date, moment.time()
 
 
-def in_window(window, business_date, clock, cutoff_hour):
-    """Whether a moment (its business date and clock time) is inside a window."""
-    if window.days and business_date.weekday() not in window.days:
-        return False
+def in_window(window, moment, cutoff_hour):
+    """Whether a local moment is inside a window (module docstring, rule 2).
+
+    Until 4 Oct 2026 the times were counted from the start of the business
+    day, so a window starting before 6 AM (05:00 to 20:00) became 5 to 6 AM
+    only, and an offer set to run all day never showed on a 10 AM bill."""
+    def day_ok(day):
+        return not window.days or day.weekday() in window.days
+
     start, end = window.start, window.end
     if start is None and end is None:
-        return True
+        return day_ok(business_moment(moment, cutoff_hour)[0])
     start = start or time(cutoff_hour, 0)
     end = end or time(cutoff_hour, 0)
-
-    # Minutes since the business day began, so a window can run past midnight.
-    def since_open(t):
-        minutes = t.hour * 60 + t.minute + t.second / 60
-        return (minutes - cutoff_hour * 60) % (24 * 60)
-
-    s, e, now = since_open(start), since_open(end), since_open(clock)
-    if e <= s:                        # runs to the end of the business day
-        e = 24 * 60
-    return s <= now < e
+    if start == end:                  # open both ends at the cutoff: the whole business day
+        return day_ok(business_moment(moment, cutoff_hour)[0])
+    clock = moment.time()
+    if start < end:
+        return start <= clock < end and day_ok(moment.date())
+    if clock >= start:                # past midnight: before it, the day itself...
+        return day_ok(moment.date())
+    if clock < end:                   # ...after it, the day it started
+        return day_ok(moment.date() - timedelta(days=1))
+    return False
 
 
 def live_at(rule, moment, cutoff_hour):
@@ -158,12 +167,12 @@ def live_at(rule, moment, cutoff_hour):
         return not rule.windows and rule.valid_from is None and rule.valid_until is None
     if rule.live_until is not None and moment >= rule.live_until:
         return False
-    business_date, clock = business_moment(moment, cutoff_hour)
+    business_date, _ = business_moment(moment, cutoff_hour)
     if rule.valid_from and business_date < rule.valid_from:
         return False
     if rule.valid_until and business_date > rule.valid_until:
         return False
-    if rule.windows and not any(in_window(w, business_date, clock, cutoff_hour) for w in rule.windows):
+    if rule.windows and not any(in_window(w, moment, cutoff_hour) for w in rule.windows):
         return False
     return True
 

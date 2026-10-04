@@ -212,7 +212,7 @@ class ThePageTest(OfferSetupBase):
         self.assertIn("Fri 20:00-02:00", page)
         self.assertIn("(category)", page)
 
-    def example(self, *taps):
+    def example(self, *taps, read=()):
         """Run the page's own script in Node and return the example bill's HTML."""
         _needs_node(self)
         page = self.page()
@@ -223,7 +223,9 @@ class ThePageTest(OfferSetupBase):
             "      if (page.values && id in page.values) el.value = page.values[id];",
         )
         runner = runner[:runner.index("const el = id =>")] + (
-            'process.stdout.write(JSON.stringify({errors, example: document.getElementById("example").innerHTML}));')
+            'const fields = {}; (page.read || []).forEach(id => { const el = document.getElementById(id); '
+            'fields[id] = el ? (id === "form-title" ? el.textContent : el.value) : null; });'
+            'process.stdout.write(JSON.stringify({errors, fields, example: document.getElementById("example").innerHTML}));')
         self.assertIn("page.values", runner)
         done = subprocess.run(
             [NODE, "-e", runner], capture_output=True, text=True, timeout=60, check=True,
@@ -235,11 +237,12 @@ class ThePageTest(OfferSetupBase):
                 # Comments out first: the base template's head has a comment
                 # that mentions "<script>" in its prose.
                 "scripts": re.findall(r"<script>(.*?)</script>", re.sub(r"<!--.*?-->", "", page, flags=re.S), re.S),
-                "values": values, "taps": list(taps),
+                "values": values, "taps": list(taps), "read": list(read),
             }),
         )
         out = json.loads(done.stdout)
         self.assertEqual(out["errors"], [])
+        self.fields = out["fields"]
         return html.unescape(out["example"])
 
     def test_the_example_bill_prices_buy_two_get_one(self):
@@ -261,3 +264,107 @@ class ThePageTest(OfferSetupBase):
     def plain(example):
         """The example without its currency and minus signs, one space apart."""
         return re.sub(r"\s+", " ", re.sub(r"[^\x00-\x7f]", "", example))
+
+
+class EditTest(OfferSetupBase):
+    """Fixing an offer made by mistake: open bills follow at once, paid bills
+    never move, and the change is on record."""
+    page = ThePageTest.page
+    example = ThePageTest.example
+
+    def half_off_lager(self):
+        resp = self.create(template="percent_off", name="Lager deal", percent="50", dish_ids=[self.lager.id])
+        self.assertEqual(resp.status_code, 200, resp.content)
+        return Offer.objects.get(pk=resp.json()["id"])
+
+    def bill(self, status="open"):
+        order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, source="dine_in", status="open")
+        add_items_to_order(self.owner, order, [{"id": self.lager.id, "quantity": 1}])
+        if status != "open":
+            Order.objects.filter(pk=order.pk).update(status=status)
+        order.refresh_from_db()
+        return order
+
+    def edit(self, offer, user=None, **fields):
+        body = {"template": "percent_off", "name": "Lager deal", "percent": "5", "dish_ids": [self.lager.id]}
+        body.update(fields)
+        return self.post(user or self.manager, "offer_update", body, offer.id)
+
+    def test_fixing_50_to_5_corrects_open_bills_now_and_never_paid_ones(self):
+        offer = self.half_off_lager()
+        paid, open_bill = self.bill(status="paid"), self.bill()
+        self.assertEqual((paid.offer_total, open_bill.offer_total), (D("1150.00"), D("1150.00")))
+
+        resp = self.edit(offer)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual(resp.json()["bills"], 1)
+        self.assertEqual(resp.json()["changes"], [{"field": "Kind", "before": "50% off", "after": "5% off"}])
+
+        open_bill.refresh_from_db()
+        self.assertEqual((open_bill.offer_total, open_bill.grand_total), (D("115.00"), D("2185")))
+        paid.refresh_from_db()
+        line = paid.items.get()
+        self.assertEqual((paid.offer_total, line.offer_discount, line.offer_name), (D("1150.00"), D("1150.00"), "Lager deal"))
+
+    def test_the_change_is_recorded_and_shown_on_the_row(self):
+        offer = self.half_off_lager()
+        self.edit(offer, name="Lager 5%")
+        change = offer.changes.get()
+        self.assertEqual(change.changed_by, self.manager)
+        self.assertEqual(change.changes, [{"field": "Name", "before": "Lager deal", "after": "Lager 5%"},
+                                          {"field": "Kind", "before": "50% off", "after": "5% off"}])
+        client = Client()
+        client.force_login(self.owner)
+        page = client.get(reverse("setup_offers")).content.decode()
+        self.assertIn("by ot_manager", page)
+        self.assertIn("Kind: 50% off &rarr; 5% off", page)
+
+    def test_an_edit_replaces_what_it_covers_and_when(self):
+        offer = self.half_off_lager()
+        resp = self.edit(offer, template="happy_hour", category_ids=[self.bar.id], dish_ids=[],
+                         days=[5, 6], start_time="12:00", end_time="16:00")
+        self.assertEqual(resp.status_code, 200, resp.content)
+        self.assertEqual([t.category_id for t in offer.targets.all()], [self.bar.id])
+        self.assertEqual(str(offer.windows.get()), "Sat, Sun 12:00-16:00")
+        fields = {c["field"] for c in resp.json()["changes"]}
+        self.assertEqual(fields, {"Kind", "Covers", "When"})
+
+    def test_an_edit_is_checked_like_a_new_offer_and_a_refused_one_changes_nothing(self):
+        offer = self.half_off_lager()
+        resp = self.edit(offer, percent="0")
+        self.assertEqual(resp.json()["error"], "The percent off must be more than 0.")
+        offer.refresh_from_db()
+        self.assertEqual(offer.percent, D("50.00"))
+        self.assertFalse(offer.changes.exists())
+
+    def test_saving_without_a_difference_records_nothing(self):
+        offer = self.half_off_lager()
+        self.bill()
+        resp = self.edit(offer, percent="50")
+        self.assertEqual((resp.json()["changes"], resp.json()["bills"]), ([], 0))
+        self.assertFalse(offer.changes.exists())
+
+    def test_who_may_edit(self):
+        offer = self.half_off_lager()
+        self.assertEqual(self.edit(offer, user=self.cashier).status_code, 403)
+        far_manager = self.user("ot_far", "manager", outlet=self.other_outlet)
+        self.assertEqual(self.edit(offer, user=far_manager).status_code, 404)
+        offer.archive()
+        self.assertEqual(self.edit(offer).status_code, 404)
+
+    def test_moving_an_offer_to_another_outlet_takes_it_off_this_ones_open_bills(self):
+        offer = self.half_off_lager()
+        open_bill = self.bill()
+        resp = self.post(self.owner, "offer_update", {"template": "percent_off", "name": "Lager deal",
+                                                      "percent": "50", "outlet_id": self.other_outlet.id}, offer.id)
+        self.assertEqual(resp.status_code, 200, resp.content)
+        open_bill.refresh_from_db()
+        self.assertEqual(open_bill.offer_total, D("0.00"))
+
+    def test_edit_loads_the_offer_into_the_form(self):
+        offer = self.half_off_lager()
+        offer.refresh_from_db()
+        self.assertIn('"template": "percent_off"', self.page())
+        self.example(("EDIT", f"startEdit({offer.id})"), read=("f-name", "f-pct", "form-title"))
+        self.assertEqual(self.fields, {"f-name": "Lager deal", "f-pct": "50.00", "form-title": "Edit offer"})
+
