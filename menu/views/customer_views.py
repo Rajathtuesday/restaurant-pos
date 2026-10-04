@@ -10,6 +10,7 @@ from core.ratelimit_keys import guest_by_table_token, guest_by_url_token
 from menu.models import MenuCategory
 from orders.models import Table
 from waiter.models import WaiterCall
+from offers.services import page_offers
 
 logger = logging.getLogger("pos.menu")
 
@@ -99,6 +100,7 @@ def menu_view(request, qr_token):
         "outlet":              outlet,
         "item_modifier_data":  _build_modifier_data(categories),
         "dish_tax":            _dish_tax(categories, tenant),
+        "page_offers":         page_offers(tenant, outlet),
         # The token this page was reached with -- a Table's if one matched,
         # otherwise the Outlet's counter token. submitOrder() sends this
         # straight back as table_token; it must never fall back to
@@ -283,5 +285,6 @@ def digital_menu(request):
         "categories": categories, "table": table, "tenant": tenant, "outlet": outlet,
         "item_modifier_data": _build_modifier_data(categories),
         "dish_tax": _dish_tax(categories, tenant),
+        "page_offers": page_offers(tenant, outlet),
         "qr_token": str(table.qr_token) if table else str(outlet.qr_token),
     })

@@ -29,7 +29,7 @@ from orders.tests.test_cart_tax_js import NODE, _needs_node
 from orders.tests.test_cart_wiring import CartWiringBase
 from tenants.models import TenantFeatureOverride
 
-CART_TAX = Path(settings.BASE_DIR) / "static" / "js" / "cart_tax.js"
+STATIC_JS = Path(settings.BASE_DIR) / "static" / "js"
 
 # A browser page, as far as the QR menu's script touches one: elements by id
 # (only ids the rendered HTML really has, so a missing element is null as in
@@ -118,7 +118,7 @@ function run(label, code) {
   try { vm.runInContext(code, context, { filename: label }); }
   catch (e) { errors.push(`${label}: ${e && e.name}: ${e && e.message}`); }
 }
-run("cart_tax.js", fs.readFileSync(page.cartTax, "utf8"));
+page.files.forEach(file => run(require("path").basename(file), fs.readFileSync(file, "utf8")));
 page.scripts.forEach((code, i) => run(`inline script ${i + 1}`, code));
 loaded.forEach((fn, i) => { try { fn(); } catch (e) { errors.push(`DOMContentLoaded ${i}: ${e.message}`); } });
 page.taps.forEach(([label, code]) => run(label, code));
@@ -134,6 +134,10 @@ process.stdout.write(JSON.stringify({
   vat: el("billVat") && el("billVat").innerText,
   vatShown: !!el("billVatRow") && el("billVatRow").style.display !== "none",
   total: el("billTotal") && el("billTotal").innerText,
+  offers: el("billOffers") && el("billOffers").innerText,
+  offersShown: !!el("billOffersRow") && el("billOffersRow").style.display !== "none",
+  offerNotes: (el("cartItemsContainer") ? el("cartItemsContainer").children : [])
+    .map(row => (row.innerHTML || "").match(/class="cart-offer"[^>]*>([^<]*)/)).filter(Boolean).map(m => m[1].trim()),
 }));
 """
 
@@ -163,7 +167,10 @@ class QrCartRunsTest(CartWiringBase):
         done = subprocess.run(
             [NODE, "-e", HARNESS], capture_output=True, text=True, timeout=60, check=True,
             input=json.dumps({
-                "cartTax": str(CART_TAX),
+                # Every one of our own scripts the page loads, in its order
+                # (cart_tax.js, offers.js...), so a new one can't be missed here.
+                "files": [str(STATIC_JS / name) for name in re.findall(r'<script src="/static/js/([\w.]+)"', page)
+                          if (STATIC_JS / name).exists()],
                 "ids": re.findall(r'\sid="([^"]+)"', page),
                 "json": dict(re.findall(r'<script id="([^"]+)" type="application/json">(.*?)</script>', page, re.S)),
                 "scripts": re.findall(r"<script>(.*?)</script>", page, re.S),
@@ -202,3 +209,27 @@ class QrPubCartRunsTest(QrCartRunsTest):
         self.assertEqual((cart["subtotal"], cart["vat"], cart["total"]), ("220.00", "12.10", "232.10"))
         self.assertTrue(cart["vatShown"])
 
+
+
+class QrCartOffersTest(QrCartRunsTest):
+    """A guest's cart shows the offer before ordering (static/js/offers.js),
+    by the same rules the server bills with (offers/engine.py)."""
+
+    def test_the_cart_takes_the_offer_off_before_tax(self):
+        from offers.models import Offer, OfferTarget
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="offers", enabled=True)
+        offer = Offer.objects.create(tenant=self.tenant, outlet=self.outlet, name="Paneer 25% off",
+                                     kind="percent_off", percent=D("25"))
+        OfferTarget.objects.create(offer=offer, menu_item=self.paneer)
+        cart = self.tap_through(self.paneer, self.curd)
+        self.assertEqual(cart["errors"], [])
+        # 200 less 50, GST 5% on the 150 left = 7.50; the curd is untouched.
+        self.assertEqual((cart["subtotal"], cart["offers"], cart["gst"], cart["total"]),
+                         ("230.00", "50.00", "7.50", "187.50"))
+        self.assertTrue(cart["offersShown"])
+        self.assertEqual(cart["offerNotes"], ["Paneer 25% off &minus;&#8377;50.00"])
+
+    def test_no_offers_no_row(self):
+        cart = self.tap_through(self.paneer)
+        self.assertEqual(cart["errors"], [])
+        self.assertFalse(cart["offersShown"])

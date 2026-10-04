@@ -161,6 +161,11 @@ class Order(TenantScopedModel):
     )
     discount_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    # The part of discount_total that offers took off (buy 2 get 1, happy
+    # hour: offers/engine.py), so a bill can show offers apart from staff
+    # discounts and reports can count them. Set every time the bill is totalled.
+    offer_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"),
+                                      db_default=Decimal("0.00"))
     # The promo behind the discount, if one was used: kept so a bill can say
     # which promo it got and a promo's uses can be given back when the
     # discount is removed. promo_name is a copy, so renaming or archiving the
@@ -434,7 +439,11 @@ class Order(TenantScopedModel):
         if self.pk:
             self._refuse_if_issued()
 
-        items = list(self.items.exclude(status="voided").filter(is_complimentary=False))
+        # Offers first: they decide what each line costs (offers/services.py).
+        from offers.services import apply_offers
+        live = list(self.items.exclude(status="voided"))
+        self.offer_total = apply_offers(self, live)
+        items = [item for item in live if not item.is_complimentary]
         bill = self._run_tax_engine(items)
 
         self.subtotal       = bill.subtotal
@@ -450,7 +459,7 @@ class Order(TenantScopedModel):
             for row in self.gst_breakdown
         ]
         self.save(update_fields=["subtotal", "gst_total", "vat_total", "discount_total",
-                                 "grand_total", "round_off", "discount_type",
+                                 "offer_total", "grand_total", "round_off", "discount_type",
                                  "discount_value", "parcel_surcharge",
                                  "tax_summary", "gst_breakdown_cache"])
 
@@ -495,10 +504,12 @@ class Order(TenantScopedModel):
             if item.tax_kind == VAT:
                 lines.append(Line(amount=item.total_price, rate=item.vat_rate, kind=VAT,
                                   item_discount_pct=item.item_discount_pct or Decimal("0"),
+                                  offer_discount=item.offer_discount or Decimal("0"),
                                   inclusive=vat_inclusive))
             else:
                 lines.append(Line(amount=item.total_price, rate=item.gst_percentage, kind=GST,
                                   item_discount_pct=item.item_discount_pct or Decimal("0"),
+                                  offer_discount=item.offer_discount or Decimal("0"),
                                   inclusive=gst_inclusive))
         parcel = self._quantize(self.parcel_surcharge or Decimal("0"))
         if parcel > 0:
@@ -606,6 +617,20 @@ class OrderItem(models.Model):
 
     notes = models.TextField(blank=True)
 
+    # When the line was added: an offer counts for it only if the offer was
+    # live then, so the price is locked at ordering (offers/engine.py, rule
+    # 2). Lines from before offers have none and use the order's own time.
+    added_at = models.DateTimeField(null=True, blank=True, default=timezone.now)
+    # The offer this line got, worked out every time the bill is totalled
+    # (offers/services.py): the offer, its name as it was then (so renaming it
+    # later never changes an old bill), and the rupees it took off the dish's
+    # own price. RESTRICT: an offer on a bill is archived, not deleted.
+    offer = models.ForeignKey("offers.Offer", on_delete=models.RESTRICT, null=True, blank=True,
+                              related_name="+")
+    offer_name = models.CharField(max_length=80, blank=True, default="", db_default="")
+    offer_discount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"),
+                                         db_default=Decimal("0.00"))
+
     def tax_snapshot(self):
         """This line's tax fields, to copy onto another line."""
         return {field: getattr(self, field) for field in self.TAX_SNAPSHOT_FIELDS}
@@ -619,9 +644,10 @@ class OrderItem(models.Model):
     def discounted_price(self):
         if self.is_complimentary:
             return Decimal("0.00")
+        price = self.total_price
         if self.item_discount_pct > 0:
-            return (self.total_price * (1 - self.item_discount_pct / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        return self.total_price
+            price = (price * (1 - self.item_discount_pct / Decimal("100"))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return max(price - (self.offer_discount or Decimal("0.00")), Decimal("0.00"))
 
     void_reason = models.CharField(max_length=255, null=True, blank=True)
 

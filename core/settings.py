@@ -119,6 +119,7 @@ INSTALLED_APPS = [
     'crm',
     'finance',
     'promos',
+    'offers',
     'printing',
     'tokens',
     'kitchen',

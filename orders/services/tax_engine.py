@@ -19,11 +19,13 @@ tax), a rate in percent, and whether its tax is already inside its price.
 An outlet chooses that separately for GST and for VAT, because many bars
 price food with tax added and drinks with tax included.
 
-1. Discounts. A dish's own discount comes off first. The order discount (a
-   percentage of the dishes after their own discounts, or a flat amount) is
-   then spread over all the dishes, food and liquor alike, in proportion to
-   their value. Charges are never discounted. The discount never exceeds
-   the dishes' value.
+1. Discounts. A dish's own discount comes off first, then its offer (the
+   rupees an offer such as "buy 2, get 1 free" takes off it: offers/engine.py;
+   a dish with its own discount never gets an offer, so the two don't meet).
+   The order discount (a percentage of the dishes after their own discounts
+   and offers, or a flat amount) is then spread over all the dishes, food and
+   liquor alike, in proportion to their value. Charges are never discounted.
+   The discount never exceeds the dishes' value; offers count in it.
 2. Tax on each line, exactly (nothing rounded yet): on top of the line's
    value when its price excludes tax (value x rate / 100), or inside it
    when its price includes tax (value x rate / (100 + rate)). An outlet on
@@ -95,6 +97,7 @@ class Line:
     kind: str | None = GST                   # "gst", "vat", or None: outside any tax
     item_discount_pct: Decimal = ZERO
     charge: str | None = None                # e.g. "parcel": a charge, never discounted
+    offer_discount: Decimal = ZERO           # rupees an offer takes off (rule 1)
     inclusive: bool | None = None            # tax inside the price; None: the bill's default
 
 
@@ -251,6 +254,8 @@ def _dish_figures(dishes, factor, inside, collects_gst):
         value = line.amount
         if line.item_discount_pct > 0:
             value = value * (1 - line.item_discount_pct / HUNDRED)
+        if line.offer_discount > 0:
+            value = max(value - line.offer_discount, Decimal("0"))
         value = value * factor
         values.append(value)
         if not _taxed(line, collects_gst):
@@ -290,6 +295,10 @@ def compute(lines, *, prices_include_tax=False, composition=False, gst_registere
         value = line.amount
         if line.item_discount_pct > 0:
             cut = value * (line.item_discount_pct / HUNDRED)
+            item_discount += cut
+            value -= cut
+        if line.offer_discount > 0:
+            cut = min(line.offer_discount, value)
             item_discount += cut
             value -= cut
         after_item_discounts += value

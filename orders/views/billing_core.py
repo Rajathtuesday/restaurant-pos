@@ -15,6 +15,7 @@ from orders.models import Order, Table
 from tablemerge.models import TableMerge
 from orders.services.order_lock_service import lock_order
 from setup.models import PaymentConfig
+from offers.services import page_offers
 
 logger = logging.getLogger("pos.orders")
 
@@ -93,6 +94,7 @@ def billing_view(request):
     return render(request, "orders/billing.html", {
         "categories":      categories,
         "dish_tax":        dish_tax,
+        "page_offers":     page_offers(request.user.tenant, request.user.outlet),
         "tables":          tables,
         "order":           order,
         "selected_table":  table_id,

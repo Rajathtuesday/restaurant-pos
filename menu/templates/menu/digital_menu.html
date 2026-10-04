@@ -729,6 +729,10 @@
                 <span>Subtotal</span>
                 <span>₹<span id="billSubtotal">0</span></span>
             </div>
+            <div class="bill-row" id="billOffersRow" style="display:none;color:#10b981;">
+                <span>Offers</span>
+                <span>&minus;₹<span id="billOffers">0</span></span>
+            </div>
             {% if outlet.collects_gst %}
             <div class="bill-row">
                 <span>{% if outlet.gst_inclusive %}GST (included in prices){% else %}GST{% endif %}</span>
@@ -763,10 +767,15 @@
 
 {{ item_modifier_data|json_script:"item-modifiers-raw" }}
 {{ dish_tax|json_script:"dish-tax" }}
+{{ page_offers|json_script:"page-offers" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
+<script src="{% static 'js/offers.js' %}"></script>
 <script>
     const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
     const DISH_TAX = RasovaCartTax.readTable('dish-tax');
+    // Offers the cart shows before ordering (static/js/offers.js); the
+    // server works the bill out again and never trusts this.
+    const PAGE_OFFERS = RasovaOffers.readPage('page-offers');
     let cart = {};
 
     // Menu item names (and, below, order-status item names) come from a
@@ -1099,12 +1108,15 @@
             }
         }
 
-        const lines = [];
+        const keys = Object.keys(cart);
+        const lines = keys.map(key => RasovaCartTax.line(
+            cart[key].qty * (cart[key].price + (cart[key].modifierPrice || 0)), DISH_TAX, cart[key].id, cart[key].gstRate));
+        const applied = RasovaOffers.onCart(PAGE_OFFERS, lines,
+            keys.map(key => ({ dishId: cart[key].id, quantity: cart[key].qty })));
 
-        for(let key in cart) {
+        keys.forEach((key, idx) => {
             const item = cart[key];
             const itemTotal = item.qty * (item.price + (item.modifierPrice || 0));
-            lines.push(RasovaCartTax.line(itemTotal, DISH_TAX, item.id, item.gstRate));
 
             const modNames = item.modifiers && item.modifiers.length > 0
                 ? `<div class="cart-modifier-names">${item.modifiers.map(m => escapeHtml(m.name)).join(', ')}</div>` : '';
@@ -1114,6 +1126,7 @@
                 <div>
                     <div class="cart-item-name">${escapeHtml(item.name)}</div>
                     ${modNames}
+                    ${RasovaOffers.note(applied[idx])}
                     <div class="qty-controls active" style="padding: 0.1rem 0.4rem;">
                         <button class="qty-btn" onclick="decreaseItem('${item.id}')">−</button>
                         <span class="qty-num">${item.qty}</span>
@@ -1123,7 +1136,7 @@
                 <div class="cart-item-price">₹${itemTotal.toFixed(2)}</div>
             `;
             container.appendChild(row);
-        }
+        });
 
         // The same rules as the bill (static/js/cart_tax.js): each dish at
         // its own rate, GST inside the price or on top, none at all on the
@@ -1136,6 +1149,8 @@
         });
 
         document.getElementById('billSubtotal').innerText = t.subtotal.toFixed(2);
+        document.getElementById('billOffers').innerText = t.offers.toFixed(2);
+        document.getElementById('billOffersRow').style.display = t.offers > 0 ? '' : 'none';
         const gstEl = document.getElementById('billGst');
         if (gstEl) gstEl.innerText = t.gst.toFixed(2);
         document.getElementById('billVat').innerText = t.vat.toFixed(2);

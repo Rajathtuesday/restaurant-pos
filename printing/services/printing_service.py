@@ -138,6 +138,10 @@ class PrintingService:
         indent = " " * len(prefix)
         for chunk in self._wrap_text(" ".join(chunks[1:]), width - len(prefix)) if chunks[1:] else []:
             rows.append(f"{indent}{chunk}"[:width])
+        if line.offer_amount:
+            cut = f"-{money(line.offer_amount)}"
+            label = f"{indent}{line.offer}"[:width - len(cut) - 1]
+            rows.append(label.ljust(width - len(cut)) + cut)
         return rows
 
     def _print_money(self, p, layout, width, align="center", tall_total=False):

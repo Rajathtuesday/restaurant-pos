@@ -744,6 +744,7 @@
             </div>
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
             {% if request.user.outlet.collects_gst %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
             {% endif %}
@@ -876,6 +877,7 @@
             </div>
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
+            <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
             {% if request.user.outlet.collects_gst %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
             {% endif %}
@@ -932,7 +934,9 @@
 {% block extra_js %}
 <script src="{% static 'js/order_edit.js' %}"></script>
 {{ dish_tax|json_script:"dish-tax" }}
+{{ page_offers|json_script:"page-offers" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
+<script src="{% static 'js/offers.js' %}"></script>
 <script>
     /* ── Resizable 3-panel layout (desktop only) ───────────────────────
        Two drag handles: category-sidebar|menu-area and menu-area|context-
@@ -1048,6 +1052,8 @@
     const VAT_INCLUSIVE = {{ request.user.outlet.vat_inclusive|yesno:"true,false" }};
     // Each dish's tax as the bill will charge it (GST, or VAT for liquor)
     const DISH_TAX = RasovaCartTax.readTable('dish-tax');
+    // Offers the cart shows before the order exists (static/js/offers.js).
+    const PAGE_OFFERS = RasovaOffers.readPage('page-offers');
     const PARCEL_GST_RATE = {{ request.user.outlet.parcel_gst_rate|default:0 }};
     let selectedItem = null;
     let sending = false;
@@ -1140,6 +1146,10 @@
     function renderCart() {
         const dc = document.getElementById('cartItemsContainerDesktop');
         const mc = document.getElementById('cartItemsContainerMobile');
+        // Offers first: each line's offer, taken off before tax as on the bill.
+        const taxLines = cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage));
+        const applied = RasovaOffers.onCart(PAGE_OFFERS, taxLines,
+            cart.map(i => ({ dishId: i.id, quantity: i.quantity, takeaway: !!i.is_takeaway })));
         if (!cart.length) {
             const empty = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
             dc.innerHTML = empty; mc.innerHTML = empty;
@@ -1150,6 +1160,7 @@
                     <div style="flex-grow:1;padding-right:8px;">
                         <div class="cart-item-name">${i.name}${i.is_takeaway ? ' <span style="font-size:0.55rem;background:var(--accent-gold);color:#fff;padding:1px 5px;vertical-align:middle;">TKW</span>' : ''}</div>
                         ${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}
+                        ${RasovaOffers.note(applied[idx])}
                     </div>
                     <div class="cart-controls">
                         <div class="qty-controls">
@@ -1169,10 +1180,14 @@
         // scheme, and the parcel charge (once toggled on, see
         // toggleParcel/_syncParcelUI) taxed like the food.
         const t = RasovaCartTax.totals(
-            cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage)),
+            taxLines,
             { inclusive: GST_INCLUSIVE, vatInclusive: VAT_INCLUSIVE, composition: IS_COMPOSITION, gstRegistered: GST_REGISTERED,
               parcel: _parcelOn ? _parcelChargeAmount : 0, parcelGstRate: PARCEL_GST_RATE });
         document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + t.subtotal);
+        document.querySelectorAll('.view-offers').forEach(e => {
+            e.textContent = '−₹' + t.offers.toFixed(2);
+            e.closest('.summary-row').style.display = t.offers > 0 ? '' : 'none';
+        });
         document.querySelectorAll('.view-gst').forEach(e => {
             e.textContent = '₹' + t.gst.toFixed(2);
             // Show label hint so cashier knows it's included, not added

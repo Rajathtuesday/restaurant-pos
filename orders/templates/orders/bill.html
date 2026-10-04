@@ -220,6 +220,8 @@
                     {% if item.is_complimentary %}Free
                     {% else %}₹{{ item.total_price }}{% if item.item_discount_pct > 0 %}
                         <div style="font-size:0.7rem;color:var(--text-muted);">{{ item.item_discount_pct|floatformat:"-2" }}% off</div>{% endif %}
+                        {% if item.offer_discount > 0 %}
+                        <div class="item-offer" style="font-size:0.7rem;color:#10b981;">{{ item.offer_name }} −₹{{ item.offer_discount }}</div>{% endif %}
                     {% endif %}
                 </span>
             </div>

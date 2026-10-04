@@ -40,8 +40,8 @@ TENANT_FEATURES = {
     # reservations) plus liquor billed under the state's VAT, never GST. No
     # composition scheme: a seller of liquor can't use it (CGST Act, s.10(2)(b)),
     # and the liquor_vat guard refuses a composition outlet with liquor on.
-    # Offers such as buy-one-get-one will join this list when they are built;
-    # no other tenant type gets them by default.
+    # Offers (buy N get one free, happy hour: offers/engine.py) are on by
+    # default for pubs only; any other tenant needs a superuser to enable them.
     'pub': [
         # Ordering & tables
         'floor_plan',
@@ -53,6 +53,7 @@ TENANT_FEATURES = {
         'waiter_call',
         # Liquor
         'liquor_vat',
+        'offers',
         # Kitchen
         'kot_system',
         'kitchen_display',
@@ -145,6 +146,11 @@ FEATURE_GROUPS = {
         # it off again is the instant rollback: new lines go back to GST, old
         # bills never change.
         'liquor_vat',
+        # Offers that apply themselves by rule: buy N get M free, % or Rs off
+        # some dishes at some times (offers/engine.py). On by default for the
+        # "pub" tenant type only. Switching it off removes offers from open
+        # bills at their next change; issued bills never change.
+        'offers',
     ],
     'Kitchen': [
         'kot_system',

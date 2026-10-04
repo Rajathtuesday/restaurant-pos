@@ -10,7 +10,9 @@ issued bill never rewords itself. The renderers only draw what this returns.
 The rows add up. Read top to bottom, a guest or an inspector gets the total:
 
     Subtotal        the dishes at menu prices (a free dish shows at 0)
-    Discount        minus every discount, a dish's own and the bill's
+    Offers          minus what offers took off (buy 2 get 1, happy hour);
+                    each dish an offer touched names it under the dish
+    Discount        minus every other discount, a dish's own and the bill's
     CGST / SGST     by rate, when the price excludes GST (tax added on top)
     VAT             by rate, when the price excludes VAT
     Parcel charge   as billed; its GST is in the rows above
@@ -57,6 +59,13 @@ class DishLine:
     free: bool
     modifiers: tuple = ()    # names
     note: str = ""           # the kitchen note, for bills that show it
+    offer: str = ""          # the offer that touched it, by its name on the bill
+    offer_amount: Decimal = ZERO   # what the offer took off this dish
+
+    @property
+    def offer_text(self):
+        """"Buy 2 get 1  -2300.00", or "" for a dish without an offer."""
+        return f"{self.offer}  -{money(self.offer_amount)}" if self.offer_amount else ""
 
 
 @dataclass(frozen=True)
@@ -192,6 +201,9 @@ def bill_layout(order):
             free=bool(item.is_complimentary),
             modifiers=tuple(m.name for m in item.modifiers.all()),
             note=item.notes or "",
+            offer=item.offer_name if (item.offer_discount or 0) > 0 and not item.is_complimentary else "",
+            offer_amount=(Decimal(item.offer_discount or 0)
+                          if not item.is_complimentary else ZERO),
         )
         for item in items
     )
@@ -205,8 +217,13 @@ def bill_layout(order):
 
     money_rows = [MoneyRow("subtotal", "Subtotal", sum((s.menu for s in sections), ZERO))]
     discount = sum((s.discount for s in sections), ZERO)
-    if discount > 0:
-        money_rows.append(MoneyRow("discount", "Discount", -discount))
+    # Offers are part of the discount the tax record holds; shown on their
+    # own row so a guest sees the offer apart from anything staff gave.
+    offers = min(Decimal(getattr(order, "offer_total", 0) or 0), discount)
+    if offers > 0:
+        money_rows.append(MoneyRow("offers", "Offers", -offers))
+    if discount - offers > 0:
+        money_rows.append(MoneyRow("discount", "Discount", -(discount - offers)))
 
     included = []
     for kind in (GST, VAT):

@@ -300,6 +300,7 @@
 
     <div class="cart-summary" id="cartSummaryBlock">
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+      <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
       {% if outlet.collects_gst %}
       <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
       {% endif %}
@@ -377,6 +378,7 @@
       <div id="cartItemsContainerMobile"></div>
       <div class="cart-page-breakdown">
         <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
+      <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
         {% if outlet.collects_gst %}
         <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
         {% endif %}
@@ -504,10 +506,15 @@
 {% block extra_js %}
 <script src="{% static 'js/order_edit.js' %}"></script>
 {{ dish_tax|json_script:"dish-tax" }}
+{{ page_offers|json_script:"page-offers" }}
 <script src="{% static 'js/cart_tax.js' %}"></script>
+<script src="{% static 'js/offers.js' %}"></script>
 <script>
   // Each dish's tax as the bill will charge it (GST, or VAT for liquor)
   const DISH_TAX = RasovaCartTax.readTable("dish-tax");
+  // Offers the cart can show before the order exists (static/js/offers.js);
+  // null without any. The bill is still worked out on the server.
+  const PAGE_OFFERS = RasovaOffers.readPage("page-offers");
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -738,10 +745,16 @@
       const emptyMsg = `<div class="text-center text-muted" style="margin-top:20px;text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
       dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
     }
+    // Offers first (static/js/offers.js): what each line shows and what
+    // comes off before tax, the bill's rules, on this cart's own lines.
+    const taxLines = cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage));
+    const applied = RasovaOffers.onCart(PAGE_OFFERS, taxLines,
+      cart.map(i => ({ dishId: i.id, quantity: i.quantity, takeaway: !!i.is_takeaway })),
+      { none: OPERATOR_SOURCES.includes(currentSource()), parcel: currentSource() === "takeaway" });
     cart.forEach((i, idx) => {
       const total = i.price * i.quantity;
       const vegDot = `<span class="veg-dot ${i.is_veg !== false ? 'veg' : 'nonveg'}"></span>`;
-      const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${vegDot}${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
+      const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${vegDot}${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}${RasovaOffers.note(applied[idx])}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
       dc.innerHTML += html;
       mc.innerHTML += html;
     });
@@ -750,7 +763,7 @@
     // composition scheme or without a GSTIN, and the parcel charge (once toggled on, see
     // toggleParcel/_syncParcelUI) taxed like the food.
     const t = RasovaCartTax.totals(
-      cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage)),
+      taxLines,
       {
         inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
         vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
@@ -762,6 +775,10 @@
         parcelGstRate: {{ outlet.parcel_gst_rate|default:0 }},
       });
     document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + t.subtotal);
+    document.querySelectorAll(".view-offers").forEach(e => {
+      e.innerText = "−₹" + t.offers.toFixed(2);
+      e.closest(".summary-row").style.display = t.offers > 0 ? "" : "none";
+    });
     document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + t.gst.toFixed(2));
     document.querySelectorAll(".view-vat").forEach(e => {
       e.innerText = "₹" + t.vat.toFixed(2);

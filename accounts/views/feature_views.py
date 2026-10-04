@@ -23,6 +23,7 @@ _FEATURE_META = {
     "composition_scheme":  {"label": "GST Composition Scheme","icon": "bi-receipt-cutoff",           "desc": "Bill of Supply instead of a tax invoice, for Composition dealers.", "group": "Ordering & Billing"},
     "parcel_charge":       {"label": "Parcel / Takeaway Charge","icon": "bi-bag",                    "desc": "Extra charge for takeaway/parcel orders, flat or per item.", "group": "Ordering & Billing"},
     "liquor_vat":          {"label": "Liquor (State VAT)",    "icon": "bi-cup-straw",                "desc": "For pubs: drinks with a liquor class are billed under the state's VAT, never GST (Karnataka: 0%). Not with the composition scheme.", "group": "Ordering & Billing"},
+    "offers":              {"label": "Offers",                "icon": "bi-gift",                     "desc": "Offers that apply themselves: buy N get one free, happy hour, % or Rs off some dishes at some times.", "group": "Ordering & Billing"},
     "kot_system":          {"label": "KOT Printing",          "icon": "bi-printer",                  "desc": "Kitchen Order Tickets on order confirmation.",            "group": "Kitchen"},
     "kitchen_display":     {"label": "Kitchen Display (KDS)", "icon": "bi-display",                  "desc": "Real-time KDS screen — replaces paper tickets.",          "group": "Kitchen"},
     "multi_kitchen":       {"label": "Multi-Kitchen Stations","icon": "bi-diagram-2",                "desc": "Route items to multiple kitchen stations.",               "group": "Kitchen"},

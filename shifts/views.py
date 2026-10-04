@@ -400,6 +400,7 @@ def export_z_report(request):
     orders = orders_qs.aggregate(
         subtotal=Sum("subtotal"),
         discount=Sum("discount_total"),
+        offers=Sum("offer_total"),
         gst=Sum("gst_total"),
         round_off=Sum("round_off")
     )
@@ -416,6 +417,7 @@ def export_z_report(request):
     writer.writerow(['FINANCIAL TOTALS'])
     writer.writerow(['Gross Subtotal', f"{orders['subtotal'] or 0:.2f}"])
     writer.writerow(['Total Discount', f"{orders['discount'] or 0:.2f}"])
+    writer.writerow(['  of which Offers', f"{orders['offers'] or 0:.2f}"])
     writer.writerow(['GST Collected', f"{orders['gst'] or 0:.2f}"])
     writer.writerow(['Round Off', f"{orders['round_off'] or 0:.2f}"])
     writer.writerow(['Net Refunds', f"{abs(summary['refunds'] or 0):.2f}"])
@@ -428,14 +430,20 @@ def export_z_report(request):
     writer.writerow([])
 
     # Detailed Item Sales for the Day
-    from django.db.models import F, ExpressionWrapper, DecimalField
+    from decimal import Decimal
+    from django.db.models import Case, F, ExpressionWrapper, DecimalField, Value, When
     from orders.models import OrderItem
     
+    # What each dish line was billed at: voided dishes aren't sales, a free
+    # dish is 0, and a dish's own discount and its offer come off.
     item_sales = OrderItem.objects.filter(
         order__in=orders_qs
-    ).annotate(
+    ).exclude(status="voided").annotate(
         line_rev=ExpressionWrapper(
-            F('total_price') * (1 - F('item_discount_pct') / 100),
+            Case(
+                When(is_complimentary=True, then=Value(Decimal("0"))),
+                default=F('total_price') * (1 - F('item_discount_pct') / 100) - F('offer_discount'),
+            ),
             output_field=DecimalField()
         )
     ).values('menu_item__name').annotate(

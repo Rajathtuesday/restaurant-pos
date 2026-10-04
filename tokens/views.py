@@ -43,6 +43,7 @@ from menu.models import MenuCategory, MenuItem
 from orders.models import Order
 from tokens.models import DailyTokenCounter, DailyOnlineTokenCounter, TokenOrder
 from setup.models import PaymentConfig
+from offers.services import page_offers
 
 
 def _popular_items(tenant, outlet, top_n=12):
@@ -544,6 +545,7 @@ def token_billing(request, order_id):
         "categories":     categories,
         "popular_items":  popular_items,
         "dish_tax":       dish_tax,
+        "page_offers":    page_offers(request.user.tenant, request.user.outlet),
         "config":         config,
         "remaining":      remaining,
         "total_paid":     total_paid,

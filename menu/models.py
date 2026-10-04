@@ -142,10 +142,12 @@ class MenuItem(TenantScopedModel):
 
     # Liquor: taxed by the state's VAT, not GST. Set only with the liquor_vat
     # feature; a drink with a class carries 0% GST (enforced below and in the
-    # database). PROTECT: a class in use can't be deleted from under a drink.
+    # database). RESTRICT: a class in use can't be deleted from under a drink,
+    # but deleting a whole restaurant still takes its drinks and classes
+    # together (PROTECT refused that, so no pub with liquor could be deleted).
     vat_class = models.ForeignKey(
         VatClass,
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         null=True,
         blank=True,
         related_name="items",

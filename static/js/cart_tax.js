@@ -3,7 +3,8 @@
  * engine (orders/services/tax_engine.py), for the carts on the POS, the QSR
  * counter and the QR menu. The bill itself is always totalled on the server;
  * this has to show the same figures first, so it follows the engine's rules
- * for a cart (carts have no discounts):
+ * for a cart (carts have no staff discounts; an offer, worked out by
+ * static/js/offers.js, comes off its line before tax, as on the bill):
  *   - each line at its own kind of tax and rate: GST, or VAT for liquor;
  *     a 0% line stays 0%
  *   - tax added on top when prices exclude it, inside the price when they
@@ -19,14 +20,16 @@
  * which makes its rounding come out as the server's does.
  *
  * RasovaCartTax.totals(lines, outlet)
- *   lines:  [{amount: price x quantity in rupees, kind: "gst" | "vat", rate: percent}]
+ *   lines:  [{amount: price x quantity in rupees, kind: "gst" | "vat", rate: percent,
+ *             offer: rupees an offer takes off it (optional)}]
  *           ({amount, gstRate} is still read as a GST line)
  *   outlet: {inclusive (GST prices include GST), vatInclusive, composition,
  *            gstRegistered (false: no GSTIN, so no GST; true if left out),
  *            gstPaidByOperator (true: an app order, the app pays the GST),
  *            parcel (rupees), parcelGstRate (percent)}
- * returns, in rupees: {subtotal, gst, vat, parcel, parcelGst, total, roundedTotal, roundOff}
+ * returns, in rupees: {subtotal, offers, gst, vat, parcel, parcelGst, total, roundedTotal, roundOff}
  *   subtotal  the sum of the line amounts, as the menu shows them
+ *   offers    what offers take off them
  *   gst, vat  all GST (the parcel charge's included) and all VAT on the bill
  *   total     what the guest pays before rounding to the rupee
  *
@@ -67,15 +70,18 @@
     const inside = { gst: !!o.inclusive, vat: !!o.vatInclusive };
     const byKind = { gst: new Map(), vat: new Map() };
     const amountByKind = { gst: 0, vat: 0 };
-    let subtotal = 0;
+    let subtotal = 0, offers = 0;
     for (const line of lines || []) {
       const amount = toPaise(line.amount);
+      const offer = Math.min(Math.max(toPaise(line.offer), 0), amount);
+      const value = amount - offer;           // taxed after the offer, as on the bill
       const kind = line.kind === "vat" ? "vat" : "gst";
       const rateBp = toBasisPoints(line.rate !== undefined ? line.rate : line.gstRate);
       subtotal += amount;
-      amountByKind[kind] += amount;
+      offers += offer;
+      amountByKind[kind] += value;
       if (kind === "gst" && !collectsGst) continue;
-      if (rateBp > 0) byKind[kind].set(rateBp, (byKind[kind].get(rateBp) || 0) + amount);
+      if (rateBp > 0) byKind[kind].set(rateBp, (byKind[kind].get(rateBp) || 0) + value);
     }
 
     const gstDishes = kindTax(byKind.gst, inside.gst);
@@ -92,12 +98,13 @@
     }
 
     // The guest pays every line, plus the tax of each kind priced without it.
-    let total = subtotal + parcel;
+    let total = subtotal - offers + parcel;
     if (!inside.gst) total += gstDishes + parcelGst;
     if (!inside.vat) total += vat;
     const roundedTotal = Math.floor((total + 50) / 100);
     return {
       subtotal: subtotal / 100,
+      offers: offers / 100,
       gst: (gstDishes + parcelGst) / 100,
       vat: vat / 100,
       parcel: parcel / 100,

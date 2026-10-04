@@ -83,6 +83,7 @@
       <div class="item-name">{{ line.name }} <span style="color:#5a564f;">&times; {{ line.quantity }}</span></div>
       <div class="item-val">{% if line.free %}Free{% else %}&#8377;{{ line.amount|floatformat:2 }}{% endif %}</div>
     </div>
+    {% if line.offer_amount %}<div class="item" style="font-size:.8em;color:#7bc08a;"><div class="item-name">{{ line.offer }}</div><div class="item-val">&minus;&#8377;{{ line.offer_amount|floatformat:2 }}</div></div>{% endif %}
     {% endfor %}
   </div>
 

@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-10-04: offers (buy N get one free, happy hour)
+
+### Added
+- **The offer engine** (`offers/engine.py`): offers that apply themselves by rule, so nobody types a discount. Three kinds: buy N get M free (the cheapest M of every group of N + M, dearest first), percent off and rupees off, each for some dishes or categories, on some days and times. On by default for the **pub** tenant type only (feature `offers`); set up in Django admin for now (Offers), the Setup screen comes next.
+- **The rules, each with a test** (`offers/tests/`):
+  - The price is locked when a dish is ordered: a pitcher ordered at 7:55 is a happy-hour pitcher even if the bill comes at 8:20, and switching an offer off mid-meal keeps the dishes already ordered (`OrderItem.added_at`, `Offer.paused_at`).
+  - Days, times and dates follow the business day: a Friday window of 8 PM to 2 AM covers 1 AM on Saturday.
+  - Every change re-checks the whole bill: a fourth pitcher waits for its group, a voided pitcher withdraws the free one, a guest's QR order gets the offer from the server, never from the guest's screen.
+  - Never on a free dish or one with a staff discount (no stacking), never on liquor in a parcel, never on a Zomato or Swiggy order. Paid modifiers (a mixer) are never discounted; the offer takes off the dish's own price.
+  - One offer per line: highest priority first, then the one worth more to the guest, so two cashiers get the same bill whatever order they tap in.
+  - An offer comes off the dish's value before tax, like a dish discount, through the tax engine; a bill discount or promo then applies to what is left.
+  - An issued bill never changes; each line keeps the offer's name as it was, and an offer used on a bill can only be archived, not deleted.
+- **On every bill**: an "Offers" row apart from "Discount", and the offer under each dish it touched, on the bill page, thermal and PDF bills, printed receipts and the WhatsApp bill link. `Order.offer_total` and each line's `offer_discount` keep the figures for reports.
+- **In the carts**: the POS, the QSR counter and the QR menu show the offer before the order exists (`static/js/offers.js`, a copy of the engine checked against the Python on 600 random carts and offers, and the cart totals on 500 more).
+
+### Fixed
+- **The day-end (Z) report's item list counted voided dishes, and free dishes at full price.** It now counts what each dish was billed at (offers off too), and the totals show "of which Offers".
+- **A pub with liquor on the menu couldn't be deleted at all**: a drink's link to its liquor class was PROTECT, which refuses even when the whole restaurant goes in one delete. It is RESTRICT now (a class in use still can't be deleted on its own). `menu.0017`, no database change.
+
 ## 2026-10-03: the test suite runs in parallel
 
 ### Changed
