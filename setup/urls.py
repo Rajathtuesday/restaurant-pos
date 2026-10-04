@@ -24,6 +24,11 @@ from .views import (
     promo_create,
     promo_toggle,
     promo_delete,
+    setup_offers,
+    offer_create,
+    offer_toggle,
+    offer_delete,
+    offers_pause_all,
     toggle_aggregator,
     update_printer_config,
     test_print_station,
@@ -63,6 +68,11 @@ urlpatterns = [
     path("promos/create/", promo_create, name="promo_create"),
     path("promos/<int:promo_id>/toggle/", promo_toggle, name="promo_toggle"),
     path("promos/<int:promo_id>/delete/", promo_delete, name="promo_delete"),
+    path("offers/", setup_offers, name="setup_offers"),
+    path("offers/create/", offer_create, name="offer_create"),
+    path("offers/<int:offer_id>/toggle/", offer_toggle, name="offer_toggle"),
+    path("offers/<int:offer_id>/delete/", offer_delete, name="offer_delete"),
+    path("offers/pause-all/", offers_pause_all, name="offers_pause_all"),
     
     # Aggregator quick toggle
     path("aggregators/toggle/", toggle_aggregator, name="toggle_aggregator"),

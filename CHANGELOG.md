@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-10-04: the Offers setup screen
+
+### Added
+- **Setup, then Offers** (`/setup/offers/`, owner and manager, pubs by default): pick a kind (buy N get free, happy hour, % off, Rs off each), the dishes or whole categories it covers (nothing picked: the whole menu), the days and hours (business-day nights, so 20:00 to 02:00 works), dates and priority. A **live example bill** with the menu's real prices shows what the guest pays and saves before saving, worked out by the same scripts the carts use; change any quantity to try it.
+- Every offer listed with what it covers and when; switch one off (dishes already ordered keep it) or remove it (archived: bills that used it keep it); **Pause all** for a bad night.
+- Every choice checked with a message that says what to fix (a happy hour needs its hours; buy and free together at most 20; dishes must be on this outlet's menu; an all-outlets offer, owner only, covers the whole menu). A manager sets offers for their own outlet only.
+- Tests: `setup/tests/test_offer_setup.py`, including the page's own script run in Node to price the example bill.
+
 ## 2026-10-04: offers (buy N get one free, happy hour)
 
 ### Added

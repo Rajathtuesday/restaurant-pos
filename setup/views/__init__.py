@@ -32,6 +32,14 @@ from .promo_views import (
     promo_delete,
 )
 
+from .offer_views import (
+    setup_offers,
+    offer_create,
+    offer_toggle,
+    offer_delete,
+    offers_pause_all,
+)
+
 from .onboarding_views import (
     onboarding_wizard,
     sample_menu,
@@ -79,6 +87,11 @@ __all__ = [
     "promo_create",
     "promo_toggle",
     "promo_delete",
+    "setup_offers",
+    "offer_create",
+    "offer_toggle",
+    "offer_delete",
+    "offers_pause_all",
     # onboarding
     "onboarding_wizard",
     "sample_menu",

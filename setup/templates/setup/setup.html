@@ -144,6 +144,15 @@
         <div class="card-status status-pending"><i class="bi bi-circle"></i> Review</div>
     </a>
 
+    {% if 'offers' in tenant_features %}
+    <a href="{% url 'setup_offers' %}" class="setup-card">
+        <div class="card-icon"><i class="bi bi-gift"></i></div>
+        <div class="card-title">Offers</div>
+        <div class="card-desc">Buy 2 get 1 free, happy hour, % or &#8377; off: set once, applied on every bill by itself.</div>
+        <div class="card-status status-pending"><i class="bi bi-circle"></i> Review</div>
+    </a>
+    {% endif %}
+
     <a href="/setup/aggregators/" class="setup-card">
         <div class="card-icon"><i class="bi bi-box-arrow-in-down"></i></div>
         <div class="card-title">Online Integrations</div>
