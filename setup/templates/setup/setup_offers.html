@@ -365,7 +365,7 @@
         const box = $('example');
         const rule = draftRule();
         const dishes = covered(rule).slice(0, 6);
-        if (!dishes.length) { box.innerHTML = '<div class="sub">No dishes to show yet.</div>'; return; }
+        if (!dishes.length) { box.textContent = 'No dishes to show yet.'; return; }
         if (!Object.keys(exampleQty).length) exampleQty = defaultQty(rule, dishes);
         const lines = dishes.map((d, i) => ({
             key: i, position: i, dishId: d.id, categoryId: d.category, unitPrice: d.price,
@@ -378,25 +378,57 @@
             return line;
         });
         const t = RasovaCartTax.totals(taxLines, OUTLET);
-        let html = '';
+        // Built from elements with every name and number set as text, never
+        // as HTML, so nothing typed into the form or the menu can become markup.
+        const node = (tag, cls, text) => {
+            const e = document.createElement(tag);
+            if (cls) e.className = cls;
+            if (text != null) e.textContent = text;
+            return e;
+        };
+        const row = (cls, label, value) => {
+            const r = node('div', cls);
+            r.appendChild(node('span', '', label));
+            r.appendChild(node('span', '', value));
+            return r;
+        };
+        box.innerHTML = '';
         dishes.forEach((d, i) => {
-            html += `<div class="ex-line"><input type="number" min="0" max="20" value="${exampleQty[d.id] || 0}"
-                         data-dish="${d.id}" aria-label="Quantity of ${esc(d.name)}"><span class="name">${esc(d.name)}</span>
-                         <span>${money(Number(d.price) * (exampleQty[d.id] || 0))}</span></div>`;
-            if (applied[i]) html += `<div class="ex-offer">${esc(applied[i].offerName)} &minus;${money(applied[i].discount)}</div>`;
+            const line = node('div', 'ex-line');
+            const qty = node('input');
+            qty.type = 'number'; qty.min = '0'; qty.max = '20';
+            qty.value = String(exampleQty[d.id] || 0);
+            qty.dataset.dish = String(d.id);
+            qty.setAttribute('aria-label', 'Quantity of ' + d.name);
+            qty.addEventListener('change', () => {
+                exampleQty[d.id] = Math.max(0, Math.min(20, parseInt(qty.value, 10) || 0));
+                renderExample();
+            });
+            line.appendChild(qty);
+            line.appendChild(node('span', 'name', d.name));
+            line.appendChild(node('span', '', money(Number(d.price) * (exampleQty[d.id] || 0))));
+            box.appendChild(line);
+            if (applied[i]) box.appendChild(node('div', 'ex-offer', applied[i].offerName + ' \u2212' + money(applied[i].discount)));
         });
-        html += `<div class="ex-row" style="margin-top:.4rem;"><span>Subtotal</span><span>${money(t.subtotal)}</span></div>`;
-        if (t.offers > 0) html += `<div class="ex-row" style="color:#10b981;"><span>Offers</span><span>&minus;${money(t.offers)}</span></div>`;
-        if (t.gst > 0) html += `<div class="ex-row"><span>GST${OUTLET.inclusive ? ' (incl.)' : ''}</span><span>${money(t.gst)}</span></div>`;
-        if (t.vat > 0) html += `<div class="ex-row"><span>VAT${OUTLET.vatInclusive ? ' (incl.)' : ''}</span><span>${money(t.vat)}</span></div>`;
-        html += `<div class="ex-row total"><span>Guest pays</span><span>₹${t.roundedTotal}</span></div>`;
-        html += t.offers > 0 ? `<div class="ex-save">The guest saves ${money(t.offers)}.</div>`
-                             : `<div class="sub" style="margin-top:.3rem;">No offer on this example yet${rule.kind === 'buy_get_free' ? ': a group needs ' + (rule.buy + rule.free) + ' covered dishes' : ''}.</div>`;
-        box.innerHTML = html;
-        box.querySelectorAll('input[data-dish]').forEach((inp) => inp.addEventListener('change', () => {
-            exampleQty[inp.dataset.dish] = Math.max(0, Math.min(20, parseInt(inp.value, 10) || 0));
-            renderExample();
-        }));
+        const subtotal = row('ex-row', 'Subtotal', money(t.subtotal));
+        subtotal.style.marginTop = '.4rem';
+        box.appendChild(subtotal);
+        if (t.offers > 0) {
+            const offers = row('ex-row', 'Offers', '\u2212' + money(t.offers));
+            offers.style.color = '#10b981';
+            box.appendChild(offers);
+        }
+        if (t.gst > 0) box.appendChild(row('ex-row', 'GST' + (OUTLET.inclusive ? ' (incl.)' : ''), money(t.gst)));
+        if (t.vat > 0) box.appendChild(row('ex-row', 'VAT' + (OUTLET.vatInclusive ? ' (incl.)' : ''), money(t.vat)));
+        box.appendChild(row('ex-row total', 'Guest pays', '\u20b9' + t.roundedTotal));
+        if (t.offers > 0) {
+            box.appendChild(node('div', 'ex-save', 'The guest saves ' + money(t.offers) + '.'));
+        } else {
+            const none = node('div', 'sub', 'No offer on this example yet' +
+                (rule.kind === 'buy_get_free' ? ': a group needs ' + (rule.buy + rule.free) + ' covered dishes' : '') + '.');
+            none.style.marginTop = '.3rem';
+            box.appendChild(none);
+        }
     }
 
     function showMsg(text, ok) {

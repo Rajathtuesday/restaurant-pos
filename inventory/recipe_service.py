@@ -6,16 +6,17 @@ Modifier->InventoryItem recipe links. Both the manual "add ingredient" views
 add_modifier_recipe) and the AI recipe importer's confirm step call these
 functions — so the two paths can never silently drift apart on validation.
 """
+from core.errors import UserError
 from inventory.models import ModifierRecipe, Recipe
 from inventory.unit_conversion import units_compatible
 
 
-class RecipeUnitMismatchError(Exception):
+class RecipeUnitMismatchError(UserError):
     """Raised when a posted unit can't be converted to the inventory item's
     tracked unit (different measurement families — e.g. volume vs weight)."""
 
 
-class RecipeCrossTenantError(Exception):
+class RecipeCrossTenantError(UserError):
     """Raised when the menu item / modifier and the inventory item don't
     belong to the same tenant."""
 

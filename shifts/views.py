@@ -1,4 +1,6 @@
 # shifts/views.py
+from core.errors import error_response
+from core.validators import NumberInputError
 import json
 import logging
 from django.contrib.auth.decorators import login_required
@@ -118,7 +120,7 @@ def clock_out(request):
         tips = read_number(data.get("tips"), "The tips", blank=Decimal("0"),
                            field=Shift._meta.get_field("tips"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     shift.clocked_out_at = timezone.now()
     shift.tips = tips
@@ -173,8 +175,8 @@ def update_shift_tips(request, shift_id):
         return JsonResponse({"success": True})
     except Shift.DoesNotExist:
         return JsonResponse({"error": "Shift not found"}, status=404)
-    except ValueError as e:         # NumberInputError: says what to fix
-        return JsonResponse({"error": str(e)}, status=400)
+    except NumberInputError as e:
+        return error_response(e, 400)
 
 
 @login_required
@@ -220,7 +222,7 @@ def open_cash_session(request):
             opening_balance = read_number(data.get("opening_balance"), "The opening cash", blank=Decimal("0"),
                                           field=CashSession._meta.get_field("opening_balance"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         with transaction.atomic():
             # Lock to prevent race condition between two managers
@@ -265,7 +267,7 @@ def close_cash_session(request):
             actual_cash = read_number(data.get("actual_cash"), "The cash counted", blank=Decimal("0"),
                                       field=CashSession._meta.get_field("actual_cash"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         session = CashSession.objects.filter(
             tenant=request.user.tenant,
@@ -749,7 +751,7 @@ def create_shift_template(request):
         base_pay = read_number(base_pay, "The base pay", blank=Decimal("0"),
                                field=ShiftTemplate._meta.get_field("base_pay"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     if ShiftTemplate.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet, name__iexact=name

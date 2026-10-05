@@ -1,4 +1,5 @@
 # setup/views/promo_views.py
+from core.errors import UserError, error_response
 import json
 import logging
 
@@ -11,7 +12,7 @@ from core.decorators import tenant_required
 logger = logging.getLogger("pos.setup")
 
 
-class PromoInputError(Exception):
+class PromoInputError(UserError):
     """A promo form value the owner has to correct; the message says how."""
 
 
@@ -151,7 +152,7 @@ def promo_create(request):
     try:
         fields = read_promo_fields(data)
     except PromoInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     all_outlets_flag = data.get("all_outlets", False) is True
 
     # Resolve outlet — None = all outlets

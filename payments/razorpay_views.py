@@ -1,4 +1,5 @@
 # payments/razorpay_views.py
+from core.errors import error_response
 import json
 import logging
 from decimal import Decimal
@@ -83,7 +84,7 @@ def create_razorpay_qr(request, order_id):
         try:
             requested_amount = read_number(raw_amount, "The amount", field=Payment._meta.get_field("amount"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
         if requested_amount <= 0 or requested_amount > remaining:
             return JsonResponse(
                 {"error": f"Amount must be between 0 and the remaining balance (₹{remaining})."},

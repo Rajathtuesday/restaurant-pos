@@ -8,6 +8,7 @@ from menu.models import MenuItem, Modifier
 from orders.services.discount_policy import check_within_limit, read_discount, read_reason
 from orders.exceptions import OrderError, CartError, MenuItemError, ModifierError
 from orders.services.cart_limits import (
+    QuantityError,
     GUEST_MAX_CART_LINES, GUEST_MAX_LINE_QUANTITY, MAX_CART_LINES, MAX_LINE_QUANTITY,
     MAX_MODIFIERS_PER_LINE, MAX_NOTE_LENGTH, line_quantity,
 )
@@ -133,8 +134,8 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
                 item.get("quantity", 1),
                 GUEST_MAX_LINE_QUANTITY if guest else MAX_LINE_QUANTITY,
             )
-        except ValueError as e:
-            raise CartError(str(e))
+        except QuantityError as e:
+            raise CartError(e.message)
 
         note = item.get("note") or ""
         if not isinstance(note, str):

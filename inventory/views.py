@@ -1,3 +1,4 @@
+from core.errors import error_response
 from core.decorators import tenant_required, feature_required
 # inventory/views.py
 import json
@@ -89,7 +90,7 @@ def restock_item(request, item_id):
     try:
         quantity = read_number(data.get("quantity"), "The quantity", field=_item_field("stock"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     if quantity <= 0:
         return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -207,7 +208,7 @@ def create_inventory_item(request):
         reorder_qty = read_number(data.get("reorder_quantity"), "The reorder quantity", blank=zero,
                                   field=_item_field("reorder_quantity"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     # Resolve optional supplier
     supplier = None
@@ -277,7 +278,7 @@ def update_inventory_item(request, item_id):
             item.reorder_quantity = read_number(data["reorder_quantity"], "The reorder quantity", blank=zero,
                                                 field=_item_field("reorder_quantity"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     if "supplier_id" in data:
         supplier_id = data["supplier_id"]
@@ -471,7 +472,7 @@ def create_purchase_order(request):
             unit_price = read_number(entry.get("unit_price"), "The unit price", blank=Decimal("0"),
                                      field=_po_field("unit_price"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         if qty <= 0:
             return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -570,7 +571,7 @@ def edit_purchase_order(request, po_id):
             unit_price = read_number(entry.get("unit_price"), "The unit price", blank=Decimal("0"),
                                      field=_po_field("unit_price"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         if qty <= 0:
             return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -707,8 +708,12 @@ def receive_purchase_order(request, po_id):
 
     except PurchaseOrder.DoesNotExist:
         return JsonResponse({"error": "Purchase order not found"}, status=404)
-    except (InvalidOperation, TypeError, KeyError, AttributeError) as e:
-        return JsonResponse({"error": f"Invalid receiving quantities: {e}"}, status=400)
+    except (InvalidOperation, TypeError, KeyError, AttributeError):
+        # Python's own words ("'NoneType' object has no attribute ...") describe
+        # the code, not the problem: log them, tell the screen what to fix.
+        logger.warning("PO %s: unreadable receiving quantities", po_id, exc_info=True)
+        return JsonResponse({"error": "Invalid receiving quantities. Enter a number for each item received."},
+                            status=400)
     except Exception:
         logger.exception("PO receive failed for PO %s", po_id)
         return JsonResponse({"error": "Could not receive the PO. Please try again."}, status=500)
@@ -913,7 +918,7 @@ def log_wastage(request, item_id):
     try:
         quantity = read_number(data.get("quantity"), "The quantity", field=_item_field("stock"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     if quantity <= 0:
         return JsonResponse({"error": "Quantity must be positive"}, status=400)
@@ -989,12 +994,12 @@ def adjust_stock(request, item_id):
         else:
             delta = read_number(data["delta"], "The change", minimum=None, field=_item_field("stock"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     try:
         item.adjust_stock(delta, reference=reason)
     except ValidationError as e:
-        return JsonResponse({"error": str(e.message if hasattr(e, "message") else e)}, status=400)
+        return error_response(e, 400)
     except Exception:
         logger.exception("Error adjusting stock for item %s", item_id)
         return JsonResponse({"error": "Could not apply the adjustment. Please try again."}, status=400)

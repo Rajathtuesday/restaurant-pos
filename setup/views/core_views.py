@@ -1,4 +1,5 @@
 # setup/views/core_views.py
+from core.errors import error_response
 import json
 import logging
 
@@ -707,7 +708,7 @@ def edit_pay_rate(request, user_id):
         amount = read_number(data.get("amount"), "The amount",
                              field=StaffPayRate._meta.get_field("monthly_salary"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     if amount <= 0:
         return JsonResponse({"error": "Amount must be positive."}, status=400)
 

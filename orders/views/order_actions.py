@@ -1,3 +1,4 @@
+from core.errors import error_response
 import json
 import logging
 from django.http import JsonResponse
@@ -63,7 +64,7 @@ def cancel_order(request, order_id):
     except MadeDishesNeedConfirmation as e:
         return JsonResponse({
             "needs_confirm": True,
-            "error": str(e),
+            "error": e.message,
             "needs_manager": (
                 any(i.status == "served" for i in e.items)
                 and getattr(request.user, "role", None) not in ("manager", "owner")
@@ -74,7 +75,7 @@ def cancel_order(request, order_id):
             ],
         }, status=409)
     except OrderError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except Exception as e:
         logger.error("Error cancelling order #%s: %s", order_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
@@ -109,7 +110,7 @@ def cancel_item(request, item_id):
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
     except OrderError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except Exception as e:
         logger.error("Error cancelling item #%s: %s", item_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
@@ -144,7 +145,7 @@ def reduce_item(request, item_id):
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
     except OrderError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except Exception as e:
         logger.error("Error reducing item #%s: %s", item_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)
@@ -213,7 +214,7 @@ def toggle_parcel(request, order_id):
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found or already closed"}, status=404)
     except OrderError as e:
-        return JsonResponse({"error": str(e)}, status=409)
+        return error_response(e, 409)
     except Exception as e:
         logger.error("toggle_parcel error for order %s: %s", order_id, e, exc_info=True)
         return JsonResponse({"error": "Server error"}, status=500)

@@ -9,6 +9,7 @@ kilograms was silently treated as a raw number, off by a factor of 1000.
 This module is the single place that conversion happens, so every stock
 deduction/addition path uses the same rules instead of each re-deriving them.
 """
+from core.errors import UserError
 from decimal import Decimal
 
 # Which measurement family each unit belongs to. Conversion is only valid
@@ -33,7 +34,7 @@ _TO_BASE = {
 }
 
 
-class IncompatibleUnitsError(ValueError):
+class IncompatibleUnitsError(UserError, ValueError):
     """Raised when asked to convert between two units in different measurement
     families (e.g. grams to pieces) — there is no correct number to return,
     so callers must handle this explicitly rather than get a silently wrong one."""

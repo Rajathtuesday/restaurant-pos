@@ -1,4 +1,5 @@
 # finance/views.py
+from core.errors import error_response
 import json
 
 from django.contrib.auth.decorators import login_required
@@ -46,7 +47,7 @@ def expense_create(request):
     try:
         amount = read_number(data.get("amount"), "The amount", field=Expense._meta.get_field("amount"))
     except NumberInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     if amount <= 0:
         return JsonResponse({"error": "Amount must be positive."}, status=400)
 

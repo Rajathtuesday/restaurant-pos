@@ -1,4 +1,5 @@
 # orders/views/discount_views.py
+from core.errors import error_response
 import json
 import logging
 from decimal import Decimal
@@ -32,7 +33,7 @@ logger = logging.getLogger("pos.orders")
 
 def _refused(e):
     """A discount the policy refused, as the response staff see."""
-    return JsonResponse({"error": str(e)}, status=403 if isinstance(e, DiscountNeedsManager) else 400)
+    return error_response(e, 403 if isinstance(e, DiscountNeedsManager) else 400)
 
 
 @login_required
@@ -173,7 +174,7 @@ def make_item_complimentary(request, item_id):
         return _refused(e)
     except ValidationError as e:
         # validate_order_editable: the bill is being paid or already closed
-        return JsonResponse({"error": " ".join(e.messages)}, status=400)
+        return error_response(e, 400)
 
 
 # -------------------------------------------------
@@ -228,7 +229,7 @@ def apply_item_discount(request, item_id):
         return _refused(e)
     except ValidationError as e:
         # validate_order_editable: the bill is being paid or already closed
-        return JsonResponse({"error": " ".join(e.messages)}, status=400)
+        return error_response(e, 400)
     except Exception:
         logger.exception("Error applying item discount to item #%s", item_id)
         return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)

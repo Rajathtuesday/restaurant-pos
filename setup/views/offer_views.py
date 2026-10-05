@@ -8,6 +8,7 @@ bill on the page shows what a guest would pay before saving.
 Every number and choice is checked here before anything is saved
 (read_offer_fields); the model's own rules (Offer.clean) are the backstop.
 """
+from core.errors import UserError, error_response
 import json
 import logging
 from datetime import date, time
@@ -29,7 +30,7 @@ MANAGERS = ("owner", "manager")
 TEMPLATES = ("buy_get_free", "happy_hour", "percent_off", "amount_off")
 
 
-class OfferInputError(ValueError):
+class OfferInputError(UserError, ValueError):
     """Something on the form to fix; str(e) says what, for the screen."""
 
 
@@ -310,9 +311,9 @@ def offer_create(request):
             offer.save()
             _save_covers_and_hours(offer, dishes, categories, window)
     except OfferInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except ValidationError as e:
-        return JsonResponse({"error": " ".join(e.messages)}, status=400)
+        return error_response(e, 400)
     logger.info("User %s created offer %r (%s)", request.user.username, offer.name, offer.summary)
     return JsonResponse({"success": True, "id": offer.id, "name": offer.name, "summary": offer.summary})
 
@@ -352,9 +353,9 @@ def offer_update(request, offer_id):
             if changes:
                 OfferChange.objects.create(offer=offer, changed_by=request.user, changes=changes)
     except OfferInputError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except ValidationError as e:
-        return JsonResponse({"error": " ".join(e.messages)}, status=400)
+        return error_response(e, 400)
     bills = 0
     if changes:
         # The outlet it was for and the one it is for now both gain or lose it.

@@ -1,4 +1,5 @@
 # kitchen/services/kitchen_service.py
+from core.errors import UserError
 from datetime import timedelta
 
 from django.db import transaction
@@ -16,6 +17,12 @@ _KDS_TOKEN_STALE_MINUTES = 5
 
 # Item states that are finished as far as the kitchen display is concerned.
 _DONE_ITEM_STATUSES = ["served", "voided"]
+
+
+
+class KitchenStateError(UserError, ValueError):
+    """A dish moved out of order on the kitchen screen (started twice,
+    served before it was ready); the message says which."""
 
 
 def get_kitchen_data(user, station_name=None):
@@ -133,7 +140,7 @@ def set_item_preparing(user, item_id):
     )
 
     if item.status != "sent":
-        raise ValueError("Invalid state constraint: Item is not 'sent'.")
+        raise KitchenStateError("Invalid state constraint: Item is not 'sent'.")
 
     item.status = "preparing"
     item.save(update_fields=["status"])
@@ -158,7 +165,7 @@ def set_item_ready(user, item_id):
     )
 
     if item.status != "preparing":
-        raise ValueError("Invalid state constraint: Item is not 'preparing'.")
+        raise KitchenStateError("Invalid state constraint: Item is not 'preparing'.")
 
     item.status = "ready"
     item.save(update_fields=["status"])
@@ -216,7 +223,7 @@ def set_item_served(user, item_id):
     )
 
     if item.status != "ready":
-        raise ValueError("Item not ready yet!")
+        raise KitchenStateError("Item not ready yet!")
 
     item.status = "served"
     item.save(update_fields=["status"])

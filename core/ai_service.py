@@ -71,14 +71,14 @@ class AIService:
             return
         try:
             self.client = genai.Client(api_key=self.api_key)
-            logger.info("AI client initialized (key ...%s).", self.api_key[-4:])
+            logger.info("AI client initialized.")
         except Exception as e:
             logger.error("Failed to initialize AI client — check the key is valid: %s", e)
 
         if self.fallback_api_key:
             try:
                 self.fallback_client = genai.Client(api_key=self.fallback_api_key)
-                logger.info("AI fallback client initialized (key ...%s) -- dev-stage only, see __init__.", self.fallback_api_key[-4:])
+                logger.info("AI fallback client initialized -- dev-stage only, see __init__.")
             except Exception as e:
                 logger.error("Failed to initialize AI fallback client: %s", e)
 

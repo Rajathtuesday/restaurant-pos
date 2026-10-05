@@ -57,13 +57,19 @@ AGENT_DOWNLOADS = {
 }
 
 
+# Each download's path is fixed here, so the file opened never comes from
+# the URL: the URL only picks one of these names.
+AGENT_PATHS = {name: os.path.join(settings.BASE_DIR, "agent", name) for name in AGENT_DOWNLOADS}
+
+
 def agent_download(request, filename):
     from django.http import FileResponse, Http404
-    if filename not in AGENT_DOWNLOADS:
+    path = AGENT_PATHS.get(filename)
+    if path is None:
         raise Http404("No such file")
-    path = os.path.join(settings.BASE_DIR, "agent", filename)
-    return FileResponse(open(path, "rb"), as_attachment=True, filename=filename,
-                        content_type=AGENT_DOWNLOADS[filename])
+    name = os.path.basename(path)
+    return FileResponse(open(path, "rb"), as_attachment=True, filename=name,
+                        content_type=AGENT_DOWNLOADS[name])
 
 
 def serve_sw(request):

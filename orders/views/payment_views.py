@@ -1,4 +1,5 @@
 # orders/views/payment_views.py
+from core.errors import error_response
 import json
 import logging
 from decimal import Decimal
@@ -73,7 +74,7 @@ def pay_order(request, order_id):
         try:
             amount = read_number(amount, "The amount", field=Payment._meta.get_field("amount"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         try:
             with transaction.atomic():
@@ -248,7 +249,7 @@ def pay_order(request, order_id):
                 })
 
         except ValidationError as e:
-            return JsonResponse({"error": e.messages[0]}, status=400)
+            return error_response(e, 400)
         except Order.DoesNotExist:
             return JsonResponse({"error": "Order not found"}, status=404)
         except Exception:
@@ -284,7 +285,7 @@ def refund_payment(request, payment_id):
         try:
             amount = read_number(amount, "The refund amount", field=Payment._meta.get_field("amount"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         payment = Payment.objects.select_related("order").get(
             id=payment_id,
@@ -310,7 +311,7 @@ def refund_payment(request, payment_id):
     except Payment.DoesNotExist:
         return JsonResponse({"error": "Payment not found"}, status=404)
     except ValidationError as e:
-        return JsonResponse({"error": " ".join(e.messages)}, status=400)
+        return error_response(e, 400)
     except Exception:
         logger.exception("Error refunding payment #%s", payment_id)
         return JsonResponse({"error": "Refund could not be processed. Please try again."}, status=500)
@@ -435,7 +436,7 @@ def split_pay(request, order_id):
         })
 
     except ValidationError as e:
-        return JsonResponse({"error": e.messages[0]}, status=400)
+        return error_response(e, 400)
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
     except Exception:

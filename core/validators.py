@@ -1,3 +1,4 @@
+from core.errors import UserError
 import logging
 import re
 from io import BytesIO
@@ -94,7 +95,7 @@ def positive_int(value):
     return None
 
 
-class NumberInputError(ValueError):
+class NumberInputError(UserError, ValueError):
     """A number from a form or JSON body that the person has to correct.
     str(e) says what to fix and is safe to show as it is."""
 

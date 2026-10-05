@@ -22,10 +22,9 @@ def test_api():
         print("❌ Error: GOOGLE_API_KEY not found in .env")
         return
 
-    # Masked to the last 4 chars only, matching AIService's own logging
-    # convention -- enough to confirm which key loaded without printing
-    # anything a pasted terminal log/screenshot could actually be misused.
-    print(f"📡 Connecting to Gemini with key: ...{ai.api_key[-4:]}")
+    # No part of the key is printed: a pasted terminal log or screenshot
+    # should never carry any of it.
+    print("📡 Connecting to Gemini (key loaded from .env)")
     
     try:
         # Test basic generation

@@ -1,3 +1,4 @@
+from core.errors import error_response
 import json
 import logging
 from django.contrib.auth.decorators import login_required
@@ -13,6 +14,7 @@ from django.utils import timezone
 from core.decorators import tenant_required
 from notifications.models import Notification
 from kitchen.models import KitchenMessage
+from orders.services.cart_limits import QuantityError
 from waiter.models import WaiterCall
 
 @login_required
@@ -288,8 +290,8 @@ def api_ingest_order(request):
         menu_item_id = positive_int(line.get("menu_item_id"))
         try:
             quantity = line_quantity(line.get("quantity", 1))
-        except ValueError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+        except QuantityError as e:
+            return error_response(e, 400)
         if menu_item_id not in menu_items_by_id:
             menu_item = (
                 MenuItem.objects.select_related("vat_class")

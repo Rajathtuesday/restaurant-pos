@@ -1,4 +1,5 @@
 """Modifier group and modifier CRUD, item linking."""
+from core.errors import error_response
 import json
 import logging
 from django.contrib.auth.decorators import login_required
@@ -207,7 +208,7 @@ def add_modifier_recipe(request, modifier_id):
         try:
             _, created = upsert_modifier_recipe(modifier, inv_item, quantity, unit)
         except RecipeUnitMismatchError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         return JsonResponse({"success": True, "created": created})
     except Exception:

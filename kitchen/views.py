@@ -1,4 +1,5 @@
 # kitchen/views.py
+from core.errors import error_response
 import logging
 import json
 from django.contrib.auth.decorators import login_required
@@ -10,6 +11,7 @@ from django.db import transaction
 from core.decorators import tenant_required, feature_required, role_required
 from orders.models import Order, OrderItem, OrderEvent
 from kitchen.models import KitchenMessage
+from kitchen.services.kitchen_service import KitchenStateError
 from setup.models import KitchenStation
 
 logger = logging.getLogger("pos.orders")
@@ -115,8 +117,8 @@ def start_preparing(request, item_id):
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except KitchenStateError as e:
+        return error_response(e, 400)
 
 
 @login_required
@@ -131,8 +133,8 @@ def mark_ready(request, item_id):
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except KitchenStateError as e:
+        return error_response(e, 400)
 
 
 @login_required
@@ -151,8 +153,8 @@ def serve_item(request, item_id):
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except KitchenStateError as e:
+        return error_response(e, 400)
 
 @login_required
 @require_POST

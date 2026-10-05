@@ -24,7 +24,7 @@ def process_refund(order, payment_id, amount, user, reason="", customer_complain
     try:
         amount = read_number(amount, "The refund amount", field=Refund._meta.get_field("amount"))
     except NumberInputError as e:
-        raise ValidationError(str(e))
+        raise ValidationError(e.message)
 
     if amount <= 0:
         raise ValidationError("Invalid refund amount")

@@ -11,6 +11,7 @@ Flow:
     1. See pending incoming transfers
     2. Confirm receipt (or scan barcode) → stock added automatically
 """
+from core.errors import user_message
 import json
 import logging
 
@@ -344,9 +345,8 @@ def dispatch_batch(request, batch_id):
                         reference=f"Dispatched batch {batch.batch_number}",
                     )
     except ValidationError as e:
-        msg = e.messages[0] if getattr(e, "messages", None) else str(e)
         return JsonResponse(
-            {"error": f"Cannot dispatch — not enough stock at the kitchen to move this batch. {msg}"},
+            {"error": f"Cannot dispatch — not enough stock at the kitchen to move this batch. {user_message(e)}"},
             status=400,
         )
     except IncompatibleUnitsError as e:
@@ -354,7 +354,7 @@ def dispatch_batch(request, batch_id):
         # some lines and skip others, which would break the "total inventory
         # stays constant" guarantee a 'move' batch exists to provide.
         return JsonResponse(
-            {"error": f"Cannot dispatch — a batch item's unit doesn't match its inventory item. {e}"},
+            {"error": f"Cannot dispatch — a batch item's unit doesn't match its inventory item. {user_message(e)}"},
             status=400,
         )
 

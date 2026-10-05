@@ -225,7 +225,7 @@ class ThePageTest(OfferSetupBase):
         runner = runner[:runner.index("const el = id =>")] + (
             'const fields = {}; (page.read || []).forEach(id => { const el = document.getElementById(id); '
             'fields[id] = el ? (id === "form-title" ? el.textContent : el.value) : null; });'
-            'process.stdout.write(JSON.stringify({errors, fields, example: document.getElementById("example").innerHTML}));')
+            'const dump = e => [e.textContent || "", ...(e.children || []).map(dump)].filter(Boolean).join(" | ");process.stdout.write(JSON.stringify({errors, fields, example: dump(document.getElementById("example"))}));')
         self.assertIn("page.values", runner)
         done = subprocess.run(
             [NODE, "-e", runner], capture_output=True, text=True, timeout=60, check=True,
@@ -250,15 +250,15 @@ class ThePageTest(OfferSetupBase):
         # Lager is free. Beer VAT is 0% here.
         example = self.plain(self.example())
         self.assertIn("Buy 2 pitchers, get 1 free 2300.00", example)         # under the free Lager
-        self.assertIn("Offers</span><span>2300.00", example)
-        self.assertIn("Guest pays</span><span>5000", example)
+        self.assertIn("Offers | 2300.00", example)
+        self.assertIn("Guest pays | 5000", example)
         self.assertIn("The guest saves 2300.00.", example)
 
     def test_the_example_follows_the_kind_of_offer(self):
         example = self.plain(self.example(("PERCENT", "setTemplate('percent_off')")))
         # 25% off one of each: 4,800 less 1,200.
-        self.assertIn("Offers</span><span>1200.00", example)
-        self.assertIn("Guest pays</span><span>3600", example)
+        self.assertIn("Offers | 1200.00", example)
+        self.assertIn("Guest pays | 3600", example)
 
     @staticmethod
     def plain(example):

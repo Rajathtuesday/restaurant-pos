@@ -80,7 +80,7 @@ def process_payment(order, method, amount, user=None, reference=None):
     try:
         amount = read_number(amount, "The payment amount", field=Payment._meta.get_field("amount"))
     except NumberInputError as e:
-        raise ValidationError(str(e))
+        raise ValidationError(e.message)
 
     if amount <= 0:
         raise ValidationError("Payment amount must be greater than zero.")

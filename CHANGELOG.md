@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-10-05: GitHub code scanning alerts
+
+### Security
+- **Only messages written for the user reach a screen.** CodeQL flagged 43 views answering with `str(e)` (py/stack-trace-exposure). Most were Rasova's own messages; two were real leaks: receiving a purchase order answered a `TypeError`/`AttributeError` with Python's own words, and the kitchen, order-API and order-source views caught any `ValueError`, so an unexpected one would have been shown too. Now `core/errors.py` holds `UserError` (every Rasova message class is one: number inputs, offers, promos, orders, cart, menu, recipes, units, plus new `QuantityError`, `OrderSourceError`, `KitchenStateError`) and `error_response()`, which shows a `UserError` or a model `ValidationError` as written and logs anything else behind "Something went wrong. Please try again." Tests: `core/tests/test_user_errors.py`.
+- **The print agent download** opens a path fixed in code (`AGENT_PATHS`); the URL only picks a name (py/path-injection).
+- **No part of an API key is logged or printed** any more (the AI service and `scripts/test_ai.py` showed the last 4 characters).
+- **The Offers screen's example bill** is built from elements with every name and number set as text, never HTML (js/xss-through-dom).
+
 ## 2026-10-04: edit an offer; offer hours are clock hours
 
 ### Fixed

@@ -11,10 +11,14 @@ Usage:
     raise OrderError("Order is already closed")
     raise CartError("Cart is empty")
     raise InventoryError(f"Insufficient stock for {item.name}")
+
+Each is a core.errors.UserError: its message is written for the person at
+the screen, and views send it with core.errors.error_response.
 """
+from core.errors import UserError
 
 
-class OrderError(Exception):
+class OrderError(UserError):
     """Raised for invalid order state transitions or rule violations."""
     pass
 
@@ -33,21 +37,21 @@ class IssuedBillError(OrderError):
         super().__init__(f"This bill is already {status}, so it can't be changed. Correct it with a refund.")
 
 
-class CartError(Exception):
+class CartError(UserError):
     """Raised when the cart payload is invalid or empty."""
     pass
 
 
-class InventoryError(Exception):
+class InventoryError(UserError):
     """Raised when an inventory check or deduction fails."""
     pass
 
 
-class MenuItemError(Exception):
+class MenuItemError(UserError):
     """Raised when a requested menu item is missing or unavailable."""
     pass
 
 
-class ModifierError(Exception):
+class ModifierError(UserError):
     """Raised when a modifier is not found or access is denied."""
     pass

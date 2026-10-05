@@ -5,6 +5,7 @@ Every view here is gated behind the ai_recipe_import feature flag (opt-in
 per tenant, see core/features.py) and owner/manager role, matching the
 existing add_recipe manual-entry gate.
 """
+from core.errors import error_response
 import base64
 import json
 import logging
@@ -231,7 +232,7 @@ def recipe_import_confirm(request, job_id):
             job.confirmed_at = timezone.now()
             job.save(update_fields=["status", "confirmed_at"])
     except (RecipeUnitMismatchError, RecipeCrossTenantError) as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
 
     return JsonResponse({"success": True, "count": len(included)})
 

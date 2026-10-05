@@ -63,7 +63,7 @@ def read_discount(raw, what="The discount", minimum=0):
         return read_number(raw, what, minimum=minimum, blank=Decimal("0"),
                            field=Order._meta.get_field("discount_value"))
     except NumberInputError as e:
-        raise DiscountRefused(str(e))
+        raise DiscountRefused(e.message)
 
 
 def percent_of(amount, subtotal):

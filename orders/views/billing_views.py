@@ -13,6 +13,7 @@
 # and is still imported directly from this module by orders/urls.py.
 # ---------------------------------------------------------------------------
 
+from core.errors import UserError, error_response
 import json
 import logging
 from decimal import Decimal, InvalidOperation
@@ -81,9 +82,13 @@ ORDER_SOURCES = frozenset(key for key, _label in Order.SOURCE_CHOICES)
 EXTERNAL_ID_SOURCES = frozenset({"zomato", "swiggy", "uber_eats", "web"})
 
 
+class OrderSourceError(UserError, ValueError):
+    """An order source or aggregator ID the screen can't use; says why."""
+
+
 def order_source(data, user):
     """
-    (source, aggregator_id) for an order, or ValueError with a message.
+    (source, aggregator_id) for an order, or OrderSourceError with a message.
 
     Where an order came from is staff-only information. A guest (QR, no
     login) always places a website order and never names an aggregator
@@ -96,13 +101,13 @@ def order_source(data, user):
         return "web", ""
     source = data.get("source") or "dine_in"
     if not isinstance(source, str) or source not in ORDER_SOURCES:
-        raise ValueError("Unknown order source.")
+        raise OrderSourceError("Unknown order source.")
     aggregator_id = data.get("aggregator_id") or ""
     if not isinstance(aggregator_id, str):
-        raise ValueError("Aggregator order ID must be text.")
+        raise OrderSourceError("Aggregator order ID must be text.")
     aggregator_id = aggregator_id.strip() if source in EXTERNAL_ID_SOURCES else ""
     if len(aggregator_id) > Order._meta.get_field("aggregator_order_id").max_length:
-        raise ValueError("Aggregator order ID is too long.")
+        raise OrderSourceError("Aggregator order ID is too long.")
     return source, aggregator_id
 
 
@@ -203,8 +208,8 @@ def create_order(request):
 
     try:
         source, aggregator_id = order_source(data, user)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except OrderSourceError as e:
+        return error_response(e, 400)
 
     if table:
         # A QR code (or a staff-picked table) may point at a table that's
@@ -400,7 +405,7 @@ def create_order(request):
         # Written for the person ordering ("A cart can have at most 30
         # lines.", "'Lassi' is currently unavailable."), so they are shown
         # as they are; the guest menu displays data.error.
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except Exception:
         # Never leak internal exception text (DB constraints, table names) to
         # the client — especially unauthenticated QR guests. Log full trace,

@@ -1,4 +1,5 @@
 """Menu item CRUD, availability toggles, station assignment."""
+from core.errors import error_response
 import json
 import logging
 from decimal import Decimal
@@ -66,7 +67,7 @@ def create_menu_item(request):
                 data.get("parcel_charge") if request.content_type == "application/json"
                 else request.POST.get("parcel_charge"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         try:
             prep_time = max(1, int(prep_time))
@@ -127,7 +128,7 @@ def update_menu_item(request, item_id):
             if parcel_charge is not None:
                 parcel_charge = _read_parcel_charge(parcel_charge)
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         category = get_object_or_404(
             MenuCategory, id=category_id,
@@ -198,7 +199,7 @@ def update_price(request, item_id):
         try:
             price = _read_price(data.get("price"))
         except NumberInputError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         item = get_object_or_404(
             MenuItem, id=item_id,
@@ -311,7 +312,7 @@ def add_recipe(request):
         try:
             upsert_recipe(menu_item, inventory, quantity, unit)
         except RecipeUnitMismatchError as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return error_response(e, 400)
 
         return JsonResponse({"success": True})
     except Exception:
