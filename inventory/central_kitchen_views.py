@@ -528,7 +528,7 @@ def confirm_receive(request, transfer_id):
                     stock_updates.append({
                         "item": inv_item.name, "added": 0, "unit": batch_item.unit,
                         "new_stock": float(inv_item.stock), "created": created,
-                        "error": str(e),
+                        "error": user_message(e),
                     })
                     continue
 
