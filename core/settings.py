@@ -90,6 +90,10 @@ else:
         raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production via environment variable.")
     ALLOWED_HOSTS = ['*']  # dev only — production requires ALLOWED_HOSTS env var
 
+# The main site's host. Marketing pages are indexable only here; see
+# core.middleware.SearchIndexingMiddleware.
+CANONICAL_HOST = os.getenv('CANONICAL_HOST', 'rasova.net')
+
 # Cloudflare / reverse-proxy: trust forwarded headers for HTTPS detection
 USE_X_FORWARDED_HOST    = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -134,6 +138,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Before WhiteNoise, so it also covers the marketing pages it serves
+    'core.middleware.SearchIndexingMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     # Subdomain → tenant resolution (reads request.get_host())

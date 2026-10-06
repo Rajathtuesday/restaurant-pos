@@ -10,6 +10,58 @@ from .request_context import set_current_trace_id, clear_current_trace_id
 request_logger = logging.getLogger("pos.core")
 
 
+class SearchIndexingMiddleware:
+    """
+    Decides which pages search engines may index. Sits before WhiteNoise,
+    because WhiteNoise serves the marketing pages (public/) on every host,
+    so spice.rasova.net/compare/ (and any made-up subdomain) was a copy of
+    rasova.net/compare/, and Google indexed the copy instead of the real
+    one. It had also indexed rasova.net/login/, since nothing said not to.
+
+    Indexing is opt-in: only the marketing pages on the main site and the
+    guest menu on a restaurant's own subdomain are indexable. Every other
+    HTML page gets "X-Robots-Tag: noindex". The header (not robots.txt) is
+    the right tool here: a Disallow in robots.txt stops Google reading the
+    page, so it never sees the noindex and can keep the URL indexed.
+
+    On subdomains, the marketing page /compare/ moves to the main site with
+    a 301, and www moves entirely. The home page stays on subdomains (staff
+    open their own subdomain to reach login), it is only marked noindex.
+    """
+
+    MARKETING_PATHS = {"/", "/compare/"}
+    MARKETING_ONLY_PATHS = {"/compare/"}
+    GUEST_MENU_PREFIXES = ("/menu/digital-menu/", "/menu/qr/")
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    @classmethod
+    def indexable(cls, host, path):
+        main = settings.CANONICAL_HOST
+        if host == main:
+            return path in cls.MARKETING_PATHS
+        if host.endswith("." + main):
+            return path.startswith(cls.GUEST_MENU_PREFIXES)
+        return False
+
+    def __call__(self, request):
+        host = request.get_host().split(":")[0].lower()
+        main = settings.CANONICAL_HOST
+
+        if request.method in ("GET", "HEAD") and host.endswith("." + main):
+            if host == "www." + main or request.path in self.MARKETING_ONLY_PATHS:
+                from django.http import HttpResponsePermanentRedirect
+                return HttpResponsePermanentRedirect(f"https://{main}{request.get_full_path()}")
+
+        response = self.get_response(request)
+        if (response.get("Content-Type", "").startswith("text/html")
+                and "X-Robots-Tag" not in response
+                and not self.indexable(host, request.path)):
+            response["X-Robots-Tag"] = "noindex"
+        return response
+
+
 class TenantMiddleware:
     """
     Resolves request.tenant from the hostname, for host/branding/routing

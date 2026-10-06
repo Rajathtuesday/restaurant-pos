@@ -7,6 +7,13 @@ the source of truth.
 
 ---
 
+## 2026-10-06: Search indexing
+
+### Fixed
+- **Google indexes only the real public pages.** WhiteNoise served the marketing pages on every subdomain, so Google indexed `spice.rasova.net/compare/` instead of `rasova.net/compare/`, and it indexed `rasova.net/login/`. New `core.middleware.SearchIndexingMiddleware` (before WhiteNoise): only `rasova.net/`, `rasova.net/compare/` and a restaurant's guest menu are indexable; every other HTML page gets `X-Robots-Tag: noindex`. `/compare/` on a subdomain and all of `www.rasova.net` move to `rasova.net` with a 301 (GET and HEAD only). New setting `CANONICAL_HOST` (default `rasova.net`). Tests: `core/tests/test_search_indexing.py`.
+
+---
+
 ## 2026-10-05: GitHub code scanning alerts
 
 ### Security
