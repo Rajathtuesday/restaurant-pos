@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PRIMARY SEO -->
+<title>Bar &amp; Pub POS in Bengaluru: Liquor and Food on One Bill | Rasova</title>
+<meta name="description" content="Rasova's pub mode keeps liquor outside GST and charges 5% GST on food, on the same bill. Happy hours and buy-2-get-1 offers run by the clock. From &#8377;999 a month.">
+<meta name="author" content="Rasova">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+<link rel="canonical" href="https://rasova.net/bar-pos/">
+
+<!-- FAVICON -->
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="apple-touch-icon" href="/static/icon-512.svg">
+
+<!-- OPEN GRAPH -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rasova">
+<meta property="og:title" content="Bar &amp; Pub POS: liquor and food on one bill">
+<meta property="og:description" content="Rasova's pub mode keeps liquor outside GST and charges 5% GST on food, on the same bill. Happy hours and buy-2-get-1 offers run by the clock. From &#8377;999 a month.">
+<meta property="og:url" content="https://rasova.net/bar-pos/">
+<meta property="og:image" content="https://rasova.net/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bar &amp; Pub POS: liquor and food on one bill">
+<meta name="twitter:description" content="Rasova's pub mode keeps liquor outside GST and charges 5% GST on food, on the same bill. Happy hours and buy-2-get-1 offers run by the clock. From &#8377;999 a month.">
+<meta name="twitter:image" content="https://rasova.net/static/og-image.jpg">
+
+<!-- GEO -->
+<meta name="geo.region" content="IN-KA">
+<meta name="geo.placename" content="Bengaluru">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://rasova.net/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Bars &amp; pubs",
+      "item": "https://rasova.net/bar-pos/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is liquor charged GST in a bar?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Alcohol for drinking is outside GST. States tax it separately, through excise and in some states VAT. In Karnataka there's no VAT on liquor sold at the bar today. Food and non-alcoholic drinks at a standalone bar or restaurant are 5% GST."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can my pub use the composition scheme?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. A business that sells liquor can't opt for composition under GST, so Rasova keeps it switched off for pub outlets."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does a happy hour change a bill that's already printed?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Once a bill is issued its totals are locked. Offers only apply to open bills, and each drink keeps the price it was ordered at."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "We're not in Karnataka. Will it work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. The liquor VAT rate is set per outlet. Tell me your state during setup and we'll set it to your rate together."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How much does it cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The same as every Rasova outlet: from ₹999 a month for one outlet, ₹2,499 for up to three. Month to month, no annual contract."
+      }
+    }
+  ]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --gold: #c5a059; --gold-light: #e8d5a3; --gold-dark: #9a7a3a;
+  --black: #0a0a0a; --dark: #111111; --panel: #161616;
+  --white: #ffffff; --muted: #6b6b6b;
+  --border: rgba(197,160,89,0.15); --border-light: rgba(255,255,255,0.06);
+  --ok: #4caf7d; --warn: #e0a14a; --hot: #d9584a;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Outfit', sans-serif; background: var(--black); color: var(--white); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* NAV (same as the homepage) */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 1.4rem 4rem; display: flex; align-items: center; justify-content: space-between; background: rgba(10,10,10,0.95); border-bottom: 1px solid var(--border); backdrop-filter: blur(20px); }
+.nav-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.nav-diamond { width: 32px; height: 32px; background: var(--gold); transform: rotate(45deg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-diamond-inner { width: 14px; height: 14px; background: var(--black); }
+.nav-logo-text { font-family: 'DM Serif Display', serif; font-size: 1.4rem; color: var(--white); letter-spacing: 1px; }
+.nav-links { display: flex; align-items: center; gap: 2.5rem; list-style: none; }
+.nav-links a { text-decoration: none; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.5); font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: var(--gold); }
+.nav-cta { background: var(--gold) !important; color: var(--black) !important; padding: 0.6rem 1.6rem !important; font-weight: 700 !important; letter-spacing: 1px !important; }
+.nav-cta:hover { background: var(--gold-light) !important; }
+@media (max-width: 900px) { .nav-links { display: none; } }
+
+/* PAGE HEADER */
+.page-header { padding: 160px 2rem 70px; max-width: 900px; margin: 0 auto; text-align: center; }
+.breadcrumbs { font-size: 0.75rem; letter-spacing: 1px; color: rgba(255,255,255,0.35); margin-bottom: 1.5rem; }
+.breadcrumbs a { color: rgba(255,255,255,0.5); text-decoration: none; }
+.breadcrumbs a:hover { color: var(--gold); }
+.eyebrow { font-size: 0.65rem; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); font-weight: 700; margin-bottom: 1.2rem; }
+.page-header h1 { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: clamp(2.3rem, 5.5vw, 3.6rem); line-height: 1.12; margin-bottom: 1.5rem; text-wrap: balance; }
+.page-header h1 em { color: var(--gold); font-style: italic; }
+.page-header .lede { font-size: 1.08rem; line-height: 1.75; color: rgba(255,255,255,0.6); max-width: 660px; margin: 0 auto; }
+.header-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2.2rem; }
+.btn-primary { display: inline-flex; align-items: center; gap: 10px; background: var(--gold); color: var(--black); text-decoration: none; padding: 1rem 2.2rem; font-weight: 700; font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; transition: transform 0.3s, box-shadow 0.3s; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(197,160,89,0.3); }
+.btn-secondary { display: inline-flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.75); text-decoration: none; padding: 1rem 2rem; font-weight: 500; font-size: 0.85rem; letter-spacing: 1px; border: 1px solid rgba(255,255,255,0.15); transition: all 0.3s; }
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+
+/* SECTIONS */
+.section { padding: 80px 4rem; max-width: 1040px; margin: 0 auto; }
+.section-label { font-size: 0.65rem; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); font-weight: 700; margin-bottom: 1rem; }
+.section-title { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: clamp(1.8rem, 3.5vw, 2.6rem); line-height: 1.15; margin-bottom: 1.2rem; text-wrap: balance; }
+.section-sub { font-size: 1rem; color: rgba(255,255,255,0.5); line-height: 1.75; max-width: 620px; font-weight: 300; }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5rem; align-items: center; }
+.split.top { align-items: start; }
+.prose p { font-size: 1rem; line-height: 1.8; color: rgba(255,255,255,0.6); margin-bottom: 1rem; }
+.prose p:last-child { margin-bottom: 0; }
+.prose b { color: var(--white); font-weight: 600; }
+
+/* FEATURE GRID (same as the homepage) */
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); margin-top: 3rem; border: 1px solid var(--border); }
+.feature-card { background: var(--dark); padding: 2.2rem 1.9rem; position: relative; overflow: hidden; transition: background 0.3s; }
+.feature-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--gold); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease; }
+.feature-card:hover::before { transform: scaleX(1); }
+.feature-card:hover { background: #1a1a1a; }
+.feature-num { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--gold); letter-spacing: 2px; margin-bottom: 1rem; display: block; }
+.feature-title { font-weight: 700; font-size: 1rem; margin-bottom: 0.6rem; }
+.feature-desc { font-size: 0.86rem; color: rgba(255,255,255,0.5); line-height: 1.65; font-weight: 300; }
+
+/* MOCKUPS */
+.mock { background: var(--panel); border: 1px solid var(--border); padding: 1.6rem; font-size: 0.85rem; }
+.mock-cap { font-family: 'Space Mono', monospace; font-size: 0.62rem; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 1rem; display: flex; justify-content: space-between; gap: 1rem; }
+.bill { background: #f6f3ea; color: #1b1b1b; font-family: 'Space Mono', monospace; font-size: 0.74rem; line-height: 1.6; padding: 1.4rem 1.3rem; max-width: 360px; margin: 0 auto; box-shadow: 0 25px 60px rgba(0,0,0,0.5); }
+.bill .c { text-align: center; }
+.bill .b { font-weight: 700; }
+.bill .row { display: flex; justify-content: space-between; gap: 1rem; }
+.bill .sub { color: #6a655a; }
+.bill .off { color: #a2402f; }
+.bill hr { border: none; border-top: 1px dashed #9c958a; margin: 0.6rem 0; }
+.bill .tot { font-size: 0.95rem; }
+.timeline { list-style: none; border-left: 1px solid var(--border); margin-left: 0.4rem; }
+.timeline li { position: relative; padding: 0 0 1.5rem 1.6rem; }
+.timeline li::before { content: ''; position: absolute; left: -5px; top: 0.35rem; width: 9px; height: 9px; background: var(--gold); transform: rotate(45deg); }
+.timeline li.dim::before { background: rgba(255,255,255,0.25); }
+.timeline .t { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--gold); display: block; margin-bottom: 0.2rem; }
+.timeline li.dim .t { color: rgba(255,255,255,0.4); }
+.timeline .d { font-size: 0.92rem; color: rgba(255,255,255,0.65); line-height: 1.6; }
+.board { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+.board-col { background: var(--dark); padding: 1.3rem; }
+.board-col h4 { font-size: 0.68rem; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 1rem; font-weight: 700; }
+.board-col.prep h4 { color: var(--warn); }
+.board-col.ready h4 { color: var(--ok); }
+.tokens { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.token { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 1.35rem; padding: 0.55rem 0.8rem; border: 1px solid rgba(255,255,255,0.12); min-width: 74px; text-align: center; }
+.board-col.ready .token { border-color: var(--ok); color: var(--ok); }
+.floor { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.7rem; }
+.tbl { border: 1px solid rgba(255,255,255,0.12); padding: 0.85rem 0.6rem; text-align: center; min-height: 86px; display: flex; flex-direction: column; justify-content: center; gap: 0.25rem; }
+.tbl .n { font-weight: 700; font-size: 0.95rem; }
+.tbl .s { font-size: 0.68rem; letter-spacing: 1px; text-transform: uppercase; }
+.tbl .a { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: rgba(255,255,255,0.6); }
+.tbl.free { border-color: rgba(76,175,125,0.55); } .tbl.free .s { color: var(--ok); }
+.tbl.busy { border-color: rgba(217,88,74,0.6); background: rgba(217,88,74,0.06); } .tbl.busy .s { color: var(--hot); }
+.tbl.bill-out { border-color: rgba(224,161,74,0.6); background: rgba(224,161,74,0.06); } .tbl.bill-out .s { color: var(--warn); }
+.tbl.wide { grid-column: span 2; }
+.legend { display: flex; gap: 1.2rem; flex-wrap: wrap; margin-top: 1rem; font-size: 0.75rem; color: rgba(255,255,255,0.5); }
+.legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border: 1px solid; vertical-align: middle; }
+.legend .l-free::before { border-color: var(--ok); } .legend .l-busy::before { border-color: var(--hot); } .legend .l-bill::before { border-color: var(--warn); }
+.flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 3rem; }
+.flow-step { background: var(--dark); padding: 1.6rem 1.4rem; }
+.flow-step .k { font-family: 'Space Mono', monospace; font-size: 0.66rem; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 0.8rem; }
+.flow-step .v { font-family: 'DM Serif Display', serif; font-size: 1.35rem; line-height: 1.25; margin-bottom: 0.5rem; }
+.flow-step .h { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+/* HONEST NOTES */
+.honest { border-left: 2px solid var(--gold); padding-left: 1.6rem; margin-top: 1.5rem; }
+.honest li { list-style: none; font-size: 0.97rem; line-height: 1.75; color: rgba(255,255,255,0.6); margin-bottom: 1rem; }
+.honest li b { color: var(--white); font-weight: 600; }
+
+/* PRICE STRIP */
+.price-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 2rem; }
+.price-cell { background: var(--dark); padding: 1.8rem; }
+.price-cell .p { font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: var(--gold); }
+.price-cell .p small { font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: rgba(255,255,255,0.4); }
+.price-cell .w { font-size: 0.72rem; letter-spacing: 3px; text-transform: uppercase; font-weight: 700; margin-bottom: 0.4rem; }
+.price-cell p { font-size: 0.86rem; color: rgba(255,255,255,0.5); line-height: 1.6; margin-top: 0.4rem; }
+
+/* FAQ (same as the homepage) */
+.faq-list { margin-top: 2rem; border-top: 1px solid var(--border); }
+.faq-item { border-bottom: 1px solid var(--border); }
+.faq-question { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 1.5rem 0.25rem; background: none; border: none; cursor: pointer; text-align: left; font-family: 'Outfit', sans-serif; font-size: 1rem; font-weight: 500; color: var(--white); }
+.faq-icon { font-size: 1.3rem; color: var(--gold); transition: transform 0.3s; flex-shrink: 0; }
+.faq-item.open .faq-icon { transform: rotate(45deg); }
+.faq-answer { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; font-size: 0.92rem; line-height: 1.75; color: rgba(255,255,255,0.55); padding: 0 0.25rem; }
+.faq-item.open .faq-answer { max-height: 480px; padding: 0 0.25rem 1.6rem; }
+
+/* FOUNDER */
+.founder-section { padding: 80px 4rem; max-width: 900px; margin: 0 auto; text-align: center; }
+.founder-quote { font-family: 'DM Serif Display', serif; font-size: clamp(1.25rem, 2.4vw, 1.7rem); line-height: 1.55; color: rgba(255,255,255,0.82); max-width: 680px; margin: 1.5rem auto; font-style: italic; }
+.founder-quote em { color: var(--gold); }
+.founder-name { font-size: 0.75rem; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-top: 1.5rem; }
+
+/* FINAL CTA */
+.final-cta { background: var(--gold); padding: 90px 4rem; text-align: center; position: relative; overflow: hidden; }
+.final-cta::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px); background-size: 40px 40px; }
+.final-cta-inner { position: relative; z-index: 1; }
+.final-cta h2 { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: clamp(2rem, 4.5vw, 3.2rem); color: var(--black); margin-bottom: 1rem; }
+.final-cta p { font-size: 1rem; color: rgba(0,0,0,0.65); margin-bottom: 2.2rem; }
+.final-cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.btn-dark { display: inline-flex; align-items: center; gap: 12px; background: var(--black); color: var(--gold); text-decoration: none; padding: 1.1rem 2.5rem; font-weight: 700; font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; transition: transform 0.3s, box-shadow 0.3s; }
+.btn-dark:hover { transform: translateY(-2px); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+.btn-dark-outline { display: inline-flex; align-items: center; gap: 10px; color: var(--black); text-decoration: none; padding: 1.1rem 2.5rem; font-weight: 700; font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; border: 1px solid rgba(0,0,0,0.3); transition: all 0.3s; }
+.btn-dark-outline:hover { border-color: var(--black); background: rgba(0,0,0,0.06); }
+
+/* FOOTER */
+footer { background: var(--black); border-top: 1px solid var(--border); padding: 2.6rem 4rem; }
+.footer-solutions { display: flex; flex-wrap: wrap; gap: 0.6rem 1.8rem; align-items: center; padding-bottom: 1.6rem; margin-bottom: 1.6rem; border-bottom: 1px solid var(--border-light); }
+.footer-solutions span { font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+.footer-solutions a { font-size: 0.8rem; color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.2s; }
+.footer-solutions a:hover, .footer-solutions a[aria-current] { color: var(--gold); }
+.footer-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.footer-left { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--white); text-decoration: none; }
+.footer-left span { color: var(--gold); }
+.footer-right { font-size: 0.75rem; color: rgba(255,255,255,0.25); letter-spacing: 1px; }
+.footer-login { font-size: 0.75rem; color: rgba(255,255,255,0.35); text-decoration: none; letter-spacing: 1px; transition: color 0.2s; }
+.footer-login:hover { color: var(--gold); }
+
+/* REVEAL */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } html { scroll-behavior: auto; } }
+
+@media (max-width: 900px) {
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .split { grid-template-columns: 1fr; gap: 2.5rem; }
+  .flow { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  nav { padding: 1rem 1.5rem; }
+  .page-header { padding: 120px 1.25rem 50px; }
+  .section { padding: 56px 1.25rem; }
+  .features-grid, .flow, .price-strip, .board { grid-template-columns: 1fr; }
+  .floor { grid-template-columns: repeat(2, 1fr); }
+  .founder-section { padding: 56px 1.25rem; }
+  .final-cta { padding: 60px 1.25rem; }
+  footer { padding: 2rem 1.25rem; }
+  .footer-row { flex-direction: column; text-align: center; }
+  .mock { padding: 1.1rem; }
+}
+</style>
+</head>
+<body>
+
+<nav id="navbar">
+  <a href="/" class="nav-logo">
+    <div class="nav-diamond"><div class="nav-diamond-inner"></div></div>
+    <span class="nav-logo-text">Rasova</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/#features">Features</a></li>
+    <li><a href="/#pricing">Pricing</a></li>
+    <li><a href="/compare/">Compare</a></li>
+    <li><a href="/live-demo/" class="nav-cta">Try Live Demo</a></li>
+  </ul>
+</nav>
+
+<header class="page-header">
+  <div class="breadcrumbs"><a href="/">Home</a> / Bars &amp; pubs</div>
+  <div class="eyebrow">Rasova for bars and pubs</div>
+  <h1>A POS that knows <em>beer isn't GST.</em></h1>
+  <p class="lede">A pub bill carries two tax rules. Food is 5% GST. Liquor is outside GST, and in Karnataka there's no VAT on it at the bar today. Rasova bills both correctly on the same bill, so your cashier never has to do that maths at 11 PM.</p>
+  <div class="header-actions">
+    <a href="/live-demo/" class="btn-primary"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Try Live Demo</a>
+    <a href="https://wa.me/917899814912?text=Hi%20Rajath%2C%20I%20run%20a%20bar%20and%20I%27d%20like%20to%20see%20Rasova%27s%20pub%20mode" target="_blank" rel="noopener" class="btn-secondary"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Talk to Rajath</a>
+  </div>
+</header>
+
+<main>
+
+<section class="section">
+  <div class="split">
+    <div>
+      <div class="section-label reveal">One table, one bill</div>
+      <div class="section-title reveal">Two tax rules, handled without anyone thinking about it.</div>
+      <div class="prose reveal">
+        <p>Every item on your menu has a tax class. Starters and mains carry GST. Beer, spirits and cocktails carry your state's liquor VAT instead, which is <b>0% in Karnataka</b>.</p>
+        <p>Rasova keeps them apart on the bill, in your daily report and in the GSTR-1 export your CA files. Liquor goes in as a non-GST supply, food goes in the GST tables. Nobody has to split a column by hand at month end.</p>
+        <p>Before I wrote a line of the pub mode, I checked the tax maths against a thousand sample pub bills. The same checks run on every update.</p>
+      </div>
+    </div>
+    <div class="reveal">
+      <div class="bill" role="img" aria-label="Sample pub bill: two lager pitchers with a happy hour discount, liquor total 1,840 rupees with 0 percent VAT, food 540 rupees with 2.5 percent CGST and 2.5 percent SGST, total 2,407 rupees.">
+        <div class="c b">THE BARREL ROOM</div>
+        <div class="c sub">Indiranagar, Bengaluru &middot; sample bill</div>
+        <div class="c sub">Bill TBR/2627/000148 &middot; Table 6</div>
+        <hr>
+        <div class="row"><span>Lager pitcher 1.5 L &times;2</span><span>2,300.00</span></div>
+        <div class="row off"><span>Happy hour 20% off</span><span>-460.00</span></div>
+        <div class="row sub"><span>Liquor, VAT 0% (KA)</span><span>1,840.00</span></div>
+        <hr>
+        <div class="row"><span>Chilli chicken &times;1</span><span>320.00</span></div>
+        <div class="row"><span>Masala fries &times;1</span><span>220.00</span></div>
+        <div class="row sub"><span>Food</span><span>540.00</span></div>
+        <div class="row sub"><span>CGST 2.5%</span><span>13.50</span></div>
+        <div class="row sub"><span>SGST 2.5%</span><span>13.50</span></div>
+        <hr>
+        <div class="row b tot"><span>TOTAL</span><span>&#8377;2,407.00</span></div>
+      </div>
+      <p style="text-align:center;font-size:0.75rem;color:rgba(255,255,255,0.35);margin-top:1rem;">Simplified to show the idea. Your printed bill also carries your GSTIN, FSSAI and the full tax summary.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <div class="section-label reveal">What you get</div>
+  <div class="section-title reveal">Built for how a bar actually runs.</div>
+  <p class="section-sub reveal">Everything below is switched on when your outlet is set up as a pub or bar.</p>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <span class="feature-num">01</span>
+      <div class="feature-title">Liquor and food, taxed right</div>
+      <div class="feature-desc">Each dish has a tax class. Food carries GST, liquor carries your state's VAT, and the bill shows them as separate blocks. A pub can't use the composition scheme, so Rasova keeps it switched off for you.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">02</span>
+      <div class="feature-title">Happy hours that run themselves</div>
+      <div class="feature-desc">Set 5 PM to 8 PM, Monday to Thursday. Prices drop at five and come back at eight on their own. A round ordered at 7:55 keeps its happy hour price even if the table pays at nine.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">03</span>
+      <div class="feature-title">Buy 2, get 1 free</div>
+      <div class="feature-desc">Pitchers, shots, buckets: set how many they buy and how many go free. The free item shows on the bill as its own offer line, and you can pause any offer for the night with one switch.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">04</span>
+      <div class="feature-title">Tabs that stay open</div>
+      <div class="feature-desc">Keep adding rounds to the same table all evening. Merge two tables when a group joins, and split the bill by item or equally when they leave.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">05</span>
+      <div class="feature-title">Kitchen tickets, instantly</div>
+      <div class="feature-desc">Food orders reach the kitchen screen and printer the moment they're sent. The kitchen and the bar counter can each have their own printer.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-num">06</span>
+      <div class="feature-title">Your GST return, already split</div>
+      <div class="feature-desc">The GSTR-1 workbook keeps food in the GST tables and lists liquor as a non-GST supply, so your CA isn't untangling a mixed sales total every month.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="split top">
+    <div class="reveal">
+      <div class="section-label">How an offer behaves</div>
+      <div class="section-title">One happy hour, minute by minute.</div>
+      <p class="section-sub">The price a guest gets depends on when the drink was ordered, not when the bill is paid. That's what guests expect, and it's what Rasova does.</p>
+    </div>
+    <ul class="timeline reveal" aria-label="Happy hour timeline">
+      <li class="dim"><span class="t">4:55 PM</span><span class="d">Pitcher ordered at the full price.</span></li>
+      <li><span class="t">5:00 PM</span><span class="d">Happy hour starts on its own. New pitchers come in 20% off.</span></li>
+      <li><span class="t">7:55 PM</span><span class="d">Another pitcher, still at the happy hour price.</span></li>
+      <li class="dim"><span class="t">8:00 PM</span><span class="d">Happy hour ends. New rounds go back to the full price.</span></li>
+      <li><span class="t">9:10 PM</span><span class="d">The table pays. The 7:55 pitcher keeps its discount. A bill that's already printed never changes.</span></li>
+    </ul>
+  </div>
+</section>
+<section class="section">
+  <div class="section-label reveal">Being straight with you</div>
+  <div class="section-title reveal">What to know before you switch.</div>
+  <ul class="honest reveal">
+    <li><b>Liquor rules differ by state.</b> Rasova ships with Karnataka's: no VAT on liquor at the bar. If you're in another state, we set your rate together during setup, and I'd ask your CA to check the first week of bills.</li>
+    <li><b>Rasova needs internet to bill.</b> If your connection drops, keep a phone hotspot ready. Offline billing is on my list, and it isn't built yet.</li>
+    <li><b>Excise is outside Rasova.</b> It doesn't keep your excise registers or file anything with the excise department.</li>
+    <li><b>Liquor can't go on delivery-app orders,</b> and Rasova won't let it.</li>
+  </ul>
+</section>
+
+<section class="section">
+  <div class="section-label reveal">Pricing</div>
+  <div class="section-title reveal">Same price for every kind of outlet.</div>
+  <p class="section-sub reveal">Month to month. No annual contract, no setup fee hidden in the small print.</p>
+  <div class="price-strip reveal">
+    <div class="price-cell">
+      <div class="w">Solo</div>
+      <div class="p">&#8377;999+ <small>/ month</small></div>
+      <p>One outlet, unlimited orders, every core feature on this page, AI menu import and WhatsApp support.</p>
+    </div>
+    <div class="price-cell">
+      <div class="w">Growth</div>
+      <div class="p">&#8377;2,499 <small>/ month</small></div>
+      <p>Up to three outlets, plus CRM and guest loyalty, reservations, UPI QR payments and priority support.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <div class="section-label reveal">Questions</div>
+  <div class="section-title reveal">What owners usually ask.</div>
+  <div class="faq-list">
+    <div class="faq-item reveal">
+      <button class="faq-question" type="button" aria-expanded="false">Is liquor charged GST in a bar? <span class="faq-icon" aria-hidden="true">+</span></button>
+      <div class="faq-answer">No. Alcohol for drinking is outside GST. States tax it separately, through excise and in some states VAT. In Karnataka there's no VAT on liquor sold at the bar today. Food and non-alcoholic drinks at a standalone bar or restaurant are 5% GST.</div>
+    </div>
+    <div class="faq-item reveal">
+      <button class="faq-question" type="button" aria-expanded="false">Can my pub use the composition scheme? <span class="faq-icon" aria-hidden="true">+</span></button>
+      <div class="faq-answer">No. A business that sells liquor can't opt for composition under GST, so Rasova keeps it switched off for pub outlets.</div>
+    </div>
+    <div class="faq-item reveal">
+      <button class="faq-question" type="button" aria-expanded="false">Does a happy hour change a bill that's already printed? <span class="faq-icon" aria-hidden="true">+</span></button>
+      <div class="faq-answer">No. Once a bill is issued its totals are locked. Offers only apply to open bills, and each drink keeps the price it was ordered at.</div>
+    </div>
+    <div class="faq-item reveal">
+      <button class="faq-question" type="button" aria-expanded="false">We're not in Karnataka. Will it work? <span class="faq-icon" aria-hidden="true">+</span></button>
+      <div class="faq-answer">Yes. The liquor VAT rate is set per outlet. Tell me your state during setup and we'll set it to your rate together.</div>
+    </div>
+    <div class="faq-item reveal">
+      <button class="faq-question" type="button" aria-expanded="false">How much does it cost? <span class="faq-icon" aria-hidden="true">+</span></button>
+      <div class="faq-answer">The same as every Rasova outlet: from &#8377;999 a month for one outlet, &#8377;2,499 for up to three. Month to month, no annual contract.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="founder-section">
+    <div class="section-label reveal">A note from the founder</div>
+    <p class="founder-quote reveal">"When a pub owner asked me two things, can it keep beer out of GST and can it run our pitcher offers, I didn't have a good answer. So I built both properly, tested them against a thousand sample bills, and <em>only then</em> wrote this page."</p>
+    <div class="founder-name reveal">Rajath &middot; Founder, Rasova &middot; Bengaluru</div>
+  </div>
+</section>
+</main>
+
+<div class="final-cta">
+  <div class="final-cta-inner">
+    <h2>See a pub bill in Rasova.</h2>
+    <p>Thirty minutes on a call, your menu, your offers. No pressure.</p>
+    <div class="final-cta-actions">
+      <a href="/live-demo/" class="btn-dark"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Try Live Demo</a>
+      <a href="https://wa.me/917899814912?text=Hi%20Rajath%2C%20I%20run%20a%20bar%20and%20I%27d%20like%20to%20see%20Rasova%27s%20pub%20mode" target="_blank" rel="noopener" class="btn-dark-outline"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Message on WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-solutions"><span>Rasova for</span> <a href="/fine-dining-pos/">Fine dining</a> <a href="/cafe-pos/">Cafes</a> <a href="/qsr-pos/">QSR</a> <a href="/bar-pos/" aria-current="page">Bars &amp; pubs</a> <a href="/compare/">Compare</a></div>
+  <div class="footer-row">
+    <a href="/" class="footer-left">Ras<span>ova</span></a>
+    <div class="footer-right">&copy; 2026 Rasova &middot; Bengaluru, India</div>
+    <a href="/login/" class="footer-login">Customer Login &rarr;</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.faq-question').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var item = btn.parentElement;
+      var isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(function (i) {
+        i.classList.remove('open');
+        i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) { item.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); }
+    });
+  });
+  var reveals = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry, i) {
+        if (entry.isIntersecting) {
+          setTimeout(function () { entry.target.classList.add('visible'); }, i * 80);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(function (el) { observer.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add('visible'); });
+  }
+</script>
+</body>
+</html>

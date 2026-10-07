@@ -84,27 +84,23 @@ Sitemap: https://rasova.net/sitemap.xml"""
 
 def sitemap_xml(request):
     from django.utils import timezone
+    from core.public_pages import PUBLIC_PAGES
     # Public, indexable marketing pages (served as static files by
-    # WhiteNoise from public/, see WHITENOISE_ROOT in settings.py) --
-    # add an entry here whenever a new one ships.
+    # WhiteNoise from public/, see WHITENOISE_ROOT in settings.py). The list
+    # lives in core/public_pages.py, shared with the search-indexing rules.
     # lastmod is today's date, generated fresh on every request, rather
     # than a hand-typed date that goes stale the moment anyone forgets to
     # update it (it had drifted to a 3-month-old date before this fix).
     today = timezone.localdate().isoformat()
+    urls = "".join(f"""
+  <url>
+    <loc>https://{settings.CANONICAL_HOST}{page.path}</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>{page.changefreq}</changefreq>
+    <priority>{page.priority}</priority>
+  </url>""" for page in PUBLIC_PAGES)
     content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://rasova.net/</loc>
-    <lastmod>{today}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://rasova.net/compare/</loc>
-    <lastmod>{today}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{urls}
 </urlset>"""
     return HttpResponse(content, content_type='application/xml')
 

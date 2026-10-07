@@ -7,6 +7,17 @@ the source of truth.
 
 ---
 
+## 2026-10-08: Pages for each kind of outlet
+
+### Added
+- **Four public pages, one per outlet type:** `/fine-dining-pos/`, `/cafe-pos/`, `/qsr-pos/` and `/bar-pos/`, in the same design as `/compare/`. Each claims only what that tenant type really gets (features checked against `core/features.py` and the code): pub mode's liquor outside GST with food on GST on one bill, happy hours by the clock; cafe counter billing, tokens, phone printing, composition Bill of Supply; QSR tokens, Order Ready board, central kitchen, shift cash closing; dine-in floor plan, waiter phones, stations, merge and split. Each has an honest "what to know before you switch" list (internet needed, no offline billing yet) and FAQ structured data generated from the visible questions.
+- **Home and compare link to all four** (an outlet-type row on the home page, and a "Rasova for" row in both footers). The home footer now wraps.
+
+### Changed
+- **One list of public pages,** `core/public_pages.py`, read by both the sitemap and `SearchIndexingMiddleware`, so a page can't be in the sitemap but marked noindex, or the other way round. Tests: `core/tests/test_public_pages.py` (fails if a page in `public/` isn't listed; the serving tests fail on the old middleware and sitemap).
+
+---
+
 ## 2026-10-06: Search indexing
 
 ### Fixed

@@ -985,6 +985,8 @@ footer {
   border-top: 1px solid var(--border);
   padding: 3rem 4rem;
   display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
   justify-content: space-between;
   align-items: center;
 }
@@ -1046,6 +1048,21 @@ footer {
   .final-cta { padding: 60px 1.5rem; }
   footer { padding: 2rem 1.5rem; flex-direction: column; gap: 1rem; text-align: center; }
 }
+
+/* OUTLET TYPES + FOOTER LINKS (pages under /fine-dining-pos/ etc.) */
+.types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 3rem; }
+.type-card { background: var(--dark); padding: 2rem 1.6rem; text-decoration: none; color: var(--white); transition: background 0.3s; display: block; }
+.type-card:hover { background: #1a1a1a; }
+.type-card .type-name { font-family: 'DM Serif Display', serif; font-size: 1.35rem; margin-bottom: 0.5rem; }
+.type-card .type-desc { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.6; margin-bottom: 1rem; }
+.type-card .type-link { font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+@media (max-width: 900px) { .types-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .types-grid { grid-template-columns: 1fr; } }
+.footer-solutions { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 0.6rem 1.8rem; align-items: center; padding-bottom: 1.4rem; margin-bottom: 0.4rem; border-bottom: 1px solid var(--border-light); }
+.footer-solutions span { font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+.footer-solutions a { font-size: 0.8rem; color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.2s; }
+.footer-solutions a:hover { color: var(--gold); }
+@media (max-width: 700px) { .footer-solutions { justify-content: center; } }
 </style>
 </head>
 <body>
@@ -1192,6 +1209,21 @@ footer {
         <div class="feature-title">Role-Based Access</div>
         <div class="feature-desc">Owner, Manager, Waiter, Cashier, Chef - each sees exactly what they need. Nothing more. Security built into the architecture.</div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- OUTLET TYPES -->
+<section id="outlets">
+  <div class="section">
+    <div class="section-label reveal">Made for your kind of outlet</div>
+    <div class="section-title reveal">One system. Set up the way you serve.</div>
+    <p class="section-sub reveal">Rasova switches on the features your kind of outlet uses and hides the ones it doesn't.</p>
+    <div class="types-grid reveal">
+      <a class="type-card" href="/fine-dining-pos/"><div class="type-name">Fine dining</div><div class="type-desc">Floor plan, waiter phones, kitchen stations, merged tables and split bills.</div><span class="type-link">See dine-in &rarr;</span></a>
+      <a class="type-card" href="/cafe-pos/"><div class="type-name">Cafes</div><div class="type-desc">Counter billing, token numbers, printing from a phone, composition bills.</div><span class="type-link">See cafes &rarr;</span></a>
+      <a class="type-card" href="/qsr-pos/"><div class="type-name">QSR</div><div class="type-desc">Tokens, an Order Ready board, central kitchen and shift cash closing.</div><span class="type-link">See QSR &rarr;</span></a>
+      <a class="type-card" href="/bar-pos/"><div class="type-name">Bars &amp; pubs</div><div class="type-desc">Liquor outside GST, food on GST, same bill. Happy hours by the clock.</div><span class="type-link">See bars &rarr;</span></a>
     </div>
   </div>
 </section>
@@ -1388,6 +1420,7 @@ footer {
 
 <!-- FOOTER -->
 <footer>
+  <div class="footer-solutions"><span>Rasova for</span> <a href="/fine-dining-pos/">Fine dining</a> <a href="/cafe-pos/">Cafes</a> <a href="/qsr-pos/">QSR</a> <a href="/bar-pos/">Bars &amp; pubs</a> <a href="/compare/">Compare</a></div>
   <div class="footer-left">Ras<span>ova</span></div>  
   <div class="footer-right">© 2026 Rasova · Bengaluru, India</div>
   <a href="/login/" class="footer-login">Customer Login →</a>

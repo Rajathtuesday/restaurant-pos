@@ -4,6 +4,7 @@ import logging
 from django.conf import settings
 from django.shortcuts import render
 from tenants.models import Tenant
+from .public_pages import PUBLIC_PATHS
 from .tenant_context import set_current_tenant_outlet, clear_current_tenant_outlet
 from .request_context import set_current_trace_id, clear_current_trace_id
 
@@ -24,13 +25,13 @@ class SearchIndexingMiddleware:
     the right tool here: a Disallow in robots.txt stops Google reading the
     page, so it never sees the noindex and can keep the URL indexed.
 
-    On subdomains, the marketing page /compare/ moves to the main site with
+    On subdomains, the marketing pages other than / move to the main site with
     a 301, and www moves entirely. The home page stays on subdomains (staff
     open their own subdomain to reach login), it is only marked noindex.
     """
 
-    MARKETING_PATHS = {"/", "/compare/"}
-    MARKETING_ONLY_PATHS = {"/compare/"}
+    MARKETING_PATHS = PUBLIC_PATHS
+    MARKETING_ONLY_PATHS = PUBLIC_PATHS - {"/"}
     GUEST_MENU_PREFIXES = ("/menu/digital-menu/", "/menu/qr/")
 
     def __init__(self, get_response):
