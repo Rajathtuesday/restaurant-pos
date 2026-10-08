@@ -9,6 +9,8 @@ enabled, and which *themes* are available.
 
 ---
 
+> **Public names (Oct 2026):** rasova.net shows two plans: **Solo** from ₹999 a month (this file's Starter, one outlet) and **Growth** at ₹2,499 a month (Professional, up to three outlets, with CRM, loyalty, reservations and UPI QR payments). Enterprise isn't advertised; quote it by hand.
+
 ## Tier Definitions
 
 ### Starter — ₹999/month

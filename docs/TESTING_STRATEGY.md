@@ -720,6 +720,9 @@ All bill maths lives in one place, `orders/services/tax_engine.py`; its docstrin
 | Documents issued | `reports/tests/test_documents_issued.py` | GSTR-1 Table 13: one row per bill number series, cancelled bills, bills from the next period, old daily series, the real workbook |
 | Business day | `reports/tests/test_business_day.py` | Standing at 1 AM: every report (P&L, comparison, daily sales, the daily chart, stock consumption and variance, order history) puts a 12:30 AM sale on the business day still trading |
 | Bill numbers | `orders/tests/test_bill_numbers.py` | One series per outlet per financial year, at most 16 characters, given at billing with no gaps; stale copies and screens billing at once (Postgres row locks); both migrations on real rows |
+| Offers engine | `offers/tests/test_engine.py` | Buy N get M free, % and flat off, clock-hour windows and days, business-day edges, the price locked when a line is added, one offer per line |
+| Offers on bills | `offers/tests/test_offers_on_bills.py`, `setup/tests/test_offer_setup.py` | Offers through the tax engine onto real bills; the Setup screen, editing, history, and re-totalling open bills only |
+| Offers copy | `offers/tests/test_offers_js.py` | `static/js/offers.js` run in Node against `offers/engine.py` |
 | No GSTIN, no GST | `orders/tests/test_gst_registration.py` | An outlet without a valid GSTIN bills no GST and its bill says "Bill"; every screen that saves a GSTIN refuses one that isn't; old bills keep the GST they were billed with; an issued bill keeps its wording; the demo keeps its sample GSTIN |
 
 **Changing the maths on purpose:** change the engine, then regenerate the golden files and read every changed line before committing:
@@ -736,6 +739,19 @@ The independent copy (`legacy_totals.py`) changes only in the same commit as a d
 ```bash
 MONEY_THOROUGH=1 python manage.py test orders.tests.test_totals_properties
 ```
+
+---
+
+## Part 6c: Pages, Messages and Search (Oct 2026)
+
+| What | File | Guards |
+|---|---|---|
+| QR menu cart | `menu/tests/test_qr_cart_js.py` | Runs the rendered QR page's script in Node with a fake page and taps ADD and VIEW CART. HTML-only tests missed a broken cart once; this one runs the script. |
+| User messages | `core/tests/test_user_errors.py` | Only messages written for users reach the screen; anything else is logged behind "Something went wrong" |
+| Search indexing | `core/tests/test_search_indexing.py` | Only public pages are indexable; login and app pages are `noindex`; marketing copies on subdomains and www move to rasova.net |
+| Public pages | `core/tests/test_public_pages.py` | Every page in `public/` is in `core/public_pages.py`, served, in the sitemap, linked from home, with FAQ markup matching the visible questions |
+
+The lesson behind the JS tests: a page's own script can break while every server-side test passes. Where money or ordering logic exists in the browser, run that script in a test.
 
 ---
 
@@ -1175,8 +1191,15 @@ order    = OrderFactory(tenant=tenant, outlet=cashier.outlet)
 
 ## Part 13 — Running Tests
 
+Blank the R2 variables first when running locally, because `.env` holds the production media keys:
+`AWS_ACCESS_KEY_ID= AWS_SECRET_ACCESS_KEY= AWS_STORAGE_BUCKET_NAME= AWS_S3_ENDPOINT_URL= AWS_S3_CUSTOM_DOMAIN=`
+
 ```bash
-# Run all tests (uses Django's test runner)
+# Run all tests in parallel: 8 processes, each with its own test database
+# (2,062 tests in about 10 minutes on the development laptop, Oct 2026)
+python manage.py test --noinput --parallel 8
+
+# Run all tests in one process (uses Django's test runner)
 python manage.py test --keepdb
 
 # Run specific file
@@ -1215,14 +1238,13 @@ pytest -k "not Concurrency"
 | `accounts/views/` | 60% | Login, dashboard |
 | `menu/views/` | 50% | CRUD, lower risk |
 
-**Current state:** 17 tests, unknown coverage (coverage not installed).  
-**Target:** 80+ tests, 75% overall coverage before first paid customer.
+**State (7 Oct 2026):** 2,062 tests, all passing. Coverage isn't measured in CI yet; the money paths are guarded by the golden bills in Part 6b instead.
 
 ---
 
 ## Part 15 — CI/CD: Auto-run on Every Push
 
-Add `.github/workflows/test.yml`:
+**Live today:** `.github/workflows/ci.yml` installs the requirements, runs `ruff`, `manage.py check`, migrations and collectstatic, then the full test suite on every push to `qsr`. Only if everything passes does it SSH to the server and run `deploy.sh`. The example below is the original starting point, kept for teaching:
 ```yaml
 name: Tests
 
@@ -1272,7 +1294,7 @@ Never merge to `main` if tests are red.
 
 ## Summary: Priority Order
 
-Build tests in this order. Stop after each batch if you're short on time.
+All four batches below are done (Oct 2026). Kept as the order to follow on a new project. Stop after each batch if you're short on time.
 
 ```
 Batch 1 — Must have before first paying customer (2-3 hours)

@@ -338,9 +338,12 @@ cat rasova.pem
 
 ### 11.5 What CI/CD does automatically on every push to qsr
 ```
-1. Runs full test suite (228 tests) against PostgreSQL + Redis
-2. If tests pass → SSH into EC2
-3. git reset --hard origin/qsr
+1. ruff, manage.py check, migrations, collectstatic, then the full test
+   suite (2,000+ tests, Oct 2026) against PostgreSQL + Redis
+2. If everything passes → SSH into EC2
+3. Point the server's git remote at a read-only token for this run only
+   (the repository is private since 3 Oct 2026), then run deploy.sh, which does:
+   git reset --hard origin/qsr
 4. pip install -r requirements.txt
 5. python manage.py migrate
 6. python manage.py collectstatic
@@ -353,10 +356,13 @@ cat rasova.pem
 ## PART 12 — Maintenance and common operations
 
 ### 12.1 Deploy manually (if CI/CD is down)
+
+The repository is private, so the server can't fetch anonymously. Create a GitHub fine-grained personal access token with read-only "Contents" access to this one repository, and use it just for this fetch (it isn't saved on the server):
+
 ```bash
 ssh -i rasova.pem ubuntu@YOUR_ELASTIC_IP
 cd /home/ubuntu/rasova
-git fetch origin qsr && git reset --hard origin/qsr
+git fetch https://x-access-token:YOUR_TOKEN@github.com/Rajathtuesday/restaurant-pos.git qsr && git reset --hard FETCH_HEAD
 source .venv/bin/activate
 pip install -r requirements.txt --quiet
 python manage.py migrate
@@ -518,10 +524,11 @@ DB name:          rasova_prod
 DB user:          rasova
 Redis:            redis://127.0.0.1:6379/0
 Logs:             /home/ubuntu/rasova/logs/errors.log
-Landing page:     /home/ubuntu/rasova/public/index.html
+Public pages:     /home/ubuntu/rasova/public/ (list: core/public_pages.py)
 Static files:     /home/ubuntu/rasova/staticfiles/ (after collectstatic)
 Branch to deploy: qsr
-GitHub repo:      github.com/Rajathtuesday/restaurant-pos
+GitHub repo:      github.com/Rajathtuesday/restaurant-pos (private)
+Public showcase:  github.com/Rajathtuesday/rasova-showcase
 Domain:           rasova.net
 ```
 

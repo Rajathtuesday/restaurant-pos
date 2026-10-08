@@ -94,9 +94,30 @@ Before taking any payments, a cash register session needs to be open. Fine dinin
 
 At the end of a shift, count the actual cash in the drawer and close the session — Rasova will show you the difference between what it expected and what you counted, so any shortfall is caught immediately, not days later.
 
+### Offers and Happy Hours (Pubs and Bars)
+
+Pub and bar outlets get an **Offers** screen at **Setup → Offers** (owners and managers only).
+
+1. Click **New offer** and choose the kind: **Buy N, get M free**, **% off**, or **₹ off**.
+2. Pick the dishes or categories it applies to, for example all pitchers.
+3. Set when it runs, for example **5 PM to 8 PM, Monday to Thursday**. Leave the times empty and it runs all day on the days you pick.
+4. Check the **Example bill** on the screen. It shows exactly what a guest would pay.
+5. Click **Save offer**. The offer starts at its time on its own and stops on its own.
+
+Good to know:
+
+- A drink keeps the price it was ordered at. A pitcher ordered at 7:55 keeps its happy hour price even if the table pays at 9.
+- A bill that has already been printed or paid never changes.
+- To stop an offer for the night, click **Pause** next to it (or **Pause all** to stop every offer). To fix a mistake, click **Edit**; every change is kept in the offer's history.
+- On the bill, offers show as their own line, so guests can see what they saved.
+
+**Liquor on the bill:** in a pub outlet, food carries GST and liquor carries the state's VAT instead (0% in Karnataka at the bar). Both sit on the same bill, in separate blocks, and the GSTR-1 export keeps them apart for your accountant.
+
 ---
 
 ## 4. For Cashiers (QSR / Counter)
+
+Every order gets a **token number** that starts again from 1 each day: walk-in orders show as **#12**, online orders as **O-12**. In QSR outlets, tap the order **Ready** when the food is handed over and the number moves to the Ready side of the Order Ready screen.
 
 1. Tap items on the menu to add them to the current order.
 2. Tap **Checkout**.

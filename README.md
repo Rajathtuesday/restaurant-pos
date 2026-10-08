@@ -9,7 +9,7 @@ See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
 
 ## What Is Rasova
 
-Rasova is a full-stack restaurant management platform built for Indian restaurants - fine dining, QSR counters, and cafés. It handles the complete order lifecycle: table management, kitchen tickets, billing, thermal printing, inventory, reports, and an order history with a full audit trail.
+Rasova is a full-stack restaurant management platform built for Indian restaurants - fine dining, QSR counters, cafés, and pubs and bars. It handles the complete order lifecycle: table management, kitchen tickets, billing, thermal printing, inventory, reports, and an order history with a full audit trail.
 
 Two things that make it different from existing Indian POS software:
 
@@ -22,11 +22,12 @@ Two things that make it different from existing Indian POS software:
 
 | Type | Key features |
 |---|---|
-| **Fine Dining** | Floor plan, table merge/transfer, waiter calls, kitchen display, split bill |
-| **QSR / Fast Food** | Token counter, single-printer strip (bill + KOTs on one slip), pay-first flow |
-| **Café** | Mix of both - floor plan + token system |
+| **Fine Dining** | Floor plan, table merge/transfer, waiter calls, kitchen display, split bill, reservations and CRM |
+| **QSR / Franchise** | Token counter, Order Ready board, single-printer strip (bill + KOTs on one slip), pay-first flow, central kitchen and barcode transfers |
+| **Café** | Counter billing with daily tokens, QR menu, composition-scheme bills, parcel charge |
+| **Pub / Bar** | The fine-dining set plus liquor billed under the state's VAT (never GST) on the same bill as food, and the offers engine (happy hour, buy N get M free) |
 
-Each type gets its own default feature set. Owners and superusers can override individual features per outlet.
+Each type gets its own default feature set (`core/features.py`). Owners and superusers can override individual features per outlet.
 
 ---
 
@@ -48,6 +49,23 @@ Each type gets its own default feature set. Owners and superusers can override i
 - **QSR strip printing** - bill + all KOTs print as one connected strip (partial cuts between, final full cut)
 - Auto-KOT at payment - for no-KDS setups, KOTs are created at payment time
 - Auto-reset after payment - screen clears for next customer after 2.5 seconds
+
+### Tax and Bills
+- **One tax engine** - `orders/services/tax_engine.py` is the only place tax is worked out; the browser preview (`static/js/cart_tax.js`) is a copy checked against it in CI
+- **GST and liquor VAT on one bill** - food carries GST (CGST/SGST), liquor carries the state's VAT (Karnataka: 0% at the bar) and is never charged GST; a pub outlet can't use the composition scheme
+- **Composition scheme** - prints a Bill of Supply with the statement the law requires and no GST lines
+- **No GSTIN, no GST** - an outlet without a GSTIN never charges GST
+- **Issued bills are locked** - a paid or closed bill is never re-totalled (`IssuedBillError`)
+- **Bill numbers** - `CODE/2627/000123`, within the 16 characters GST Rule 46 allows
+- **One bill layout** - `orders/services/bill_layout.py` builds the money lines for the printed, thermal, A4, PDF, WhatsApp and split bills alike
+- **Golden bills** - thousands of known-correct bills (including 1,000 pub bills) are re-totalled on every test run
+
+### Offers (pub outlets by default)
+- Buy N get M free, % off and flat off, on chosen dishes or categories
+- Time windows read as clock hours and days of the week, aligned to the business day (a 5 PM to 8 PM happy hour is exactly that)
+- The price is locked when the line is added, so a round ordered at 7:55 keeps its happy hour price when paid at 9
+- Shown on every bill as an Offers row; set up and edited at `/setup/offers/` with a live example bill and a change history
+- Pure engine in `offers/engine.py`, mirrored in `static/js/offers.js`, cross-checked in CI
 
 ### Thermal Printing
 - **Browser-based** - `window.print()` via OS print dialog, works with any printer that has a Windows driver. Zero local installation.
@@ -85,6 +103,9 @@ Each type gets its own default feature set. Owners and superusers can override i
 - Low stock alerts with configurable thresholds
 - Purchase orders
 
+### Android Print App
+- **Phone-only printing** - the Rasova Android app polls the print queue and sends ESC/POS to network thermal printers, so a counter needs only a phone and a printer (see `PRINTING_SYSTEM.md`)
+
 ### Ordering
 - QR self-ordering - customer scans → views menu → places order → appears for staff approval
 - Live order status for guests - a floating status button on the QR menu opens a slide-up sheet with a Received → Preparing → Ready → Served timeline, polling automatically until the order is done
@@ -103,7 +124,7 @@ Each type gets its own default feature set. Owners and superusers can override i
 - Feature flags per tenant type (fine dining / QSR / café) with per-outlet overrides
 - Role-based access: Owner, Manager, Cashier, Waiter, Chef
 - **Superuser control panel** - `/superuser/` - create restaurants, configure printers, apply feature presets, manage staff. No Django admin needed for setup.
-- 24 configurable feature flags - toggle per restaurant without code changes
+- 34 configurable feature flags - toggle per restaurant without code changes
 
 ### Background Tasks (Celery + Redis)
 - Thermal printing is async - payment response returns in ~12ms, printer runs in background
@@ -149,12 +170,14 @@ f:\pos\
 ├── kitchen/            Kitchen display, KOT batches, kitchen-to-waiter messages
 ├── menu/               Categories, items, modifiers, GST, QR digital menu
 │   └── views/          customer, management, item, category, modifier, gst, ai
+├── devtools/           Load-test and demo tooling (management commands)
 ├── notifications/      In-app notification system
+├── offers/             Offers engine (happy hour, buy N get M free) and offer setup
 ├── orders/             Core POS - orders, KOT, billing, payments, history
 │   ├── management/     Management commands (preview_print, seed, audit, stress test)
 │   ├── services/       9 service modules (order, payment, split, tax, void, inventory, printing, events, locking)
 │   ├── tasks.py        Celery tasks - print_kot_task, print_bill_task
-│   ├── tests/          414 tests across financial, security, API, concurrency
+│   ├── tests/          Financial, tax, security, API and concurrency tests, plus golden bills
 │   └── views/          billing_core, payment, discount, print, kitchen, table, history
 ├── payments/           Razorpay QR codes and refunds
 ├── printing/           Print jobs
@@ -168,6 +191,7 @@ f:\pos\
 ├── tokens/             QSR daily token counters and token orders
 ├── waiter/             Waiter calls
 ├── scripts/backup/     Nightly dump, WAL archiving, restore drill, health check
+├── public/             Static marketing pages served by WhiteNoise (/, /compare/, one page per outlet type)
 └── templates/
     └── core/base.html  Master layout - notification poller, dark mode, theme
 ```
@@ -193,11 +217,11 @@ f:\pos\
 | DB | PostgreSQL 16, co-located or managed | PostgreSQL 16, managed (RDS or equivalent) if budget allows |
 | Cache/queue | Redis 7 | Redis 7 |
 
-Production today runs on a **1 vCPU / 1 GB RAM** instance (AWS t3.micro) with Postgres, Redis, gunicorn (`--workers 2 --threads 4`), and a Celery worker all co-located on the same box — this is the *minimum* row above, not the recommended one, and it's genuinely tight: little headroom before swap kicks in under real concurrent load. Per-gunicorn-worker memory measured directly under sustained load (see [`LOAD_TESTING.md`](docs/LOAD_TESTING.md)'s soak test) sits around 90-105 MB; with 2 workers that's already 200 MB+ before Postgres, Redis, Celery, and the OS itself are accounted for.
+Production today runs on a **1 vCPU / 1 GB RAM** instance (AWS t3.micro) with Postgres, Redis, gunicorn (`--workers 2 --threads 4`), and a Celery worker all co-located on the same box. This is the *minimum* row above, not the recommended one, and it's genuinely tight: little headroom before swap kicks in under real concurrent load. Per-gunicorn-worker memory measured directly under sustained load (see [`LOAD_TESTING.md`](docs/LOAD_TESTING.md)'s soak test) sits around 90-105 MB; with 2 workers that's already 200 MB+ before Postgres, Redis, Celery, and the OS itself are accounted for.
 
-**Recommended minimum for production** is a **2 vCPU / 2 GB RAM** instance (e.g. AWS t3.small) — enough headroom for the current gunicorn config plus Postgres/Redis/Celery without relying on burst CPU credits or swap. Scale up further (2 vCPU / 4 GB, e.g. t3.medium) if adding more tenants, increasing `--workers`/`--threads`, or increasing Celery concurrency.
+**Recommended minimum for production** is a **2 vCPU / 2 GB RAM** instance (e.g. AWS t3.small), which gives enough headroom for the current gunicorn config plus Postgres/Redis/Celery without relying on burst CPU credits or swap. Scale up further (2 vCPU / 4 GB, e.g. t3.medium) if adding more tenants, increasing `--workers`/`--threads`, or increasing Celery concurrency.
 
-These figures come from the app's own configuration and measured per-process footprint, not from live production monitoring (no SSH-based metrics collection is wired up yet). Before committing to a resize, use the load-testing tooling in [`LOAD_TESTING.md`](docs/LOAD_TESTING.md) — specifically a soak test run directly on whichever instance size you're evaluating — to get a real, current answer rather than an estimate.
+These figures come from the app's own configuration and measured per-process footprint, not from live production monitoring (no SSH-based metrics collection is wired up yet). Before committing to a resize, use the load-testing tooling in [`LOAD_TESTING.md`](docs/LOAD_TESTING.md), specifically a soak test run directly on whichever instance size you're evaluating, to get a real, current answer rather than an estimate.
 
 ### Installation
 
@@ -395,14 +419,17 @@ Full guide to what each load-test phase checks and how to read its output: [`LOA
 
 ## Tests
 
-**1,360 tests across the codebase. All passing.**
+**2,062 tests across the codebase (7 October 2026). All passing.**
 
 ```bash
-python manage.py test --keepdb                           # all tests
+python manage.py test --noinput --parallel 8             # all tests, about 10 minutes
+python manage.py test --keepdb                           # all tests, one process
 python manage.py test orders.tests.test_critical         # critical paths
 python manage.py test orders.tests.test_financial_flows  # payment flows
 python manage.py test accounts tenants setup menu        # individual apps
 ```
+
+Blank the R2 variables when running tests locally (`AWS_ACCESS_KEY_ID= AWS_SECRET_ACCESS_KEY= AWS_STORAGE_BUCKET_NAME= AWS_S3_ENDPOINT_URL= AWS_S3_CUSTOM_DOMAIN=`), because `.env` holds the production media keys. The full strategy is in [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md).
 
 Test coverage includes:
 - Financial accuracy (Decimal math, GST rounding, no float bugs)
@@ -412,19 +439,24 @@ Test coverage includes:
 - Celery task idempotency (print job cannot fire twice)
 - API endpoints (notification, kitchen data, tables data)
 - Feature flag logic (defaults + overrides per tenant type)
+- Tax maths against golden bills, and the browser copies of the tax and offers engines run in Node against the Python ones
+- The public site: every page in `public/` is listed, indexable on rasova.net, moved off subdomains and in the sitemap
 
 ---
 
 ## Architecture Notes
 
 ### Multi-Tenancy
-Every DB query is scoped by `tenant + outlet`. `TenantMiddleware` resolves the tenant from the logged-in user. `@tenant_required` enforces isolation on every view. A bug cannot accidentally expose one restaurant's data to another.
+Every DB query is scoped by `tenant + outlet`. `TenantMiddleware` resolves the tenant from the subdomain for routing and branding; query scoping comes from the logged-in user (`ContextLoggingMiddleware`). `@tenant_required` enforces isolation on every view. A bug cannot accidentally expose one restaurant's data to another.
 
 ### Financial Integrity
 All payment operations use `select_for_update()` to prevent race conditions. `Decimal` arithmetic throughout - no float math on money. Refund rows excluded from payment validation. KOT numbers use `select_for_update()` on `DailyKOTCounter` to guarantee uniqueness under concurrent load.
 
 ### Printing Isolation
 Each local Celery worker reads `RASOVA_TENANT_ID` and `RASOVA_OUTLET_ID` from environment. Tasks for other restaurants are silently skipped. Task idempotency keys in Redis prevent double-printing on retry. Tasks expire after 30 minutes - old print jobs are never processed.
+
+### Public Website and Search
+The marketing pages are static files in `public/`, served by WhiteNoise. `core/public_pages.py` lists them once; `sitemap.xml` and `SearchIndexingMiddleware` both read that list. Only those pages (on rasova.net) and a restaurant's guest menu (on its subdomain) can be indexed; every other HTML page is sent with `X-Robots-Tag: noindex`, and copies of the marketing pages on subdomains or www redirect to rasova.net.
 
 ### Service Layer
 Business logic lives in `orders/services/` - 9 service modules, none of which know about HTTP. Views are thin: validate input → call service → return response.
@@ -460,7 +492,7 @@ Business logic lives in `orders/services/` - 9 service modules, none of which kn
 - [x] Order history with audit trail and CSV export
 - [x] SAC code (GST compliance) on all bills
 - [x] AI menu import (Gemini)
-- [x] 1,360 passing tests (financial, security, concurrency, business-date accuracy)
+- [x] 2,000+ passing tests (financial, tax, security, concurrency, business-date accuracy), run in parallel
 - [x] GitHub Actions CI/CD
 - [x] Razorpay UPI QR - dynamic QR on the bill screen, auto-confirms via webhook, configured per outlet in Payment Methods setup
 - [x] Offline write queue - orders placed during connectivity loss sync when back online (IndexedDB, `offlineQueue` in `templates/core/base.html`); extended to cash payment closure too (`offlinePaymentQueue`) - a bill can now be closed and paid in cash with no connection, and syncs once back online. UPI/card intentionally excluded - both require a live gateway round-trip to actually verify payment, which no client-side queue can fake without accepting an unconfirmed claim as real.
@@ -476,6 +508,11 @@ Business logic lives in `orders/services/` - 9 service modules, none of which kn
 - [x] WhatsApp bill delivery - customer receipts and subscription invoices through Twilio or the Meta Cloud API
 - [x] Self-serve live demo - `/live-demo/` signs a visitor into a seeded demo restaurant that resets every 2 hours
 - [x] Point-in-time database recovery - WAL archiving plus weekly base backups to R2, with a 15-minute health check
+- [x] One tax engine with golden-bill tests; GST and liquor VAT on one bill; composition Bill of Supply; locked issued bills; GST-format bill numbers (Sept 2026)
+- [x] Pub / bar outlet type and the offers engine with its setup screen and edit history (Oct 2026)
+- [x] GSTR-1 Tables 8, 12 and 13 sheets
+- [x] Outside security review fixed in full, and all 51 GitHub CodeQL alerts closed (Oct 2026)
+- [x] Search indexing fixed and one public page per outlet type (Oct 2026)
 
 **Next:**
 - [ ] Celery task monitoring - see pending and failed print jobs in UI

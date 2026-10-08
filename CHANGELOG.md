@@ -9,6 +9,16 @@ the source of truth.
 
 ## 2026-10-08: Pages for each kind of outlet
 
+### Fixed
+- **The outlet pages undersold offline.** They said offline billing isn't built; in fact orders and cash payments made during a short drop are queued on the device and sync when the connection returns (`offlineQueue`, `offlinePaymentQueue`). Each page now says that, and that UPI and card need the internet and long outages aren't covered.
+
+### Docs
+- README: pub/bar type, the tax engine and bills, offers, the Android print app, the public site and search rules, 34 feature flags, 2,062 tests and how to run them in parallel, roadmap.
+- `docs/TESTING_STRATEGY.md`: offers tests, the Node cross-checks, search and public-page tests, parallel runs, what CI really runs.
+- `docs/USER_MANUAL.md`: offers and happy hours, liquor on the bill, token numbers and the Order Ready board.
+- `docs/DEPLOY.md`: deploying from a private repository (CI and by hand), public pages.
+- `docs/SUBSCRIPTION_TIERS.md`: how the internal tier names map to the Solo and Growth plans on the website.
+
 ### Added
 - **Four public pages, one per outlet type:** `/fine-dining-pos/`, `/cafe-pos/`, `/qsr-pos/` and `/bar-pos/`, in the same design as `/compare/`. Each claims only what that tenant type really gets (features checked against `core/features.py` and the code): pub mode's liquor outside GST with food on GST on one bill, happy hours by the clock; cafe counter billing, tokens, phone printing, composition Bill of Supply; QSR tokens, Order Ready board, central kitchen, shift cash closing; dine-in floor plan, waiter phones, stations, merge and split. Each has an honest "what to know before you switch" list (internet needed, no offline billing yet) and FAQ structured data generated from the visible questions.
 - **Home and compare link to all four** (an outlet-type row on the home page, and a "Rasova for" row in both footers). The home footer now wraps.
