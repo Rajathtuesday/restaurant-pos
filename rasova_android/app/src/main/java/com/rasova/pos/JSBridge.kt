@@ -33,7 +33,7 @@ class JSBridge(private val context: Context) {
     @JavascriptInterface
     fun startPrintingWithKey(serverUrl: String, agentKey: String) {
         if (serverUrl.isBlank() || agentKey.isBlank()) return
-        start(AgentConfig.Target(serverUrl.trimEnd('/'), agentKey))
+        start(AgentConfig.Target(serverUrl.trimEnd('/'), agentKey).secured())
     }
 
     /** A page from before 1.1.0 hands over the old poll URL, key and all. */

@@ -258,12 +258,12 @@ class MainActivity : AppCompatActivity() {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /** Add https:// if missing; return null if the input looks invalid. */
+    /** Add https:// if missing, upgrade http:// for internet hosts; null if the input looks invalid. */
     private fun normaliseUrl(input: String): String? {
         val t = input.trim().lowercase()
         val url = when {
             t.startsWith("https://") -> t
-            t.startsWith("http://")  -> t
+            t.startsWith("http://")  -> ServerUrl.secure(t)   // internet addresses always on https
             t.contains(".")          -> "https://$t"
             else                     -> return null
         }
@@ -276,6 +276,7 @@ class MainActivity : AppCompatActivity() {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
             .getString(KEY_SERVER_URL, null)
             ?.takeIf { it.isNotBlank() }
+            ?.let { ServerUrl.secure(it) }   // an http:// address saved by an older version
 
     private fun saveUrl(url: String) =
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)

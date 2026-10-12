@@ -305,6 +305,16 @@ sudo certbot --nginx -d rasova.net -d www.rasova.net
 sudo certbot renew --dry-run
 ```
 
+### 10.5 Behind Cloudflare (how rasova.net runs today)
+
+Cloudflare sits in front and talks to nginx over plain http, so nginx's `X-Forwarded-Proto` always says `http`.
+
+- **Cloudflare, SSL/TLS, Edge Certificates: "Always Use HTTPS" is ON** (since 12 Oct 2026). Every `http://` address answers with a 301 to `https://` before it reaches the server.
+- **Django learns the visitor's real scheme** from Cloudflare's `CF-Visitor` header, through `core.middleware.CloudflareSchemeMiddleware`, believed only when the connection came from a Cloudflare address (the same rule as `get_client_ip`). That is what makes `request.build_absolute_uri()` produce `https://` links (Razorpay and aggregator webhook URLs, WhatsApp bill links) and lets HSTS go out.
+- **Do not set `SECURE_SSL_REDIRECT=True`.** Cloudflare already redirects http; doing it again in Django is unnecessary.
+- **HSTS** starts at one day: `SECURE_HSTS_SECONDS` in `.env`, default `86400`. After a week with every subdomain working on https, set it to `31536000`.
+- **The Android print app** (1.1.1 and later) turns any internet `http://` server address into `https://` on its own. Never configure a print agent with `http://`: Android refuses cleartext, and a redirected POST becomes a GET, so jobs would never be marked printed.
+
 ### 10.4 Check new nginx config (certbot modifies it)
 ```bash
 cat /etc/nginx/sites-available/rasova

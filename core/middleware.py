@@ -5,10 +5,32 @@ from django.conf import settings
 from django.shortcuts import render
 from tenants.models import Tenant
 from .public_pages import PUBLIC_PATHS
+from .utils import visitor_used_https
 from .tenant_context import set_current_tenant_outlet, clear_current_tenant_outlet
 from .request_context import set_current_trace_id, clear_current_trace_id
 
 request_logger = logging.getLogger("pos.core")
+
+
+class CloudflareSchemeMiddleware:
+    """
+    Tell Django when the visitor is really on https.
+
+    Django reads the scheme from X-Forwarded-Proto (SECURE_PROXY_SSL_HEADER),
+    but nginx sets that to its own scheme, and Cloudflare reaches nginx over
+    plain http. This sets it from Cloudflare's CF-Visitor header, believed only
+    from Cloudflare (core.utils.visitor_used_https). Must run first: Django's
+    SecurityMiddleware reads the scheme (HSTS), and every view after it
+    builds absolute links from it.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if visitor_used_https(request):
+            request.META["HTTP_X_FORWARDED_PROTO"] = "https"
+        return self.get_response(request)
 
 
 class SearchIndexingMiddleware:

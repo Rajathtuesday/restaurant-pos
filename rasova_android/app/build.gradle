@@ -11,8 +11,8 @@ android {
         applicationId "com.rasova.pos"
         minSdk 26          // Android 8.0+ — covers 95%+ of active devices
         targetSdk 34
-        versionCode 2
-        versionName "1.1.0"   // 1.1.0: agent key in the X-Agent-Key header, not the URL
+        versionCode 3
+        versionName "1.1.1"   // 1.1.1: internet server addresses always https (ServerUrl); 1.1.0: agent key in the X-Agent-Key header
 
         // Empty by default — release builds get the URL from SharedPreferences
         // (user types it or scans a QR on first launch).

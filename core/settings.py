@@ -137,6 +137,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # First: sets the real scheme that SecurityMiddleware and every view read
+    'core.middleware.CloudflareSchemeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # Before WhiteNoise, so it also covers the marketing pages it serves
     'core.middleware.SearchIndexingMiddleware',
@@ -368,7 +370,11 @@ if not DEBUG:
     # Without this, Django sees all requests as HTTP and HTTPS-detection breaks.
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-    SECURE_HSTS_SECONDS = 31536000
+    # HSTS only goes out on https requests, which Django could not see behind
+    # Cloudflare until CloudflareSchemeMiddleware (12 Oct 2026). It starts at one day so
+    # a subdomain that is not ready for https is not locked out for a year; raise
+    # it to 31536000 in .env once every subdomain has stayed on https for a week.
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "86400"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True          # allow HSTS preload list submission
     SECURE_CONTENT_TYPE_NOSNIFF = True

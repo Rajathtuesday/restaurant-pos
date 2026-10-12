@@ -59,7 +59,7 @@ class PrintService : Service() {
         // Server and agent key: from the intent (fresh start) or saved (reboot)
         val server = intent?.getStringExtra(EXTRA_SERVER_URL)
         val key    = intent?.getStringExtra(EXTRA_AGENT_KEY)
-        val target = if (!server.isNullOrBlank() && !key.isNullOrBlank()) AgentConfig.Target(server, key)
+        val target = if (!server.isNullOrBlank() && !key.isNullOrBlank()) AgentConfig.Target(server, key).secured()
                      else AgentConfig.load(this)
 
         if (target == null) {

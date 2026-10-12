@@ -16,6 +16,9 @@ object AgentConfig {
     data class Target(val serverUrl: String, val agentKey: String) {
         /** https://rasova.net/orders/agent/: every agent endpoint hangs off this. */
         val agentBase: String get() = serverUrl.trimEnd('/') + "/orders/agent/"
+
+        /** The same target with an internet address on https (ServerUrl). */
+        fun secured(): Target = copy(serverUrl = ServerUrl.secure(serverUrl))
     }
 
     // Not "server_url": MainActivity keeps the WebView's own address under that name.
@@ -27,13 +30,18 @@ object AgentConfig {
     private val OLD_POLL_URL = Regex("^(https?://[^/]+)/orders/agent/([0-9a-fA-F-]{36})/?$")
 
     fun fromOldPollUrl(url: String): Target? =
-        OLD_POLL_URL.matchEntire(url.trim())?.let { Target(it.groupValues[1], it.groupValues[2]) }
+        OLD_POLL_URL.matchEntire(url.trim())?.let { Target(it.groupValues[1], it.groupValues[2]).secured() }
 
     fun load(context: Context): Target? {
         val prefs = context.getSharedPreferences(JSBridge.PREFS, Context.MODE_PRIVATE)
         val server = prefs.getString(KEY_SERVER_URL, null)
         val key = prefs.getString(KEY_AGENT_KEY, null)
-        if (!server.isNullOrBlank() && !key.isNullOrBlank()) return Target(server, key)
+        if (!server.isNullOrBlank() && !key.isNullOrBlank()) {
+            val saved = Target(server, key)
+            val secured = saved.secured()
+            if (secured != saved) save(context, secured)   // an http:// address saved by an older version
+            return secured
+        }
 
         val migrated = prefs.getString(KEY_OLD_POLL_URL, null)?.let { fromOldPollUrl(it) } ?: return null
         save(context, migrated)

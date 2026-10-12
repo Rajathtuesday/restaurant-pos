@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-10-12: Every link and print agent on https
+
+### Fixed
+- **Links Django built were http:// behind Cloudflare.** Cloudflare reaches nginx over plain http, so `request.is_secure()` was always False and `build_absolute_uri()` produced `http://` links: the Razorpay and aggregator webhook URLs shown in Setup and the WhatsApp bill links. With Cloudflare's "Always Use HTTPS" now on, `http://` answers with a 301, which webhook senders do not follow. New `core.middleware.CloudflareSchemeMiddleware`, first in the chain, reads Cloudflare's `CF-Visitor` header (believed only from a Cloudflare address, the same rule as `get_client_ip`), so links are `https://`. 11 new tests (`core/tests/test_https_scheme.py`), including one through the whole middleware stack that fails without the middleware.
+- **Google Search Console: "Alternative page with proper canonical tag" for `http://rasova.net/`.** The http address served the home page instead of redirecting. Fixed at Cloudflare (Always Use HTTPS).
+- **Android print app 1.1.1: internet addresses are always https.** New `ServerUrl` upgrades `http://` for public hosts wherever an address enters the app (setup screen, the page handing over the agent's server, addresses saved by older versions); local and emulator addresses are left for testing. A redirected POST becomes a GET in OkHttp, so an agent on `http://` would never mark jobs printed. 7 new unit tests.
+
+### Changed
+- **HSTS now actually goes out**, because Django can see https. It starts at one day (`SECURE_HSTS_SECONDS`, default 86400) instead of a year, so a subdomain not ready for https is not locked out; raise it after a week.
+- `core.utils.get_client_ip`: the "who connected to nginx" step is now `_connecting_peer()`, shared with `visitor_used_https()`. Behaviour unchanged (its tests pass as before).
+
+---
+
 ## 2026-10-08: Pages for each kind of outlet
 
 ### Fixed

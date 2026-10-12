@@ -29,6 +29,21 @@ class AgentConfigTest {
     }
 
     @Test
+    fun anOldHttpPollUrlComesBackOnHttps() {
+        assertEquals(
+            AgentConfig.Target("https://rasova.net", key),
+            AgentConfig.fromOldPollUrl("http://rasova.net/orders/agent/$key/"),
+        )
+    }
+
+    @Test
+    fun securedUpgradesInternetAddressesOnly() {
+        assertEquals("https://spice.rasova.net", AgentConfig.Target("http://spice.rasova.net", key).secured().serverUrl)
+        assertEquals("http://192.168.1.20:8000", AgentConfig.Target("http://192.168.1.20:8000", key).secured().serverUrl)
+        assertEquals(key, AgentConfig.Target("http://rasova.net", key).secured().agentKey)
+    }
+
+    @Test
     fun theKeyIsNeverPartOfTheAgentAddress() {
         val target = AgentConfig.Target("https://rasova.net/", key)
         assertEquals("https://rasova.net/orders/agent/", target.agentBase)

@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import logging
 from datetime import timedelta, datetime, time
 from functools import lru_cache
@@ -59,15 +60,24 @@ def get_client_ip(request):
     Rate limits, login lockouts (axes) and the aggregator allowlist all ask
     this one function.
     """
-    global _warned_missing_real_ip
     meta = request.META
-    peer = str(meta.get("REMOTE_ADDR", "") or "").strip()
+    peer = _connecting_peer(meta)
+    if ip_in(peer, settings.CLOUDFLARE_IP_RANGES):
+        visitor = str(meta.get("HTTP_CF_CONNECTING_IP", "") or "").strip()
+        if _valid_ip(visitor):
+            return visitor
+    return peer
 
+
+def _connecting_peer(meta):
+    """Whoever connected to nginx: X-Real-IP, believed only from a trusted proxy (rule 1 above)."""
+    global _warned_missing_real_ip
+    peer = str(meta.get("REMOTE_ADDR", "") or "").strip()
     if ip_in(peer, settings.TRUSTED_PROXY_IPS):
         real_ip = str(meta.get("HTTP_X_REAL_IP", "") or "").strip()
         if _valid_ip(real_ip):
-            peer = real_ip
-        elif meta.get("HTTP_CF_CONNECTING_IP") and not _warned_missing_real_ip:
+            return real_ip
+        if meta.get("HTTP_CF_CONNECTING_IP") and not _warned_missing_real_ip:
             # Cloudflare traffic arriving from nginx without X-Real-IP means
             # nginx is not configured as in nginx_rasova.conf: every visitor
             # would share one IP for rate limits and lockouts.
@@ -76,12 +86,31 @@ def get_client_ip(request):
                 "Proxied request has CF-Connecting-IP but no X-Real-IP: "
                 "check nginx sets `proxy_set_header X-Real-IP $remote_addr`."
             )
-
-    if ip_in(peer, settings.CLOUDFLARE_IP_RANGES):
-        visitor = str(meta.get("HTTP_CF_CONNECTING_IP", "") or "").strip()
-        if _valid_ip(visitor):
-            return visitor
     return peer
+
+
+def visitor_used_https(request):
+    """
+    True when the visitor reached Cloudflare over https.
+
+    Cloudflare talks to nginx over plain http, so nginx's X-Forwarded-Proto is
+    always "http" and Django would think every visitor is on http: links built
+    with build_absolute_uri (payment and aggregator webhook URLs, WhatsApp bill
+    links) came out as http://, which Cloudflare now answers with a redirect
+    that webhook senders do not follow.
+
+    Cloudflare reports the visitor's own scheme in CF-Visitor
+    ({"scheme":"https"}). Like CF-Connecting-IP, it is believed only when the
+    machine that connected to nginx is one of Cloudflare's: anyone reaching the
+    server directly could send the header themselves.
+    """
+    if not ip_in(_connecting_peer(request.META), settings.CLOUDFLARE_IP_RANGES):
+        return False
+    try:
+        visitor = json.loads(request.META.get("HTTP_CF_VISITOR", "") or "")
+    except ValueError:
+        return False
+    return isinstance(visitor, dict) and visitor.get("scheme") == "https"
 
 
 def _cutoff_hour(outlet=None):
