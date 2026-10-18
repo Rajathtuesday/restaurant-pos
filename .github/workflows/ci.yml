@@ -136,9 +136,12 @@ jobs:
           # sidesteps the race entirely.
           # agent: the print agent's own tests (agent/), never run in CI
           # while they sat at the repository root. portal was removed.
+          # offers: added 19 Oct 2026; its tests (the engine, offers on
+          # bills, offers.js in Node) had never run here since the app
+          # arrived on 4 Oct.
           python manage.py test \
             accounts agency agent billing core crm finance inventory \
-            kitchen menu notifications orders payments \
+            kitchen menu notifications offers orders payments \
             printing promos reports setup shifts \
             tablemerge tenants tokens waiter \
             --verbosity=1 --keepdb

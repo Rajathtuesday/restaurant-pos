@@ -38,6 +38,7 @@ A second review of promos, after the 3 Oct hardening. Every finding was proved b
 
 ### Tests
 - `promos/tests/test_promo_rules.py` (31), `promos/tests/test_promos.py` (moved from `promos/tests.py`, rewritten for counted uses), `orders/tests/test_totals_properties.py` (`PromoMinimumMatchesFrozenCopyTest`).
+- **CI now runs the `offers` app's tests.** It was missing from the app list in `.github/workflows/ci.yml`, so the offers engine, offers on bills and the `offers.js` Node cross-check had never run in CI since the app arrived on 4 Oct (they pass). Every app with tests is now in the list.
 - `promos/tests/test_promo_browser.py`: the whole story in Chromium with Playwright against a live server (owner creates with the real form, the form refuses a flat promo with no minimum, cashier picks it on the bill, the print view and WhatsApp link name it, a void pauses it, the owner edits it, a manager can't change the owner's promo, no JavaScript errors). Skips when Playwright isn't installed, so CI is unchanged. `PROMO_E2E_SHOTS=<folder>` saves screenshots.
 
 ---
