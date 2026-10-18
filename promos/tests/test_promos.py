@@ -1,8 +1,9 @@
 # promos/tests.py
 """
-Tests for Promo.validate_and_use() -- moved from
-orders/tests/test_schema_review.py::TestPromoValidateAndUse (Phase 0 of the
-orders app split). Behavior is unchanged; only the location moved.
+Tests for Promo.refusal_for() (the cap, the minimum, switched off). They
+began as the validate_and_use() tests moved from
+orders/tests/test_schema_review.py (Phase 0 of the orders app split); the
+usage counter they tested was replaced by counting bills on 18 Oct 2026.
 
 Also covers the HTTP layer (list/create/toggle/delete + cross-app use from
 orders' apply_discount), which had NO test coverage before this move --
@@ -30,9 +31,14 @@ def _tenant(name="TestRest"):
     return t, o
 
 
-class TestPromoValidateAndUse(TestCase):
+class TestPromoRefusal(TestCase):
+    """Promo.refusal_for(): whether a bill may take the promo now. Its uses
+    are the bills holding it (Promo.uses), so the cap counts bills; it used
+    to be a counter (validate_and_use), replaced on 18 Oct 2026."""
 
     def setUp(self):
+        from orders.models import Order
+        self.Order = Order
         self.tenant, self.outlet = _tenant("PromoCafe")
         self.promo = Promo.objects.create(
             tenant=self.tenant,
@@ -43,63 +49,54 @@ class TestPromoValidateAndUse(TestCase):
             max_uses=5,
             is_active=True,
         )
+        self.order = self.bill()
 
-    def test_validate_and_use_returns_true_on_valid_promo(self):
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertTrue(ok)
-        self.assertEqual(error, "")
+    def bill(self, holding=False):
+        order = self.Order.objects.create(tenant=self.tenant, outlet=self.outlet)
+        if holding:
+            self.Order.objects.filter(pk=order.pk).update(
+                promo=self.promo, promo_name=self.promo.name,
+                discount_type="percentage", discount_value=Decimal("10"))
+        return order
 
-    def test_validate_and_use_increments_usage_count(self):
-        self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 1)
+    def test_a_valid_promo_is_not_refused(self):
+        self.assertEqual(self.promo.refusal_for(self.order, Decimal("500")), "")
 
-    def test_validate_and_use_updates_in_memory_count(self):
-        self.promo.validate_and_use(self.outlet, Decimal("500"))
-        # No refresh_from_db — in-memory should already reflect the increment
-        self.assertEqual(self.promo.usage_count, 1)
+    def test_refused_when_the_bills_have_used_it_up(self):
+        for _ in range(5):
+            self.bill(holding=True)
+        self.assertEqual(self.promo.uses, 5)
+        self.assertIn("limit", self.promo.refusal_for(self.order, Decimal("500")).lower())
 
-    def test_validate_and_use_blocks_when_exhausted(self):
-        Promo.objects.filter(pk=self.promo.pk).update(usage_count=5)
-        self.promo.refresh_from_db()
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertFalse(ok)
-        self.assertIn("limit", error.lower())
+    def test_the_bills_own_hold_does_not_count(self):
+        for _ in range(4):
+            self.bill(holding=True)
+        mine = self.bill(holding=True)
+        self.assertEqual(self.promo.refusal_for(mine, Decimal("500")), "")
 
-    def test_validate_and_use_does_not_increment_on_invalid(self):
-        # Set min_order to something higher than the passed amount
+    def test_cancelled_bills_do_not_count(self):
+        for _ in range(5):
+            self.bill(holding=True)
+        self.Order.objects.filter(promo=self.promo).update(status="cancelled")
+        self.assertEqual(self.promo.uses, 0)
+        self.assertEqual(self.promo.refusal_for(self.order, Decimal("500")), "")
+
+    def test_refused_below_the_minimum(self):
         self.promo.min_order_value = Decimal("1000")
         self.promo.save(update_fields=["min_order_value"])
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("100"))
-        self.assertFalse(ok)
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 0)
+        self.assertIn("Minimum", self.promo.refusal_for(self.order, Decimal("100")))
 
-    def test_validate_and_use_respects_inactive_promo(self):
+    def test_refused_when_switched_off(self):
         self.promo.is_active = False
         self.promo.save(update_fields=["is_active"])
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertFalse(ok)
-        self.assertEqual(self.promo.usage_count, 0)
-
-    def test_multiple_sequential_uses_count_correctly(self):
-        for _ in range(3):
-            self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 3)
-
-    def test_exhausted_after_max_uses(self):
-        for _ in range(5):
-            self.promo.validate_and_use(self.outlet, Decimal("500"))
-        ok, error = self.promo.validate_and_use(self.outlet, Decimal("500"))
-        self.assertFalse(ok)
+        self.assertIn("not active", self.promo.refusal_for(self.order, Decimal("500")))
 
     def test_promo_without_max_uses_is_unlimited(self):
         self.promo.max_uses = None
         self.promo.save(update_fields=["max_uses"])
         for _ in range(10):
-            ok, _ = self.promo.validate_and_use(self.outlet, Decimal("500"))
-            self.assertTrue(ok)
+            self.bill(holding=True)
+        self.assertEqual(self.promo.refusal_for(self.order, Decimal("500")), "")
 
 
 class PromoEndpointsTest(TestCase):
@@ -197,5 +194,4 @@ class PromoAppliedFromOrdersDiscountViewTest(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.order.refresh_from_db()
         self.assertEqual(self.order.discount_value, Decimal("50"))
-        self.promo.refresh_from_db()
-        self.assertEqual(self.promo.usage_count, 1)
+        self.assertEqual(self.promo.uses, 1)

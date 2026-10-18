@@ -18,10 +18,10 @@ is complete.
 """
 from decimal import Decimal
 
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Sum
 
 from core.utils import get_business_date_range
-from orders.models import OrderEvent
+from orders.models import Order, OrderEvent
 
 
 def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
@@ -83,10 +83,20 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
     discount_reasons = _by_reason(discounts_qs.filter(metadata__via__in=["manual", "order_api"])
                                   | item_discounts_qs)
     comp_reasons = _by_reason(comps_qs)
-    # Which promos were used, by the promo's name at the time.
+    # Promos, by the bills that used them: paid or closed bills of the
+    # period holding a promo, by its name on the bill, with what it took off.
+    # (Counting the taps on the bill screen, as this did until 18 Oct 2026,
+    # counted promos taken off again and bills later cancelled.)
+    promo_bills = Order.objects.filter(
+        tenant=tenant, status__in=["paid", "closed"],
+        created_at__gte=range_start, created_at__lt=range_end,
+    ).exclude(promo_name="")
+    if outlet:
+        promo_bills = promo_bills.filter(outlet=outlet)
     promos_used = list(
-        discounts_qs.filter(metadata__via="promo")
-        .values("metadata__promo_name").annotate(count=Count("id")).order_by("-count")
+        promo_bills.values("promo_name")
+        .annotate(bills=Count("id"), given=Sum("order_discount_total"))
+        .order_by("-bills", "promo_name")
     )
 
     # Voids -- full history (item_voided has always been a dedicated,

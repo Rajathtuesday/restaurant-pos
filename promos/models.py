@@ -54,7 +54,7 @@ class Promo(TenantScopedModel):
         null=True, blank=True,
         help_text="Leave blank for unlimited uses",
     )
-    usage_count = models.PositiveIntegerField(default=0)
+    # Uses are not stored: they are the bills holding the promo (see uses).
 
     valid_from  = models.DateField(null=True, blank=True)
     valid_until = models.DateField(null=True, blank=True)
@@ -109,9 +109,22 @@ class Promo(TenantScopedModel):
     def is_not_started(self) -> bool:
         return self.is_not_started_for()
 
+    # ── Uses ───────────────────────────────────────────────────────
+    # A promo's uses are the bills that hold it, cancelled ones not counted.
+    # They used to be a counter that every path touching a promo had to move
+    # up and down by hand; now no path can forget, and a bill that took the
+    # promo off simply stops counting.
+
+    def bills(self):
+        return self.orders.exclude(status="cancelled")
+
+    @property
+    def uses(self) -> int:
+        return self.bills().count()
+
     @property
     def is_exhausted(self) -> bool:
-        return bool(self.max_uses and self.usage_count >= self.max_uses)
+        return bool(self.max_uses and self.uses >= self.max_uses)
 
     @property
     def is_archived(self) -> bool:
@@ -124,57 +137,47 @@ class Promo(TenantScopedModel):
                 and not self.is_expired_for(outlet) and not self.is_not_started_for(outlet)
                 and not self.is_exhausted)
 
-    @property
-    def is_currently_valid(self) -> bool:
-        return (self.is_active and not self.is_archived and not self.is_expired
-                and not self.is_not_started and not self.is_exhausted)
+    def status_for(self, outlet):
+        """(key, text) for the Setup screen: what the promo is right now at
+        this outlet. Keys: archived, paused, starts, ended, used_up, active."""
+        if self.is_archived:
+            return "archived", "Deleted"
+        if not self.is_active:
+            return "paused", "Paused"
+        if self.is_not_started_for(outlet):
+            return "starts", f"Starts {self.valid_from:%d %b}"
+        if self.is_expired_for(outlet):
+            return "ended", f"Ended {self.valid_until:%d %b}"
+        if self.is_exhausted:
+            return "used_up", "Used up"
+        return "active", "Active"
 
     def applies_to_outlet(self, outlet) -> bool:
         """True if this promo covers the given outlet (or is tenant-wide)."""
         return self.outlet_id is None or self.outlet_id == outlet.id
 
-    def validate(self, outlet, order_subtotal: Decimal) -> tuple:
-        """(ok: bool, error: str) — call before applying the discount."""
+    def refusal_for(self, order, menu_value: Decimal) -> str:
+        """Why `order` can't take this promo now, or "" if it can. menu_value
+        is the bill's menu value (Order.menu_value). The bill's own hold on
+        the promo doesn't count against the cap, so applying it again is
+        always free."""
+        outlet = order.outlet
         if not self.is_active or self.is_archived:
-            return False, "Promo is not active."
+            return "Promo is not active."
         if not self.applies_to_outlet(outlet):
-            return False, "Promo is not valid for this outlet."
+            return "Promo is not valid for this outlet."
         if self.is_not_started_for(outlet):
-            return False, f"Promo starts on {self.valid_from.strftime('%d %b %Y')}."
+            return f"Promo starts on {self.valid_from.strftime('%d %b %Y')}."
         if self.is_expired_for(outlet):
-            return False, f"Promo expired on {self.valid_until.strftime('%d %b %Y')}."
-        if self.is_exhausted:
-            return False, "Promo usage limit has been reached."
-        if order_subtotal < self.min_order_value:
-            return False, f"Minimum order value ₹{self.min_order_value} required."
-        return True, ""
+            return f"Promo expired on {self.valid_until.strftime('%d %b %Y')}."
+        if self.max_uses and self.bills().exclude(pk=order.pk).count() >= self.max_uses:
+            return "Promo usage limit has been reached."
+        if menu_value < self.min_order_value:
+            return f"Minimum order ₹{self.min_order_value} required."
+        return ""
 
-    def record_use(self):
-        """Increments usage_count. Must be called within a select_for_update() transaction block."""
-        self.usage_count += 1
-        self.save(update_fields=["usage_count"])
-
-    def validate_and_use(self, outlet, order_subtotal: Decimal) -> tuple:
-        """Atomic validate + increment — prevents the race where two cashiers
-        both pass validate() before either calls record_use().
-
-        Must be called inside a transaction.atomic() block in the view.
-        Returns (ok: bool, error: str).
-        """
-        locked = Promo.objects.select_for_update().get(pk=self.pk)
-        ok, error = locked.validate(outlet, order_subtotal)
-        if ok:
-            locked.record_use()
-            # Keep in-memory object consistent so the caller sees updated count.
-            self.usage_count = locked.usage_count
-        return ok, error
-
-    def release_use(self):
-        """Give one use back (the discount was removed, replaced, or the bill
-        cancelled before it was paid). Locks the row; never goes below zero.
+    def locked(self):
+        """This promo read again with its row locked, so two tills can't both
+        take its last use: the second waits, then counts the first one's bill.
         Must be called inside a transaction."""
-        locked = Promo.objects.select_for_update().get(pk=self.pk)
-        if locked.usage_count > 0:
-            locked.usage_count -= 1
-            locked.save(update_fields=["usage_count"])
-        self.usage_count = locked.usage_count
+        return Promo.objects.select_for_update().get(pk=self.pk)

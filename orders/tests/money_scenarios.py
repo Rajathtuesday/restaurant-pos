@@ -158,6 +158,7 @@ def create_orders(world, specs):
         Order(
             tenant=tenant, outlet=world["outlets"][spec["cfg"]], status="open",
             discount_type=spec["dtype"], discount_value=Decimal(spec["dval"]),
+            promo_min_order=Decimal(spec.get("dmin", "0")),
             parcel_surcharge=Decimal(spec["parcel"]),
             parcel_gst_rate=Decimal(spec["parcel_rate"]) if spec.get("parcel_rate") else None,
         )

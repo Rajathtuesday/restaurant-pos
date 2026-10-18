@@ -7,6 +7,41 @@ the source of truth.
 
 ---
 
+## 2026-10-18: Promos follow the bill
+
+A second review of promos, after the 3 Oct hardening. Every finding was proved by running it against the code first; 31 new tests in `promos/tests/test_promo_rules.py` fail on the old code (27 of them; the other 4 guard what already worked), plus a browser test.
+
+### Fixed
+- **Voiding or comping dishes below a promo's minimum left the promo on.** "₹200 off above ₹1,000" on a ₹1,200 bill, with the ₹1,000 dish voided, made the bill ₹0. The minimum is now part of the bill's maths (`tax_engine.compute(discount_min_order=...)`, rule 1), so every path that changes a bill follows it. Below the minimum the promo **pauses**: it stays on the bill, takes nothing off, the bill screen says what it needs, and it applies again by itself once the bill gets back to the minimum. Its use stays with the bill.
+- **At an outlet whose prices include GST, a ₹1,000 bill was "below ₹1,000".** The minimum was compared with the value before tax (₹952.38). It is now the dishes' menu value, what the guest reads on the menu, the same in both pricing modes.
+- **Sending an order with a 0 discount left the promo on the bill** with its use taken and nothing off. A bill's discount (type, value, promo and its copied name, code and minimum) is now set only by `orders/services/bill_discount.py`, which every path uses (bill screen, create order, the model helpers), and the database refuses a promo with no discount (`order_promo_has_discount`).
+- **The audit report counted promo taps,** including promos taken off again and bills later cancelled. It now counts paid and closed bills, with what each promo took off (`Order.order_discount_total`).
+- **No bill said which promo it got.** The discount line is now `Promo HH20` (or the promo's name, cut to fit a 58 mm slip) on the bill screen, thermal and A4 bills, the PDF, the WhatsApp bill link and ESC/POS printers. A dish's own discount stays on its own "Discount" row; the rows still add up.
+- **The Setup screen said "Expired" for a promo that hadn't started or was used up.** It now says Active, Paused, Starts 25 Oct, Used up or Ended 12 Oct, by the outlet's business day. "Total Promos" shows the count again.
+- **An archived ("deleted") promo could be switched back on** through the toggle. It now answers 404.
+- **A manager could make a promo for another outlet, or for every outlet.** The owner manages every promo; a manager only their own outlet's. A promo for every outlet is the owner's alone (create, edit, pause, delete all say so); a manager sees it marked "Owner".
+
+### Added
+- **Edit a promo** from the Setup screen (pencil button), checked like a new one. Bills already holding it keep the values they got.
+- **A flat promo needs a minimum order at least as big as itself,** so "₹100 off" can never make a ₹60 coffee free.
+- The Setup screen shows what each promo has given away on paid bills.
+
+### Changed
+- **A promo's uses are the bills holding it** (`Promo.uses`: cancelled bills don't count), not a counter every path had to move by hand. Taking a promo off a bill gives its use back with nothing to undo; applying the same promo again takes its current values and no extra use. A cancelled bill keeps the record of its promo. The cap check locks the promo row, so two tills can't both take the last use.
+- `promos/services.py` (attach/release) is gone; `bill_discount.py` replaces it. `Promo.validate_and_use()`, `record_use()` and `release_use()` are replaced by `Promo.refusal_for()` and `Promo.locked()`.
+- `Order.recalculate_totals()` saves only what the engine worked out; the discount itself is saved by `bill_discount.py`, all its fields together.
+- The frozen copy of the tax maths (`orders/tests/legacy_totals.py`) has the minimum rule too, and new random-bill tests check the real engine against it on both sides of the minimum.
+
+### Migrations
+- `orders 0068`: `Order.promo_code`, `promo_min_order`, `order_discount_total`; bills holding a promo get its code and minimum; a bill left with a promo and nothing off loses the promo. `orders 0069`: the `order_promo_has_discount` rule (its own migration: Postgres won't alter the table in the transaction that just updated it).
+- `promos 0003`: `usage_count` leaves the model but **stays in the database for one release** (with a database default), so workers still on the old code during a deploy, or a rollback, keep working. Drop the column in a later release.
+
+### Tests
+- `promos/tests/test_promo_rules.py` (31), `promos/tests/test_promos.py` (moved from `promos/tests.py`, rewritten for counted uses), `orders/tests/test_totals_properties.py` (`PromoMinimumMatchesFrozenCopyTest`).
+- `promos/tests/test_promo_browser.py`: the whole story in Chromium with Playwright against a live server (owner creates with the real form, the form refuses a flat promo with no minimum, cashier picks it on the bill, the print view and WhatsApp link name it, a void pauses it, the owner edits it, a manager can't change the owner's promo, no JavaScript errors). Skips when Playwright isn't installed, so CI is unchanged. `PROMO_E2E_SHOTS=<folder>` saves screenshots.
+
+---
+
 ## 2026-10-12: Every link and print agent on https
 
 ### Fixed

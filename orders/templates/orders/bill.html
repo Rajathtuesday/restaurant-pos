@@ -230,7 +230,7 @@
 
         <!-- Totals: rows that add up to the total (orders/services/bill_layout.py) -->
         {% for row in layout.rows %}
-        <div class="total-row"{% if row.key == "discount" %} style="color:#ef4444"{% elif row.key == "round_off" %} style="color:var(--text-muted)"{% endif %}>
+        <div class="total-row"{% if row.key == "discount" or row.key == "promo" %} style="color:#ef4444"{% elif row.key == "round_off" %} style="color:var(--text-muted)"{% endif %}>
             <span>{% if row.key == "charge" %}<i class="bi bi-bag me-1"></i>{% endif %}{{ row.label }}</span>
             <span>{% if row.negative %}−{% elif row.key == "round_off" %}+{% endif %}₹{{ row.magnitude }}</span>
         </div>
@@ -329,10 +329,15 @@
                 {% endif %}
             </div>
             {% if order.discount_value > 0 %}
-            <div style="margin-top:0.7rem;font-size:0.78rem;color:var(--accent-gold);">
-                Active: {% if order.discount_type == 'percentage' %}{{ order.discount_value }}% Off{% else %}₹{{ order.discount_value }} Flat{% endif %}
-                &nbsp;(−₹{{ order.discount_total }})
+            <div style="margin-top:0.7rem;font-size:0.78rem;color:var(--accent-gold);" data-testid="active-discount">
+                Active: {% if order.promo_name %}Promo {{ order.promo_name }}{% if order.promo_code %} ({{ order.promo_code }}){% endif %}, {% endif %}{% if order.discount_type == 'percentage' %}{{ order.discount_value }}% Off{% else %}₹{{ order.discount_value }} Flat{% endif %}
+                &nbsp;(−₹{{ order.order_discount_total }})
             </div>
+            {% if promo_paused_note %}
+            <div style="margin-top:0.4rem;font-size:0.78rem;color:var(--danger, #ef4444);" data-testid="promo-paused">
+                <i class="bi bi-pause-circle"></i> Paused: {{ promo_paused_note }}
+            </div>
+            {% endif %}
             {% endif %}
         </div>
         {% endif %}

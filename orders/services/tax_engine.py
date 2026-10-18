@@ -26,6 +26,12 @@ price food with tax added and drinks with tax included.
    and offers, or a flat amount) is then spread over all the dishes, food and
    liquor alike, in proportion to their value. Charges are never discounted.
    The discount never exceeds the dishes' value; offers count in it.
+   An order discount from a promo can carry a minimum order: it applies only
+   while the dishes' menu value (what the guest reads on the menu, before
+   any discount, with or without tax inside) is at least that minimum.
+   Below it the promo takes nothing off, and it applies again as soon as the
+   bill is back at the minimum, so voiding or comping dishes can never leave
+   a promo on a bill it no longer qualifies for.
 2. Tax on each line, exactly (nothing rounded yet): on top of the line's
    value when its price excludes tax (value x rate / 100), or inside it
    when its price includes tax (value x rate / (100 + rate)). An outlet on
@@ -149,6 +155,12 @@ class Bill:
     charge_taxes: tuple      # ChargeTax, in line order
     sections: tuple = ()     # Section, one per kind of dish, sorted by kind
     scheme: str = REGULAR    # REGULAR, COMPOSITION or UNREGISTERED (rule 2)
+    # Not part of the tax record: the dishes' menu value before any discount
+    # (what a promo's minimum is measured against, rule 1), and the part of
+    # `discount` that the order discount took (the rest is the dishes' own
+    # discounts and offers).
+    menu_value: Decimal = ZERO
+    order_discount: Decimal = ZERO
 
     @property
     def charge_tax(self):
@@ -273,11 +285,14 @@ def _kinds(lines):
 
 
 def compute(lines, *, prices_include_tax=False, composition=False, gst_registered=True,
-            gst_paid_by_operator=False, discount_type=None, discount_value=ZERO):
+            gst_paid_by_operator=False, discount_type=None, discount_value=ZERO,
+            discount_min_order=ZERO):
     """Total one bill. See the module docstring for the rules.
     prices_include_tax is the default for lines that don't say (inclusive=None).
     gst_registered is False for an outlet with no GSTIN, gst_paid_by_operator
-    True for an order taken through an e-commerce operator (rule 2)."""
+    True for an order taken through an e-commerce operator (rule 2).
+    discount_min_order is the minimum order of the promo behind the order
+    discount (rule 1); 0 for none."""
     lines = list(lines)
     scheme = _scheme(composition, gst_registered, gst_paid_by_operator)
     collects_gst = scheme == REGULAR
@@ -304,9 +319,10 @@ def compute(lines, *, prices_include_tax=False, composition=False, gst_registere
         after_item_discounts += value
 
     order_discount = Decimal("0.00")
-    if discount_type == "percentage" and (discount_value or 0) > 0:
+    qualifies = to_paisa(raw) >= Decimal(discount_min_order or 0)    # a promo's minimum
+    if qualifies and discount_type == "percentage" and (discount_value or 0) > 0:
         order_discount = after_item_discounts * (Decimal(discount_value) / HUNDRED)
-    elif discount_type == "amount" and (discount_value or 0) > 0:
+    elif qualifies and discount_type == "amount" and (discount_value or 0) > 0:
         order_discount = Decimal(str(discount_value))
 
     subtotal_menu = to_paisa(raw)
@@ -398,6 +414,10 @@ def compute(lines, *, prices_include_tax=False, composition=False, gst_registere
         ),
         sections=tuple(sections),
         scheme=scheme,
+        menu_value=subtotal_menu,
+        # Whatever the dishes' own discounts and offers didn't take, so the
+        # two parts always add up to `discount`, to the paisa.
+        order_discount=discount - min(to_paisa(item_discount), discount),
     )
 
 

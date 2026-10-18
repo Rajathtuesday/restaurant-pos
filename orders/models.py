@@ -166,14 +166,25 @@ class Order(TenantScopedModel):
     # discounts and reports can count them. Set every time the bill is totalled.
     offer_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"),
                                       db_default=Decimal("0.00"))
-    # The promo behind the discount, if one was used: kept so a bill can say
-    # which promo it got and a promo's uses can be given back when the
-    # discount is removed. promo_name is a copy, so renaming or archiving the
-    # promo later never changes what an old bill says.
+    # The promo behind the discount, if one was used. A promo's uses are the
+    # bills that hold it (Promo.uses). promo_name, promo_code and
+    # promo_min_order are copies taken when it was applied, like
+    # discount_type and discount_value, so editing, renaming or archiving the
+    # promo later never changes a bill. Only orders/services/bill_discount.py
+    # sets these fields.
     promo = models.ForeignKey(
         "promos.Promo", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders",
     )
     promo_name = models.CharField(max_length=120, blank=True, default="")
+    promo_code = models.CharField(max_length=30, blank=True, default="", db_default="")
+    # Below this menu value the promo takes nothing off (tax_engine rule 1).
+    promo_min_order = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"),
+                                          db_default=Decimal("0.00"))
+    # The part of discount_total the bill discount took (a promo, or one
+    # typed on the bill screen), so a bill can name the promo on its own row
+    # and reports can say what a promo gave. Set every time the bill is totalled.
+    order_discount_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"),
+                                               db_default=Decimal("0.00"))
 
     parcel_surcharge = models.DecimalField(
         max_digits=6, decimal_places=2, default=Decimal("0.00"),
@@ -227,6 +238,12 @@ class Order(TenantScopedModel):
             models.UniqueConstraint(
                 fields=["outlet", "bill_number"],
                 name="unique_bill_number_per_outlet",
+            ),
+            # A bill holding a promo carries its discount: never a promo
+            # with nothing behind it (which is what P2 left, 18 Oct 2026).
+            models.CheckConstraint(
+                condition=Q(promo__isnull=True) | Q(discount_value__gt=0),
+                name="order_promo_has_discount",
             ),
         ]
 
@@ -399,24 +416,31 @@ class Order(TenantScopedModel):
     # APPLY / CLEAR DISCOUNT (helpers for views / API)
     # -------------------------------------------------
     def apply_discount(self, discount_type: str, discount_value: Decimal):
-        """
-        discount_type: "percentage" or "amount"
-        discount_value: Decimal (percentage like 10.0 for 10% or amount in currency)
-        """
-        if discount_type not in ("percentage", "amount"):
-            raise ValueError("invalid discount type")
-
-        self.discount_type = discount_type
-        self.discount_value = self._quantize(discount_value)
-        # We MUST save these before recalculate_totals so it picks them up or they are persisted in the final save
-        self.save(update_fields=["discount_type", "discount_value"])
+        """A bill discount typed by hand ("percentage" or "amount"), through
+        orders/services/bill_discount.py like every other one."""
+        from orders.services.bill_discount import set_manual
+        set_manual(self, discount_type, discount_value)
         self.recalculate_totals()
 
     def clear_discount(self):
-        self.discount_type = None
-        self.discount_value = Decimal("0.00")
-        self.discount_total = Decimal("0.00")
+        from orders.services.bill_discount import remove
+        remove(self)
         self.recalculate_totals()
+
+    def live_items(self):
+        """The lines the guest pays for: not voided, not free."""
+        return [item for item in self.items.exclude(status="voided") if not item.is_complimentary]
+
+    def menu_value(self):
+        """The dishes' menu value before any discount, as the tax engine
+        measures it for a promo's minimum (tax_engine rule 1)."""
+        return self._run_tax_engine(self.live_items()).menu_value
+
+    @property
+    def promo_paused(self):
+        """True while the bill holds a promo it is below the minimum of: the
+        promo stays on and takes nothing off until the bill reaches it."""
+        return bool(self.promo_name and self.promo_min_order > 0 and self.menu_value() < self.promo_min_order)
 
     # -------------------------------------------------
     # TOTAL RECALCULATION
@@ -448,6 +472,7 @@ class Order(TenantScopedModel):
 
         self.subtotal       = bill.subtotal
         self.discount_total = bill.discount
+        self.order_discount_total = bill.order_discount
         self.gst_total      = bill.gst
         self.vat_total      = bill.vat
         self.grand_total    = bill.grand_total
@@ -458,10 +483,13 @@ class Order(TenantScopedModel):
              "cgst_amount": str(row["cgst_amount"]), "sgst_amount": str(row["sgst_amount"])}
             for row in self.gst_breakdown
         ]
+        # Only what the engine worked out. The discount itself (its type,
+        # value and promo) is saved by orders/services/bill_discount.py, all
+        # together, so a copy totalled here can never split a promo from its
+        # discount.
         self.save(update_fields=["subtotal", "gst_total", "vat_total", "discount_total",
-                                 "offer_total", "grand_total", "round_off", "discount_type",
-                                 "discount_value", "parcel_surcharge",
-                                 "tax_summary", "gst_breakdown_cache"])
+                                 "order_discount_total", "offer_total", "grand_total", "round_off",
+                                 "parcel_surcharge", "tax_summary", "gst_breakdown_cache"])
 
     def _refuse_if_issued(self):
         """Raise IssuedBillError if this bill is issued, by this copy or by
@@ -525,6 +553,7 @@ class Order(TenantScopedModel):
             # Bills from before the record were all billed with GST.
             gst_paid_by_operator=not as_billed_before_record and self.source in self.OPERATOR_SOURCES,
             discount_type=self.discount_type, discount_value=self.discount_value,
+            discount_min_order=self.promo_min_order or Decimal("0"),
         )
 
 

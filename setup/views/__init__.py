@@ -30,6 +30,7 @@ from .promo_views import (
     promo_create,
     promo_toggle,
     promo_delete,
+    promo_update,
 )
 
 from .offer_views import (
@@ -88,6 +89,7 @@ __all__ = [
     "promo_create",
     "promo_toggle",
     "promo_delete",
+    "promo_update",
     "setup_offers",
     "offer_create",
     "offer_update",

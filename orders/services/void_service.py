@@ -331,10 +331,9 @@ def cancel_whole_order(user, order_id, reason="", include_made=False):
     order.refresh_from_db()
     order.status = "cancelled"
     order.closed_at = timezone.now()
-    # A bill cancelled before it was paid never used its promo: give it back.
-    from promos.services import release_promo
-    release_promo(order)
-    order.save(update_fields=["status", "closed_at", "promo", "promo_name"])
+    # A cancelled bill keeps the record of its promo but no longer uses it:
+    # Promo.uses doesn't count cancelled bills.
+    order.save(update_fields=["status", "closed_at"])
     order.recalculate_totals()
 
     # Cancelled orders are excluded from every active-order query, so free the

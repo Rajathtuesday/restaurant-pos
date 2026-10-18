@@ -12,7 +12,10 @@ The rows add up. Read top to bottom, a guest or an inspector gets the total:
     Subtotal        the dishes at menu prices (a free dish shows at 0)
     Offers          minus what offers took off (buy 2 get 1, happy hour);
                     each dish an offer touched names it under the dish
-    Discount        minus every other discount, a dish's own and the bill's
+    Discount        minus every other discount: a dish's own, or a bill
+                    discount typed by hand
+    Promo HH20      minus what the bill's promo took, named by its code
+                    (or its name when it has none)
     CGST / SGST     by rate, when the price excludes GST (tax added on top)
     VAT             by rate, when the price excludes VAT
     Parcel charge   as billed; its GST is in the rows above
@@ -136,6 +139,19 @@ def money(amount):
     return f"{Decimal(amount):.2f}"
 
 
+def rupees(amount):
+    """For a sentence staff read, Indian grouping, paise only when there are
+    some: 1000 -> "₹1,000", 125000.5 -> "₹1,25,000.50"."""
+    whole, paise = f"{abs(Decimal(amount)):.2f}".split(".")
+    head, tail = whole[:-3], whole[-3:]
+    pairs = []
+    while head:
+        pairs.insert(0, head[-2:])
+        head = head[:-2]
+    sign = "-" if Decimal(amount) < 0 else ""
+    return f"{sign}₹{','.join(pairs + [tail])}" + ("" if paise == "00" else f".{paise}")
+
+
 def _title(scheme):
     if scheme == COMPOSITION:
         return BILL_OF_SUPPLY
@@ -185,6 +201,14 @@ def _inside(kind, sections, charges):
 _CHARGE_LABEL = {"parcel": "Parcel charge"}
 
 
+PROMO_LABEL_WIDTH = 24     # fits the label column of a 58 mm slip
+
+
+def promo_label(order):
+    """"Promo HH20", or the promo's name when it has no code, cut to fit."""
+    return f"Promo {order.promo_code or order.promo_name}"[:PROMO_LABEL_WIDTH].rstrip()
+
+
 def bill_layout(order):
     """The BillLayout of an order. Reads order.items, so prefetch them
     (with menu_item and modifiers) when laying out many bills."""
@@ -222,8 +246,16 @@ def bill_layout(order):
     offers = min(Decimal(getattr(order, "offer_total", 0) or 0), discount)
     if offers > 0:
         money_rows.append(MoneyRow("offers", "Offers", -offers))
-    if discount - offers > 0:
-        money_rows.append(MoneyRow("discount", "Discount", -(discount - offers)))
+    # The promo's part of the rest on its own row, named, so the guest sees
+    # which promo they got; anything else (a dish's own discount, a bill
+    # discount typed by hand) is "Discount". A paused promo took nothing.
+    promo = ZERO
+    if getattr(order, "promo_name", ""):
+        promo = min(Decimal(getattr(order, "order_discount_total", 0) or 0), discount - offers)
+    if discount - offers - promo > 0:
+        money_rows.append(MoneyRow("discount", "Discount", -(discount - offers - promo)))
+    if promo > 0:
+        money_rows.append(MoneyRow("promo", promo_label(order), -promo))
 
     included = []
     for kind in (GST, VAT):

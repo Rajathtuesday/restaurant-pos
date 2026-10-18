@@ -179,9 +179,9 @@
     </div>
 
     <div class="audit-card">
-      <h3>Promos Used</h3>
+      <h3>Promos Used <span style="font-weight:400;font-size:.8em;">(paid bills)</span></h3>
       {% for row in report.promos_used %}
-      <div class="audit-row"><span>{{ row.metadata__promo_name|default:"Unknown" }}</span><span class="count">{{ row.count }}</span></div>
+      <div class="audit-row"><span>{{ row.promo_name }} &middot; {{ row.bills }} bill{{ row.bills|pluralize }}</span><span class="count">&minus;&#8377;{{ row.given|default:0|floatformat:2 }}</span></div>
       {% empty %}
       <div class="audit-empty">No promos used in this period.</div>
       {% endfor %}

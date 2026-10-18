@@ -78,6 +78,9 @@ def legacy_totals(spec, outlet_configs):
             base -= cut
         after_item += base
     order_disc = Decimal("0.00")
+    # A promo's minimum order (18 Oct 2026): below it, no order discount.
+    if _q(raw) < _db2(spec.get("dmin", "0")):
+        dtype = None
     if dtype == "percentage" and (dval or 0) > 0:
         order_disc = after_item * (Decimal(dval) / Decimal("100"))
     elif dtype == "amount" and (dval or 0) > 0:
@@ -200,6 +203,9 @@ def liquor_totals(spec, liquor_configs):
             base -= cut
         after_item += base
     order_disc = Decimal("0.00")
+    # A promo's minimum order (18 Oct 2026): below it, no order discount.
+    if _q(raw) < _db2(spec.get("dmin", "0")):
+        dtype = None
     if dtype == "percentage" and (dval or 0) > 0:
         order_disc = after_item * (Decimal(dval) / Decimal("100"))
     elif dtype == "amount" and (dval or 0) > 0:

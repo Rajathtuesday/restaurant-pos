@@ -738,10 +738,10 @@ def generate_audit_csv(tenant, outlet, start_date, end_date):
         writer.writerow([row['metadata__reason'], row['count']])
     writer.writerow([])
 
-    writer.writerow(['PROMOS USED'])
-    writer.writerow(['Promo', 'Bills'])
+    writer.writerow(['PROMOS USED (paid bills)'])
+    writer.writerow(['Promo', 'Bills', 'Discount given'])
     for row in report['promos_used']:
-        writer.writerow([row['metadata__promo_name'] or 'Unknown', row['count']])
+        writer.writerow([row['promo_name'], row['bills'], row['given'] or 0])
     writer.writerow([])
 
     writer.writerow(['BILLS CLOSED WITHOUT PAYMENT'])

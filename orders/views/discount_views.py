@@ -19,8 +19,8 @@ from orders.services.discount_policy import (
     DiscountNeedsManager, DiscountRefused, bill_discount_percent, check_within_limit, read_discount,
     read_reason,
 )
+from orders.services.bill_discount import PromoRefused, set_manual, set_promo
 from orders.services.row_locks import lock_order_of_item
-from promos.services import attach_promo, release_promo
 
 logger = logging.getLogger("pos.orders")
 
@@ -29,7 +29,7 @@ logger = logging.getLogger("pos.orders")
 # DISCOUNT
 # -------------------------------------------------
 # Who may give how much, and the reason it needs: orders/services/discount_policy.py.
-# A promo's use is taken and given back by promos/services.py.
+# Setting the bill's discount (a promo, typed, or none): orders/services/bill_discount.py.
 
 def _refused(e):
     """A discount the policy refused, as the response staff see."""
@@ -70,16 +70,13 @@ def apply_discount(request, order_id):
                 from promos.models import Promo
                 try:
                     promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
-                except Promo.DoesNotExist:
+                except (Promo.DoesNotExist, ValueError, TypeError):
                     return JsonResponse({"error": "Promo code not found"}, status=404)
-                ok, err = attach_promo(order, promo)
-                if not ok:
-                    return JsonResponse({"error": err}, status=400)
                 # The promo's own values, never what the screen sent.
-                discount_type = promo.discount_type
-                value = promo.discount_value
-                details = {"via": "promo", "promo_id": promo.id, "promo_name": promo.name,
-                           "promo_code": promo.code}
+                set_promo(order, promo)
+                discount_type, value = order.discount_type, order.discount_value
+                details = {"via": "promo", "promo_id": promo.id, "promo_name": order.promo_name,
+                           "promo_code": order.promo_code}
             else:
                 if value > 0:
                     reason = read_reason(data.get("reason"))
@@ -91,12 +88,9 @@ def apply_discount(request, order_id):
                 else:
                     details = {"via": "removed"}
                 # A typed discount, or taking the discount off, replaces any
-                # promo the bill had, and gives that promo's use back.
-                release_promo(order)
+                # promo the bill had (and so gives its use back).
+                set_manual(order, discount_type, value)
 
-            order.discount_type = discount_type
-            order.discount_value = value
-            order.save(update_fields=["discount_type", "discount_value", "promo", "promo_name"])
             order.recalculate_totals()
 
             logger.warning(
@@ -121,6 +115,8 @@ def apply_discount(request, order_id):
 
     except DiscountRefused as e:
         return _refused(e)
+    except PromoRefused as e:
+        return error_response(e, 400)
     except Exception:
         logger.exception("Error applying discount for order #%s", order_id)
         return JsonResponse({"error": "Discount could not be applied. Please try again."}, status=500)

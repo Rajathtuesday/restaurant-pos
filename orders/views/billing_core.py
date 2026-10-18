@@ -148,6 +148,14 @@ def bill_view(request, order_id):
 
         valid_promos = [p for p in promos if p.is_live_for(request.user.outlet)]
 
+        # A promo below its minimum stays on the bill and takes nothing off
+        # (tax_engine rule 1); say so, and what it needs.
+        promo_paused_note = ""
+        if order.promo_name and order.status not in ("paid", "closed") and order.promo_paused:
+            from orders.services.bill_layout import rupees
+            promo_paused_note = (f"{order.promo_name} needs a bill of {rupees(order.promo_min_order)} "
+                                 f"(now {rupees(order.menu_value())}). It applies again once the bill gets there.")
+
         from core.features import has_feature
         from setup.services.station_service import get_default_station
         tenant = request.user.tenant
@@ -174,6 +182,7 @@ def bill_view(request, order_id):
             "remaining": remaining,
             "total_paid": total_paid,
             "promos": valid_promos,
+            "promo_paused_note": promo_paused_note,
             "direct_billing_mode": direct_billing_mode,
             "razorpay_feature_enabled": razorpay_feature_enabled,
             "is_qsr":        is_qsr,

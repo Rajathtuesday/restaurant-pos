@@ -50,8 +50,8 @@
     .card-body { padding: 1.2rem; }
 
     .promo-table { width: 100%; border-collapse: collapse; }
-    .promo-table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: .6rem .8rem; border-bottom: 1px solid var(--border); text-align: left; }
-    .promo-table td { padding: .75rem .8rem; border-bottom: 1px solid var(--border); font-size: .82rem; vertical-align: middle; }
+    .promo-table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: .6rem .55rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .promo-table td { padding: .75rem .55rem; border-bottom: 1px solid var(--border); font-size: .82rem; vertical-align: middle; }
     .promo-table tr:last-child td { border-bottom: none; }
     .promo-table tr:hover td { background: rgba(197,160,89,.04); }
 
@@ -63,14 +63,18 @@
     .badge-pct      { background: #fef3c7; color: #92400e; }
     .badge-flat     { background: #fce7f3; color: #9d174d; }
     .badge-expired  { background: #f1f5f9; color: #94a3b8; }
+    .badge-starts   { background: #e0ecff; color: #1d4ed8; }
+    .badge-used     { background: #fef3c7; color: #92400e; }
 
     .code-chip { font-family: 'Space Mono', monospace; font-size: .65rem; background: var(--bg); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 1px; }
 
-    .tbl-actions { display: flex; gap: .4rem; }
+    .tbl-actions { display: grid; grid-template-columns: auto; gap: .3rem; justify-content: start; }
     .tbl-btn { border: none; border-radius: 6px; padding: .3rem .55rem; cursor: pointer; font-size: .7rem; display: inline-flex; align-items: center; gap: 3px; transition: var(--trans); }
     .tbl-btn-toggle { background: #f0fdf4; color: #15803d; }
     .tbl-btn-toggle.off { background: #fef2f2; color: #dc2626; }
     .tbl-btn-del    { background: #fef2f2; color: #dc2626; }
+    .tbl-btn-edit   { background: #eff6ff; color: #1d4ed8; }
+    .owner-only     { font-size: .65rem; color: var(--muted); }
     .tbl-btn:hover  { opacity: .8; transform: scale(1.05); }
 
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .85rem; }
@@ -142,7 +146,7 @@
     <div class="stats-bar">
         <div class="stat-card">
             <div class="stat-label">Total Promos</div>
-            <div class="stat-val gold">{{ promos.count }}</div>
+            <div class="stat-val gold">{{ promos|length }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Active Now</div>
@@ -216,20 +220,29 @@
                                 <div style="color:var(--muted);">Cap: {{ p.max_uses }}</div>
                             {% endif %}
                         </td>
-                        <td style="font-size:.82rem;">
-                            {{ p.usage_count }}{% if p.max_uses %}/{{ p.max_uses }}{% endif %}
+                        <td style="font-size:.82rem;" data-uses="{{ p.uses }}">
+                            {{ p.uses }}{% if p.max_uses %}/{{ p.max_uses }}{% endif %}
+                            {% if p.given %}<div style="font-size:.65rem;color:var(--muted);">−₹{{ p.given|floatformat:0 }} given</div>{% endif %}
                         </td>
                         <td>
-                            {% if p.is_currently_valid %}
-                                <span class="badge badge-active"><span class="dot dot-g"></span>Active</span>
-                            {% elif not p.is_active %}
-                                <span class="badge badge-inactive">Paused</span>
+                            {% if p.status_key == "active" %}
+                                <span class="badge badge-active" data-status="active"><span class="dot dot-g"></span>{{ p.status_text }}</span>
+                            {% elif p.status_key == "paused" %}
+                                <span class="badge badge-inactive" data-status="paused">{{ p.status_text }}</span>
+                            {% elif p.status_key == "starts" %}
+                                <span class="badge badge-starts" data-status="starts">{{ p.status_text }}</span>
+                            {% elif p.status_key == "used_up" %}
+                                <span class="badge badge-used" data-status="used_up">{{ p.status_text }}</span>
                             {% else %}
-                                <span class="badge badge-expired">Expired</span>
+                                <span class="badge badge-expired" data-status="{{ p.status_key }}">{{ p.status_text }}</span>
                             {% endif %}
                         </td>
                         <td>
+                            {% if p.can_manage %}
                             <div class="tbl-actions">
+                                <button class="tbl-btn tbl-btn-edit" onclick="editPromo({{ p.id }})" title="Edit" aria-label="Edit {{ p.name }}">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
                                 <button class="tbl-btn {% if p.is_active %}tbl-btn-toggle{% else %}tbl-btn-toggle off{% endif %}"
                                         onclick="togglePromo({{ p.id }}, this)" title="{% if p.is_active %}Pause{% else %}Activate{% endif %}">
                                     <i class="bi bi-{% if p.is_active %}pause{% else %}play{% endif %}-fill"></i>
@@ -238,6 +251,9 @@
                                     <i class="bi bi-trash3"></i>
                                 </button>
                             </div>
+                            {% else %}
+                            <span class="owner-only" title="Only the owner can change a promo that runs at every outlet."><i class="bi bi-lock"></i> Owner</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -256,10 +272,11 @@
         <div class="card">
             <div class="card-hdr">
                 <i class="bi bi-plus-circle"></i>
-                <span class="card-hdr-title">New Campaign</span>
+                <span class="card-hdr-title" id="form-title">New Campaign</span>
             </div>
             <div class="card-body">
-                <div class="toggle-row">
+                {% if is_owner %}
+                <div class="toggle-row" id="scope-row">
                     <div>
                         <div class="toggle-label">Run on All Outlets</div>
                         <div class="toggle-hint">Applies this promo tenant-wide</div>
@@ -281,6 +298,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
 
                 <div class="field">
                     <label>Campaign Name *</label>
@@ -291,7 +309,7 @@
                     <label>Promo Code <span style="color:var(--muted);font-size:.6rem;">(optional)</span></label>
                     <input type="text" id="f-code" placeholder="HH20" oninput="this.value=this.value.toUpperCase()"
                            style="font-family:'Space Mono',monospace;letter-spacing:1px;">
-                    <div class="field-hint">Shown on the bill. Unique per tenant.</div>
+                    <div class="field-hint">Printed on the bill ("Promo HH20"). Unique per tenant.</div>
                 </div>
 
                 <div class="two">
@@ -309,7 +327,7 @@
                 </div>
 
                 <div class="field">
-                    <label>Min. Order Value <span style="color:var(--muted);font-size:.6rem;">(₹, 0 = none)</span></label>
+                    <label>Min. Order Value <span style="color:var(--muted);font-size:.6rem;">(₹, 0 = none; a flat promo needs at least its own amount)</span></label>
                     <input type="number" id="f-min" min="0" step="1" placeholder="0" value="0">
                 </div>
 
@@ -334,9 +352,11 @@
                     <textarea id="f-desc" placeholder="e.g. Valid only on dine-in orders, weekdays 3–7 PM"></textarea>
                 </div>
 
-                <button class="btn-create" id="create-btn" onclick="createPromo()">
+                <button class="btn-create" id="create-btn" onclick="savePromo()">
                     <i class="bi bi-plus-lg"></i> Create Campaign
                 </button>
+                <button type="button" class="tbl-btn" id="cancel-edit-btn" onclick="cancelEdit()"
+                        style="display:none;margin-top:.5rem;width:100%;justify-content:center;">Cancel edit</button>
                 <div id="form-msg"></div>
             </div>
         </div>
@@ -346,56 +366,98 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ edit_data|json_script:"promo-edit-data" }}
 <script>
     function toggleOutletPicker() {
-        const on = document.getElementById('all-outlets-toggle').checked;
-        document.getElementById('outlet-picker').style.display = on ? 'none' : '';
+        const toggle = document.getElementById('all-outlets-toggle');
+        const picker = document.getElementById('outlet-picker');
+        if (toggle && picker) picker.style.display = toggle.checked ? 'none' : '';
     }
 
-    async function createPromo() {
+    const EDIT_DATA = JSON.parse(document.getElementById('promo-edit-data').textContent);
+    let editingId = null;
+    const FIELDS = {name: 'f-name', code: 'f-code', discount_type: 'f-type', discount_value: 'f-value',
+                    min_order_value: 'f-min', max_uses: 'f-maxuses', valid_from: 'f-from',
+                    valid_until: 'f-until', description: 'f-desc'};
+    const CREATE_LABEL = '<i class="bi bi-plus-lg"></i> Create Campaign';
+    const SAVE_LABEL = '<i class="bi bi-check-lg"></i> Save changes';
+
+    function editPromo(id) {
+        const data = EDIT_DATA[id];
+        if (!data) return;
+        editingId = id;
+        Object.entries(FIELDS).forEach(([key, el]) => {
+            document.getElementById(el).value = data[key] ?? '';
+        });
+        document.getElementById('form-title').textContent = `Edit: ${data.name}`;
+        document.getElementById('create-btn').innerHTML = SAVE_LABEL;
+        document.getElementById('cancel-edit-btn').style.display = '';
+        const scope = document.getElementById('scope-row');
+        const picker = document.getElementById('outlet-picker');
+        if (scope) scope.style.display = 'none';      // where it runs stays as it was made
+        if (picker) picker.style.display = 'none';
+        document.getElementById('f-name').focus();
+    }
+
+    function cancelEdit() {
+        editingId = null;
+        Object.values(FIELDS).forEach(el => { document.getElementById(el).value = ''; });
+        document.getElementById('f-type').value = 'percentage';
+        document.getElementById('f-min').value = '0';
+        document.getElementById('form-title').textContent = 'New Campaign';
+        document.getElementById('create-btn').innerHTML = CREATE_LABEL;
+        document.getElementById('cancel-edit-btn').style.display = 'none';
+        const scope = document.getElementById('scope-row');
+        if (scope) scope.style.display = '';
+        toggleOutletPicker();
+    }
+
+    async function savePromo() {
         const btn = document.getElementById('create-btn');
         const msg = document.getElementById('form-msg');
-        const allOutlets = document.getElementById('all-outlets-toggle').checked;
+        const allToggle = document.getElementById('all-outlets-toggle');
+        const allOutlets = !!(allToggle && allToggle.checked);
+        const outletSelect = document.getElementById('f-outlet');
 
         const payload = {
-            all_outlets:     allOutlets,
-            outlet_id:       allOutlets ? null : document.getElementById('f-outlet').value,
             name:            document.getElementById('f-name').value.trim(),
             code:            document.getElementById('f-code').value.trim(),
             discount_type:   document.getElementById('f-type').value,
-            discount_value:  parseFloat(document.getElementById('f-value').value),
-            min_order_value: parseFloat(document.getElementById('f-min').value) || 0,
+            discount_value:  document.getElementById('f-value').value,
+            min_order_value: document.getElementById('f-min').value || 0,
             max_uses:        document.getElementById('f-maxuses').value || null,
             valid_from:      document.getElementById('f-from').value || null,
             valid_until:     document.getElementById('f-until').value || null,
             description:     document.getElementById('f-desc').value.trim(),
         };
+        if (!editingId) {
+            payload.all_outlets = allOutlets;
+            payload.outlet_id = allOutlets || !outletSelect ? null : outletSelect.value;
+        }
 
-        if (!payload.name || isNaN(payload.discount_value) || payload.discount_value <= 0) {
+        if (!payload.name || !(parseFloat(payload.discount_value) > 0)) {
             showMsg(msg, 'Name and a valid positive value are required.', 'e');
             return;
         }
 
         btn.disabled = true;
-        btn.textContent = 'Creating…';
+        btn.textContent = editingId ? 'Saving…' : 'Creating…';
+        const url = editingId ? `/setup/promos/${editingId}/update/` : '/setup/promos/create/';
 
         try {
-            const data = await apiClient.post('/setup/promos/create/', payload);
+            const data = await apiClient.post(url, payload);
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-plus-lg"></i> Create Campaign';
+            btn.innerHTML = editingId ? SAVE_LABEL : CREATE_LABEL;
             if (data.success) {
-                showMsg(msg, `✓ "${data.name}" created for ${data.scope}.`, 's');
-                ['f-name','f-code','f-value','f-desc','f-from','f-until','f-maxuses'].forEach(id => {
-                    document.getElementById(id).value = '';
-                });
-                document.getElementById('f-min').value = '0';
-                setTimeout(() => location.reload(), 1200);
+                showMsg(msg, editingId ? `✓ "${data.name}" saved.` : `✓ "${data.name}" created for ${data.scope}.`, 's');
+                setTimeout(() => location.reload(), 900);
             } else {
                 showMsg(msg, data.error || 'Failed.', 'e');
             }
         } catch (e) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-plus-lg"></i> Create Campaign';
+            btn.innerHTML = editingId ? SAVE_LABEL : CREATE_LABEL;
+            if (e && e.message && e.message !== 'Offline') showMsg(msg, e.message, 'e');   // also in a toast
         }
     }
 
@@ -407,7 +469,7 @@
     }
 
     async function deletePromo(id) {
-        if (!await ui.confirm('Permanently delete this promo?')) return;
+        if (!await ui.confirm('Delete this promo? Bills that used it keep its name.')) return;
         try {
             const data = await apiClient.post(`/setup/promos/${id}/delete/`, {});
             if (data.success) { document.getElementById(`row-${id}`).remove(); updateStats(); }
@@ -426,8 +488,8 @@
         rows.forEach(r => {
             if (r.querySelector('.badge-active'))  active++;
             if (r.querySelector('.badge-all'))     allOut++;
-            const usesTd = r.querySelectorAll('td')[4];
-            if (usesTd) uses += parseInt(usesTd.textContent.split('/')[0]) || 0;
+            const usesTd = r.querySelector('[data-uses]');
+            if (usesTd) uses += parseInt(usesTd.dataset.uses) || 0;
         });
         const ac = document.getElementById('active-count');
         const ao = document.getElementById('alloutlet-count');

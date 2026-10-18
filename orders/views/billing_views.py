@@ -31,7 +31,7 @@ from orders.services.discount_policy import (
     bill_discount_percent, check_within_limit, read_discount, read_reason,
 )
 from orders.services.order_service import get_or_create_open_order, add_items_to_order
-from promos.services import release_promo
+from orders.services.bill_discount import set_manual
 
 logger = logging.getLogger("pos.orders")
 
@@ -351,24 +351,21 @@ def create_order(request):
                 if d_type in ["percentage", "amount"]:
                     try:
                         d_val = read_discount(d_val, minimum=None)
+                    except (ValueError, TypeError, InvalidOperation):
+                        d_val = None
+                    if d_val is not None:
                         # Reject negatives (would be an upcharge) and cap a
                         # percentage at 100 so a discount can never exceed the bill.
-                        if d_val < 0:
-                            d_val = Decimal("0")
-                        if d_type == "percentage" and d_val > 100:
-                            d_val = Decimal("100")
-                        order.discount_type = d_type
-                        order.discount_value = d_val
-                        changed += ["discount_type", "discount_value"]
+                        d_val = max(d_val, Decimal("0"))
+                        if d_type == "percentage":
+                            d_val = min(d_val, Decimal("100"))
                         if d_val > 0:
                             # The bill screen's rules: a reason, a limit, an
-                            # audit event (orders/services/discount_policy.py),
-                            # and it replaces any promo on the bill.
+                            # audit event (orders/services/discount_policy.py).
                             bill_discount = (d_type, d_val, read_reason(data.get("discount_reason")))
-                            release_promo(order)
-                            changed += ["promo", "promo_name"]
-                    except (ValueError, TypeError, InvalidOperation):
-                        pass
+                        # Set like every bill discount (bill_discount.py): it
+                        # replaces any promo, and 0 takes the discount off.
+                        set_manual(order, d_type, d_val)
 
             order.save(update_fields=changed)
             cart = with_cart_note(cart, data.get("notes"))

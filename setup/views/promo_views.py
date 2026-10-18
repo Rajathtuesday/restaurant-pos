@@ -80,6 +80,12 @@ def read_promo_fields(data):
         except ValueError:
             raise PromoInputError(f"{label} must be a date like 2026-10-31.")
 
+    if discount_type == "amount" and min_order_value < discount_value:
+        # Rs 100 off with no minimum would make a Rs 60 coffee free.
+        shown = f"{discount_value:.2f}".removesuffix(".00")
+        raise PromoInputError(f"A flat ₹{shown} off needs a minimum order of at least ₹{shown}, "
+                              "so it can never make a bill free.")
+
     valid_from = day("valid_from", "The start date")
     valid_until = day("valid_until", "The end date")
     if valid_from and valid_until and valid_until < valid_from:
@@ -91,6 +97,38 @@ def read_promo_fields(data):
         "min_order_value": min_order_value, "max_uses": max_uses,
         "valid_from": valid_from, "valid_until": valid_until,
     }
+
+
+# ==================================
+# WHO MANAGES WHICH PROMOS
+# ==================================
+# The owner: every promo. A manager: only their own outlet's. A promo for
+# every outlet (outlet=None) changes every outlet's bills, so it is the
+# owner's alone; a manager sees it but can't change it (18 Oct 2026).
+
+MANAGERS = ("owner", "manager")
+OWNER_ONLY_ALL_OUTLETS = "Only the owner can make or change a promo that runs at every outlet."
+
+
+def may_manage(user, outlet_id):
+    """True if `user` may create, edit, pause or delete a promo for this
+    outlet (None: every outlet)."""
+    if user.is_superuser or user.role == "owner":
+        return True
+    return user.role == "manager" and outlet_id is not None and outlet_id == user.outlet_id
+
+
+def _managed_promo(request, promo_id):
+    """(promo, None) for a live promo this user may change, else (None, the
+    response to send). Another outlet's promo is "not found" to a manager,
+    as it always was; an all-outlet one says it is the owner's."""
+    from promos.models import Promo
+    promo = Promo.objects.filter(id=promo_id, tenant=request.user.tenant, archived_at__isnull=True).first()
+    if promo is None or (promo.outlet_id is not None and not may_manage(request.user, promo.outlet_id)):
+        return None, JsonResponse({"error": "Promo not found"}, status=404)
+    if not may_manage(request.user, promo.outlet_id):
+        return None, JsonResponse({"error": OWNER_ONLY_ALL_OUTLETS}, status=403)
+    return promo, None
 
 
 # ==================================
@@ -118,16 +156,36 @@ def setup_promos(request):
     # All outlets for this tenant (used by the "All Outlets" toggle)
     all_outlets = Outlet.objects.filter(tenant=tenant).order_by("name")
 
-    # Promos scoped to this tenant (includes all-outlet ones + this outlet's) —
-    # NOT every outlet's promos, matching the page heading below.
-    promos = Promo.objects.filter(tenant=tenant, archived_at__isnull=True).filter(
-        Q(outlet=outlet) | Q(outlet__isnull=True)
-    ).select_related("outlet").order_by("-created_at")
+    # Promos scoped to this tenant (includes all-outlet ones + this outlet's),
+    # NOT every outlet's promos, matching the page heading.
+    from django.db.models import Sum
+    promos = list(
+        Promo.objects.filter(tenant=tenant, archived_at__isnull=True)
+        .filter(Q(outlet=outlet) | Q(outlet__isnull=True))
+        .annotate(given=Sum("orders__order_discount_total", filter=Q(orders__status__in=["paid", "closed"])))
+        .select_related("outlet").order_by("-created_at")
+    )
+    for promo in promos:
+        promo.status_key, promo.status_text = promo.status_for(outlet)
+        promo.can_manage = may_manage(request.user, promo.outlet_id)
+    # What the edit form fills itself with.
+    edit_data = {
+        promo.id: {
+            "name": promo.name, "code": promo.code, "description": promo.description,
+            "discount_type": promo.discount_type, "discount_value": str(promo.discount_value),
+            "min_order_value": str(promo.min_order_value), "max_uses": promo.max_uses,
+            "valid_from": promo.valid_from.isoformat() if promo.valid_from else "",
+            "valid_until": promo.valid_until.isoformat() if promo.valid_until else "",
+        }
+        for promo in promos if promo.can_manage
+    }
 
     return render(request, "setup/setup_promos.html", {
         "promos": promos,
         "outlets": all_outlets,
         "current_outlet": outlet,
+        "is_owner": may_manage(request.user, None),
+        "edit_data": edit_data,
     })
 
 
@@ -158,13 +216,17 @@ def promo_create(request):
     # Resolve outlet — None = all outlets
     outlet = None if all_outlets_flag else request.user.outlet
 
-    # Validate outlet_id override (owner-only: pick a specific outlet)
+    # Another outlet picked from the list
     outlet_id = data.get("outlet_id")
     if outlet_id and not all_outlets_flag:
         try:
             outlet = Outlet.objects.get(id=outlet_id, tenant=request.user.tenant)
-        except Outlet.DoesNotExist:
+        except (Outlet.DoesNotExist, ValueError, TypeError):
             return JsonResponse({"error": "Outlet not found"}, status=404)
+
+    if not may_manage(request.user, outlet.id if outlet else None):
+        return JsonResponse({"error": OWNER_ONLY_ALL_OUTLETS if outlet is None
+                             else "A manager can make promos only for their own outlet."}, status=403)
 
     try:
         promo = Promo.objects.create(tenant=request.user.tenant, outlet=outlet, **fields)
@@ -187,23 +249,14 @@ def promo_create(request):
 @tenant_required
 @require_POST
 def promo_toggle(request, promo_id):
-    """Toggle is_active on a promo."""
+    """Pause a promo, or switch it back on. An archived promo stays off."""
     if request.user.role not in ["owner", "manager"]:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
-    from promos.models import Promo
-    try:
-        promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
-    except Promo.DoesNotExist:
-        return JsonResponse({"error": "Promo not found"}, status=404)
-
-    # A promo scoped to one specific outlet is off-limits to a manager at a
-    # different outlet — only tenant-wide promos (outlet=None) and this
-    # outlet's own promos are toggleable here. Owners keep cross-outlet
-    # access by design, same as everywhere else in setup/.
-    if request.user.role != "owner" and promo.outlet_id and promo.outlet_id != request.user.outlet_id:
-        return JsonResponse({"error": "Promo not found"}, status=404)
+    promo, refused = _managed_promo(request, promo_id)
+    if refused:
+        return refused
 
     promo.is_active = not promo.is_active
     promo.save(update_fields=["is_active"])
@@ -214,22 +267,14 @@ def promo_toggle(request, promo_id):
 @tenant_required
 @require_POST
 def promo_delete(request, promo_id):
-    """Hard-delete a promo."""
+    """Delete a promo: it is archived, so bills that used it keep it."""
     if request.user.role not in ["owner", "manager"]:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
 
-    from promos.models import Promo
-    try:
-        promo = Promo.objects.get(id=promo_id, tenant=request.user.tenant)
-    except Promo.DoesNotExist:
-        return JsonResponse({"error": "Promo not found"}, status=404)
-
-    # Same outlet boundary as promo_toggle above — a manager may not delete
-    # another outlet's promo just because they share a tenant. Owners keep
-    # cross-outlet access by design.
-    if request.user.role != "owner" and promo.outlet_id and promo.outlet_id != request.user.outlet_id:
-        return JsonResponse({"error": "Promo not found"}, status=404)
+    promo, refused = _managed_promo(request, promo_id)
+    if refused:
+        return refused
 
     # Archived, not deleted: bills that used the promo keep pointing at it.
     # Its code is free again (the unique rule skips archived promos).
@@ -238,3 +283,38 @@ def promo_delete(request, promo_id):
     promo.is_active = False
     promo.save(update_fields=["archived_at", "is_active"])
     return JsonResponse({"success": True})
+
+
+@login_required
+@tenant_required
+@require_POST
+def promo_update(request, promo_id):
+    """JSON endpoint: edit a promo, checked like a new one. Where it runs
+    (its outlet) stays as it was made. Bills already holding the promo keep
+    the values they got (orders/services/bill_discount.py copies them)."""
+    if request.user.role not in MANAGERS:
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden()
+
+    from django.db import IntegrityError, transaction
+
+    promo, refused = _managed_promo(request, promo_id)
+    if refused:
+        return refused
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    try:
+        fields = read_promo_fields(data)
+    except PromoInputError as e:
+        return error_response(e, 400)
+
+    for name, value in fields.items():
+        setattr(promo, name, value)
+    try:
+        with transaction.atomic():
+            promo.save(update_fields=list(fields))
+    except IntegrityError:
+        return JsonResponse({"error": f"The code {fields['code']} is already used by another promo."}, status=409)
+    return JsonResponse({"success": True, "id": promo.id, "name": promo.name})

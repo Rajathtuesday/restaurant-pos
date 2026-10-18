@@ -246,6 +246,46 @@ class RealMathsMatchesFrozenCopyTest(HypothesisTestCase):
         self.assertEqual(snapshot(order, 0, spec), expected)
 
 
+@st.composite
+def bills_with_a_minimum(draw):
+    """A bill whose order discount came from a promo with a minimum order,
+    drawn around the bill's own menu value so both sides of it are hit."""
+    spec = draw(bills())
+    menu_value = sum((D(it["total"]) for it in live_items(spec)), D("0"))
+    dmin = draw(st.one_of(
+        st.just(menu_value), st.just(menu_value + D("0.01")), st.just(max(menu_value - D("0.01"), D("0"))),
+        _paise(0.01, 5000).map(D),
+    ))
+    return dict(spec, dmin=f"{dmin:.2f}")
+
+
+class PromoMinimumMatchesFrozenCopyTest(HypothesisTestCase):
+    """The promo minimum (tax_engine rule 1, 18 Oct 2026) on random bills:
+    the real recalculate_totals() against the frozen copy's own version."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.world = build_world()
+
+    @REAL
+    @given(bills_with_a_minimum())
+    def test_real_bill_matches_the_frozen_copy(self, spec):
+        [order] = create_orders(self.world, [spec])
+        order.recalculate_totals()
+        expected = {**row_head(0, spec), **legacy_totals(spec, OUTLET_CONFIGS)}
+        self.assertEqual(snapshot(order, 0, spec), expected)
+
+    @REAL
+    @given(bills_with_a_minimum())
+    def test_below_the_minimum_only_the_dishes_own_discounts_count(self, spec):
+        """Below the minimum the bill costs what it costs with no order
+        discount at all; at or above it, what it costs with no minimum."""
+        menu_value = sum((D(it["total"]) for it in live_items(spec)), D("0"))
+        same_as = dict(spec, dmin="0") if menu_value.quantize(D("0.01")) >= D(spec["dmin"]) \
+            else dict(spec, dtype=None, dval="0", dmin="0")
+        self.assertEqual(legacy_totals(spec, OUTLET_CONFIGS), legacy_totals(same_as, OUTLET_CONFIGS))
+
+
 class UnregisteredOutletTest(HypothesisTestCase):
     """An outlet with no GSTIN may not collect GST (CGST Act, section 32). Its
     bill costs exactly what the same bill costs on the composition scheme,

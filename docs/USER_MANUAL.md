@@ -113,6 +113,22 @@ Good to know:
 
 **Liquor on the bill:** in a pub outlet, food carries GST and liquor carries the state's VAT instead (0% in Karnataka at the bar). Both sit on the same bill, in separate blocks, and the GSTR-1 export keeps them apart for your accountant.
 
+### Promos (Every Outlet)
+
+A promo is a whole-bill discount you set up in advance, for example **₹200 off above ₹1,000** or **10% off with code HH10**. Make them at **Setup → Promos**. Cashiers then pick one on the bill screen; it needs no reason and no manager.
+
+1. Give it a name, and a short code if you like. The bill prints the code (**Promo HH10**), or the name when there is no code.
+2. Choose **% off** or **₹ flat off**, and a **minimum order** if you want one. A flat promo needs a minimum at least as big as itself, so it can never make a bill free.
+3. Set dates and a **usage limit** if you want them. Dates follow your business day, so a promo "valid until Saturday" still works at 1 AM on Saturday night.
+
+Good to know:
+
+- **The minimum follows the bill.** If dishes are voided or made free and the bill drops below the minimum, the promo pauses: it stays on the bill, takes nothing off, and the bill screen says what it needs. Add dishes back and it applies again by itself.
+- **Uses are bills.** A promo used on a bill counts once, however many times it is tapped. If the promo is taken off, replaced or the bill is cancelled, the use comes back.
+- **Editing** (the pencil) changes the promo from now on. Bills that already have it keep what they got.
+- **Who can change what:** the owner, every promo. A manager, only their own outlet's promos. A promo for every outlet is the owner's alone.
+- The **Discount / Void Audit** report lists each promo with its paid bills and what it gave away.
+
 ---
 
 ## 4. For Cashiers (QSR / Counter)

@@ -84,8 +84,7 @@ class Base(TestCase):
         self.outlet.save(update_fields=["staff_discount_limit_pct"])
 
     def uses(self, promo):
-        promo.refresh_from_db()
-        return promo.usage_count
+        return promo.uses
 
 
 class PromoUsesTest(Base):
@@ -136,7 +135,9 @@ class PromoUsesTest(Base):
         cancel_whole_order(self.users["manager"], self.order.id, reason="Guest left")
         self.assertEqual(self.uses(promo), 0)
         self.order.refresh_from_db()
-        self.assertEqual((self.order.status, self.order.promo), ("cancelled", None))
+        # Since 18 Oct 2026 the cancelled bill keeps the record of its promo;
+        # cancelled bills just don't count as uses.
+        self.assertEqual((self.order.status, self.order.promo), ("cancelled", promo))
 
     def test_a_paid_bill_keeps_its_use(self):
         promo = self.promo()
@@ -415,5 +416,8 @@ class AuditReportTest(Base):
         self.assertEqual([(r["metadata__reason"], r["count"]) for r in report["discount_reasons"]],
                          [("regular guest", 1)])
         self.assertEqual([(r["metadata__reason"], r["count"]) for r in report["comp_reasons"]], [("birthday", 1)])
-        self.assertEqual([(r["metadata__promo_name"], r["count"]) for r in report["promos_used"]],
-                         [("Happy Hour", 1)])
+        # Promos count paid bills (18 Oct 2026): this one isn't paid yet.
+        self.assertEqual(report["promos_used"], [])
+        Order.objects.filter(pk=self.order.pk).update(status="paid")
+        report = discount_void_audit(self.tenant, self.outlet, today, today)
+        self.assertEqual([(r["promo_name"], r["bills"]) for r in report["promos_used"]], [("Happy Hour", 1)])
