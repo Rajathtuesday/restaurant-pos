@@ -1002,7 +1002,7 @@
     }
 
     // Desktop — existing WebSocket path (instant, no round-trip delay)
-    const qzResp = await fetch(`/orders/qz-data/${orderId}/`, { headers: { "X-CSRFToken": apiClient.getCsrf() } });
+    const qzResp = await fetch("{% url 'qz-receipt-data' 0 %}".replace('/0/', '/' + orderId + '/'), { headers: { "X-CSRFToken": apiClient.getCsrf() } });
     const qzData = await qzResp.json();
     if (!qzData.success || !qzData.lines) throw new Error("receipt-data-failed");
 

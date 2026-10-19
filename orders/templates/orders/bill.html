@@ -204,7 +204,10 @@
                     {{ item.menu_item.name }}
                     <span style="color:var(--text-muted)"> × {{ item.quantity }}</span>
                     {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
-                    <button onclick="promptItemDiscount({{ item.id }}, '{{ item.menu_item.name|escapejs }}', {{ item.item_discount_pct }})"
+                    <button type="button" class="item-discount-btn" onclick="promptItemDiscount(this)"
+                            data-url="{% url 'item-discount' item.id %}" data-name="{{ item.menu_item.name }}"
+                            data-pct="{{ item.item_discount_pct|floatformat:'-2' }}"
+                            aria-label="Discount on {{ item.menu_item.name }}"
                             style="background:transparent;border:none;color:var(--accent-gold);cursor:pointer;padding:0 4px;font-size:0.7rem;">
                         <i class="bi bi-tag"></i>
                     </button>
@@ -599,20 +602,52 @@ renderUpiQR({{ remaining }});
         } catch(e) {}
     }
 
-    function promptItemDiscount(itemId, name, currentPct) {
-        ui.confirm(`Apply discount % for ${name}?`, 'Enter 0 to remove.', 'Apply').then(r => {
-            if (!r.isConfirmed) return;
-            const pct = parseFloat(prompt(`Discount % for ${name}:`, currentPct));
-            if (isNaN(pct) || pct < 0 || pct > 100) { ui.toast('Enter 0–100', 'warning'); return; }
-            let reason = '';
-            if (pct > 0) {
-                reason = (prompt(`Reason for the discount on ${name}:`) || '').trim();
-                if (reason.length < 3) { ui.toast('A discount needs a reason.', 'warning'); return; }
-            }
-            apiClient.post(`/orders/item-discount/${itemId}/`, { percent: pct, reason })
-                .then(d => { if (d.success) location.reload(); else ui.toast(d.error, 'error'); })
-                .catch(() => { /* apiClient has already shown the error */ });
+    /* A dish's own discount: one form, the % and the reason together.
+       It used to be a confirm with nothing to type in, then two browser
+       prompts (which never show in the Android app), posting to an address
+       that didn't exist, so it never applied (fixed 19 Oct 2026). The address
+       now comes from the URL name on the button. */
+    async function promptItemDiscount(button) {
+        const name = button.dataset.name;
+        const result = await Swal.fire({
+            titleText: `Discount on ${name}`,
+            html: `
+                <label for="item-discount-pct" style="display:block;text-align:left;font-size:.8rem;margin-top:.4rem;">Discount %</label>
+                <input id="item-discount-pct" type="number" min="0" max="100" step="0.01" inputmode="decimal"
+                       class="swal2-input" style="margin:.3rem 0 0;width:100%;" value="${button.dataset.pct}">
+                <div style="text-align:left;font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">0 takes the discount off.</div>
+                <label for="item-discount-reason" style="display:block;text-align:left;font-size:.8rem;margin-top:.8rem;">Reason</label>
+                <input id="item-discount-reason" type="text" maxlength="200" class="swal2-input"
+                       style="margin:.3rem 0 0;width:100%;" placeholder="For example: regular guest, food complaint">`,
+            showCancelButton: true,
+            confirmButtonText: 'Apply',
+            confirmButtonColor: 'var(--accent-gold)',
+            cancelButtonColor: 'var(--text-muted)',
+            background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
+            color: 'var(--text-main)',
+            customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
+            focusConfirm: false,
+            didOpen: () => document.getElementById('item-discount-pct').select(),
+            preConfirm: () => {
+                const raw = document.getElementById('item-discount-pct').value.trim();
+                const percent = Number(raw);
+                const reason = document.getElementById('item-discount-reason').value.trim();
+                if (raw === '' || !Number.isFinite(percent) || percent < 0 || percent > 100) {
+                    Swal.showValidationMessage('Enter a discount from 0 to 100.');
+                    return false;
+                }
+                if (percent > 0 && reason.length < 3) {
+                    Swal.showValidationMessage('Give a reason for the discount (for example: regular guest, food complaint).');
+                    return false;
+                }
+                return { percent, reason };
+            },
         });
+        if (!result.isConfirmed) return;
+        try {
+            const d = await apiClient.post(button.dataset.url, result.value);
+            if (d.success) location.reload();
+        } catch (e) { /* apiClient has already shown the error */ }
     }
 
     /* Auto-populate promo picker */
@@ -848,7 +883,7 @@ renderUpiQR({{ remaining }});
             const ws = await connectAgent();
 
             // Fetch ESC/POS lines from backend
-            const resp = await fetch(`/orders/qz-data/${orderId}/?split=${splitMode?1:0}`);
+            const resp = await fetch("{% url 'qz-receipt-data' 0 %}".replace('/0/', '/' + orderId + '/') + `?split=${splitMode?1:0}`);
             if (!resp.ok) return false;
             const { lines } = await resp.json();
 

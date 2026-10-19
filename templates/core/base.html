@@ -384,7 +384,17 @@
 
                 try {
                     const response = await fetch(endpoint, { ...options, headers });
-                    const data = await response.json();
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (notJson) {
+                        // An HTML page came back (a 404 or 500 page, a proxy error):
+                        // say so. This used to throw without a word, so a button
+                        // posting to a wrong address simply did nothing.
+                        const errorMsg = `Server Error (${response.status}). Please try again.`;
+                        ui.toast(errorMsg, "error");
+                        throw new Error(errorMsg);
+                    }
 
                     if (!response.ok || (data.success === false)) {
                         const errorMsg = data.error || data.detail || `Server Error (${response.status})`;
