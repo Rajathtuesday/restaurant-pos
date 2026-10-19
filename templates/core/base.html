@@ -893,7 +893,9 @@
                 console.warn('Rasova app is out of date: update it to keep printing.');
                 if (window.ui && ui.toast && !sessionStorage.getItem('rasova_app_update_shown')) {
                     sessionStorage.setItem('rasova_app_update_shown', '1');
-                    ui.toast('Update the Rasova app to keep printing: download it again from rasova.net/android/rasova.apk', 'warning');
+                    // From 1.2.0 the app is signed with Rasova's own key, so the old one
+                    // must be uninstalled first or Android says "App not installed".
+                    ui.toast('Update the Rasova app to keep printing: uninstall it, then install the new one from rasova.net/android/rasova.apk', 'warning');
                 }
             }
         } catch (e) {

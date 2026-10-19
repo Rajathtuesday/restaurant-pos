@@ -11,8 +11,8 @@ android {
         applicationId "com.rasova.pos"
         minSdk 26          // Android 8.0+ — covers 95%+ of active devices
         targetSdk 34
-        versionCode 3
-        versionName "1.1.1"   // 1.1.1: internet server addresses always https (ServerUrl); 1.1.0: agent key in the X-Agent-Key header
+        versionCode 4
+        versionName "1.2.0"   // 1.2.0: pages' alert/confirm/prompt shown (JsDialogs), release key; 1.1.1: internet server addresses always https (ServerUrl); 1.1.0: agent key in the X-Agent-Key header
 
         // Empty by default — release builds get the URL from SharedPreferences
         // (user types it or scans a QR on first launch).
@@ -21,6 +21,29 @@ android {
 
     buildFeatures {
         buildConfig true
+    }
+
+    // The release key lives outside the repository, in the signing machine's
+    // home folder (~/.rasova_android/signing.properties next to
+    // rasova-release.jks, made 19 Oct 2026). Where that file is missing, the
+    // release build is simply left unsigned, so nothing secret is ever needed
+    // to build. Every Rasova release must be signed with this same key, or
+    // Android refuses it as an update.
+    def signingFile = new File(System.getProperty("user.home"), ".rasova_android/signing.properties")
+    def signing = new Properties()
+    if (signingFile.exists()) {
+        signingFile.withInputStream { signing.load(it) }
+    }
+
+    signingConfigs {
+        if (signingFile.exists()) {
+            release {
+                storeFile file(signing['storeFile'])
+                storePassword signing['storePassword']
+                keyAlias signing['keyAlias']
+                keyPassword signing['keyPassword']
+            }
+        }
     }
 
     buildTypes {
@@ -34,6 +57,9 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (signingFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 

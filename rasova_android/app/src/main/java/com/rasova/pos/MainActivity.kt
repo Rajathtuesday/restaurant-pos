@@ -213,6 +213,8 @@ class MainActivity : AppCompatActivity() {
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
         settings.userAgentString = settings.userAgentString + " RasovaPOS-Android/1.0"
         webView.addJavascriptInterface(JSBridge(this), "Android")
+        // Without this the pages' alert/confirm/prompt never show (JsDialogs.kt).
+        webView.webChromeClient = JsDialogs(this)
 
         webView.webViewClient = object : WebViewClient() {
 

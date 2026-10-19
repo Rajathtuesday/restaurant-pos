@@ -12,6 +12,8 @@ There's almost no native UI here on purpose. `MainActivity` is a single Activity
 - **`PrintService.kt`**: a background `Service` (not bound) that owns the polling loop and printer communication. This is where almost all the real logic lives.
 - **`JSBridge.kt`**: the JS-to-native bridge, injected into the WebView as `window.Android`. Methods the Django frontend's JS calls: `startPrintingWithKey(serverUrl, agentKey)`, `getPrintingStatus()`, `isNativeApp()`, and `startPrinting(pollUrl)` for pages from before 1.1.0.
 - **`BootReceiver.kt`**: restarts `PrintService` after a phone reboot, reading the saved server and agent key (`AgentConfig`), no user interaction needed.
+- **`JsDialogs.kt`** (1.2.0): the WebView's `WebChromeClient`, so the pages' `alert()`, `confirm()` and `prompt()` show as Android dialogs. Without one a WebView shows none of them (`confirm()` answers cancel, `prompt()` answers nothing), and the ~90 such dialogs in Rasova's pages silently did nothing in the app. A prompt with a number in it opens the number keyboard.
+- **`ServerUrl.kt`** (1.1.1): turns an internet `http://` address into `https://`; local and emulator addresses are left alone for testing.
 - **`AgentConfig.kt`**: where to poll and the outlet's agent key, saved in SharedPreferences as `agent_server_url` and `agent_key`; turns a pre-1.1.0 saved poll URL into the pair once.
 
 ## How polling works
@@ -44,24 +46,45 @@ First launch: if a `server_url` is already saved, load it directly. Otherwise sh
 
 ## Build
 
-Standard Gradle/Android Studio project, single `:app` module.
+Standard Gradle/Android Studio project, single `:app` module. Use Android Studio's own Java (`JAVA_HOME="/f/android studio/jbr"` on the build PC).
 
 ```
+./gradlew testDebugUnitTest testReleaseUnitTest   # JVM unit tests
 ./gradlew assembleDebug
-./gradlew assembleRelease
+./gradlew assembleRelease                         # signed, if the key is on this machine
 ```
 
 - `compileSdk` / `targetSdk` 34, `minSdk` 26 (Android 8.0+)
 - Kotlin only, JVM target 17
 - No product flavors
-- No signing config is checked in (`.gitignore` excludes `*.jks`/`*.keystore`), release signing is currently a manual step via Android Studio's Generate Signed Bundle flow
+- The release build is shrunk by R8; `proguard-rules.pro` keeps `JSBridge`'s methods, which the pages call by name. Check them after a release build if the bridge changes.
+
+## Release signing (since 1.2.0, 19 Oct 2026)
+
+Releases are signed with **Rasova's own release key**, kept outside the repository on the signing PC:
+
+- `%USERPROFILE%\.rasova_android\rasova-release.jks` (PKCS12, RSA 4096, alias `rasova`, valid to 2054)
+- `%USERPROFILE%\.rasova_android\signing.properties` (its path and password)
+
+`app/build.gradle` reads that file when it exists and signs `assembleRelease` with it; on any other machine the release build is just left unsigned, so nothing secret is needed to build. **Back up both files somewhere safe (password manager, encrypted drive).** Lose them and no future version can install as an update: every phone would have to uninstall and reinstall.
+
+Certificate SHA-256: `83:8B:C4:32:2A:6D:A6:F7:20:C5:85:36:15:53:D0:C1:CA:12:70:07:64:C6:AC:5A:B7:74:DB:9E:F1:0C:E2:05`
+
+Versions up to 1.1.1 were signed with a development (debug) key, so **a phone with the old app must uninstall it once** before installing 1.2.0; Android refuses an update signed with a different key ("App not installed"). From 1.2.0 on, updates install over the top.
+
+To publish: bump `versionCode` and `versionName`, build, check with `apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk` that the signer is `CN=Rasova`, copy it to `public/android/rasova.apk`, commit and deploy.
+
+## Trying it on the emulator
+
+The `Rasova_Test` AVD (Android 16, x86_64, Pixel 6) runs headless on the build PC: `emulator -avd Rasova_Test -no-window -no-audio -gpu swiftshader_indirect`, then `adb install`. Type `demo-bistro.rasova.net/live-demo/` on the setup screen to land in the live demo. (The `Pixel_9_Pro_XL_2` AVD doesn't start: its `.ini` points to a folder that doesn't exist, so the emulator falls back to an ARM image it can't run.)
 
 ## Known gaps, worth knowing about
 
-- **Few automated tests.** `app/src/test/` has JVM unit tests for `AgentConfig` (`./gradlew testDebugUnitTest`, needs JDK 17). The polling backoff logic and the printer socket handling still have none.
+- **Few automated tests.** `app/src/test/` has JVM unit tests for `AgentConfig` and `ServerUrl` (`./gradlew testDebugUnitTest`, needs JDK 17). The polling backoff, the printer socket and the dialogs have none; the dialogs were checked by hand on the emulator against the live demo (19 Oct 2026).
+- **File uploads don't open a picker.** `JsDialogs` doesn't implement `onShowFileChooser`, so an `<input type="file">` (a dish photo, a menu import) does nothing in the app. Use a browser for those until it is added.
 - **`WebView.setWebContentsDebuggingEnabled(true)` is gated behind `BuildConfig.DEBUG`**, correctly, but it's worth being deliberate about keeping it that way. If this ever shipped unconditionally in a release build, anyone with USB access to a phone running the app could inspect the WebView's contents via Chrome DevTools.
 - **Single tenant per install, by design.** Only one agent target and one `server_url` can be stored at a time, matching the current one-phone-per-cafe deployment model. Not a bug, just a real constraint if multi-printer or multi-location-per-device ever becomes a requirement.
 
 ## Status
 
-One cafe (Malenadu) running this live in production, phone-only, no dedicated hardware yet.
+No live install right now: the first cafe (Malenadu, phone-only since June 2026) is no longer a customer. Version 1.2.0 is the one on the site (`rasova.net/android/rasova.apk`).
