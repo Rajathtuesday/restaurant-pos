@@ -9,6 +9,8 @@ address that didn't exist; the 404 page wasn't JSON, so nothing was said
 either. Now it is one form (percent and reason) posting to the address
 from its URL name, and a failure is shown.
 
+It also checks that every amount on the bill ends at the same right edge.
+
 Skipped when Playwright or its Chromium isn't installed (CI has neither).
 Run: python manage.py test orders.tests.test_item_discount_browser
 """
@@ -107,6 +109,47 @@ class ItemDiscountInTheBrowserTest(StaticLiveServerTestCase):
         self.assertIn("Give a reason", page.locator(".swal2-validation-message").inner_text())
         self.assertEqual(self.item(order).item_discount_pct, D("0.00"))
         self.assertEqual((self.native_dialogs, self.errors), ([], []))
+
+    def test_every_amount_lines_up_on_the_right(self):
+        """19 Oct 2026: a dish's price and its offer line shared one
+        left-aligned column, so a wide offer line ("happy 60 -108.00")
+        pushed that dish's price left of every other amount. Now every
+        amount on the bill ends at the same right edge."""
+        order, page = self.bill_page()
+        page.click(".swal2-cancel")
+        lassi = MenuItem.objects.create(tenant=self.tenant, outlet=self.outlet, category=self.dish.category,
+                                        name="Cold Coffee", price=D("180"), gst_percentage=D("0"))
+        OrderItem.objects.create(order=order, menu_item=lassi, quantity=1, price=D("180"),
+                                 gst_percentage=D("0"), total_price=D("180"), status="sent")
+        order.recalculate_totals()
+        OrderItem.objects.filter(order=order, menu_item=lassi).update(
+            offer_name="happy 60", offer_discount=D("108.00"))
+        page.reload()
+        page.wait_for_selector(".item-offer")
+        # Where each rupee amount's text actually ends on screen, whatever
+        # the markup: the dishes, the offer line, the money rows, the total.
+        edges = page.evaluate("""() => {
+            const out = [];
+            for (const box of document.querySelectorAll('.item-list, .total-row, .grand-total')) {
+                const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+                for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+                    const match = node.textContent.match(/₹\s*[\d,]+\.\d\d/);
+                    if (!match) continue;
+                    const range = document.createRange();
+                    const start = node.textContent.indexOf(match[0]);
+                    range.setStart(node, start);
+                    range.setEnd(node, start + match[0].length);
+                    out.push(Math.round(range.getBoundingClientRect().right));
+                }
+            }
+            return out;
+        }""")
+        self.assertGreaterEqual(len(edges), 5)            # 2 dishes, 1 offer, the money rows, the total
+        self.assertLessEqual(max(edges) - min(edges), 1, edges)
+        shots = os.environ.get("PROMO_E2E_SHOTS")
+        if shots:
+            page.locator(".item-list").screenshot(path=os.path.join(shots, "bill_lines_aligned.png"))
+        self.assertEqual(self.errors, [])
 
     def test_a_refusal_is_shown_not_swallowed(self):
         # A printed bill is locked against dish discounts (validate_order_editable):

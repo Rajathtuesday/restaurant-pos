@@ -31,9 +31,16 @@
     .label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 2px; }
 
     .item-list { border-bottom: 1px dashed var(--border-color); margin-bottom: 1.25rem; padding-bottom: 0.75rem; }
-    .item { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.85rem; }
-    .item-name { flex: 1; padding-right: 1rem; }
-    .item-val  { font-family: 'Space Mono', monospace; font-weight: 600; }
+    /* A dish: its line (name left, amount right), then small rows under it.
+       Every amount sits in one right-aligned column, offers included, in
+       the same font as the totals below (Space Mono has no rupee sign). */
+    .item { padding: 0.35rem 0; font-size: 0.85rem; }
+    .item-line { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+    .item-name { flex: 1; min-width: 0; }
+    .item-qty  { color: var(--text-muted); }
+    .item-val  { font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .item-note { font-size: 0.7rem; color: var(--text-muted); padding-left: 0.4rem; margin-top: 0.1rem; }
+    .item-offer { font-size: 0.72rem; color: #10b981; margin-top: 0.15rem; padding-left: 0.4rem; }
 
     .total-row { display: flex; justify-content: space-between; padding: 0.22rem 0; font-size: 0.85rem; }
     .grand-total {
@@ -126,7 +133,7 @@
         .bill-page { padding: 0; min-height: 0; }
         .bill-wrap { max-width: 100% !important; }
         .receipt-container { box-shadow: none; border: none; padding: 0; }
-        .item-val, .grand-total, .r-logo, .total-row { color: #000 !important; }
+        .item-val, .item-offer, .grand-total, .r-logo, .total-row { color: #000 !important; }
         * { border-color: #000 !important; }
     }
 </style>
@@ -200,33 +207,36 @@
         <div class="item-list">
             {% for item in order.items.all %}{% if item.status != 'voided' %}
             <div class="item">
-                <span class="item-name">
-                    {{ item.menu_item.name }}
-                    <span style="color:var(--text-muted)"> × {{ item.quantity }}</span>
-                    {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
-                    <button type="button" class="item-discount-btn" onclick="promptItemDiscount(this)"
-                            data-url="{% url 'item-discount' item.id %}" data-name="{{ item.menu_item.name }}"
-                            data-pct="{{ item.item_discount_pct|floatformat:'-2' }}"
-                            aria-label="Discount on {{ item.menu_item.name }}"
-                            style="background:transparent;border:none;color:var(--accent-gold);cursor:pointer;padding:0 4px;font-size:0.7rem;">
-                        <i class="bi bi-tag"></i>
-                    </button>
-                    {% endif %}
-                    {% if item.modifiers.all %}
-                    <div style="font-size:0.7rem;color:var(--text-muted);padding-left:0.4rem;">
-                        {% for mod in item.modifiers.all %}+ {{ mod.name }}{% if mod.price > 0 %} (₹{{ mod.price }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
-                    </div>
-                    {% endif %}
-                </span>
-                {# At menu price, so the lines add up to the subtotal; a dish's own discount is in the Discount row, like the bill's. #}
-                <span class="item-val">
-                    {% if item.is_complimentary %}Free
-                    {% else %}₹{{ item.total_price }}{% if item.item_discount_pct > 0 %}
-                        <div style="font-size:0.7rem;color:var(--text-muted);">{{ item.item_discount_pct|floatformat:"-2" }}% off</div>{% endif %}
-                        {% if item.offer_discount > 0 %}
-                        <div class="item-offer" style="font-size:0.7rem;color:#10b981;">{{ item.offer_name }} −₹{{ item.offer_discount }}</div>{% endif %}
-                    {% endif %}
-                </span>
+                <div class="item-line">
+                    <span class="item-name">
+                        {{ item.menu_item.name }}<span class="item-qty"> × {{ item.quantity }}</span>
+                        {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
+                        <button type="button" class="item-discount-btn" onclick="promptItemDiscount(this)"
+                                data-url="{% url 'item-discount' item.id %}" data-name="{{ item.menu_item.name }}"
+                                data-pct="{{ item.item_discount_pct|floatformat:'-2' }}"
+                                aria-label="Discount on {{ item.menu_item.name }}"
+                                style="background:transparent;border:none;color:var(--accent-gold);cursor:pointer;padding:0 4px;font-size:0.7rem;">
+                            <i class="bi bi-tag"></i>
+                        </button>
+                        {% endif %}
+                    </span>
+                    {# At menu price, so the lines add up to the subtotal; a dish's own discount is in the Discount row, like the bill's. #}
+                    <span class="item-val">{% if item.is_complimentary %}Free{% else %}₹{{ item.total_price }}{% endif %}</span>
+                </div>
+                {% if item.modifiers.all %}
+                <div class="item-note">
+                    {% for mod in item.modifiers.all %}+ {{ mod.name }}{% if mod.price > 0 %} (₹{{ mod.price }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}
+                </div>
+                {% endif %}
+                {% if not item.is_complimentary and item.item_discount_pct > 0 %}
+                <div class="item-note">{{ item.item_discount_pct|floatformat:"-2" }}% off</div>
+                {% endif %}
+                {% if not item.is_complimentary and item.offer_discount > 0 %}
+                <div class="item-line item-offer">
+                    <span>{{ item.offer_name }}</span>
+                    <span class="item-val">−₹{{ item.offer_discount }}</span>
+                </div>
+                {% endif %}
             </div>
             {% endif %}{% endfor %}
         </div>
