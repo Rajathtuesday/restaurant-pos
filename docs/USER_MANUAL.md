@@ -1,4 +1,4 @@
-# Rasova — User Manual
+# Rasova: User Manual
 
 ### A plain-English guide to running your restaurant on Rasova
 
@@ -34,19 +34,19 @@ Every screen in Rasova is built around one rule: **big buttons, plain words, not
 
 - Go to your restaurant's Rasova web address (given to you when your account was set up).
 - Enter your **username** (not your email) and your password.
-- Type your username in **lowercase**, exactly as it was given to you — logins are case-sensitive, so `Vishal` and `vishal` are treated as different usernames.
+- Type your username in **lowercase**, exactly as it was given to you. Logins are case-sensitive, so `Vishal` and `vishal` are treated as different usernames.
 
 **What you see after logging in depends on your role:**
 
 | Role | What they see |
 |---|---|
-| **Owner** | Everything — reports, staff, setup, all outlets |
+| **Owner** | Everything: reports, staff, setup, all outlets |
 | **Manager** | Almost everything, except a few owner-only settings |
 | **Cashier** | Billing, payments, cash register |
 | **Waiter** | Tables, orders, kitchen status |
 | **Chef** | Kitchen display only |
 
-If you try to open a page that isn't meant for your role, Rasova will simply take you back to your own dashboard — nothing breaks, nothing is exposed.
+If you try to open a page that isn't meant for your role, Rasova will simply take you back to your own dashboard. Nothing breaks, nothing is exposed.
 
 ---
 
@@ -56,17 +56,17 @@ If you try to open a page that isn't meant for your role, Rasova will simply tak
 
 The first time you log in, Rasova walks you through a short setup wizard:
 
-1. **Menu** — add your categories and dishes, or photograph your existing paper menu and let Rasova's AI import it automatically (Settings → Menu → AI Import).
-2. **Tables** (fine dining) — bulk-create tables in one click, or add them one at a time.
-3. **Staff** — create logins for your team (see below).
-4. **Payment methods** — turn on Cash, UPI, and/or Card, and customize how each one is labeled on the bill.
-5. **Printer** — connect your kitchen and billing printers.
+1. **Menu**: add your categories and dishes, or photograph your existing paper menu and let Rasova's AI import it automatically (Settings → Menu → AI Import).
+2. **Tables** (fine dining): bulk-create tables in one click, or add them one at a time.
+3. **Staff**: create logins for your team (see below).
+4. **Payment methods**: turn on Cash, UPI, and/or Card, and customize how each one is labeled on the bill.
+5. **Printer**: connect your kitchen and billing printers.
 
-You can revisit any of these later from the **Setup** menu — nothing here is a one-time-only step.
+You can revisit any of these later from the **Setup** menu; nothing here is a one-time-only step.
 
 ### Adding Staff
 
-Go to **Setup → Staff**. Fill in a username, password, role, and outlet, then click **Add Staff**. That's it — they can log in immediately.
+Go to **Setup → Staff**. Fill in a username, password, role, and outlet, then click **Add Staff**. That's it: they can log in immediately.
 
 ### Resetting a Staff Member's Password
 
@@ -92,7 +92,7 @@ By default, the staff list only shows active team members. Tick **Show inactive*
 
 Before taking any payments, a cash register session needs to be open. Fine dining staff open one manually from **Shifts → Cash Sessions**. QSR/counter restaurants open one automatically the first time a payment is taken each day.
 
-At the end of a shift, count the actual cash in the drawer and close the session — Rasova will show you the difference between what it expected and what you counted, so any shortfall is caught immediately, not days later.
+At the end of a shift, count the actual cash in the drawer and close the session. Rasova will show you the difference between what it expected and what you counted, so any shortfall is caught immediately, not days later.
 
 ### Offers and Happy Hours (Pubs and Bars)
 
@@ -142,7 +142,14 @@ Every order gets a **token number** that starts again from 1 each day: walk-in o
 
 The screen automatically resets after a couple of seconds, ready for the next customer.
 
-**If the internet drops mid-service:** cash payments still work — a banner will tell you the payment was saved and will sync automatically the moment the connection comes back. UPI and card payments cannot be taken while offline, since those need to be verified with the bank or payment app in real time — switch to cash for those customers until the connection returns.
+**Discounts on the bill screen:**
+
+- **One dish:** tap the tag next to the dish, type the discount % and a reason, then **Apply**. Type 0 to take a dish's discount off.
+- **The whole bill:** pick a promo from the list (no reason needed), or type a % or ₹ amount with a reason and tap **Apply**.
+- Every discount you type needs a reason; it goes on the owner's Discount / Void Audit report. If the owner has set a staff discount limit, anything above it needs a manager.
+- Once a dine-in bill has been printed, a single dish can't be discounted any more; use a discount on the whole bill instead.
+
+**If the internet drops mid-service:** cash payments still work: a banner will tell you the payment was saved and will sync automatically the moment the connection comes back. UPI and card payments cannot be taken while offline, since those need to be verified with the bank or payment app in real time. Switch to cash for those customers until the connection returns.
 
 ---
 
@@ -150,7 +157,7 @@ The screen automatically resets after a couple of seconds, ready for the next cu
 
 1. Tap a table on the floor plan to open it.
 2. Add items, then tap **Send to Kitchen**.
-3. Watch the item status change from *Preparing* to *Ready* — that's your cue to serve it.
+3. Watch the item status change from *Preparing* to *Ready*: that's your cue to serve it.
 4. Tap **Serve** once the food is delivered to the table.
 5. When the table is ready to pay, generate the bill and hand it to the cashier, or close it yourself if you have billing access.
 
@@ -165,7 +172,7 @@ The screen automatically resets after a couple of seconds, ready for the next cu
 | Billing | Bill has been generated, awaiting payment |
 | Cleaning | Table just vacated, needs to be reset |
 
-**Canceling an item:** tap **Cancel** on the item. If it was already sent to the kitchen, any ingredients already deducted from stock are automatically put back — you don't need to adjust inventory by hand.
+**Canceling an item:** tap **Cancel** on the item. If it was already sent to the kitchen, any ingredients already deducted from stock are automatically put back, so you don't need to adjust inventory by hand.
 
 ---
 
@@ -174,7 +181,7 @@ The screen automatically resets after a couple of seconds, ready for the next cu
 The kitchen display shows every item currently in progress, grouped by station if your restaurant uses multiple stations (grill, tandoor, dessert, etc.).
 
 - Tap an item once it's started to mark it **Preparing**.
-- Tap it again once it's done to mark it **Ready** — this is what tells the waiter it's time to serve.
+- Tap it again once it's done to mark it **Ready**; this is what tells the waiter it's time to serve.
 
 If a dish will take longer than expected, use the **Kitchen Message** button to send a note straight to the waiter's screen ("Delayed 15 mins") instead of shouting across the restaurant.
 
@@ -185,44 +192,46 @@ If a dish will take longer than expected, use the **Kitchen Message** button to 
 Each table has its own printed QR code. When a guest scans it:
 
 - They see your full menu, with photos, veg/non-veg markers, and search.
-- They can add items to a cart and place the order directly — it appears on your staff dashboard for approval before it goes to the kitchen.
+- They can add items to a cart and place the order directly. It appears on your staff dashboard for approval before it goes to the kitchen.
 - Once their order is placed, a small status button appears on their screen. Tapping it shows a live Received → Preparing → Ready → Served timeline, so guests can check progress themselves instead of having to ask a waiter.
 - They can tap **Call Waiter** to get a staff member's attention without raising a hand.
 
-**Important:** each table's QR code is unique and secret. A guest can only order onto the table they actually scanned — there is no way to guess or type in a table number to reach a different one.
+**Important:** each table's QR code is unique and secret. A guest can only order onto the table they actually scanned; there is no way to guess or type in a table number to reach a different one.
 
 ---
 
 ## 8. Inventory Basics
 
 - **Stock** is automatically deducted the moment an item is sent to the kitchen (or at payment time for very simple counter setups).
-- **Wastage** — if something is dropped, spoiled, or over-poured, log it under **Inventory → Wastage** so your stock numbers stay accurate.
-- **Low stock alerts** — set a threshold per ingredient, and Rasova will flag it once stock drops below that line.
-- **Purchase Orders** — create a PO when you're restocking from a supplier; receiving it automatically adds the quantity back to stock.
+- **Wastage**: if something is dropped, spoiled, or over-poured, log it under **Inventory → Wastage** so your stock numbers stay accurate.
+- **Low stock alerts**: set a threshold per ingredient, and Rasova will flag it once stock drops below that line.
+- **Purchase Orders**: create a PO when you're restocking from a supplier; receiving it automatically adds the quantity back to stock.
 
 ---
 
 ## 9. Reports & End of Day
 
-**Owner Dashboard** — a live view of today's revenue, order count, active tables, and low-stock items, updating automatically through the day.
+**Owner Dashboard**: a live view of today's revenue, order count, active tables, and low-stock items, updating automatically through the day.
 
-**Z-Report** (Shifts → Cash Sessions → Export) — the official end-of-night report for counting the till. It correctly understands your restaurant's actual business day, so if you're open past midnight, a dinner service that runs into the early hours is still counted as one continuous night, not split across two separate days.
+**Z-Report** (Shifts → Cash Sessions → Export): the official end-of-night report for counting the till. It correctly understands your restaurant's actual business day, so if you're open past midnight, a dinner service that runs into the early hours is still counted as one continuous night, not split across two separate days.
 
-**Other reports** (Reports menu) — daily/hourly sales, top-selling items, category and table performance, staff performance, and inventory usage, all filterable by date range and by outlet if you run more than one location.
+**Other reports** (Reports menu): daily/hourly sales, top-selling items, category and table performance, staff performance, and inventory usage, all filterable by date range and by outlet if you run more than one location.
 
 ---
 
 ## 10. When Things Go Wrong
 
-**"Failed" or an error message you don't recognize appears mid-action** — reload the page and try again. Rasova now shows a plain "Your session needs a refresh" message instead of a confusing technical error for exactly this situation.
+**"Failed" or an error message you don't recognize appears mid-action**: reload the page and try again. Rasova now shows a plain "Your session needs a refresh" message instead of a confusing technical error for exactly this situation.
 
-**A table is stuck showing the wrong status** — this should no longer happen after recent fixes, but if it ever does, canceling and re-adding an item on that table will force it to recalculate correctly.
+**A table is stuck showing the wrong status**: this should no longer happen after recent fixes, but if it ever does, canceling and re-adding an item on that table will force it to recalculate correctly.
 
-**The internet goes down** — new orders and cash payments both keep working and will sync automatically once the connection returns; you'll see a banner at the top of the screen showing how many actions are waiting to sync. UPI and card payments are the only things that require a live connection.
+**The internet goes down**: new orders and cash payments both keep working and will sync automatically once the connection returns; you'll see a banner at the top of the screen showing how many actions are waiting to sync. UPI and card payments are the only things that require a live connection.
 
-**Locked out after too many wrong password attempts** — ask your owner or manager to reset your password from **Setup → Staff**; it also clears the lockout automatically.
+**Locked out after too many wrong password attempts**: ask your owner or manager to reset your password from **Setup → Staff**; it also clears the lockout automatically.
 
-**A printer isn't printing** — check that the local printer agent/app is running on the device connected to your printer; a browser print popup will appear as a fallback if it can't be reached.
+**The Rasova app won't install ("App not installed")** - you have a version from before 19 Oct 2026. Uninstall the old Rasova app (long-press its icon, then Uninstall), then install the new one from rasova.net/android/rasova.apk. Later updates install over the top.
+
+**A printer isn't printing**: check that the local printer agent/app is running on the device connected to your printer; a browser print popup will appear as a fallback if it can't be reached.
 
 ---
 
@@ -230,12 +239,12 @@ Each table has its own printed QR code. When a guest scans it:
 
 | Term | Meaning |
 |---|---|
-| **KOT** | Kitchen Order Ticket — the slip sent to the kitchen listing what to cook |
-| **QSR** | Quick Service Restaurant — counter-style ordering, no table service |
+| **KOT** | Kitchen Order Ticket: the slip sent to the kitchen listing what to cook |
+| **QSR** | Quick Service Restaurant: counter-style ordering, no table service |
 | **Z-Report** | The official end-of-night report used to count and close the cash register |
 | **GST / CGST / SGST** | India's Goods and Services Tax, split into two equal halves on your bill |
 | **SAC Code** | The tax code (996331) required on restaurant bills for GST compliance |
-| **Business Day** | Your restaurant's actual operating day, which may extend past midnight — set by your closing-hour cutoff in Outlet settings |
+| **Business Day** | Your restaurant's actual operating day, which may extend past midnight, set by your closing-hour cutoff in Outlet settings |
 | **Cash Session** | The record of a cash register being opened, used, and closed for a shift |
 | **Void** | Canceling an item or order after it's been placed |
 | **Complimentary** | Marking an item as free (₹0) without discounting the whole order |

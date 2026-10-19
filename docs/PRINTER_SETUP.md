@@ -1,6 +1,6 @@
 # Rasova Printer Setup Guide
 
-## What Changed (v1.2 — Printer Overhaul)
+## What Changed (v1.2: Printer Overhaul)
 
 ### Problem Solved
 Previously, Rasova stored the printer's **IP address** in settings. IP addresses change when:
@@ -8,10 +8,10 @@ Previously, Rasova stored the printer's **IP address** in settings. IP addresses
 - The router is replaced or factory-reset (losing DHCP reservations)
 - A technician changes the network
 
-Every time this happened, the owner had to find the new IP and update it manually — tedious and support-intensive.
+Every time this happened, the owner had to find the new IP and update it manually: tedious and support-intensive.
 
 ### Solution
-Rasova now stores the printer's **MAC address** — a permanent hardware identifier printed on a sticker on every printer. The system resolves MAC → IP automatically at print time using the OS ARP table. If that fails, it falls back through a chain until it finds the printer.
+Rasova now stores the printer's **MAC address**, a permanent hardware identifier printed on a sticker on every printer. The system resolves MAC → IP automatically at print time using the OS ARP table. If that fails, it falls back through a chain until it finds the printer.
 
 ---
 
@@ -55,7 +55,7 @@ Print job triggered
 ## New Fields on Outlet Model
 
 ```python
-outlet.printer_mac      # "00:1B:44:11:3A:B7"  — permanent printer identity
+outlet.printer_mac      # "00:1B:44:11:3A:B7"  - permanent printer identity
 outlet.agent_host       # "localhost" or "192.168.1.200"
 outlet.paper_width_mm   # 58 or 80
 ```
@@ -66,39 +66,39 @@ outlet.paper_width_mm   # 58 or 80
 
 **Hardware:** Windows laptop/PC → USB cable → thermal printer
 
-### Step 1 — Find the MAC address
+### Step 1: Find the MAC address
 1. Turn the printer on
 2. Flip it upside down
-3. Read the sticker — look for a line like `MAC: 00:1B:44:11:3A:B7` or `MAC Address: 001B44113AB7`
-4. Copy it (any format works — colons, dashes, or plain digits)
+3. Read the sticker: look for a line like `MAC: 00:1B:44:11:3A:B7` or `MAC Address: 001B44113AB7`
+4. Copy it (any format works: colons, dashes, or plain digits)
 
-### Step 2 — Enter MAC in Rasova
+### Step 2: Enter MAC in Rasova
 1. Log in as **Owner** or **Manager**
 2. Go to **Setup → Outlet Settings**
 3. Scroll to **Thermal Printer** section
 4. Paste the MAC address into the **Printer MAC Address** field
    - Rasova auto-formats it to `XX:XX:XX:XX:XX:XX` as you type
-5. Set **Paper Width** — most printers use **80mm** (check your roll)
+5. Set **Paper Width**: most printers use **80mm** (check your roll)
 6. Leave **Print Agent Host** as `localhost`
 7. Click **Save Outlet Details**
 
-### Step 3 — Install and start the agent
+### Step 3: Install and start the agent
 ```bash
-# On the Windows billing PC — run once
+# On the Windows billing PC - run once
 python rasova_agent.py --install
 
 # This installs auto-start at Windows login (no admin required)
 # Agent runs silently in background every time Windows starts
 ```
 
-### Step 4 — Enable agent printing
+### Step 4: Enable agent printing
 1. Go to **Setup → Outlet Settings → Thermal Printer**
 2. Tick **Rasova Print Agent** checkbox
 3. Save
 
-### Step 5 — Test
+### Step 5: Test
 1. Go to **Setup → Kitchen Stations**
-2. Click **Select USB Printer** — your printer should appear in the list
+2. Click **Select USB Printer**: your printer should appear in the list
 3. Select it and click **Test Print**
 4. You should see 2 partial cuts + 1 full cut on the paper
 5. Green indicator = agent connected ✓
@@ -109,20 +109,20 @@ python rasova_agent.py --install
 
 **Hardware:** Android tablet → WiFi → router → network thermal printer (Ethernet/WiFi)
 
-### Step 1 — Connect the printer to WiFi/Ethernet
+### Step 1: Connect the printer to WiFi/Ethernet
 1. If the printer has an **Ethernet port**: plug a cable from the printer to the router
 2. If the printer has **WiFi**: follow the printer's WiFi setup (usually hold a button + print a config page)
 3. Print a **network configuration page** from the printer:
    - On most printers: hold the Feed button for 3 seconds while powered on
    - This prints the current IP, MAC address, and network status
 
-### Step 2 — Find the MAC address
+### Step 2: Find the MAC address
 From the printed network config page, copy the **MAC Address** line.
 Example: `MAC Address: 00-1B-44-11-3A-B7`
 
 > **Why MAC and not IP?** The IP on this config page will change after a router restart. The MAC never changes.
 
-### Step 3 — Enter MAC in Rasova
+### Step 3: Enter MAC in Rasova
 1. Log in on the tablet browser → **Setup → Outlet Settings**
 2. Scroll to **Thermal Printer**
 3. Paste the MAC address → Rasova formats it automatically
@@ -130,12 +130,12 @@ Example: `MAC Address: 00-1B-44-11-3A-B7`
 5. Leave **Print Agent Host** as `localhost` for now
 6. Save
 
-### Step 4A — Agent on the same tablet (Termux)
+### Step 4A: Agent on the same tablet (Termux)
 
 > Use this if you don't want any extra hardware.
 
 #### Install Termux
-1. Download **Termux** from F-Droid (not Play Store — the Play Store version is outdated)
+1. Download **Termux** from F-Droid (not the Play Store: its version is outdated)
    - F-Droid: `https://f-droid.org` → search Termux
 2. Open Termux
 3. Run:
@@ -169,7 +169,7 @@ EOF
 chmod +x ~/.termux/boot/rasova_agent.sh
 ```
 3. Open Termux:Boot once to activate it
-4. Restart the tablet — agent starts automatically
+4. Restart the tablet: agent starts automatically
 
 #### Prevent Android from killing Termux
 1. Go to Android **Settings → Battery → App Launch** (or Battery Optimization)
@@ -191,11 +191,11 @@ python ~/rasova_agent.py
 1. On the tablet browser → **Setup → Outlet Settings → Thermal Printer**
 2. Agent Host should be `localhost`
 3. Click **Test Agent Connection**
-4. Should show: `Connected — Agent v1.1.0 on linux` ✓
+4. Should show: `Connected: Agent v1.1.0 on linux` ✓
 
 ---
 
-### Step 4B — Agent on a Raspberry Pi (recommended for busy outlets)
+### Step 4B: Agent on a Raspberry Pi (recommended for busy outlets)
 
 > Use this when you want the agent always-on regardless of tablet state.
 > **Hardware cost: ~₹1,500** for a Raspberry Pi Zero 2W + microSD card.
@@ -212,7 +212,7 @@ python ~/rasova_agent.py
    - Set WiFi SSID and password (the restaurant's WiFi)
    - Enable SSH
    - Set hostname: `rasova-agent`
-3. Boot the Pi — it joins WiFi automatically
+3. Boot the Pi: it joins WiFi automatically
 
 #### Find Pi's IP (first time only)
 ```bash
@@ -228,7 +228,7 @@ ping rasova-agent.local
 4. Assign it a fixed IP, e.g. `192.168.1.200`
 5. Save and reboot router
 
-> **Note:** This DHCP reservation is for the Pi, not the printer. The Pi's IP must be stable so the tablet knows where to connect. The printer's IP can change freely — the agent handles that via MAC+ARP.
+> **Note:** This DHCP reservation is for the Pi, not the printer. The Pi's IP must be stable so the tablet knows where to connect. The printer's IP can change freely; the agent handles that via MAC+ARP.
 
 #### Install agent on Pi
 ```bash
@@ -284,7 +284,7 @@ sudo systemctl status rasova-agent
 #### Test
 1. **Setup → Outlet Settings → Thermal Printer**
 2. Click **Test Agent Connection**
-3. Should show: `Connected — Agent v1.1.0 on linux` ✓
+3. Should show: `Connected: Agent v1.1.0 on linux` ✓
 4. Go to **Kitchen Stations → Test Print** to verify paper prints correctly
 
 ---
@@ -294,7 +294,7 @@ sudo systemctl status rasova-agent
 | Situation | What Rasova Does | Owner Action |
 |---|---|---|
 | Router restarts, printer gets new DHCP IP | Agent ARP-resolves MAC → finds new IP automatically | Nothing |
-| Router replaced, DHCP reservations lost | Same — MAC is permanent, ARP still works | Nothing |
+| Router replaced, DHCP reservations lost | Same: MAC is permanent, ARP still works | Nothing |
 | Printer powered off, ARP cache stale | Falls back to subnet scan, finds printer | Nothing |
 | Printer replaced with new hardware | New printer has new MAC | Update MAC in Outlet Settings once |
 | Pi/agent device changes IP | Pi IP must be stable (DHCP reservation at router) | Update agent_host in Outlet Settings once |
@@ -329,7 +329,7 @@ sudo systemctl restart rasova-agent
 
 1. Print a network config page from the printer (hold Feed 3 seconds)
 2. Confirm the printer is on the same WiFi/LAN as the device
-3. Go to **Kitchen Stations → Discover Network Printers** — does the printer appear?
+3. Go to **Kitchen Stations → Discover Network Printers**: does the printer appear?
 4. If not, check the printer's Ethernet cable or reconnect it to WiFi
 
 ---
@@ -338,7 +338,7 @@ sudo systemctl restart rasova-agent
 
 Some printers only show the MAC in their **network config printout**, not on the label.
 1. Hold the **Feed** button for 3–5 seconds while the printer is on
-2. It prints a status page — the MAC is on that page
+2. It prints a status page: the MAC is on that page
 3. Alternatively: connect the printer to the network, open router admin → connected devices → find the printer → copy its MAC
 
 ---

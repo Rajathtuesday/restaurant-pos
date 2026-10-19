@@ -1,4 +1,4 @@
-# Rasova POS — Market Comparison
+# Rasova POS: Market Comparison
 
 > NOTE: I read "7 ships pso" as the **7 leading restaurant POS systems**.
 > If you meant something else (e.g. "7shifts" workforce platform, or a
@@ -8,13 +8,13 @@
 
 ## The 7 Competitors
 
-1. **Toast POS** — USA market leader, restaurant-specific, cloud-based
-2. **Square for Restaurants** — Small/mid restaurants, easy onboarding
-3. **Lightspeed Restaurant** — Europe/Canada leader, analytics-heavy
-4. **TouchBistro** — iPad-first, popular in cafes and bars
-5. **Revel Systems** — Enterprise franchise chains
-6. **Clover POS** — Hardware+software bundle, SME focus
-7. **Aloha / NCR** — Legacy enterprise, hotel chains, large QSRs
+1. **Toast POS**: USA market leader, restaurant-specific, cloud-based
+2. **Square for Restaurants**: Small/mid restaurants, easy onboarding
+3. **Lightspeed Restaurant**: Europe/Canada leader, analytics-heavy
+4. **TouchBistro**: iPad-first, popular in cafes and bars
+5. **Revel Systems**: Enterprise franchise chains
+6. **Clover POS**: Hardware+software bundle, SME focus
+7. **Aloha / NCR**: Legacy enterprise, hotel chains, large QSRs
 
 ---
 
@@ -62,7 +62,7 @@ export to a separate GST filing tool.
 
 ### 2. Waiter Call System
 No major competitor has a built-in digital waiter call. This is a significant
-UX win for dine-in restaurants — completely eliminates the need for a
+UX win for dine-in restaurants: it completely eliminates the need for a
 separate Buzzex or similar device.
 
 ### 3. AI Menu Import
@@ -126,7 +126,7 @@ These are closer competitors than Toast or Square:
 | **LimeTray**    | Aggregator + basic POS            | Limited features             |
 | **Posist**      | Enterprise fine dining India      | Very expensive, slow         |
 
-**The actual competition is Petpooja and GoFrugal** — not Toast.
+**The actual competition is Petpooja and GoFrugal**, not Toast.
 Rasova's UX is already significantly better than both. That is a real advantage.
 
 ---
@@ -135,19 +135,19 @@ Rasova's UX is already significantly better than both. That is a real advantage.
 
 ### Must-have before first paying customer
 
-1. **Payment gateway** (Razorpay integration) — can't do cashless without it
-2. **Offline mode** — cache menu + take orders offline, sync when back
-3. **WhatsApp receipt** — one API call via Twilio or Meta Cloud API
+1. **Payment gateway** (Razorpay integration): can't do cashless without it
+2. **Offline mode**: cache menu + take orders offline, sync when back
+3. **WhatsApp receipt**: one API call via Twilio or Meta Cloud API
 
 ### Must-have before scale (10+ customers)
 
 4. **Loyalty points** (complete the existing skeleton)
 5. **Swiggy/Zomato pull** (via UrbanPiper or direct Dineout API)
-6. **SMS alerts** (Twilio / MSG91 — 10 lines of code)
+6. **SMS alerts** (Twilio / MSG91, 10 lines of code)
 
 ### Growth features
 
-7. **Android PWA install prompt** — make the web app installable (it's a PWA!)
+7. **Android PWA install prompt**: make the web app installable (it's a PWA!)
 8. **Franchise royalty module**
 9. **Customer-facing 2nd display**
 
@@ -162,7 +162,7 @@ Rasova's UX is already significantly better than both. That is a real advantage.
 | India compliance    | 9/10  | GST is strong, FSSAI fields missing            |
 | Reliability         | 8/10  | All critical bugs fixed; offline mode weak     |
 | Mobile experience   | 5/10  | Before overhaul; 8/10 after                    |
-| Payments            | 2/10  | Biggest gap — no gateway                       |
+| Payments            | 2/10  | Biggest gap: no gateway                       |
 | **Overall**         | **6/10** | **Ready for pilot; not ready for scale**    |
 
 **You are 6-8 weeks away from being genuinely competitive with Petpooja**
@@ -185,7 +185,7 @@ Direct: Menu + Live Cart → Bill.
 
 This is faster than Petpooja's QSR mode (which still has a token step).
 It maps to: `billing.html` (fine dining) + `token_billing.html` (QSR)
-being the same screen type — just different layouts.
+being the same screen type: just different layouts.
 
 For QSR, `token_dashboard.html` is hidden. The cashier lands directly on
 the billing screen with the menu on the left and the running order on the right.

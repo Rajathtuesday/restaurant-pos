@@ -18,7 +18,7 @@ A Django view accessible only to superusers that lets them:
 ```
 
 Only accessible when `request.user.is_superuser`. Any other user gets 404
-(not 403 — we don't reveal the URL exists).
+(not 403: we don't reveal the URL exists).
 
 ---
 
@@ -60,7 +60,7 @@ def superuser_tenant_settings(request, tenant_id):
         if new_theme in allowed_themes:
             tenant.theme = new_theme
         else:
-            # Theme not allowed for this tier — reset to default
+            # Theme not allowed for this tier - reset to default
             tenant.theme = 'standard'
             messages.warning(
                 request,
@@ -99,13 +99,13 @@ def superuser_tenant_settings(request, tenant_id):
 
 ```
 ╔════════════════════════════════════════════════════════════╗
-║  Tenant Settings — The Grand Spice                         ║
+║  Tenant Settings - The Grand Spice                         ║
 ╠════════════════════════════════════════════════════════════╣
 ║                                                            ║
 ║  SUBSCRIPTION TIER                                         ║
-║  ○ Starter       ₹999/mo    — Basic features               ║
-║  ● Professional  ₹2,499/mo  — Full features, 3 outlets     ║
-║  ○ Enterprise    ₹5,999/mo  — Unlimited                    ║
+║  ○ Starter       ₹999/mo    - Basic features               ║
+║  ● Professional  ₹2,499/mo  - Full features, 3 outlets     ║
+║  ○ Enterprise    ₹5,999/mo  - Unlimited                    ║
 ║                                                            ║
 ║  THEME  (for Professional: Standard, Minimal, Luxury)      ║
 ║  ┌──────────┐ ┌──────────┐ ┌──────────┐                    ║
@@ -160,14 +160,14 @@ Shows a table:
 
 ## Security Notes
 
-- Views check `request.user.is_superuser` — not `is_staff`. Staff cannot
+- Views check `request.user.is_superuser`, not `is_staff`. Staff cannot
   access these pages.
 - 404 is raised (not 403) to prevent URL enumeration.
-- No AJAX on this form — plain POST for simplicity and auditability.
+- No AJAX on this form: plain POST for simplicity and auditability.
 - All tier/theme values are validated against server-side allowlists before
   saving. Client-side filtering is UX only.
 - The feature override form posts to the existing `toggle_feature_flag` view
-  (already implemented) — no new endpoint needed.
+  (already implemented): no new endpoint needed.
 
 ---
 

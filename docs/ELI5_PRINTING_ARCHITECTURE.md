@@ -1,10 +1,10 @@
 # Rasova Printing Architecture
-## Complete Guide — Multi-Tenant, Multi-Kitchen, Cloud + Local
+## Complete Guide: Multi-Tenant, Multi-Kitchen, Cloud + Local
 **Every edge case. Every failure mode. Monday-ready.**
 
 ---
 
-## Part 1 — The Core Problem
+## Part 1: The Core Problem
 
 Your server is in **Hyderabad**. The printer is in **Bengaluru**.
 
@@ -26,7 +26,7 @@ reaches the ISP and gets dropped immediately. It never reaches Bengaluru.
 
 ---
 
-## Part 2 — The Solution Architecture
+## Part 2: The Solution Architecture
 
 ```
 HYDERABAD SERVER                      BENGALURU RESTAURANT
@@ -52,7 +52,7 @@ HYDERABAD SERVER                      BENGALURU RESTAURANT
 **The flow:**
 ```
 1. Cashier pays → Django saves payment → puts task in Redis
-  (Redis is publicly reachable — it has a real IP, not 192.168.x.x)
+  (Redis is publicly reachable - it has a real IP, not 192.168.x.x)
 
 2. Local Celery worker in restaurant reads from Redis over the internet
   (Redis protocol, TCP, normal internet traffic)
@@ -67,7 +67,7 @@ HYDERABAD SERVER                      BENGALURU RESTAURANT
 
 ---
 
-## Part 3 — Tenant + Outlet Isolation
+## Part 3: Tenant + Outlet Isolation
 
 ### Why both tenant AND outlet?
 
@@ -92,7 +92,7 @@ skips B, C           skips A, C            skips A, B
 ```
 
 **Why outlet_id alone is usually enough:**
-Outlet IDs are global primary keys — no two outlets in the DB share the same ID.
+Outlet IDs are global primary keys: no two outlets in the DB share the same ID.
 Restaurant A outlet 1 and Restaurant B outlet 1 cannot coexist.
 
 **Why ALSO check tenant_id:**
@@ -131,10 +131,10 @@ Same Redis server. Same queue. Zero interference.
 
 ---
 
-## Part 4 — Multi-Kitchen (multiple printers, one restaurant)
+## Part 4: Multi-Kitchen (multiple printers, one restaurant)
 
 ```
-RESTAURANT — Fine Dining, 3 Kitchen Stations
+RESTAURANT - Fine Dining, 3 Kitchen Stations
 ┌──────────────────────────────────────────────────────────────────────┐
 │                                                                      │
 │  LOCAL CELERY WORKER (runs on any always-on device in restaurant)    │
@@ -160,7 +160,7 @@ RESTAURANT — Fine Dining, 3 Kitchen Stations
 One worker. One machine. All printers reachable because all are on the same LAN.
 The worker picks the right printer by reading `station.printer_ip` from the DB.
 
-**Two restaurants, same IP addresses — no conflict:**
+**Two restaurants with the same IP addresses, and no conflict:**
 ```
 Restaurant A (BLR)           Restaurant B (PNE)
 192.168.1.101 = Grill        192.168.1.101 = Grill
@@ -173,7 +173,7 @@ Completely separate routers.  No interference.
 
 ---
 
-## Part 5 — All Edge Cases
+## Part 5: All Edge Cases
 
 ### 5.1 Printer is offline / unreachable
 ```
@@ -259,7 +259,7 @@ Problem: printing 20 old bills at once confuses staff (food may already be serve
 
 Prevention:
 CELERY_TASK_EXPIRES = 1800 (30 minutes) in settings.py
-Tasks older than 30 minutes are discarded automatically — never processed.
+Tasks older than 30 minutes are discarded automatically - never processed.
 
 Idempotency keys also help: if cashier manually reprinted during the downtime,
 the key exists and the task is silently skipped.
@@ -349,7 +349,7 @@ Symptom: Intermittent failures. Sometimes works, sometimes times out.
 
 Fix:
 Option 1: Move printer or router.
-Option 2: Use Ethernet cable (preferred — more reliable than WiFi for printers).
+Option 2: Use Ethernet cable (preferred - more reliable than WiFi for printers).
 Option 3: WiFi extender between router and printer.
 Option 4: Use USB instead of network → USB only works from the local device.
 
@@ -358,7 +358,7 @@ BillTouch recommendation: always use Ethernet if the printer has an RJ45 port.
 
 ---
 
-## Part 6 — Monday Demo: Exact Setup
+## Part 6: Monday Demo: Exact Setup
 
 ```
 YOUR LAPTOP (connected to restaurant WiFi)
@@ -387,7 +387,7 @@ BillTouch Printer       Restaurant owner's           Any staff tablet
 □ 3. Hold FEED + power BillTouch → note IP from self-test printout
 □ 4. Login: /superuser/ → Create restaurant → set type: QSR
 □ 5. /superuser/tenant/<id>/ → enter printer IP → Save Printer
-□ 6. Click preset: "QSR — no kitchen screen (print strip)"
+□ 6. Click preset: "QSR - no kitchen screen (print strip)"
 □ 7. Verify features: token_system ON, kitchen_display OFF, inventory ON
 □ 8. /menu/ → AI import (photo of their paper menu) or add manually
 □ 9. python manage.py preview_print --list (pick a recent order)
@@ -419,16 +419,16 @@ Paper feeds but nothing prints:
 
 ---
 
-## Part 7 — Production Setup (after demo, real customers)
+## Part 7: Production Setup (after demo, real customers)
 
 ### Local device per restaurant
 
 ```
 Hardware options:
-Raspberry Pi 4 (2GB)     ₹4,000  — best choice, silent, always on, tiny
-Old Android phone         ₹0      — use Termux app (Linux on Android)
-Spare Windows laptop      ₹0      — if already present at counter
-Mini PC (Intel NUC etc.) ₹8,000  — most powerful, runs Windows
+Raspberry Pi 4 (2GB)     ₹4,000  - best choice, silent, always on, tiny
+Old Android phone         ₹0      - use Termux app (Linux on Android)
+Spare Windows laptop      ₹0      - if already present at counter
+Mini PC (Intel NUC etc.) ₹8,000  - most powerful, runs Windows
 ```
 
 ### Windows auto-start (cashier laptop)
@@ -504,7 +504,7 @@ Each restaurant's local worker reaches Redis via VPN.
 
 ---
 
-## Part 8 — Configuration Reference
+## Part 8: Configuration Reference
 
 ### Environment variables (local worker)
 
@@ -532,12 +532,12 @@ Each restaurant's local worker reaches Redis via VPN.
 | `printer_ip` | Static IP | Set DHCP reservation in router |
 | `printer_port` | `9100` | ESC/POS standard port, works on all brands |
 | `paper_width_mm` | `80` for BillTouch | Check what roll is loaded (58mm or 80mm) |
-| `cut_type` | `partial` | Safer — less jamming than full cut |
+| `cut_type` | `partial` | Safer: less jamming than full cut |
 | `printer_encoding` | `cp437` | Standard for all Indian thermal printers |
 
 ---
 
-## Part 9 — Summary Diagram
+## Part 9: Summary Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐

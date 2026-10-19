@@ -1,4 +1,4 @@
-# Parcel Charge — How It Works (ELI5 + Micro Details)
+# Parcel Charge: How It Works (ELI5 + Micro Details)
 
 ---
 
@@ -6,10 +6,10 @@
 
 Two places on the server:
 
-**`Outlet.parcel_charge_amount`** — the *unit price* per item (e.g. ₹5).  
+**`Outlet.parcel_charge_amount`**: the *unit price* per item (e.g. ₹5).  
 Set once by the owner in settings. Never changes per order.
 
-**`Order.parcel_surcharge`** — the *actual charge* on a specific order (e.g. ₹25 if 5 items × ₹5).  
+**`Order.parcel_surcharge`**: the *actual charge* on a specific order (e.g. ₹25 if 5 items × ₹5).  
 Stored on the order row itself. Starts at `0`.
 
 ---
@@ -58,7 +58,7 @@ Packing is part of the restaurant service, so the parcel charge carries GST like
 ```
 
 The bill reads directly from `Order.parcel_surcharge`.  
-If that field is 0, the row is invisible. If it's 25, it shows ₹25. Nothing fancy — just the database value.
+If that field is 0, the row is invisible. If it's 25, it shows ₹25. Nothing fancy, just the database value.
 
 ---
 
@@ -77,7 +77,7 @@ const _parcelAmount = 5;           // unit price from outlet settings (read-only
 
 ## 5. User presses the parcel button (`toggleParcel`)
 
-**Case A — no order exists yet** (user hasn't dispatched anything):
+**Case A: no order exists yet** (user hasn't dispatched anything):
 ```
 _parcelOn flips (false → true or true → false)
 UI updates (button turns gold, row appears)
@@ -85,7 +85,7 @@ Server is NOT called
 ```
 The server doesn't know parcel is wanted. It will be told later.
 
-**Case B — order already exists:**
+**Case B: order already exists:**
 ```
 Calls toggle-parcel on the server
 Server flips the actual parcel_surcharge
@@ -125,7 +125,7 @@ Step 4: on full success:
 
 ## 7. The Bug (what was broken before the fix)
 
-Timeline with dine-in — user dispatches twice:
+Timeline with dine-in, user dispatches twice:
 
 | Event | `_parcelOn` | Server `parcel_surcharge` | Result |
 |---|---|---|---|
@@ -153,8 +153,8 @@ let _parcelAppliedToOrder = null;  // order_id that parcel is currently applied 
 
 | Where | What happens |
 |---|---|
-| `toggleParcel()` — server call succeeds | `_parcelAppliedToOrder = parcel_on ? orderId : null` |
-| `sendToKitchen()` — full dispatch succeeds | `if (needsParcel) _parcelAppliedToOrder = d.order_id` |
+| `toggleParcel()`: server call succeeds | `_parcelAppliedToOrder = parcel_on ? orderId : null` |
+| `sendToKitchen()`: full dispatch succeeds | `if (needsParcel) _parcelAppliedToOrder = d.order_id` |
 | App loads / no order | stays `null` |
 
 ### Same timeline after the fix
@@ -168,7 +168,7 @@ let _parcelAppliedToOrder = null;  // order_id that parcel is currently applied 
 | User taps "Remove Parcel" | `false` | `null` | `25 → 0` |
 | **Dispatch #3** → order_id=7, `null !== 7` → fires toggle | `true` | `7` | `0 → 25` ✓ |
 
-`_parcelAppliedToOrder` acts as memory: *"I already told order 7 about parcel — don't tell it again."*  
+`_parcelAppliedToOrder` acts as memory: *"I already told order 7 about parcel, don't tell it again."*  
 If the user manually removes parcel, it resets to `null`, so the next dispatch re-applies it.  
 If a brand new order is created (order_id=8), the old value `7` doesn't match, so parcel is applied to the new order correctly.
 
@@ -178,12 +178,12 @@ If a brand new order is created (order_id=8), the old value `7` doesn't match, s
 
 | File | Role |
 |---|---|
-| `tenants/models.py` — `Outlet.parcel_charge_amount` | Unit price setting |
-| `tenants/models.py` — `Outlet.parcel_charge_per_item` | Flat vs. per-item mode |
-| `orders/models.py` — `Order.parcel_surcharge` | Actual charge stored on order |
+| `tenants/models.py`: `Outlet.parcel_charge_amount` | Unit price setting |
+| `tenants/models.py`: `Outlet.parcel_charge_per_item` | Flat vs. per-item mode |
+| `orders/models.py`: `Order.parcel_surcharge` | Actual charge stored on order |
 | `tenants/models.py`: `Outlet.parcel_gst_rate` | GST rate on the parcel charge (default 5%) |
 | `orders/models.py`: `Order.parcel_gst_rate` | The rate copied onto the bill when parcel is turned on |
 | `orders/services/tax_engine.py` | The parcel charge's GST, with the rest of the bill's tax |
-| `orders/views/order_actions.py` — `toggle_parcel` | Server flip-flop view |
+| `orders/views/order_actions.py`: `toggle_parcel` | Server flip-flop view |
 | `orders/templates/orders/bill.html` | Displays parcel row if > 0 |
 | `orders/templates/orders/billing.html` | JS state + dispatch logic (the fix is here) |

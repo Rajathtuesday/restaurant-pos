@@ -1,9 +1,28 @@
 # Changelog
 
 All notable changes to Rasova are recorded here, newest first. This file starts
-2026-09-05 — it is not a retroactive rewrite of the full project history.
+2026-09-05: it is not a retroactive rewrite of the full project history.
 For anything earlier than the "Recent history" section below, `git log` is
 the source of truth.
+
+---
+
+## 2026-10-19: Dish discounts work again, and the Android app 1.2.0
+
+### Fixed
+- **A dish's own discount never applied** (the tag button next to a dish on the bill page). The page posted to `/orders/item-discount/<id>/`, but the orders app is mounted at the site root, so it was a 404 since 31 Mar 2026; and because the 404 page isn't JSON, nothing was shown either. It also asked "Apply discount %?" with nothing to type in, then opened two browser prompts. Now it is one form (percent and reason, checked before it is sent) posting to the address from its URL name (`{% url 'item-discount' %}` on the button).
+- **The PC print agent's receipt data** was fetched from `/orders/qz-data/<id>/`, the same mistake, on the bill and billing pages, so that print path always fell through. Both now use `{% url 'qz-receipt-data' %}`.
+- **A failed request could say nothing.** `apiClient` in `base.html` threw without a message when the server answered with an HTML page (a 404 or 500 page, a proxy error) instead of JSON. It now shows "Server Error (404). Please try again."
+- **Android app: the pages' `alert()`, `confirm()` and `prompt()` never showed.** A WebView with no `WebChromeClient` skips them (`confirm()` answers cancel, `prompt()` answers nothing), so about 90 dialogs across Rasova's pages silently did nothing in the app. New `JsDialogs.kt` shows them as Android dialogs (a number keyboard for a number). Checked on the emulator against the live demo's bill page.
+
+### Changed
+- **Android app 1.2.0** (versionCode 4) is on the site at `rasova.net/android/rasova.apk`, **signed with Rasova's own release key** (RSA 4096, kept outside the repository on the signing PC; `app/build.gradle` signs with it when present). Versions up to 1.1.1 were signed with a development key, so **a phone with the old app must uninstall it once**; Android refuses the new one over it ("App not installed"), which was checked on the emulator. The printer setup page, the "update the app" message and `PRINTING_SYSTEM.md` say so. It also carries 1.1.1's https-only server addresses, which never shipped on their own.
+- `menu/templates/menu/menu.html` removed: no view rendered it, and its "call waiter" button posted to an address that doesn't exist.
+
+### Tests
+- `core/tests/test_page_addresses.py`: reads every literal address in a `fetch()` or `apiClient` call in the templates and static scripts, fills in its variable parts and resolves it against the URL map. It found the three wrong addresses above (it fails on the old code with exactly those) and stops the next one at CI.
+- `orders/tests/test_item_discount_browser.py`: the dish discount in Chromium (Playwright): the form applies 10% (₹300 to ₹270), a missing reason is stopped in the form, a refusal is shown; no browser prompt, no JavaScript error. All three fail on the old page. Skips without Playwright, like the promo browser test.
+- Android: unit tests pass on the release build; the release keeps `JSBridge`'s four methods after R8 shrinking.
 
 ---
 

@@ -45,7 +45,7 @@ Every app template replaces its full `<!DOCTYPE html>...` boilerplate with:
 | `extra_css`   | Page-specific `<style>` or `<link>` tags             |
 | `header_left` | Left side of top nav bar (brand / back button)       |
 | `header_right`| Right side of top nav bar (actions, logout)          |
-| `content`     | Main page body — everything inside `<main>`          |
+| `content`     | Main page body: everything inside `<main>`          |
 | `extra_js`    | Page-specific `<script>` blocks at bottom of body    |
 
 ---
@@ -163,13 +163,13 @@ Every app template replaces its full `<!DOCTYPE html>...` boilerplate with:
 
 ## Context Processors Required
 
-The base.html uses `request.user.tenant.*` — add to `settings.py` if not present:
+The base.html uses `request.user.tenant.*`; add it to `settings.py` if not present:
 
 ```python
 TEMPLATES[0]['OPTIONS']['context_processors'] = [
     ...
     'django.template.context_processors.request',
-    'core.context_processors.tenant_context',   # custom — see below
+    'core.context_processors.tenant_context',   # custom - see below
 ]
 ```
 

@@ -1,20 +1,20 @@
 # Media Storage & Database Backups (Cloudflare R2)
 
 > Operational runbook. Media (logos, menu images) and DB backups both live on
-> **Cloudflare R2** — chosen over AWS S3 because R2 has **zero egress fees**
+> **Cloudflare R2**: chosen over AWS S3 because R2 has **zero egress fees**
 > (free downloads) plus a 10 GB free tier.
 
 ---
 
-## 1. The two buckets — and the one rule that matters
+## 1. The two buckets: and the one rule that matters
 
 | Bucket | Visibility | Holds | Served via |
 |---|---|---|---|
 | `rasova-media` | **PUBLIC** | logos, menu images | `https://media.rasova.net/...` (custom domain, CDN-cached) |
-| `rasova-backups` | **PRIVATE** | `pg_dump` database backups | nothing — API access only |
+| `rasova-backups` | **PRIVATE** | `pg_dump` database backups | nothing: API access only |
 
 > ⚠️ **THE RULE:** media is public so images load in browsers. **Database backups
-> must NEVER go in a public bucket** — a public DB dump is a full data breach.
+> must NEVER go in a public bucket**: a public DB dump is a full data breach.
 > Keep `rasova-backups` private: no custom domain, no public dev URL.
 
 ---
@@ -34,10 +34,10 @@ tenant.logo.url  ─►  https://media.rasova.net/tenant_logos/xxxx.jpg
 Browser loads it via the custom domain (Cloudflare CDN, free egress)
 ```
 
-Every uploaded file (logos now, menu images, etc.) goes to R2 automatically — no
+Every uploaded file (logos now, menu images, etc.) goes to R2 automatically: no
 code changes needed per upload.
 
-### Config — all env vars (in server `.env`)
+### Config: all env vars (in server `.env`)
 ```bash
 AWS_STORAGE_BUCKET_NAME=rasova-media
 AWS_ACCESS_KEY_ID=<32-char R2 access key id>
@@ -59,15 +59,15 @@ R2 fixes both **serving** and **durability**.
 
 ## 3. Database backups
 
-Script: **`scripts/backup/backup_to_r2.py`** — `pg_dump → gzip → private R2 bucket → prune old`.
+Script **`scripts/backup/backup_to_r2.py`**: `pg_dump → gzip → private R2 bucket → prune old`.
 Streams the whole way through (`pg_dump` piped into `gzip` piped into R2 via
 `upload_fileobj`, auto-multipart), no full-dump memory buffer and no upload
-size ceiling — earlier versions buffered the entire dump in RAM and uploaded
+size ceiling: earlier versions buffered the entire dump in RAM and uploaded
 via a single non-multipart PUT (R2's hard cap there is 5GiB), fine at today's
 size, a silent failure waiting for the database to eventually grow into it.
 
 ### One-time setup
-1. In Cloudflare R2, create bucket **`rasova-backups`** — leave it **PRIVATE**
+1. In Cloudflare R2, create bucket **`rasova-backups`** and leave it **PRIVATE**
    (no custom domain, no public dev URL).
 2. (Optional) add to `.env`:
    ```bash
@@ -117,7 +117,7 @@ s3.download_file('rasova-backups', 'db/rasova_2026-06-11_0200.sql.gz', '/tmp/res
 print('downloaded')
 "
 
-# 3. Restore into a database (DANGER: overwrites — restore into a fresh/spare DB first to verify)
+# 3. Restore into a database (DANGER: overwrites - restore into a fresh/spare DB first to verify)
 gunzip -c /tmp/restore.sql.gz | psql -h localhost -U rasova rasova
 ```
 
@@ -125,12 +125,12 @@ gunzip -c /tmp/restore.sql.gz | psql -h localhost -U rasova rasova
 
 ---
 
-## 4b. WAL archiving — closing the "up to 24 hours lost" gap
+## 4b. WAL archiving: closing the "up to 24 hours lost" gap
 
 The nightly `pg_dump` above only ever gives you last night's data. If the
 server dies at 1:59am, the day's orders since 2am yesterday are gone. WAL
 (Write-Ahead Log) archiving fixes that by continuously streaming every
-change to R2, not just once a night — see the ELI5 walkthrough in
+change to R2, not just once a night; see the ELI5 walkthrough in
 `md_files/` for the full explanation with the code annotated line by line.
 
 **Three moving parts**, all already in `scripts/`:
@@ -138,7 +138,7 @@ change to R2, not just once a night — see the ELI5 walkthrough in
 | Script | Runs | Job |
 |---|---|---|
 | `archive_wal_to_r2.py` | Automatically, by Postgres itself | Ships each finished WAL segment to `rasova-backups/wal/` |
-| `base_backup_to_r2.py` | Weekly, cron | Full physical snapshot to `rasova-backups/base/` — the anchor WAL gets replayed on top of |
+| `base_backup_to_r2.py` | Weekly, cron | Full physical snapshot to `rasova-backups/base/`: the anchor WAL gets replayed on top of |
 | `restore_wal_from_r2.py` | Only during a recovery | Fetches archived WAL segments back, on demand |
 
 > **Verified 2026-09-19** via a real Docker drill (throwaway Postgres 16, real base
@@ -148,8 +148,8 @@ change to R2, not just once a night — see the ELI5 walkthrough in
 > bug before it ever reached this server: the archive destination was owned by root with
 > no write access for the `postgres` OS user, so archiving failed silently on every
 > single attempt while WAL piled up locally, undetected. **This is exactly the failure
-> mode `check_wal_archiving_health.py` (below) exists to catch** — confirm step 3 below
-> passes before trusting this is actually running, don't assume it's working just
+> mode `check_wal_archiving_health.py` (below) exists to catch**: confirm step 3 below
+> passes before trusting this is actually running. Don't assume it's working just
 > because you didn't see an error.
 
 ### One-time server setup
@@ -157,20 +157,20 @@ change to R2, not just once a night — see the ELI5 walkthrough in
 `deploy.sh` now automates steps 0a and 0b below on every deploy (idempotent,
 safe to re-run). Everything from step 1 onward is still manual, on purpose,
 since it requires a Postgres restart. This exact sequence, in this exact
-order, is what actually worked end to end on the real server — every step
+order, is what actually worked end to end on the real server, every step
 here was a real failure caught and fixed live, not a guess.
 
 0. **Permissions, before touching any config** (`deploy.sh` does this automatically now,
    included here for a fresh machine that hasn't run it yet, or manual reference):
    ```bash
-   # a) postgres needs to reach the app dir at all — /home/ubuntu is 750 by
+   # a) postgres needs to reach the app dir at all - /home/ubuntu is 750 by
    #    default, which silently blocks postgres (neither owner nor in the
    #    ubuntu group) from even traversing into it. Execute-only, not a
-   #    broader chmod — lets postgres reach a path it already knows without
+   #    broader chmod - lets postgres reach a path it already knows without
    #    being able to list anything else in there (.ssh/, shell history, etc).
    sudo setfacl -m u:postgres:x /home/ubuntu
 
-   # b) postgres also needs to WRITE into logs/ — django.setup() (needed to
+   # b) postgres also needs to WRITE into logs/ - django.setup() (needed to
    #    read the R2 credentials from settings) also configures Django's own
    #    file logging, which opens pos.log/django.log/errors.log/security.log
    #    immediately, whether or not the script ever logs anything through it.
@@ -197,11 +197,11 @@ here was a real failure caught and fixed live, not a guess.
    archive_timeout = 300
    ```
    `wal_level = replica` and `archive_mode = on` **require a full Postgres restart**
-   (not just reload) to take effect — plan this for a quiet moment. `archive_timeout`
+   (not just reload) to take effect; plan this for a quiet moment. `archive_timeout`
    alone can be applied with just `sudo systemctl reload postgresql` if set later.
 2. Restart Postgres: `sudo systemctl restart postgresql`
 3. Verify it took: `sudo -u postgres psql -c "SHOW wal_level; SHOW archive_mode; SHOW archive_timeout;"`
-4. Watch it actually archive something — **check `pg_stat_archiver`, not the Postgres
+4. Watch it actually archive something: **check `pg_stat_archiver`, not the Postgres
    log**. Postgres only logs archive *failures*, never successes, so log silence after
    a fix looks identical to "still broken" and cost real time confirming this the hard way:
    ```bash
@@ -210,13 +210,13 @@ here was a real failure caught and fixed live, not a guess.
    ```
    `last_archived_time` should be recent and *later* than `last_failed_time`. Also fine
    to eyeball the R2 dashboard's `rasova-backups/wal/` prefix directly for a new object.
-5. Add the weekly base-backup cron (or just deploy — `deploy.sh` installs this too now):
+5. Add the weekly base-backup cron (or just deploy: `deploy.sh` installs this too now):
    ```bash
    crontab -e
    # add:
    0 3 * * 0 cd /home/ubuntu/rasova && .venv/bin/python scripts/backup/base_backup_to_r2.py >> /home/ubuntu/rasova/logs/base_backup.log 2>&1
    ```
-6. Run `base_backup_to_r2.py` once manually right now too — WAL archived before
+6. Run `base_backup_to_r2.py` once manually right now too: WAL archived before
    the first base backup exists is not useful on its own, you need the anchor.
    If this fails with `permission denied to start WAL sender`, step 0c above
    wasn't done yet or targeted the wrong role.
@@ -225,18 +225,18 @@ here was a real failure caught and fixed live, not a guess.
    ```bash
    */15 * * * * cd /home/ubuntu/rasova && sudo -u postgres .venv/bin/python scripts/backup/check_wal_archiving_health.py >> /home/ubuntu/rasova/logs/wal_health.log 2>&1
    ```
-   Runs as `postgres`, not `ubuntu` — the local pg_wal check reads Postgres's own
+   Runs as `postgres`, not `ubuntu`: the local pg_wal check reads Postgres's own
    700-owned data directory, which `postgres` naturally has access to and no other
    account should (don't grant `ubuntu` access into Postgres's internals to "fix" this,
    that's the wrong direction of privilege). Confirm `archive_command` can genuinely run
-   as the `postgres` OS user before walking away — permissions are the one failure mode
+   as the `postgres` OS user before walking away; permissions are the one failure mode
    that fails completely silently otherwise (see the drill note above). Check the R2
    bucket's `wal/` prefix directly after a few minutes, or just watch `wal_health.log`
    for the first "OK" line.
 
    This same health check also warns if total R2 backup storage (`db/` + `wal/` +
    `base/` combined) crosses `R2_STORAGE_WARN_GB` (default 8, out of R2's 10GB free
-   tier). This is deliberately a warning, not an automatic deletion — the time-based
+   tier). This is deliberately a warning, not an automatic deletion; the time-based
    retention above can't catch a genuine write-volume spike ballooning size *within*
    its own retention window, and pruning WAL more aggressively than the stated policy
    to compensate could silently strand an older base backup with nothing left to
@@ -264,13 +264,13 @@ sudo touch /var/lib/postgresql/<version>/main/recovery.signal
 restore_command = '/home/ubuntu/rasova/.venv/bin/python /home/ubuntu/rasova/scripts/backup/restore_wal_from_r2.py %f %p'
 recovery_target_time = '2026-09-19 14:30:00'   # omit this line to replay everything available
 
-# 4. Start Postgres — it replays WAL automatically, then comes up caught-up
+# 4. Start Postgres - it replays WAL automatically, then comes up caught-up
 sudo systemctl start postgresql
 ```
 
 ---
 
-## 5. Troubleshooting — "the logo / image isn't showing"
+## 5. Troubleshooting: "the logo / image isn't showing"
 
 Work down this list:
 
@@ -294,7 +294,7 @@ Work down this list:
 
 ## 6. Hosting note (AWS vs Cloudflare)
 
-Cloudflare is **not** a place to run the Django app — it has no EC2-style VM for a
+Cloudflare is **not** a place to run the Django app: it has no EC2-style VM for a
 long-running Python + Postgres + Celery stack (Cloudflare = R2, DNS, CDN, SSL,
 Workers/edge). So:
 

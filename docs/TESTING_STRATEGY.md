@@ -1,4 +1,4 @@
-# Rasova POS — Testing Strategy
+# Rasova POS: Testing Strategy
 **What to test, why, how, with real code examples from this codebase.**
 
 ---
@@ -25,7 +25,7 @@ Don't invert this pyramid. Unit tests are cheap, E2E tests are expensive.
 
 ---
 
-## Part 1 — Tools to Install
+## Part 1: Tools to Install
 
 ```bash
 pip install pytest pytest-django factory-boy faker coverage[toml]
@@ -33,7 +33,7 @@ pip install pytest pytest-django factory-boy faker coverage[toml]
 
 Add to `requirements.txt`:
 ```
-# Testing (dev only — do not install on production server)
+# Testing (dev only - do not install on production server)
 pytest==8.3.5
 pytest-django==4.9.0
 factory-boy==3.3.1
@@ -65,7 +65,7 @@ fail_under = 70
 
 ---
 
-## Part 2 — Test Categories for Rasova
+## Part 2: Test Categories for Rasova
 
 | Category | What it tests | Speed | Needs DB |
 |---|---|---|---|
@@ -79,13 +79,13 @@ fail_under = 70
 
 ---
 
-## Part 3 — Unit Tests
+## Part 3: Unit Tests
 
-### 3.1 — What to unit-test
+### 3.1: What to unit-test
 
 Unit tests check ONE thing in isolation. Mock everything else.
 
-**High priority — test these first:**
+**High priority, test these first:**
 
 ```
 orders/services/order_service.py
@@ -112,7 +112,7 @@ printing/tasks.py
   print_bill_task            ← outlet_id isolation skips wrong outlet
 ```
 
-### 3.2 — Example: Financial accuracy
+### 3.2: Example: Financial accuracy
 
 ```python
 # orders/tests/test_financial.py
@@ -174,15 +174,15 @@ class TestRecalculateTotals(TestCase):
         self.assertEqual(self.order.grand_total, Decimal("180.00"))
 
     def test_gst_rounding_half_up(self):
-        # 100 * 5% = 5.00 — simple case
-        # 100 * 18% = 18.00 — simple case
-        # 67 * 5% = 3.35 — should be 3.35, not 3.4 or 3.3
+        # 100 * 5% = 5.00 - simple case
+        # 100 * 18% = 18.00 - simple case
+        # 67 * 5% = 3.35 - should be 3.35, not 3.4 or 3.3
         self._add(67, 1, 5)
         self.order.recalculate_totals()
         self.assertEqual(self.order.gst_total, Decimal("3.35"))
 ```
 
-### 3.3 — Example: Feature flag logic
+### 3.3: Example: Feature flag logic
 
 ```python
 # core/tests/test_features.py
@@ -236,7 +236,7 @@ class TestHasFeature(TestCase):
         self.assertTrue(has_feature(self.tenant, "token_system"))
 ```
 
-### 3.4 — Example: Decorator tests
+### 3.4: Example: Decorator tests
 
 ```python
 # core/tests/test_decorators.py
@@ -274,18 +274,18 @@ class TestFeatureRequired(TestCase):
         from django.test import Client
         c = Client()
         c.force_login(self.user)
-        # kitchen/ requires kitchen_display — not enabled for franchise
+        # kitchen/ requires kitchen_display - not enabled for franchise
         response = c.get("/kitchen/")
         self.assertEqual(response.status_code, 403)
 ```
 
 ---
 
-## Part 4 — Integration Tests (HTTP → DB → Response)
+## Part 4: Integration Tests (HTTP → DB → Response)
 
 Integration tests hit the full Django stack: URL routing, views, DB, response.
 
-### 4.1 — What to integration-test
+### 4.1: What to integration-test
 
 ```
 Every URL that:
@@ -295,7 +295,7 @@ Every URL that:
   - Has complex business logic in the view
 ```
 
-### 4.2 — Example: Order creation flow
+### 4.2: Example: Order creation flow
 
 ```python
 # orders/tests/test_integration.py
@@ -383,7 +383,7 @@ class TestCreateOrderFlow(TestCase):
         self.assertEqual(Order.objects.filter(table=self.table, status="open").count(), 1)
 ```
 
-### 4.3 — Example: Generate bill + pay order
+### 4.3: Example: Generate bill + pay order
 
 ```python
 class TestPaymentFlow(TestCase):
@@ -444,12 +444,12 @@ class TestPaymentFlow(TestCase):
 
 ---
 
-## Part 5 — Security Tests (Tenant Isolation + RBAC)
+## Part 5: Security Tests (Tenant Isolation + RBAC)
 
 These are the most important tests in a multi-tenant SaaS.
 One failure here means Restaurant A can see Restaurant B's data.
 
-### 5.1 — Tenant isolation tests (MUST PASS 100%)
+### 5.1: Tenant isolation tests (MUST PASS 100%)
 
 ```python
 # orders/tests/test_security.py
@@ -570,7 +570,7 @@ class TestTenantIsolation(TestCase):
         self.assertEqual(data2["kitchen_messages"]["count"], 1)
 ```
 
-### 5.2 — Role-based access control tests
+### 5.2: Role-based access control tests
 
 ```python
 class TestRolePermissions(TestCase):
@@ -614,7 +614,7 @@ class TestRolePermissions(TestCase):
 
 ---
 
-## Part 6 — Financial Accuracy Tests (Critical)
+## Part 6: Financial Accuracy Tests (Critical)
 
 ```python
 # orders/tests/test_financial_accuracy.py
@@ -723,6 +723,8 @@ All bill maths lives in one place, `orders/services/tax_engine.py`; its docstrin
 | Offers engine | `offers/tests/test_engine.py` | Buy N get M free, % and flat off, clock-hour windows and days, business-day edges, the price locked when a line is added, one offer per line |
 | Offers on bills | `offers/tests/test_offers_on_bills.py`, `setup/tests/test_offer_setup.py` | Offers through the tax engine onto real bills; the Setup screen, editing, history, and re-totalling open bills only |
 | Offers copy | `offers/tests/test_offers_js.py` | `static/js/offers.js` run in Node against `offers/engine.py` |
+| Promo rules | `promos/tests/test_promo_rules.py` | A promo's minimum follows the bill (voids and free dishes pause it, adding dishes brings it back, prices with GST inside measured at menu value); one module sets a bill's discount and the database refuses a promo with nothing off; uses counted from bills; the bill names the promo; Setup labels, permissions (owner every promo, manager their own outlet's), editing; eight tills taking the last use at once (Postgres row lock) |
+| Promo minimum, random bills | `orders/tests/test_totals_properties.py` (`PromoMinimumMatchesFrozenCopyTest`) | The real engine against the frozen copy's own minimum rule, on both sides of the minimum |
 | No GSTIN, no GST | `orders/tests/test_gst_registration.py` | An outlet without a valid GSTIN bills no GST and its bill says "Bill"; every screen that saves a GSTIN refuses one that isn't; old bills keep the GST they were billed with; an issued bill keeps its wording; the demo keeps its sample GSTIN |
 
 **Changing the maths on purpose:** change the engine, then regenerate the golden files and read every changed line before committing:
@@ -755,7 +757,7 @@ The lesson behind the JS tests: a page's own script can break while every server
 
 ---
 
-## Part 7 — Concurrency Tests
+## Part 7: Concurrency Tests
 
 These are the hardest and slowest to write. Use `TransactionTestCase`.  
 `TestCase` wraps everything in one transaction, which hides deadlocks.  
@@ -800,7 +802,7 @@ class TestPaymentRaceCondition(TransactionTestCase):
         )
 
     def test_double_payment_prevented(self):
-        """Two concurrent POST /pay/<id>/ calls — exactly one succeeds."""
+        """Two concurrent POST /pay/<id>/ calls - exactly one succeeds."""
         from django.test import Client
         results = []
         errors  = []
@@ -894,7 +896,7 @@ class TestKOTNumberUnique(TransactionTestCase):
 
 ---
 
-## Part 8 — Celery Task Tests (with fakeredis)
+## Part 8: Celery Task Tests (with fakeredis)
 
 ```python
 # orders/tests/test_tasks.py
@@ -993,7 +995,7 @@ class TestPrintBillTask(TestCase):
 
 ---
 
-## Part 9 — API Tests
+## Part 9: API Tests
 
 ```python
 # orders/tests/test_api.py
@@ -1078,12 +1080,36 @@ class TestKitchenDataAPI(TestCase):
 
 ---
 
-## Part 10 — What NOT to Test
+## Part 9b: Real-Browser Tests and Page Addresses (added 18 to 19 Oct 2026)
 
-Avoid testing these — they waste time and break on every refactor:
+Unit and view tests can't see JavaScript. Two promo-era bugs lived only there: the dish discount posted to an address that didn't exist, and its 404 was swallowed without a message. So:
+
+| What | File | Guards |
+|---|---|---|
+| Every address the pages call | `core/tests/test_page_addresses.py` | Reads every literal address in a `fetch()` or `apiClient` call in the templates and static scripts, fills in the variable parts (an id, a QR token, a slug) and resolves it against the URL map. Runs in CI. Prefer `{% url %}` in templates; this catches the ones written by hand. |
+| Promos in a browser | `promos/tests/test_promo_browser.py` | Owner creates a promo with the real form, cashier applies it on the bill, the print view and WhatsApp link name it, a void pauses it, the owner edits it, a manager can't change the owner's promo, no JavaScript error |
+| Dish discount in a browser | `orders/tests/test_item_discount_browser.py` | The one-form dish discount applies, a missing reason is stopped in the form, a refusal is shown, no browser prompt |
+
+The browser tests use Playwright (Chromium) against Django's live server. They **skip themselves when Playwright or Chromium isn't installed**, which is the case in CI, so run them locally before a release that touches a page:
+
+```bash
+pip install playwright && playwright install chromium     # once
+python manage.py test promos.tests.test_promo_browser orders.tests.test_item_discount_browser
+PROMO_E2E_SHOTS=md_files/promo_e2e python manage.py test promos.tests.test_promo_browser   # with screenshots
+```
+
+They log in by copying a Django session cookie into the browser, and override the secure-cookie settings for `http://localhost` (tests run with `DEBUG` off). Playwright's sync API needs `DJANGO_ALLOW_ASYNC_UNSAFE`, which the tests set themselves.
+
+**Proving a test catches the bug:** each one was run against the old code first (a clean `git worktree` of the previous commit) and failed there. For the promo fixes, each fix was also undone one at a time (15 mutations) and a test failed every time.
+
+---
+
+## Part 10: What NOT to Test
+
+Avoid testing these; they waste time and break on every refactor:
 
 ```
-❌ Django's own ORM queries (filter, get, create) — Django tests those
+❌ Django's own ORM queries (filter, get, create) - Django tests those
 ❌ HTML content of templates character by character
 ❌ Third-party library behaviour (escpos, fakeredis internals)
 ❌ Every possible HTTP status code for non-critical paths
@@ -1095,7 +1121,7 @@ Avoid testing these — they waste time and break on every refactor:
 
 ---
 
-## Part 11 — Test Organisation
+## Part 11: Test Organisation
 
 ```
 orders/
@@ -1119,7 +1145,7 @@ Each file tests ONE concern. Never mix unit tests with integration tests in the 
 
 ---
 
-## Part 12 — Test Data: Factories
+## Part 12: Test Data: Factories
 
 Once you install `factory-boy`, replace repeated setup helpers with factories:
 
@@ -1189,14 +1215,14 @@ order    = OrderFactory(tenant=tenant, outlet=cashier.outlet)
 
 ---
 
-## Part 13 — Running Tests
+## Part 13: Running Tests
 
 Blank the R2 variables first when running locally, because `.env` holds the production media keys:
 `AWS_ACCESS_KEY_ID= AWS_SECRET_ACCESS_KEY= AWS_STORAGE_BUCKET_NAME= AWS_S3_ENDPOINT_URL= AWS_S3_CUSTOM_DOMAIN=`
 
 ```bash
 # Run all tests in parallel: 8 processes, each with its own test database
-# (2,062 tests in about 10 minutes on the development laptop, Oct 2026)
+# (2,126 tests in about 25 minutes on the development laptop, 19 Oct 2026)
 python manage.py test --noinput --parallel 8
 
 # Run all tests in one process (uses Django's test runner)
@@ -1217,7 +1243,7 @@ pytest
 # With coverage
 coverage run manage.py test --keepdb
 coverage report
-coverage html   # generates htmlcov/index.html — open in browser
+coverage html   # generates htmlcov/index.html - open in browser
 
 # Skip slow concurrency tests during development
 pytest -k "not Concurrency"
@@ -1225,11 +1251,11 @@ pytest -k "not Concurrency"
 
 ---
 
-## Part 14 — Coverage Targets
+## Part 14: Coverage Targets
 
 | Module | Target | Why |
 |---|---|---|
-| `orders/services/` | 90% | Payment + KOT logic — financial risk |
+| `orders/services/` | 90% | Payment + KOT logic: financial risk |
 | `core/features.py` | 95% | Every tenant type + override combination |
 | `core/decorators.py` | 90% | Blocks all API vs page requests correctly |
 | `orders/models.py` | 80% | `recalculate_totals` must be 100% |
@@ -1238,13 +1264,13 @@ pytest -k "not Concurrency"
 | `accounts/views/` | 60% | Login, dashboard |
 | `menu/views/` | 50% | CRUD, lower risk |
 
-**State (7 Oct 2026):** 2,062 tests, all passing. Coverage isn't measured in CI yet; the money paths are guarded by the golden bills in Part 6b instead.
+**State (19 Oct 2026):** 2,126 tests, all passing (one known timing flake under heavy parallel load: `IssuedBillRaceTest` waits at most 15 s for a lock; it passes on its own). Coverage isn't measured in CI yet; the money paths are guarded by the golden bills in Part 6b instead.
 
 ---
 
-## Part 15 — CI/CD: Auto-run on Every Push
+## Part 15: CI/CD: Auto-run on Every Push
 
-**Live today:** `.github/workflows/ci.yml` installs the requirements, runs `ruff`, `manage.py check`, migrations and collectstatic, then the full test suite on every push to `qsr`. Only if everything passes does it SSH to the server and run `deploy.sh`. The example below is the original starting point, kept for teaching:
+**Live today:** `.github/workflows/ci.yml` installs the requirements, runs `ruff`, `manage.py check`, migrations and collectstatic, then the full test suite on every push to `qsr` (every app with tests is in its list; `offers` was missing until 19 Oct 2026, and the browser tests skip there). Only if everything passes does it SSH to the server and run `deploy.sh`. The example below is the original starting point, kept for teaching:
 ```yaml
 name: Tests
 
@@ -1297,22 +1323,22 @@ Never merge to `main` if tests are red.
 All four batches below are done (Oct 2026). Kept as the order to follow on a new project. Stop after each batch if you're short on time.
 
 ```
-Batch 1 — Must have before first paying customer (2-3 hours)
+Batch 1 - Must have before first paying customer (2-3 hours)
   ✅ test_critical.py           (already done, 17 tests)
-  📝 test_financial.py          (decimal accuracy — ~8 tests)
-  📝 test_security.py           (tenant isolation — ~6 tests)
+  📝 test_financial.py          (decimal accuracy - ~8 tests)
+  📝 test_security.py           (tenant isolation - ~6 tests)
 
-Batch 2 — Should have before scaling to 5+ restaurants (half a day)
-  📝 test_api.py                (notification, kitchen, tables APIs — ~10 tests)
-  📝 core/test_features.py      (feature flag logic — ~6 tests)
-  📝 core/test_decorators.py    (JSON 403 vs HTML 403 — ~4 tests)
+Batch 2 - Should have before scaling to 5+ restaurants (half a day)
+  📝 test_api.py                (notification, kitchen, tables APIs - ~10 tests)
+  📝 core/test_features.py      (feature flag logic - ~6 tests)
+  📝 core/test_decorators.py    (JSON 403 vs HTML 403 - ~4 tests)
 
-Batch 3 — Nice to have (a full day)
-  📝 test_tasks.py              (Celery idempotency — ~5 tests)
-  📝 test_concurrency.py        (race conditions — ~3 tests, slow)
+Batch 3 - Nice to have (a full day)
+  📝 test_tasks.py              (Celery idempotency - ~5 tests)
+  📝 test_concurrency.py        (race conditions - ~3 tests, slow)
   📝 Install factories for test_* maintainability
 
-Batch 4 — Coverage polish
+Batch 4 - Coverage polish
   📝 Install coverage, run coverage html, fix the red lines
   📝 Reach 75% overall coverage
   📝 Wire up GitHub Actions CI

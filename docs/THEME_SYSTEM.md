@@ -23,7 +23,7 @@ This applies regardless of tenant type (fine_dining, cafe, franchise).
 
 ---
 
-### 1. `luxury` — Fine Dining / Premium
+### 1. `luxury`: Fine Dining / Premium
 
 Designed for high-end restaurants. Minimal chrome, serif headings, gold
 accents, ultra-thin borders. Everything whispers money.
@@ -57,7 +57,7 @@ tracking on labels. DM Serif Display headings. 0px border-radius everywhere.
 
 ---
 
-### 2. `standard` — Casual Dining / Multi-purpose
+### 2. `standard`: Casual Dining / Multi-purpose
 
 Approachable, clean, works for most restaurants. Rounded corners, friendly
 colors, standard card-based layout.
@@ -91,21 +91,21 @@ like a modern web app.
 
 ---
 
-### 3. `qsr` — Quick Service / Fast Food
+### 3. `qsr`: Quick Service / Fast Food
 
 Built for speed. High-contrast, large tap targets, bold colors, minimal
 decorative elements. Works perfectly on a dusty touch screen behind a counter.
 
 ```css
 [data-theme="qsr"] {
-    --accent-gold:     #ff6b35;      /* orange — urgency, energy */
-    --bg-color:        #1a1a1a;      /* dark by default — kitchen lighting */
+    --accent-gold:     #ff6b35;      /* orange - urgency, energy */
+    --bg-color:        #1a1a1a;      /* dark by default - kitchen lighting */
     --panel-bg:        #262626;
     --text-main:       #ffffff;
     --text-muted:      #a0a0a0;
     --border-color:    #3a3a3a;
     --border-radius:   4px;
-    --shadow-soft:     none;         /* flat UI — no distractions */
+    --shadow-soft:     none;         /* flat UI - no distractions */
     --font-main:       'Outfit', sans-serif;
     --font-heading:    'Outfit', sans-serif;
     --btn-style:       bold-filled;
@@ -126,7 +126,7 @@ Zero shadows. Flat cards. Numbers BIG and readable from 50cm away.
 
 ---
 
-### 4. `minimal` — Cafe / Bakery
+### 4. `minimal`: Cafe / Bakery
 
 Light, airy, earthy. Green or terracotta accent. Soft shadows, generous
 padding, handcrafted feel without being slow.
@@ -224,7 +224,7 @@ The JS toggle in base.html adds/removes `dark` on `<html>` (not `<body>`)
 so the CSS selector `[data-theme="luxury"].dark` matches correctly:
 
 ```js
-// base.html themeManager — toggle on <html>, not <body>
+// base.html themeManager - toggle on <html>, not <body>
 document.documentElement.classList.toggle('dark');
 ```
 
@@ -254,7 +254,7 @@ The QSR theme also changes component sizing via CSS:
 ```
 
 This means a QSR tenant's token_billing.html automatically gets large touch
-targets just from the theme — no per-page changes needed.
+targets just from the theme: no per-page changes needed.
 
 ---
 

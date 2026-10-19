@@ -1,24 +1,24 @@
 # Rasova Printing System
-### Everything we built — explained simply, with micro steps
+### Everything we built: explained simply, with micro steps
 
 ---
 
 ## Table of Contents
 
-1. [The Big Picture — What Problem We Solved](#1-the-big-picture)
-2. [Parcel Charge — The Bug and the Fix](#2-parcel-charge)
-3. [The Thermal Printer — How It Connects](#3-the-thermal-printer)
-4. [The Receipt — Making It Short](#4-the-receipt-layout)
-5. [Rasova Agent — The Bridge](#5-rasova-agent)
+1. [The Big Picture: What Problem We Solved](#1-the-big-picture)
+2. [Parcel Charge: The Bug and the Fix](#2-parcel-charge)
+3. [The Thermal Printer: How It Connects](#3-the-thermal-printer)
+4. [The Receipt: Making It Short](#4-the-receipt-layout)
+5. [Rasova Agent: The Bridge](#5-rasova-agent)
 6. [Old Way vs New Way of Printing](#6-old-vs-new)
-7. [The Android Problem — Why the App Kept Dying](#7-the-android-problem)
-8. [The Fix — Polling Architecture](#8-the-fix-polling)
-9. [The Android APK — One App Does Everything](#9-the-android-apk)
-10. [PWA — Install on Home Screen](#10-pwa)
-11. [Platform Detection — Android vs iOS vs Windows](#11-platform-detection)
-12. [The Print Queue — How It All Works Together](#12-print-queue)
-13. [Security — Tenant Isolation](#13-security)
-14. [Setup Guide — Micro Steps](#14-setup-guide)
+7. [The Android Problem: Why the App Kept Dying](#7-the-android-problem)
+8. [The Fix: Polling Architecture](#8-the-fix-polling)
+9. [The Android APK: One App Does Everything](#9-the-android-apk)
+10. [PWA: Install on Home Screen](#10-pwa)
+11. [Platform Detection: Android vs iOS vs Windows](#11-platform-detection)
+12. [The Print Queue: How It All Works Together](#12-print-queue)
+13. [Security: Tenant Isolation](#13-security)
+14. [Setup Guide: Micro Steps](#14-setup-guide)
 15. [Files We Changed](#15-files-changed)
 16. [Tests Written](#16-tests)
 
@@ -41,12 +41,12 @@ The **thermal printer** lives inside the cafe, connected to the local WiFi.
 
 **The Problem:** The cloud server can never directly reach the local printer.
 They are on different networks. It's like trying to deliver a pizza from Mumbai
-to a specific house in Bengaluru — the Mumbai kitchen can't go there itself.
+to a specific house in Bengaluru: the Mumbai kitchen can't go there itself.
 
 **What we built:** A smart bridge that makes printing work anyway, on any device,
 without any technical knowledge from the staff.
 
-### Three paths — one for each type of device
+### Three paths: one for each type of device
 
 ```
 Android phone   → Native APK → Background Service → TCP 9100 → Printer ✓
@@ -61,18 +61,18 @@ iPhone / iPad   → Browser opens receipt tab → AirPrint → Printer ✓
 ### What is a parcel charge?
 
 When a customer orders food **to take away** (not eat here), the restaurant
-charges a small packaging fee — like ₹5 per item. This is the **parcel charge**.
+charges a small packaging fee, like ₹5 per item. This is the **parcel charge**.
 
 ### Where it lives in the database
 
 | Table | Field | What it stores |
 |-------|-------|----------------|
-| `Outlet` | `parcel_charge_amount` | Price per item (e.g. ₹5) — set once by owner |
-| `Outlet` | `parcel_charge_per_item` | True/False — per item or one flat fee? |
+| `Outlet` | `parcel_charge_amount` | Price per item (e.g. ₹5), set once by owner |
+| `Outlet` | `parcel_charge_per_item` | True/False: per item or one flat fee? |
 | `MenuItem` | `parcel_charge` | Override for a specific item (biryani costs more to pack) |
 | `Order` | `parcel_surcharge` | The actual charge on this order (₹0 until toggled ON) |
 
-### How the toggle works — ELI5
+### How the toggle works: ELI5
 
 Think of a light switch. One press = ON, next press = OFF.
 
@@ -102,7 +102,7 @@ Voided items are completely ignored in all calculations.
 Staff: [Dispatch order to kitchen] ← parcel is ON
   → Server toggles parcel ON ✓ (order.parcel_surcharge = ₹25)
 
-Staff: [Dispatch again — added one more item]
+Staff: [Dispatch again - added one more item]
   → Server checks: parcel_surcharge > 0? YES
   → Server toggles parcel OFF ✗ (order.parcel_surcharge = ₹0)
 
@@ -135,13 +135,13 @@ Is _parcelAppliedToOrder === this order's ID?
 
 ### What kind of printer is this?
 
-A **thermal printer** prints by heating special paper — no ink, no toner.
+A **thermal printer** prints by heating special paper: no ink, no toner.
 The paper turns black where it's heated. This is the small receipt printer
 you see at every shop, petrol station, and hotel.
 
 ### How does it receive data?
 
-The printer listens on **port 9100** — a special channel just for raw print data.
+The printer listens on **port 9100**, a special channel just for raw print data.
 You connect to it like a phone call:
 - IP address = "which printer" (e.g. `192.168.1.100`)
 - Port 9100 = "which door to knock on"
@@ -174,14 +174,14 @@ The Rasova server generates these bytes for each bill and sends them to the prin
 
 ## 4. The Receipt Layout
 
-### The Problem — Our Bill Was Too Long
+### The Problem: Our Bill Was Too Long
 
 Before this change, a 2-item bill printed as roughly **60mm of paper**.
 The reference receipt (Malenadu Brahmins Cafe photo) printed the same
-information in **~35mm**. We were wasting almost 2cm per receipt — over
+information in **~35mm**. We were wasting almost 2cm per receipt, over
 hundreds of bills a day, that adds up to meters of wasted paper.
 
-### Why It Was Long — ELI5
+### Why It Was Long: ELI5
 
 The old code was printing:
 - The restaurant name in **double-height, double-width letters** (each character took 2× the paper height)
@@ -193,12 +193,12 @@ The old code was printing:
 - "Powered by Rasova POS" on another line
 - Two blank lines before the cut (`\n\n`)
 
-Think of it like writing an address by using a marker instead of a pen —
+Think of it like writing an address by using a marker instead of a pen, 
 the letters are big and readable but you waste a lot of space.
 
 ### What We Changed
 
-**Before vs After — for a 2-item bill:**
+**Before vs after, for a 2-item bill:**
 
 ```
 BEFORE (60mm):                    AFTER (35mm):
@@ -256,7 +256,7 @@ BEFORE (60mm):                    AFTER (35mm):
 _wrap_text(text, width)
 # Breaks a long address at word boundaries to fit the paper width
 # "123 Main Road, Jayanagar, Bengaluru 560041"
-# becomes two lines if it's too long — not just cut off
+# becomes two lines if it's too long - not just cut off
 
 _pack_lines(items, width)
 # Fits multiple short strings onto fewest lines
@@ -270,7 +270,7 @@ The KOT (Kitchen Order Ticket) also had wasted lines:
 
 ```
 BEFORE:                    AFTER:
-KOT #3 (big)              KOT #3 (still big — kitchen needs to read it)
+KOT #3 (big)              KOT #3 (still big - kitchen needs to read it)
 Token: 42                 TKN:42  [Main Kitchen]  ← one line instead of two
 [Main Kitchen]            --------------------------------
 -------------------------------- 2x [V] Paneer Biryani
@@ -304,7 +304,7 @@ Think of it as a **post office worker** sitting inside the cafe:
 
 | Way | Who runs it | Best for |
 |-----|------------|---------|
-| **Native Android APK** | Background service inside the Rasova app | Android phones — zero setup |
+| **Native Android APK** | Background service inside the Rasova app | Android phones: zero setup |
 | **Python Polling (Termux)** | `rasova_agent.py --server <site> --key <key>` | Advanced Android / Raspberry Pi |
 | **Python WebSocket** | `rasova_agent.py` (desktop) | Windows/Mac PC at the counter |
 
@@ -327,7 +327,7 @@ Every 2 seconds:
 
 If the printer gets a new IP from the router (DHCP), the Python agent tries to find it:
 1. Try the configured IP
-2. Try ARP lookup (find it by MAC address — a permanent identifier)
+2. Try ARP lookup (find it by MAC address, a permanent identifier)
 3. Try the last known working IP (cached in config file)
 4. Scan the entire local network for anything answering on port 9100
 
@@ -354,13 +354,13 @@ Browser → fetch("/orders/print-bill/") → EC2 server
 
 ### New way (works)
 
-**Android (Native APK — recommended):**
+**Android (Native APK, recommended):**
 ```
 Rasova App → print button → POST /orders/agent/add-job/ (queues job on EC2)
 Background PrintService → polls EC2 every 2s → TCP 9100 → Printer ✓
 ```
 
-**Android (Termux — fallback for advanced users):**
+**Android (Termux, fallback for advanced users):**
 ```
 Browser → POST /orders/agent/add-job/ (queues job on EC2)
 rasova_agent.py --server/--key → polls EC2 every 2s → TCP 9100 → Printer ✓
@@ -378,7 +378,7 @@ Browser → opens /orders/bill/<id>/?print=1 in new tab → AirPrint → Printer
 
 ---
 
-## 7. The Android Problem — Why the App Kept Dying
+## 7. The Android Problem: Why the App Kept Dying
 
 ### What happens on Android
 
@@ -389,7 +389,7 @@ Android is very aggressive about saving battery. It kills any app that:
 
 So the old agent (WebSocket server on port 8765) would get killed after
 a few minutes of no billing activity. When the cashier tried to print the
-next bill — the agent was dead.
+next bill: the agent was dead.
 
 ### This is like...
 
@@ -410,7 +410,7 @@ building, not standing in front of it.
 | | WebSocket Server (old) | HTTP Polling (new) |
 |-|----------------------|------------------|
 | Agent is a | Server (waits for connections) | Client (makes outbound requests) |
-| Android kills it? | YES — kills idle listening sockets | NO — cannot kill outbound HTTP |
+| Android kills it? | YES: kills idle listening sockets | NO: cannot kill outbound HTTP |
 | If killed | Must be manually restarted | Boot script or APK restarts automatically |
 | Missed jobs? | Lost forever | Safe in DB queue, picked up on restart |
 | Requires open port? | YES (8765) | NO |
@@ -418,19 +418,19 @@ building, not standing in front of it.
 
 ---
 
-## 8. The Fix — Polling Architecture
+## 8. The Fix: Polling Architecture
 
 ### How it works (simple version)
 
 ```
 Step 1: Cashier presses "Print Bill" on their phone
-Step 2: Phone sends order ID to EC2 (normal HTTPS — always works)
+Step 2: Phone sends order ID to EC2 (normal HTTPS - always works)
 Step 3: EC2 generates the receipt, saves PrintJob row to database
 Step 4: Agent (on phone or PC) checks EC2 every 2 seconds: "Any jobs for me?"
 Step 5: EC2 says "Yes, here's the receipt as base64"
 Step 6: Agent connects to 192.168.1.100:9100 and sends the bytes
 Step 7: Printer prints
-Step 8: Agent tells EC2: "Job done" — EC2 marks it complete
+Step 8: Agent tells EC2: "Job done" - EC2 marks it complete
 ```
 
 ### The `PrintJob` database table
@@ -447,7 +447,7 @@ Step 8: Agent tells EC2: "Job done" — EC2 marks it complete
 | `created_at` | When queued | `2026-05-28 14:30:05` |
 | `done_at` | When printed | `2026-05-28 14:30:07` |
 
-**Auto-expiry:** Jobs older than 5 minutes are ignored (stale — no point printing).
+**Auto-expiry:** Jobs older than 5 minutes are ignored (stale, no point printing).
 
 ### Why base64?
 
@@ -468,7 +468,7 @@ The agent decodes base64 back to bytes before sending to the printer.
 
 ### The secret key
 
-Each outlet has a `print_agent_key` — a random UUID like:
+Each outlet has a `print_agent_key`: a random UUID like:
 `a3f9e2b1-4c5d-4e6f-8a7b-9c0d1e2f3a4b`
 
 This key is used in the polling URL:
@@ -478,13 +478,13 @@ https://your-site.com/orders/agent/a3f9e2b1-4c5d-4e6f-8a7b-9c0d1e2f3a4b/
 
 - Only the agent with this exact key can fetch jobs for this outlet
 - Wrong key → 403 Access Denied
-- The key is never visible to the browser — only embedded in the agent's configuration
+- The key is never visible to the browser, only embedded in the agent's configuration
 - Even if someone guesses a valid key, they cannot see another tenant's jobs
-  (the DB query also filters by `tenant_id` — double lock)
+  (the DB query also filters by `tenant_id`, double lock)
 
 ---
 
-## 9. The Android APK — One App Does Everything
+## 9. The Android APK: One App Does Everything
 
 ### The UX Problem with Two Icons
 
@@ -497,10 +497,10 @@ Staff would ask: "Which one do I open?", "Can I delete Termux?",
 
 Non-technical staff (cashiers, QSR counter staff) would give up. **This is now solved.**
 
-### The Solution — One App
+### The Solution: One App
 
 The **Rasova Android APK** is one app that:
-1. Shows the full Rasova POS website inside it (using a WebView — a browser built into the app)
+1. Shows the full Rasova POS website inside it (using a WebView, a browser built into the app)
 2. Has a background printing service built in that polls EC2 and prints automatically
 3. Starts automatically when the phone boots
 4. Cannot be killed by Android's battery optimizer
@@ -511,7 +511,7 @@ Staff home screen:
 
 What happens when staff opens it:
   ┌────────────────────────────────────┐
-  │  (full screen — no browser bar)    │
+  │  (full screen - no browser bar)    │
   │                                    │
   │  Login to Rasova POS               │
   │  Username: ___________             │
@@ -522,7 +522,7 @@ What happens when staff opens it:
   └────────────────────────────────────┘
 ```
 
-### How the magic happens — ELI5
+### How the magic happens: ELI5
 
 The app secretly adds a label to its browser: `RasovaPOS-Android/1.0`.
 It's like a person wearing a name tag that says "I'm the Rasova app".
@@ -539,13 +539,13 @@ in the background. Done. No setup visible to the staff at all.
 ```
 rasova_android/
   app/src/main/java/com/rasova/pos/
-    MainActivity.kt    — Opens the WebView, sets the name tag, wires up the bridge
-    JSBridge.kt        — The translator between website JS and native Android
-    PrintService.kt    — The invisible engine (polls EC2, prints via TCP, runs 24/7)
-    BootReceiver.kt    — Listens for phone boot → restarts PrintService
+    MainActivity.kt    - Opens the WebView, sets the name tag, wires up the bridge
+    JSBridge.kt        - The translator between website JS and native Android
+    PrintService.kt    - The invisible engine (polls EC2, prints via TCP, runs 24/7)
+    BootReceiver.kt    - Listens for phone boot → restarts PrintService
 ```
 
-### MainActivity.kt — The Front Door
+### MainActivity.kt: The Front Door
 
 ```kotlin
 // The website sees this user-agent string
@@ -562,7 +562,7 @@ webView.loadUrl(BuildConfig.SERVER_URL)  // e.g. "https://your-rasova-server.com
 **ELI5:** MainActivity is like the shop front. It opens a full-screen browser,
 pastes a secret name tag on it, and connects the website to the printing engine.
 
-### JSBridge.kt — The Translator
+### JSBridge.kt: The Translator
 
 ```kotlin
 @JavascriptInterface
@@ -571,7 +571,7 @@ fun startPrinting(pollUrl: String) {
     saveUrl(pollUrl)
     // Start the printing engine
     startForegroundService(PrintService)
-    // Show the "don't kill me" dialog — user taps Allow once
+    // Show the "don't kill me" dialog - user taps Allow once
     showBatteryOptimizationDialog()
 }
 
@@ -581,10 +581,10 @@ fun getPrintingStatus(): String = PrintService.status
 ```
 
 **ELI5:** The JSBridge is like a translator sitting at the border between
-two countries — website-land and Android-land. The website doesn't speak
+two countries: website-land and Android-land. The website doesn't speak
 Android, Android doesn't speak JavaScript. The bridge translates.
 
-### PrintService.kt — The Invisible Worker
+### PrintService.kt: The Invisible Worker
 
 ```kotlin
 // Runs forever in the background:
@@ -605,9 +605,9 @@ while (true) {
 the notice board (EC2 queue) every 2 seconds, and delivers any new letters
 (receipts) directly to the printer. Android sees the notification "Rasova
 Printing Active" and knows: this is important, don't kill it. Just like
-a phone call — Android never kills an active phone call.
+a phone call: Android never kills an active phone call.
 
-### BootReceiver.kt — The Alarm Clock
+### BootReceiver.kt: The Alarm Clock
 
 ```kotlin
 override fun onReceive(context: Context, intent: Intent) {
@@ -622,18 +622,18 @@ override fun onReceive(context: Context, intent: Intent) {
 memory, and immediately starts the printing engine again. The staff never
 needs to do anything after a power cut or phone restart.
 
-### Android OS Rules — How We Follow Each One
+### Android OS Rules: How We Follow Each One
 
 Android has strict rules about background apps. Here's how each rule is handled:
 
 | Rule | What it means | How we handle it |
 |------|--------------|-----------------|
-| Background execution limits | Apps running in background get killed after minutes | We use a **Foreground Service** — a special type that shows a persistent notification and CANNOT be killed |
-| Battery Optimizer / Doze mode | Android starves apps of CPU and network when phone is idle | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` — the app shows a one-tap dialog on first login. Staff taps "Allow" once, never asked again |
+| Background execution limits | Apps running in background get killed after minutes | We use a **Foreground Service**: a special type that shows a persistent notification and CANNOT be killed |
+| Battery Optimizer / Doze mode | Android starves apps of CPU and network when phone is idle | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`: the app shows a one-tap dialog on first login. Staff taps "Allow" once, never asked again |
 | Auto-start after reboot | Killed on phone restart | `RECEIVE_BOOT_COMPLETED` permission + `BootReceiver.kt` handles reboot automatically |
 | Play Store / Distribution | Termux needs F-Droid which needs "unknown sources" | Our APK is distributed as a download. One "allow from this source" tap. Or Play Store later (no unknown sources needed) |
 
-### AndroidManifest.xml — The Passport
+### AndroidManifest.xml: The Passport
 
 Every Android app must declare its permissions upfront, like filling a
 customs form before entering a country. Our app declares:
@@ -648,7 +648,7 @@ REQUEST_IGNORE_BATTERY_OPTIMIZATIONS ← show the "don't kill me" dialog
 
 ### How to Build the APK
 
-1. Install **Android Studio** (free — from developer.android.com)
+1. Install **Android Studio** (free, from developer.android.com)
 2. Open the `rasova_android/` folder in Android Studio
 3. In `app/build.gradle`, find this line:
    ```
@@ -656,12 +656,12 @@ REQUEST_IGNORE_BATTERY_OPTIMIZATIONS ← show the "don't kill me" dialog
    ```
    Change it to your actual EC2 URL
 4. Connect your Android phone via USB (or use the emulator)
-5. Click **Run ▶** — Android Studio builds and installs the app
+5. Click **Run ▶**: Android Studio builds and installs the app
 6. To get a shareable APK file: **Build → Generate Signed Bundle / APK → APK**
 
 ---
 
-## 10. PWA — Install on Home Screen
+## 10. PWA: Install on Home Screen
 
 ### What is a PWA?
 
@@ -669,7 +669,7 @@ PWA = Progressive Web App. It lets a website behave like a real phone app
 without being downloaded from the Play Store.
 
 When Rasova POS runs in Chrome on Android, the browser shows:
-> "Install Rasova POS — Add to home screen"
+> "Install Rasova POS: Add to home screen"
 
 After installing, the app:
 - Gets its own icon on the home screen
@@ -681,7 +681,7 @@ After installing, the app:
 | Where you open Rasova | What happens |
 |----------------------|-------------|
 | Inside the **native APK** | No install banner (it's already installed!) |
-| In **Chrome on Android** (not the APK) | "Add to home screen — tap Install, then set up printing in Termux" |
+| In **Chrome on Android** (not the APK) | "Add to home screen: tap Install, then set up printing in Termux" |
 | In **Safari on iPhone/iPad** | "Use Share → Add to Home Screen in Safari" |
 | In **Chrome on Windows/Mac** | "Add to your desktop for the best experience" |
 
@@ -693,7 +693,7 @@ This sheet is **skipped entirely** if the user is inside the native Android APK
 
 ---
 
-## 11. Platform Detection — Android vs iOS vs Windows
+## 11. Platform Detection: Android vs iOS vs Windows
 
 ### The `rasovaPlatform` object
 
@@ -711,7 +711,7 @@ window.rasovaPlatform = {
 }
 ```
 
-### The `nativeAndroid` flag — how it's detected
+### The `nativeAndroid` flag: how it's detected
 
 ```javascript
 const nativeAndroid = /rasovaPOS-android/i.test(navigator.userAgent);
@@ -720,7 +720,7 @@ const nativeAndroid = /rasovaPOS-android/i.test(navigator.userAgent);
 The native APK adds `RasovaPOS-Android/1.0` to the browser's user-agent string.
 This is invisible to users but visible to the website's JavaScript.
 When `nativeAndroid` is true, the website knows:
-- Printing is handled by the native service — no Termux, no setup needed
+- Printing is handled by the native service: no Termux, no setup needed
 - Post-install sheet is skipped
 - Offline hint says "open Rasova app and allow battery optimization" (not "open Termux")
 
@@ -742,7 +742,7 @@ if (rasovaPlatform.nativeAndroid && typeof Android !== 'undefined') {
 **ELI5:** Every time the page loads and a staff member is logged in,
 the website quietly whispers the secret polling URL to the Android app.
 The Android app saves it and makes sure the printing engine is running.
-This happens invisibly — staff never sees it.
+This happens invisibly: staff never sees it.
 
 ### How printing is decided in `billing.html`
 
@@ -764,7 +764,7 @@ Desktop (Windows/Mac):
 
 ---
 
-## 12. The Print Queue — How It All Works Together
+## 12. The Print Queue: How It All Works Together
 
 ### The full flow on Android
 
@@ -811,7 +811,7 @@ Desktop (Windows/Mac):
 ### What happens if the agent crashes mid-job?
 
 - EC2 still has the `PrintJob` row with `status=pending`
-- Android: PrintService is a ForegroundService — Android restarts it with `START_STICKY`
+- Android: PrintService is a ForegroundService, so Android restarts it with `START_STICKY`
 - On next poll, EC2 returns the same job (still pending, within 5-min TTL)
 - Agent prints it
 - **No receipt is lost**
@@ -821,7 +821,7 @@ Desktop (Windows/Mac):
 - Agent tries to connect to `192.168.1.100:9100`
 - Gets "Connection refused" or timeout (5 second timeout)
 - Agent calls `/orders/agent/failed/99/` (key in the header) with the error message
-- Job is marked `failed` — won't be tried again automatically
+- Job is marked `failed`: won't be tried again automatically
 - Cashier needs to re-tap "Print Bill"
 
 ### Job states
@@ -835,7 +835,7 @@ Older than 5 min → not served to agent (TTL expired)
 
 ---
 
-## 13. Security — Tenant Isolation
+## 13. Security: Tenant Isolation
 
 ### What is a tenant?
 
@@ -845,7 +845,7 @@ One tenant can have multiple outlets (branches).
 The database has data for many tenants. It's critical that Tenant A
 can never see Tenant B's orders, bills, or print jobs.
 
-### How the print queue is protected — double lock
+### How the print queue is protected: double lock
 
 Every agent query now filters on **both** the secret key AND the tenant:
 
@@ -853,7 +853,7 @@ Every agent query now filters on **both** the secret key AND the tenant:
 # Before (only outlet check):
 PrintJob.objects.filter(outlet=outlet, status="pending")
 
-# After (outlet + tenant — double lock):
+# After (outlet + tenant - double lock):
 PrintJob.objects.filter(
     tenant_id=outlet.tenant_id,   ← Tenant check
     outlet=outlet,                ← Outlet check
@@ -880,15 +880,15 @@ the database has a compound index:
 Index: (tenant, outlet, status, created_at)
 ```
 
-This is like a phone book organized by city, then area, then name —
+This is like a phone book organized by city, then area, then name, 
 finding all pending jobs for "tenant=T1, outlet=O1" takes microseconds,
 not a full table scan.
 
 ---
 
-## 14. Setup Guide — Micro Steps
+## 14. Setup Guide: Micro Steps
 
-### Path A: Native Android APK (Recommended — easiest)
+### Path A: Native Android APK (Recommended: easiest)
 
 **One-time setup. After this: zero manual work ever.**
 
@@ -896,13 +896,20 @@ not a full table scan.
 1. Open Rasova POS on any browser
 2. Go to **Setup → Printing**
 3. Find the "Download Rasova Android App" button
-4. Tap it — the `.apk` file will start downloading
+4. Tap it: the `.apk` file will start downloading
 5. Wait for the download to finish (you'll see a notification or progress at the bottom)
 
 **Step 2: Install the APK**
+
+> **Had the app before 19 Oct 2026 (version 1.0 or 1.1)?** Uninstall it first
+> (long-press the Rasova icon → Uninstall). From version 1.2.0 the app is
+> signed with Rasova's own release key, and Android refuses to install an app
+> over one signed with a different key ("App not installed"). After that,
+> every update installs over the top as normal.
+
 1. Open your phone's **notification shade** (pull down from top)
 2. Tap the downloaded `.apk` file
-3. A popup says "Install blocked for security" — this is normal
+3. A popup says "Install blocked for security". This is normal
 4. Tap **Settings** in that popup
 5. Turn ON "Allow from this source"
 6. Tap the back button
@@ -911,27 +918,27 @@ not a full table scan.
 9. Tap **Open**
 
 **Step 3: First login**
-1. The app opens showing the Rasova login screen — same as the browser version
+1. The app opens showing the Rasova login screen, same as the browser version
 2. Enter your username and password
 3. Tap **Log In**
 4. A popup appears: "Allow Rasova to run without battery restrictions?"
-5. Tap **Allow** — this is the battery optimization dialog
+5. Tap **Allow**: this is the battery optimization dialog
 6. You are now on the main POS screen
 7. In the notification bar at the top, you should see "Rasova Printing Active"
 
 **That's it. Printing now works forever.**
 
-**Verification — test that printing works:**
+**Check that printing works:**
 1. Place a test order (tap through billing, add one item)
 2. Tap **Print Bill**
 3. The receipt should print within 2-4 seconds
 
-**Verification — test that it survives a reboot:**
+**Check that it survives a reboot:**
 1. Turn your phone OFF
 2. Turn it back ON
 3. Do NOT open the Rasova app
 4. Create a test order on a different device (or the same phone after a minute)
-5. Tap Print Bill — it should still print (the service auto-started on boot)
+5. Tap Print Bill: it should still print (the service auto-started on boot)
 
 ---
 
@@ -953,7 +960,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 7. Open **F-Droid**
 8. Search for **Termux** → tap it → tap **Install**
 9. Search for **Termux:Boot** → tap it → tap **Install**
-10. Open **Termux:Boot** once (just open it and close — this activates it)
+10. Open **Termux:Boot** once (just open it and close it; this activates it)
 
 **Step 2: Install Python in Termux**
 1. Open **Termux**
@@ -1014,7 +1021,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 1. Go to `python.org/downloads`
 2. Download Python 3.11 or higher
 3. Run the installer
-4. ✅ Check "Add Python to PATH" at the bottom — very important
+4. ✅ Check "Add Python to PATH" at the bottom (very important)
 5. Click Install
 
 **Step 2: Install the agent dependencies**
@@ -1047,7 +1054,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 1. Restart the PC
 2. After login, open **Task Manager** (Ctrl+Shift+Esc)
 3. Go to **Details** tab
-4. Look for `python.exe` — it should be there running silently
+4. Look for `python.exe`: it should be there running silently
 5. Open Rasova POS → Setup → Kitchen Stations → click **Test Print**
 
 ---
@@ -1056,22 +1063,22 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 
 1. Find your printer's IP address:
    - Option A: Print a self-test page (hold the printer's feed button while powering on)
-     — the IP is printed on the test page
+     (the IP is printed on the test page)
    - Option B: Log into your WiFi router → look at connected devices
    - Option C (if agent is running on Windows): In Rasova → Setup → Kitchen Stations
-     → click **🔍 Discover** — it scans the network and fills the IP automatically
+     → click **🔍 Discover**: it scans the network and fills the IP automatically
 
 2. In Rasova → **Setup → Kitchen Stations**
 3. Find your station → enter the IP address in the "Printer IP" field
 4. Set paper width (80mm for most printers)
 5. Click **Save**
-6. Click **Test Print** — a test receipt should print
+6. Click **Test Print**: a test receipt should print
 
 ---
 
 ## 15. Files We Changed
 
-### New files — Android APK
+### New files: Android APK
 
 | File | What it does |
 |------|-------------|
@@ -1087,7 +1094,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 | `rasova_android/app/src/main/res/layout/activity_main.xml` | Full-screen WebView layout |
 | `rasova_android/app/proguard-rules.pro` | Tells ProGuard not to rename JSBridge methods |
 
-### New files — Print queue system
+### New files: Print queue system
 
 | File | What it does |
 |------|-------------|
@@ -1116,7 +1123,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 
 ## 16. Tests Written
 
-### Parcel dispatch tests (`test_parcel_dispatch.py`) — 41 tests
+### Parcel dispatch tests (`test_parcel_dispatch.py`): 41 tests
 
 | Test class | What it tests |
 |------------|--------------|
@@ -1128,7 +1135,7 @@ Use this if you can't install the APK (e.g. phone is too old, needs Raspberry Pi
 | `ToggleHttpStatusTests` | HTTP response codes and body contracts |
 | `QSRParcelDispatchTests` | QSR-specific flows |
 
-### Print queue tests (`test_print_queue.py`) — 53 tests
+### Print queue tests (`test_print_queue.py`): 53 tests
 
 | Test class | What it tests |
 |------------|--------------|
@@ -1183,6 +1190,6 @@ Until 2 Oct 2026 the key was part of the path (`/orders/agent/<key>/jobs/`), whi
 
 ---
 
-*Last updated: May 2026 — covers parcel charge fix, compact receipt layout,
+*Last updated: May 2026, covering parcel charge fix, compact receipt layout,
 polling print queue with tenant isolation, 53 tests, and native Android APK
 (WebView + PrintService + BootReceiver) replacing the Termux setup.*

@@ -10,13 +10,13 @@ launch. Estimated: 3-4 weeks of focused work.
 
 ## Guiding Principles
 
-### For anyone — 10th pass student, 60-year-old uncle, or a 10-year-old kid
+### For anyone: 10th pass student, 60-year-old uncle, or a 10-year-old kid
 
 1. **One action per screen.** Don't show 10 things when the user needs to do 1.
 2. **Buttons are huge.** Minimum 48px tap target on every touchable element.
 3. **Words, not icons.** If an icon doesn't have a label, add one.
 4. **Color means something.** Green = good. Red = stop/delete. Orange = wait.
-   Never use color alone to convey meaning — add text too.
+   Never use color alone to convey meaning; add text too.
 5. **No hidden menus.** Nothing should require discovery. If it exists, show it.
 6. **Confirmation before destruction.** Every delete/void/cancel shows a
    plain-language modal: "Are you sure you want to cancel Token #42?"
@@ -54,7 +54,7 @@ All templates must work on:
 ### Navigation: Mobile Bottom Bar
 
 On screens < 768px, show a bottom navigation bar instead of a top nav.
-Staff don't look up — they look down at their hand.
+Staff don't look up: they look down at their hand.
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -70,7 +70,7 @@ On desktop, it's hidden (`d-none d-md-none`). The top header is shown instead.
 
 ---
 
-## Phase 1 — Foundation (Week 1)
+## Phase 1: Foundation (Week 1)
 
 **Goal:** base.html works, theme CSS files exist, 3 core templates converted.
 
@@ -92,7 +92,7 @@ On desktop, it's hidden (`d-none d-md-none`). The top header is shown instead.
 
 ---
 
-## Phase 2 — Kitchen, Orders, Tables (Week 1–2)
+## Phase 2: Kitchen, Orders, Tables (Week 1–2)
 
 **Goal:** Operations staff screens converted and mobile-friendly.
 
@@ -134,7 +134,7 @@ Desktop (> 768px):
 
 ---
 
-## Phase 3 — Management Screens (Week 2–3)
+## Phase 3: Management Screens (Week 2–3)
 
 **Goal:** Owner, manager, and staff management screens converted.
 
@@ -176,16 +176,16 @@ Wide data tables should get horizontal scroll on small screens:
 
 ---
 
-## Phase 4 — Setup, Auth, Superuser (Week 3)
+## Phase 4: Setup, Auth, Superuser (Week 3)
 
 **Goal:** All remaining templates converted.
 
 ### Screens
 
-- `setup/*.html` — Onboarding wizard (mobile-friendly step-by-step)
-- `login.html` — Full-screen centered card, works on any size
+- `setup/*.html`: Onboarding wizard (mobile-friendly step-by-step)
+- `login.html`: Full-screen centered card, works on any size
 - `feature_flags.html` → `superuser_tenant_settings.html`
-- `digital_menu.html` — Customer-facing QR menu (phone only — highest priority)
+- `digital_menu.html`: Customer-facing QR menu (phone only, highest priority)
 - Error pages (400, 403, 404, 500)
 
 ### Login page mobile layout
@@ -212,7 +212,7 @@ Full viewport height, vertically centered, works perfectly on a phone.
 
 ---
 
-## Phase 5 — Theme Polish & QA (Week 4)
+## Phase 5: Theme Polish & QA (Week 4)
 
 **Goal:** All 4 themes look correct across all converted screens.
 
@@ -272,7 +272,7 @@ templates/
 - Feature gating (`has_feature()`)
 - Test suite
 
-The overhaul is **purely presentational** — all behaviour stays identical.
+The overhaul is **purely presentational**: all behaviour stays identical.
 
 ---
 
@@ -286,5 +286,5 @@ The safest migration process per template:
 4. Check on mobile (DevTools)
 5. Run the test suite after each batch
 
-If a template breaks, the fix is always in the `{% block %}` structure — the
+If a template breaks, the fix is always in the `{% block %}` structure; the
 view and URL haven't changed.

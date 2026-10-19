@@ -1,21 +1,21 @@
-# Rasova POS — Complete Deployment Runbook
+# Rasova POS: Complete Deployment Runbook
 ### EC2 · Ubuntu · Nginx · Gunicorn · PostgreSQL · WhiteNoise · CI/CD
 *Every command is copy-pasteable. Follow in order. Never skip a step.*
 
 ---
 
-## PART 1 — AWS EC2: First-time setup
+## PART 1: AWS EC2: First-time setup
 
 ### 1.1 Launch the instance
 1. Go to AWS Console → EC2 → **Launch Instance**
 2. Name: `rasova-prod`
 3. OS: **Ubuntu 24.04 LTS** (free tier eligible)
-4. Instance type: `t3.small` (2 vCPU, 2 GB RAM — minimum for prod)
+4. Instance type: `t3.small` (2 vCPU, 2 GB RAM, minimum for prod)
 5. Key pair: create one called `rasova` → download `rasova.pem` → store safely
-6. Security Group — open these ports:
-   - **22** (SSH) — your IP only
-   - **80** (HTTP) — 0.0.0.0/0
-   - **443** (HTTPS) — 0.0.0.0/0
+6. Security Group: open these ports:
+   - **22** (SSH): your IP only
+   - **80** (HTTP): 0.0.0.0/0
+   - **443** (HTTPS): 0.0.0.0/0
 7. Storage: 20 GB gp3
 8. Click **Launch Instance**
 
@@ -23,13 +23,13 @@
 1. EC2 → **Elastic IPs** → **Allocate Elastic IP Address** → Allocate
 2. Select the new IP → **Actions** → **Associate Elastic IP**
 3. Instance: select your rasova instance → Associate
-4. **Write down the IP** — this is permanent: `_______________`
+4. **Write down the IP** (it is permanent): `_______________`
 
 ### 1.3 Connect to the server
-**Option A — Instance Connect (no .pem needed):**
+**Option A: Instance Connect (no .pem needed):**
 1. EC2 → Instances → select rasova → **Connect** → **EC2 Instance Connect** → Connect
 
-**Option B — SSH from terminal:**
+**Option B: SSH from terminal:**
 ```bash
 chmod 400 rasova.pem
 ssh -i rasova.pem ubuntu@YOUR_ELASTIC_IP
@@ -37,7 +37,7 @@ ssh -i rasova.pem ubuntu@YOUR_ELASTIC_IP
 
 ---
 
-## PART 2 — Server: System dependencies
+## PART 2: Server: System dependencies
 
 ### 2.1 Update system packages
 ```bash
@@ -65,7 +65,7 @@ redis-cli ping         # should return PONG
 
 ---
 
-## PART 3 — PostgreSQL: Create database and user
+## PART 3: PostgreSQL: Create database and user
 
 ### 3.1 Open PostgreSQL shell
 ```bash
@@ -94,7 +94,7 @@ DB_PORT=5432
 
 ---
 
-## PART 4 — Clone the repo and create Python environment
+## PART 4: Clone the repo and create Python environment
 
 ### 4.1 Clone the repo
 ```bash
@@ -117,7 +117,7 @@ pip install -r requirements.txt
 
 ---
 
-## PART 5 — Environment variables (.env file)
+## PART 5: Environment variables (.env file)
 
 ### 5.1 Create the .env file
 ```bash
@@ -155,7 +155,7 @@ source .venv/bin/activate
 
 ---
 
-## PART 6 — Django: migrate and collect static
+## PART 6: Django: migrate and collect static
 
 ### 6.1 Run database migrations
 ```bash
@@ -182,7 +182,7 @@ python manage.py check --deploy
 
 ---
 
-## PART 7 — Gunicorn: run Django in production
+## PART 7: Gunicorn: run Django in production
 
 ### 7.1 Test gunicorn works (foreground first)
 ```bash
@@ -190,7 +190,7 @@ cd /home/ubuntu/rasova
 source .venv/bin/activate
 gunicorn --bind 127.0.0.1:8000 --workers 2 core.wsgi:application
 ```
-> Visit `http://YOUR_ELASTIC_IP` — if nginx is set up you should see something.
+> Visit `http://YOUR_ELASTIC_IP`: if nginx is set up you should see something.
 > Press **Ctrl+C** to stop.
 
 ### 7.2 Run gunicorn as a daemon (background)
@@ -218,7 +218,7 @@ gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 --daemon core.wsgi:appl
 
 ---
 
-## PART 8 — Nginx: reverse proxy
+## PART 8: Nginx: reverse proxy
 
 ### 8.1 Create the nginx site config
 ```bash
@@ -265,7 +265,7 @@ sudo systemctl enable nginx
 
 ---
 
-## PART 9 — DNS: point your domain to EC2
+## PART 9: DNS: point your domain to EC2
 
 ### 9.1 Go to your domain registrar (GoDaddy / Namecheap / etc.)
 
@@ -284,7 +284,7 @@ nslookup rasova.net
 
 ---
 
-## PART 10 — HTTPS: SSL certificate with Certbot
+## PART 10: HTTPS: SSL certificate with Certbot
 
 > Do this ONLY after DNS has propagated (Step 9.3).
 
@@ -298,7 +298,7 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d rasova.net -d www.rasova.net
 ```
 > Follow prompts. Enter email. Agree to terms.
-> When asked about redirect: choose **2 (Redirect)** — forces HTTPS.
+> When asked about redirect: choose **2 (Redirect)**, which forces HTTPS.
 
 ### 10.3 Verify auto-renewal works
 ```bash
@@ -322,7 +322,7 @@ cat /etc/nginx/sites-available/rasova
 
 ---
 
-## PART 11 — GitHub Actions CI/CD
+## PART 11: GitHub Actions CI/CD
 
 ### 11.1 Go to GitHub repo settings
 `github.com/Rajathtuesday/restaurant-pos` → **Settings** → **Secrets and variables** → **Actions**
@@ -332,7 +332,7 @@ cat /etc/nginx/sites-available/rasova
 |------|-------|
 | `EC2_HOST` | Your Elastic IP (e.g. `18.60.238.104`) |
 | `EC2_USER` | `ubuntu` |
-| `EC2_KEY` | Contents of `rasova.pem` — paste the FULL file including `-----BEGIN RSA PRIVATE KEY-----` |
+| `EC2_KEY` | Contents of `rasova.pem`: paste the FULL file including `-----BEGIN RSA PRIVATE KEY-----` |
 
 ### 11.3 How to get EC2_KEY content
 ```bash
@@ -363,7 +363,7 @@ cat rasova.pem
 
 ---
 
-## PART 12 — Maintenance and common operations
+## PART 12: Maintenance and common operations
 
 ### 12.1 Deploy manually (if CI/CD is down)
 
@@ -426,7 +426,7 @@ python manage.py dbshell # PostgreSQL shell with app DB
 
 ---
 
-## PART 13 — What to do when IP changes (EC2 stop/start)
+## PART 13: What to do when IP changes (EC2 stop/start)
 
 > This only happens if you did NOT set up an Elastic IP. If you did Part 1.2 correctly, skip this.
 
@@ -451,7 +451,7 @@ Then restart gunicorn (see 12.1).
 
 ---
 
-## PART 14 — Common errors and fixes
+## PART 14: Common errors and fixes
 
 ### ❌ `dial tcp X.X.X.X:22: i/o timeout` (CI/CD deploy fails)
 **Cause:** EC2_HOST secret has wrong IP, or EC2 instance is stopped.
@@ -471,7 +471,7 @@ Restart gunicorn after saving.
 
 ### ❌ `No open cash session` / payment 400
 **Cause:** QSR tenant needs a CashSession but none exists.
-**Fix:** Already handled in code — auto-creates CashSession for QSR/café tenants.
+**Fix:** Already handled in code: it auto-creates CashSession for QSR/café tenants.
 If still failing, check `orders/views/payment_views.py`.
 
 ### ❌ Login page 500 error
@@ -489,7 +489,7 @@ The app also has `RATELIMIT_FAIL_OPEN = True` as fallback.
 ```bash
 python manage.py collectstatic --noinput
 ```
-WhiteNoise serves static files through gunicorn — no nginx `/static/` alias needed.
+WhiteNoise serves static files through gunicorn, so no nginx `/static/` alias is needed.
 
 ### ❌ 404 on landing page `rasova.net/`
 **Cause:** WhiteNoise not finding `public/index.html`.
@@ -522,7 +522,7 @@ python manage.py migrate
 
 ---
 
-## PART 15 — Quick reference card
+## PART 15: Quick reference card
 
 ```
 App directory:    /home/ubuntu/rasova/
@@ -544,7 +544,7 @@ Domain:           rasova.net
 
 ---
 
-## PART 16 — Checklist before going live with a new client
+## PART 16: Checklist before going live with a new client
 
 - [ ] Tenant created in Django admin
 - [ ] Owner account created and linked to tenant
@@ -552,12 +552,36 @@ Domain:           rasova.net
 - [ ] Menu imported (AI import or manual)
 - [ ] Payment methods configured (Cash / UPI / Card)
 - [ ] GST pricing mode set (Inclusive for QSR, Exclusive for fine dining)
-- [ ] Kitchen station created (if using thermal printer — enter printer IP)
+- [ ] Kitchen station created (if using thermal printer, enter printer IP)
 - [ ] Test order placed → KOT printed → payment processed → receipt printed
 - [ ] Staff accounts created (Manager, Cashier, Waiter as needed)
-- [ ] Reports dashboard checked — correct data showing
+- [ ] Reports dashboard checked: correct data showing
+- [ ] Staff discount limit set in Outlet Settings (off by default, so otherwise cashiers and captains can give any discount, and captains any free dish)
+- [ ] Phone printing: Android app 1.2.0 or later installed from `rasova.net/android/rasova.apk` (uninstall a version from before 19 Oct 2026 first)
 - [ ] Client given login URL and credentials
 
 ---
 
-*Rasova POS · Branch: `qsr` · Founder: Rajath · fortunecloudmentors@gmail.com*
+## PART 17: Releasing the Android print app
+
+The app is not on the Play Store; the site serves it from `public/android/rasova.apk`, so a release is a normal deploy.
+
+1. In `rasova_android/app/build.gradle` raise `versionCode` by one and set `versionName`.
+2. Build and test on the signing PC (it has the release key, see `rasova_android/README.md`, "Release signing"):
+   ```bash
+   cd rasova_android
+   JAVA_HOME="/f/android studio/jbr" ./gradlew testDebugUnitTest testReleaseUnitTest assembleRelease
+   ```
+3. Check the signature is Rasova's own key, not a debug key:
+   ```bash
+   apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk
+   # Signer #1 certificate DN: CN=Rasova, O=Rasova, C=IN
+   ```
+4. Try it on the `Rasova_Test` emulator or a phone: setup screen, connect to `demo-bistro.rasova.net/live-demo/`, open a bill.
+5. Copy it to `public/android/rasova.apk`, commit, push; the deploy publishes it.
+
+Every release must be signed with the same key, or phones refuse it as an update. Keep the key's backup current (`%USERPROFILE%\.rasova_android\`, both files).
+
+---
+
+*Rasova POS · Branch: `qsr` · Founder: Rajath · rajath@rasova.net*

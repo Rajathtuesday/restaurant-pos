@@ -67,6 +67,13 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 - Shown on every bill as an Offers row; set up and edited at `/setup/offers/` with a live example bill and a change history
 - Pure engine in `offers/engine.py`, mirrored in `static/js/offers.js`, cross-checked in CI
 
+### Promos (every outlet)
+- Whole-bill % or flat off, with an optional code, minimum order, dates (business day) and usage cap; made and edited at `/setup/promos/`
+- The minimum follows the bill: void or comp dishes below it and the promo pauses (takes nothing off, the bill screen says why) until the bill is back at it
+- A promo's uses are the bills holding it; the bill names it (`Promo HH20`) on every format; the audit report shows paid bills and what each gave
+- One module sets a bill's discount (`orders/services/bill_discount.py`), and the database refuses a promo with nothing off
+- The owner manages every promo, a manager only their own outlet's; a flat promo needs a minimum at least its own amount
+
 ### Thermal Printing
 - **Browser-based** - `window.print()` via OS print dialog, works with any printer that has a Windows driver. Zero local installation.
 - **ESC/POS network** - direct TCP to printer at port 9100. Works via local Celery worker on the same LAN.
@@ -82,7 +89,7 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 - Split-bill QR accuracy - both the plain UPI QR and the Razorpay QR quote the actual amount being collected (a split share, not the full remaining balance), and the same corrected QR is what prints on the receipt
 - Payment methods - Cash, UPI, Card (configurable per outlet), Razorpay UPI QR (dynamic, webhook-confirmed, supports quoting a partial/split amount)
 - Offline cash payments - a bill can be closed and paid in cash with no internet connection; queues locally and syncs automatically once reconnected
-- Discounts - percentage or flat, at order or item level (manager/owner only)
+- Discounts - percentage or flat, on the whole bill or one dish; every one typed by hand needs a reason, and cashiers and captains are held to the outlet's staff discount limit (set it in Outlet Settings)
 - Complimentary items - mark individual items as ₹0
 - Refunds - two-level approval (manager/owner required)
 - GST-compliant bills - per-item GST rates, CGST/SGST split, GSTIN, FSSAI, SAC code
@@ -105,6 +112,7 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 
 ### Android Print App
 - **Phone-only printing** - the Rasova Android app polls the print queue and sends ESC/POS to network thermal printers, so a counter needs only a phone and a printer (see `PRINTING_SYSTEM.md`)
+- **Version 1.2.0** on the site (`rasova.net/android/rasova.apk`), signed with Rasova's own release key; the pages' confirm and prompt dialogs work inside the app. A phone with a version from before 19 Oct 2026 uninstalls it once first (see `rasova_android/README.md`)
 
 ### Ordering
 - QR self-ordering - customer scans → views menu → places order → appears for staff approval
@@ -419,10 +427,10 @@ Full guide to what each load-test phase checks and how to read its output: [`LOA
 
 ## Tests
 
-**2,062 tests across the codebase (7 October 2026). All passing.**
+**2,126 tests across the codebase (19 October 2026), plus the Android app's unit tests. All passing; the Playwright browser tests skip where Playwright isn't installed.**
 
 ```bash
-python manage.py test --noinput --parallel 8             # all tests, about 10 minutes
+python manage.py test --noinput --parallel 8             # all tests, about 25 minutes
 python manage.py test --keepdb                           # all tests, one process
 python manage.py test orders.tests.test_critical         # critical paths
 python manage.py test orders.tests.test_financial_flows  # payment flows

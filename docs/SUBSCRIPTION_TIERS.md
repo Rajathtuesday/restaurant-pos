@@ -4,7 +4,7 @@
 
 Three tiers control what features and themes a tenant can access. The
 superuser assigns a tier to each tenant. Tier enforcement is on top of the
-existing `has_feature()` system — tier limits which *features* can be
+existing `has_feature()` system: tier limits which *features* can be
 enabled, and which *themes* are available.
 
 ---
@@ -13,7 +13,7 @@ enabled, and which *themes* are available.
 
 ## Tier Definitions
 
-### Starter — ₹999/month
+### Starter: ₹999/month
 
 Entry level. For single-outlet small restaurants, cafes, dhabas.
 
@@ -31,7 +31,7 @@ Entry level. For single-outlet small restaurants, cafes, dhabas.
 
 ---
 
-### Professional — ₹2,499/month
+### Professional: ₹2,499/month
 
 Mid-tier. For growing restaurants and small chains.
 
@@ -51,7 +51,7 @@ Mid-tier. For growing restaurants and small chains.
 
 ---
 
-### Enterprise — ₹5,999/month
+### Enterprise: ₹5,999/month
 
 Full access. For franchise chains and large multi-outlet operations.
 
@@ -83,7 +83,7 @@ franchise-scale operations.
 
 ## Tier-to-Feature Mapping
 
-Features available per tier (additive — Enterprise includes all of Professional,
+Features available per tier (additive: Enterprise includes all of Professional,
 which includes all of Starter):
 
 ### Starter features
@@ -128,9 +128,9 @@ Add to `tenants/models.py`:
 ```python
 class Tenant(models.Model):
     TIER_CHOICES = [
-        ('starter',      'Starter — ₹999/mo'),
-        ('professional', 'Professional — ₹2,499/mo'),
-        ('enterprise',   'Enterprise — ₹5,999/mo'),
+        ('starter',      'Starter - ₹999/mo'),
+        ('professional', 'Professional - ₹2,499/mo'),
+        ('enterprise',   'Enterprise - ₹5,999/mo'),
     ]
     THEME_CHOICES = [
         ('luxury',   'Luxury'),
@@ -204,5 +204,5 @@ Show the current plan and renewal date on the Owner Dashboard:
 ╚══════════════════════════════════════╝
 ```
 
-The "Upgrade" link goes to a contact/Razorpay flow (out of scope for v1 —
+The "Upgrade" link goes to a contact/Razorpay flow (out of scope for v1, 
 superuser manually upgrades via admin for now).
