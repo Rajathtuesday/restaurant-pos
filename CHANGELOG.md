@@ -7,6 +7,13 @@ the source of truth.
 
 ---
 
+## 2026-10-20: A missing migration dependency
+
+### Fixed
+- `promos.0001_initial` (the state-only move of Promo out of orders) never said it needs the orders migrations that create the `orders_promo` table, so migrations only ran in a working order by luck. Adding an app changed the order and a fresh test database failed ("relation orders_promo does not exist"). It now depends on `orders.0035`; both are applied on every existing database, so nothing changes there.
+
+---
+
 ## 2026-10-19: Dish discounts work again, and the Android app 1.2.0
 
 ### Fixed

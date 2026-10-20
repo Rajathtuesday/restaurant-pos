@@ -14,8 +14,15 @@ class Migration(migrations.Migration):
 
     initial = True
 
+    # The table this describes is made by orders 0034 and 0035, so this must
+    # run after them: promos 0002 onwards change that table. Without it the
+    # migrations only ran in a working order by luck, and a test database
+    # failed ("relation orders_promo does not exist") once another app's
+    # dependencies changed the order (20 Oct 2026). Both are applied on every
+    # existing database, so adding it changes nothing there.
     dependencies = [
         ('tenants', '0009_outlet_closing_time_outlet_opening_time'),
+        ('orders', '0035_promo_v2_alloutlet_caps'),
     ]
 
     operations = [
