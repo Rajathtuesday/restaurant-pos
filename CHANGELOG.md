@@ -7,7 +7,7 @@ the source of truth.
 
 ---
 
-## 2026-10-21: The box prints its own print queue, Box Health in Setup, and the box guide
+## 2026-10-21: The box prints its own print queue, Box Health in Setup, the box guide, and the model diagrams redrawn
 
 ### Fixed
 - **On a box, Setup's Test print never printed.** It put the job in the print queue for the phone app or PC agent to collect, and a box has neither. A box now prints its own queue: each new job goes to the box's worker, which sends it straight to the printer's IP, and with no worker queue it prints from the request instead, as KOTs do (`box/print_queue.py`). It claims a job the way the agents do (one UPDATE from pending to processing), so a job prints once even if an agent is also pointed at the box; a job left half-done by a worker that died is picked up again after 2 minutes; a printer that doesn't answer fails the job with the reason. The test print now says "the box prints it in a few seconds". In the cloud nothing changes: a job still waits for a device. Checked on a running box against a pretend printer.
@@ -15,10 +15,12 @@ the source of truth.
 
 ### Added
 - **`docs/BOX_GUIDE.md`**: how to build a release, set up a mini PC, switch it on at a restaurant, make and add licences, update and roll back, back up and restore (and undo a restore), replace a dead box, print, and troubleshoot; the signing keys and how to change one; trying a box on a PC; notes for developers; what isn't done yet.
+- **The model diagrams redrawn** (`docs/diagrams/`), last drawn in March with about 25 models, now 74 in 21 apps: the core schema (also left to right and right to left), every model, every model by app, and new: one diagram per app (`docs/diagrams/apps/`), each as PNG and SVG, with a README on reading them. `python manage.py make_model_diagrams` draws them all from the models, so they can't drift again. The abstract base nearly every model inherits is left out, because its arrows buried the real relations, and the PNGs use a 32-colour palette (as sharp, a third of the size).
 - The box in the other docs: the README (features, structure, settings, printing, commands, roadmap), `docs/USER_MANUAL.md` (a section for restaurants on a box), `docs/PRINTER_SETUP.md` and `PRINTING_SYSTEM.md` (printing on a box), `docs/MEDIA_AND_BACKUPS.md` (a box's backups), `docs/TESTING_STRATEGY.md` (the compiled run) and `docs/DEPLOY.md` (which runbook is which).
 
 ### Tests
 - `box/tests/test_box.py`: the box printing its own queue (Setup's test print, no worker queue, printed once with an agent polling too, a job a dead worker dropped, a printer that doesn't answer, the cloud unchanged), the Box Health card, and that every app is in the box build's allowlist (`box/docker/Dockerfile.dockerignore`): a new app left off it would have been missing from every box image.
+- `devtools/tests/test_make_model_diagrams.py`: every app gets a diagram, the full one has every model, and the base class stays out.
 - Two approval-PIN tests from 20 Oct failed between midnight and 6 am: they asked the void audit for the calendar date, while the audit (rightly) files a night's voids under the business day they started. They now ask for the business day, like the report tests already did.
 
 ---

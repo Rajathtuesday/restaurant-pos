@@ -448,6 +448,9 @@ python manage.py http_rush_test --host http://127.0.0.1:8000
 # on demand instead of waiting for the next scheduled run.
 python manage.py reset_demo_tenant
 
+# Database diagrams in docs/diagrams/, drawn from the models (needs Graphviz)
+python manage.py make_model_diagrams
+
 # Rasova box: on Rasova's PC (the signing keys live only there)
 python manage.py sign_box_license --box-id <id> --customer "Copper Tap" --expires 2027-10-31 --out licence.json
 python manage.py make_box_bundle --release 1.0.0 --out <folder>
