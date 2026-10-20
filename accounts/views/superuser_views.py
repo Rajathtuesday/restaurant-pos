@@ -16,7 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
-from tenants.models import Tenant, Outlet, read_gstin
+from tenants.models import Tenant
 from setup.models import KitchenStation, PaymentConfig
 from tenants.services import tenant_config_service as tcs
 
@@ -84,61 +84,30 @@ def create_restaurant(request):
     if (denied := _su_only(request)):
         return denied
 
-    name          = request.POST.get("name", "").strip()
-    tenant_type   = request.POST.get("tenant_type", "franchise")
-    outlet_name   = request.POST.get("outlet_name", "").strip() or "Main Branch"
-    phone         = request.POST.get("phone", "").strip()
-    gst_no, gstin_error = read_gstin(request.POST.get("gst_no"))
-    owner_username = request.POST.get("owner_username", "").strip()
-    owner_password = request.POST.get("owner_password", "").strip()
-
-    if not name or not owner_username or not owner_password:
-        return JsonResponse({"error": "Restaurant name, owner username and password are required."}, status=400)
-    if tenant_type not in Tenant.TenantType.values:
-        return JsonResponse({"error": f"Unknown restaurant type '{tenant_type}'."}, status=400)
-    if gstin_error:
-        return JsonResponse({"error": gstin_error}, status=400)
-
-    if User.objects.filter(username=owner_username).exists():
-        return JsonResponse({"error": f"Username '{owner_username}' is already taken."}, status=400)
+    from tenants.services.restaurant_setup import RestaurantSetupError
+    from tenants.services.restaurant_setup import create_restaurant as make_restaurant
 
     try:
-        with transaction.atomic():
-            tenant = Tenant.objects.create(name=name, tenant_type=tenant_type)
-
-            outlet = Outlet.objects.create(
-                tenant=tenant,
-                name=outlet_name,
-                phone=phone or None,
-                gst_no=gst_no or None,
-            )
-
-            User.objects.create_user(
-                username=owner_username,
-                password=owner_password,
-                tenant=tenant,
-                outlet=outlet,
-                role="owner",
-            )
-
-            # Create a default kitchen station (billing/single printer)
-            KitchenStation.objects.create(
-                tenant=tenant, outlet=outlet,
-                name="Counter", is_default=True,
-            )
-
-            # Create default payment config
-            PaymentConfig.for_outlet(outlet, tenant)
-
-        logger.info(
-            "Superuser %s created restaurant '%s' (%s) with owner '%s'",
-            request.user.username, name, tenant_type, owner_username,
+        tenant, _, owner = make_restaurant(
+            name=request.POST.get("name", ""),
+            tenant_type=request.POST.get("tenant_type", "franchise"),
+            outlet_name=request.POST.get("outlet_name", ""),
+            phone=request.POST.get("phone", ""),
+            gst_no=request.POST.get("gst_no"),
+            owner_username=request.POST.get("owner_username", ""),
+            owner_password=request.POST.get("owner_password", ""),
         )
-        return JsonResponse({"success": True, "tenant_id": tenant.id})
-
+    except RestaurantSetupError as e:
+        return JsonResponse({"error": e.message}, status=400)
     except Exception:
         logger.exception("Error creating restaurant")
         return JsonResponse({"error": "Restaurant could not be created. Please try again."}, status=500)
+
+    logger.info(
+        "Superuser %s created restaurant '%s' (%s) with owner '%s'",
+        request.user.username, tenant.name, tenant.tenant_type, owner.username,
+    )
+    return JsonResponse({"success": True, "tenant_id": tenant.id})
 
 
 # ---------------------------------------------------------------------------

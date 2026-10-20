@@ -247,6 +247,7 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+{% if box.warnings %}{% include "box/_banner.html" %}{% endif %}
     {% include "core/_demo_trailer_banner.html" %}
     <div id="offline-banner"><i class="bi bi-wifi-off me-2"></i>You are currently offline. Actions may not be saved.</div>
     <div id="global-loader"></div>

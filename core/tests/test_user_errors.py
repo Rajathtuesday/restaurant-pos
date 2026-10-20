@@ -19,6 +19,7 @@ from django.urls import reverse
 from accounts.models import User
 from core.errors import GENERIC_MESSAGE, UserError, user_message
 from tenants.models import Outlet, Tenant, TenantFeatureOverride
+from core.testing import not_in_compiled_build
 
 PYTHON_WORDS = "'NoneType' object has no attribute 'unit'"
 
@@ -99,6 +100,7 @@ class ScreensNeverShowPythonsWordsTest(TestCase):
         self.assertEqual((resp.status_code, resp.json()["error"]), (400, "Unknown order source."))
 
 
+@not_in_compiled_build("the print agent installer (agent/)")
 class AgentDownloadTest(TestCase):
     def test_only_the_named_files_and_nothing_from_the_url(self):
         client = Client()

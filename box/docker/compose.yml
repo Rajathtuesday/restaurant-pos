@@ -1,0 +1,88 @@
+# The Rasova box: five parts on one small computer. Lives at /srv/rasova on the box.
+#   data/box.env   secrets made at install (SECRET_KEY, database password); never in an image
+#   data/          the licence, the scheduler's state
+#   backups/       the nightly backups (point it at a second drive or a USB stick)
+#   .env           RASOVA_VERSION (written by rasova-box); HTTP_PORT and MACHINE_ID_FILE only for testing
+#
+# Every image comes from the bundle (pull_policy: never): the box never
+# downloads anything. Logs rotate at 5 x 10 MB per part, so they can't fill the disk.
+name: rasova
+
+x-logs: &logs
+  driver: local
+  options: {max-size: "10m", max-file: "5"}
+
+services:
+  db:
+    image: postgres:15-bookworm
+    pull_policy: never
+    restart: always
+    logging: *logs
+    env_file: ./data/box.env
+    environment:
+      POSTGRES_DB: rasova
+      POSTGRES_USER: rasova
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rasova -d rasova"]
+      interval: 5s
+      retries: 30
+    # fsync, synchronous_commit and full_page_writes stay on (Postgres's
+    # defaults): a power cut can lose the last half second, never a half bill.
+    shm_size: 256mb
+
+  redis:
+    image: redis:7-alpine
+    pull_policy: never
+    restart: always
+    logging: *logs
+    # The queue of print jobs and the cache; kept on disk so a power cut
+    # doesn't lose a ticket that was waiting for the printer.
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redisdata:/data
+
+  web:
+    image: rasova-box:${RASOVA_VERSION:-latest}
+    pull_policy: never
+    restart: always
+    logging: *logs
+    command: ["web"]
+    env_file: ./data/box.env
+    ports:
+      - "${HTTP_PORT:-80}:8000"
+    volumes:
+      - media:/app/media
+      - ./data:/data
+      - ./backups:/backups
+      - ${MACHINE_ID_FILE:-/etc/machine-id}:/etc/machine-id:ro
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/health/',timeout=5)"]
+      interval: 15s
+      retries: 8
+      start_period: 60s
+
+  worker:
+    image: rasova-box:${RASOVA_VERSION:-latest}
+    pull_policy: never
+    restart: always
+    logging: *logs
+    command: ["worker"]
+    env_file: ./data/box.env
+    volumes:
+      - media:/app/media
+      - ./data:/data
+      - ./backups:/backups
+      - ${MACHINE_ID_FILE:-/etc/machine-id}:/etc/machine-id:ro
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_started}
+
+volumes:
+  pgdata:
+  redisdata:
+  media:

@@ -155,6 +155,7 @@ urlpatterns = [
     
     # setup module
     path('setup/', include('setup.urls')),
+    path('box/', include('box.urls')),
 
     # shifts module
     path('shifts/', include('shifts.urls')),
@@ -181,3 +182,10 @@ from django.conf.urls.static import static
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # On a box only (the view says 404 anywhere else): menu photos and logos
+    # live on its own disk, and it serves them itself.
+    from django.urls import re_path
+
+    from box.views import media as box_media
+    urlpatterns += [re_path(r"^media/(?P<path>.*)$", box_media)]

@@ -140,9 +140,11 @@ jobs:
           # bills, offers.js in Node) had never run here since the app
           # arrived on 4 Oct.
           # covers (cover charges) and devtools (the demo pub seed): added
-          # 20 Oct 2026, the day each got tests.
+          # 20 Oct 2026, the day each got tests. box (the offline box
+          # edition): added 20 Oct 2026 too; its real backup and restore
+          # tests skip where pg_dump/psql don't match the server.
           python manage.py test \
-            accounts agency agent billing core covers crm devtools finance inventory \
+            accounts agency agent billing box core covers crm devtools finance inventory \
             kitchen menu notifications offers orders payments \
             printing promos reports setup shifts \
             tablemerge tenants tokens waiter \

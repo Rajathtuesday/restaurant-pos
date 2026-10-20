@@ -16,6 +16,7 @@ from django.urls import reverse
 from accounts.models import User
 from core.decorators import tenant_required
 from tenants.models import Tenant, Outlet
+from core.testing import not_in_compiled_build
 
 
 @tenant_required
@@ -147,6 +148,7 @@ class AppFilesTest(TestCase):
     would pass without checking anything; if it read local copies of the
     app, they would fail on code that isn't the app's."""
 
+    @not_in_compiled_build("the .py source it reads")
     def test_reads_the_apps_own_files(self):
         templates = {p.as_posix() for p in _app_files(_is_template)}
         python = {p.as_posix() for p in _app_files(lambda p: p.suffix == ".py")}
@@ -194,6 +196,7 @@ class NoMultilineDjangoCommentsTest(TestCase):
         )
 
 
+@not_in_compiled_build("the .py source it scans")
 class UnscopedCallSiteAllowlistTest(TestCase):
     """
     .unscoped(reason=...) (core/models.py TenantManager) is the only

@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test import TestCase, override_settings
 
 from core.public_pages import PUBLIC_PAGES, PUBLIC_PATHS
+from core.testing import not_in_compiled_build
 
 OUTLET_PAGES = ["/fine-dining-pos/", "/cafe-pos/", "/qsr-pos/", "/bar-pos/"]
 
@@ -28,6 +29,7 @@ def meta(text, pattern):
     return html.unescape(match.group(1)) if match else None
 
 
+@not_in_compiled_build("the marketing site (public/)")
 class PublicPageListTest(TestCase):
 
     def test_every_page_in_public_is_listed(self):
@@ -46,6 +48,7 @@ class PublicPageListTest(TestCase):
 
 @override_settings(ALLOWED_HOSTS=["testserver", "rasova.net", ".rasova.net"],
                    CANONICAL_HOST="rasova.net")
+@not_in_compiled_build("the marketing site (public/)")
 class PublicPageServingTest(TestCase):
 
     def test_each_page_is_served_and_indexable_on_the_main_site(self):
@@ -68,6 +71,7 @@ class PublicPageServingTest(TestCase):
         self.assertEqual(sorted(locs), sorted(f"https://rasova.net{p.path}" for p in PUBLIC_PAGES))
 
 
+@not_in_compiled_build("the marketing site (public/)")
 class PublicPageContentTest(TestCase):
 
     def test_each_page_names_itself_as_canonical(self):

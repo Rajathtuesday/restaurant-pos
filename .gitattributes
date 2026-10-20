@@ -4,3 +4,5 @@
 *.bat text eol=crlf
 # Shell scripts run on the Linux server need LF.
 *.sh text eol=lf
+# The box's own script (no .sh on purpose: it's a command, rasova-box) runs on Linux too.
+box/host/rasova-box text eol=lf

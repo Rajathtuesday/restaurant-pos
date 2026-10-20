@@ -70,6 +70,20 @@ if not FIELD_ENCRYPTION_KEY:
 # A missing/misspelled DEBUG var must never silently expose tracebacks + secrets.
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
+# Which Rasova this is: "cloud" (rasova.net, the default) or "box", the
+# offline edition running on a small computer inside one restaurant and
+# reached over its own Wi-Fi with no internet (box/edition.py). A box serves
+# plain http on the restaurant's network, has no Cloudflare, no email and no
+# guest QR ordering, and backs itself up every night.
+RASOVA_EDITION = os.getenv("RASOVA_EDITION", "cloud")
+BOX = RASOVA_EDITION == "box"
+RASOVA_VERSION = os.getenv("RASOVA_VERSION", "dev")
+BOX_BACKUP_DIR = os.getenv("BOX_BACKUP_DIR", "/backups")
+BOX_LICENSE_FILE = os.getenv("BOX_LICENSE_FILE", "/data/license.json")
+BOX_MACHINE_ID_FILE = os.getenv("BOX_MACHINE_ID_FILE", "/etc/machine-id")
+if BOX and not os.getenv("BASE_URL"):
+    BASE_URL = ""      # no fixed address: links are built from the request (rasova.local or the box's IP)
+
 # Structural tenant isolation (core/models.py TenantManager): auto-scopes
 # every TenantScopedModel query to the current request's tenant instead of
 # relying on every call site to remember an explicit filter. Deploys here
@@ -86,9 +100,12 @@ if env_hosts:
     ALLOWED_HOSTS = [host.strip() for host in env_hosts.split(',') if host.strip()]
 else:
     from django.core.exceptions import ImproperlyConfigured
-    if not DEBUG:
+    if BOX:
+        ALLOWED_HOSTS = ['*']   # a box answers on the restaurant's network at whatever address it has
+    elif not DEBUG:
         raise ImproperlyConfigured("ALLOWED_HOSTS must be set in production via environment variable.")
-    ALLOWED_HOSTS = ['*']  # dev only — production requires ALLOWED_HOSTS env var
+    else:
+        ALLOWED_HOSTS = ['*']  # dev only: production requires the ALLOWED_HOSTS env var
 
 # The main site's host. Marketing pages are indexable only here; see
 # core.middleware.SearchIndexingMiddleware.
@@ -125,6 +142,7 @@ INSTALLED_APPS = [
     'promos',
     'offers',
     'covers',
+    'box',
     'printing',
     'tokens',
     'kitchen',
@@ -141,6 +159,10 @@ MIDDLEWARE = [
     # First: sets the real scheme that SecurityMiddleware and every view read
     'core.middleware.CloudflareSchemeMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    # Does nothing in the cloud; on a box: first-run setup, pages a box
+    # doesn't serve, the clock (box/middleware.py). Before WhiteNoise, which
+    # serves the marketing site a box must not.
+    'box.middleware.BoxMiddleware',
     # Before WhiteNoise, so it also covers the marketing pages it serves
     'core.middleware.SearchIndexingMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -175,6 +197,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
 		'core.context_processors.base_url',
                 'core.context_processors.tenant_features',
+                'box.context_processors.box_status',
             ],
             **({} if DEBUG else {
                 'loaders': [
@@ -331,8 +354,10 @@ else:
 # DEBUG-mode testing of the Order/Edit/Receive flows on this exact page.
 CSRF_COOKIE_NAME = "csrftoken2"
 
-# Security Headers
-if not DEBUG:
+# Security Headers (the cloud only: a box serves plain http on the
+# restaurant's own network, so its cookies can't be https-only, and it has no
+# rasova.net domain, Cloudflare or proxy in front of it)
+if not DEBUG and not BOX:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
@@ -447,8 +472,10 @@ CLOUDFLARE_IP_RANGES = [
 CSRF_FAILURE_VIEW = "core.views.csrf_failure"
 
 
-_LOG_DIR = BASE_DIR / "logs"
-_LOG_DIR.mkdir(exist_ok=True)
+# LOG_DIR: the box keeps its logs in /data/logs (outside the image, so they
+# survive an update, and writable by the app's own user).
+_LOG_DIR = Path(os.getenv("LOG_DIR") or BASE_DIR / "logs")
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 LOGGING = {
     "version": 1,
@@ -700,6 +727,7 @@ RASOVA_RAZORPAY_WEBHOOK_SECRET = os.getenv("RASOVA_RAZORPAY_WEBHOOK_SECRET", "")
 EMAIL_BACKEND  = os.getenv(
     "EMAIL_BACKEND",
     "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.dummy.EmailBackend" if BOX     # no internet on a box
     else "django.core.mail.backends.smtp.EmailBackend"
 )
 EMAIL_HOST          = "smtp.gmail.com"
@@ -848,3 +876,12 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour="*/2"),
     },
 }
+if BOX:
+    # A box has no email, no Rasova subscription billing and no public demo:
+    # its one job at night is its own backup, after a pub's 1 am close.
+    CELERY_BEAT_SCHEDULE = {
+        "box-nightly-backup": {
+            "task": "box.tasks.nightly_backup",
+            "schedule": crontab(hour=4, minute=30),
+        },
+    }

@@ -6,6 +6,7 @@ spice.rasova.net/compare/ (a copy of the marketing page, served on every
 subdomain), while the real rasova.net/compare/ waited unindexed.
 """
 from django.test import TestCase, override_settings
+from core.testing import not_in_compiled_build
 
 
 @override_settings(ALLOWED_HOSTS=["testserver", "rasova.net", ".rasova.net"],
@@ -15,6 +16,7 @@ class SearchIndexingTest(TestCase):
     def get(self, path, host):
         return self.client.get(path, HTTP_HOST=host)
 
+    @not_in_compiled_build("the marketing site (public/)")
     def test_marketing_pages_on_the_main_site_can_be_indexed(self):
         for path in ("/", "/compare/"):
             response = self.get(path, "rasova.net")
@@ -37,6 +39,7 @@ class SearchIndexingTest(TestCase):
         self.assertEqual(response.status_code, 301)
         self.assertEqual(response["Location"], "https://rasova.net/compare/?ref=x")
 
+    @not_in_compiled_build("the marketing site (public/)")
     def test_home_page_copy_on_a_subdomain_is_kept_out_of_search(self):
         # Staff still open their own subdomain; it just is not a search result.
         response = self.get("/", "spice.rasova.net")

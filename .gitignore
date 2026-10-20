@@ -62,9 +62,11 @@ md_files/
 # Load-test run logs (generated, not source)
 loadtest_logs/
 
-.dockerignore
-Dockerfile
-docker-compose.yml
+# Anchored to the root: unanchored, "Dockerfile" also swallowed
+# box/docker/Dockerfile (the box image), the same trap as js/ above.
+/.dockerignore
+/Dockerfile
+/docker-compose.yml
 POS_System_Architecture_and_Documentation.md
 
 

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up Rasova</title>
+<style>
+  :root { --bg:#0b0b0d; --card:#16161a; --ink:#f2efe8; --soft:#a8a39a; --gold:#c5a059; --line:#2a2a30; --red:#e06b6b; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f6f3ec; --card:#fff; --ink:#1d1b17; --soft:#6e685d; --line:#e2dccf; --red:#b42318; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; padding:16px; }
+  .card { width:100%; max-width:460px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 22px; }
+  h1 { font:600 1.6rem Georgia,serif; margin:0 0 4px; }
+  p.sub { color:var(--soft); margin:0 0 18px; font-size:.95rem; }
+  label { display:block; font-size:.75rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--soft); margin:14px 0 5px; }
+  input, select { width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line); background:transparent; color:var(--ink); font:inherit; }
+  select option { color:#111; }
+  button { width:100%; margin-top:22px; padding:13px; border:none; border-radius:10px; background:var(--gold); color:#111; font:700 1rem inherit; cursor:pointer; }
+  .error { color:var(--red); margin:8px 0 0; font-weight:600; }
+  .hint { color:var(--soft); font-size:.82rem; margin-top:4px; }
+</style>
+</head>
+<body>
+<form class="card" method="post" autocomplete="off">
+  {% csrf_token %}
+  <h1>Welcome to Rasova</h1>
+  <p class="sub">This box runs your restaurant without the internet. Tell it who you are; you'll add the menu next.</p>
+  {% if error %}<p class="error" id="setupError">{{ error }}</p>{% endif %}
+  <label for="name">Restaurant name</label>
+  <input id="name" name="name" required maxlength="100" value="{{ posted.name|default:'' }}">
+  <label for="tenant_type">Kind of place</label>
+  <select id="tenant_type" name="tenant_type">
+    {% for value, label in types %}<option value="{{ value }}" {% if posted.tenant_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <label for="outlet_name">Branch name</label>
+  <input id="outlet_name" name="outlet_name" maxlength="100" placeholder="Main Branch" value="{{ posted.outlet_name|default:'' }}">
+  <label for="gst_no">GSTIN (optional)</label>
+  <input id="gst_no" name="gst_no" maxlength="15" value="{{ posted.gst_no|default:'' }}">
+  <p class="hint">Without a GSTIN, bills carry no GST. You can add it later.</p>
+  <label for="username">Owner's username</label>
+  <input id="username" name="username" required maxlength="150" value="{{ posted.username|default:'' }}">
+  <label for="password">Owner's password</label>
+  <input id="password" name="password" type="password" required minlength="8" autocomplete="new-password">
+  <label for="password_again">Type it again</label>
+  <input id="password_again" name="password_again" type="password" required minlength="8" autocomplete="new-password">
+  <button type="submit">Start</button>
+</form>
+</body>
+</html>

@@ -1,0 +1,325 @@
+#!/usr/bin/env bash
+# rasova-box: looks after Rasova on the box. Installed at /usr/local/bin/rasova-box
+# by install.sh. Everything lives in /srv/rasova:
+#
+#   compose.yml   how the five parts run          .env       which version runs
+#   data/         box.env (secrets), licence      backups/   nightly backups
+#   versions/     the previous compose.yml and pre-update backup, for rollback
+#
+#   rasova-box install <bundle>        first time: load Rasova, make the secrets, start
+#   rasova-box status                  is it running, version, licence, backups, disk
+#   rasova-box backup                  a backup now
+#   rasova-box restore [<file>]        list backups, or put one back (asks first)
+#   rasova-box update <bundle> [--now] check, back up, install, health-check, roll back on failure
+#   rasova-box rollback                undo the last update (asks first)
+#   rasova-box logs [web|worker|db]    the last lines of the log
+#   rasova-box start | stop | restart
+#
+# A bundle is a folder (usually on a pen drive) made by Rasova: manifest.json,
+# manifest.sig, images.tar.gz, compose.yml. It is copied to the disk first
+# (pulling the pen drive out halfway can't hurt), and nothing is loaded until
+# its signature and every file's fingerprint check out.
+set -euo pipefail
+
+HOME_DIR="${RASOVA_HOME:-/srv/rasova}"
+DEV="${RASOVA_DEV:-0}"           # 1 = testing on a developer's PC (no root, no chown)
+WORK=""
+BUNDLE=""
+
+# Rasova's update key (public half; the private half never leaves Rasova).
+# Same key as box/updates.py UPDATE_PUBLIC_KEY_B64.
+UPDATE_KEY_PEM='-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA7uU/qF97gCPov89liw/kJYj+bV51XeqVhdC2HKrF4UI=
+-----END PUBLIC KEY-----'
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'rasova-box: %s\n' "$*" >&2; exit 1; }
+cleanup() { [ -n "$WORK" ] && rm -rf "$WORK"; [ -n "$BUNDLE" ] && rm -rf "$BUNDLE"; return 0; }
+trap cleanup EXIT
+
+need_root() { [ "$DEV" = 1 ] || [ "$(id -u)" = 0 ] || die "run it with sudo"; }
+dc() { docker compose --project-directory "$HOME_DIR" -f "$HOME_DIR/compose.yml" "$@"; }
+manage() { dc exec -T web python manage.py "$@"; }                   # while running
+manage_stopped() { dc run --rm --no-deps -T web manage "$@"; }        # with web/worker stopped
+installed() { [ -f "$HOME_DIR/compose.yml" ] && [ -f "$HOME_DIR/data/box.env" ]; }
+current_version() { sed -n 's/^RASOVA_VERSION=//p' "$HOME_DIR/.env" 2>/dev/null | tail -1; }
+
+set_version() {
+  local env="$HOME_DIR/.env" tmp
+  tmp="$(mktemp "$HOME_DIR/.env.XXXXXX")"
+  { grep -v '^RASOVA_VERSION=' "$env" 2>/dev/null || true; echo "RASOVA_VERSION=$1"; } > "$tmp"
+  mv "$tmp" "$env"
+}
+
+free_bytes() { df -P -k "$1" | awk 'NR==2 {print $4 * 1024}'; }
+
+# Copy the bundle onto the box's disk, then check it. Sets NEW_VERSION and BUNDLE.
+take_bundle() {
+  local src="${1%/}" size need
+  [ -d "$src" ] || die "no bundle folder at $src"
+  [ -f "$src/manifest.json" ] && [ -f "$src/manifest.sig" ] || die "the update is missing its manifest or signature"
+  size="$(du -sk "$src" | awk '{print $1 * 1024}')"
+  need=$((size * 4))              # the copy, plus the unpacked image
+  [ "$(free_bytes "$HOME_DIR")" -gt "$need" ] || die "not enough free disk for this update (needs about $((need / 1048576)) MB)"
+  BUNDLE="$HOME_DIR/incoming"
+  rm -rf "$BUNDLE"
+  cp -R "$src" "$BUNDLE"
+  chmod -R a+rX "$BUNDLE"
+  verify_bundle "$BUNDLE"
+}
+
+verify_bundle() {
+  local b="$1" line name expected actual
+  WORK="$(mktemp -d "$HOME_DIR/.check.XXXXXX")"
+  printf '%s\n' "$UPDATE_KEY_PEM" > "$WORK/key.pem"
+  base64 -d < "$b/manifest.sig" > "$WORK/sig" 2>/dev/null || die "the update's signature is damaged; nothing was changed"
+  openssl pkeyutl -verify -pubin -inkey "$WORK/key.pem" -rawin -in "$b/manifest.json" -sigfile "$WORK/sig" >/dev/null 2>&1 \
+    || die "the update is not signed by Rasova; nothing was changed"
+  # The manifest is signed, so its contents can be trusted from here on.
+  NEW_VERSION="$(grep -oE '"version": *"[^"]+"' "$b/manifest.json" | sed -E 's/.*"([^"]+)"$/\1/')"
+  printf '%s' "$NEW_VERSION" | grep -qE '^[0-9A-Za-z][0-9A-Za-z._-]{0,40}$' || die "the update's version is odd: $NEW_VERSION"
+  for name in images.tar.gz compose.yml; do
+    grep -q "\"$name\"" "$b/manifest.json" || die "the update doesn't list $name"
+  done
+  while read -r line; do
+    name="$(printf '%s' "$line" | sed -E 's/^"([^"]+)".*/\1/')"
+    expected="$(printf '%s' "$line" | sed -E 's/.*"([0-9a-f]{64})"$/\1/')"
+    [ -f "$b/$name" ] || die "the update is missing $name"
+    actual="$(sha256sum "$b/$name" | awk '{print $1}')"
+    [ "$actual" = "$expected" ] || die "$name is damaged or changed (its fingerprint doesn't match); nothing was changed"
+  done < <(grep -oE '"[A-Za-z0-9][A-Za-z0-9._-]*": *"[0-9a-f]{64}"' "$b/manifest.json")
+}
+
+load_images() {
+  say "  loading the images (a minute or two)"
+  gunzip -c "$BUNDLE/images.tar.gz" | docker load > /dev/null || die "the images could not be loaded; nothing was changed"
+}
+
+wait_healthy() {                # $1 = seconds to wait; gives up early on a crash loop
+  local limit="$1" waited=0 id status restarts
+  while [ "$waited" -lt "$limit" ]; do
+    id="$(dc ps -a -q web 2>/dev/null || true)"
+    if [ -n "$id" ]; then
+      status="$(docker inspect -f '{{.State.Health.Status}}' "$id" 2>/dev/null || echo starting)"
+      [ "$status" = healthy ] && return 0
+      restarts="$(docker inspect -f '{{.RestartCount}}' "$id" 2>/dev/null || echo 0)"
+      [ "${restarts:-0}" -ge 3 ] && { say "  the web part keeps crashing"; return 1; }
+    fi
+    sleep 5
+    waited=$((waited + 5))
+  done
+  return 1
+}
+
+# Healthy is "the web answers and the database is there". The smoke test also
+# loads the code behind the pages and the sign-in page itself.
+smoke() {
+  manage box_status > /dev/null 2>&1 || return 1
+  dc exec -T web python -c "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8000/login/',timeout=10)" \
+    > /dev/null 2>&1 || return 1
+}
+
+open_bills() {
+  manage box_status 2>/dev/null | sed -n 's/.*"open_orders": *\([0-9][0-9]*\).*/\1/p'
+}
+
+prune_images() {                # keep the running version and the one before it
+  local keep_now="$1" keep_prev="$2" tag
+  docker images rasova-box --format '{{.Tag}}' | while read -r tag; do
+    [ "$tag" = "$keep_now" ] || [ "$tag" = "$keep_prev" ] || docker rmi "rasova-box:$tag" > /dev/null 2>&1 || true
+  done
+}
+
+new_secrets() {
+  local env="$HOME_DIR/data/box.env" db_pass
+  [ -f "$env" ] && return 0         # never replace: the database password is inside
+  db_pass="$(openssl rand -hex 24)"
+  umask 077
+  cat > "$env" <<EOF
+# Made by rasova-box install on $(date -I). Keep it: the database password is here.
+RASOVA_EDITION=box
+SECRET_KEY=$(openssl rand -hex 40)
+FIELD_ENCRYPTION_KEY=$(openssl rand -base64 32 | tr '+/' '-_')
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=rasova
+DB_USER=rasova
+DB_PASSWORD=$db_pass
+DB_HOST=db
+DB_PORT=5432
+POSTGRES_PASSWORD=$db_pass
+REDIS_URL=redis://redis:6379/0
+TZ=Asia/Kolkata
+EOF
+  umask 022
+}
+
+own_folders() {                 # the app runs as uid 1000 inside its containers
+  [ "$DEV" = 1 ] && return 0
+  chown -R 1000:1000 "$HOME_DIR/data" "$HOME_DIR/backups"
+  chmod 700 "$HOME_DIR/data"
+}
+
+cmd_install() {
+  need_root
+  [ $# -ge 1 ] || die "usage: rasova-box install <bundle folder>"
+  command -v docker > /dev/null || die "Docker isn't installed (install.sh does that first)"
+  installed && die "Rasova is already installed in $HOME_DIR; use rasova-box update"
+  mkdir -p "$HOME_DIR/data" "$HOME_DIR/backups" "$HOME_DIR/versions"
+  say "1/4 checking the bundle"
+  take_bundle "$1"
+  say "2/4 loading Rasova $NEW_VERSION"
+  load_images
+  install -m 644 "$BUNDLE/compose.yml" "$HOME_DIR/compose.yml"
+  set_version "$NEW_VERSION"
+  say "3/4 making this box's secrets"
+  new_secrets
+  own_folders
+  say "4/4 starting (the first start sets up the database: a few minutes)"
+  dc up -d
+  wait_healthy 900 || die "Rasova did not come up; see: rasova-box logs web"
+  rm -rf "$BUNDLE"
+  say ""
+  local ip
+  ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  say "Rasova $NEW_VERSION is running. On any phone or computer on this Wi-Fi, open:"
+  say "    http://rasova.local${ip:+    (or http://$ip)}"
+  say "and set up the restaurant. Then send Rasova the box id from Box health for the licence."
+}
+
+cmd_update() {
+  need_root
+  installed || die "Rasova isn't installed yet; use rasova-box install"
+  [ $# -ge 1 ] || die "usage: rasova-box update <bundle folder> [--now]"
+  local src="$1" now="${2:-}" old open backup_file
+  old="$(current_version)"
+  say "1/5 checking the update"
+  take_bundle "$src"
+  [ "$NEW_VERSION" != "$old" ] || die "this box already runs $old"
+  # A second opinion from the version already running (compiled code, not
+  # this script): it checks the same signature and fingerprints.
+  dc run --rm --no-deps -T -v "$BUNDLE:/bundle:ro" web manage box_verify_update /bundle > /dev/null \
+    || die "the running version refused the update; nothing was changed"
+  open="$(open_bills)"
+  if [ "${open:-0}" -gt 0 ] && [ "$now" != "--now" ]; then
+    [ "$open" = 1 ] && open="1 bill is" || open="$open bills are"
+    die "$open still open. Update after closing time, or add --now to go ahead anyway"
+  fi
+  say "2/5 backing up first"
+  backup_file="$(manage box_backup | tail -1)" || die "the backup failed, so nothing was changed"
+  say "3/5 loading Rasova $NEW_VERSION"
+  load_images
+  cp "$HOME_DIR/compose.yml" "$HOME_DIR/versions/compose-$old.yml"
+  printf 'from=%s\nto=%s\nbackup=%s\nat=%s\n' "$old" "$NEW_VERSION" "$backup_file" "$(date -Is)" > "$HOME_DIR/versions/last-update"
+  install -m 644 "$BUNDLE/compose.yml" "$HOME_DIR/compose.yml"
+  set_version "$NEW_VERSION"
+  say "4/5 starting $NEW_VERSION"
+  if dc up -d --remove-orphans && wait_healthy 900 && smoke; then
+    say "5/5 done: Rasova $NEW_VERSION is running (it was $old)"
+    rm -rf "$BUNDLE"
+    prune_images "$NEW_VERSION" "$old"
+    return 0
+  fi
+  say "5/5 $NEW_VERSION did not start properly: going back to $old and the backup from just before"
+  dc stop web worker || true
+  cp "$HOME_DIR/versions/compose-$old.yml" "$HOME_DIR/compose.yml"
+  set_version "$old"
+  manage_stopped box_restore --yes "$backup_file" || die "could not put the backup back; call Rasova (backup: $backup_file)"
+  dc up -d --remove-orphans
+  wait_healthy 600 || die "$old did not come back either; call Rasova"
+  mv "$HOME_DIR/versions/last-update" "$HOME_DIR/versions/last-update.undone"
+  docker rmi "rasova-box:$NEW_VERSION" > /dev/null 2>&1 || true
+  die "the update failed and was undone: $old is running with everything as it was"
+}
+
+cmd_restore() {
+  need_root
+  installed || die "Rasova isn't installed"
+  local file="${1:-}" answer
+  if [ -z "$file" ]; then
+    say "Backups (newest first):"
+    ls -1t "$HOME_DIR/backups" | grep -E '^rasova-[0-9]{8}-[0-9]{6}\.dump$' || say "  none yet"
+    say "Then: rasova-box restore <one of them>"
+    return 0
+  fi
+  file="$(basename "$file")"
+  printf '%s' "$file" | grep -qE '^rasova-[0-9]{8}-[0-9]{6}\.dump$' || die "that isn't one of the box's backups"
+  [ -f "$HOME_DIR/backups/$file" ] || die "no backup called $file"
+  if [ "${2:-}" != "--yes" ]; then
+    say "This replaces every bill, menu and setting with the ones in $file."
+    say "(The current database is kept aside once, so a wrong choice can be undone by Rasova.)"
+    printf 'Type RESTORE to go ahead: '
+    read -r answer
+    [ "$answer" = "RESTORE" ] || die "nothing was changed"
+  fi
+  dc stop web worker
+  if ! manage_stopped box_restore --yes "/backups/$file"; then
+    dc up -d
+    die "the restore failed and nothing was changed"
+  fi
+  dc up -d
+  wait_healthy 600 || die "Rasova did not come back up; see: rasova-box logs web"
+  say "Restored $file. Rasova is running."
+}
+
+# Undo the last update: the version before it, and the backup taken just
+# before it. For a power cut in the middle of an update, or a problem found
+# the next morning. Bills made since the update come out of the app, but a
+# backup of now is made first, so Rasova can still get them back.
+cmd_rollback() {
+  need_root
+  installed || die "Rasova isn't installed"
+  local rec="$HOME_DIR/versions/last-update" from to backup_file answer
+  [ -f "$rec" ] || die "there is no update to undo"
+  from="$(sed -n 's/^from=//p' "$rec")"
+  to="$(sed -n 's/^to=//p' "$rec")"
+  backup_file="$(sed -n 's/^backup=//p' "$rec")"
+  [ "$(current_version)" = "$to" ] || die "the last update ($from to $to) isn't what is running now"
+  docker image inspect "rasova-box:$from" > /dev/null 2>&1 || die "$from is no longer on this box"
+  [ -f "$HOME_DIR/versions/compose-$from.yml" ] || die "the settings for $from are gone"
+  [ -f "$HOME_DIR/backups/$(basename "$backup_file")" ] || die "the backup from before the update is gone"
+  if [ "${1:-}" != "--yes" ]; then
+    say "This goes back to $from and to the backup taken just before the update."
+    say "Bills made since the update ($(sed -n 's/^at=//p' "$rec")) come out of the app; a backup of now is made first."
+    printf 'Type ROLLBACK to go ahead: '
+    read -r answer
+    [ "$answer" = "ROLLBACK" ] || die "nothing was changed"
+  fi
+  manage box_backup > /dev/null || say "  (could not back up the current state first)"
+  dc stop web worker
+  cp "$HOME_DIR/compose.yml" "$HOME_DIR/versions/compose-$to.yml"
+  cp "$HOME_DIR/versions/compose-$from.yml" "$HOME_DIR/compose.yml"
+  set_version "$from"
+  if ! manage_stopped box_restore --yes "$backup_file"; then
+    cp "$HOME_DIR/versions/compose-$to.yml" "$HOME_DIR/compose.yml"
+    set_version "$to"
+    dc up -d
+    die "the backup could not be put back, so $to is still running as it was"
+  fi
+  dc up -d --remove-orphans
+  wait_healthy 600 || die "$from did not come up; call Rasova"
+  mv "$rec" "$rec.undone"
+  say "Back on $from, as it was before the update."
+}
+
+cmd_status() {
+  installed || die "Rasova isn't installed"
+  say "Rasova $(current_version) in $HOME_DIR"
+  dc ps --format 'table {{.Service}}\t{{.Status}}'
+  manage box_status 2>/dev/null || say "(the app isn't answering)"
+  say ""
+  df -h "$HOME_DIR" "$HOME_DIR/backups" | awk 'NR==1 || !seen[$1]++'
+}
+
+case "${1:-}" in
+  install) shift; cmd_install "$@" ;;
+  update)  shift; cmd_update "$@" ;;
+  rollback) shift; cmd_rollback "$@" ;;
+  restore) shift; cmd_restore "$@" ;;
+  status)  cmd_status ;;
+  backup)  need_root; manage box_backup ;;
+  logs)    shift; dc logs --tail 200 "${@:-web}" ;;
+  start)   need_root; dc up -d ;;
+  stop)    need_root; dc stop ;;
+  restart) need_root; dc restart ;;
+  *)       sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

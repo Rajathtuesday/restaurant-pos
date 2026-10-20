@@ -34,9 +34,10 @@ def _role_path(user):
 def _subdomain_redirect(user, path):
     """
     Build an absolute URL to the user's subdomain.
-    Returns None in DEBUG mode (no subdomains locally).
+    Returns None in DEBUG mode (no subdomains locally) and on a box (one
+    restaurant at one address: staff stay where they typed it).
     """
-    if settings.DEBUG:
+    if settings.DEBUG or getattr(settings, "BOX", False):
         return None
     tenant = user.tenant
     if not tenant or not tenant.slug:

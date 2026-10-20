@@ -1,0 +1,79 @@
+{% extends 'core/base.html' %}
+{% block title %}Box Health | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: 1.25rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+.panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem 1.1rem; }
+.panel h3 { font-size: .7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin: 0 0 .6rem; }
+.big { font-size: 1.15rem; font-weight: 700; }
+.ok { color: #10b981; } .bad { color: #ef4444; } .warn { color: #f59e0b; }
+.muted { color: var(--text-muted); font-size: .82rem; }
+.btn-box { background: var(--accent-gold); border: none; color: #fff; padding: .55rem 1rem; font-size: .75rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; cursor: pointer; margin-top: .6rem; }
+.msg { padding: .6rem .9rem; margin-bottom: 1rem; border: 1px solid var(--border-color); font-size: .88rem; }
+.msg.error { border-color: #ef4444; color: #ef4444; } .msg.success { border-color: #10b981; color: #10b981; }
+table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+td { padding: .4rem 0; border-bottom: 1px solid var(--border-color); }
+code { overflow-wrap: anywhere; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+  <p class="page-eyebrow">Rasova box {{ version }}</p>
+  <h1 class="page-title">Box health</h1>
+  {% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+
+  <div class="grid">
+    <div class="panel"><h3>Licence</h3>
+      <div class="big {% if licence.blocks_new_orders %}bad{% elif licence.status == 'valid' %}ok{% else %}warn{% endif %}" id="licenceStatus">{{ licence.status|title }}</div>
+      <p class="muted">{{ licence.message }}</p>
+      <p class="muted">This box's id: <code id="boxId">{{ box_id }}</code> (Rasova needs it to make the licence).</p>
+      {% if is_owner %}
+      <form method="post" enctype="multipart/form-data">{% csrf_token %}
+        <input type="hidden" name="action" value="licence">
+        <input type="file" name="licence" accept=".json,application/json" required>
+        <button class="btn-box" type="submit">Add licence file</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="panel"><h3>Clock</h3>
+      <div class="big {% if state.clock_warning %}bad{% else %}ok{% endif %}">{{ now|date:"D d M Y, H:i" }}</div>
+      {% if state.clock_warning %}<p class="muted bad">{{ state.clock_warning }}</p>
+        {% if is_owner %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="clock">
+        <button class="btn-box" type="submit">I've set the right time</button></form>{% endif %}
+      {% else %}<p class="muted">Bills, the business day and the liquor hours all follow this clock.</p>{% endif %}
+    </div>
+
+    <div class="panel"><h3>Backups</h3>
+      {% if state.last_backup_at %}
+        <div class="big {% if state.last_backup_ok %}ok{% else %}bad{% endif %}">{% if state.last_backup_ok %}Last backup good{% else %}Last backup failed{% endif %}</div>
+        <p class="muted">{{ state.last_backup_at|date:"d M Y, H:i" }}{% if state.last_backup_ok %} · {{ state.last_backup_file }}{% else %} · {{ state.last_backup_error }}{% endif %}</p>
+      {% else %}<div class="big warn">No backup yet</div><p class="muted">The box backs itself up every night at 4:30 am.</p>{% endif %}
+      {% if same_drive %}<p class="muted warn" id="sameDrive">These backups are on the same drive as the bills themselves: if that drive dies, they go with it. Plug in the backup stick, or ask Rasova to set one up.</p>{% endif %}
+      {% if is_owner %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="backup">
+      <button class="btn-box" type="submit">Back up now</button></form>{% endif %}
+    </div>
+
+    <div class="panel"><h3>Disk</h3>
+      {% if disk %}<div class="big {% if disk.free_pct < 15 %}bad{% else %}ok{% endif %}">{{ disk.free_gb }} GB free</div>
+      <p class="muted">of {{ disk.total_gb }} GB ({{ disk.free_pct }}% free)</p>{% else %}<div class="big warn">Unknown</div>{% endif %}
+    </div>
+  </div>
+
+  {% if backups %}
+  <div class="panel" style="margin-top:1rem;"><h3>Backups on the drive (newest first)</h3>
+    <table>{% for b in backups %}<tr><td>{{ b.name }}</td><td style="text-align:right;">{{ b.bytes|filesizeformat }}</td></tr>{% endfor %}</table>
+    <p class="muted">To restore one, ask Rasova support: the box stops, restores and starts again.</p>
+  </div>
+  {% endif %}
+
+  <div class="panel" style="margin-top:1rem;"><h3>Printers</h3>
+    <table>{% for s in stations %}<tr><td>{{ s.name }}</td><td style="text-align:right;">{{ s.printer_ip|default:"no printer" }}</td></tr>{% endfor %}</table>
+  </div>
+</div>
+{% endblock %}

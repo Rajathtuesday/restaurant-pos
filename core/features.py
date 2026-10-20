@@ -218,6 +218,13 @@ def has_feature(tenant, feature):
     if not tenant:
         return False
 
+    # A Rasova box (offline edition) has no internet and no guest phones on
+    # its network: those features are off whatever the tenant's settings say
+    # (box/edition.py).
+    from box.edition import BOX_OFF_FEATURES, is_box
+    if feature in BOX_OFF_FEATURES and is_box():
+        return False
+
     # Superusers always have all features (makes testing and support easier).
     # Check this on the tenant object isn't the right place — callers should
     # check request.user.is_superuser. But has_feature is sometimes called

@@ -7,6 +7,32 @@ the source of truth.
 
 ---
 
+## 2026-10-20: The Rasova box: all of Rasova on one small computer in the restaurant, no internet
+
+### Added
+- **A box edition** (`RASOVA_EDITION=box`, the new `box` app). The same Rasova, run on a mini PC on the restaurant's Wi-Fi; tablets and phones open `http://rasova.local`. It prints straight to the printers' IPs (both Celery queues, as in the cloud). What needs the internet is off on a box, whatever the feature switches say: QR ordering, waiter call, guest feedback, Zomato/Swiggy sync, Razorpay, WhatsApp receipts, the menu and recipe importers, email; their pages, the marketing site, the superuser pages and the print agent's paths are 404.
+- **First switch-on** (`/box/setup/`): until a restaurant exists every page leads here; it makes the restaurant, outlet and owner (one at a time, under a database lock) and logs the owner in. `tenants/services/restaurant_setup.py` is now the one place a restaurant is made; the superuser's Create Restaurant uses it too.
+- **Licence**: a small file signed by Rasova (Ed25519), checked on the box with no internet, tied to the box's machine id. 14-day trial from setup; 14 days' grace after the end date; after that open bills can still be billed and paid but no new order starts (refused at the database, `box/signals.py`). An edited licence, or one copied from a box that is still alive, is refused. **A replacement box** (the old one died, its backup restored) works for 14 days on the old box's licence, which the backups carry, so it opens that night. `python manage.py sign_box_license` makes one on Rasova's PC only; it refuses a box id that isn't 16 hex characters (a box with no machine id shows "unknown", and a licence for that would fit every such box).
+- **Clock guard**: a clock that goes back (or jumps months ahead) is flagged on every page until the owner confirms the time.
+- **Nightly backup** at 4:30 am to the backup drive: `pg_dump` to a temporary name, read back with `pg_restore --list`, then renamed, so a power cut or a full disk never leaves a fake backup; 14 kept; one at a time; the result recorded and shown. A failed or missing backup, a nearly full disk, a licence near its end and backups on the same drive as the bills are all shown to the owner.
+- **Restore** loads the backup into a new database and only then swaps it in by renaming, keeping the replaced one as `<name>_before_restore`: a failed restore changes nothing, and nothing made after the backup is left behind (a table added by an update that was then rolled back used to stay and trip the next try).
+- **Box health** page (owner and manager; changes by the owner): licence and box id, licence upload, clock, backups, disk, printers.
+- **No source code on a box**: `box/docker/compile.py` compiles every Rasova module with Cython to machine code and deletes the `.py` (only `manage.py`, the `__init__.py` files and the migrations stay readable), and the build fails if any source is left. The test suite runs against the compiled code (Docker target `test`), so what ships is what was tested.
+- **Updates**: a signed bundle (`python manage.py make_box_bundle`, Rasova's PC only) on a pen drive. `rasova-box update` copies it to the disk, checks the signature and every file's fingerprint (and has the running version check them again), refuses while bills are open unless told `--now`, backs up, loads, starts, health-checks, and on failure goes back to the old version and the backup by itself. `rasova-box rollback` undoes the last update by hand. The bundle carries the Postgres and Redis images too: the box never downloads anything.
+- `box/host/install.sh` (fresh Ubuntu 24.04 mini PC: Docker, `rasova.local`, firewall, no SSH, no sleep, small logs, no surprise updates, the backup drive) and `box/host/rasova-box` (install, status, backup, restore, update, rollback, logs).
+- `LOG_DIR` setting: the box keeps its logs in `/data/logs`, outside the image.
+
+### Fixed (found by running the box)
+- On a box, signing in sent staff to the restaurant's cloud subdomain (`copper-tap.localhost`), an address that doesn't exist there. A box now keeps them on the address they typed; the cloud is unchanged.
+- Links the app builds (the QSR "Now Serving" board) used the cloud's base address; on a box they use the address the device used.
+
+### Tests
+- `box/tests/test_box.py` (44): box mode, first run, signing in staying on the box's address, licence states, signing, moved licences, clock, backup logic, a real `pg_dump` backup, real restores into a scratch database (including a damaged backup changing nothing), update bundles (good, changed file, edited manifest, other key, missing pieces, odd names) and the bundle maker, media, status, and the cloud untouched. CI now runs the `box` tests.
+- Run for real in Docker: install from the bundle alone, first setup, an order printed to a pretend printer, billed and paid, backup and restore, an update with a database change, a replacement box restored from the backup drive, a deliberately broken update that undid itself, and a manual rollback.
+- The whole suite on the compiled code (Docker target `test`): 2,234 tests, 2,196 passed; 22 browser and JavaScript tests skip there (no Chrome or Node in the image), and 16 that read files a box doesn't carry (the marketing site, the print agent installer, the `.py` source) now skip in that build only, by the `RASOVA_COMPILED_TESTS` flag the image sets (`core/testing.py`), so a file missing from the repo still fails CI.
+
+---
+
 ## 2026-10-20: For pubs: the nightly bar count, kegs, covers and the liquor register
 
 ### Added

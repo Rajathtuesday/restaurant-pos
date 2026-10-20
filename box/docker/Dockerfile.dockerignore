@@ -1,0 +1,43 @@
+# Only what the box image is built from goes to Docker (BuildKit reads this
+# file for box/docker/Dockerfile instead of the repo's .dockerignore). Above
+# all: no .env (it holds the cloud's keys), no .git, no docs.
+*
+!manage.py
+!requirements.txt
+!requirements-test.txt
+!accounts
+!agency
+!billing
+!box
+!core
+!covers
+!crm
+!devtools
+!finance
+!inventory
+!kitchen
+!menu
+!notifications
+!offers
+!orders
+!payments
+!printing
+!promos
+!reports
+!setup
+!shifts
+!tablemerge
+!templates
+!tenants
+!tokens
+!waiter
+!static
+**/__pycache__
+**/*.pyc
+**/.env*
+**/node_modules
+# Not part of the app: editing these shouldn't throw away the compile cache.
+box/host
+box/docker/Dockerfile
+box/docker/Dockerfile.dockerignore
+box/docker/compose.yml

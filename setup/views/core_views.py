@@ -1201,7 +1201,9 @@ def setup_qr_codes(request):
         tenant=tenant, outlet=outlet
     ).order_by("name")
 
-    base_url = getattr(settings, "BASE_URL", request.build_absolute_uri("/"))
+    # A box has no fixed address of its own (rasova.local, or its IP): the one
+    # this device used.
+    base_url = settings.BASE_URL or request.build_absolute_uri("/")
     if not base_url.endswith("/"):
         base_url += "/"
     menu_base_url = f"{base_url}menu/"

@@ -11,6 +11,8 @@ management command. That is right for most tests, but wrong for anything
 testing the tenant-scoping guarantee itself: as_tenant and
 TenantScopedTestCase set the context for them.
 """
+import os
+import unittest
 from contextlib import contextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -18,6 +20,18 @@ from unittest.mock import patch
 from django.test import TestCase
 
 from core.tenant_context import clear_current_tenant_outlet, set_current_tenant_outlet
+
+
+# Set only in the box image's test stage (box/docker/Dockerfile), where the
+# suite runs against the compiled code: no .py source, no marketing site
+# (public/), no print agent installer (agent/), no box/docker. Tests that read
+# those files skip there and only there; in the repo and CI a missing file
+# still fails.
+COMPILED_BUILD = os.getenv("RASOVA_COMPILED_TESTS") == "1"
+
+
+def not_in_compiled_build(what):
+    return unittest.skipIf(COMPILED_BUILD, f"not in the compiled box build: {what}")
 
 
 def freeze_ratelimit_clock(test):

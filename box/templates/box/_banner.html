@@ -1,0 +1,7 @@
+<div role="alert" style="position:relative;z-index:2000;font:600 14px/1.45 system-ui,sans-serif;">
+  {% for w in box.warnings %}
+  <div style="padding:8px 14px;color:#fff;background:{% if w.level == 'red' %}#b42318{% else %}#b26b00{% endif %};">
+    {{ w.text }}{% if request.user.role == 'owner' or request.user.role == 'manager' %} <a href="{% url 'box_health' %}" style="color:#fff;text-decoration:underline;margin-left:6px;">Box health</a>{% endif %}
+  </div>
+  {% endfor %}
+</div>

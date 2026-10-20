@@ -9,10 +9,12 @@ from pathlib import Path
 
 from django.conf import settings
 from django.test import TestCase
+from core.testing import not_in_compiled_build
 
 AGENT = Path(settings.BASE_DIR) / "agent"
 
 
+@not_in_compiled_build("the print agent installer (agent/)")
 class AgentDownloadTest(TestCase):
     def test_the_script_is_served_without_login(self):
         resp = self.client.get("/agent/rasova_agent.py")
