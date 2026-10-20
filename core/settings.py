@@ -124,6 +124,7 @@ INSTALLED_APPS = [
     'finance',
     'promos',
     'offers',
+    'covers',
     'printing',
     'tokens',
     'kitchen',

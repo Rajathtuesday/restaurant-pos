@@ -1,0 +1,65 @@
+{% extends 'core/base.html' %}
+{% block title %}Bar Count {{ count.business_date }} | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .85rem; margin-bottom: 1.5rem; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.summary-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; }
+.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent-gold); }
+.summary-num.bad { color: #ef4444; }
+.summary-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .2rem; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 640px; }
+.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700;
+            padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
+.short { color: #ef4444; font-weight: 700; }
+.found { color: #10b981; }
+.note { color: var(--text-muted); font-size: .78rem; margin-top: 1rem; line-height: 1.6; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+    <p class="page-eyebrow">Bar count</p>
+    <h1 class="page-title">{{ count.business_date|date:"D d M Y" }}</h1>
+    <p class="page-sub">Counted by {{ count.counted_by.username|default:"someone no longer on staff" }} at {{ count.created_at|date:"H:i" }}.
+        {{ short_lines }} of {{ lines }} bottles came up short.</p>
+
+    <div class="summary-grid">
+        <div class="summary-card"><div class="summary-num {% if missing_pegs > 0 %}bad{% endif %}" id="missingPegs">{{ missing_pegs }}</div><div class="summary-lbl">Pegs missing (30 ml)</div></div>
+        <div class="summary-card"><div class="summary-num {% if missing_at_price > 0 %}bad{% endif %}" id="missingAtPrice">&#8377;{{ missing_at_price }}</div><div class="summary-lbl">At your selling price</div></div>
+        <div class="summary-card"><div class="summary-num" id="missingAtCost">&#8377;{{ missing_at_cost }}</div><div class="summary-lbl">At cost</div></div>
+    </div>
+
+    <div class="scroll">
+    <table class="table">
+        <thead><tr><th>Bottle</th><th>System expected</th><th>Counted</th><th>Missing</th><th>Pegs</th><th>At price</th><th>At cost</th></tr></thead>
+        <tbody>
+        {% for row in rows %}
+        <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.expected|floatformat:"-1" }} {{ row.unit }}</td>
+            <td>{{ row.counted|floatformat:"-1" }} {{ row.unit }}</td>
+            <td class="{% if row.missing > 0 %}short{% elif row.missing < 0 %}found{% endif %}">{{ row.missing|floatformat:"-1" }} {{ row.unit }}</td>
+            <td>{% if row.missing_pegs is not None %}{{ row.missing_pegs }}{% else %}-{% endif %}</td>
+            <td>{% if row.at_price is not None %}&#8377;{{ row.at_price }}{% else %}-{% endif %}</td>
+            <td>&#8377;{{ row.at_cost }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    <p class="note">Missing = what the till says should be left minus what was counted. A green figure is stock found,
+        often a delivery not entered yet. "At price" uses the cheapest way each bottle is sold (a peg rather than a
+        cocktail), so it never overstates. The stock is now set to this count.
+        {% if unpriced %}No selling price for: {{ unpriced|join:", " }} (no dish uses it).{% endif %}</p>
+    <p class="note"><a href="{% url 'bar_count' %}">New count</a> &middot; <a href="{% url 'bar_count_list' %}">Past counts</a></p>
+</div>
+{% endblock %}

@@ -66,12 +66,14 @@ class PubDefaultsTest(TestCase):
     def test_a_pub_is_fine_dining_plus_liquor_and_offers_minus_the_composition_scheme(self):
         # Spelled out so a feature added to fine dining later is a decision for
         # pubs too, not an accident, and so nothing else drifts in or out.
-        # Offers (offers/engine.py) joined on 4 Oct 2026, pubs only.
+        # Offers (offers/engine.py) joined on 4 Oct 2026, cover charges
+        # (covers/) on 20 Oct 2026, pubs only.
         self.assertEqual(
             set(TENANT_FEATURES["pub"]),
-            (set(TENANT_FEATURES["fine_dining"]) - {"composition_scheme"}) | {"liquor_vat", "offers"},
+            (set(TENANT_FEATURES["fine_dining"]) - {"composition_scheme"}) | {"liquor_vat", "offers", "cover_charge"},
         )
-        self.assertFalse(any("offers" in TENANT_FEATURES[t] for t in TENANT_FEATURES if t != "pub"))
+        for pub_only in ("offers", "cover_charge"):
+            self.assertFalse(any(pub_only in TENANT_FEATURES[t] for t in TENANT_FEATURES if t != "pub"), pub_only)
 
     def test_a_superuser_can_still_switch_liquor_off_for_one_pub(self):
         tenant, _ = make_tenant("pub")

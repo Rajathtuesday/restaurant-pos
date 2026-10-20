@@ -1,0 +1,53 @@
+{% extends 'core/base.html' %}
+{% block title %}Bar Counts | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: 1.25rem; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 560px; }
+.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700;
+            padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
+.bad { color: #ef4444; font-weight: 700; }
+.empty { padding: 2rem; text-align: center; color: var(--text-muted); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+    <p class="page-eyebrow">Bar count</p>
+    <h1 class="page-title">Past counts</h1>
+    <p><a href="{% url 'bar_count' %}">New count</a></p>
+    <form method="get" action="{% url 'liquor_register' %}" style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:0 0 1.5rem;">
+        <span style="font-size:.8rem;color:var(--text-muted);">Liquor stock register (Excel):</span>
+        <input type="date" name="from" aria-label="From">
+        <input type="date" name="to" aria-label="To">
+        <button type="submit" class="btn-luxury">Download</button>
+    </form>
+    {% if reports %}
+    <div class="scroll">
+    <table class="table">
+        <thead><tr><th>Day</th><th>By</th><th>Bottles</th><th>Short</th><th>Pegs missing</th><th>At price</th></tr></thead>
+        <tbody>
+        {% for r in reports %}
+        <tr>
+            <td><a href="{% url 'bar_count_result' r.count.id %}">{{ r.count.business_date|date:"D d M" }}</a></td>
+            <td>{{ r.count.counted_by.username|default:"-" }}</td>
+            <td>{{ r.lines }}</td>
+            <td>{{ r.short_lines }}</td>
+            <td class="{% if r.missing_pegs > 0 %}bad{% endif %}">{{ r.missing_pegs }}</td>
+            <td class="{% if r.missing_at_price > 0 %}bad{% endif %}">&#8377;{{ r.missing_at_price }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty">No counts yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

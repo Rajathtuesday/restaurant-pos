@@ -1,0 +1,115 @@
+{% extends 'core/base.html' %}
+{% block title %}Covers | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 2.5rem; align-items: start; }
+@media (max-width: 760px) { .page-body { grid-template-columns: 1fr; } }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .82rem; line-height: 1.6; margin-bottom: 1.25rem; }
+.form-label { display: block; font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: .35rem; }
+.field { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: .7rem; font-size: 1rem; font-family: inherit; margin-bottom: 1rem; }
+.field:focus { border-color: var(--accent-gold); outline: none; }
+.pay-row { display: flex; gap: .5rem; margin-bottom: 1rem; }
+.pay-row label { flex: 1; text-align: center; border: 1px solid var(--border-color); padding: .6rem; cursor: pointer; font-size: .85rem; }
+.pay-row input { margin-right: .3rem; }
+.btn-sell { width: 100%; padding: .95rem; background: var(--accent-gold); border: none; color: #fff; font-size: .8rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; }
+.msg { padding: .7rem 1rem; margin-bottom: 1rem; font-size: .85rem; border: 1px solid var(--border-color); }
+.msg.error { border-color: #dc2626; color: #dc2626; }
+.msg.success { border-color: #10b981; color: #10b981; }
+.slip { border: 2px dashed var(--accent-gold); padding: 1.2rem; text-align: center; margin-bottom: 1.5rem; background: var(--panel-bg); }
+.slip-code { font-family: 'Space Mono', monospace; font-size: 2.2rem; letter-spacing: .3em; font-weight: 700; }
+.slip-amount { font-size: 1.1rem; margin-top: .3rem; }
+.slip small { color: var(--text-muted); display: block; margin-top: .4rem; }
+.totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
+.total { background: var(--panel-bg); border: 1px solid var(--border-color); padding: .8rem; }
+.total-num { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--accent-gold); }
+.total-lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+.scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 480px; }
+.table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: .6rem .4rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { padding: .6rem .4rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
+.note { color: var(--text-muted); font-size: .75rem; line-height: 1.6; margin-top: 1rem; }
+@media print { body * { visibility: hidden; } .slip, .slip * { visibility: visible; } .slip { position: absolute; top: 0; left: 0; width: 72mm; border: 1px dashed #000; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+    <div>
+        <p class="page-eyebrow">The door</p>
+        <h1 class="page-title">Sell a cover</h1>
+        <p class="page-sub">The guest pays at the door and spends it on food and drinks tonight. On the bill, tap <b>Cover</b>
+            and type the code from the slip; it pays as much of the bill as it has left.</p>
+
+        {% for msg in messages %}<div class="msg {{ msg.tags }}">{{ msg }}</div>{% endfor %}
+
+        {% if slip %}
+        <div class="slip" id="coverSlip">
+            <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:3px;">{{ request.user.outlet.name }} &middot; cover</div>
+            <div class="slip-code" id="slipCode">{{ slip.code }}</div>
+            <div class="slip-amount">&#8377;{{ slip.amount }} to spend tonight{% if slip.guests > 1 %} &middot; {{ slip.guests }} guests{% endif %}</div>
+            <small>Show this code when you pay. Good only on {{ slip.business_date|date:"D d M" }}.</small>
+            <button type="button" class="btn-sell" style="margin-top:.9rem;" onclick="window.print()">Print slip</button>
+        </div>
+        {% endif %}
+
+        <form method="post" autocomplete="off">
+            {% csrf_token %}
+            <label class="form-label" for="amount">Amount (&#8377;)</label>
+            <input class="field" id="amount" name="amount" type="number" inputmode="decimal" min="1" step="0.01" required>
+            <label class="form-label">Paid by</label>
+            <div class="pay-row">
+                {% for key, label in paid_by_choices %}
+                <label><input type="radio" name="paid_by" value="{{ key }}" {% if forloop.first %}checked{% endif %}>{{ label }}</label>
+                {% endfor %}
+            </div>
+            <label class="form-label" for="guests">Guests</label>
+            <input class="field" id="guests" name="guests" type="number" inputmode="numeric" min="1" max="50" value="1">
+            <label class="form-label" for="guest_name">Name (optional)</label>
+            <input class="field" id="guest_name" name="guest_name" maxlength="100">
+            <label class="form-label" for="guest_phone">Phone (optional)</label>
+            <input class="field" id="guest_phone" name="guest_phone" inputmode="tel" maxlength="15">
+            <button class="btn-sell" type="submit">Sell cover</button>
+        </form>
+    </div>
+
+    <div>
+        <p class="page-eyebrow">{% if day == today %}Tonight{% else %}{{ day|date:"D d M" }}{% endif %}</p>
+        <h1 class="page-title">Covers</h1>
+        <form method="get" style="margin-bottom:1rem;"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" class="field" style="max-width:200px;margin:0;" onchange="this.form.submit()"></form>
+        <div class="totals">
+            <div class="total"><div class="total-num" id="coversSold">&#8377;{{ sold }}</div><div class="total-lbl">Sold ({{ guests }} guests)</div></div>
+            <div class="total"><div class="total-num">&#8377;{{ used }}</div><div class="total-lbl">Spent on bills</div></div>
+            <div class="total"><div class="total-num">&#8377;{{ left }}</div><div class="total-lbl">{% if day == today %}Left tonight{% else %}Lapsed{% endif %}</div></div>
+        </div>
+        <p class="note" style="margin-top:0;">Taken at the door: cash &#8377;{{ sold_by_method.cash }}, UPI &#8377;{{ sold_by_method.upi }}, card &#8377;{{ sold_by_method.card }}.
+            Cash covers count in the drawer when the shift closes.</p>
+        {% if rows %}
+        <div class="scroll">
+        <table class="table">
+            <thead><tr><th>Code</th><th>Guests</th><th>Paid</th><th>Spent</th><th>Left</th><th>By</th></tr></thead>
+            <tbody>
+            {% for r in rows %}
+            <tr>
+                <td><b>{{ r.cover.code }}</b>{% if r.cover.guest_name %}<br><span style="color:var(--text-muted);font-size:.75rem;">{{ r.cover.guest_name }}</span>{% endif %}</td>
+                <td>{{ r.cover.guests }}</td>
+                <td>&#8377;{{ r.cover.amount }} <span style="color:var(--text-muted);font-size:.72rem;">{{ r.cover.get_paid_by_display }}</span></td>
+                <td>&#8377;{{ r.used }}</td>
+                <td>&#8377;{{ r.left }}</td>
+                <td>{{ r.cover.sold_by.username|default:"-" }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="note">No covers sold this night.</p>
+        {% endif %}
+        <p class="note">A cover pays part of a bill like any other payment, so the bill's tax is unchanged. What is left
+            on a cover lapses at the end of its night; ask your CA how to treat the lapsed amount.</p>
+    </div>
+</div>
+{% endblock %}

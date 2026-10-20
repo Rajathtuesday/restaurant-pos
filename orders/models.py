@@ -759,6 +759,9 @@ class Payment(models.Model):
         ("uber_eats", "Uber Eats"),
         ("web",       "Website"),
         ("refund",    "Refund"),   # negative-amount entry created on refund approval
+        # Paid from a cover bought at the door (covers/services.py): the money
+        # was taken when the cover was sold, so it isn't cash or digital here.
+        ("cover",     "Cover credit"),
     )
 
     order = models.ForeignKey(

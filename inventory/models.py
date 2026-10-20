@@ -74,6 +74,13 @@ class InventoryItem(TenantScopedModel):
         help_text="Standard quantity to order when stock is low"
     )
 
+    # One bottle's size, so the bar count can be typed as "3 sealed + 420 ml
+    # open" instead of a total (inventory/services/bar_count.py).
+    bottle_ml = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Size of one bottle in ml (750, 1000), for the nightly bar count.",
+    )
+
     cost_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -1060,3 +1067,78 @@ class RecipeImportLine(models.Model):
 
     def __str__(self):
         return f"{self.raw_ingredient_name or '(manual)'} (job {self.job_id})"
+
+
+class BarCount(TenantScopedModel):
+    """
+    One closing count of the bar's bottles (inventory/services/bar_count.py).
+
+    Rasova's variance report compares what the till deducted with what the
+    recipes say, so it can't see a free pour or a drink sold for cash and
+    never rung up: both leave the system's stock too high. Only counting the
+    bottles shows that. The count is blind (whoever counts doesn't see what
+    the system expects); each line keeps both numbers, and the stock is then
+    set to what was counted.
+    """
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    business_date = models.DateField()
+    counted_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["tenant", "outlet", "business_date"], name="barcount_outlet_day")]
+
+    def __str__(self):
+        return f"Bar count {self.business_date} ({self.outlet_id})"
+
+
+class BarCountLine(models.Model):
+    """One bottle line of a bar count: what the system expected and what was
+    counted, in the item's own unit, with its prices at the time."""
+    count = models.ForeignKey(BarCount, on_delete=models.CASCADE, related_name="lines")
+    item = models.ForeignKey(InventoryItem, on_delete=models.SET_NULL, null=True, blank=True)
+    item_name = models.CharField(max_length=255)
+    unit = models.CharField(max_length=10, choices=UNIT_CHOICES)
+    expected = models.DecimalField(max_digits=12, decimal_places=3)
+    counted = models.DecimalField(max_digits=12, decimal_places=3)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0,
+                                     help_text="Cost per unit when counted.")
+    sell_price = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True,
+                                     help_text="Selling price per unit when counted (the cheapest way it is sold).")
+
+    class Meta:
+        ordering = ["item_name", "id"]
+        constraints = [
+            CheckConstraint(condition=Q(counted__gte=0), name="barcountline_counted_not_negative"),
+        ]
+
+    @property
+    def missing(self):
+        """How much less was counted than the system expected (negative:
+        more was found)."""
+        return self.expected - self.counted
+
+
+
+class KegChange(TenantScopedModel):
+    """
+    A keg of draught beer was finished and a new one tapped
+    (inventory/kegs.py). `sold` is what the till sold from the keg that was
+    just finished (since the previous change), `lost` what a full keg held
+    beyond that: foam, spillage, or beer that left without a bill. The
+    stock is lowered by `lost` at the change. Both are None for an item's
+    first change, when Rasova doesn't know when that keg was tapped.
+    """
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    item = models.ForeignKey(InventoryItem, on_delete=models.CASCADE, related_name="keg_changes")
+    changed_at = models.DateTimeField(auto_now_add=True)
+    changed_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, blank=True)
+    keg_size = models.DecimalField(max_digits=12, decimal_places=3, help_text="In the item's unit.")
+    sold = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+    lost = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+
+    class Meta:
+        ordering = ["-changed_at"]

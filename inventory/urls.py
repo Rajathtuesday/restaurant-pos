@@ -11,6 +11,7 @@ from .requisition_views import (
     requisition_detail, approve_requisition,
     convert_to_batch, convert_to_po, cancel_requisition,
 )
+from .bar_count_views import bar_count, bar_count_list, bar_count_result, keg_change, kegs, liquor_register
 from .recipe_import_views import (
     recipe_import_start, recipe_import_status, recipe_import_review,
     recipe_import_update_line, recipe_import_add_line,
@@ -22,6 +23,12 @@ urlpatterns = [
     path("board/", views.inventory_board, name="inventory_board"),
     path("consumption/", views.consumption_report, name="inventory_consumption"),
     path("variance/", views.variance_report, name="inventory_variance"),
+    path("bar-count/", bar_count, name="bar_count"),
+    path("bar-count/past/", bar_count_list, name="bar_count_list"),
+    path("bar-count/<int:count_id>/", bar_count_result, name="bar_count_result"),
+    path("kegs/", kegs, name="kegs"),
+    path("liquor-register/", liquor_register, name="liquor_register"),
+    path("kegs/<int:item_id>/change/", keg_change, name="keg_change"),
     path("create/", views.create_inventory_item, name="create_inventory_item"),
     path("update/<int:item_id>/", views.update_inventory_item, name="update_inventory_item"),
     path("restock/<int:item_id>/", views.restock_item, name="restock_item"),

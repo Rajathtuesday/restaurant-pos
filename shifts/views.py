@@ -313,9 +313,15 @@ def close_cash_session(request):
                 id__in=refund_ids, payment__method="cash",
             ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
 
+        # Covers sold at the door in this window (covers/): their cash is in
+        # the drawer too, and their UPI and card are digital takings.
+        from covers.services import cover_takings
+        door = cover_takings(request.user.tenant, request.user.outlet, session.opened_at, close_time)
+
         expected_cash = (
             Decimal(str(session.opening_balance))
             + Decimal(str(cash_payments or 0))
+            + door["cash"]
             - Decimal(str(cash_refund_total or 0))
         )
 
@@ -327,9 +333,10 @@ def close_cash_session(request):
             paid_at__gte=session.opened_at,
             paid_at__lte=close_time
         ).aggregate(total=Sum("amount"))["total"] or 0
+        digital_payments = Decimal(str(digital_payments)) + door["upi"] + door["card"]
 
         # 3. Total Sales (Grand total of orders paid in this window)
-        total_sales = Decimal(str(cash_payments or 0)) + Decimal(str(digital_payments or 0))
+        total_sales = Decimal(str(cash_payments or 0)) + door["cash"] + Decimal(str(digital_payments or 0))
 
         session.closed_at = close_time
         session.closed_by = request.user

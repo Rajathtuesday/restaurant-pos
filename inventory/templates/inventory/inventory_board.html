@@ -95,6 +95,8 @@
 <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
 <a href="{% url 'inventory_consumption' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-graph-up me-1"></i> Consumption</a>
 <a href="{% url 'inventory_variance' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-droplet-half me-1"></i> Variance</a>
+{% if 'liquor_vat' in tenant_features %}<a href="{% url 'bar_count' %}" class="btn-luxury text-decoration-none d-inline-flex"><i class="bi bi-cup-straw me-1"></i> Bar count</a>
+<a href="{% url 'kegs' %}" class="btn-luxury text-decoration-none d-inline-flex"><i class="bi bi-database me-1"></i> Kegs</a>{% endif %}
 {% if 'purchase_orders' in tenant_features %}
 <a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
 <a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
@@ -186,7 +188,7 @@
                             </div>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}')" title="Edit ingredient details" aria-label="Edit ingredient details">
+                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}', '{{ item.bottle_ml|default:"" }}')" title="Edit ingredient details" aria-label="Edit ingredient details">
                                 <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
                             </button>
                         </td>
@@ -285,6 +287,10 @@
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Auto-Reorder Qty</label>
                         <input id="editReorderQty" type="number" step="0.01" class="form-control" placeholder="Qty to order">
+                    </div>
+                    <div class="col-6 mb-3">
+                        <label class="form-label text-muted text-uppercase" for="editBottleMl" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Bottle size (ml)</label>
+                        <input id="editBottleMl" type="number" step="1" min="0" class="form-control" placeholder="750, for the bar count">
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Preferred Supplier</label>
@@ -474,7 +480,7 @@ function createInventoryItem() {
     .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to create ingredient.'); } });
 }
 
-function openEditModal(id, name, category, costPrice, threshold, reorderQty, supplierId) {
+function openEditModal(id, name, category, costPrice, threshold, reorderQty, supplierId, bottleMl) {
     document.getElementById('editId').value = id;
     document.getElementById('editName').value = name;
     document.getElementById('editCategory').value = category;
@@ -482,6 +488,7 @@ function openEditModal(id, name, category, costPrice, threshold, reorderQty, sup
     document.getElementById('editThreshold').value = threshold;
     document.getElementById('editReorderQty').value = reorderQty;
     document.getElementById('editSupplier').value = supplierId || '';
+    document.getElementById('editBottleMl').value = bottleMl || '';
     new bootstrap.Modal(document.getElementById('editModal')).show();
 }
 
@@ -497,7 +504,7 @@ function updateInventoryItem() {
     fetch(`/inventory/update/${id}/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ name, category, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null })
+        body: JSON.stringify({ name, category, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null, bottle_ml: document.getElementById('editBottleMl').value })
     })
     .then(r => r.json())
     .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to update ingredient.'); } });

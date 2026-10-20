@@ -313,6 +313,18 @@
     {% endif %}
     {% endif %}
 
+    {% if 'cover_charge' in tenant_features %}
+    {% if request.user.role != 'chef' and request.user.role != 'kitchen' and request.user.role != 'waiter' %}
+    <div class="col-6 col-md-3 col-lg-2">
+        <a href="{% url 'covers' %}" class="quick-card">
+            <div class="icon"><i class="bi bi-ticket-perforated"></i></div>
+            <h5>Covers</h5>
+            <p>Sell entry at the door</p>
+        </a>
+    </div>
+    {% endif %}
+    {% endif %}
+
     {% if 'kitchen_display' in tenant_features %}
     <div class="col-6 col-md-3 col-lg-2">
         <a href="/kitchen/" class="quick-card">

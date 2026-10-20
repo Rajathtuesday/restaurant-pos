@@ -374,6 +374,7 @@
                     {% if config.upi_enabled %}<button class="btn-pay" onclick="recordPay('upi')"><i class="bi bi-qr-code"></i>{{ config.upi_label }}</button>{% endif %}
                     {% if config.card_enabled %}<button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i>{{ config.card_label }}</button>{% endif %}
                     {% if razorpay_feature_enabled and config.razorpay_enabled %}<button class="btn-pay" onclick="openRazorpayQR()"><i class="bi bi-qr-code-scan"></i>Razorpay QR</button>{% endif %}
+                    {% if 'cover_charge' in tenant_features %}<button class="btn-pay" id="pay-cover" onclick="payFromCover()"><i class="bi bi-ticket-perforated"></i>Cover</button>{% endif %}
                 </div>
                 <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Bill</button>
                 {% if request.user.role == 'owner' or request.user.role == 'manager' %}
@@ -586,6 +587,31 @@ renderUpiQR({{ remaining }});
 {% endif %}
 <script>
     /* ── Discount ─────────────────────────────────────────── */
+    /* Pay from a cover bought at the door (covers/services.py): it pays as
+       much of what is left as the cover has. The bill itself doesn't change. */
+    async function payFromCover() {
+        const result = await Swal.fire({
+            title: 'Pay from a cover',
+            html: '<label for="cover-code" style="display:block;text-align:left;font-size:.8rem;">Code on the slip</label>' +
+                  '<input id="cover-code" class="swal2-input" maxlength="8" autocomplete="off" ' +
+                  'style="width:100%;margin:.3rem 0 0;text-transform:uppercase;letter-spacing:.3em;text-align:center;">',
+            showCancelButton: true,
+            confirmButtonText: 'Use cover',
+            focusConfirm: false,
+            didOpen: () => document.getElementById('cover-code').focus(),
+            preConfirm: () => {
+                const code = document.getElementById('cover-code').value.trim();
+                if (!code) { Swal.showValidationMessage('Type the code from the slip.'); return false; }
+                return { code };
+            },
+        });
+        if (!result.isConfirmed) return;
+        try {
+            const d = await apiClient.post('{% url "cover-redeem" order.id %}', result.value);
+            if (d.success) location.reload();
+        } catch (e) { /* apiClient has already shown the error */ }
+    }
+
     async function applyDiscount(promoId = null) {
         const type  = document.getElementById('discount-type').value;
         const value = parseFloat(document.getElementById('discount-value').value);

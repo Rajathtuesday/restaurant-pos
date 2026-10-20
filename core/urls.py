@@ -151,6 +151,7 @@ urlpatterns = [
 
     # inventory module
     path('inventory/', include('inventory.urls')),
+    path('covers/', include('covers.urls')),
     
     # setup module
     path('setup/', include('setup.urls')),

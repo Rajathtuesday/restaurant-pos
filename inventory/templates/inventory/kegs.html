@@ -1,0 +1,84 @@
+{% extends 'core/base.html' %}
+{% block title %}Kegs | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .85rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.msg { padding: .7rem 1rem; margin-bottom: 1rem; font-size: .85rem; border: 1px solid var(--border-color); }
+.msg.error { border-color: #dc2626; color: #dc2626; }
+.msg.success { border-color: #10b981; color: #10b981; }
+.keg { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+       padding: 1rem; border: 1px solid var(--border-color); background: var(--panel-bg); margin-bottom: .75rem; }
+.keg-name { font-weight: 700; }
+.keg-meta { color: var(--text-muted); font-size: .8rem; margin-top: .2rem; }
+.bar { height: 6px; background: var(--border-color); margin-top: .5rem; width: 220px; max-width: 100%; }
+.bar > span { display: block; height: 100%; background: var(--accent-gold); }
+.btn-change { background: var(--accent-gold); border: none; color: #fff; padding: .7rem 1.1rem; font-size: .75rem;
+              text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; cursor: pointer; }
+.scroll { overflow-x: auto; margin-top: 2rem; }
+.table { width: 100%; border-collapse: collapse; min-width: 620px; }
+.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700;
+            padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
+.bad { color: #ef4444; font-weight: 700; }
+.empty { padding: 2rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+    <p class="page-eyebrow">Draught</p>
+    <h1 class="page-title">Kegs</h1>
+    <p class="page-sub">Press <b>Change keg</b> when a keg runs dry and you tap a new one. Rasova compares what the till sold
+        from the finished keg with what a keg holds, takes the difference off the stock, and shows each keg's yield below.</p>
+
+    {% for msg in messages %}<div class="msg {{ msg.tags }}">{{ msg }}</div>{% endfor %}
+
+    {% for keg in now %}
+    <div class="keg">
+        <div>
+            <div class="keg-name">{{ keg.item.name }}</div>
+            <div class="keg-meta">
+                {{ keg.item.bottle_ml }} ml keg.
+                {% if keg.sold is not None %}Sold from this keg so far: {{ keg.sold|floatformat:"-1" }} {{ keg.item.unit }} ({{ keg.share }}%).
+                {% else %}No change recorded yet: the first press starts the count.{% endif %}
+            </div>
+            {% if keg.share is not None %}<div class="bar"><span style="width:{% if keg.share > 100 %}100{% else %}{{ keg.share }}{% endif %}%;"></span></div>{% endif %}
+        </div>
+        <form method="post" action="{% url 'keg_change' keg.item.id %}"
+              onsubmit="return confirm('Is the {{ keg.item.name|escapejs }} keg empty? This starts a new one.');">
+            {% csrf_token %}
+            <button class="btn-change" type="submit">Change keg</button>
+        </form>
+    </div>
+    {% empty %}
+    <div class="empty">No kegs yet. A keg is bar stock kept in ml with a keg size of 5,000 ml or more: set the size
+        (for example 30000) as the bottle size of the item on the inventory board.</div>
+    {% endfor %}
+
+    {% if history %}
+    <div class="scroll">
+    <table class="table">
+        <thead><tr><th>Changed</th><th>Keg</th><th>By</th><th>Sold</th><th>Yield</th><th>Not sold</th><th>Worth</th></tr></thead>
+        <tbody>
+        {% for h in history %}
+        <tr>
+            <td>{{ h.change.changed_at|date:"d M, H:i" }}</td>
+            <td>{{ h.change.item.name }}</td>
+            <td>{{ h.change.changed_by.username|default:"-" }}</td>
+            <td>{% if h.change.sold is not None %}{{ h.change.sold|floatformat:"-1" }} {{ h.change.item.unit }}{% else %}first change{% endif %}</td>
+            <td class="{% if h.yield is not None and h.yield < 90 %}bad{% endif %}">{% if h.yield is not None %}{{ h.yield }}%{% if h.over_a_keg %} (a change was missed?){% endif %}{% else %}-{% endif %}</td>
+            <td>{% if h.change.lost is not None %}{{ h.change.lost|floatformat:"-1" }} {{ h.change.item.unit }}{% else %}-{% endif %}</td>
+            <td>{% if h.lost_value is not None %}&#8377;{{ h.lost_value }}{% else %}-{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

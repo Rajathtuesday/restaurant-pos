@@ -54,6 +54,7 @@ TENANT_FEATURES = {
         # Liquor
         'liquor_vat',
         'offers',
+        'cover_charge',
         # Kitchen
         'kot_system',
         'kitchen_display',
@@ -151,6 +152,9 @@ FEATURE_GROUPS = {
         # "pub" tenant type only. Switching it off removes offers from open
         # bills at their next change; issued bills never change.
         'offers',
+        # Entry paid at the door and spent on the bill (covers/). On by
+        # default for the "pub" tenant type only.
+        'cover_charge',
     ],
     'Kitchen': [
         'kot_system',

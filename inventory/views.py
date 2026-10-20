@@ -277,6 +277,12 @@ def update_inventory_item(request, item_id):
         if "reorder_quantity" in data:
             item.reorder_quantity = read_number(data["reorder_quantity"], "The reorder quantity", blank=zero,
                                                 field=_item_field("reorder_quantity"))
+        if "bottle_ml" in data:
+            # One bottle's size for the bar count (inventory/bar_count.py); blank = none.
+            bottle = read_number(data["bottle_ml"], "The bottle size", blank=zero, minimum=0)
+            if bottle != bottle.to_integral_value() or bottle > 100000:
+                raise NumberInputError("The bottle size is a whole number of ml, like 750.")
+            item.bottle_ml = int(bottle) or None
     except NumberInputError as e:
         return error_response(e, 400)
 
@@ -292,7 +298,8 @@ def update_inventory_item(request, item_id):
         else:
             item.preferred_supplier = None
 
-    item.save(update_fields=["name", "category", "low_stock_threshold", "cost_price", "reorder_quantity", "preferred_supplier", "updated_at"])
+    item.save(update_fields=["name", "category", "low_stock_threshold", "cost_price", "reorder_quantity",
+                             "bottle_ml", "preferred_supplier", "updated_at"])
     logger.info("%s updated inventory item '%s'", request.user.username, item.name)
     return JsonResponse({"success": True})
 

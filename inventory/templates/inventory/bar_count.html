@@ -1,0 +1,75 @@
+{% extends 'core/base.html' %}
+{% block title %}Bar Count | {{ request.user.outlet.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.page-body { max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .85rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.msg { padding: .7rem 1rem; margin-bottom: 1rem; font-size: .85rem; border: 1px solid #dc2626; color: #dc2626; }
+.bottle { display: grid; grid-template-columns: 1fr auto auto; gap: .6rem; align-items: center;
+          padding: .8rem 0; border-bottom: 1px solid var(--border-color); }
+.bottle-name { font-weight: 600; font-size: .92rem; }
+.bottle-meta { color: var(--text-muted); font-size: .72rem; margin-top: .15rem; }
+.bottle input { width: 92px; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
+                padding: .55rem .5rem; font-size: 1rem; font-family: inherit; text-align: center; }
+.bottle input:focus { border-color: var(--accent-gold); outline: none; }
+.field-cap { display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); text-align: center; margin-bottom: .2rem; }
+.btn-save { width: 100%; padding: 1rem; margin-top: 1.5rem; background: var(--accent-gold); border: none; color: #fff;
+            font-size: .8rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; }
+.links { margin-top: 1rem; font-size: .8rem; }
+.empty { padding: 2rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); }
+@media (max-width: 520px) { .bottle { grid-template-columns: 1fr 1fr; } .bottle-info { grid-column: 1 / -1; } .bottle input { width: 100%; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+    <p class="page-eyebrow">Closing</p>
+    <h1 class="page-title">Bar count</h1>
+    <p class="page-sub">Count every bottle as it stands now: sealed bottles, and the ml left in the open one.
+        Leave a bottle blank to skip it. You won't see what the system expects; Rasova compares after you save,
+        shows what went missing in pegs and rupees, and sets the stock to your count.</p>
+
+    {% for msg in messages %}<div class="msg">{{ msg }}</div>{% endfor %}
+
+    {% if rows %}
+    <form method="post" autocomplete="off" id="barCountForm">
+        {% csrf_token %}
+        {% for row in rows %}
+        <div class="bottle">
+            <div class="bottle-info">
+                <div class="bottle-name">{{ row.item.name }}</div>
+                <div class="bottle-meta">
+                    {% if row.item.unit == 'pcs' %}counted in pieces
+                    {% elif row.item.bottle_ml %}{{ row.item.bottle_ml }} ml bottle
+                    {% elif row.item.unit == 'ml' or row.item.unit == 'l' %}no bottle size set: type the total ml
+                    {% else %}counted in {{ row.item.get_unit_display|lower }}{% endif %}
+                </div>
+            </div>
+            <div>
+                <label class="field-cap" for="bottles_{{ row.item.id }}">{% if row.item.unit == 'pcs' %}Pieces{% else %}Sealed{% endif %}</label>
+                <input id="bottles_{{ row.item.id }}" name="bottles_{{ row.item.id }}" type="number" inputmode="numeric"
+                       min="0" step="1" value="{{ row.bottles }}"
+                       {% if row.item.unit != 'pcs' and not row.item.bottle_ml %}disabled placeholder="-"{% endif %}>
+            </div>
+            <div>
+                {% if row.item.unit != 'pcs' %}
+                <label class="field-cap" for="amount_{{ row.item.id }}">{% if row.item.unit == 'ml' or row.item.unit == 'l' %}{% if row.item.bottle_ml %}Open ml{% else %}Total ml{% endif %}{% else %}{{ row.item.unit }}{% endif %}</label>
+                <input id="amount_{{ row.item.id }}" name="amount_{{ row.item.id }}" type="number" inputmode="decimal"
+                       min="0" step="any" value="{{ row.amount }}">
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn-save">Save the count</button>
+    </form>
+    {% else %}
+    <div class="empty">No bar stock yet. Bar stock is anything a liquor dish uses in its recipe, or any stock item
+        filed under the category "Bar" on the inventory board.</div>
+    {% endif %}
+
+    <p class="links"><a href="{% url 'bar_count_list' %}">Past counts</a></p>
+</div>
+{% endblock %}

@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-10-20: For pubs: the nightly bar count, kegs, covers and the liquor register
+
+### Added
+- **The nightly bar count** (Inventory, Bar count). Rasova's variance report compares the till's deductions with the recipes, so it can't see a free pour or a drink sold for cash and never rung up; only counting the bottles can. A manager counts each bottle (sealed bottles plus the ml in the open one; bottle size is a new field on the stock item). The count is blind: the screen never shows what the system expects. Rasova then shows what went missing per bottle in ml, 30 ml pegs and rupees (at cost, and at the cheapest way the bottle sells, so it never overstates), and sets the stock to the count. Past counts are listed.
+- **Kegs** (Inventory, Kegs). A keg is bar stock with a container of 5 litres or more. "Change keg" records what the finished keg sold through the till against what it holds, takes the difference (foam, spillage, pints with no bill) off the stock, and shows each keg's yield and what the loss was worth.
+- **Cover charges** (a new `covers` app, on for pubs). The door sells a cover (amount, guests, cash/UPI/card) and prints a slip with a 5-letter code. On the bill, **Cover** pays as much of what is due as the cover has left, as a payment ("Cover credit"), never a discount, so the bill and its GST don't change. A cover can pay several bills, lapses after its night, and a bill cancelled later gives its part back. Closing a shift now expects the door's cash covers in the drawer (UPI and card covers count as digital). The CA should confirm how to treat a lapsed cover's unused amount.
+- **Liquor stock register** (Excel, from Past counts): per business day per bottle, opening + received (with the delivery's reference, for the KSBCL invoice) - sold - broken +/- count correction = closing, in bulk litres, with closing full bottles and loose ml. The official Karnataka layout wasn't found published; the columns are to be matched to a pub's accountant's register.
+- `python manage.py seed_pub_demo`: a demo pub (bar station, pegs off 750 ml bottles, a 30 litre keg, a happy hour, covers, a manager with PIN 2580) to record the pub demo on, locally.
+
+### Tests
+- `inventory/tests/test_bar_count.py` (14), `inventory/tests/test_kegs.py` (9), `covers/tests/test_covers.py` (13, including two cashiers spending one cover at the same moment), `inventory/tests/test_liquor_register.py` (4), `devtools/tests/test_seed_pub_demo.py`.
+- No query per row: saving a count, the past counts page, the keg page and the register each cost the same number of queries for one bottle, count or keg as for many, and tests count them. A count locks the bar's stock in id order, the order every sale locks stock in, so a count and a sale at the same moment can't deadlock. A second "Change keg" within 2 minutes is refused, so a double tap can't record a full keg as lost.
+- CI now runs the `covers` and `devtools` tests.
+
+---
+
 ## 2026-10-20: A printed bill can't be lowered without a manager, and liquor only in licensed hours
 
 ### Fixed (the till leaks found on 19 Oct)

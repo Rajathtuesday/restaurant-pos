@@ -139,8 +139,10 @@ jobs:
           # offers: added 19 Oct 2026; its tests (the engine, offers on
           # bills, offers.js in Node) had never run here since the app
           # arrived on 4 Oct.
+          # covers (cover charges) and devtools (the demo pub seed): added
+          # 20 Oct 2026, the day each got tests.
           python manage.py test \
-            accounts agency agent billing core crm finance inventory \
+            accounts agency agent billing core covers crm devtools finance inventory \
             kitchen menu notifications offers orders payments \
             printing promos reports setup shifts \
             tablemerge tenants tokens waiter \
