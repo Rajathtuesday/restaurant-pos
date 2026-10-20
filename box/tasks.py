@@ -16,3 +16,10 @@ def nightly_backup():
     except BackupError as e:
         logger.error("Box backup failed: %s", e)
         return None
+
+
+@shared_task(name="box.tasks.print_queued_job", queue="printing", acks_late=True)
+def print_queued_job(job_id):
+    """A print job on a box, sent straight to its printer (box/print_queue.py)."""
+    from box.print_queue import print_job
+    return print_job(job_id)

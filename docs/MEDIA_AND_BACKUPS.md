@@ -303,3 +303,16 @@ Workers/edge). So:
 
 The only thing we migrated to Cloudflare is what it's genuinely best at: **object
 storage**. The compute stays on a real server.
+
+---
+
+## 7. On a Rasova box (the offline edition)
+
+A box has no internet, so none of the above applies to it: no R2, no WAL shipping.
+
+- **Media** (logos, menu photos) is saved on the box's own disk and served by the box itself (`box.views.media`).
+- **Backups** are a nightly `pg_dump` at 4:30 am to the box's backup drive (`/srv/rasova/backups`). Each is written to a temporary name, read back with `pg_restore --list`, then renamed. The newest 14 are kept, with a copy of the licence beside them, and the result is shown to the owner on Box health (`box/backup.py`).
+- **Restore** loads a backup into a new database, then swaps it in by renaming, keeping the replaced one as `rasova_before_restore` (one level of undo). A failed restore changes nothing.
+
+The commands, the undo and what to do when a box dies are in [`BOX_GUIDE.md`](BOX_GUIDE.md), sections 9 and 10.
+

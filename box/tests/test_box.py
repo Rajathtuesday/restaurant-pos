@@ -9,6 +9,7 @@ import base64
 import json
 import os
 import shutil
+import socket
 import subprocess
 import tempfile
 import threading
@@ -31,6 +32,7 @@ from box.signals import LicenceEnded
 from core.features import has_feature
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order
+from printing.models import PrintJob
 from setup.models import KitchenStation, PaymentConfig
 from tenants.models import SAMPLE_GSTIN, Outlet, Tenant, TenantFeatureOverride
 from core.testing import not_in_compiled_build
@@ -550,6 +552,16 @@ class HealthPageTest(BoxBase):
         run.assert_not_called()
 
 
+    def test_setup_has_a_way_to_box_health_on_a_box_only(self):
+        # Without it, Box health was only reachable from a warning banner:
+        # on a healthy box the owner couldn't find it.
+        tenant, outlet, owner = self.restaurant()
+        self.assertContains(self.client_for(owner).get("/setup/"), 'id="boxHealthCard"')
+        cashier = User.objects.create_user(username="tap_cash2", password="pw", role="cashier", tenant=tenant, outlet=outlet)
+        self.assertEqual(self.client_for(cashier).get("/setup/").status_code, 302)    # Setup isn't theirs at all
+        with override_settings(BOX=False):
+            self.assertNotContains(self.client_for(owner).get("/setup/"), 'id="boxHealthCard"')
+
     def test_backups_on_the_same_drive_are_pointed_out(self):
         tenant, outlet, owner = self.restaurant()
         (self.tmp / "backups").mkdir()
@@ -564,6 +576,139 @@ class HealthPageTest(BoxBase):
             return result
         with mock.patch("box.views.os.stat", side_effect=other_drive):
             self.assertNotContains(self.client_for(owner).get("/box/health/"), 'id="sameDrive"')
+
+
+class BoxPrintQueueTest(BoxBase):
+    """On a box the box prints its own print queue (Setup's test print, jobs
+    pushed by a device); in the cloud a job waits for a device to collect it."""
+
+    def printer(self):
+        """A pretend thermal printer on 127.0.0.1: (port, list of jobs received)."""
+        server = socket.socket()
+        server.bind(("127.0.0.1", 0))
+        server.listen(5)
+        server.settimeout(10)
+        self.addCleanup(server.close)
+        got = []
+
+        def run():
+            try:
+                while True:
+                    conn, _ = server.accept()
+                    data = b""
+                    while chunk := conn.recv(65536):
+                        data += chunk
+                    conn.close()
+                    got.append(data)
+            except OSError:
+                pass
+        threading.Thread(target=run, daemon=True).start()
+        return server.getsockname()[1], got
+
+    def wait_for(self, got, n=1):
+        for _ in range(250):
+            if len(got) >= n:
+                return
+            threading.Event().wait(0.02)
+        self.fail(f"the pretend printer got {len(got)} job(s), expected {n}")
+
+    def restaurant_with_printer(self, port):
+        tenant, outlet, owner = self.restaurant()
+        KitchenStation.objects.filter(tenant=tenant, outlet=outlet).update(printer_ip="127.0.0.1", printer_port=port)
+        return tenant, outlet, owner
+
+    def job(self, tenant, outlet, port, data=b"\x1b@HELLO"):
+        with override_settings(BOX=False):               # made without the box's signal
+            return PrintJob.objects.create(tenant=tenant, outlet=outlet, payload={
+                "data_b64": base64.b64encode(data).decode(), "network_host": "127.0.0.1", "network_port": port})
+
+    def test_setups_test_print_prints_from_the_box(self):
+        port, got = self.printer()
+        tenant, outlet, owner = self.restaurant_with_printer(port)
+        with mock.patch("core.celery_utils.dispatch", side_effect=lambda task, *a: task(*a)), \
+                self.captureOnCommitCallbacks(execute=True):
+            r = self.client_for(owner).post("/setup/printer/test/", content_type="application/json")
+        self.assertEqual(r.json()["message"], "Test sent: the box prints it in a few seconds.")
+        self.wait_for(got)
+        self.assertIn(b"TEST", got[0])
+        self.assertEqual(PrintJob.objects.get(pk=r.json()["job_id"]).status, PrintJob.DONE)
+
+    def test_with_no_worker_queue_it_prints_straight_away(self):
+        port, got = self.printer()
+        tenant, outlet, owner = self.restaurant_with_printer(port)
+        with mock.patch("core.celery_utils.dispatch", side_effect=OSError("no broker")), \
+                self.captureOnCommitCallbacks(execute=True):
+            job = PrintJob.objects.create(tenant=tenant, outlet=outlet, payload={
+                "data_b64": base64.b64encode(b"BILL").decode(), "network_host": "127.0.0.1", "network_port": port})
+        self.wait_for(got)
+        self.assertEqual(got, [b"BILL"])
+        job.refresh_from_db()
+        self.assertEqual(job.status, PrintJob.DONE)
+
+    def test_a_job_prints_once_even_if_an_agent_also_polls_the_box(self):
+        from box.print_queue import print_job
+        port, got = self.printer()
+        tenant, outlet, owner = self.restaurant_with_printer(port)
+        job = self.job(tenant, outlet, port)
+        self.assertTrue(print_job(job.pk))
+        self.assertFalse(print_job(job.pk))                 # done: nobody prints it again
+        fresh = self.job(tenant, outlet, port)
+        PrintJob.objects.filter(pk=fresh.pk).update(status=PrintJob.PROCESSING, claimed_at=timezone.now())
+        self.assertFalse(print_job(fresh.pk))               # an agent has it right now
+        self.wait_for(got)
+        self.assertEqual(len(got), 1)
+
+    def test_a_job_dropped_by_a_dead_worker_is_printed_later(self):
+        from box.print_queue import STALE_CLAIM, print_job
+        port, got = self.printer()
+        tenant, outlet, owner = self.restaurant_with_printer(port)
+        job = self.job(tenant, outlet, port)
+        PrintJob.objects.filter(pk=job.pk).update(status=PrintJob.PROCESSING,
+                                                  claimed_at=timezone.now() - STALE_CLAIM - timedelta(seconds=5))
+        self.assertTrue(print_job(job.pk))
+        self.wait_for(got)
+
+    def test_a_printer_that_doesnt_answer_fails_the_job_and_says_why(self):
+        from box.print_queue import print_job
+        closed = socket.socket()
+        closed.bind(("127.0.0.1", 0))
+        port = closed.getsockname()[1]
+        closed.close()                                        # nothing listens there now
+        tenant, outlet, owner = self.restaurant_with_printer(port)
+        job = self.job(tenant, outlet, port)
+        self.assertFalse(print_job(job.pk, tries=2, wait=0))
+        job.refresh_from_db()
+        self.assertEqual(job.status, PrintJob.FAILED)
+        self.assertIn("didn't answer", job.error_msg)
+
+    def test_in_the_cloud_a_job_waits_for_a_device(self):
+        tenant, outlet, owner = self.restaurant()
+        with override_settings(BOX=False), mock.patch("core.celery_utils.dispatch") as sent, \
+                self.captureOnCommitCallbacks(execute=True):
+            job = PrintJob.objects.create(tenant=tenant, outlet=outlet, payload={
+                "data_b64": "", "network_host": "127.0.0.1", "network_port": 9100})
+        sent.assert_not_called()
+        job.refresh_from_db()
+        self.assertEqual(job.status, PrintJob.PENDING)
+
+
+class BoxBuildListTest(TestCase):
+    @not_in_compiled_build("box/docker, which only Rasova's PC has")
+    def test_every_app_goes_into_the_box_image(self):
+        # The box image is built only from what box/docker/Dockerfile.dockerignore
+        # lets in (an allowlist, so the cloud's .env and the docs never get in).
+        # A new app left off that list would be missing from every box.
+        from django.apps import apps
+        from django.conf import settings
+        base = Path(settings.BASE_DIR)
+        allowed = {line[1:].strip().strip("/") for line in
+                   (base / "box" / "docker" / "Dockerfile.dockerignore").read_text().splitlines()
+                   if line.startswith("!")}
+        ours = {Path(app.path).relative_to(base).parts[0] for app in apps.get_app_configs()
+                if Path(app.path).is_relative_to(base) and "site-packages" not in Path(app.path).parts}
+        self.assertEqual(ours - allowed, set(), "add these to box/docker/Dockerfile.dockerignore")
+        for needed in ("manage.py", "requirements.txt", "templates", "static"):
+            self.assertIn(needed, allowed)
 
 
 class BoxMediaTest(BoxBase):

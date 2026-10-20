@@ -144,6 +144,14 @@
         <div class="card-desc">Your PIN for approving cancels and discounts on a printed bill from a cashier's screen.</div>
         <div class="card-status status-pending"><i class="bi bi-circle"></i> {% if request.user.approval_pin %}Set{% else %}Not set{% endif %}</div>
     </a>
+    {% if box.is_box %}
+    <a href="{% url 'box_health' %}" class="setup-card" id="boxHealthCard">
+        <div class="card-icon"><i class="bi bi-hdd-network"></i></div>
+        <div class="card-title">Box Health</div>
+        <div class="card-desc">This box's licence, clock, backups, disk and printers.</div>
+        <div class="card-status status-pending"><i class="bi bi-circle"></i> {% if box.warnings %}Needs attention{% else %}All good{% endif %}</div>
+    </a>
+    {% endif %}
     {% endif %}
 
     <a href="/inventory/board" class="setup-card">

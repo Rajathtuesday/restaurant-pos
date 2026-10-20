@@ -62,6 +62,18 @@ outlet.paper_width_mm   # 58 or 80
 
 ---
 
+## Setup: Rasova Box (the offline edition)
+
+A Rasova box sits on the restaurant's own network, so it prints straight to each printer's IP on port 9100, with no agent, phone app or QZ Tray. KOTs and bills print from the box, and the box prints its own print queue too (Setup's test print included: `box/print_queue.py`).
+
+1. Give every printer a fixed IP on the restaurant's router.
+2. In **Setup, Kitchen Stations**, enter each station's printer IP.
+3. **Setup, Printer, Test print**: the box prints the test page within a few seconds.
+
+Everything below this section (MAC addresses, agents, Termux, Raspberry Pi) is for the cloud and isn't needed on a box. The full box guide is [`BOX_GUIDE.md`](BOX_GUIDE.md).
+
+---
+
 ## Setup: Windows PC + USB Printer (existing setup)
 
 **Hardware:** Windows laptop/PC → USB cable → thermal printer

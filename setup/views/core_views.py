@@ -977,6 +977,8 @@ def printer_test_print(request):
     if request.user.role not in ["owner", "manager"]:
         return JsonResponse({"error": "Not allowed"}, status=403)
 
+    from django.conf import settings
+
     from setup.services.station_service import get_default_station
     from printing.models import PrintJob
 
@@ -1000,7 +1002,9 @@ def printer_test_print(request):
     return JsonResponse({
         "success": True,
         "job_id": job.pk,
-        "message": "Test queued — a receipt prints in a few seconds if your phone app is open and logged in.",
+        # On a box its own worker prints the queue (box/print_queue.py).
+        "message": ("Test sent: the box prints it in a few seconds." if getattr(settings, "BOX", False)
+                    else "Test queued: a receipt prints in a few seconds if your phone app is open and logged in."),
     })
 
 

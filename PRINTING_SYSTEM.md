@@ -54,6 +54,16 @@ Windows/Mac PC  → WebSocket Agent on PC → TCP 9100 → Printer ✓
 iPhone / iPad   → Browser opens receipt tab → AirPrint → Printer ✓
 ```
 
+### And the Rasova box, which needs none of them
+
+The box edition runs Rasova on a small computer inside the restaurant, on the same Wi-Fi as the printers, so the problem above doesn't exist there:
+
+```
+Any browser → Rasova box (in the restaurant) → TCP 9100 → Printer ✓
+```
+
+KOTs and bills print from the box's own worker and web process, and the box prints its own print queue (`box/print_queue.py`), claiming each job the way the agents do so it prints once. See [`docs/BOX_GUIDE.md`](docs/BOX_GUIDE.md), section 11.
+
 ---
 
 ## 2. Parcel Charge

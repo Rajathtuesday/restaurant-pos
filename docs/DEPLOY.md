@@ -2,6 +2,8 @@
 ### EC2 · Ubuntu · Nginx · Gunicorn · PostgreSQL · WhiteNoise · CI/CD
 *Every command is copy-pasteable. Follow in order. Never skip a step.*
 
+> This is the cloud (rasova.net on EC2). The offline edition, Rasova on one small computer inside a restaurant, is set up and updated differently: see [`BOX_GUIDE.md`](BOX_GUIDE.md).
+
 ---
 
 ## PART 1: AWS EC2: First-time setup

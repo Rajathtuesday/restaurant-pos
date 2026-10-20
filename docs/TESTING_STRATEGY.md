@@ -1222,7 +1222,7 @@ Blank the R2 variables first when running locally, because `.env` holds the prod
 
 ```bash
 # Run all tests in parallel: 8 processes, each with its own test database
-# (2,126 tests in about 25 minutes on the development laptop, 19 Oct 2026)
+# (2,260 tests in about 30 minutes on the development laptop, 21 Oct 2026)
 python manage.py test --noinput --parallel 8
 
 # Run all tests in one process (uses Django's test runner)
@@ -1248,6 +1248,15 @@ coverage html   # generates htmlcov/index.html - open in browser
 # Skip slow concurrency tests during development
 pytest -k "not Concurrency"
 ```
+
+
+### The same suite on the compiled box code
+
+The box edition ships Rasova compiled to machine code, so the suite also runs against that compiled code, in the box image's `test` target. A pass there is the proof that compiling changed nothing. The commands are in [`BOX_GUIDE.md`](BOX_GUIDE.md), section 3, step 4.
+
+- The image sets `RASOVA_COMPILED_TESTS=1`. Tests that read files a box doesn't carry (the marketing site in `public/`, the print agent installer in `agent/`, `box/docker`, or the `.py` source itself) are marked `@not_in_compiled_build(...)` (`core/testing.py`) and skip there, and only there. A file missing from the repository still fails here and in CI.
+- The browser and JavaScript tests skip there too: the image has no Chrome or Node.
+- The box's own tests are in `box/tests/test_box.py`: box mode, first run, the licence states, backups and real restores (they need `pg_dump`, `pg_restore` and `psql` on the PATH, and skip without them), update bundles, the box printing its own queue against a pretend printer, and that every app is in the box build's allowlist.
 
 ---
 

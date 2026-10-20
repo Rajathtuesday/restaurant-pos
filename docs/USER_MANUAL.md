@@ -16,7 +16,8 @@
 8. [Inventory Basics](#8-inventory-basics)
 9. [Reports & End of Day](#9-reports--end-of-day)
 10. [When Things Go Wrong](#10-when-things-go-wrong)
-11. [Glossary](#11-glossary)
+11. [If Your Restaurant Runs on a Rasova Box](#11-if-your-restaurant-runs-on-a-rasova-box)
+12. [Glossary](#12-glossary)
 
 ---
 
@@ -231,11 +232,37 @@ Each table has its own printed QR code. When a guest scans it:
 
 **The Rasova app won't install ("App not installed")** - you have a version from before 19 Oct 2026. Uninstall the old Rasova app (long-press its icon, then Uninstall), then install the new one from rasova.net/android/rasova.apk. Later updates install over the top.
 
-**A printer isn't printing**: check that the local printer agent/app is running on the device connected to your printer; a browser print popup will appear as a fallback if it can't be reached.
+**A printer isn't printing**: check that the local printer agent/app is running on the device connected to your printer; a browser print popup will appear as a fallback if it can't be reached. (On a Rasova box there is no agent: see the next section.)
 
 ---
 
-## 11. Glossary
+## 11. If Your Restaurant Runs on a Rasova Box
+
+A Rasova box is a small computer in your restaurant that runs all of Rasova by itself, with no internet.
+
+**Opening Rasova:** on any phone, tablet or laptop on the restaurant's Wi-Fi, open Chrome and go to the address on the sticker on the box (like `http://192.168.1.50`). Laptops and iPhones can also use `http://rasova.local`. Use Chrome, not the Rasova Android app: the app is for Rasova in the cloud.
+
+**What isn't there:** guest QR ordering, waiter call and feedback, Zomato and Swiggy orders, Razorpay, WhatsApp bills and emailed reports. They need the internet. Everything else works as described in this manual.
+
+**Printing:** the box prints KOTs, bills and test prints straight to your printers; no app or agent has to be open. If something doesn't print, use **Setup, Printer, Test print**. If that doesn't print either, check the printer is on and its address in **Setup, Kitchen Stations** is right.
+
+**Box Health** (owners and managers, the **Box Health** card on the Setup page) shows:
+- **Licence**: its state and end date, this box's id, and **Add licence file** (owner only) for the file Rasova sends you.
+- **Clock**: bills, the business day and liquor hours follow it.
+- **Backups**: the box backs itself up every night at 4:30 am to its backup drive. **Back up now** makes one straight away.
+- **Disk** and **Printers**.
+
+**Coloured banners at the top of every page** tell you when something needs you:
+- *The licence is ending, or has ended*: send Rasova the box id from Box health, then add the file they send. When a licence has ended, bills already open can still be billed and paid; only new orders wait.
+- *The clock went back or jumped*: tell Rasova, or set the right time and press **I've set the right time**.
+- *Last night's backup failed*: check the backup drive is plugged into the box, then press **Back up now**.
+- *The disk is nearly full*: call Rasova.
+
+**Power cuts:** the box switches itself back on and every bill that said "saved" is still there. A small UPS for the box and the Wi-Fi router keeps service going through short cuts.
+
+---
+
+## 12. Glossary
 
 | Term | Meaning |
 |---|---|
@@ -248,6 +275,7 @@ Each table has its own printed QR code. When a guest scans it:
 | **Cash Session** | The record of a cash register being opened, used, and closed for a shift |
 | **Void** | Canceling an item or order after it's been placed |
 | **Complimentary** | Marking an item as free (₹0) without discounting the whole order |
+| **Rasova box** | A small computer in your restaurant that runs Rasova with no internet |
 
 ---
 

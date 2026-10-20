@@ -1,6 +1,6 @@
 # Rasova - Restaurant POS Platform
 
-> Cloud-based POS and restaurant management system for Indian restaurants.  
+> POS and restaurant management for Indian restaurants: in the cloud, or on one small computer inside the restaurant with no internet (the Rasova box).  
 > Django 6.0 · PostgreSQL · Celery + Redis · Multi-tenant SaaS · ESC/POS thermal printing.
 
 See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
@@ -140,6 +140,16 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 - Worker isolation - `RASOVA_TENANT_ID` + `RASOVA_OUTLET_ID` env vars scope each local worker to one restaurant
 - Graceful fallback - if Redis is unreachable, falls back to synchronous print
 
+### Rasova Box (the offline edition)
+- **The whole app on one mini PC in the restaurant**, reached at `http://rasova.local` over the restaurant's Wi-Fi, with no internet; `RASOVA_EDITION=box` (`box/` app)
+- **No source code on the box** - every module is compiled to machine code with Cython (`box/docker/compile.py`); the build fails if any source is left, and the whole test suite runs against the compiled code
+- **Signed licence** (Ed25519, checked offline, tied to the box): 14-day trial, 14 days' grace, then no new orders while open bills still finish; a replacement box restored from backups works for 14 days on the old licence
+- **Nightly backup** at 4:30 am to a backup drive, checked before it's kept; restore loads into a new database and swaps it in, keeping the old one as the undo
+- **Signed updates from a pen drive** - checked twice, refused while bills are open, backed up first, health-checked, and undone automatically if the new version doesn't start; `rasova-box rollback` by hand
+- **Prints straight to the printers' IPs** (no agent), including its own print queue
+- Internet features are off on a box: QR ordering, waiter call, feedback, Zomato/Swiggy, Razorpay, WhatsApp, email, the importers
+- How to build, install, license, update and support one: [`docs/BOX_GUIDE.md`](docs/BOX_GUIDE.md)
+
 ---
 
 ## Tech Stack
@@ -171,6 +181,9 @@ f:\pos\
 │   └── views/          auth_views, dashboard_views, feature_views, superuser_views
 ├── agency/             Multi-client agency management
 ├── billing/            Rasova's own subscription billing: invoices, Razorpay payment links, WhatsApp and email delivery
+├── box/                The offline edition: first-run setup, licence, backups, restore, updates, Box health
+│   ├── docker/         The compiled image (compile.py, Dockerfile, compose.yml, entrypoint)
+│   └── host/           install.sh and the box's own rasova-box command
 ├── core/               Settings, middleware, decorators, Celery app, features
 ├── crm/                Guest profiles, loyalty, reservations
 ├── finance/            Expense tracking
@@ -351,6 +364,15 @@ TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 EMAIL_USER=
 EMAIL_PASSWORD=
 
+# The Rasova box (offline edition). All set by the box image and rasova-box
+# install; the cloud leaves them unset.
+# RASOVA_EDITION=box                  # cloud (the default) or box
+# RASOVA_VERSION=1.0.0                # shown on Box health
+# BOX_BACKUP_DIR=/backups
+# BOX_LICENSE_FILE=/data/license.json
+# BOX_MACHINE_ID_FILE=/etc/machine-id
+# LOG_DIR=/data/logs                  # where the app's logs go (default: logs/ in the project)
+
 # Production hardening, all optional and safe by default
 # ADMIN_URL=admin/
 # SECURE_SSL_REDIRECT=False
@@ -393,6 +415,12 @@ Requires: one always-on device on the restaurant LAN (Raspberry Pi, spare laptop
 Works with: any ESC/POS network printer (LAN port required)
 ```
 
+**On a Rasova box** (the offline edition), the server is already inside the restaurant:
+```
+Browser → Rasova box (on the restaurant's Wi-Fi) → TCP:9100 → Printer
+Requires: nothing else; the box also prints its own print queue
+```
+
 For QSR with a single counter printer - both bill and KOTs print together as one strip, customer carries it to the food counter.
 
 ---
@@ -419,6 +447,13 @@ python manage.py http_rush_test --host http://127.0.0.1:8000
 # Runs automatically every 2 hours via Celery beat; use by hand to reset
 # on demand instead of waiting for the next scheduled run.
 python manage.py reset_demo_tenant
+
+# Rasova box: on Rasova's PC (the signing keys live only there)
+python manage.py sign_box_license --box-id <id> --customer "Copper Tap" --expires 2027-10-31 --out licence.json
+python manage.py make_box_bundle --release 1.0.0 --out <folder>
+# On a box (rasova-box runs these for you)
+python manage.py box_status
+python manage.py box_backup
 ```
 
 Full guide to what each load-test phase checks and how to read its output: [`LOAD_TESTING.md`](docs/LOAD_TESTING.md).
@@ -427,7 +462,7 @@ Full guide to what each load-test phase checks and how to read its output: [`LOA
 
 ## Tests
 
-**2,126 tests across the codebase (19 October 2026), plus the Android app's unit tests. All passing; the Playwright browser tests skip where Playwright isn't installed.**
+**2,260 tests across the codebase (21 October 2026), plus the Android app's unit tests. All passing; the Playwright browser tests skip where Playwright isn't installed. The same suite also runs against the compiled box code (see [`docs/BOX_GUIDE.md`](docs/BOX_GUIDE.md)).**
 
 ```bash
 python manage.py test --noinput --parallel 8             # all tests, about 25 minutes
@@ -449,6 +484,7 @@ Test coverage includes:
 - Feature flag logic (defaults + overrides per tenant type)
 - Tax maths against golden bills, and the browser copies of the tax and offers engines run in Node against the Python ones
 - The public site: every page in `public/` is listed, indexable on rasova.net, moved off subdomains and in the sitemap
+- The box: licences, backups and real restores, signed update bundles, the box printing its own queue, and that every app goes into the box image
 
 ---
 
@@ -465,6 +501,9 @@ Each local Celery worker reads `RASOVA_TENANT_ID` and `RASOVA_OUTLET_ID` from en
 
 ### Public Website and Search
 The marketing pages are static files in `public/`, served by WhiteNoise. `core/public_pages.py` lists them once; `sitemap.xml` and `SearchIndexingMiddleware` both read that list. Only those pages (on rasova.net) and a restaurant's guest menu (on its subdomain) can be indexed; every other HTML page is sent with `X-Robots-Tag: noindex`, and copies of the marketing pages on subdomains or www redirect to rasova.net.
+
+### The Box Edition
+One codebase, two editions. `RASOVA_EDITION=box` sets `settings.BOX`; `box.edition` turns the internet features off (`BOX_OFF_FEATURES`, checked in `has_feature`) and answers 404 for their pages (`OFF_PATHS`, in `BoxMiddleware`). On a box, login stays on the address typed (no subdomains) and links are built from the request. A new feature that needs the internet goes on those two lists; a new app goes into `box/docker/Dockerfile.dockerignore` (a test fails until it does).
 
 ### Service Layer
 Business logic lives in `orders/services/` - 9 service modules, none of which know about HTTP. Views are thin: validate input → call service → return response.
@@ -521,12 +560,14 @@ Business logic lives in `orders/services/` - 9 service modules, none of which kn
 - [x] GSTR-1 Tables 8, 12 and 13 sheets
 - [x] Outside security review fixed in full, and all 51 GitHub CodeQL alerts closed (Oct 2026)
 - [x] Search indexing fixed and one public page per outlet type (Oct 2026)
+- [x] Rasova box: the whole app offline on one computer in the restaurant, compiled, with signed licences and updates, nightly backups and automatic rollback (Oct 2026)
 
 **Next:**
 - [ ] Celery task monitoring - see pending and failed print jobs in UI
 - [ ] Automatic recurring charge for the subscription fee (UPI Autopay) - today each invoice goes out with a payment link and the restaurant pays it
 - [ ] External security audit
-- [ ] Full local-first offline deployment (running detached from the cloud for extended outages, not just brief drops) - a substantially larger undertaking than the write queue above, only worth it for restaurants with sustained multi-hour/day outages rather than occasional drops
+- [ ] Rasova box on real hardware: `install.sh` on a mini PC, a pull-the-plug test during service, real printers
+- [ ] Rasova box and the cloud together (owner reports away from the restaurant): today a box is fully separate
 
 ---
 

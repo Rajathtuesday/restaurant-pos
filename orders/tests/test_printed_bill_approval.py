@@ -35,6 +35,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
+from core.utils import get_business_date
 from kitchen.models import KOTBatch
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderEvent, OrderItem
@@ -226,7 +227,8 @@ class WithAPinTest(Base):
         void = OrderEvent.objects.get(order=order, event_type="item_voided")
         self.assertEqual(void.metadata["approved_by"], "ap_manager")
 
-        row = discount_void_audit(self.tenant, self.outlet, timezone.localdate(), timezone.localdate())["after_bill"]
+        today = get_business_date(outlet=self.outlet)        # not the calendar date: after midnight they differ
+        row = discount_void_audit(self.tenant, self.outlet, today, today)["after_bill"]
         self.assertEqual(len(row), 1)
         self.assertEqual((row[0]["taken_off"], row[0]["by"], row[0]["approved_by"]),
                          (D("1050.00"), "ap_cashier", "ap_manager"))
@@ -238,7 +240,8 @@ class WithAPinTest(Base):
                          {"reduce_by": 2, "reason": "Wrong order"}, pin=PIN)
         self.assertEqual(resp.status_code, 200, resp.content)
         self.assertEqual(self.bill(order), D("1050.00"))
-        audit = discount_void_audit(self.tenant, self.outlet, timezone.localdate(), timezone.localdate())
+        today = get_business_date(outlet=self.outlet)
+        audit = discount_void_audit(self.tenant, self.outlet, today, today)
         self.assertEqual(audit["voids"], [{"created_by__username": "ap_cashier", "count": 1}])
         self.assertEqual(audit["after_bill"][0]["what"], "Took 2 x Biryani off")
 
