@@ -33,7 +33,9 @@ _count = [0]
 def make_tenant(tenant_type, name=None):
     _count[0] += 1
     tenant = Tenant.objects.create(name=name or f"{tenant_type} place {_count[0]}", tenant_type=tenant_type)
-    outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN)
+    # Liquor hours are off: these tests sell drinks at whatever time they run
+    # (orders/tests/test_liquor_hours.py tests the hours).
+    outlet = Outlet.objects.create(tenant=tenant, name="Main", gst_no=SAMPLE_GSTIN, liquor_hours_enforced=False)
     return tenant, outlet
 
 

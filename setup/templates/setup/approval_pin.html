@@ -1,0 +1,118 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Approval PIN | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+    @media(max-width: 720px) { .page-body { grid-template-columns: 1fr; padding: 2rem 1rem; } }
+    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+    .page-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+    .setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 1rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+    .setup-input:focus { border-bottom-color: var(--accent-gold); }
+    .btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; }
+    .btn-plain { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 6px 12px; cursor: pointer; font-family: inherit; }
+    .btn-plain:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+    .pin-state { padding: 0.8rem 1rem; border: 1px solid var(--border-color); background: var(--panel-bg); font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .msg { padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; border: 1px solid var(--border-color); }
+    .msg.error { border-color: #dc2626; color: #dc2626; }
+    .msg.success { border-color: #10b981; color: #10b981; }
+    .mgr-table { width: 100%; border-collapse: collapse; }
+    .mgr-table td { padding: 0.8rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+    .why li { margin-bottom: 0.4rem; }
+</style>
+{% endblock %}
+
+{% block header_left %}
+<div>
+    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+        <h1 class="brand-title mb-0">
+            <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+            {{ request.user.tenant.name }}
+        </h1>
+    </a>
+    <p class="brand-subtitle">Setup: Approval PIN</p>
+</div>
+{% endblock %}
+
+{% block header_right %}
+<a href="/setup/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Setup Area</a>
+<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+    <i class="bi bi-moon" id="themeIcon"></i>
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+    <div>
+        <p class="page-eyebrow">Money safety</p>
+        <h1 class="page-title">Your approval PIN</h1>
+        <div class="divider"></div>
+        <p class="page-sub">Once a bill is printed, a cashier or captain can't take money off it on their own.
+            When they cancel a dish, cut a quantity, cancel the order, give a discount or a free dish, or take the
+            parcel charge off, their screen asks for a manager's PIN. Cancelling a dish the kitchen already made
+            (wastage) asks for it too.</p>
+        <ul class="page-sub why">
+            <li>Every approved change is on the Discount &amp; Void audit, with the bill before and after and whose PIN it was.</li>
+            <li>{{ pin_tries }} wrong tries in a row lock the PIN for {{ pin_lock_minutes }} minutes.</li>
+            <li>Never tell anyone your PIN. Type it yourself on their screen.</li>
+        </ul>
+    </div>
+
+    <div>
+        {% for msg in messages %}
+        <div class="msg {{ msg.tags }}">{{ msg }}</div>
+        {% endfor %}
+
+        <div class="pin-state" id="pinState">
+            {% if has_pin %}<i class="bi bi-shield-check" style="color:#10b981;"></i> You have a PIN set.
+            {% else %}<i class="bi bi-shield-exclamation" style="color:var(--accent-gold);"></i> You have no PIN yet, so nobody can ask you to approve.{% endif %}
+        </div>
+
+        <form method="post" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="set">
+            <label class="form-label" for="pin">{% if has_pin %}New PIN{% else %}PIN{% endif %} (4 to 6 digits)</label>
+            <input class="setup-input" id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" required autocomplete="new-password">
+            <label class="form-label" for="pin_again">Type it again</label>
+            <input class="setup-input" id="pin_again" name="pin_again" type="password" inputmode="numeric" pattern="[0-9]{4,6}" maxlength="6" required autocomplete="new-password">
+            <label class="form-label" for="password">Your password</label>
+            <input class="setup-input" id="password" name="password" type="password" required autocomplete="current-password">
+            <button class="btn-create" type="submit">{% if has_pin %}Change my PIN{% else %}Set my PIN{% endif %}</button>
+        </form>
+
+        {% if has_pin %}
+        <form method="post" style="margin-top:1.5rem;" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="clear">
+            <label class="form-label" for="password_clear">Remove my PIN (type your password)</label>
+            <input class="setup-input" id="password_clear" name="password" type="password" required autocomplete="current-password">
+            <button class="btn-plain" type="submit">Remove my PIN</button>
+        </form>
+        {% endif %}
+
+        {% if managers %}
+        <p class="form-label" style="margin-top:2.5rem;">Managers</p>
+        <table class="mgr-table">
+            {% for m in managers %}
+            <tr>
+                <td>{{ m.get_full_name|default:m.username }}<br><span style="color:var(--text-muted);font-size:.75rem;">{{ m.outlet.name|default:"No outlet" }}</span></td>
+                <td>{% if m.approval_pin %}PIN set{% else %}<span style="color:var(--text-muted);">No PIN</span>{% endif %}</td>
+                <td style="text-align:right;">
+                    {% if m.approval_pin %}
+                    <form method="post" action="{% url 'clear_staff_pin' m.id %}" style="margin:0;">
+                        {% csrf_token %}
+                        <button class="btn-plain" type="submit">Clear PIN</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

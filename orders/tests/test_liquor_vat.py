@@ -58,7 +58,10 @@ class PubBase(TestCase):
         self.tenant = Tenant.objects.create(name="Copper Tap")
         if self.liquor_vat:
             TenantFeatureOverride.objects.create(tenant=self.tenant, feature="liquor_vat", enabled=True)
-        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Indiranagar", gst_no=KARNATAKA_GSTIN)
+        # Liquor hours are off: these tests sell drinks at whatever time they run
+        # (orders/tests/test_liquor_hours.py tests the hours).
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Indiranagar", gst_no=KARNATAKA_GSTIN,
+                                            liquor_hours_enforced=False)
         self.owner = User.objects.create_user(
             username="copper_owner", password="pw", role="owner",
             tenant=self.tenant, outlet=self.outlet,

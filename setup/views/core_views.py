@@ -192,6 +192,34 @@ def setup_menu(request):
 # KITCHEN STATIONS SETUP
 # -------------------------------------------------
 
+def looks_like_a_bar(name):
+    """A station named like a bar ("Bar", "Main bar", "Bar counter"), not
+    "Barbecue": its drinks count as made as soon as they're sent."""
+    import re
+    return bool(re.search(r"\bbar\b", name or "", re.IGNORECASE))
+
+
+@login_required
+@tenant_required
+@role_required("owner", "manager")
+@require_POST
+def set_station_made_on_send(request, station_id):
+    """Body {"on": true|false}: whether this station's lines count as made
+    the moment they're sent (orders/services/void_service.py)."""
+    station = get_object_or_404(
+        KitchenStation, id=station_id, tenant=request.user.tenant, outlet=request.user.outlet)
+    try:
+        body = json.loads(request.body or b"{}")
+    except ValueError:
+        body = {}
+    on = body.get("on") if isinstance(body, dict) else None
+    if not isinstance(on, bool):
+        return JsonResponse({"error": "Say on or off."}, status=400)
+    station.made_on_send = on
+    station.save(update_fields=["made_on_send"])
+    return JsonResponse({"success": True, "made_on_send": on})
+
+
 @login_required
 def setup_kitchen_stations(request):
 
@@ -228,6 +256,8 @@ def setup_kitchen_stations(request):
             outlet=request.user.outlet,
             name=name.strip(),
             is_default=is_first,
+            # A station called "Bar" pours at once; the owner can switch it.
+            made_on_send=looks_like_a_bar(name),
         )
 
         messages.success(request, "Kitchen station created")
@@ -1103,6 +1133,17 @@ def outlet_settings(request):
                     None if limit is None else limit.quantize(Decimal("0.01")))
             except InvalidOperation:
                 messages.error(request, "The staff discount limit must be a percent from 0 to 100, or blank for no limit.")
+
+        # Liquor hours (only on the form when the outlet sells liquor).
+        if "liquor_from" in request.POST:
+            from datetime import time as _time
+            outlet.liquor_hours_enforced = "liquor_hours_enforced" in request.POST
+            try:
+                outlet.liquor_from = _time.fromisoformat(request.POST.get("liquor_from", "").strip())
+                outlet.liquor_until = _time.fromisoformat(request.POST.get("liquor_until", "").strip())
+            except ValueError:
+                messages.error(request, "Liquor hours need a start and an end time. They were left as they were.")
+                outlet.refresh_from_db(fields=["liquor_from", "liquor_until"])
 
         # Store WhatsApp on the outlet (add field check)
         if hasattr(outlet, "whatsapp_no"):

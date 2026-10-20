@@ -106,7 +106,9 @@ class CancelDelegationTests(TestCase):
 
         resp = client.post(reverse("cancel-item", args=[item.id]))
 
-        self.assertEqual(resp.status_code, 400)
+        # Asks for a manager's PIN (403 needs_approval) since 20 Oct 2026.
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(resp.json()["needs_approval"])
         item.refresh_from_db()
         self.assertEqual(item.status, "served")
 

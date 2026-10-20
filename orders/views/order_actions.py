@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderItem
 from orders.exceptions import OrderError
+from orders.services import approvals
 
 logger = logging.getLogger("pos.orders")
 
@@ -23,6 +24,12 @@ def _json_body(request):
 def _reason(data, default):
     reason = str(data.get("reason") or "").strip()
     return reason[:255] or default
+
+
+def _needs_approval(request, e):
+    """A change that needs a manager's PIN (or a PIN that didn't approve
+    it), as the 403 the browser turns into a PIN prompt."""
+    return approvals.approval_response(e, request.user.tenant, request.user.outlet)
 
 
 def _made(data):
@@ -51,24 +58,26 @@ def cancel_order(request, order_id):
 
     data = _json_body(request)
     try:
+        approver = approvals.read_approval(request, request.user.outlet)
         cancel_whole_order(
             request.user, order_id,
             reason=str(data.get("reason") or ""),
             include_made=data.get("include_made") is True,
+            approver=approver,
         )
         logger.info("User %s cancelled Order #%s", request.user.username, order_id)
         return JsonResponse({"success": True})
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except MadeDishesNeedConfirmation as e:
         return JsonResponse({
             "needs_confirm": True,
             "error": e.message,
-            "needs_manager": (
-                any(i.status == "served" for i in e.items)
-                and getattr(request.user, "role", None) not in ("manager", "owner")
-            ),
+            # Made dishes become wastage, which needs a manager's approval.
+            "needs_manager": not approvals.approves_own(request.user),
             "made_items": [
                 {"name": i.menu_item.name if i.menu_item else "Unknown", "quantity": i.quantity, "status": i.status}
                 for i in e.items
@@ -97,8 +106,10 @@ def cancel_item(request, item_id):
 
     try:
         data = _json_body(request)
+        approver = approvals.read_approval(request, request.user.outlet)
         item = void_order_item(
             request.user, item_id, _reason(data, "Manual Item Cancellation"), made=_made(data),
+            approver=approver,
         )
         # void_order_item recalculates totals on its own freshly-locked Order
         # object, not item.order (held before the call) — re-fetch, don't
@@ -109,6 +120,8 @@ def cancel_item(request, item_id):
 
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except OrderError as e:
         return error_response(e, 400)
     except Exception as e:
@@ -130,9 +143,10 @@ def reduce_item(request, item_id):
 
     data = _json_body(request)
     try:
+        approver = approvals.read_approval(request, request.user.outlet)
         item = reduce_item_quantity(
             request.user, item_id, data.get("reduce_by", 1),
-            _reason(data, "Quantity reduced"), made=_made(data),
+            _reason(data, "Quantity reduced"), made=_made(data), approver=approver,
         )
         order = Order.objects.get(id=item.order_id)
         remaining = 0 if item.status == "voided" else item.quantity
@@ -144,6 +158,8 @@ def reduce_item(request, item_id):
         })
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except OrderError as e:
         return error_response(e, 400)
     except Exception as e:
@@ -161,6 +177,9 @@ def toggle_parcel(request, order_id):
     Uses the outlet's configured parcel_charge_amount.
     Returns updated grand_total and parcel_surcharge so the UI can update instantly.
 
+    Taking the charge off a printed bill lowers it, so that needs a
+    manager's approval (orders/services/approvals.py).
+
     The order row is locked for the whole change, and its status read under
     the lock, so a payment on another screen can't land between reading the
     bill and re-totalling it.
@@ -168,6 +187,7 @@ def toggle_parcel(request, order_id):
     from decimal import Decimal
     from django.db import transaction
     try:
+        approver = approvals.read_approval(request, request.user.outlet)
         with transaction.atomic():
             order = Order.objects.select_for_update().get(
                 id=order_id,
@@ -178,8 +198,13 @@ def toggle_parcel(request, order_id):
             charge   = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
             per_item = getattr(order.outlet, "parcel_charge_per_item", True)
 
+            bill_before = order.grand_total
+            printed_by = None
             # Toggle: if already set → remove; if zero → add
             if order.parcel_surcharge > 0:
+                if approvals.printed_bill(order):
+                    printed_by = approvals.require(
+                        request.user, approver, approvals.PRINTED.format(what="take the parcel charge off"))
                 order.parcel_surcharge = Decimal("0")
                 order.parcel_gst_rate = None
             else:
@@ -203,6 +228,9 @@ def toggle_parcel(request, order_id):
 
             order.save(update_fields=["parcel_surcharge", "parcel_gst_rate"])
             order.recalculate_totals()
+            if printed_by:
+                approvals.record_after_bill(order, request.user, printed_by, "Took the parcel charge off",
+                                            bill_before)
 
         return JsonResponse({
             "success": True,
@@ -213,6 +241,8 @@ def toggle_parcel(request, order_id):
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found or already closed"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except OrderError as e:
         return error_response(e, 409)
     except Exception as e:

@@ -855,6 +855,10 @@ class OrderEvent(TenantScopedModel):
         # Discounts
         ("discount_applied", "Discount Applied"),
 
+        # Money taken off a printed bill, with whose PIN approved it
+        # (orders/services/approvals.py)
+        ("changed_after_bill", "Changed After Bill Printed"),
+
         # Kitchen
         ("kot_sent", "KOT Sent"),
         ("kitchen_preparing", "Kitchen Preparing"),

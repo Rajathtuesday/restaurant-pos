@@ -20,6 +20,7 @@ from orders.services.discount_policy import (
     read_reason,
 )
 from orders.services.bill_discount import PromoRefused, set_manual, set_promo
+from orders.services import approvals
 from orders.services.row_locks import lock_order_of_item
 
 logger = logging.getLogger("pos.orders")
@@ -34,6 +35,12 @@ logger = logging.getLogger("pos.orders")
 def _refused(e):
     """A discount the policy refused, as the response staff see."""
     return error_response(e, 403 if isinstance(e, DiscountNeedsManager) else 400)
+
+
+def _needs_approval(request, e):
+    """Lowering a printed bill without a manager's approval: the 403 the
+    browser turns into a PIN prompt (orders/services/approvals.py)."""
+    return approvals.approval_response(e, request.user.tenant, request.user.outlet)
 
 
 @login_required
@@ -58,6 +65,7 @@ def apply_discount(request, order_id):
         if discount_type == "percentage" and value > 100:
             return JsonResponse({"error": "Percentage cannot exceed 100"}, status=400)
 
+        approver = approvals.read_approval(request, request.user.outlet)
         with transaction.atomic():
             order = (
                 Order.objects.select_for_update()
@@ -65,6 +73,7 @@ def apply_discount(request, order_id):
             )
             if order.status in ["paid", "closed", "cancelled"]:
                 return JsonResponse({"error": "Order is already paid, closed, or cancelled."}, status=400)
+            bill_before = order.grand_total
 
             if promo_id:
                 from promos.models import Promo
@@ -92,6 +101,10 @@ def apply_discount(request, order_id):
                 set_manual(order, discount_type, value)
 
             order.recalculate_totals()
+            printed_by = approvals.lowered_printed_bill(
+                order, request.user, approver, "give a discount on it", bill_before)
+            if printed_by and not approvals.approves_own(request.user):
+                details["approved_by"] = printed_by.username
 
             logger.warning(
                 "User %s applied %s discount of %s to order #%s",
@@ -104,6 +117,10 @@ def apply_discount(request, order_id):
                 metadata={"action": "discount_applied", "type": discount_type, "value": str(value), **details},
                 created_by=request.user
             )
+            if printed_by:
+                approvals.record_after_bill(order, request.user, printed_by, "Gave a discount on the bill",
+                                            bill_before, {"reason": details.get("reason", ""),
+                                                          "promo": details.get("promo_name", "")})
 
         return JsonResponse({
             "success": True,
@@ -113,6 +130,8 @@ def apply_discount(request, order_id):
             "total": float(order.grand_total)
         })
 
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except DiscountRefused as e:
         return _refused(e)
     except PromoRefused as e:
@@ -139,6 +158,7 @@ def make_item_complimentary(request, item_id):
             data = {}
         if not isinstance(data, dict):
             data = {}
+        approver = approvals.read_approval(request, request.user.outlet)
         # Lock the item's order row for the read-modify-recalculate, matching
         # apply_item_discount. Without the lock a concurrent discount/void/
         # payment on the same order can race with this write and lose an update.
@@ -153,23 +173,34 @@ def make_item_complimentary(request, item_id):
             # same limit as any other discount.
             reason = read_reason(data.get("reason"))
             check_within_limit(request.user, item.order.outlet, Decimal("100"), what="A free dish")
+            bill_before = item.order.grand_total
             item.is_complimentary = True
             item.save(update_fields=["is_complimentary"])
             item.order.recalculate_totals()
+            printed_by = approvals.lowered_printed_bill(
+                item.order, request.user, approver, "make a dish free", bill_before)
+            note = ({"approved_by": printed_by.username}
+                    if printed_by and not approvals.approves_own(request.user) else {})
             OrderEvent.objects.create(
                 tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
                 event_type="item_complimentary",
-                metadata={"item_id": item.id, "reason": reason},
+                metadata={"item_id": item.id, "reason": reason, **note},
                 created_by=request.user
             )
+            if printed_by:
+                name = item.menu_item.name if item.menu_item else "a dish"
+                approvals.record_after_bill(item.order, request.user, printed_by, f"Made {name} free",
+                                            bill_before, {"reason": reason})
         logger.warning("User %s marked item #%s as complimentary", request.user.username, item_id)
         return JsonResponse({"success": True})
     except OrderItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except DiscountRefused as e:
         return _refused(e)
     except ValidationError as e:
-        # validate_order_editable: the bill is being paid or already closed
+        # validate_order_editable: the bill is paid, closed or cancelled
         return error_response(e, 400)
 
 
@@ -192,6 +223,7 @@ def apply_item_discount(request, item_id):
         if discount_pct > 100:
             return JsonResponse({"error": "Invalid percentage"}, status=400)
 
+        approver = approvals.read_approval(request, request.user.outlet)
         with transaction.atomic():
             lock_order_of_item(request.user, item_id)  # order before line, see row_locks
             item = (
@@ -206,9 +238,14 @@ def apply_item_discount(request, item_id):
                 details["reason"] = read_reason(data.get("reason"))
                 check_within_limit(request.user, item.order.outlet, discount_pct, what="A dish discount")
 
+            bill_before = item.order.grand_total
             item.item_discount_pct = discount_pct
             item.save(update_fields=["item_discount_pct"])
             item.order.recalculate_totals()
+            printed_by = approvals.lowered_printed_bill(
+                item.order, request.user, approver, "give a dish discount", bill_before)
+            if printed_by and not approvals.approves_own(request.user):
+                details["approved_by"] = printed_by.username
 
             OrderEvent.objects.create(
                 tenant=item.order.tenant, outlet=item.order.outlet, order=item.order,
@@ -217,14 +254,21 @@ def apply_item_discount(request, item_id):
                           "discount_pct": str(discount_pct), **details},
                 created_by=request.user
             )
+            if printed_by:
+                name = item.menu_item.name if item.menu_item else "a dish"
+                approvals.record_after_bill(item.order, request.user, printed_by,
+                                            f"Gave {discount_pct}% off {name}", bill_before,
+                                            {"reason": details.get("reason", "")})
 
         logger.warning("User %s applied %s%% discount to item #%s", request.user.username, discount_pct, item_id)
         return JsonResponse({"success": True, "new_total": float(item.order.grand_total)})
 
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
     except DiscountRefused as e:
         return _refused(e)
     except ValidationError as e:
-        # validate_order_editable: the bill is being paid or already closed
+        # validate_order_editable: the bill is paid, closed or cancelled
         return error_response(e, 400)
     except Exception:
         logger.exception("Error applying item discount to item #%s", item_id)

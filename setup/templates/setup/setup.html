@@ -137,6 +137,15 @@
         <div class="card-status status-pending"><i class="bi bi-circle"></i> Review</div>
     </a>
 
+    {% if request.user.role == 'owner' or request.user.role == 'manager' %}
+    <a href="{% url 'my_approval_pin' %}" class="setup-card">
+        <div class="card-icon"><i class="bi bi-shield-lock"></i></div>
+        <div class="card-title">Approval PIN</div>
+        <div class="card-desc">Your PIN for approving cancels and discounts on a printed bill from a cashier's screen.</div>
+        <div class="card-status status-pending"><i class="bi bi-circle"></i> {% if request.user.approval_pin %}Set{% else %}Not set{% endif %}</div>
+    </a>
+    {% endif %}
+
     <a href="/inventory/board" class="setup-card">
         <div class="card-icon"><i class="bi bi-boxes"></i></div>
         <div class="card-title">Inventory</div>

@@ -9,6 +9,10 @@ cancelling a whole order that has made dishes on it, the wastage report's
 "from cancelled dishes" filter, a race between cancelling the order and one
 of its dishes, and the start-up guard that keeps production on PostgreSQL.
 
+Since 20 Oct 2026 writing a made dish off as wastage needs a manager too
+(orders/services/approvals.py): a cashier or captain sends the manager's PIN
+(PIN below), and a refusal is the 403 the screen turns into a PIN prompt.
+
 Run: python manage.py test orders.tests.test_cooked_dish_cancel
 """
 import csv
@@ -21,7 +25,7 @@ from decimal import Decimal
 from django.core.exceptions import ImproperlyConfigured
 from django.db import connection
 from django.db.models import Sum
-from django.test import Client, SimpleTestCase, TestCase, TransactionTestCase
+from django.test import Client, SimpleTestCase, TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -33,6 +37,7 @@ from kitchen.models import KOTBatch
 from kitchen.services.kot_service import create_kot
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderEvent, OrderItem, Table
+from orders.services.approvals import set_pin
 from orders.services.void_service import (
     MADE_AFTER, cancel_whole_order, kitchen_stock_hint, suggest_made,
 )
@@ -62,6 +67,12 @@ def _world(test, name="Cooked"):
     Recipe.objects.create(
         menu_item=test.biryani, inventory_item=test.rice, quantity_required=Decimal("200"), unit="g",
     )
+    set_pin(test.manager, PIN)
+
+
+PIN = "2580"
+# A quick hasher for the manager's PIN, on every class that builds _world.
+FAST_PIN = override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 
 
 def _order_in_kitchen(test, quantity=1, status="sent", minutes_ago=0, table=True):
@@ -85,12 +96,16 @@ def _order_in_kitchen(test, quantity=1, status="sent", minutes_ago=0, table=True
     return order, item
 
 
-def _post(user, name, obj_id, body=None):
+def _post(user, name, obj_id, body=None, approver=None):
+    """approver: the manager whose PIN comes with the request."""
     client = Client()
     client.force_login(user)
+    headers = {}
+    if approver is not None:
+        headers = {"HTTP_X_APPROVER_ID": str(approver.id), "HTTP_X_APPROVER_PIN": PIN}
     return client.post(
         reverse(name, args=[obj_id]),
-        data=json.dumps(body or {}), content_type="application/json",
+        data=json.dumps(body or {}), content_type="application/json", **headers,
     )
 
 
@@ -116,6 +131,7 @@ class SuggestMadeTests(SimpleTestCase):
         self.assertEqual(MADE_AFTER, timedelta(minutes=10))
 
 
+@FAST_PIN
 class KitchenHintTests(TestCase):
 
     def setUp(self):
@@ -162,6 +178,7 @@ class KitchenHintTests(TestCase):
         self.assertTrue(data["items"][0]["made_locked"])
 
 
+@FAST_PIN
 class CancelDishStockTests(TestCase):
 
     def setUp(self):
@@ -192,7 +209,8 @@ class CancelDishStockTests(TestCase):
     def test_made_keeps_stock_down_and_records_wastage(self):
         order, item = _order_in_kitchen(self)
 
-        resp = _post(self.cashier, "cancel-item", item.id, {"reason": "Customer changed mind", "made": True})
+        resp = _post(self.cashier, "cancel-item", item.id, {"reason": "Customer changed mind", "made": True},
+                     approver=self.manager)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self._stock(), Decimal("9.800"))
@@ -202,11 +220,20 @@ class CancelDishStockTests(TestCase):
         self.assertIn("Customer changed mind", wasted[0].reference)
         event = OrderEvent.objects.filter(order=order, event_type="item_voided").latest("id")
         self.assertEqual(event.metadata["stock"], "wasted")
+        self.assertEqual(event.metadata["approved_by"], self.manager.username)
+
+    def test_writing_a_made_dish_off_without_a_manager_is_refused(self):
+        _, item = _order_in_kitchen(self)
+        resp = _post(self.cashier, "cancel-item", item.id, {"reason": "Customer changed mind", "made": True})
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(resp.json()["needs_approval"])
+        item.refresh_from_db()
+        self.assertEqual(item.status, "sent")
 
     def test_old_ticket_counts_as_made_by_default(self):
         _, item = _order_in_kitchen(self, minutes_ago=15)
 
-        resp = _post(self.cashier, "cancel-item", item.id, {"reason": "Kitchen issue"})
+        resp = _post(self.cashier, "cancel-item", item.id, {"reason": "Kitchen issue"}, approver=self.manager)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self._stock(), Decimal("9.800"))
@@ -217,7 +244,7 @@ class CancelDishStockTests(TestCase):
 
         resp = _post(self.cashier, "cancel-item", item.id, {"reason": "x", "made": False})
 
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.status_code, 403)
         self.assertIn("manager", resp.json()["error"].lower())
         item.refresh_from_db()
         self.assertEqual(item.status, "sent")
@@ -234,7 +261,7 @@ class CancelDishStockTests(TestCase):
 
     def test_cooking_dish_needs_a_manager_to_restock(self):
         _, item = _order_in_kitchen(self, status="preparing")
-        self.assertEqual(_post(self.captain, "cancel-item", item.id, {"reason": "x", "made": False}).status_code, 400)
+        self.assertEqual(_post(self.captain, "cancel-item", item.id, {"reason": "x", "made": False}).status_code, 403)
         self.assertEqual(_post(self.owner, "cancel-item", item.id, {"reason": "x", "made": False}).status_code, 200)
         self.assertEqual(self._stock(), Decimal("10.000"))
 
@@ -247,10 +274,12 @@ class CancelDishStockTests(TestCase):
         self.assertIn("already made", resp.json()["error"])
         self.assertEqual(self._stock(), Decimal("9.800"))
 
-    def test_anyone_can_cancel_a_ready_dish_as_wastage(self):
+    def test_a_ready_dish_goes_to_wastage_with_a_managers_approval(self):
+        # Until 20 Oct 2026 anyone could, with no manager.
         _, item = _order_in_kitchen(self, status="ready")
 
-        resp = _post(self.captain, "cancel-item", item.id, {"reason": "Went cold"})
+        self.assertEqual(_post(self.captain, "cancel-item", item.id, {"reason": "Went cold"}).status_code, 403)
+        resp = _post(self.captain, "cancel-item", item.id, {"reason": "Went cold"}, approver=self.manager)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self._stock(), Decimal("9.800"))
@@ -281,7 +310,8 @@ class CancelDishStockTests(TestCase):
         order, item = _order_in_kitchen(self, quantity=2)
         self.assertEqual(self._stock(), Decimal("9.600"))
 
-        resp = _post(self.cashier, "reduce-item", item.id, {"reduce_by": 1, "reason": "Too much", "made": True})
+        resp = _post(self.cashier, "reduce-item", item.id, {"reduce_by": 1, "reason": "Too much", "made": True},
+                     approver=self.manager)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self._stock(), Decimal("9.600"))
@@ -294,12 +324,13 @@ class CancelDishStockTests(TestCase):
 
         resp = _post(self.cashier, "reduce-item", item.id, {"reduce_by": 1, "reason": "x", "made": False})
 
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.status_code, 403)
         self.assertFalse(OrderItem.objects.filter(order=order, status="voided").exists())
         item.refresh_from_db()
         self.assertEqual(item.quantity, 2)
 
 
+@FAST_PIN
 class LedgerAndReportTests(TestCase):
     """Both outcomes must leave "used for sales" at zero for a dish that was
     never sold, so food cost and the variance report stay honest."""
@@ -323,7 +354,7 @@ class LedgerAndReportTests(TestCase):
 
     def test_wasted_dish_moves_its_usage_to_wastage(self):
         _, item = _order_in_kitchen(self)
-        _post(self.cashier, "cancel-item", item.id, {"reason": "x", "made": True})
+        _post(self.cashier, "cancel-item", item.id, {"reason": "x", "made": True}, approver=self.manager)
         self.assertEqual(self._net("consume"), Decimal("0"))
         self.assertEqual(self._net("wastage"), Decimal("-0.200"))
         self.rice.refresh_from_db()
@@ -332,7 +363,7 @@ class LedgerAndReportTests(TestCase):
 
     def test_usage_report_does_not_count_the_cancelled_dish(self):
         _, item = _order_in_kitchen(self)
-        _post(self.cashier, "cancel-item", item.id, {"reason": "x", "made": True})
+        _post(self.cashier, "cancel-item", item.id, {"reason": "x", "made": True}, approver=self.manager)
         usage = {r["item__name"]: r["total_qty"] for r in inventory_usage(self.tenant, self.outlet, self.day, self.day)}
         # Used and then un-used the same day nets to nothing, so it isn't listed.
         self.assertNotIn("Basmati Rice", usage)
@@ -359,7 +390,7 @@ class LedgerAndReportTests(TestCase):
 
     def test_wastage_filter_splits_cancelled_from_manual(self):
         _, item = _order_in_kitchen(self)
-        _post(self.cashier, "cancel-item", item.id, {"reason": "Burnt", "made": True})
+        _post(self.cashier, "cancel-item", item.id, {"reason": "Burnt", "made": True}, approver=self.manager)
         self._manual_wastage(Decimal("-0.500"))
 
         def total(source):
@@ -372,7 +403,7 @@ class LedgerAndReportTests(TestCase):
 
     def test_cancelled_dish_list(self):
         order, item = _order_in_kitchen(self, quantity=2)
-        _post(self.captain, "cancel-item", item.id, {"reason": "Burnt", "made": True})
+        _post(self.captain, "cancel-item", item.id, {"reason": "Burnt", "made": True}, approver=self.manager)
 
         rows = cancelled_dish_wastage(self.tenant, self.outlet, self.day, self.day)
 
@@ -388,7 +419,7 @@ class LedgerAndReportTests(TestCase):
 
     def test_wastage_report_only_shows_this_outlet(self):
         _, item = _order_in_kitchen(self)
-        _post(self.cashier, "cancel-item", item.id, {"reason": "Burnt", "made": True})
+        _post(self.cashier, "cancel-item", item.id, {"reason": "Burnt", "made": True}, approver=self.manager)
         other = Outlet.objects.create(tenant=self.tenant, name="Branch")
         other_tenant = Tenant.objects.create(name="Someone Else")
         other_tenant_outlet = Outlet.objects.create(tenant=other_tenant, name="Main")
@@ -398,7 +429,7 @@ class LedgerAndReportTests(TestCase):
 
     def test_inventory_report_page_filters(self):
         _, item = _order_in_kitchen(self)
-        _post(self.cashier, "cancel-item", item.id, {"reason": "Burnt", "made": True})
+        _post(self.cashier, "cancel-item", item.id, {"reason": "Burnt", "made": True}, approver=self.manager)
         self._manual_wastage(Decimal("-0.500"))
         client = Client()
         client.force_login(self.owner)
@@ -418,6 +449,7 @@ class LedgerAndReportTests(TestCase):
         self.assertEqual(resp.context["wastage_source"], "all")
 
 
+@FAST_PIN
 class CancelWholeOrderTests(TestCase):
 
     def setUp(self):
@@ -463,7 +495,8 @@ class CancelWholeOrderTests(TestCase):
         self.assertEqual(resp.status_code, 409)
         data = resp.json()
         self.assertTrue(data["needs_confirm"])
-        self.assertFalse(data["needs_manager"])
+        # Made dishes become wastage, which needs a manager (since 20 Oct 2026).
+        self.assertTrue(data["needs_manager"])
         self.assertEqual(data["made_items"], [{"name": "Chicken Biryani", "quantity": 1, "status": "preparing"}])
         self.assertIn("1 dish on this order was already made", data["error"])
         order.refresh_from_db()
@@ -492,7 +525,8 @@ class CancelWholeOrderTests(TestCase):
         old = self._add_line(order, "sent", minutes_ago=20)
         self.assertEqual(self._stock(), Decimal("9.400"))
 
-        resp = _post(self.cashier, "cancel-order", order.id, {"include_made": True, "reason": "Guest left"})
+        resp = _post(self.cashier, "cancel-order", order.id, {"include_made": True, "reason": "Guest left"},
+                     approver=self.manager)
 
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(OrderItem.objects.filter(order=order).exclude(status="voided").exists())
@@ -514,7 +548,7 @@ class CancelWholeOrderTests(TestCase):
 
         resp = _post(self.captain, "cancel-order", order.id, {"include_made": True, "reason": "Complaint"})
 
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.status_code, 403)
         item.refresh_from_db()
         self.assertEqual(item.status, "served")
         self.assertEqual(_post(self.owner, "cancel-order", order.id, {"include_made": True, "reason": "Complaint"}).status_code, 200)
@@ -558,6 +592,7 @@ class CancelWholeOrderTests(TestCase):
         self.assertEqual(order.status, "open")
 
 
+@FAST_PIN
 class CancelOrderConcurrencyTests(TransactionTestCase):
     """Cancelling the order while someone cancels one of its dishes: each
     dish is cancelled once and its stock moved once, whichever lands first."""

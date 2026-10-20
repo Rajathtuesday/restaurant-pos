@@ -1,6 +1,7 @@
 # orders/services/order_service.py
 from decimal import Decimal
 from django.db import transaction, IntegrityError
+from django.utils import timezone
 
 from orders.models import Order, OrderItem, OrderItemModifier
 from menu.models import MenuItem, Modifier
@@ -187,13 +188,21 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             discount_reason = read_reason(item.get("discount_reason"))
             check_within_limit(user, o, item_discount_pct, what="A dish discount")
 
+        tax = tax_snapshot_for(menu_item, t)   # GST, or VAT for liquor, as sold today
+        if tax["tax_kind"] == "vat" and not o.liquor_allowed_at(timezone.now()):
+            # Outside the licensed hours (Outlet.liquor_from / liquor_until).
+            raise CartError(
+                f"'{menu_item.name}' is liquor, and liquor can be ordered only from "
+                f"{o.liquor_hours_text()}."
+            )
+
         order_item = OrderItem.objects.create(
             order=order,
             menu_item=menu_item,
             quantity=quantity,
             price=menu_item.price,
             item_discount_pct=item_discount_pct,
-            **tax_snapshot_for(menu_item, t),   # GST, or VAT for liquor, as sold today
+            **tax,
             total_price=base_price,
             notes=note,
             is_takeaway=item.get("is_takeaway") is True,

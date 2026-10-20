@@ -27,6 +27,15 @@ class KitchenStation(TenantScopedModel):
     )
     printer_port = models.IntegerField(default=9100)
 
+    # A bar pours a drink the moment the ticket arrives, so a drink cancelled
+    # after that is a drink poured, not stock to put back. Lines sent to a
+    # station with this on count as made as soon as they're sent, instead of
+    # after void_service.MADE_AFTER (10 minutes, right for a kitchen).
+    made_on_send = models.BooleanField(
+        default=False,
+        help_text="Drinks count as made as soon as they're sent (turn on for a bar).",
+    )
+
     PAPER_WIDTH_CHOICES = [(58, "58mm — small receipt (32 chars/line)"), (80, "80mm — standard receipt (48 chars/line)")]
     paper_width_mm = models.IntegerField(default=80, choices=PAPER_WIDTH_CHOICES, help_text="Physical paper roll width")
 

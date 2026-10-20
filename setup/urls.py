@@ -43,6 +43,8 @@ from .views import (
     report_subscription_toggle,
     report_subscription_delete,
 )
+from .views.pin_views import clear_staff_pin, my_approval_pin
+from .views.core_views import set_station_made_on_send
 
 urlpatterns = [
     path('', setup_wizard, name='setup_wizard'),
@@ -53,6 +55,8 @@ urlpatterns = [
     path('kitchen-stations/', setup_kitchen_stations, name='setup_kitchen_stations'),
     path('payment-methods/', setup_payment_methods, name='setup_payment_methods'),
     path('staff/', setup_staff, name='setup_staff'),
+    path('approval-pin/', my_approval_pin, name='my_approval_pin'),
+    path('approval-pin/<int:user_id>/clear/', clear_staff_pin, name='clear_staff_pin'),
     path('staff/<int:user_id>/reset-password/', reset_staff_password, name='reset_staff_password'),
     path('staff/<int:user_id>/toggle-active/', toggle_staff_active, name='toggle_staff_active'),
     path('staff/<int:user_id>/edit-role/', edit_staff_role, name='edit_staff_role'),
@@ -85,6 +89,7 @@ urlpatterns = [
     path("kitchen-stations/<int:station_id>/printer/", update_printer_config, name="update_printer_config"),
     path("kitchen-stations/<int:station_id>/test-print/", test_print_station, name="test_print_station"),
     path("kitchen-stations/<int:station_id>/delete/", delete_station, name="delete_station"),
+    path("kitchen-stations/<int:station_id>/made-on-send/", set_station_made_on_send, name="set_station_made_on_send"),
     path("kitchen-stations/set-mode/<str:mode>/", set_print_mode, name="set_print_mode"),
 
     # Onboarding helpers

@@ -37,6 +37,14 @@ class User(AbstractUser):
     # low-privilege account can mint itself an owner.
     ASSIGNABLE_STAFF_ROLES = frozenset({"manager", "cashier", "captain", "waiter", "chef", "kitchen"})
 
+    # A manager's or owner's approval PIN, typed on a cashier's screen to
+    # approve taking money off a printed bill (orders/services/approvals.py).
+    # Stored hashed like a password; blank means no PIN set. Wrong tries are
+    # counted and lock the PIN for a while, so it can't be guessed.
+    approval_pin = models.CharField(max_length=128, blank=True, default="")
+    approval_pin_failures = models.PositiveSmallIntegerField(default=0)
+    approval_pin_locked_until = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=["tenant", "role"]),

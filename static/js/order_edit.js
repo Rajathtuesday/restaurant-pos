@@ -243,12 +243,20 @@
   }
 
   function post(url, body) {
-    return fetch(url, {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() },
-      body: JSON.stringify(body || {}),
-    }).then(function (res) {
+    function send(extra) {
+      var headers = { "Content-Type": "application/json", "X-CSRFToken": csrf() };
+      Object.keys(extra || {}).forEach(function (k) { headers[k] = extra[k]; });
+      return fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: headers,
+        body: JSON.stringify(body || {}),
+      });
+    }
+    // A change that needs a manager's PIN asks for it and sends again
+    // (static/js/approval.js, loaded by templates/core/base.html).
+    var request = window.RasovaApproval ? window.RasovaApproval.send(send) : send({});
+    return request.then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
         if (!res.ok || data.success === false) {
           var err = new Error(data.error || "Could not save the change (HTTP " + res.status + ").");

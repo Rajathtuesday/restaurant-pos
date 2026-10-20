@@ -4,6 +4,7 @@
 import logging
 import re
 import uuid
+from datetime import time
 from decimal import Decimal
 
 from django.db import models
@@ -454,6 +455,18 @@ class Outlet(models.Model):
         ),
     )
 
+    # Liquor may be sold only in the licence's hours (a Karnataka CL-9 bar:
+    # 10 am to 1 am). A liquor line added outside them is refused
+    # (orders/services/order_service.add_items_to_order); food still sells,
+    # and drinks ordered in time can still be billed and paid after. Police
+    # raided Bengaluru pubs in 2025 for serving beyond permitted hours.
+    liquor_hours_enforced = models.BooleanField(
+        default=True,
+        help_text="Refuse liquor ordered outside the licensed hours below.",
+    )
+    liquor_from = models.TimeField(default=time(10, 0), help_text="Liquor may be ordered from this time.")
+    liquor_until = models.TimeField(default=time(1, 0), help_text="Until this time (past midnight is fine).")
+
     use_qz_tray = models.BooleanField(
         default=False,
         help_text=(
@@ -702,6 +715,24 @@ class Outlet(models.Model):
             self.bill_code = suggest_bill_code(self.tenant.name, taken)
             Outlet.objects.filter(pk=self.pk).update(bill_code=self.bill_code)
         return self.bill_code
+
+    def liquor_allowed_at(self, when):
+        """True if liquor may be ordered at `when` (an aware datetime), by
+        the outlet's licensed hours. The same start and end means all day."""
+        if not self.liquor_hours_enforced or self.liquor_from == self.liquor_until:
+            return True
+        from django.utils import timezone
+        now = timezone.localtime(when).time()
+        if self.liquor_from < self.liquor_until:
+            return self.liquor_from <= now < self.liquor_until
+        return now >= self.liquor_from or now < self.liquor_until
+
+    def liquor_hours_text(self):
+        """ "10:00 am to 1:00 am" """
+        def shown(t):
+            hour = t.hour % 12 or 12
+            return f"{hour}:{t.minute:02d} {'am' if t.hour < 12 else 'pm'}"
+        return f"{shown(self.liquor_from)} to {shown(self.liquor_until)}"
 
     def __str__(self):
         return f"{self.name} ({self.tenant.name})"

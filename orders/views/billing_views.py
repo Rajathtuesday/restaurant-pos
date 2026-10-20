@@ -230,6 +230,14 @@ def create_order(request):
             {"error": "Enter a valid 10-digit mobile number."}, status=400
         )
 
+    # A manager's PIN for lowering a printed bill (a discount, or re-tagging
+    # it as an app order), read before the transaction so a wrong try counts.
+    from orders.services import approvals
+    try:
+        approver = approvals.read_approval(request, outlet) if user else None
+    except approvals.ApprovalRefused as e:
+        return approvals.approval_response(e, tenant, outlet)
+
     try:
         with transaction.atomic():
             cust_name = data.get("customer_name")
@@ -314,9 +322,26 @@ def create_order(request):
                 )
                 return JsonResponse({"error": message}, status=409)
 
+            bill_before = order.grand_total
+            printed_by = None
+            if (approvals.printed_bill(order) and source != order.source
+                    and (source in Order.OPERATOR_SOURCES or order.source in Order.OPERATOR_SOURCES)):
+                # An app order carries no GST, so re-tagging a printed bill
+                # changes what the guest owes, even if this same request adds
+                # a dish that hides the drop.
+                printed_by = approvals.require(
+                    user, approver, approvals.PRINTED.format(what="change where the order came from"))
             order.source = source
             if aggregator_id:
                 order.aggregator_order_id = aggregator_id
+            if order.source in Order.OPERATOR_SOURCES and not order.aggregator_order_id:
+                # The app pays this order's GST (CGST Act s.9(5)), so the bill
+                # carries none; without the app's own order ID any order could
+                # be tagged "Zomato" and its GST would quietly disappear.
+                raise OrderSourceError(
+                    f"Type the {order.get_source_display()} order ID. An app order needs "
+                    "the app's own order number."
+                )
             if cust_name:
                 order.customer_name = cust_name
             if cust_phone:
@@ -363,6 +388,10 @@ def create_order(request):
                             # The bill screen's rules: a reason, a limit, an
                             # audit event (orders/services/discount_policy.py).
                             bill_discount = (d_type, d_val, read_reason(data.get("discount_reason")))
+                            unchanged = (order.discount_type, order.discount_value) == (d_type, d_val)
+                            if approvals.printed_bill(order) and not unchanged:
+                                printed_by = approvals.require(
+                                    user, approver, approvals.PRINTED.format(what="give a discount on it"))
                         # Set like every bill discount (bill_discount.py): it
                         # replaces any promo, and 0 takes the discount off.
                         set_manual(order, d_type, d_val)
@@ -373,6 +402,13 @@ def create_order(request):
 
             # Important: recalculate after adding items so the discount applies to the total
             order.recalculate_totals()
+            # A printed bill that this request lowered (a discount, or now an
+            # app order without GST) needs a manager; refusing here undoes
+            # the whole request.
+            printed_by = approvals.lowered_printed_bill(order, user, approver, "change it", bill_before) or printed_by
+            if printed_by:
+                approvals.record_after_bill(order, user, printed_by, "Changed the bill from the billing screen",
+                                            bill_before, {"source": order.source})
 
             if bill_discount:
                 d_type, d_val, reason = bill_discount
@@ -398,7 +434,9 @@ def create_order(request):
             "order_id": order.id,
             "status_token": make_order_status_token(order.id),
         })
-    except (CartError, MenuItemError, ModifierError, OrderError) as e:
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return approvals.approval_response(e, tenant, outlet)
+    except (CartError, MenuItemError, ModifierError, OrderError, OrderSourceError) as e:
         # Written for the person ordering ("A cart can have at most 30
         # lines.", "'Lassi' is currently unavailable."), so they are shown
         # as they are; the guest menu displays data.error.

@@ -29,7 +29,7 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
         return {
             "discounts": [], "item_discounts": [], "comps": [], "voids": [],
             "void_reasons": [], "discount_reasons": [], "comp_reasons": [], "promos_used": [],
-            "unpaid_closes": [],
+            "unpaid_closes": [], "after_bill": [],
         }
 
     range_start, _ = get_business_date_range(start_date, outlet)
@@ -129,7 +129,29 @@ def discount_void_audit(tenant, outlet=None, start_date=None, end_date=None):
             "reason": event.metadata.get("reason") or "",
         })
 
+    # Money taken off a printed bill (orders/services/approvals.py), one row
+    # each, with whose PIN approved it. Recorded from 20 Oct 2026; before
+    # that a cashier could do these on their own, with nothing recorded.
+    after_bill = []
+    for event in (base_qs.filter(event_type="changed_after_bill")
+                  .select_related("order", "created_by").order_by("created_at")):
+        meta = event.metadata or {}
+        before = Decimal(meta.get("before") or "0")
+        after = Decimal(meta.get("after") or "0")
+        after_bill.append({
+            "when": event.created_at,
+            "bill": event.order.display_number if event.order is not None else "",
+            "what": meta.get("what") or "",
+            "before": before,
+            "after": after,
+            "taken_off": before - after,
+            "by": event.created_by.username if event.created_by else "Unknown",
+            "approved_by": meta.get("approved_by") or "",
+            "reason": meta.get("reason") or "",
+        })
+
     return {
+        "after_bill": after_bill,
         "unpaid_closes": unpaid_closes,
         "discounts": discounts,
         "item_discounts": item_discounts,

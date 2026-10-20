@@ -252,6 +252,29 @@
                         </div>
                     </div>
 
+                    <!-- ── Liquor hours (gated: liquor_vat feature) ── -->
+                    {% if 'liquor_vat' in tenant_features %}
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label">Liquor Hours</label>
+                        <label style="display:flex;gap:0.5rem;align-items:center;font-size:0.85rem;margin-top:0.4rem;cursor:pointer;">
+                            <input type="checkbox" name="liquor_hours_enforced" {% if outlet.liquor_hours_enforced %}checked{% endif %}>
+                            Refuse liquor ordered outside these hours
+                        </label>
+                        <div style="display:flex;align-items:center;gap:0.6rem;margin-top:0.6rem;">
+                            <input type="time" id="liquor_from" name="liquor_from" class="field-input" style="max-width:150px;"
+                                   value="{{ outlet.liquor_from|time:'H:i' }}" required>
+                            <span style="color:var(--text-muted);">to</span>
+                            <input type="time" id="liquor_until" name="liquor_until" class="field-input" style="max-width:150px;"
+                                   value="{{ outlet.liquor_until|time:'H:i' }}" required>
+                        </div>
+                        <div class="field-hint">
+                            Your licence's hours (a Karnataka bar: 10 am to 1 am). Outside them a drink can't be added to
+                            an order; food still can, and drinks ordered in time can still be billed after. Change it for a
+                            night with a special permit.
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- ── Parcel Charge (gated: parcel_charge feature) ── -->
                     {% if 'parcel_charge' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">

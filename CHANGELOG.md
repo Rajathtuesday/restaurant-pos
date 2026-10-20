@@ -7,6 +7,29 @@ the source of truth.
 
 ---
 
+## 2026-10-20: A printed bill can't be lowered without a manager, and liquor only in licensed hours
+
+### Fixed (the till leaks found on 19 Oct)
+- **Once the bill was printed, a cashier or captain could take money off it on their own.** Proved by running the code: void a dish the guest ate (₹1,000 to ₹0), cut a quantity (₹3,000 to ₹1,000, logged so it never reached the Discount & Void audit), cancel the whole bill, give a bill discount, take the parcel charge off. Now anything that lowers a printed bill (status "billing") needs a manager or the owner doing it, or a manager's **approval PIN** typed on the cashier's screen. One rule for every path, in `orders/services/approvals.py`; the bill page, billing screen, live orders board and running order all ask the same way (`static/js/approval.js`, used by `apiClient` and `OrderEdit`).
+- **A captain could cancel a dish the kitchen had already made, as wastage, with no manager.** Cancelling a made dish now needs a manager's approval at any time, not only after the bill.
+- **A bar's drinks counted as "probably not made" for 10 minutes after they were sent**, so a bartender could void a poured drink and its stock went back on the shelf. A kitchen station now has **Made as soon as sent** (on by default for a station named "Bar"); a cancel after that is wastage and needs the PIN.
+- **Any staff could tag an order as Zomato or Swiggy with no app order ID**, and its GST disappeared from the bill (the app pays it under s.9(5)). An app order now needs the app's own order ID, and re-tagging a printed bill as an app order needs a manager, even when the same save adds a dish.
+- **A dish discount or a free dish on a printed bill was refused for everyone, managers included**, while a bill discount was allowed for anyone. Both now follow the same rule: allowed, with a manager's approval.
+
+### Added
+- **Setup, Approval PIN**: each manager or owner sets their own 4 to 6 digit PIN after typing their password. It is stored hashed; 5 wrong tries lock it for 15 minutes; easy ones (1111, 1234) are refused. The owner can clear a manager's PIN.
+- **Discount & Void audit, "Changed after the bill was printed"**: every approved change with the bill before and after, who made it and whose PIN approved it. Void and discount events also carry `approved_by`.
+- **Liquor only in the licensed hours.** Each outlet has liquor hours (10 am to 1 am by default, a Karnataka CL-9 bar's), on Outlet Settings when the outlet sells liquor. A drink added outside them is refused with the hours ("'Pint' is liquor, and liquor can be ordered only from 10:00 am to 1:00 am."), for staff and QR guests alike; food still sells, and drinks ordered in time can still be billed and paid after 1 am. The owner can change the hours or switch the lock off.
+
+### Tests
+- `orders/tests/test_printed_bill_approval.py` (33): each leak refused without a PIN (the leak tests fail on the old code: 10 of 10 checked in a separate copy at the previous commit), each change with a PIN recorded, wrong PIN counted, lock and unlock, who may approve (not another outlet's manager, a cashier, a deactivated manager or another restaurant), the PIN page.
+- `orders/tests/test_approval_pin_browser.py`: in Chromium, a cashier's dish discount on a printed bill asks for the PIN, the right PIN applies it and the wrong one says "Wrong PIN. 4 tries left." Skips without Playwright.
+- `orders/tests/test_liquor_hours.py` (9; 7 fail on the old code, the 2 that pass check what is still allowed).
+- The live orders board and a cancel read each line's ticket and station with the line itself (one query, not one per line); a test counts the board's queries with 1 order and with 9.
+- Tests that pinned the old rules now say the new ones: a cashier or captain writing off a made dish sends a manager's PIN, and a refusal is the 403 the screen turns into a PIN prompt. Liquor tests that aren't about hours run with the hours lock off, so they pass at any time of night.
+
+---
+
 ## 2026-10-20: A missing migration dependency
 
 ### Fixed

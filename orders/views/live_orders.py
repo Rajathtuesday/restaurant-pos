@@ -84,7 +84,7 @@ def live_orders_data(request):
             queryset=(
                 OrderItem.objects
                 .exclude(status="voided")
-                .select_related("menu_item", "kot")
+                .select_related("menu_item", "kot__station")
                 .prefetch_related("modifiers")
                 .order_by("id")
             ),

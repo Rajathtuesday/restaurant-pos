@@ -152,12 +152,16 @@ class ItemDiscountInTheBrowserTest(StaticLiveServerTestCase):
         self.assertEqual(self.errors, [])
 
     def test_a_refusal_is_shown_not_swallowed(self):
-        # A printed bill is locked against dish discounts (validate_order_editable):
-        # the cashier must see why, not a button that does nothing.
+        # On a printed bill a cashier's dish discount needs a manager
+        # (orders/services/approvals.py, since 20 Oct 2026; it used to be
+        # refused for everyone). With no manager PIN set yet, the screen says
+        # so, then shows the refusal: never a button that does nothing.
         order, page = self.bill_page(status="billing")
         page.fill("#item-discount-pct", "10")
         page.fill("#item-discount-reason", "regular guest")
         page.click(".swal2-confirm")
-        page.wait_for_selector(".swal2-toast:has-text('locked')")
+        page.wait_for_selector(".swal2-popup:has-text('No manager has set an approval PIN yet')")
+        page.click(".swal2-confirm")
+        page.wait_for_selector(".swal2-toast:has-text(\"manager's PIN\")")
         self.assertEqual(self.item(order).item_discount_pct, D("0.00"))
         self.assertEqual(self.errors, [])

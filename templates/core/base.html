@@ -288,6 +288,7 @@
     <!-- Global Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.all.min.js"></script>
+    <script src="{% static 'js/approval.js' %}"></script>
 
     <script>
         // --- 1. Theme Management (toggles on <html> so html.dark CSS selector works) ---
@@ -383,7 +384,10 @@
                 };
 
                 try {
-                    const response = await fetch(endpoint, { ...options, headers });
+                    // A change that needs a manager's PIN (a printed bill going
+                    // down) asks for it and sends again: static/js/approval.js.
+                    const response = await window.RasovaApproval.send(
+                        extra => fetch(endpoint, { ...options, headers: { ...headers, ...extra } }));
                     let data;
                     try {
                         data = await response.json();

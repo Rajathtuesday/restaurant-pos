@@ -112,6 +112,21 @@
     {% endfor %}
   </div>
 
+  <div class="audit-card unpaid-card">
+    <h3>Changed After the Bill Was Printed</h3>
+    {% for row in report.after_bill %}
+    <div class="audit-row unpaid-row">
+      <span class="unpaid-when">{{ row.when|date:"d M, H:i" }}</span>
+      <span class="unpaid-bill">{{ row.bill }}</span>
+      <span class="count">&#8377;{{ row.before }} &rarr; &#8377;{{ row.after }}</span>
+      <span class="unpaid-by">{{ row.by }}{% if row.approved_by and row.approved_by != row.by %}, approved by {{ row.approved_by }}{% endif %}</span>
+      <span class="unpaid-reason">{{ row.what }}{% if row.reason %}: {{ row.reason }}{% endif %}</span>
+    </div>
+    {% empty %}
+    <div class="audit-empty">No printed bill was lowered in this period.</div>
+    {% endfor %}
+  </div>
+
   <div class="audit-grid">
     <div class="audit-card">
       <h3>Order-Level Discounts</h3>

@@ -28,7 +28,10 @@ from tenants.models import Outlet, Tenant, TenantFeatureOverride
 class OfferSetupBase(TestCase):
     def setUp(self):
         self.tenant = Tenant.objects.create(name="Copper Tap", tenant_type="pub")
-        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Indiranagar", gst_no="29ABCDE1234F1Z5")
+        # Liquor hours are off: these tests sell drinks at whatever time they run
+        # (orders/tests/test_liquor_hours.py tests the hours).
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Indiranagar", gst_no="29ABCDE1234F1Z5",
+                                            liquor_hours_enforced=False)
         self.other_outlet = Outlet.objects.create(tenant=self.tenant, name="Koramangala")
         self.owner = self.user("ot_owner", "owner")
         self.manager = self.user("ot_manager", "manager")

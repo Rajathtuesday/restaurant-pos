@@ -203,6 +203,13 @@
 
       <div class="printer-panel" id="panel-{{ station.id }}">
 
+        <label style="display:flex;gap:0.6rem;align-items:flex-start;font-size:0.78rem;line-height:1.5;margin-bottom:1rem;cursor:pointer;">
+          <input type="checkbox" class="made-on-send" data-station="{{ station.id }}" {% if station.made_on_send %}checked{% endif %}
+                 onchange="setMadeOnSend({{ station.id }}, this)" style="margin-top:0.2rem;">
+          <span><strong>Made as soon as sent</strong> (turn on for a bar). A drink cancelled after it was sent counts as
+            poured: it becomes wastage and needs a manager's PIN, instead of going back into stock.</span>
+        </label>
+
         {% if station.is_default and not any_station_has_printer %}
         <div style="background:rgba(16,185,129,0.07);border-left:3px solid #10b981;padding:0.7rem 0.9rem;margin-bottom:1rem;font-size:0.72rem;line-height:1.6;">
           <strong style="color:#10b981;">Cashier printer.</strong>
@@ -563,6 +570,15 @@ async function discoverPrinterIp(id) {
     result.style.color = '#ef4444';
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function setMadeOnSend(id, box) {
+  try {
+    await apiClient.post(`/setup/kitchen-stations/${id}/made-on-send/`, { on: box.checked });
+    ui.toast(box.checked ? "Drinks from this station now count as made when sent." : "Back to the kitchen rule (made after 10 minutes).", "success");
+  } catch (e) {
+    box.checked = !box.checked;
   }
 }
 

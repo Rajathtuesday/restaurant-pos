@@ -207,9 +207,11 @@ class ReduceQuantityTests(TestCase):
     def test_served_line_needs_a_manager(self):
         _, item = _sent_line(self, quantity=2, status="served")
 
+        # A refusal the screen turns into a manager's PIN prompt (since 20 Oct 2026).
         resp = self._post(self.cashier, item.id, {"reduce_by": 1, "reason": "x"})
-        self.assertEqual(resp.status_code, 400)
-        self.assertIn("Manager override", resp.json()["error"])
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(resp.json()["needs_approval"])
+        self.assertIn("manager", resp.json()["error"])
 
         resp = self._post(self.manager, item.id, {"reduce_by": 1, "reason": "x"})
         self.assertEqual(resp.status_code, 200)

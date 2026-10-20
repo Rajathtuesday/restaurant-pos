@@ -37,7 +37,10 @@ class PubBills(TestCase):
 
     def setUp(self):
         self.tenant = Tenant.objects.create(name="Copper Tap", tenant_type=self.tenant_type)
-        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Indiranagar", gst_no=KARNATAKA_GSTIN)
+        # Liquor hours are off: these tests sell drinks at whatever time they run
+        # (orders/tests/test_liquor_hours.py tests the hours).
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Indiranagar", gst_no=KARNATAKA_GSTIN,
+                                            liquor_hours_enforced=False)
         self.owner = User.objects.create_user(username="tap_owner", password="pw", role="owner",
                                               tenant=self.tenant, outlet=self.outlet)
         self.food = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Food")

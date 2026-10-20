@@ -183,7 +183,7 @@ def running_order_data(request, order_id):
         .select_related("table")
         .prefetch_related(Prefetch(
             "items",
-            queryset=OrderItem.objects.select_related("menu_item", "kot").prefetch_related("modifiers"),
+            queryset=OrderItem.objects.select_related("menu_item", "kot__station").prefetch_related("modifiers"),
         ))
         .filter(
             id=order_id,

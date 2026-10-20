@@ -1287,11 +1287,22 @@
 
   async function cancelQSROrder() {
     if (!qsrPendingOrderId) { bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"))?.hide(); return; }
+    // The total was worked out (a bill number issued), so cancelling needs a
+    // manager's PIN like any printed bill: static/js/approval.js asks for it.
+    // If it is refused the order stays, and so does this screen.
     try {
-      await fetch("{% url 'cancel-order' 0 %}".replace("0", qsrPendingOrderId), {
-        method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-      });
-    } catch {}
+      const res = await window.RasovaApproval.send(extra => fetch("{% url 'cancel-order' 0 %}".replace("0", qsrPendingOrderId), {
+        method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf(), ...extra }
+      }));
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        showToast(d.error || "Could not cancel the order.");
+        return;
+      }
+    } catch {
+      showToast("Network error, the order was not cancelled.");
+      return;
+    }
     bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"))?.hide();
     clearCart();
     qsrPendingOrderId = null;

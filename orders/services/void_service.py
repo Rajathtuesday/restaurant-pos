@@ -9,6 +9,7 @@ from django.db import transaction
 
 from orders.models import Order, OrderItem, OrderEvent
 from orders.exceptions import OrderError
+from orders.services import approvals
 from orders.services.event_service import log_event
 from orders.services.order_service import update_table_state
 from orders.services.row_locks import lock_order_of_item
@@ -17,17 +18,18 @@ logger = logging.getLogger("pos.orders")
 
 _NOT_YET_IN_KITCHEN = ("pending", "review")
 _ALREADY_MADE = ("ready", "served")
-_MANAGERS = ("manager", "owner")
 _TWO_PLACES = Decimal("0.01")
 
 # A ticket that has sat with the kitchen this long is treated as cooked unless
 # someone says otherwise. Many kitchens never tap "Start prep", so the status
-# alone would keep saying "sent" long after the food is made.
+# alone would keep saying "sent" long after the food is made. A station set to
+# made_on_send (a bar) counts a line as made the moment it is sent.
 MADE_AFTER = timedelta(minutes=10)
 
 
-class ManagerRequired(OrderError):
-    """The action is allowed, but only for a manager or owner."""
+class ManagerRequired(approvals.ApprovalNeeded):
+    """The action is allowed, but only with a manager's approval: a manager
+    or the owner doing it, or anyone else with a manager's PIN."""
 
 
 class MadeDishesNeedConfirmation(OrderError):
@@ -44,8 +46,9 @@ class MadeDishesNeedConfirmation(OrderError):
 
 # ── was the dish actually made? ─────────────────────────────────────────
 
-def suggest_made(status, kot_sent_at, now=None):
-    """Best guess at whether the kitchen has already made this dish."""
+def suggest_made(status, kot_sent_at, now=None, made_on_send=False):
+    """Best guess at whether the kitchen has already made this dish.
+    made_on_send: the ticket went to a station that makes it at once (a bar)."""
     if status in _NOT_YET_IN_KITCHEN:
         return False
     if status in _ALREADY_MADE or status == "preparing":
@@ -53,7 +56,14 @@ def suggest_made(status, kot_sent_at, now=None):
     # "sent": made if the ticket has been in the kitchen long enough.
     if kot_sent_at is None:
         return False
+    if made_on_send:
+        return True
     return ((now or timezone.now()) - kot_sent_at) >= MADE_AFTER
+
+
+def _made_on_send(kot):
+    station = getattr(kot, "station", None) if kot is not None else None
+    return bool(station and station.made_on_send)
 
 
 def kitchen_stock_hint(item, is_manager, now=None):
@@ -61,11 +71,12 @@ def kitchen_stock_hint(item, is_manager, now=None):
     What the edit sheet should offer for one line: whether it's with the
     kitchen, whether "made" is fixed, the pre-selected answer, and whether
     switching a likely-made dish back to stock needs a manager. Reads
-    item.kot, so callers should select_related("kot").
+    item.kot and its station, so callers should select_related("kot__station").
     """
     in_kitchen = item.status not in _NOT_YET_IN_KITCHEN
-    sent_at = item.kot.created_at if item.kot_id else None
-    made = suggest_made(item.status, sent_at, now)
+    kot = item.kot if item.kot_id else None
+    sent_at = kot.created_at if kot else None
+    made = suggest_made(item.status, sent_at, now, _made_on_send(kot))
     locked = item.status in _ALREADY_MADE
     return {
         "in_kitchen": in_kitchen,
@@ -75,31 +86,49 @@ def kitchen_stock_hint(item, is_manager, now=None):
     }
 
 
-def _kot_sent_at(item):
-    if not item.kot_id:
-        return None
-    from kitchen.models import KOTBatch
-    return KOTBatch.objects.filter(id=item.kot_id).values_list("created_at", flat=True).first()
+RESTOCK = "A manager is needed to put a dish the kitchen has started back into stock."
 
 
-def _decide_made(item, user, made):
+def _decide_made(item, user, made, approver=None):
     """
     Returns (in_kitchen, made). `made` is True/False from the person
     cancelling, or None to use the suggestion. Ready and served dishes were
-    made, full stop. Anyone may call a dish wasted; putting a dish the
-    kitchen has probably started back into stock needs a manager, or losses
-    could be hidden.
+    made, full stop.
+
+    Both answers about a dish the kitchen has probably made need a manager
+    (approvals.require): putting it back into stock could hide a loss, and
+    calling it wastage writes one off. Until 20 Oct 2026 anyone could call a
+    dish wasted, so a bartender could void a drink he had poured and been
+    paid for in cash.
     """
     if item.status in _NOT_YET_IN_KITCHEN:
         return False, False
-    suggested = suggest_made(item.status, _kot_sent_at(item))
+    kot = item.kot if item.kot_id else None    # loaded with its station by _lock_line
+    suggested = suggest_made(item.status, kot.created_at if kot else None, made_on_send=_made_on_send(kot))
     if made is None:
-        return True, suggested
-    if made is False and item.status in _ALREADY_MADE:
+        made = suggested
+    elif made is False and item.status in _ALREADY_MADE:
         raise OrderError("Ready or served dishes were already made, so their ingredients count as wastage.")
-    if made is False and suggested and getattr(user, "role", None) not in _MANAGERS:
-        raise ManagerRequired("A manager is needed to put a dish the kitchen has started back into stock.")
-    return True, bool(made)
+    made = bool(made)
+    if made:
+        approvals.require(user, approver, approvals.MADE)
+    elif suggested:
+        approvals.require(user, approver, RESTOCK)
+    return True, made
+
+
+def _approvals_for_line(item, user, approver, what):
+    """
+    The approvals a change to this line needs beyond the kitchen's: a
+    served dish needs a manager, and so does anything on a printed bill.
+    Returns who approved the printed-bill change, or None if the bill
+    isn't printed.
+    """
+    if item.status == "served":
+        approvals.require(user, approver, approvals.SERVED)
+    if approvals.printed_bill(item.order):
+        return approvals.require(user, approver, approvals.PRINTED.format(what=what))
+    return None
 
 
 # ── cancelling one line ─────────────────────────────────────────────────
@@ -108,30 +137,44 @@ def _lock_line(user, item_id):
     """
     Lock one order line for a change: its order first, then the line (see
     row_locks.lock_order_of_item). of=("self",) keeps the menu item row out
-    of the lock; the old joined FOR UPDATE locked that too.
+    of the lock; the old joined FOR UPDATE locked that too. The line's
+    ticket and its station come in the same query (_decide_made reads them).
     """
     order_id = lock_order_of_item(user, item_id)
     return (
         OrderItem.objects
         .select_for_update(of=("self",))
-        .select_related("order", "menu_item")
+        .select_related("order", "menu_item", "kot__station")
         .get(id=item_id, order_id=order_id)
     )
 
 
-@transaction.atomic
-def void_order_item(user, item_id, reason, made=None):
+def _approval_note(user, approver):
+    """For an event's metadata: whose PIN approved it, when someone's did."""
+    if approver is not None and not approvals.approves_own(user):
+        return {"approved_by": approver.username}
+    return {}
 
+
+@transaction.atomic
+def void_order_item(user, item_id, reason, made=None, approver=None, record_after_bill=True):
+    """
+    Cancel one order line. `approver` is the manager whose PIN came with the
+    request (approvals.read_approval), for what needs one: a served dish, a
+    dish already made, or any line once the bill is printed.
+    record_after_bill=False: the caller records the printed-bill change
+    itself (cancel_whole_order, once for the whole order).
+    """
     item = _lock_line(user, item_id)
 
     if item.order.status in ("paid", "closed", "cancelled"):
         raise OrderError("Cannot void an item on a completed order.")
     if item.status == "voided":
         raise OrderError("Item is already voided")
-    if item.status == "served" and user.role not in _MANAGERS:
-        raise ManagerRequired("Item is already served. Manager override required.")
 
-    in_kitchen, made = _decide_made(item, user, made)
+    printed_by = _approvals_for_line(item, user, approver, "take a dish off it")
+    in_kitchen, made = _decide_made(item, user, made, approver)
+    bill_before = item.order.grand_total
 
     item.status = "voided"
     item.void_reason = reason
@@ -152,13 +195,17 @@ def void_order_item(user, item_id, reason, made=None):
     order.recalculate_totals()
     update_table_state(order)
 
+    name = item.menu_item.name if item.menu_item else "Unknown"
     log_event(
         order,
         "item_voided",
         user,
-        {"item": item.menu_item.name if item.menu_item else "Unknown", "reason": reason,
-         "quantity": item.quantity, "stock": stock},
+        {"item": name, "reason": reason, "quantity": item.quantity, "stock": stock,
+         **_approval_note(user, approver)},
     )
+    if printed_by and record_after_bill:
+        approvals.record_after_bill(order, user, printed_by, f"Cancelled {item.quantity} x {name}",
+                                    bill_before, {"reason": reason})
 
     return item
 
@@ -182,7 +229,7 @@ def _whole_units(value):
 
 
 @transaction.atomic
-def reduce_item_quantity(user, item_id, reduce_by, reason, made=None):
+def reduce_item_quantity(user, item_id, reduce_by, reason, made=None, approver=None):
     """
     Take `reduce_by` units off one order line ("make that one naan, not two").
 
@@ -198,6 +245,10 @@ def reduce_item_quantity(user, item_id, reduce_by, reason, made=None):
     No schema change needed.
 
     Removing the whole quantity is the same as voiding the line.
+
+    Once the bill is printed every reduction needs a manager (`approver`, see
+    void_order_item) and goes on the void audit, the basket edit too: the
+    guest has seen that line on the bill.
     """
     reduce_by = _whole_units(reduce_by)
 
@@ -207,13 +258,14 @@ def reduce_item_quantity(user, item_id, reduce_by, reason, made=None):
         raise OrderError("Cannot change an item on a completed order.")
     if item.status == "voided":
         raise OrderError("Item is already voided")
-    if item.status == "served" and user.role not in _MANAGERS:
-        raise ManagerRequired("Item is already served. Manager override required.")
     if reduce_by > item.quantity:
         raise OrderError(f"Only {item.quantity} left on this line.")
 
     if reduce_by == item.quantity:
-        return void_order_item(user, item.id, reason, made=made)
+        return void_order_item(user, item.id, reason, made=made, approver=approver)
+
+    printed_by = _approvals_for_line(item, user, approver, "take a dish off it")
+    bill_before = item.order.grand_total
 
     # total_price is (price + modifier prices) x quantity, so it divides evenly.
     unit_total = item.total_price / Decimal(item.quantity)
@@ -227,13 +279,23 @@ def reduce_item_quantity(user, item_id, reduce_by, reason, made=None):
         item.save(update_fields=["quantity", "total_price"])
         order = Order.objects.select_for_update().get(id=item.order_id)
         order.recalculate_totals()
-        log_event(order, "item_updated", user, {
-            "action": "quantity_reduced", "item": name,
-            "from": before, "to": item.quantity, "reason": reason,
-        })
+        if printed_by:
+            # On the printed bill, so on the void audit like any other void.
+            log_event(order, "item_voided", user, {
+                "item": name, "reason": reason, "quantity": reduce_by,
+                "partial": True, "from": before, "to": item.quantity, "stock": "none",
+                **_approval_note(user, approver),
+            })
+            approvals.record_after_bill(order, user, printed_by, f"Took {reduce_by} x {name} off",
+                                        bill_before, {"reason": reason})
+        else:
+            log_event(order, "item_updated", user, {
+                "action": "quantity_reduced", "item": name,
+                "from": before, "to": item.quantity, "reason": reason,
+            })
         return item
 
-    _, made = _decide_made(item, user, made)
+    _, made = _decide_made(item, user, made, approver)
 
     from orders.models import OrderItemModifier
 
@@ -278,14 +340,18 @@ def reduce_item_quantity(user, item_id, reduce_by, reason, made=None):
         "item": name, "reason": reason, "quantity": reduce_by,
         "partial": True, "from": before, "to": item.quantity,
         "stock": "wasted" if made else "returned",
+        **_approval_note(user, approver),
     })
+    if printed_by:
+        approvals.record_after_bill(order, user, printed_by, f"Took {reduce_by} x {name} off",
+                                    bill_before, {"reason": reason})
     return item
 
 
 # ── cancelling a whole order ────────────────────────────────────────────
 
 @transaction.atomic
-def cancel_whole_order(user, order_id, reason="", include_made=False):
+def cancel_whole_order(user, order_id, reason="", include_made=False, approver=None):
     """
     Cancel every remaining dish on an order and close it as cancelled.
 
@@ -294,6 +360,10 @@ def cancel_whole_order(user, order_id, reason="", include_made=False):
     any, the caller must confirm with include_made=True, give a reason, and,
     for served dishes, be a manager. Each dish's stock then follows the same
     rule as cancelling it on its own.
+
+    A manager's approval (`approver`, see void_order_item) is needed for
+    served dishes, for made dishes (wastage) and for any order whose bill
+    has been printed.
     """
     order = (
         Order.objects.select_for_update()
@@ -305,25 +375,34 @@ def cancel_whole_order(user, order_id, reason="", include_made=False):
     if order.status in ("paid", "closed", "cancelled"):
         raise OrderError(f"Cannot cancel order in {order.status} state")
 
-    active = list(order.items.exclude(status="voided").select_related("menu_item", "kot"))
+    active = list(order.items.exclude(status="voided").select_related("menu_item", "kot__station"))
     now = timezone.now()
     made = [
         i for i in active
-        if suggest_made(i.status, i.kot.created_at if i.kot_id else None, now)
+        if suggest_made(i.status, i.kot.created_at if i.kot_id else None, now, _made_on_send(i.kot))
     ]
 
     if made and not include_made:
         raise MadeDishesNeedConfirmation(made)
-    if any(i.status == "served" for i in active) and user.role not in _MANAGERS:
-        raise ManagerRequired("A manager is needed to cancel dishes that were already served.")
     reason = (reason or "").strip()[:255]
     if made and not reason:
         raise OrderError("Pick a reason. Cancelled dishes that were already made go on the void report.")
     reason = reason or "Order cancelled"
+    # After the reason, so nobody types a PIN only to be asked for a reason.
+    printed_by = None
+    if approvals.printed_bill(order):
+        printed_by = approvals.require(user, approver, approvals.PRINTED.format(what="cancel it"))
+    if any(i.status == "served" for i in active):
+        approvals.require(user, approver, "A manager is needed to cancel dishes that were already served.")
+    if made:
+        approvals.require(user, approver, approvals.MADE)
+    bill_before = order.grand_total
 
     for item in active:
         try:
-            void_order_item(user, item.id, reason)
+            void_order_item(user, item.id, reason, approver=approver, record_after_bill=False)
+        except approvals.ApprovalNeeded:
+            raise
         except OrderError:
             # Voided by a concurrent action since the list above was built.
             continue
@@ -345,9 +424,13 @@ def cancel_whole_order(user, order_id, reason="", include_made=False):
     OrderEvent.objects.create(
         tenant=order.tenant, outlet=order.outlet, order=order,
         event_type="order_cancelled",
-        metadata={"reason": reason, "dishes": len(active), "already_made": len(made)},
+        metadata={"reason": reason, "dishes": len(active), "already_made": len(made),
+                  **_approval_note(user, approver)},
         created_by=user,
     )
+    if printed_by:
+        approvals.record_after_bill(order, user, printed_by, "Cancelled the whole order", bill_before,
+                                    {"reason": reason})
     return order
 
 
