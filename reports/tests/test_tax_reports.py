@@ -223,6 +223,12 @@ class InspectionTest(Base):
         self.assertContains(response, "₹25.50")
         self.assertNotContains(response, "₹24.00")
 
+    def test_back_to_reports_goes_to_the_reports_dashboard(self):
+        # The reports dashboard is named reports_dashboard; plain "dashboard"
+        # is the owner's dashboard (they shared the name until 2 Nov 2026).
+        response = self.client.get("/reports/inspect/")
+        self.assertContains(response, '<a href="/reports/dashboard/" class="brand-title">')
+
 
 class LocalTimeTest(Base):
     """Stored in UTC; shown in the outlet's time (Asia/Kolkata here)."""

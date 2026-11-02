@@ -5,7 +5,10 @@ from .views import dashboard, kitchen_dashboard, export_reports, inventory_repor
 from .api import api_dashboard, api_kitchen_dashboard
 
 urlpatterns = [
-    path("dashboard/", dashboard, name="dashboard"),
+    # Named reports_dashboard, not "dashboard": that name is the owner's
+    # dashboard (accounts/urls.py), and two URLs sharing a name make
+    # reverse() quietly pick one of them (core/tests/test_url_names.py).
+    path("dashboard/", dashboard, name="reports_dashboard"),
     path("kitchen/", kitchen_dashboard, name="kitchen_dashboard"),
     path("inventory/", inventory_report, name="inventory_report"),
     path("inspect/", inspection_report, name="inspection_report"),

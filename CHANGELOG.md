@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-11-02: Two pages shared the name "dashboard", and a new sales agent couldn't open Rasova
+
+### Fixed
+- **`reverse("dashboard")` and `{% url 'dashboard' %}` opened the reports dashboard, not the owner's.** The owner's dashboard (`accounts/urls.py`) and the reports dashboard (`reports/urls.py`) were both named `dashboard`. No app sets `app_name`, so every URL name in Rasova is in one flat list, and when two patterns share a name Django quietly returns the one it meets last: `/reports/dashboard/`. Nothing errors. The reports one is now `reports_dashboard` (the inspection page's "Back to Reports" link uses the new name), and `dashboard` means the owner's dashboard only. The "Dashboard" button on the feature flags page (Rasova staff), which superusers reach from a card on the owner dashboard, now goes back there instead of to the reports dashboard.
+- **A new sales agent couldn't use Rasova.** Login sends an agent to `/sales/`. With no restaurants assigned yet, that page redirected to "dashboard", meaning the reports dashboard, which answers 403 to anyone without a restaurant of their own. The sales page's own "No clients attached to your profile yet." message was never shown. An agent with no restaurants now sees the sales page with that message. Anyone else who opens `/sales/` goes to their own home page, the one login sends them to, instead of the reports dashboard (owners and managers) or a 403 (everyone else).
+
+### Tests
+- `core/tests/test_url_names.py`: walks the whole URL map, into every `include()`, and fails if a name is used twice in the same namespace, listing the clashing routes. Two more tests prove the check: it catches the 2 Nov clash rebuilt, and it allows the same name in two namespaces.
+- The owner-dashboard permission tests (owner in, chef out, waiter out) had been opening the reports dashboard and passing, because both pages turn chefs and waiters away. They now open the owner's dashboard. The owner test needed a dish on the menu (with an empty menu the owner dashboard sends the owner to onboarding) and now checks the page's template as well.
+- New: `dashboard` and `reports_dashboard` reverse to the right views; a cashier gets into the owner's dashboard and is sent on to the token screen (the reports dashboard refuses cashiers); the feature flags page's Dashboard button; `/sales/` for an agent with no restaurants, an agent with one, an owner and a waiter; the inspection page's Back to Reports link. Eight of these fail on the old code.
+
+---
+
 ## 2026-10-21: The box prints its own print queue, Box Health in Setup, the box guide, and the model diagrams redrawn
 
 ### Fixed

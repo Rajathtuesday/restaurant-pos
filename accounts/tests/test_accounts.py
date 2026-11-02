@@ -1,8 +1,9 @@
 # accounts/tests.py
 
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import resolve, reverse
 from django.contrib.auth import get_user_model
+from menu.models import MenuCategory, MenuItem
 from tenants.models import Tenant, Outlet
 
 User = get_user_model()
@@ -89,6 +90,22 @@ class DashboardPermissionTest(TestCase):
             outlet=self.outlet
         )
 
+        # A restaurant with a dish on its menu. With an empty menu the owner
+        # dashboard sends the owner to /setup/onboard/ instead. Until 2 Nov 2026
+        # these tests never noticed: reverse("dashboard") opened the reports
+        # dashboard (two URLs shared the name), which has no such step.
+        category = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Food")
+        MenuItem.objects.create(tenant=self.tenant, outlet=self.outlet, category=category, name="Dosa", price=90)
+
+    def test_dashboard_is_the_owners_dashboard_not_the_reports_one(self):
+        from accounts.views import owner_dashboard
+        from reports.views import dashboard as reports_dashboard
+
+        self.assertEqual(reverse("dashboard"), "/dashboard/")
+        self.assertIs(resolve(reverse("dashboard")).func, owner_dashboard)
+        self.assertEqual(reverse("reports_dashboard"), "/reports/dashboard/")
+        self.assertIs(resolve(reverse("reports_dashboard")).func, reports_dashboard)
+
     def test_owner_can_access_dashboard(self):
 
         self.client.login(username="owner1", password="pass123")
@@ -96,6 +113,20 @@ class DashboardPermissionTest(TestCase):
         response = self.client.get(reverse("dashboard"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/owner_dashboard.html")
+
+    def test_cashier_gets_in_and_is_sent_to_the_token_screen(self):
+        # The owner dashboard lets cashiers in (the reports dashboard doesn't);
+        # without direct billing mode it sends them on to the token screen.
+        User.objects.create_user(
+            username="cashier1", password="pass123", role="cashier",
+            tenant=self.tenant, outlet=self.outlet,
+        )
+        self.client.login(username="cashier1", password="pass123")
+
+        response = self.client.get(reverse("dashboard"))
+
+        self.assertRedirects(response, reverse("token-dashboard"), fetch_redirect_response=False)
 
     def test_chef_cannot_access_dashboard(self):
 
@@ -462,3 +493,74 @@ class FeatureMetaCompletenessTest(TestCase):
             "a superuser can't see or toggle these on /settings/features/ "
             "even though the system enforces them elsewhere."
         )
+
+class FeatureFlagsDashboardButtonTest(TestCase):
+    """The feature flags page is Rasova staff only, reached from a card on the
+    owner dashboard; its "Dashboard" button goes back there. Until 2 Nov 2026
+    it went to the reports dashboard: {% url 'dashboard' %} picked that one,
+    because two URLs shared the name."""
+
+    def test_dashboard_button_goes_back_to_the_owner_dashboard(self):
+        User.objects.create_user(username="support9", password="pass123", is_superuser=True, is_staff=True)
+        self.client.login(username="support9", password="pass123")
+
+        response = self.client.get(reverse("feature_flags"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'href="/dashboard/"')
+        self.assertNotContains(response, 'href="/reports/dashboard/"')
+
+
+class SalesDashboardTest(TestCase):
+    """
+    /sales/ is the sales agents' page: login sends an agent there. Until
+    2 Nov 2026 an agent with no restaurants yet was redirected to "dashboard",
+    a name two URLs shared, so it went to the reports dashboard, which answers
+    403 to anyone without a restaurant of their own. A new agent couldn't use
+    Rasova at all, and the page's own "No clients attached" message was never
+    shown. Anyone who isn't an agent goes to their own home, as after login.
+    """
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Agent Test Cafe")
+        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
+        self.agent = User.objects.create_user(username="agent1", password="pass123", role="agent")
+
+    def test_an_agent_with_no_restaurants_sees_the_empty_page(self):
+        self.client.login(username="agent1", password="pass123")
+
+        response = self.client.get(reverse("sales_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No clients attached to your profile yet.")
+
+    def test_an_agent_sees_their_own_restaurants(self):
+        self.tenant.sales_agent = self.agent
+        self.tenant.save()
+        self.client.login(username="agent1", password="pass123")
+
+        response = self.client.get(reverse("sales_dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Agent Test Cafe")
+        self.assertNotContains(response, "No clients attached to your profile yet.")
+
+    def test_an_owner_is_sent_to_their_own_dashboard(self):
+        User.objects.create_user(username="owner9", password="pass123", role="owner",
+                                 tenant=self.tenant, outlet=self.outlet)
+        self.client.login(username="owner9", password="pass123")
+
+        response = self.client.get(reverse("sales_dashboard"))
+
+        self.assertRedirects(response, "/dashboard/", fetch_redirect_response=False)
+
+    def test_a_waiter_is_sent_to_their_own_home(self):
+        from accounts.views.auth_views import _role_path
+        waiter = User.objects.create_user(username="waiter9", password="pass123", role="waiter",
+                                          tenant=self.tenant, outlet=self.outlet)
+        self.client.login(username="waiter9", password="pass123")
+
+        response = self.client.get(reverse("sales_dashboard"))
+
+        self.assertRedirects(response, _role_path(waiter), fetch_redirect_response=False)
+        self.assertNotIn("dashboard", _role_path(waiter))

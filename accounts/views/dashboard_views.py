@@ -113,7 +113,14 @@ def sales_dashboard(request):
     else:
         clients = Tenant.objects.filter(sales_agent=request.user)
         agents  = []
-        if not clients.exists():
-            return redirect("dashboard")
+        # A sales agent with no restaurants yet sees this page with its empty
+        # list ("No clients attached to your profile yet."). Anyone else has no
+        # business here and goes to their own home, the same place login sends
+        # them. This used to be redirect("dashboard"), which went to the reports
+        # dashboard (two URLs shared that name), and that 403s an agent, who
+        # has no restaurant of their own: a new agent couldn't open Rasova.
+        if request.user.role != "agent" and not clients.exists():
+            from accounts.views.auth_views import _role_path
+            return redirect(_role_path(request.user))
 
     return render(request, "accounts/sales_dashboard.html", {"clients": clients, "agents": agents})
