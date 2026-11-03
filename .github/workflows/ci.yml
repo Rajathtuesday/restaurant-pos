@@ -113,6 +113,10 @@ jobs:
       # deploy was skipped. So ask the service which major it runs, install
       # that client, and put it first on PATH for the steps below. Changing
       # the service image above is then enough; the tools follow.
+      # ubuntu-latest became Ubuntu 26.04 in late Oct 2026, whose own
+      # repository has only Postgres 18. When the needed client isn't there,
+      # add the PostgreSQL project's apt repository (apt.postgresql.org),
+      # which carries every supported version for every Ubuntu release.
       - name: Postgres tools matching the database
         env:
           PGPASSWORD: testpass
@@ -120,6 +124,11 @@ jobs:
           major=$(psql -h 127.0.0.1 -U rasova -d rasova_test -tAc "SHOW server_version_num" | cut -c1-2)
           echo "Postgres service: major $major"
           sudo apt-get update -qq
+          if ! apt-cache show "postgresql-client-$major" > /dev/null 2>&1; then
+            echo "postgresql-client-$major is not in this Ubuntu's repository; adding apt.postgresql.org"
+            sudo apt-get install -y -qq postgresql-common
+            sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          fi
           sudo apt-get install -y -qq "postgresql-client-$major"
           echo "/usr/lib/postgresql/$major/bin" >> "$GITHUB_PATH"
           "/usr/lib/postgresql/$major/bin/pg_dump" --version
