@@ -224,7 +224,7 @@ f:\pos\
 ### Prerequisites
 
 - Python 3.12+
-- PostgreSQL 16
+- PostgreSQL 18
 - Redis (for Celery) - `docker run -d -p 6379:6379 redis:alpine`
 - Git
 
@@ -235,7 +235,7 @@ f:\pos\
 | CPU | 1 vCPU | 2 vCPU |
 | RAM | 1 GB | 2 GB+ |
 | Disk | 10 GB | 20 GB+ (grows with order history + media) |
-| DB | PostgreSQL 16, co-located or managed | PostgreSQL 16, managed (RDS or equivalent) if budget allows |
+| DB | PostgreSQL 18, co-located or managed | PostgreSQL 18, managed (RDS or equivalent) if budget allows |
 | Cache/queue | Redis 7 | Redis 7 |
 
 Production today runs on a **1 vCPU / 1 GB RAM** instance (AWS t3.micro) with Postgres, Redis, gunicorn (`--workers 2 --threads 4`), and a Celery worker all co-located on the same box. This is the *minimum* row above, not the recommended one, and it's genuinely tight: little headroom before swap kicks in under real concurrent load. Per-gunicorn-worker memory measured directly under sustained load (see [`LOAD_TESTING.md`](docs/LOAD_TESTING.md)'s soak test) sits around 90-105 MB; with 2 workers that's already 200 MB+ before Postgres, Redis, Celery, and the OS itself are accounted for.

@@ -38,7 +38,7 @@ On the box, five parts run in Docker, all from one signed bundle:
 |---|---|
 | `web` | Rasova itself (compiled), answering every tablet, phone and laptop |
 | `worker` | Prints KOTs, bills and queued jobs straight to the printers' IPs; makes the 4:30 am backup |
-| `db` | Postgres 15: every bill is on disk before it says saved |
+| `db` | Postgres 18: every bill is on disk before it says saved |
 | `redis` | Holds print jobs waiting for a printer, kept on disk too |
 | `rasova-box` | The script on the box that installs, updates, backs up, restores and rolls back |
 
@@ -122,13 +122,13 @@ docker run --rm --entrypoint sh rasova-box:1.0.0 -c 'find /app -name "*.py" -not
 ```bash
 docker build -f box/docker/Dockerfile --target test -t rasova-box-test:1.0.0 .
 docker network create rasova-testnet
-docker run -d --name rasova-testdb --network rasova-testnet -e POSTGRES_DB=rasova_test -e POSTGRES_USER=rasova -e POSTGRES_PASSWORD=testpass --shm-size 512m postgres:15-bookworm -c max_connections=200
+docker run -d --name rasova-testdb18 --network rasova-testnet -e POSTGRES_DB=rasova_test -e POSTGRES_USER=rasova -e POSTGRES_PASSWORD=testpass --shm-size 512m postgres:18-bookworm -c max_connections=200
 docker run -d --name rasova-testredis --network rasova-testnet redis:7-alpine
-docker run --rm --network rasova-testnet -e SECRET_KEY=test-only -e FIELD_ENCRYPTION_KEY=K_XCqmy_iTNLU_imyLyNX0_CVDTlGSQR-kgTQK1ZOno= -e DEBUG=True -e ALLOWED_HOSTS=localhost,127.0.0.1 -e DB_ENGINE=django.db.backends.postgresql -e DB_NAME=rasova_test -e DB_USER=rasova -e DB_PASSWORD=testpass -e DB_HOST=rasova-testdb -e DB_PORT=5432 -e REDIS_URL=redis://rasova-testredis:6379/0 rasova-box-test:1.0.0 python manage.py test --noinput --parallel 8 --keepdb
+docker run --rm --network rasova-testnet -e SECRET_KEY=test-only -e FIELD_ENCRYPTION_KEY=K_XCqmy_iTNLU_imyLyNX0_CVDTlGSQR-kgTQK1ZOno= -e DEBUG=True -e ALLOWED_HOSTS=localhost,127.0.0.1 -e DB_ENGINE=django.db.backends.postgresql -e DB_NAME=rasova_test -e DB_USER=rasova -e DB_PASSWORD=testpass -e DB_HOST=rasova-testdb18 -e DB_PORT=5432 -e REDIS_URL=redis://rasova-testredis:6379/0 rasova-box-test:1.0.0 python manage.py test --noinput --parallel 8 --keepdb
 ```
-(The network and the two containers only need making once; after that, `docker start rasova-testdb rasova-testredis`.) Expect everything to pass. Some tests skip there on purpose: the browser and JavaScript tests (no Chrome or Node in the image), and the ones that read files a box doesn't carry (the marketing site, the print agent installer, the source itself).
+(The network and the two containers only need making once; after that, `docker start rasova-testdb18 rasova-testredis`. The test database must be the same Postgres major as the box, 18; an older `rasova-testdb` on Postgres 15 can stay, but the real backup and restore tests skip against it.) Expect everything to pass. Some tests skip there on purpose: the browser and JavaScript tests (no Chrome or Node in the image), and the ones that read files a box doesn't carry (the marketing site, the print agent installer, the source itself).
 
-**5. Make the signed bundle.** The first time only, fetch the database and Redis images: `docker pull postgres:15-bookworm` and `docker pull redis:7-alpine`. Then:
+**5. Make the signed bundle.** The first time only, fetch the database and Redis images: `docker pull postgres:18-bookworm` and `docker pull redis:7-alpine`. Then:
 ```bash
 python manage.py make_box_bundle --release 1.0.0 --out F:\bundles\rasova-box-1.0.0
 ```

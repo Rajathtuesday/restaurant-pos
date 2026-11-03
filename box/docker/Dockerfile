@@ -21,10 +21,15 @@ RUN find /app /app-test -name '*.so' -exec strip --strip-unneeded {} +
 
 # ── 2. the runtime every box image shares ───────────────────────────────────
 FROM ${PYTHON} AS runtime
-# libpq for the database, postgresql-client 15 for backups (same major as the
-# database), Pango for PDF bills (WeasyPrint), tini to pass signals properly.
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        libpq5 postgresql-client-15 libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-dejavu-core tini \
+# libpq for the database, postgresql-client 18 for backups (same major as the
+# postgres:18 database in compose.yml; box/tests/test_box.py checks they match),
+# Pango for PDF bills (WeasyPrint), tini to pass signals properly. Debian 12's
+# own repository stops at Postgres 15, so the client comes from the PostgreSQL
+# project's repository (apt.postgresql.org), the way CI gets its tools.
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-common ca-certificates \
+    && /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y \
+    && apt-get install -y --no-install-recommends \
+        libpq5 postgresql-client-18 libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-dejavu-core tini \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 rasova
 COPY --from=build /install /usr/local

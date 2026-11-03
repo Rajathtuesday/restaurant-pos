@@ -14,7 +14,9 @@ x-logs: &logs
 
 services:
   db:
-    image: postgres:15-bookworm
+    # The same major as the backup tools in the Rasova image (Dockerfile:
+    # postgresql-client-18). Change both together.
+    image: postgres:18-bookworm
     pull_policy: never
     restart: always
     logging: *logs
@@ -23,7 +25,10 @@ services:
       POSTGRES_DB: rasova
       POSTGRES_USER: rasova
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Postgres 18's image keeps its data under /var/lib/postgresql/18/docker
+      # and refuses to start with the old /var/lib/postgresql/data mount
+      # (checked 3 Nov 2026). Mounting the parent keeps it all in the volume.
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rasova -d rasova"]
       interval: 5s

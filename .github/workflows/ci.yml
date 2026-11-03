@@ -19,7 +19,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        # The same major as production (Postgres 18.6 on Ubuntu 26.04) and the
+        # box (postgres:18-bookworm). Was 16 until 3 Nov 2026.
+        image: postgres:18
         env:
           POSTGRES_DB:       rasova_test
           POSTGRES_USER:     rasova
@@ -106,8 +108,8 @@ jobs:
 
       # The box's real backup and restore tests run pg_dump, pg_restore and
       # psql, which must be the same major version as the database, as on a
-      # box (box/docker/Dockerfile installs postgresql-client-15 next to
-      # postgres:15). The runner image brings its own, newer, tools: on
+      # box (box/docker/Dockerfile installs postgresql-client-18 next to
+      # postgres:18). The runner image brings its own, newer, tools: on
       # 2 Nov 2026 its pg_dump wrote "SET transaction_timeout", which the
       # Postgres 16 service doesn't know, the restore test failed and the
       # deploy was skipped. So ask the service which major it runs, install

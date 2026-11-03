@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-03: Postgres 18 everywhere
+
+### Changed
+- **One Postgres major everywhere: 18.** Production already ran 18.6 (Ubuntu 26.04's own package, checked on the server; no upgrade needed) and so did development. CI moves from `postgres:16` to `postgres:18`; its tools step installs the matching 18 client by itself. The box moves from Postgres 15 to 18 while no box is in a restaurant yet: afterwards, every box would have needed its database upgraded on site. `box/docker/compose.yml` uses `postgres:18-bookworm`, and the Rasova image's backup tools are `postgresql-client-18`, from apt.postgresql.org because Debian 12's own repository stops at 15. The dev `docker-compose.yml` uses `postgres:18-alpine`; the README now says PostgreSQL 18.
+- **The data mount for Postgres 18 images.** Postgres 18's Docker image keeps its data in `/var/lib/postgresql/18/docker` and refuses to start with the old `/var/lib/postgresql/data` mount. Tried in Docker: with the old mount it stops at once ("in 18+, these Docker images are configured to store database data in a format which is compatible with pg_ctlcluster"); with the volume at `/var/lib/postgresql` it starts as 18.6 and the data survives deleting and recreating the container. Both compose files mount it that way now. A dev volume made by the old 15 setup won't open in 18; start it fresh (`docker compose down -v`).
+- `docs/BOX_GUIDE.md`: Postgres 18 in the parts table, the test database (now `rasova-testdb18`, so an older 15 one can stay) and the images to fetch for a bundle.
+
+---
+
 ## 2026-11-03: Pillow and pypdf security upgrades; CI's box backup tests use Postgres tools that match the database
 
 ### Security

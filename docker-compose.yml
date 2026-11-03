@@ -2,9 +2,13 @@ version: '3.8'
 
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Postgres 18's image keeps its data under /var/lib/postgresql/18/docker
+      # and refuses to start with the old /var/lib/postgresql/data mount.
+      # A volume made by the old postgres:15 setup won't open in 18: for dev
+      # data, remove it (docker compose down -v) and start fresh.
+      - postgres_data:/var/lib/postgresql
     environment:
       - POSTGRES_DB=pos_db
       - POSTGRES_USER=pos_user

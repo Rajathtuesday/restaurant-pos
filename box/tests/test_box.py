@@ -376,8 +376,8 @@ def pg_tools_mismatch():
     """Why the real backup tests can't run here, or None when they can.
 
     pg_dump, pg_restore and psql must be the same major version as the
-    database, as on a box (box/docker/Dockerfile installs postgresql-client-15
-    next to postgres:15). An older pg_dump refuses to dump a newer server; a
+    database, as on a box (box/docker/Dockerfile installs postgresql-client-18
+    next to postgres:18). An older pg_dump refuses to dump a newer server; a
     newer one writes settings an older server doesn't know. On 2 Nov 2026
     GitHub's runner had newer tools than CI's Postgres 16 and the restore
     failed on "SET transaction_timeout". Neither case says anything about a box.
@@ -583,7 +583,7 @@ class UpdateBundleTest(TestCase):
             manifest = verify_bundle(out)
         self.assertEqual(manifest["version"], "1.4.0")
         # the box can't download: the bundle carries Postgres and Redis too, as compose.yml names them
-        self.assertEqual(sorted(saved), ["postgres:15-bookworm", "rasova-box:1.4.0", "redis:7-alpine"])
+        self.assertEqual(sorted(saved), ["postgres:18-bookworm", "rasova-box:1.4.0", "redis:7-alpine"])
         self.assertFalse((out / "images.tar").exists())
         with self.assertRaises(CommandError):
             call_command("make_box_bundle", release="1.4.0; rm -rf /", out=str(out), key=str(keyfile))
