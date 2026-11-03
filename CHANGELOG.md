@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-11-03: CI's box backup tests use Postgres tools that match the database
+
+### Fixed
+- **CI failed, so the 2 Nov fix was never deployed.** GitHub's runner image now brings newer Postgres tools than CI's Postgres 16 service. The box's real restore test made a backup with that newer `pg_dump`, which writes `SET transaction_timeout`, a setting Postgres 16 doesn't know, so the restore failed and the deploy job was skipped. A real box was never at risk: `box/docker/Dockerfile` installs `postgresql-client-15` next to `postgres:15`. CI now asks its Postgres service which major version it runs, installs that client and puts it first on PATH (`.github/workflows/ci.yml`), so changing the service image is enough and the tools follow.
+
+### Tests
+- `box/tests/test_box.py`: the real backup and restore tests skip, with the versions in the reason, whenever `pg_dump`, `pg_restore` or `psql` is a different major version from the database, newer or older (before, only an older `pg_dump` was caught, because it refuses to start). Three tests check that guard itself. With matching tools (Postgres 18 locally) the real backup and restore tests run and pass.
+
+---
+
 ## 2026-11-02: Two pages shared the name "dashboard", and a new sales agent couldn't open Rasova
 
 ### Fixed

@@ -8,6 +8,7 @@ Run: python manage.py test box
 import base64
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -371,8 +372,60 @@ class BackupLogicTest(BoxBase):
         self.assertContains(self.client_for(owner).get("/box/health/"), "No backup in the last day and a half")
 
 
+def pg_tools_mismatch():
+    """Why the real backup tests can't run here, or None when they can.
+
+    pg_dump, pg_restore and psql must be the same major version as the
+    database, as on a box (box/docker/Dockerfile installs postgresql-client-15
+    next to postgres:15). An older pg_dump refuses to dump a newer server; a
+    newer one writes settings an older server doesn't know. On 2 Nov 2026
+    GitHub's runner had newer tools than CI's Postgres 16 and the restore
+    failed on "SET transaction_timeout". Neither case says anything about a box.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute("SHOW server_version_num")
+        server = int(cursor.fetchone()[0]) // 10000
+    for tool in ("pg_dump", "pg_restore", "psql"):
+        found = subprocess.run([tool, "--version"], capture_output=True, text=True).stdout.strip()
+        major = re.search(r"\(PostgreSQL\) (\d+)", found)
+        if not major or int(major.group(1)) != server:
+            return f"{tool} is {found or 'unreadable'} but the database is Postgres {server}; on a box they always match"
+    return None
+
+
+class PgToolsMismatchTest(TestCase):
+    """The check above, so a wrong guess about versions can't quietly skip the real tests."""
+
+    def server_major(self):
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW server_version_num")
+            return int(cursor.fetchone()[0]) // 10000
+
+    def tools_say(self, major):
+        done = subprocess.CompletedProcess([], 0, stdout=f"pg_dump (PostgreSQL) {major}.2 (Ubuntu {major}.2-1)\n", stderr="")
+        return mock.patch("box.tests.test_box.subprocess.run", return_value=done)
+
+    def test_tools_newer_than_the_database_are_a_mismatch(self):
+        with self.tools_say(self.server_major() + 1):
+            self.assertIn("on a box they always match", pg_tools_mismatch())
+
+    def test_tools_older_than_the_database_are_a_mismatch(self):
+        with self.tools_say(self.server_major() - 1):
+            self.assertIn("on a box they always match", pg_tools_mismatch())
+
+    def test_matching_tools_are_fine(self):
+        with self.tools_say(self.server_major()):
+            self.assertIsNone(pg_tools_mismatch())
+
+
 @skipUnless(shutil.which("pg_dump") and shutil.which("pg_restore"), "needs pg_dump and pg_restore on PATH")
 class RealBackupTest(BoxBase):
+    def setUp(self):
+        super().setUp()
+        reason = pg_tools_mismatch()
+        if reason:
+            self.skipTest(reason)
+
     def test_a_real_backup_lists_the_tables(self):
         self.restaurant()
         try:
@@ -392,6 +445,9 @@ class RealRestoreTest(BoxBase):
 
     def setUp(self):
         super().setUp()
+        reason = pg_tools_mismatch()
+        if reason:
+            self.skipTest(reason)
         env, args, name = backup._pg_env()
         self.env, self.args = env, args
         self.scratch = f"{name}_scratch"

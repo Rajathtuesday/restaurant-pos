@@ -104,6 +104,26 @@ jobs:
           REDIS_URL:     redis://127.0.0.1:6379/0
         run: python manage.py collectstatic --noinput
 
+      # The box's real backup and restore tests run pg_dump, pg_restore and
+      # psql, which must be the same major version as the database, as on a
+      # box (box/docker/Dockerfile installs postgresql-client-15 next to
+      # postgres:15). The runner image brings its own, newer, tools: on
+      # 2 Nov 2026 its pg_dump wrote "SET transaction_timeout", which the
+      # Postgres 16 service doesn't know, the restore test failed and the
+      # deploy was skipped. So ask the service which major it runs, install
+      # that client, and put it first on PATH for the steps below. Changing
+      # the service image above is then enough; the tools follow.
+      - name: Postgres tools matching the database
+        env:
+          PGPASSWORD: testpass
+        run: |
+          major=$(psql -h 127.0.0.1 -U rasova -d rasova_test -tAc "SHOW server_version_num" | cut -c1-2)
+          echo "Postgres service: major $major"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$major"
+          echo "/usr/lib/postgresql/$major/bin" >> "$GITHUB_PATH"
+          "/usr/lib/postgresql/$major/bin/pg_dump" --version
+
       - name: Run test suite
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod
@@ -142,7 +162,8 @@ jobs:
           # covers (cover charges) and devtools (the demo pub seed): added
           # 20 Oct 2026, the day each got tests. box (the offline box
           # edition): added 20 Oct 2026 too; its real backup and restore
-          # tests skip where pg_dump/psql don't match the server.
+          # tests skip where pg_dump/psql don't match the server (the step
+          # above installs matching ones, so here they run).
           python manage.py test \
             accounts agency agent billing box core covers crm devtools finance inventory \
             kitchen menu notifications offers orders payments \
