@@ -10,18 +10,31 @@ photos upright (core/ai_service.py). These tests also pin the security side
 of the same function, which had no test: anything that isn't a real image
 (an SVG with a script, an HTML page renamed .jpg) is refused, not stored.
 
+The same day, CI (Linux) accepted a cut-off photo that Windows refused:
+WeasyPrint, once imported, tells Pillow to accept cut-off images for the
+whole process, and WeasyPrint only loads where its native libraries are. In
+production every cut-off upload was being stored half grey. Rasova now
+settles that switch at startup (core.validators.refuse_truncated_images).
+
 Run: python manage.py test core.tests.test_image_uploads
 """
+import base64
 import io
 import shutil
 import tempfile
+from unittest import skipUnless
 
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
-from PIL import Image
+from PIL import Image, ImageFile
 
-from core.validators import process_uploaded_image
+from core.validators import process_uploaded_image, refuse_truncated_images
+
+try:
+    import weasyprint
+except (ImportError, OSError):     # no native libraries on this machine (Windows)
+    weasyprint = None
 from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet, Tenant
 
@@ -87,6 +100,37 @@ class ProcessUploadedImageTest(SimpleTestCase):
             with self.subTest(what):
                 with self.assertRaises(ValidationError):
                     process_uploaded_image(SimpleUploadedFile("dish.jpg", data))
+
+
+class CutOffImagesTest(SimpleTestCase):
+    """Pillow refuses cut-off images in every process, whatever imported WeasyPrint."""
+
+    def test_the_switch_is_off_even_after_weasyprint_is_imported(self):
+        # WeasyPrint is imported at the top of this file (and by Rasova at
+        # startup) wherever its libraries exist; that must not leave it on.
+        self.assertFalse(ImageFile.LOAD_TRUNCATED_IMAGES)
+        with self.assertRaises(ValidationError):
+            process_uploaded_image(SimpleUploadedFile("dish.jpg", phone_photo()[:5000]))
+
+    def test_refuse_truncated_images_undoes_weasyprints_switch(self):
+        self.addCleanup(setattr, ImageFile, "LOAD_TRUNCATED_IMAGES", False)
+        ImageFile.LOAD_TRUNCATED_IMAGES = True          # what importing WeasyPrint does
+
+        refuse_truncated_images()
+
+        self.assertFalse(ImageFile.LOAD_TRUNCATED_IMAGES)
+
+    @skipUnless(weasyprint, "needs WeasyPrint's native libraries (Linux, as in CI and production)")
+    def test_a_pdf_with_a_cut_off_image_is_still_made(self):
+        # With the switch off, WeasyPrint leaves an image it can't load out of
+        # the page instead of failing the whole bill or invoice.
+        cut = base64.b64encode(phone_photo()[:5000]).decode()
+        html = f'<p>Bill</p><img src="data:image/jpeg;base64,{cut}">'
+
+        with self.assertLogs("weasyprint", level="ERROR"):
+            pdf = weasyprint.HTML(string=html).write_pdf()
+
+        self.assertTrue(pdf.startswith(b"%PDF"))
 
 
 class UploadedThroughTheModelsTest(TestCase):

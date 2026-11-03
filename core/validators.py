@@ -15,6 +15,32 @@ def validate_image_size(image):
         raise ValidationError(f"Max size of file is {limit_mb} MB")
 
 
+def refuse_truncated_images():
+    """Decide once, at startup, that Pillow refuses cut-off images.
+
+    WeasyPrint sets PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True for the whole
+    process the first time it is imported. Rasova imports it at module load
+    in some places and lazily in others (orders/views/print_views.py), so
+    whether a cut-off upload was refused depended on what had run before: in
+    production (Linux, WeasyPrint working) a cut-off photo was accepted and
+    stored half grey; on a PC without WeasyPrint's native libraries it was
+    refused (found 3 Nov 2026, when a test passed on Windows and failed in CI).
+
+    Importing WeasyPrint here makes its change happen now; a module's code runs
+    only on its first import, so a later import can't turn it on again. Then
+    Pillow's own default goes back. WeasyPrint draws an image it can't load as
+    missing and still makes the PDF (checked on Linux). Called from
+    TenantsConfig.ready().
+    """
+    try:
+        import weasyprint  # noqa: F401 -- imported for its side effect on Pillow
+    except (ImportError, OSError):
+        pass  # WeasyPrint's native libraries aren't on this machine: nothing to undo
+    from PIL import ImageFile
+
+    ImageFile.LOAD_TRUNCATED_IMAGES = False
+
+
 def process_uploaded_image(file_field, max_dimension=800, quality=85):
     """
     Re-encodes an uploaded image field to WebP via Pillow, which is the

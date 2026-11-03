@@ -34,6 +34,11 @@ class TenantsConfig(AppConfig):
 
     def ready(self):
         import tenants.checks  # noqa: F401 -- registers the check via @register()
+        from core.validators import refuse_truncated_images
+
+        # Before anything else can import WeasyPrint lazily: it switches Pillow
+        # to accepting cut-off images for the whole process (see the function).
+        refuse_truncated_images()
 
         # Only warm templates for the actual gunicorn server process --
         # ready() also fires for every `manage.py` invocation (migrate,
