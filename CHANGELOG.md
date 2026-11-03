@@ -7,7 +7,10 @@ the source of truth.
 
 ---
 
-## 2026-11-03: CI's box backup tests use Postgres tools that match the database
+## 2026-11-03: Pillow and pypdf security upgrades; CI's box backup tests use Postgres tools that match the database
+
+### Security
+- **Pillow 12.3.0 to 13.0.0 and pypdf 6.19.0 to 6.21.4**, closing all 59 open Dependabot alerts (41 Pillow: 5 critical, 23 high, 13 medium; 18 pypdf: 10 high, 7 medium, 1 low). Every one is about a crafted file: most hang the server or use up its memory, a few leak memory, and the worst Pillow ones (buffer overflows in the JPEG, FlashPix and TIFF code) can run code. In Rasova the way in is a staff upload: Pillow checks and resizes every dish photo and logo (`core/validators.py`) and the AI menu import's photos, and pypdf reads the import's PDFs (`core/ai_service.py`). Only owners and managers can upload, but all restaurants share one server, and the box has the same libraries. `pip check` is clean with weasyprint and python-escpos (which also use Pillow). Rasova's own image and PDF code was run on the old and the new versions with eight image formats (a sideways phone photo, RGBA and palette PNGs, WebP, GIF, BMP, TIFF, CMYK JPEG), four files that must be refused (an SVG with a script and an HTML page renamed `.jpg`, a cut-off photo, an empty file) and three real PDFs: all 28 results identical.
 
 ### Fixed
 - **CI failed, so the 2 Nov fix was never deployed.** GitHub's runner image now brings newer Postgres tools than CI's Postgres 16 service. The box's real restore test made a backup with that newer `pg_dump`, which writes `SET transaction_timeout`, a setting Postgres 16 doesn't know, so the restore failed and the deploy job was skipped. A real box was never at risk: `box/docker/Dockerfile` installs `postgresql-client-15` next to `postgres:15`. CI now asks its Postgres service which major version it runs, installs that client and puts it first on PATH (`.github/workflows/ci.yml`), so changing the service image is enough and the tools follow. GitHub's `ubuntu-latest` became Ubuntu 26.04 in late October, whose own repository carries only Postgres 18, so when the needed client isn't there the step adds the PostgreSQL project's apt repository (apt.postgresql.org), which has every supported version. Checked by running the step on Ubuntu 26.04.1: it installed `pg_dump`, `pg_restore` and `psql` 16.15.
