@@ -29,13 +29,18 @@ def process_uploaded_image(file_field, max_dimension=800, quality=85):
     save flow -- do NOT catch broadly and keep the original raw upload on
     failure, since the original upload is exactly what's unvalidated.
     """
-    from PIL import Image, UnidentifiedImageError
+    from PIL import Image, ImageOps, UnidentifiedImageError
 
     try:
         img = Image.open(file_field)
         img.verify()  # cheap structural check -- verify() closes the file handle
         file_field.seek(0)
         img = Image.open(file_field)  # re-open: verify() leaves the image unusable
+        # Phones store photos sideways plus an EXIF tag saying how to turn
+        # them. The WebP saved below carries no EXIF, so turn the pixels
+        # upright first, or a dish photo taken on a phone shows on its side
+        # (found 3 Nov 2026; the AI menu import already did this).
+        img = ImageOps.exif_transpose(img)
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
         img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
