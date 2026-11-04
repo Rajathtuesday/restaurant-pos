@@ -8,10 +8,13 @@ After=network.target redis.service
 # comes back after a crash: before 4 Nov 2026 beat was started with nohup by
 # deploy.sh, so after a reboot nothing was scheduled until the next deploy.
 #
-# Install once on the server (deploy.sh then restarts it on every deploy):
+# deploy.sh installs this file whenever the server's copy is missing or
+# differs, then restarts it and checks that exactly one beat runs. By hand:
 #   sudo cp /home/ubuntu/rasova/systemd/celery-beat.service /etc/systemd/system/
+#   pkill -f 'celery -A core beat'        # a beat started with nohup
 #   sudo systemctl daemon-reload
 #   sudo systemctl enable --now celery-beat
+#   pgrep -fc 'celery -A core beat'       # must print 1
 [Service]
 User=ubuntu
 Group=ubuntu

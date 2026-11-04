@@ -56,6 +56,26 @@ class OneBeatTest(SimpleTestCase):
             if "nohup celery -A core worker" in line:
                 self.assertNotRegex(line, r"\s(-B|--beat)(\s|$)")
 
+    def test_deploy_installs_the_beat_service_from_the_code_it_just_pulled(self):
+        deploy = (ROOT / "deploy.sh").read_text(encoding="utf-8")
+        pull = deploy.find("git reset --hard")
+        install = deploy.find("sudo cp \"$APP_DIR/systemd/celery-beat.service\" /etc/systemd/system/")
+        restart = deploy.find("systemctl restart celery-beat")
+
+        self.assertNotEqual(install, -1, "deploy.sh no longer installs the beat service")
+        # After the pull, or it would install the previous version of the file;
+        # before the restart, or the first deploy would start beat the old way.
+        self.assertLess(pull, install)
+        self.assertLess(install, restart)
+        self.assertIn("cmp -s", deploy[pull:install])
+        self.assertIn("systemctl enable celery-beat", deploy[install:restart])
+
+    def test_deploy_reports_how_many_beats_run(self):
+        deploy = (ROOT / "deploy.sh").read_text(encoding="utf-8")
+
+        self.assertIn("pgrep -fc 'celery -A core beat'", deploy)
+        self.assertIn('[ "$BEATS" = "1" ]', deploy)
+
 
 class DeployChecksPdfsTest(SimpleTestCase):
 

@@ -230,7 +230,7 @@ sudo systemctl enable --now celery celery-beat
 systemctl is-active celery celery-beat          # active, active
 pgrep -fc 'celery -A core beat'                 # 1
 ```
-As services, both start on boot and come back after a crash. `deploy.sh` restarts both on every deploy, and stops any second beat it finds.
+As services, both start on boot and come back after a crash. `deploy.sh` does the beat part by itself: it installs `celery-beat.service` whenever the server's copy is missing or differs from the repo's, restarts it on every deploy, stops any second beat, and prints how many beats run (it must say 1).
 
 ---
 

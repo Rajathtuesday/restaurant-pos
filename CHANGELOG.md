@@ -16,7 +16,7 @@ the source of truth.
 ### Changed
 - **`systemd/celery-beat.service`** (new): beat as its own service, so it starts on boot and restarts after a crash. Install steps are at the top of the file.
 - **`systemd/celery.service`**: no `-B`, matching the server. The repo's copy had it, so copying it to the server next to a separate beat would have run every scheduled job (the 6 am invoices, the 7 am digest) twice.
-- **`deploy.sh`** stops before pulling any code if WeasyPrint can't load, and says how to fix it. It restarts the `celery-beat` service and stops any second beat it finds. Without the service it falls back to `nohup` as before, but now warns that beat won't survive a reboot.
+- **`deploy.sh`** stops before pulling any code if WeasyPrint can't load, and says how to fix it. It installs `systemd/celery-beat.service` whenever the server's copy is missing or differs from the repo's (so a new server needs no manual step), restarts it, stops any second beat (like one left from the old `nohup` start), and prints how many beats run, with a warning unless it is exactly 1. If the service still can't start it falls back to `nohup` as before, with a warning that beat won't survive a reboot.
 - **`docs/DEPLOY.md`**: the PDF packages in 2.2, and a new 7.5 on the worker and beat as two services.
 
 ### Tests

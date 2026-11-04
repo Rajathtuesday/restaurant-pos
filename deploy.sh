@@ -76,6 +76,18 @@ else
     echo "=== Dependencies unchanged — skipping pip ==="
 fi
 
+# Beat as a systemd service (systemd/celery-beat.service). Installed whenever
+# the server's copy is missing or differs from the repo's, so a new server
+# gets it with no manual step and an edited unit always reaches the server.
+# The restart section below starts it and stops any beat left over from the
+# old nohup start.
+if ! cmp -s "$APP_DIR/systemd/celery-beat.service" /etc/systemd/system/celery-beat.service; then
+    echo "=== Installing the celery-beat service ==="
+    sudo cp "$APP_DIR/systemd/celery-beat.service" /etc/systemd/system/celery-beat.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable celery-beat
+fi
+
 echo "=== Migrate ==="
 python manage.py migrate --noinput
 
@@ -139,6 +151,17 @@ else
     setsid nohup celery -A core beat --loglevel=warning \
         --schedule=$APP_DIR/logs/celerybeat-schedule \
         >> $APP_DIR/logs/celery-beat.log 2>&1 &
+fi
+# A stopped beat takes a moment to exit, so count for up to 5 seconds.
+for i in 1 2 3 4 5; do
+    BEATS=$(pgrep -fc 'celery -A core beat' || true)
+    [ "$BEATS" = "1" ] && break
+    sleep 1
+done
+if [ "$BEATS" = "1" ]; then
+    echo "=== celery beat: $(systemctl is-active celery-beat 2>/dev/null), 1 running ==="
+else
+    echo "=== WARNING: $BEATS celery beats running (must be exactly 1, or scheduled jobs run twice or not at all) ==="
 fi
 
 sleep 3
