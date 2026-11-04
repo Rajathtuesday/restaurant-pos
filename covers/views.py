@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -36,7 +37,8 @@ def covers(request):
             messages.error(request, e.message)
             return redirect("covers")
         messages.success(request, f"Cover {cover.code} for Rs {cover.amount}. Give the guest the slip.")
-        return redirect(f"{request.path}?slip={cover.id}")
+        # By name, never from request.path: an address is Rasova's to say, not the request's.
+        return redirect(f"{reverse('covers')}?slip={cover.id}")
 
     today = get_business_date(timezone.now(), outlet)
     day = today

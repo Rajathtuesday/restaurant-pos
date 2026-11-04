@@ -691,6 +691,17 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
 # -------------------------------------------------------
+# ALWAYS AT THE ROOT OF ITS ADDRESS
+# Rasova is served at rasova.net/ (and a box at http://rasova.local/), never
+# under a sub-path. Django puts SCRIPT_NAME in front of every address it
+# builds (request.path, reverse(), redirects), and without this setting it
+# takes SCRIPT_NAME from the request: "//evil.example" there would send the
+# browser to another website. "" makes Django ignore it everywhere
+# (core/tests/test_script_name.py; code scanning alert #114, 4 Nov 2026).
+# -------------------------------------------------------
+FORCE_SCRIPT_NAME = ""
+
+# -------------------------------------------------------
 # WHATSAPP RECEIPTS
 # Backend 1 (preferred): Meta WhatsApp Business Cloud API — free 1000 msg/month
 #   META_WHATSAPP_TOKEN    = your permanent system user token

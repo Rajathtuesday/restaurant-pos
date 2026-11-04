@@ -152,6 +152,20 @@ class DoorPageTest(TestCase):
         self.assertContains(resp, f'<div class="slip-code" id="slipCode">{cover.code}</div>', html=True)
         self.assertContains(resp, "1500.00")
 
+    def test_after_a_sale_the_browser_comes_back_here_never_to_another_site(self):
+        # 4 Nov 2026, code scanning alert #114 (py/url-redirection): the redirect after a
+        # sale was built from request.path, whose first part (SCRIPT_NAME) can come from
+        # the request. A browser reads "//evil.example/..." as another website. The refusal
+        # path shows that redirect("covers") (reverse) carried the same prefix, so the fix is
+        # settings.FORCE_SCRIPT_NAME (core/tests/test_script_name.py), not only this view.
+        client = Client()
+        client.force_login(self.cashier)
+        sold = client.post(reverse("covers"), {"amount": "1500", "paid_by": "card"}, SCRIPT_NAME="//evil.example")
+        cover = Cover.objects.get()
+        self.assertEqual(sold["Location"], f"/covers/?slip={cover.id}")
+        refused = client.post(reverse("covers"), {"amount": "0", "paid_by": "card"}, SCRIPT_NAME="//evil.example")
+        self.assertEqual(refused["Location"], "/covers/")
+
     def test_a_cafe_has_no_covers(self):
         cafe = Tenant.objects.create(name="Plain Cafe", tenant_type="cafe")
         outlet = Outlet.objects.create(tenant=cafe, name="Main")
