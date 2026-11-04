@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-11-04: No address Rasova builds can point to another website
+
+### Security
+- **A request could put another website in front of Rasova's addresses.** Code scanning alert #114 (py/url-redirection, medium, open since the cover charge was built on 20 Oct) flagged `covers/views.py`: after a cover is sold, the door page redirected to `f"{request.path}?slip=..."`. Django builds `request.path` from `SCRIPT_NAME` plus the path, and without `FORCE_SCRIPT_NAME` it takes `SCRIPT_NAME` from the request. Tried with Django's test client: with `SCRIPT_NAME=//evil.example` the sale redirected to `//evil.example/covers/?slip=1`, which a browser opens as another website. Changing that one line to `reverse()` was not enough: the same request made `redirect("covers")` (the refusal path) and the login page's `?next=` carry the prefix too, because Django adds `SCRIPT_NAME` to every address it builds. The missing-slash redirect carried it as well (escaped by Django to `/%2Fevil.example/login/`, so on-site but broken).
+- **Fix at the root: `FORCE_SCRIPT_NAME = ""`** (`core/settings.py`). Rasova always runs at the root of its address (rasova.net/, a box's http://rasova.local/), so Django now ignores any `SCRIPT_NAME` for every address, everywhere. The cover page also builds its redirect by name (`reverse('covers')`), so it never copies an address from the request. It was the only redirect in Rasova built from `request.path`.
+- **How real it was:** low. Only logged-in staff reach that line, through a form with a CSRF token; a browser never adds a `SCRIPT_NAME` header to someone else's request; gunicorn drops headers with underscores unless they come from the same machine, and nginx drops them by default. So the setting closes a door that the servers in front were keeping shut, rather than one that was open.
+
+### Tests
+- `core/tests/test_script_name.py` (new): the setting is `""`; the missing-slash redirect and a page that needs a login send the browser to `/login/` and `/login/?next=/dashboard/` whatever `SCRIPT_NAME` the request brings. `covers/tests/test_covers.py`: after a sale, and after a refused sale, the door page sends the browser back to `/covers/`. All four fail on the old code.
+- `core/tests/test_image_uploads.py` no longer takes the billing and inventory tests' stand-in `weasyprint` module for the real one. On a PC without WeasyPrint's libraries those tests put an empty module in `sys.modules`; a full run imports them first, so the cut-off-image PDF test ran on the stand-in and failed ("'NoneType' object has no attribute 'write_pdf'") instead of skipping. It now uses WeasyPrint only when the module was loaded from a file. CI and production (Linux, real WeasyPrint) still run the test.
+
+---
+
 ## 2026-11-03: Postgres 18 everywhere
 
 ### Changed

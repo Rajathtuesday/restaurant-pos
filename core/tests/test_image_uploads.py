@@ -35,6 +35,11 @@ try:
     import weasyprint
 except (ImportError, OSError):     # no native libraries on this machine (Windows)
     weasyprint = None
+if weasyprint is not None and not getattr(weasyprint, "__file__", None):
+    # A stand-in, not WeasyPrint: billing/tests.py and inventory's tests put an
+    # empty "weasyprint" module in sys.modules where the libraries are missing,
+    # and a full run imports them first. Only a module loaded from a file is real.
+    weasyprint = None
 from menu.models import MenuCategory, MenuItem
 from tenants.models import Outlet, Tenant
 
