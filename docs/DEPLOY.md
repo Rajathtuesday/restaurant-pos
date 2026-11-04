@@ -54,8 +54,11 @@ sudo apt install -y python3 python3-pip python3-venv \
     redis-server \
     git \
     build-essential \
-    libpq-dev
+    libpq-dev \
+    libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-dejavu-core
 ```
+
+The last line is for **PDFs** (bills, invoices, purchase orders). WeasyPrint is a pip package but draws text with Pango, a system library. Without it Rasova still starts, and every PDF fails. That is how rasova.net ran without PDFs until 4 Nov 2026: the only sign was a warning in the deploy log. `deploy.sh` now refuses to deploy if WeasyPrint can't load. DejaVu has the ₹ sign; check with `fc-list :charset=20b9 family`.
 
 ### 2.3 Verify everything installed
 ```bash
@@ -217,6 +220,17 @@ sudo fuser -k 8000/tcp 2>/dev/null || true
 sleep 2
 gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 --daemon core.wsgi:application
 ```
+
+### 7.5 Celery: the worker and beat, as two services
+The **worker** runs background jobs (printing, emails, PDFs). **Beat** is the clock that puts the scheduled jobs on the queue: the 6 am invoices, the 7 am digest email, the demo reset every 2 hours. There must be **exactly one beat**, or every scheduled job runs twice, so the worker never gets `-B`.
+```bash
+sudo cp /home/ubuntu/rasova/systemd/celery.service /home/ubuntu/rasova/systemd/celery-beat.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now celery celery-beat
+systemctl is-active celery celery-beat          # active, active
+pgrep -fc 'celery -A core beat'                 # 1
+```
+As services, both start on boot and come back after a crash. `deploy.sh` restarts both on every deploy, and stops any second beat it finds.
 
 ---
 

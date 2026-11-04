@@ -12,8 +12,9 @@ of the same function, which had no test: anything that isn't a real image
 
 The same day, CI (Linux) accepted a cut-off photo that Windows refused:
 WeasyPrint, once imported, tells Pillow to accept cut-off images for the
-whole process, and WeasyPrint only loads where its native libraries are. In
-production every cut-off upload was being stored half grey. Rasova now
+whole process, and WeasyPrint only loads where its native libraries are
+(CI, the box, and production since 4 Nov, when Pango was installed there;
+before that production refused cut-off images by accident). Rasova now
 settles that switch at startup (core.validators.refuse_truncated_images).
 
 Run: python manage.py test core.tests.test_image_uploads

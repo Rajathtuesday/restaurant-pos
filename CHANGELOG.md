@@ -7,6 +7,23 @@ the source of truth.
 
 ---
 
+## 2026-11-04: PDFs work on rasova.net, and the scheduler survives a reboot
+
+### Fixed (on the server)
+- **rasova.net had never been able to make a PDF.** WeasyPrint draws text with Pango, a system library, and Pango was not installed on the server (`OSError: cannot load library 'libpango-1.0-0'`), so every PDF bill, invoice and purchase order failed. Rasova started normally and said nothing. The warning only began to show in the deploy log on 3 Nov, when Rasova started importing WeasyPrint at startup (`refuse_truncated_images`). No one noticed earlier because the only live cafe printed through the phone. Installed on the server by hand on 4 Nov: `libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-dejavu-core` (the same as the box image). WeasyPrint 70.0 then loaded and made a test PDF with the ₹ sign (DejaVu has it). Memory: measured in the box image, WeasyPrint adds about 26 MB to each Rasova process; after the restart the server had 488 MB available.
+- **Beat (the scheduler) didn't come back after a reboot.** The server's worker runs without `-B`, and beat was started with `nohup` by `deploy.sh`, because the `celery-beat` service it tried to restart didn't exist. So after the 3 Nov reboot nothing was scheduled until the next deploy (the demo reset ran 10 times that day instead of 12). Checked that jobs never ran twice: one beat process, and the daily digest ran once a day.
+
+### Changed
+- **`systemd/celery-beat.service`** (new): beat as its own service, so it starts on boot and restarts after a crash. Install steps are at the top of the file.
+- **`systemd/celery.service`**: no `-B`, matching the server. The repo's copy had it, so copying it to the server next to a separate beat would have run every scheduled job (the 6 am invoices, the 7 am digest) twice.
+- **`deploy.sh`** stops before pulling any code if WeasyPrint can't load, and says how to fix it. It restarts the `celery-beat` service and stops any second beat it finds. Without the service it falls back to `nohup` as before, but now warns that beat won't survive a reboot.
+- **`docs/DEPLOY.md`**: the PDF packages in 2.2, and a new 7.5 on the worker and beat as two services.
+
+### Tests
+- `core/tests/test_server_units.py` (new, 5 tests, all fail on the old files): the worker unit has no `-B`; the beat unit runs beat, restarts always and starts on boot; `deploy.sh` restarts the beat service and stops a second beat, and checks WeasyPrint before pulling code; `DEPLOY.md` installs Pango.
+
+---
+
 ## 2026-11-04: No address Rasova builds can point to another website
 
 ### Security
@@ -36,7 +53,7 @@ the source of truth.
 
 ### Fixed
 - **A dish photo or logo taken on a phone was stored on its side.** Phones save a portrait photo's pixels sideways and add an EXIF tag saying how to turn them; uploads are re-encoded to WebP, which carries no EXIF, so the tag was lost and the photo showed rotated (a 4000x3000 phone photo was stored 800x600 instead of 600x800). `process_uploaded_image` (`core/validators.py`, used by dish photos and logos) now turns the pixels upright first, as the AI menu import already did.
-- **In production a cut-off image was accepted and stored half grey.** WeasyPrint, the first time it is imported, sets `PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True` for the whole process. Rasova imports it at module load in some places and lazily in others, so on Linux (CI, production, the box) Pillow accepted cut-off images everywhere, uploads included, while on a PC without WeasyPrint's native libraries it refused them. Found when the new upload test passed on Windows and failed in CI. `refuse_truncated_images()` (`core/validators.py`), called first in `TenantsConfig.ready()`, imports WeasyPrint once so its change happens then (a module's code runs only on its first import) and puts Pillow's default back. Checked on Linux: with the switch off a cut-off photo is refused, and WeasyPrint still makes a PDF that contains a cut-off image (it leaves the image out and logs "Failed to load image").
+- **Wherever WeasyPrint loads, a cut-off image was accepted and stored half grey.** WeasyPrint, the first time it is imported, sets `PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True` for the whole process. Rasova imports it at module load in some places and lazily in others, so where WeasyPrint loads (CI, the box) Pillow accepted cut-off images everywhere, uploads included, while on a PC without WeasyPrint's native libraries it refused them. *Corrected 4 Nov: this first said "production" too. rasova.net never loaded WeasyPrint (Pango was missing, see 4 Nov), and a failed import never reaches the line that sets the switch (checked), so production refused cut-off images all along. It would have started accepting them the moment Pango was installed, which this fix prevents.* Found when the new upload test passed on Windows and failed in CI. `refuse_truncated_images()` (`core/validators.py`), called first in `TenantsConfig.ready()`, imports WeasyPrint once so its change happens then (a module's code runs only on its first import) and puts Pillow's default back. Checked on Linux: with the switch off a cut-off photo is refused, and WeasyPrint still makes a PDF that contains a cut-off image (it leaves the image out and logs "Failed to load image").
 - **CI failed, so the 2 Nov fix was never deployed.** GitHub's runner image now brings newer Postgres tools than CI's Postgres 16 service. The box's real restore test made a backup with that newer `pg_dump`, which writes `SET transaction_timeout`, a setting Postgres 16 doesn't know, so the restore failed and the deploy job was skipped. A real box was never at risk: `box/docker/Dockerfile` installs `postgresql-client-15` next to `postgres:15`. CI now asks its Postgres service which major version it runs, installs that client and puts it first on PATH (`.github/workflows/ci.yml`), so changing the service image is enough and the tools follow. GitHub's `ubuntu-latest` became Ubuntu 26.04 in late October, whose own repository carries only Postgres 18, so when the needed client isn't there the step adds the PostgreSQL project's apt repository (apt.postgresql.org), which has every supported version. Checked by running the step on Ubuntu 26.04.1: it installed `pg_dump`, `pg_restore` and `psql` 16.15.
 
 ### Tests

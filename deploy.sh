@@ -6,6 +6,18 @@ APP_DIR=/home/ubuntu/rasova
 cd $APP_DIR
 source .venv/bin/activate
 
+# PDF bills, invoices and purchase orders need WeasyPrint, and WeasyPrint needs
+# Pango from the system (docs/DEPLOY.md, 2.2). Without it every PDF fails, and
+# nothing else says so: Rasova starts fine and only prints a warning. That hid
+# a missing Pango on this server until 4 Nov 2026. Checked before anything
+# changes, so a failed check leaves the running version as it was.
+if ! python -c "import weasyprint" >/dev/null 2>&1; then
+    echo "=== STOP: WeasyPrint can't load, so PDFs would fail. Nothing was deployed. ==="
+    python -c "import weasyprint" 2>&1 >/dev/null | tail -1
+    echo "Fix: sudo apt install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b fonts-dejavu-core"
+    exit 1
+fi
+
 # Ensure swap exists — collectstatic OOMs on t2.micro without it
 if [ ! -f /swapfile ]; then
     echo "=== Creating 1GB swap (one-time) ==="
@@ -107,11 +119,21 @@ if ! sudo systemctl restart celery 2>/dev/null; then
         >> $APP_DIR/logs/celery.log 2>&1 &
 fi
 
-# celery beat — without a restart here, CELERY_BEAT_SCHEDULE changes (like
-# the new demo-tenant reset job) never take effect on the running process,
-# even though the code deployed just fine. Same try-systemd-then-nohup
-# pattern as the worker above.
-if ! sudo systemctl restart celery-beat 2>/dev/null; then
+# celery beat — restarted on every deploy, or CELERY_BEAT_SCHEDULE changes
+# (like the demo-tenant reset job) never take effect on the running process.
+# Exactly one beat may run, or every scheduled job runs twice. It is its own
+# service (systemd/celery-beat.service) so it starts on boot and after a
+# crash; a beat left over from the old nohup start is stopped here.
+if sudo systemctl restart celery-beat 2>/dev/null; then
+    BEAT_PID=$(systemctl show -p MainPID --value celery-beat)
+    for pid in $(pgrep -f 'celery -A core beat' || true); do
+        if [ "$pid" != "$BEAT_PID" ]; then
+            sudo kill "$pid" 2>/dev/null && echo "=== Stopped a second celery beat (pid $pid) ==="
+        fi
+    done
+else
+    echo "=== WARNING: no celery-beat service, starting beat with nohup. It will NOT come back after a reboot."
+    echo "    Install it once: see the top of systemd/celery-beat.service ==="
     pkill -9 -f 'celery -A core beat' 2>/dev/null || true
     sleep 1
     setsid nohup celery -A core beat --loglevel=warning \

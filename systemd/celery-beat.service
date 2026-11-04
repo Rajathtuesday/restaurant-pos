@@ -1,0 +1,29 @@
+[Unit]
+Description=Rasova POS — Celery Beat (the scheduler)
+After=network.target redis.service
+
+# Beat puts the scheduled jobs (CELERY_BEAT_SCHEDULE in core/settings.py) on
+# the queue at their times; the worker (celery.service) runs them. Exactly one
+# beat may run, or every job runs twice. As a service it starts on boot and
+# comes back after a crash: before 4 Nov 2026 beat was started with nohup by
+# deploy.sh, so after a reboot nothing was scheduled until the next deploy.
+#
+# Install once on the server (deploy.sh then restarts it on every deploy):
+#   sudo cp /home/ubuntu/rasova/systemd/celery-beat.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now celery-beat
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/rasova
+EnvironmentFile=/home/ubuntu/rasova/.env
+ExecStart=/home/ubuntu/rasova/.venv/bin/celery \
+    -A core beat \
+    --loglevel=warning \
+    --schedule=/home/ubuntu/rasova/logs/celerybeat-schedule \
+    --logfile=/home/ubuntu/rasova/logs/celery-beat.log
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

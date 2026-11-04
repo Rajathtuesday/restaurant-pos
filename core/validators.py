@@ -21,10 +21,11 @@ def refuse_truncated_images():
     WeasyPrint sets PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True for the whole
     process the first time it is imported. Rasova imports it at module load
     in some places and lazily in others (orders/views/print_views.py), so
-    whether a cut-off upload was refused depended on what had run before: in
-    production (Linux, WeasyPrint working) a cut-off photo was accepted and
-    stored half grey; on a PC without WeasyPrint's native libraries it was
-    refused (found 3 Nov 2026, when a test passed on Windows and failed in CI).
+    whether a cut-off upload was refused depended on what had run before:
+    wherever WeasyPrint loads (CI, the box, and production since Pango was
+    installed on 4 Nov 2026) a cut-off photo was accepted and stored half
+    grey; on a machine without WeasyPrint's native libraries it was refused
+    (found 3 Nov 2026, when a test passed on Windows and failed in CI).
 
     Importing WeasyPrint here makes its change happen now; a module's code runs
     only on its first import, so a later import can't turn it on again. Then
