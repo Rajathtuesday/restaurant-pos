@@ -167,7 +167,7 @@
 
 {% block extra_js %}
 <script>
-const CSRF  = apiClient.getCsrf();
+const CSRF  = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const REQ_ID = {{ req.id }};
 
 async function approveReq() {

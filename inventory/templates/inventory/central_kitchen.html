@@ -235,7 +235,7 @@
 
 {% block extra_js %}
 <script>
-const CSRF = apiClient.getCsrf();
+const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
 function openCreateModal()  { document.getElementById("createModal").style.display = "flex"; }
 function closeCreateModal() { document.getElementById("createModal").style.display = "none"; }

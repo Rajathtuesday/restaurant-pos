@@ -464,7 +464,7 @@
 {% if config.upi_id and remaining > 0 %}
 {% comment %}
 Self-hosted, not CDN -- the CDN URL this used to point at
-(cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js) 404s: that path
+(the jsdelivr copy of qrcode 1.5.3's build/qrcode.min.js) 404s: that path
 doesn't exist in the published package (confirmed directly), so this QR
 has been silently broken on every single load, on every network, since
 the day it was written -- not an occasional CDN hiccup. This is also the

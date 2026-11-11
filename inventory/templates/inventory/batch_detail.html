@@ -170,7 +170,7 @@
 
 {% block extra_js %}
 <script>
-const CSRF     = apiClient.getCsrf();
+const CSRF     = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const BATCH_ID = {{ batch.id }};
 
 // Auto-fill unit when item is selected

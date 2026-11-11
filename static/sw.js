@@ -7,18 +7,23 @@
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
-const CACHE_VERSION = 'rasova-v3';
+const CACHE_VERSION = 'rasova-v4';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
 
 /* Assets to cache on install */
 const STATIC_ASSETS = [
+    // Rasova serves these itself (static/vendor, see VENDOR.md): no outside
+    // host between a cashier and the page. The unhashed names are served
+    // alongside the hashed ones, so this list needs no rebuild step.
     '/static/css/themes/luxury.css',
-    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
-    'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
-    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
-    'https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.all.min.js',
-    'https://cdn.jsdelivr.net/npm/sweetalert2@11.10.8/dist/sweetalert2.min.css',
+    '/static/css/rasova.css',
+    '/static/vendor/fonts/fonts.css',
+    '/static/vendor/bootstrap/bootstrap.min.css',
+    '/static/vendor/bootstrap-icons/bootstrap-icons.min.css',
+    '/static/vendor/bootstrap/bootstrap.bundle.min.js',
+    '/static/vendor/sweetalert2/sweetalert2.all.min.js',
+    '/static/vendor/sweetalert2/sweetalert2.min.css',
 ];
 
 /* Pages to pre-warm on install (best-effort, need auth so may 302 — that's fine) */

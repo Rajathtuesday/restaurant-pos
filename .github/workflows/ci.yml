@@ -47,6 +47,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
 
+      # The page scripts are ES modules tested with node's own runner
+      # (static/js/tests, run from core/tests/test_frontend_js.py), and the
+      # browser copies of the tax and offer engines are checked against the
+      # Python ones through node too. 24 is what the laptop runs.
+      - name: Set up Node 24
+        uses: actions/setup-node@v4.1.0
+        with:
+          node-version: "24"
+
       - name: Set up Python 3.13
         uses: actions/setup-python@v5.3.0
         with:

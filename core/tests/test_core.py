@@ -229,6 +229,10 @@ class UnscopedCallSiteAllowlistTest(TestCase):
         # tenant_isolation_preflight.py's own docstring.
         "tenants/management/commands/tenant_isolation_preflight.py:47",
         "tenants/management/commands/tenant_isolation_preflight.py:52",
+        # The tenant isolation walk's deliberately leaky view: it fetches an
+        # order by id alone so the walk can prove it catches a leak
+        # (core/tests/test_tenant_walk.py, TenantWalkDetectsLeaksTest).
+        "core/tests/test_tenant_walk.py:424",
     }
 
     # Files that reference ".unscoped(" in prose (docstrings/comments)

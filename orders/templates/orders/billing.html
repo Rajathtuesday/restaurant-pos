@@ -974,7 +974,7 @@
   /* ── Agent-based printing (EC2 → ESC/POS JSON → local agent → TCP 9100) ── */
   // Android phones run the agent on-device → always localhost.
   // Desktops/tablets use the outlet-configured agent host.
-  const _agentHost = (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android)
+  const agentHost = () => (window.rasovaPlatform && rasovaPlatform.android)
                       ? 'localhost'
                       : "{{ outlet.agent_host|default:'localhost' }}";
   const _stationPrinterIp = "{{ station_printer_ip }}";
@@ -1007,7 +1007,7 @@
     if (!qzData.success || !qzData.lines) throw new Error("receipt-data-failed");
 
     return new Promise((resolve, reject) => {
-      const ws  = new WebSocket(`ws://${_agentHost}:8765`);
+      const ws  = new WebSocket(`ws://${agentHost()}:8765`);
       const jid = "bill-" + orderId + "-" + Date.now();
       const t   = setTimeout(() => { ws.close(); reject(new Error("timeout")); }, 10000);
       ws.onopen = () => ws.send(JSON.stringify({

@@ -193,7 +193,7 @@
 
 {% block extra_js %}
 <script>
-const CSRF = apiClient.getCsrf();
+const CSRF = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 const LOW_STOCK_ITEMS = [
   {% for item in low_stock %}
   { id: {{ item.id }}, name: "{{ item.name|escapejs }}", unit: "{{ item.unit }}", reorder: {{ item.reorder_quantity|default:"0" }} },

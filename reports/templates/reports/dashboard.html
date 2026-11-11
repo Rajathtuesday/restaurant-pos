@@ -1,8 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Reports | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
 <style>
   ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
   ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }

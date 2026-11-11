@@ -7,6 +7,29 @@ the source of truth.
 
 ---
 
+## 2026-11-12: The frontend rebuild, phase 0: the foundation
+
+The plan: `md_files/rasova_step3_frontend_plan_2026-11-11.html`. This phase changes nothing a cashier sees; it changes where the code lives and what keeps it there.
+
+### Changed
+- **Rasova serves its own fonts, Bootstrap, icons, SweetAlert2 and Chart.js** (`static/vendor/`, versions and SHA-256 of every file in `VENDOR.md`). Until now the billing page needed jsdelivr and Google Fonts to render at all, so a slow or dead internet connection in the restaurant meant an unstyled page; the reports dashboard even loaded an unpinned `chart.js`. No template references an outside host any more, and a test keeps it so. The service worker precaches the local copies.
+- **base.html carries no inline code.** Its 870 lines of script are now ES modules in `static/js/core/` (`http.js` the server client, `offline.js` the order and cash-payment queues, `toast.js`, `theme.js`, `notifications.js`, `platform.js`, `pwa.js`, `checklist.js`, `app.js` wiring them), its 199 lines of style are `static/css/rasova.css`, and the three values it needed from the server travel in one `json_script` block (`rasova_page`, from `core.context_processors.frontend`) instead of template tags inside JavaScript. The one inline script left is the three-line dark-mode boot in `<head>`, marked `data-rasova-boot`, which must run before the theme CSS loads. `app.js` still publishes `window.ui`, `window.apiClient`, `window.offlineQueue` and the other shared objects for the pages that have not been turned into modules; that bridge goes when the last one has.
+- **Hashed static files now rewrite the modules' imports too** (`core/storage.py`, `RasovaStaticStorage`): `import "./http.js"` inside `app.<hash>.js` points at `http.<hash>.js`. Without it the first deploy of a module would have 404ed on its own imports.
+- **A base for pages with no app chrome** (`templates/core/public_base.html`, `static/css/public.css`): the four error pages, the session-refresh page and the suspended page extend it instead of carrying private copies of the same head and 66 lines of CSS each. The refresh page's button is a link to the same address (a GET) rather than `location.reload()`, which would have offered to re-send the failed POST.
+- **Seven places read a shared object while the page was still parsing** (five inventory pages took `apiClient.getCsrf()` into a constant; the billing page and the kitchen-stations page read `rasovaPlatform` behind a `typeof` guard that was always false at that moment). They read the CSRF meta tag directly, or work the value out when it is needed.
+- `onclick=` attributes in base.html and the demo banner are gone: the header's theme toggle, the setup checklist and the banner's dismiss button use `data-action`, handled by one listener in `app.js`.
+- CI installs Node 24 explicitly (the laptop's version), since the module tests and the engine parity tests run through node.
+
+### Fixed
+- **Two flushes of the offline queue could run at once.** The guard against that was set after the first `await`, so the flush on page load and the flush on the `online` event (which fires right after a reload on a flaky connection) could both pass it and create an order twice. The guard now goes up before anything is awaited. Found by the new queue tests: the test for it hung on the old ordering.
+
+### Tests
+- `static/js/tests/` (22 tests, node's own runner, driven from `core/tests/test_frontend_js.py` so one `manage.py test` runs them): the server client (CSRF and JSON headers, offline refusal, a 400 with a message, a 200 that says `success: false`, an HTML page instead of JSON, fetch failing, the manager-PIN gate); the order queue (replay and kitchen send, stop when the connection drops, drop and tell on a refusal, never re-create when only the kitchen call failed, overlapping flushes); the payment queue (replay, a refusal shown and never retried blindly, an unanswered payment stays queued); the banner; platform detection and the Android print bridge; the CSRF and page-data readers.
+- `core/tests/test_frontend_hygiene.py`, the ratchet: counts inline script lines, inline style lines, `onclick=` attributes, third-party hosts and parse-time reads of the shared objects in every template, against a baseline that can only shrink (84 templates today: 7,336 script lines, 6,467 style lines, 398 `onclick`, no third-party host, no parse-time read). A page that gets worse fails; a baseline entry looser than its page fails; a migrated page's entry is lowered with `python -m core.tests.test_frontend_hygiene --write`.
+- `core/tests/test_static_modules.py`: collects the static files with the production storage into a temporary directory and checks every import in every collected module resolves to a hashed file, every module parses in node, every literal `{% static %}` path exists, and no template loads from a third-party host.
+
+---
+
 ## 2026-11-11: Every URL walked as one restaurant pointed at another's rows
 
 ### Security

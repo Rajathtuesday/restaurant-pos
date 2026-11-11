@@ -1,0 +1,22 @@
+{% load static %}{% comment %}
+The frame for pages with no logged-in user and no app chrome: the error
+pages, the suspended page, the session-refresh page, and (as they are
+migrated) login, the guest bill and feedback, the order status page, the
+token display board, the printed bill. Fonts and styles are Rasova's own
+(static/vendor, VENDOR.md): these pages must render with no internet.
+{% endcomment %}<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Rasova{% endblock %}</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+    <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/public.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

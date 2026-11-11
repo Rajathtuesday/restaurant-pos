@@ -197,6 +197,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
 		'core.context_processors.base_url',
                 'core.context_processors.tenant_features',
+                'core.context_processors.frontend',
                 'box.context_processors.box_status',
             ],
             **({} if DEBUG else {
@@ -302,7 +303,7 @@ _is_test_run = len(__import__('sys').argv) > 1 and __import__('sys').argv[1] == 
 _static_backend = (
     "django.contrib.staticfiles.storage.StaticFilesStorage"  # no manifest needed in tests
     if _is_test_run
-    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    else "core.storage.RasovaStaticStorage"   # WhiteNoise manifest storage + JS module import rewriting
 )
 
 _AWS_BUCKET = os.getenv("AWS_STORAGE_BUCKET_NAME", "")

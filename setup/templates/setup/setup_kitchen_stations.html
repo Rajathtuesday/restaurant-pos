@@ -365,7 +365,7 @@
 {% block extra_js %}
 <script>
 // Android phones run the agent on-device; desktops use the configured host
-const AGENT_WS = 'ws://' + ((typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android)
+const agentWs = () => 'ws://' + ((window.rasovaPlatform && rasovaPlatform.android)
     ? 'localhost'
     : '{{ request.user.outlet.agent_host|default:"localhost" }}') + ':8765';
 let _agentWs = null;
@@ -373,7 +373,7 @@ let _agentWs = null;
 async function connectAgent(timeout = 2000) {
   if (_agentWs && _agentWs.readyState === WebSocket.OPEN) return _agentWs;
   return new Promise((res, rej) => {
-    const ws = new WebSocket(AGENT_WS);
+    const ws = new WebSocket(agentWs());
     const t  = setTimeout(() => { ws.close(); rej(new Error('timeout')); }, timeout);
     ws.onopen  = () => { clearTimeout(t); _agentWs = ws; res(ws); };
     ws.onerror = () => { clearTimeout(t); rej(new Error('not running')); };
