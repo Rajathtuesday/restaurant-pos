@@ -16,9 +16,22 @@ logger = logging.getLogger("pos.orders")
 @feature_required("merge_tables")
 @require_POST
 def merge_tables_view(request):
-    data = json.loads(request.body)
-    from tablemerge.services import merge_tables
-    merge = merge_tables(request.user, data.get("primary_table"), data.get("tables"))
+    from tablemerge.services import MergeError, merge_tables
+    try:
+        data = json.loads(request.body or b"{}")
+    except ValueError:
+        return JsonResponse({"error": "Invalid request body"}, status=400)
+    try:
+        primary_id = int(data.get("primary_table"))
+        table_ids = [int(t) for t in (data.get("tables") or [])]
+    except (TypeError, ValueError, AttributeError):
+        return JsonResponse({"error": "primary_table and tables are required"}, status=400)
+    if not table_ids:
+        return JsonResponse({"error": "Pick at least one table to merge"}, status=400)
+    try:
+        merge = merge_tables(request.user, primary_id, table_ids)
+    except MergeError as e:
+        return JsonResponse({"error": str(e)}, status=404)
     logger.info("User %s merged tables", request.user.username)
     return JsonResponse({"success": True, "merge_id": merge.id})
 

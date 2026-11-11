@@ -4,7 +4,7 @@ import json
 import logging
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
@@ -96,6 +96,8 @@ def create_menu_item(request):
             request.user.username, name, price, prep_time, category.name,
         )
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error creating menu item")
         return JsonResponse({"error": "Could not create the item. Please try again."}, status=500)
@@ -163,6 +165,8 @@ def update_menu_item(request, item_id):
 
         logger.info("User %s updated item %s '%s'", request.user.username, item_id, name)
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error updating menu item")
         return JsonResponse({"error": "Could not update the item. Please try again."}, status=500)
@@ -195,19 +199,21 @@ def delete_menu_item(request, item_id):
 @require_POST
 def update_price(request, item_id):
     try:
+        item = get_object_or_404(
+            MenuItem, id=item_id,
+            tenant=request.user.tenant, outlet=request.user.outlet
+        )
         data = json.loads(request.body)
         try:
             price = _read_price(data.get("price"))
         except NumberInputError as e:
             return error_response(e, 400)
 
-        item = get_object_or_404(
-            MenuItem, id=item_id,
-            tenant=request.user.tenant, outlet=request.user.outlet
-        )
         item.price = price
         item.save(update_fields=["price"])
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error updating item price")
         return JsonResponse({"error": "Could not update the price. Please try again."}, status=500)
@@ -250,6 +256,8 @@ def toggle_platform_availability(request, item_id):
             return JsonResponse({"error": "Invalid platform"}, status=400)
         item.save()
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error toggling platform availability")
         return JsonResponse({"error": "Could not update availability. Please try again."}, status=400)
@@ -278,6 +286,8 @@ def update_station(request, item_id):
             station_name = None
         item.save(update_fields=["station"])
         return JsonResponse({"success": True, "station_name": station_name})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error updating item station")
         return JsonResponse({"error": "Could not update the station. Please try again."}, status=400)
@@ -315,6 +325,8 @@ def add_recipe(request):
             return error_response(e, 400)
 
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error adding recipe")
         return JsonResponse({"error": "Could not add the recipe. Please try again."}, status=500)

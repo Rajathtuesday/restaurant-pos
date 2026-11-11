@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-11-11: Every URL walked as one restaurant pointed at another's rows
+
+### Security
+- **A test now proves no page shows one restaurant another's data.** `core/tests/test_tenant_walk.py` builds two complete restaurants (every kind of row a URL can name: orders, items, payments, refunds, KOTs, tokens, stations, promos, offers, inventory, purchase orders, requisitions, batches, shifts, guests, reservations, expenses, print jobs), marks every text field of restaurant B with a string that appears nowhere else, then opens all 241 non-public URLs as restaurant A's owner with B's ids. A page fails the walk if B's marker is in the body or the redirect, if it crashes, or if it answers anything but 403/404/405 to B's id (a 200 of B's totals has no names in it, so a status alone is a finding). Public pages (login, the guest menu, the token display board, the webhooks, the print agent) are listed with the reason they are public, and a stale entry fails the test. A deliberately leaky view and a quiet 200 are wired in by a second test to prove the detector catches both. First run on 11 Nov: no leak anywhere. The 29 findings were views that answered B's id with a 400 or a 500 before looking the row up, all fixed below.
+
+### Fixed
+- **Views that read the body before asking whose row it was.** Another restaurant's id got "Amount required", "Message text is required", "The price is required" or "Phone required" (400) instead of 404, and in a few places a catch-all turned the 404 into "Could not update, please try again" or a 500. Now the row is looked up first, with the restaurant and outlet in the query, and a 404 passes through every catch-all: `pay_order`, `refund_payment`, `split_pay`, `apply_discount`, `apply_item_discount`, `log_bypass`, `send_kitchen_message`, `link_guest_to_order`, `update_price`, `update_menu_item`, `toggle_platform_availability`, `update_station`, `delete_category`, the six modifier views, `add_modifier_recipe`, `restock_item`, `log_wastage`, `adjust_stock`, `rename_table`, `set_default_station` (was a bare `.get()`, so a wrong id was a 500 page), `approve_refund_view` and `reject_refund_view`.
+- **`pay_order` answered 500 to a body that wasn't JSON** (logged as "Unexpected error in pay_order"). It is a 400 now, and a JSON list is refused the same way. `orders/tests/test_pay_order_guards.py` (4 tests, 2 fail on the old view).
+- **`merge_tables_view` crashed on a missing or malformed body** and the service raised a bare `Exception("Primary table not found")`. The view now says what is missing (400), and a table that isn't this outlet's is a 404 through a new `MergeError`.
+- **`download_pdf_bill` imported WeasyPrint before checking whose bill it was.** The lookup comes first, so a wrong id does nothing heavier than one query (and a developer machine without Pango no longer crashes on it).
+
+### Changed
+- Any new URL that takes an id must be mapped in the walk's REGISTRY or listed in its PUBLIC_BY_DESIGN with a reason; the walk fails otherwise.
+
+---
+
 ## 2026-11-04: PDFs work on rasova.net, and the scheduler survives a reboot
 
 ### Fixed (on the server)

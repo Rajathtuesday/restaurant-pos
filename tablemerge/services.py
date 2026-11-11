@@ -31,6 +31,10 @@ def resolve_primary_table(table, tenant, outlet):
     return merge.primary_table if merge else table
 
 
+class MergeError(Exception):
+    """A merge that cannot be made: a table that isn't this outlet's."""
+
+
 @transaction.atomic
 def merge_tables(user, primary_table_id, table_ids):
 
@@ -48,7 +52,7 @@ def merge_tables(user, primary_table_id, table_ids):
 
     primary_table = locked.get(primary_table_id)
     if not primary_table:
-        raise Exception("Primary table not found")
+        raise MergeError("Primary table not found")
 
     tables = [t for t in locked.values() if t.id != primary_table_id]
 

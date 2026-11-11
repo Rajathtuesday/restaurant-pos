@@ -82,6 +82,16 @@ def restock_item(request, item_id):
     if not _manager_required(request.user):
         return HttpResponseForbidden()
 
+    # The item first: another restaurant's id is a 404 whatever the body says.
+    try:
+        item = InventoryItem.objects.get(
+            id=item_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet
+        )
+    except InventoryItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -94,15 +104,6 @@ def restock_item(request, item_id):
 
     if quantity <= 0:
         return JsonResponse({"error": "Quantity must be positive"}, status=400)
-
-    try:
-        item = InventoryItem.objects.get(
-            id=item_id,
-            tenant=request.user.tenant,
-            outlet=request.user.outlet
-        )
-    except InventoryItem.DoesNotExist:
-        return JsonResponse({"error": "Item not found"}, status=404)
 
     item.add_stock(quantity)
     logger.info("%s restocked '%s' +%s. Now: %s", request.user.username, item.name, quantity, item.stock)
@@ -917,6 +918,16 @@ def log_wastage(request, item_id):
     if not _manager_required(request.user):
         return JsonResponse({"error": "Permission denied"}, status=403)
 
+    # The item first: another restaurant's id is a 404 whatever the body says.
+    try:
+        item = InventoryItem.objects.get(
+            id=item_id,
+            tenant=request.user.tenant,
+            outlet=request.user.outlet,
+        )
+    except InventoryItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -933,15 +944,6 @@ def log_wastage(request, item_id):
     reason = data.get("reason", "").strip()[:100]
     notes  = data.get("notes", "").strip()[:200]
     reference = reason if not notes else f"{reason} — {notes}"
-
-    try:
-        item = InventoryItem.objects.get(
-            id=item_id,
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-        )
-    except InventoryItem.DoesNotExist:
-        return JsonResponse({"error": "Item not found"}, status=404)
 
     try:
         item.record_wastage(quantity, reference=reference or "Manual wastage")
@@ -971,15 +973,7 @@ def adjust_stock(request, item_id):
     if not _manager_required(request.user):
         return JsonResponse({"error": "Permission denied"}, status=403)
 
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON"}, status=400)
-
-    reason = data.get("reason", "").strip()[:200]
-    if not reason:
-        return JsonResponse({"error": "A reason is required for a manual adjustment"}, status=400)
-
+    # The item first: another restaurant's id is a 404 whatever the body says.
     try:
         item = InventoryItem.objects.get(
             id=item_id,
@@ -988,6 +982,15 @@ def adjust_stock(request, item_id):
         )
     except InventoryItem.DoesNotExist:
         return JsonResponse({"error": "Item not found"}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    reason = data.get("reason", "").strip()[:200]
+    if not reason:
+        return JsonResponse({"error": "A reason is required for a manual adjustment"}, status=400)
 
     has_new_count = "new_count" in data and data.get("new_count") not in (None, "")
     has_delta = "delta" in data and data.get("delta") not in (None, "")

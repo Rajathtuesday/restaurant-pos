@@ -2,7 +2,7 @@
 import json
 import logging
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
@@ -29,6 +29,8 @@ def create_category(request):
         )
         logger.info("User %s created category '%s'", request.user.username, name)
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error creating category")
         return JsonResponse({"error": "Could not create the category. Please try again."}, status=500)
@@ -62,6 +64,8 @@ def delete_category(request, category_id):
         category.delete()
         logger.warning("User %s deleted category '%s' and all its items", request.user.username, name)
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error deleting category")
         return JsonResponse({"error": "Could not delete the category. Please try again."}, status=500)

@@ -3,7 +3,7 @@ from core.errors import error_response
 import json
 import logging
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
@@ -85,6 +85,8 @@ def create_modifier_group(request):
             name=name, is_required=is_required, max_select=max_select,
         )
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error creating modifier group")
         return JsonResponse({"error": "Could not create the group. Please try again."}, status=400)
@@ -119,6 +121,8 @@ def add_modifier(request):
         )
         Modifier.objects.create(group=group, name=name, price=price)
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error adding modifier")
         return JsonResponse({"error": "Could not add the modifier. Please try again."}, status=400)
@@ -152,6 +156,8 @@ def link_modifier_group(request):
         group    = get_object_or_404(ModifierGroup, id=group_id, tenant=request.user.tenant, outlet=request.user.outlet)
         MenuItemModifierGroup.objects.get_or_create(menu_item=item, modifier_group=group)
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error linking modifier group")
         return JsonResponse({"error": "Could not link the group. Please try again."}, status=400)
@@ -173,6 +179,8 @@ def unlink_modifier_group(request):
         )
         mapping.delete()
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error unlinking modifier group")
         return JsonResponse({"error": "Could not unlink the group. Please try again."}, status=400)
@@ -193,13 +201,13 @@ def add_modifier_recipe(request, modifier_id):
         # edit must never silently reset a deliberately different unit.
         unit        = data.get("unit")
 
-        if not all([inv_item_id, quantity]):
-            return JsonResponse({"error": "inventory_item_id and quantity are required"}, status=400)
-
         modifier = get_object_or_404(
             Modifier, id=modifier_id,
             group__tenant=request.user.tenant, group__outlet=request.user.outlet,
         )
+        if not all([inv_item_id, quantity]):
+            return JsonResponse({"error": "inventory_item_id and quantity are required"}, status=400)
+
         inv_item = get_object_or_404(
             InventoryItem, id=inv_item_id,
             tenant=request.user.tenant, outlet=request.user.outlet,
@@ -211,6 +219,8 @@ def add_modifier_recipe(request, modifier_id):
             return error_response(e, 400)
 
         return JsonResponse({"success": True, "created": created})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error adding modifier recipe")
         return JsonResponse({"error": "Could not link the recipe. Please try again."}, status=400)
@@ -235,6 +245,8 @@ def delete_modifier_recipe(request, modifier_id):
         )
         mr.delete()
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error deleting modifier recipe")
         return JsonResponse({"error": "Could not remove the link. Please try again."}, status=400)

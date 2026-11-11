@@ -48,7 +48,10 @@ def _needs_approval(request, e):
 @require_POST
 @role_required("manager", "cashier", "captain", "owner")
 def apply_discount(request, order_id):
-
+    # Whose row is it, before a byte of the body is read: another
+    # restaurant's id is a 404 and learns nothing from the validation.
+    if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order not found"}, status=404)
     try:
         data = json.loads(request.body)
         discount_type = data.get("type", "percentage")
@@ -213,6 +216,11 @@ def make_item_complimentary(request, item_id):
 @require_POST
 @role_required("manager", "cashier", "captain", "owner")
 def apply_item_discount(request, item_id):
+    # Whose row is it, before a byte of the body is read: another
+    # restaurant's id is a 404 and learns nothing from the validation.
+    if not OrderItem.objects.filter(id=item_id, order__tenant=request.user.tenant,
+                                    order__outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order item not found"}, status=404)
     try:
         data = json.loads(request.body)
         try:
@@ -295,6 +303,10 @@ ASK_BYPASS_REASON = "Give a reason for closing the bill without payment (for exa
 @require_POST
 @role_required("manager", "owner")
 def log_bypass(request, order_id):
+    # Whose row is it, before a byte of the body is read: another
+    # restaurant's id is a 404 and learns nothing from the validation.
+    if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order not found"}, status=404)
     try:
         data = json.loads(request.body or b"{}")
     except ValueError:

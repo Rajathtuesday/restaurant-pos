@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -307,6 +307,8 @@ def update_printer_config(request, station_id):
     import json as _json
     try:
         body = _json.loads(request.body)
+    except Http404:
+        raise
     except Exception:
         body = request.POST
 
@@ -769,7 +771,8 @@ def edit_pay_rate(request, user_id):
 @require_POST
 def set_default_station(request, station_id):
 
-    station = KitchenStation.objects.get(
+    station = get_object_or_404(
+        KitchenStation,
         id=station_id,
         tenant=request.user.tenant,
         outlet=request.user.outlet
@@ -895,15 +898,17 @@ def delete_station(request, station_id):
 @require_POST
 def rename_table(request, table_id):
     try:
+        table = get_object_or_404(Table, id=table_id, tenant=request.user.tenant, outlet=request.user.outlet)
         data = json.loads(request.body)
         new_name = data.get("name", "").strip()
         if not new_name:
             return JsonResponse({"success": False, "error": "Name cannot be empty"})
 
-        table = get_object_or_404(Table, id=table_id, tenant=request.user.tenant, outlet=request.user.outlet)
         table.name = new_name
         table.save(update_fields=["name"])
         return JsonResponse({"success": True})
+    except Http404:
+        raise
     except Exception:
         logger.exception("Error renaming table")
         return JsonResponse({"success": False, "error": "Could not rename the table. Please try again."})
@@ -949,6 +954,8 @@ def printer_setup(request):
 
         try:
             station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm"])
+        except Http404:
+            raise
         except Exception:
             messages.error(request, "That printer IP doesn't look valid — use a form like 192.168.1.100.")
             return render(request, "setup/printer_setup.html",
@@ -1117,6 +1124,8 @@ def outlet_settings(request):
             from orders.services.tax_service import GST_RATES
             try:
                 rate = Decimal(request.POST["parcel_gst_rate"])
+            except Http404:
+                raise
             except Exception:
                 rate = None
             if rate in GST_RATES:

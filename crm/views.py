@@ -86,6 +86,10 @@ def link_guest_to_order(request, order_id):
     from django.db import transaction
     from django.db.models import F
 
+    # Whose row is it, before a byte of the body is read: another
+    # restaurant's id is a 404 and learns nothing from the validation.
+    if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order not found"}, status=404)
     try:
         data = json.loads(request.body)
         phone = data.get("phone", "").strip()

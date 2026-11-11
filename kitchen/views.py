@@ -220,12 +220,13 @@ def send_kitchen_message(request, order_id):
     attached to a specific order (e.g., "Customer allergic to peanuts").
     """
     try:
+        # The order first: another restaurant's id is a 404 whatever the body says.
+        order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
         data = json.loads(request.body)
         message_text = data.get("message")
         if not message_text:
             return JsonResponse({"error": "Message text is required"}, status=400)
             
-        order = Order.objects.get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
         
         KitchenMessage.objects.create(
             tenant=request.user.tenant,

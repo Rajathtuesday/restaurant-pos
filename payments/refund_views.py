@@ -3,7 +3,7 @@ import json
 import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 from core.decorators import tenant_required, role_required
@@ -40,6 +40,7 @@ def approve_refund_view(request, refund_id):
     Rate-limited to 5/min per user to prevent a compromised account
     from bulk-approving fraudulent refund requests.
     """
+    get_object_or_404(Refund, id=refund_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
     try:
         approve_refund(refund_id, request.user, request.user.tenant, request.user.outlet)
         logger.info("User %s approved refund #%s", request.user.username, refund_id)
@@ -58,6 +59,7 @@ def reject_refund_view(request, refund_id):
     Rejects a pending refund. Manager or Owner.
     Rate-limited to 5/min per user.
     """
+    get_object_or_404(Refund, id=refund_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
     try:
         data = json.loads(request.body)
         reason = data.get("reason", "")

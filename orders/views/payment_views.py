@@ -39,8 +39,18 @@ def pay_order(request, order_id):
     Enforces outlet-level payment method configurations (e.g., if UPI is disabled).
     Supports partial payments and auto-closes the order if the remaining balance hits zero.
     """
+    # Whose order is it, before a byte of the body is read: an id from
+    # another restaurant is a 404 and learns nothing, not even which
+    # payment methods this outlet takes.
+    if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order not found"}, status=404)
     try:
-        data = json.loads(request.body)
+        try:
+            data = json.loads(request.body or b"{}")
+        except (ValueError, UnicodeDecodeError):
+            return JsonResponse({"error": "Invalid request body"}, status=400)
+        if not isinstance(data, dict):
+            return JsonResponse({"error": "Invalid request body"}, status=400)
         method = data.get("method")
         amount = data.get("amount")
 
@@ -271,6 +281,11 @@ def pay_order(request, order_id):
 @role_required("manager", "owner")
 @ratelimit(key="user", rate="5/m", method="POST", block=True)
 def refund_payment(request, payment_id):
+    # Whose row is it, before a byte of the body is read: another
+    # restaurant's id is a 404 and learns nothing from the validation.
+    if not Payment.objects.filter(id=payment_id, order__tenant=request.user.tenant,
+                                  order__outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Payment not found"}, status=404)
     try:
 
         data = json.loads(request.body)
@@ -337,6 +352,10 @@ def split_pay(request, order_id):
     The last person absorbs any rounding remainder so the sum always
     equals grand_total exactly.
     """
+    # Whose row is it, before a byte of the body is read: another
+    # restaurant's id is a 404 and learns nothing from the validation.
+    if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order not found"}, status=404)
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:

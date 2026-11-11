@@ -332,12 +332,15 @@ def printer_status(request):
 @login_required
 @tenant_required
 def download_pdf_bill(request, order_id):
-    import weasyprint
     from django.template.loader import render_to_string
     from django.http import HttpResponse
     from django.shortcuts import get_object_or_404
 
+    # Whose bill is it, before anything else: an id from another restaurant
+    # is a 404 and nothing heavier than that lookup runs for it.
     order = get_object_or_404(Order, id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+
+    import weasyprint
 
     # Exclude refund rows (negative amounts) - including them inflates 'remaining'.
     # This mirrors the correct calculation already used in bill_view and pay_order.
