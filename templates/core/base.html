@@ -83,10 +83,9 @@
     </div>
     {% endif %}
 
-    {# Shared scripts. Bootstrap and SweetAlert2 are classic scripts (window.bootstrap, window.Swal); approval.js is the manager-PIN retry; core/app.js is Rasova's own, a module that also publishes the shared objects on window for pages not yet turned into modules (see the note at its top). #}
+    {# Shared scripts. Bootstrap and SweetAlert2 are classic scripts (window.bootstrap, window.Swal); core/app.js is Rasova's own, a module that also publishes the shared objects on window for pages not yet turned into modules (see the note at its top). #}
     <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
     <script src="{% static 'vendor/sweetalert2/sweetalert2.all.min.js' %}"></script>
-    <script src="{% static 'js/approval.js' %}"></script>
     <script type="module" src="{% static 'js/core/app.js' %}"></script>
 
     {% block extra_js %}{% endblock %}

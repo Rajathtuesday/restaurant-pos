@@ -4,177 +4,16 @@
 
 {% block extra_css %}
 <link rel="manifest" href="/manifest.json">
-<style>
-  ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-  ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-
-  /* Override base header for sticky app mode */
-  .pos-header {
-    padding: 1rem 1.5rem;
-    background: var(--bg-color);
-    z-index: 100;
-    position: sticky;
-    top: 0;
-  }
-  .brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
-  .brand-title i { color: var(--accent-gold); }
-
-  .btn-luxury-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-  .btn-luxury-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
-
-  :root { --header-h: 65px; }
-  .workspace { display: flex; height: calc(100vh - var(--header-h)); }
-
-  .category-sidebar {
-    width: 260px; border-right: 1px solid var(--border-color);
-    padding: 1.5rem; overflow-y: auto; background: var(--panel-bg); flex-shrink: 0;
-  }
-  .mobile-category-nav {
-    display: none; overflow-x: auto; white-space: nowrap; padding: 1rem;
-    background: var(--panel-bg); border-bottom: 1px solid var(--border-color); scrollbar-width: none;
-  }
-  .mobile-category-nav::-webkit-scrollbar { display: none; }
-  .category-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 1.5rem; font-weight: 600; }
-  .category-list { list-style: none; padding: 0; margin: 0; }
-  .category-item { padding: 0.8rem 0; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: var(--transition-smooth); font-family: 'DM Serif Display', serif; position: relative; }
-  .category-item:hover { color: var(--text-main); }
-  .category-item.active { color: var(--accent-gold); font-weight: 700; font-style: italic; }
-  .category-sidebar .category-item.active::before { content: ''; position: absolute; left: -1.5rem; top: 50%; transform: translateY(-50%); width: 3px; height: 50%; background: var(--accent-gold); }
-  .mobile-category-nav .category-item { display: inline-block; margin-right: 1.5rem; padding: 0.5rem 0; }
-  .mobile-category-nav .category-item.active { border-bottom: 2px solid var(--accent-gold); }
-
-  .menu-area { flex-grow: 1; padding: 2rem; overflow-y: auto; background: var(--bg-color); }
-  .search-box { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 0; font-size: 1rem; box-shadow: none !important; margin-bottom: 2rem; }
-  .search-box:focus { border-color: var(--accent-gold); }
-  .menu-section-title { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); padding-top: 1rem; }
-
-  .menu-card { background: transparent; border: 1px solid var(--border-color); border-radius: 0; padding: 1.25rem; cursor: pointer; transition: var(--transition-smooth); height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-  .menu-card:hover { border-color: var(--accent-gold); background: var(--panel-bg); transform: translateY(-2px); }
-  .item-name { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.2; }
-  .item-price { font-size: 0.9rem; color: var(--accent-gold); font-weight: 500; letter-spacing: 1px; }
-
-  .context-sidebar { width: 380px; border-left: 1px solid var(--border-color); background: var(--panel-bg); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; }
-  .context-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
-  .context-tab { flex: 1; text-align: center; padding: 1rem 0; cursor: pointer; font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--text-muted); border-bottom: 2px solid transparent; }
-  .context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
-  .context-body { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
-
-  /* Collapsed table/source summary -- replaces two always-visible dropdowns
-     that rarely change once an order's started with one compact row,
-     expanded only when actually needed. */
-  .order-summary-bar {
-    width: 100%; display: flex; align-items: center; justify-content: space-between;
-    background: transparent; border: 1px solid var(--border-color); border-radius: 4px;
-    padding: 0.65rem 0.9rem; margin-bottom: 1rem; color: var(--text-main);
-    font-size: 0.85rem; cursor: pointer; transition: var(--transition-smooth);
-  }
-  .order-summary-bar:hover { border-color: var(--accent-gold); }
-  .order-settings-panel { margin-bottom: 1rem; }
-
-  /* Bill/Clear are used far less often than Dispatch -- visually demoted
-     so Dispatch reads as the one obvious action, not one of three equals. */
-  .secondary-actions .btn-luxury { font-size: 0.72rem; padding: 0.5rem 1rem; color: var(--text-muted); }
-
-  .cart-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px dashed var(--border-color); }
-  .cart-item-name { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem; }
-  .cart-item-note { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
-  .cart-controls { display: flex; align-items: center; gap: 10px; }
-  .qty-controls { display: flex; align-items: center; border: 1px solid var(--border-color); }
-  .qty-btn { min-width: 36px; min-height: 44px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-  .qty-value { font-size: 0.85rem; width: 20px; text-align: center; }
-  .cart-item-price { font-weight: 500; font-size: 0.85rem; width: 55px; text-align: right; color: var(--text-main); }
-
-  /* Veg / non-veg indicator — Indian standard */
-  .veg-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; flex-shrink: 0; vertical-align: middle; position: relative; top: -1px; }
-  .veg-dot.veg { background: #22c55e; }
-  .veg-dot.nonveg { background: #ef4444; }
-
-  /* Printer error banner */
-  #printer-error-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:#fff; padding:10px 20px; font-size:var(--text-sm); font-weight:600; align-items:center; gap:10px; }
-  #printer-error-banner i { font-size:1.1rem; }
-  #printer-error-banner .dismiss { margin-left:auto; cursor:pointer; opacity:0.8; font-size:1.1rem; }
-
-  /* Offline indicator */
-  #offline-banner { display:none; position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fcd34d; border-radius:20px; padding:6px 18px; font-size:var(--text-xs); font-weight:600; z-index:9998; letter-spacing:1px; }
-
-  .cart-summary { border-top: 1px solid var(--border-color); padding: 1.5rem; background: var(--panel-bg); }
-  .summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-  .summary-total { display: flex; justify-content: space-between; margin: 1rem 0 1.5rem; font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
-
-  .form-select-luxury, .form-control-minimal { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; }
-  .form-select-luxury { margin-bottom: 1.5rem; }
-  .form-select-luxury:focus, .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); }
-
-  .running-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-main); }
-  .status-badge { font-size: 0.6rem; text-transform: uppercase; padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); }
-
-  .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
-  .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-  .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; }
-  .modal-body { padding: 1.5rem; }
-  .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
-
-  .fab-cart {
-    display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    width: calc(100% - 40px); background: var(--accent-gold); color: #fff; padding: 1rem;
-    border-radius: 0; font-size: 0.9rem; font-weight: 500; text-transform: uppercase; letter-spacing: 2px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 1020; text-align: center; border: none;
-    transition: var(--transition-smooth);
-  }
-  .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-
-  /* Mobile cart -- full-viewport "page" overlay, not a Bootstrap offcanvas drawer.
-     A capped-width side drawer left the item list squeezed into a small nested-scroll
-     pocket beneath the settings bar and above a tall pinned footer; this instead makes
-     the item list the one naturally-scrolling region with a slim pinned Dispatch bar. */
-  .mobile-cart-page {
-    position: fixed; inset: 0; z-index: 1045;
-    background: var(--panel-bg); color: var(--text-main);
-    display: flex; flex-direction: column;
-    transform: translateX(100%); transition: var(--transition-smooth); visibility: hidden;
-  }
-  .mobile-cart-page.show { transform: translateX(0); visibility: visible; }
-  .mobile-cart-page-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
-  .mobile-cart-page .context-body { overflow-y: visible; flex-grow: 0; }
-  .cart-page-breakdown { border-top: 1px dashed var(--border-color); margin-top: 1rem; padding-top: 1rem; }
-  #cartSummaryBlockMobile { flex-shrink: 0; }
-
-  .toast-minimal {
-    position: fixed; top: 20px; right: 20px; background: var(--text-main); color: var(--bg-color);
-    padding: 1rem 1.5rem; z-index: 1060; opacity: 0; transition: opacity 0.3s ease;
-    pointer-events: none; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
-  }
-  .toast-minimal.show { opacity: 1; pointer-events: auto; }
-
-  @media (max-width: 991px) {
-    :root { --header-h: 60px; }
-    .category-sidebar { display: none; }
-    .mobile-category-nav { display: block; }
-    .context-sidebar { display: none; }
-    .fab-cart { display: block; }
-    .workspace { flex-direction: column; overflow-y: auto; height: 100vh; padding-bottom: 80px; }
-    .menu-area { padding: 1.5rem 1rem; overflow-y: visible; }
-    .pos-header { padding: 0.85rem 1rem; }
-    body { overflow-x: hidden; overflow-y: auto; }
-  }
-  @media (max-width: 480px) {
-    .brand-title { font-size: 1.05rem; }
-    .btn-icon { font-size: 1.1rem; padding: 0.35rem; }
-    .pos-header { gap: 0.25rem; }
-    .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
-  }
-  @media (min-width: 992px) {
-    .mobile-cart-page { display: none !important; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/billing.css' %}">
+<link rel="stylesheet" href="{% static 'css/billing_parts.css' %}">
 {% endblock %}
 
 {% block header_left %}
 <div class="d-flex flex-column">
-  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
+  <a href="/dashboard/" class="brand-link">
     <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h1>
   </a>
-  <p class="mb-0 text-muted" style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;">POS Billing — {{ request.user.outlet.name }}</p>
+  <p class="mb-0 text-muted brand-sub">POS Billing &middot; {{ request.user.outlet.name }}</p>
 </div>
 {% endblock %}
 
@@ -203,7 +42,7 @@
   <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
   {% include "core/_notif_badges_luxury.html" %}
 
-  <button class="btn-icon ms-1" onclick="themeManager.toggle()" title="Toggle Theme">
+  <button type="button" class="btn-icon ms-1" data-action="theme.toggle" title="Toggle Theme">
     <i class="bi bi-moon" id="themeIcon"></i>
   </button>
 </div>
@@ -212,12 +51,11 @@
 {% block content %}
 <div id="toastBox" class="toast-minimal">Message</div>
 
-<div id="printer-error-banner" style="display:none;">
+<div id="printer-error-banner" data-banner>
   <i class="bi bi-printer-fill"></i>
-  <span id="printer-error-text">Kitchen printer is not responding — check the connection or call the manager.</span>
-  <span class="dismiss" onclick="this.parentElement.style.display='none'">✕</span>
+  <span id="printer-error-text">Kitchen printer is not responding. Check the connection or call the manager.</span>
+  <button type="button" class="dismiss" data-action="banner.close" aria-label="Dismiss">✕</button>
 </div>
-<div id="offline-banner"><i class="bi bi-wifi-off"></i>&nbsp; Offline — orders will sync when reconnected</div>
 
 <div class="workspace">
 
@@ -226,7 +64,7 @@
     <div class="category-title">Menu</div>
     <ul class="category-list">
       {% for category in categories %}
-      <li class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">{{ category.name }}</li>
+      <li class="category-item" data-action="menu.category" data-target="cat{{ category.id }}">{{ category.name }}</li>
       {% endfor %}
     </ul>
   </aside>
@@ -234,20 +72,20 @@
   <!-- MOBILE CATEGORIES -->
   <div class="mobile-category-nav">
     {% for category in categories %}
-    <div class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">{{ category.name }}</div>
+    <div class="category-item" data-action="menu.category" data-target="cat{{ category.id }}">{{ category.name }}</div>
     {% endfor %}
   </div>
 
   <!-- MAIN MENU AREA -->
   <main class="menu-area">
-    <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu...">
+    <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu..." data-action="menu.search">
     <div id="menuCardsContainer">
       {% for category in categories %}
       <h3 id="cat{{ category.id }}" class="menu-section-title">{{ category.name }}</h3>
       <div class="row g-3 g-md-4 mb-5">
         {% for item in category.items.all %}
         <div class="col-12 col-sm-6 col-lg-4 menu-item-searchable">
-          <div class="menu-card" onclick="openItemModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ item.gst_percentage }}', {{ item.is_veg|yesno:'true,false' }})">
+          <div class="menu-card" data-action="menu.pick" data-id="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price|stringformat:'s' }}" data-gst="{{ item.gst_percentage|stringformat:'s' }}" data-veg="{{ item.is_veg|yesno:'1,0' }}" data-parcel="{{ item.parcel_charge|default:0|stringformat:'s' }}">
             <div>
               <div class="item-name">
                 <span class="veg-dot {% if item.is_veg %}veg{% else %}nonveg{% endif %}"></span>{{ item.name }}
@@ -265,23 +103,23 @@
   <!-- DESKTOP CONTEXT SIDEBAR -->
   <aside class="context-sidebar">
     <div class="context-tabs">
-      <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">Order</div>
-      <div class="context-tab" id="tabRunning" onclick="switchTab('running')">Active</div>
+      <div class="context-tab active" id="tabCart" data-action="tab" data-tab="cart">Order</div>
+      <div class="context-tab" id="tabRunning" data-action="tab" data-tab="running">Active</div>
     </div>
 
     <div class="context-body" id="cartView">
-      <button type="button" class="order-summary-bar" onclick="toggleOrderSettings('desktop')">
+      <button type="button" class="order-summary-bar" data-action="settings.toggle" data-view="desktop">
         <span><i class="bi bi-geo-alt me-1"></i><span id="orderSummaryLabel">Walk-in &middot; Dine-in</span></span>
         <i class="bi bi-chevron-down"></i>
       </button>
       <div class="order-settings-panel d-none" id="orderSettingsPanelDesktop">
-        <select id="tableSelectDesktop" class="form-select-luxury table-syncer mb-2" onchange="syncTableSelect(this.value)">
+        <select id="tableSelectDesktop" class="form-select-luxury table-syncer mb-2" data-action="table.sync">
           <option value="">Walk-in</option>
           {% for table in tables %}
           <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
           {% endfor %}
         </select>
-        <select id="sourceSelectDesktop" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'desktop')">
+        <select id="sourceSelectDesktop" class="form-select-luxury mb-2" data-action="source.change" data-view="desktop">
           <option value="dine_in">Dine-in</option>
           <option value="takeaway">Takeaway</option>
           <option value="zomato">Zomato</option>
@@ -291,7 +129,7 @@
         </select>
         <input type="text" id="aggregatorIdDesktop" class="form-control-minimal mb-2 d-none" placeholder="Aggregator Order ID">
       </div>
-      <div id="cartItemsContainerDesktop" style="min-height:200px;"></div>
+      <div id="cartItemsContainerDesktop" class="cart-items"></div>
     </div>
 
     <div class="context-body d-none" id="runningView">
@@ -300,35 +138,31 @@
 
     <div class="cart-summary" id="cartSummaryBlock">
       <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-      <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
+      <div class="summary-row is-hidden"><span>Offers</span><span class="view-offers">₹0</span></div>
       {% if outlet.collects_gst %}
       <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
       {% endif %}
-      <div class="summary-row vat-row" style="display:none;"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
+      <div class="summary-row vat-row is-hidden"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
       {% if outlet.parcel_charge_amount %}
-      <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
+      <div class="summary-row parcel-row is-hidden">
         <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
       </div>
-      <button class="parcel-btn" onclick="toggleParcel()"
-        style="width:100%;padding:0.6rem;margin:0.4rem 0;border:1.5px dashed var(--border-color);
-               background:transparent;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;
-               letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-               justify-content:center;gap:0.5rem;font-family:inherit;">
+      <button type="button" class="parcel-btn" data-action="parcel.toggle">
         <i class="bi bi-bag"></i>
-        <span class="parcel-btn-text">Add Parcel +₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+        <span class="parcel-btn-text">Add Parcel ₹{{ outlet.parcel_charge_amount|floatformat:0 }}{% if outlet.parcel_charge_per_item %}/item{% else %} flat{% endif %}</span>
       </button>
       {% endif %}
       <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
       <div class="d-flex flex-column gap-2 mt-3">
         {% if auto_kot_mode %}
-        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitQSROrder()" style="background:#10b981;border-color:#10b981;font-size:0.85rem;letter-spacing:2px;">
+        <button type="button" class="btn-luxury btn-luxury-primary w-100 py-3 send-btn send-btn--pay" data-action="order.submit">
           <i class="bi bi-cash-coin me-2"></i>PAY &amp; PRINT SLIP
         </button>
         {% else %}
-        <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch <i class="bi bi-arrow-right ms-2"></i></button>
+        <button type="button" class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" data-action="order.submit">Dispatch <i class="bi bi-arrow-right ms-2"></i></button>
         <div class="d-flex gap-2 secondary-actions">
-          <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-          <button class="btn-luxury w-50" onclick="clearCart()">Clear</button>
+          <button type="button" class="btn-luxury w-50" data-action="order.bill">Bill</button>
+          <button type="button" class="btn-luxury w-50" data-action="cart.clear">Clear</button>
         </div>
         {% endif %}
       </div>
@@ -338,34 +172,34 @@
 </div>
 
 <!-- MOBILE FAB -->
-<button class="fab-cart" onclick="openCartMobile()">
+<button type="button" class="fab-cart" data-action="mobile.open">
   View Order (<span class="view-total">₹0</span>)
 </button>
 
-<!-- MOBILE CART PAGE (full-viewport overlay, not a drawer -- see openCartMobile/closeCartMobile) -->
+<!-- MOBILE CART PAGE (full-viewport overlay, not a drawer; static/js/billing/ui.js opens and closes it) -->
 <div class="mobile-cart-page" id="mobileCartPage" role="dialog" aria-modal="true" aria-label="Current Order">
   <div class="offcanvas-header">
-    <h5 class="m-0" style="font-family:'DM Serif Display',serif;">Current Order</h5>
-    <button type="button" class="btn-icon" onclick="closeCartMobile()" aria-label="Close order"><i class="bi bi-arrow-left"></i></button>
+    <h5 class="m-0 sheet-title">Current Order</h5>
+    <button type="button" class="btn-icon" data-action="mobile.close" aria-label="Close order"><i class="bi bi-arrow-left"></i></button>
   </div>
   <div class="context-tabs">
-    <div class="context-tab active" id="tabCartMobile" onclick="switchTabMobile('cart')">Order</div>
-    <div class="context-tab" id="tabRunningMobile" onclick="switchTabMobile('running')">Active</div>
+    <div class="context-tab active" id="tabCartMobile" data-action="tab" data-tab="cart">Order</div>
+    <div class="context-tab" id="tabRunningMobile" data-action="tab" data-tab="running">Active</div>
   </div>
   <div class="mobile-cart-page-body">
     <div class="context-body flex-grow-1" id="cartViewMobile">
-      <button type="button" class="order-summary-bar" onclick="toggleOrderSettings('mobile')">
+      <button type="button" class="order-summary-bar" data-action="settings.toggle" data-view="mobile">
         <span><i class="bi bi-geo-alt me-1"></i><span id="orderSummaryLabelMobile">Walk-in &middot; Dine-in</span></span>
         <i class="bi bi-chevron-down"></i>
       </button>
       <div class="order-settings-panel d-none" id="orderSettingsPanelMobile">
-        <select id="tableSelectMobile" class="form-select-luxury table-syncer mb-2" onchange="syncTableSelect(this.value)">
+        <select id="tableSelectMobile" class="form-select-luxury table-syncer mb-2" data-action="table.sync">
           <option value="">Walk-in</option>
           {% for table in tables %}
           <option value="{{ table.id }}" {% if selected_table|stringformat:"s" == table.id|stringformat:"s" %}selected{% endif %}>{{ table.name }}</option>
           {% endfor %}
         </select>
-        <select id="sourceSelectMobile" class="form-select-luxury mb-2" onchange="toggleAggregator(this.value, 'mobile')">
+        <select id="sourceSelectMobile" class="form-select-luxury mb-2" data-action="source.change" data-view="mobile">
           <option value="dine_in">Dine-in</option>
           <option value="takeaway">Takeaway</option>
           <option value="zomato">Zomato</option>
@@ -378,28 +212,24 @@
       <div id="cartItemsContainerMobile"></div>
       <div class="cart-page-breakdown">
         <div class="summary-row"><span>Sub-total</span><span class="view-subtotal">₹0</span></div>
-      <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
+      <div class="summary-row is-hidden"><span>Offers</span><span class="view-offers">₹0</span></div>
         {% if outlet.collects_gst %}
         <div class="summary-row"><span>{% if outlet.gst_inclusive %}GST (incl.){% else %}GST{% endif %}</span><span class="view-gst">₹0</span></div>
         {% endif %}
-        <div class="summary-row vat-row" style="display:none;"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
+        <div class="summary-row vat-row is-hidden"><span>{% if outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
         {% if outlet.parcel_charge_amount %}
-        <div class="summary-row parcel-row" style="display:none;color:var(--text-muted);">
+        <div class="summary-row parcel-row is-hidden">
           <span>Parcel Charge</span><span>₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
         </div>
-        <button class="parcel-btn" onclick="toggleParcel()"
-          style="width:100%;padding:0.6rem;margin:0.4rem 0;border:1.5px dashed var(--border-color);
-                 background:transparent;color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;
-                 letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-                 justify-content:center;gap:0.5rem;font-family:inherit;">
+        <button type="button" class="parcel-btn" data-action="parcel.toggle">
           <i class="bi bi-bag"></i>
-          <span class="parcel-btn-text">Add Parcel +₹{{ outlet.parcel_charge_amount|floatformat:0 }}</span>
+          <span class="parcel-btn-text">Add Parcel ₹{{ outlet.parcel_charge_amount|floatformat:0 }}{% if outlet.parcel_charge_per_item %}/item{% else %} flat{% endif %}</span>
         </button>
         {% endif %}
         {% if not auto_kot_mode %}
         <div class="d-flex gap-2 secondary-actions mt-2">
-          <button class="btn-luxury w-50" onclick="generateBill()">Bill</button>
-          <button class="btn-luxury w-50" onclick="clearCart()">Clear</button>
+          <button type="button" class="btn-luxury w-50" data-action="order.bill">Bill</button>
+          <button type="button" class="btn-luxury w-50" data-action="cart.clear">Clear</button>
         </div>
         {% endif %}
       </div>
@@ -408,14 +238,14 @@
       <div id="runningItemsMobile"></div>
     </div>
   </div>
-  <div class="cart-summary" style="border-top:1px solid var(--border-color);" id="cartSummaryBlockMobile">
+  <div class="cart-summary cart-summary--mobile" id="cartSummaryBlockMobile">
     <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
     {% if auto_kot_mode %}
-    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitQSROrder()" style="background:#10b981;border-color:#10b981;font-size:0.85rem;letter-spacing:2px;">
+    <button type="button" class="btn-luxury btn-luxury-primary w-100 py-3 send-btn send-btn--pay" data-action="order.submit">
       <i class="bi bi-cash-coin me-2"></i>PAY &amp; PRINT SLIP
     </button>
     {% else %}
-    <button class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" onclick="submitOrder()">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
+    <button type="button" class="btn-luxury btn-luxury-primary w-100 py-3 send-btn" data-action="order.submit">Dispatch Order <i class="bi bi-arrow-right ms-2"></i></button>
     {% endif %}
   </div>
 </div>
@@ -429,74 +259,63 @@
       </div>
       <div class="modal-body">
         <div id="modifierContainer"></div>
-        <p class="text-muted text-uppercase mt-3" style="font-size:0.75rem;letter-spacing:1px;">Special Instructions</p>
+        <p class="text-muted text-uppercase mt-3 sheet-label">Special Instructions</p>
         <textarea id="itemNote" class="form-control form-control-minimal" rows="2" placeholder="Dietary requirements or prep notes..."></textarea>
         <div class="form-check mt-3">
           <input class="form-check-input" type="checkbox" id="itemTakeaway">
-          <label class="form-check-label text-uppercase" style="font-size:0.75rem;letter-spacing:1px;" for="itemTakeaway">Pack as Takeaway</label>
+          <label class="form-check-label text-uppercase sheet-label" for="itemTakeaway">Pack as Takeaway</label>
         </div>
       </div>
       <div class="modal-footer border-0 pt-0">
-        <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn-luxury btn-luxury-primary" onclick="addItemWithModifiers()">Add to Order</button>
+        <button type="button" class="btn-luxury btn-quiet" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-luxury btn-luxury-primary" data-action="menu.add">Add to Order</button>
       </div>
     </div>
   </div>
 </div>
 
 {% if auto_kot_mode %}
-<!-- QSR inline payment modal — appears after order is created, before payment -->
+<!-- The counter's payment sheet: shown once the order exists, before payment -->
 <div class="modal fade" id="qsrPayModal" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
-    <div class="modal-content" style="border-radius:0;background:var(--panel-bg);border:1px solid var(--border-color);">
+  <div class="modal-dialog modal-dialog-centered qsr-dialog">
+    <div class="modal-content qsr-sheet">
       <div class="modal-header border-0 pb-0">
         <div>
-          <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">QSR Counter</p>
-          <h5 class="modal-title" style="font-family:'DM Serif Display',serif;font-size:1.4rem;">Collect Payment</h5>
+          <p class="qsr-eyebrow">QSR Counter</p>
+          <h5 class="modal-title qsr-title">Collect Payment</h5>
         </div>
       </div>
       <div class="modal-body pt-2">
-        <div style="font-size:2.2rem;font-family:'DM Serif Display',serif;text-align:center;padding:0.5rem 0 1rem;" id="qsrGrandTotal">₹ —</div>
-        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1.2rem;" id="qsrMethodBtns">
-          <button class="qsr-method-btn" data-method="cash" onclick="selectQSRMethod(this)" style="padding:0.75rem;border:1px solid var(--border-color);background:transparent;color:var(--text-main);cursor:pointer;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;transition:all 0.15s;">
-            <i class="bi bi-cash-coin me-2"></i>Cash
-          </button>
-          <button class="qsr-method-btn" data-method="upi" onclick="selectQSRMethod(this)" style="padding:0.75rem;border:1px solid var(--border-color);background:transparent;color:var(--text-main);cursor:pointer;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;transition:all 0.15s;">
-            <i class="bi bi-qr-code-scan me-2"></i>UPI / GPay
-          </button>
-          <button class="qsr-method-btn" data-method="card" onclick="selectQSRMethod(this)" style="padding:0.75rem;border:1px solid var(--border-color);background:transparent;color:var(--text-main);cursor:pointer;font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;transition:all 0.15s;">
-            <i class="bi bi-credit-card me-2"></i>Card
-          </button>
+        <div class="qsr-total" id="qsrGrandTotal">&#8377; 0.00</div>
+        <div class="qsr-methods" id="qsrMethodBtns">
+          <button type="button" class="qsr-method-btn" data-action="qsr.method" data-method="cash"><i class="bi bi-cash-coin me-2"></i>Cash</button>
+          <button type="button" class="qsr-method-btn" data-action="qsr.method" data-method="upi"><i class="bi bi-qr-code-scan me-2"></i>UPI / GPay</button>
+          <button type="button" class="qsr-method-btn" data-action="qsr.method" data-method="card"><i class="bi bi-credit-card me-2"></i>Card</button>
         </div>
-        <div style="margin-bottom:0.75rem;" id="qsrAmountRow">
-          <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);display:block;margin-bottom:0.3rem;">Amount Tendered</label>
-          <input type="number" id="qsrAmount" min="0" step="0.01" placeholder="Enter amount"
-            style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);font-size:1.2rem;padding:0.4rem 0;outline:none;"
-            oninput="updateQSRChange()">
+        <div class="qsr-amount-row" id="qsrAmountRow">
+          <label class="qsr-amount-label" for="qsrAmount">Amount Tendered</label>
+          <input type="number" id="qsrAmount" class="qsr-amount" min="0" step="0.01" placeholder="Enter amount" data-action="qsr.amount">
         </div>
-        <div id="qsrChangeLine" style="display:none;text-align:right;font-size:0.9rem;color:#10b981;font-weight:600;"></div>
+        <div id="qsrChangeLine" class="qsr-change"></div>
       </div>
       <div class="modal-footer border-0 pt-0 flex-column gap-2">
-        <button id="qsrPayBtn" class="btn-luxury btn-luxury-primary w-100 py-3" onclick="submitQSRPayment()" disabled
-          style="font-size:0.78rem;letter-spacing:2px;background:#10b981;border-color:#10b981;">
+        <button type="button" id="qsrPayBtn" class="btn-luxury btn-luxury-primary w-100 py-3 qsr-pay" data-action="qsr.pay" disabled>
           <i class="bi bi-printer me-2"></i>CONFIRM &amp; PRINT SLIP
         </button>
-        <button class="btn-luxury w-100" style="font-size:0.75rem;color:var(--text-muted);border-color:transparent;" onclick="cancelQSROrder()">
-          Cancel Order
-        </button>
+        <button type="button" class="btn-luxury w-100 qsr-cancel" data-action="qsr.cancel">Cancel Order</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- QSR confirmation overlay — shown after successful payment + print queued -->
-<div id="qsrConfirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;flex-direction:column;">
-  <div style="text-align:center;color:#fff;">
-    <div style="font-size:5rem;margin-bottom:1rem;">✓</div>
-    <div style="font-family:'DM Serif Display',serif;font-size:2rem;margin-bottom:0.5rem;">Paid</div>
-    <div id="qsrConfirmNum" style="font-size:1rem;color:rgba(255,255,255,0.7);letter-spacing:2px;text-transform:uppercase;"></div>
-    <div style="margin-top:1rem;font-size:0.8rem;color:rgba(255,255,255,0.5);">Slip printing… next customer</div>
-    <div style="margin-top:0.5rem;font-size:0.75rem;color:rgba(255,255,255,0.35);" id="qsrChangeDue"></div>
+<!-- Shown for a moment after the payment went through and the slip was sent to print -->
+<div id="qsrConfirm" class="qsr-confirm">
+  <div class="qsr-confirm-body">
+    <div class="qsr-confirm-tick">&#10003;</div>
+    <div class="qsr-confirm-word">Paid</div>
+    <div id="qsrConfirmNum" class="qsr-confirm-num"></div>
+    <div class="qsr-confirm-next">Slip printing, next customer</div>
+    <div class="qsr-confirm-change" id="qsrChangeDue"></div>
   </div>
 </div>
 {% endif %}
@@ -504,809 +323,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/order_edit.js' %}"></script>
+{{ page_data|json_script:"page-data" }}
 {{ dish_tax|json_script:"dish-tax" }}
 {{ page_offers|json_script:"page-offers" }}
-<script src="{% static 'js/cart_tax.js' %}"></script>
-<script src="{% static 'js/offers.js' %}"></script>
-<script>
-  // Each dish's tax as the bill will charge it (GST, or VAT for liquor)
-  const DISH_TAX = RasovaCartTax.readTable("dish-tax");
-  // Offers the cart can show before the order exists (static/js/offers.js);
-  // null without any. The bill is still worked out on the server.
-  const PAGE_OFFERS = RasovaOffers.readPage("page-offers");
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
-    });
-  }
-
-  // Orders.OPERATOR_SOURCES: an order through one of these apps carries no
-  // GST of its own, because the app pays it (orders/services/tax_engine.py).
-  const OPERATOR_SOURCES = {{ operator_sources_json|safe }};
-  function currentSource() {
-    const select = document.getElementById(window.innerWidth < 992 ? "sourceSelectMobile" : "sourceSelectDesktop");
-    return select ? select.value : "dine_in";
-  }
-
-  function toggleAggregator(val, view) {
-    const inputId = view === 'desktop' ? 'aggregatorIdDesktop' : 'aggregatorIdMobile';
-    const el = document.getElementById(inputId);
-    if (el) {
-      const isAggregator = ['zomato', 'swiggy', 'uber_eats', 'web'].includes(val);
-      el.classList.toggle('d-none', !isAggregator);
-      if (!isAggregator) el.value = '';
-    }
-    updateOrderSummaryText(view);
-    if (typeof renderCart === 'function') renderCart();   // GST on or off with the source
-  }
-
-  /* ── Collapsed table/source summary ─────────────────────────── */
-  function toggleOrderSettings(view) {
-    const panel = document.getElementById(view === 'desktop' ? 'orderSettingsPanelDesktop' : 'orderSettingsPanelMobile');
-    if (panel) panel.classList.toggle('d-none');
-  }
-
-  function openCartMobile() {
-    const page = document.getElementById('mobileCartPage');
-    if (!page) return;
-    page.classList.add('show');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeCartMobile() {
-    const page = document.getElementById('mobileCartPage');
-    if (!page) return;
-    page.classList.remove('show');
-    document.body.style.overflow = '';
-  }
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
-    const page = document.getElementById('mobileCartPage');
-    if (!page || !page.classList.contains('show')) return;
-    if (document.querySelector('.modal.show')) return;
-    closeCartMobile();
-  });
-
-  function updateOrderSummaryText(view) {
-    const tableSel = document.getElementById(view === 'desktop' ? 'tableSelectDesktop' : 'tableSelectMobile');
-    const srcSel   = document.getElementById(view === 'desktop' ? 'sourceSelectDesktop' : 'sourceSelectMobile');
-    const label    = document.getElementById(view === 'desktop' ? 'orderSummaryLabel' : 'orderSummaryLabelMobile');
-    if (!tableSel || !srcSel || !label) return;
-    const tableName = tableSel.selectedIndex >= 0 ? tableSel.options[tableSel.selectedIndex].text : 'Walk-in';
-    const srcName   = srcSel.selectedIndex >= 0 ? srcSel.options[srcSel.selectedIndex].text : 'Dine-in';
-    label.textContent = tableName + ' · ' + srcName;
-  }
-
-  function showToast(msg) {
-    const t = document.getElementById("toastBox");
-    t.innerText = msg; t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 3000);
-  }
-
-  const AUTO_KOT_MODE = {{ auto_kot_mode|yesno:"true,false" }};
-
-  let cart = [];
-  let selectedItem = null;
-  let sending = false;
-  let currentOrderId = null;
-  let activeModal = null;
-  let qsrPendingOrderId = null;
-
-  function switchTab(tab) {
-    document.getElementById("tabCart").classList.toggle("active", tab === 'cart');
-    document.getElementById("tabRunning").classList.toggle("active", tab === 'running');
-    document.getElementById("cartView").classList.toggle("d-none", tab !== 'cart');
-    document.getElementById("runningView").classList.toggle("d-none", tab !== 'running');
-    document.getElementById("cartSummaryBlock").classList.toggle("d-none", tab !== 'cart');
-  }
-
-  function switchTabMobile(tab) {
-    document.getElementById("tabCartMobile").classList.toggle("active", tab === 'cart');
-    document.getElementById("tabRunningMobile").classList.toggle("active", tab === 'running');
-    document.getElementById("cartViewMobile").classList.toggle("d-none", tab !== 'cart');
-    document.getElementById("runningViewMobile").classList.toggle("d-none", tab !== 'running');
-    document.getElementById("cartSummaryBlockMobile").classList.toggle("d-none", tab !== 'cart');
-  }
-
-  document.getElementById("menuSearch").addEventListener("input", function () {
-    const t = this.value.toLowerCase().trim();
-    document.querySelectorAll("h3.menu-section-title").forEach(header => {
-      const row = header.nextElementSibling;
-      if (!row) return;
-      let anyVisible = false;
-      row.querySelectorAll(".menu-item-searchable").forEach(card => {
-        const matches = !t || card.querySelector(".item-name").innerText.toLowerCase().includes(t);
-        card.style.display = matches ? "" : "none";
-        if (matches) anyVisible = true;
-      });
-      header.style.display = anyVisible || !t ? "" : "none";
-      row.style.display = anyVisible || !t ? "" : "none";
-    });
-  });
-
-  function scrollToCategory(id, el) {
-    document.querySelectorAll(".category-item").forEach(i => i.classList.remove("active"));
-    if (el) el.classList.add("active");
-    const idx = Array.from(el.parentNode.children).indexOf(el);
-    const sidebarItems = document.querySelectorAll('.category-sidebar .category-item');
-    const mobileItems  = document.querySelectorAll('.mobile-category-nav .category-item');
-    if (sidebarItems[idx]) sidebarItems[idx].classList.add("active");
-    if (mobileItems[idx])  mobileItems[idx].classList.add("active");
-    const target = document.getElementById(id);
-    if (!target) return;
-    if (window.innerWidth < 992) {
-      const mobileNavH = document.querySelector('.mobile-category-nav')?.offsetHeight || 60;
-      const headerH = document.querySelector('.pos-header')?.offsetHeight || 60;
-      const top = target.getBoundingClientRect().top + window.scrollY - headerH - mobileNavH - 12;
-      window.scrollTo({ top, behavior: 'smooth' });
-    } else {
-      const menuArea = document.querySelector(".menu-area");
-      const top = target.getBoundingClientRect().top - menuArea.getBoundingClientRect().top + menuArea.scrollTop - 24;
-      menuArea.scrollTo({ top, behavior: 'smooth' });
-    }
-  }
-
-  function syncTableSelect(val) {
-    document.querySelectorAll(".table-syncer").forEach(s => s.value = val);
-    const srcDesktop = document.getElementById("sourceSelectDesktop");
-    const srcMobile  = document.getElementById("sourceSelectMobile");
-    const src = val ? "dine_in" : "takeaway";
-    if (srcDesktop) srcDesktop.value = src;
-    if (srcMobile)  srcMobile.value  = src;
-    toggleAggregator(src, 'desktop');
-    toggleAggregator(src, 'mobile');
-    loadRunningOrder();
-  }
-
-  function openItemModal(id, name, price, gst, isVeg) {
-    selectedItem = { id, name, price, gst_percentage: parseFloat(gst), is_veg: isVeg !== false };
-    const modalEl = document.getElementById("itemModal");
-    const nameEl  = document.getElementById("modalItemName");
-    const noteEl  = document.getElementById("itemNote");
-    const takeawayEl = document.getElementById("itemTakeaway");
-    const modCont = document.getElementById("modifierContainer");
-    if (!modalEl || !nameEl || !modCont) return;
-    nameEl.innerText = name;
-    if (noteEl) noteEl.value = "";
-    if (takeawayEl) takeawayEl.checked = false;
-    modCont.innerHTML = "<p class='text-center text-muted py-3'>Checking for modifiers...</p>";
-    fetch(`/menu/item-modifiers/${id}/`)
-      .then(r => r.json())
-      .then(data => {
-        let html = "";
-        if (data.groups && data.groups.length > 0) {
-          data.groups.forEach(g => {
-            const inputType = g.max_select === 1 ? 'radio' : 'checkbox';
-            const inputName = `mod_${g.group_name.replace(/\s+/g, '')}`;
-            const limitHint = g.max_select === 1
-              ? `<span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:6px;">Pick 1</span>`
-              : `<span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:6px;">Pick up to ${g.max_select}</span>`;
-            html += `<div class="mb-3" data-group="${g.group_name}" data-max="${g.max_select}">
-              <label class="form-label fw-bold text-uppercase" style="font-size:0.8rem;letter-spacing:1px;">
-                ${g.group_name} ${g.is_required ? '<span class="text-danger">*</span>' : ''}${limitHint}
-              </label>`;
-            g.modifiers.forEach(m => {
-              html += `<div class="form-check"><input class="form-check-input modifier-check" type="${inputType}" name="${inputName}" value="${m.name}" data-price="${m.price}" data-group="${g.group_name}" data-max="${g.max_select}" id="mod_${m.id}" onchange="enforceModifierLimit(this)"><label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}"><span>${m.name}</span>${m.price > 0 ? `<span class="text-muted">+₹${m.price}</span>` : ''}</label></div>`;
-            });
-            html += `</div>`;
-          });
-          modCont.innerHTML = html;
-        } else {
-          modCont.innerHTML = "<p class='text-center text-muted py-2 small'>No modifiers available.</p>";
-        }
-      })
-      .catch(() => { modCont.innerHTML = ""; });
-    activeModal = new bootstrap.Modal(modalEl);
-    activeModal.show();
-  }
-
-  function enforceModifierLimit(checkbox) {
-    if (checkbox.type !== 'checkbox') return; // radios enforce themselves
-    const groupName = checkbox.dataset.group;
-    const max = parseInt(checkbox.dataset.max);
-    const checked = document.querySelectorAll(
-      `.modifier-check[data-group="${groupName}"]:checked`
-    );
-    if (checked.length > max) {
-      // Deselect the first one (oldest) to stay within limit
-      checked[0].checked = false;
-    }
-  }
-
-  function addItemWithModifiers() {
-    const note = document.getElementById("itemNote").value.trim();
-    let modsSelected = [], modsSelectedIds = [], addedPrice = 0;
-    document.querySelectorAll('.modifier-check:checked').forEach(cb => {
-      modsSelected.push(cb.value);
-      modsSelectedIds.push(parseInt(cb.id.replace('mod_', '')));
-      addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
-    });
-    let finalNote = modsSelected.join(", ");
-    if (note) finalNote += (finalNote ? " | " : "") + note;
-    const finalPrice = parseFloat(selectedItem.price) + addedPrice;
-    const isTakeaway = document.getElementById("itemTakeaway").checked;
-    const existing = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
-    if (existing) {
-      existing.quantity++;
-    } else {
-      cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1, note: finalNote, is_takeaway: isTakeaway, modifiers: modsSelectedIds, gst_percentage: selectedItem.gst_percentage, is_veg: selectedItem.is_veg });
-    }
-    renderCart();
-    if (activeModal) activeModal.hide();
-  }
-
-  function renderCart() {
-    const dc = document.getElementById("cartItemsContainerDesktop");
-    const mc = document.getElementById("cartItemsContainerMobile");
-    dc.innerHTML = ""; mc.innerHTML = "";
-    if (cart.length === 0) {
-      const emptyMsg = `<div class="text-center text-muted" style="margin-top:20px;text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
-      dc.innerHTML = emptyMsg; mc.innerHTML = emptyMsg;
-    }
-    // Offers first (static/js/offers.js): what each line shows and what
-    // comes off before tax, the bill's rules, on this cart's own lines.
-    const taxLines = cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage));
-    const applied = RasovaOffers.onCart(PAGE_OFFERS, taxLines,
-      cart.map(i => ({ dishId: i.id, quantity: i.quantity, takeaway: !!i.is_takeaway })),
-      { none: OPERATOR_SOURCES.includes(currentSource()), parcel: currentSource() === "takeaway" });
-    cart.forEach((i, idx) => {
-      const total = i.price * i.quantity;
-      const vegDot = `<span class="veg-dot ${i.is_veg !== false ? 'veg' : 'nonveg'}"></span>`;
-      const html = `<div class="cart-row"><div style="flex-grow:1;padding-right:10px;"><div class="cart-item-name">${vegDot}${i.name}${i.is_takeaway ? '<span class="luxury-badge badge-platform ms-1" style="font-size:0.5rem;vertical-align:middle;">Takeaway</span>' : ''}</div>${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}${RasovaOffers.note(applied[idx])}</div><div class="cart-controls"><div class="qty-controls"><button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button><span class="qty-value">${i.quantity}</span><button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button></div><div class="cart-item-price">₹${total}</div></div></div>`;
-      dc.innerHTML += html;
-      mc.innerHTML += html;
-    });
-    // The same rules as the bill (static/js/cart_tax.js): each line at its
-    // own rate (0% stays 0%), GST inside the price or on top, none on the
-    // composition scheme or without a GSTIN, and the parcel charge (once toggled on, see
-    // toggleParcel/_syncParcelUI) taxed like the food.
-    const t = RasovaCartTax.totals(
-      taxLines,
-      {
-        inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
-        vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
-        composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
-        gstRegistered: {{ outlet.is_gst_registered|yesno:"true,false" }},
-        // Zomato / Swiggy / Uber Eats: the app pays the GST (section 9(5))
-        gstPaidByOperator: OPERATOR_SOURCES.includes(currentSource()),
-        parcel: _parcelOn ? _parcelChargeAmount : 0,
-        parcelGstRate: {{ outlet.parcel_gst_rate|default:0 }},
-      });
-    document.querySelectorAll(".view-subtotal").forEach(e => e.innerText = "₹" + t.subtotal);
-    document.querySelectorAll(".view-offers").forEach(e => {
-      e.innerText = "−₹" + t.offers.toFixed(2);
-      e.closest(".summary-row").style.display = t.offers > 0 ? "" : "none";
-    });
-    document.querySelectorAll(".view-gst").forEach(e => e.innerText = "₹" + t.gst.toFixed(2));
-    document.querySelectorAll(".view-vat").forEach(e => {
-      e.innerText = "₹" + t.vat.toFixed(2);
-      e.closest(".summary-row").style.display = t.vat > 0 ? "" : "none";
-    });
-    document.querySelectorAll(".view-total").forEach(e => e.innerText = "₹" + t.roundedTotal);
-  }
-
-  function inc(i) { cart[i].quantity++; renderCart(); }
-  function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); }
-  function clearCart() { cart = []; renderCart(); }
-
-  /* ── Parcel charge toggle ───────────────────────────────────── */
-  let _parcelOn = false;
-  let _parcelAppliedToOrder = null;  // order_id that parcel is currently applied to on the server
-  // Real, server-computed charge (qty/mode-aware -- ₹5/item on 3 items is
-  // ₹15, not the flat per-unit rate this starts at). renderCart() below
-  // adds this into the Total whenever _parcelOn is true -- it used to
-  // ignore parcel entirely, so toggling it on left the Subtotal/GST/Total
-  // block showing a Total that didn't match what checkout would actually
-  // charge, even though the real bill was always correct server-side.
-  let _parcelChargeAmount = {{ outlet.parcel_charge_amount|default:0 }};
-
-  async function toggleParcel() {
-    const orderId = qsrPendingOrderId || currentOrderId;
-    if (!orderId) {
-      // No order yet — just toggle the visual indicator
-      _parcelOn = !_parcelOn;
-      _syncParcelUI();
-      return;
-    }
-    // Order exists — call server to toggle
-    try {
-      const d = await apiClient.post(
-        "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + orderId + '/'), {}
-      );
-      _parcelOn = d.parcel_on;
-      _parcelAppliedToOrder = d.parcel_on ? orderId : null;
-      _parcelChargeAmount = d.parcel_amount || 0;
-      // _syncParcelUI() -> renderCart() below picks up the new amount and
-      // recomputes the Total from it -- no need to set .view-total here
-      // directly too (that used to get immediately clobbered by
-      // renderCart() anyway, since it never factored parcel in).
-      _syncParcelUI();
-    } catch(e) { ui.toast("Could not update parcel charge", "error"); }
-  }
-
-  function _syncParcelUI() {
-    // Show/hide parcel row, and show the real computed amount on it (not
-    // the flat per-unit rate -- per-item mode multiplies by quantity).
-    document.querySelectorAll(".parcel-row").forEach(el => {
-      el.style.display = _parcelOn ? "flex" : "none";
-      const amountEl = el.querySelector("span:last-child");
-      if (amountEl) amountEl.textContent = "₹" + Math.round(_parcelChargeAmount);
-    });
-    // Update button appearance
-    document.querySelectorAll(".parcel-btn").forEach(btn => {
-      btn.style.borderColor = _parcelOn ? "var(--accent-gold)" : "var(--border-color)";
-      btn.style.color       = _parcelOn ? "var(--accent-gold)" : "var(--text-muted)";
-      btn.style.background  = _parcelOn ? "rgba(197,160,89,0.06)" : "transparent";
-    });
-    document.querySelectorAll(".parcel-btn-text").forEach(el =>
-      el.textContent = _parcelOn
-        ? "Parcel Added ✓ (tap to remove)"
-        : `Add Parcel +₹${_parcelChargeAmount}`
-    );
-    // Update running total in cart
-    renderCart();
-  }
-
-  function loadRunningOrder() {
-    const tableId = document.getElementById("tableSelectDesktop").value;
-    const rd = document.getElementById("runningItemsDesktop");
-    const rm = document.getElementById("runningItemsMobile");
-    if (!tableId) {
-      const msg = "<div class='text-center text-muted mt-4' style='text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;'>Select table</div>";
-      if (rd) rd.innerHTML = msg;
-      if (rm) rm.innerHTML = msg;
-      return;
-    }
-    fetch("{% url 'running-order-items' %}?table=" + tableId)
-      .then(r => r.json())
-      .then(d => {
-        currentOrderId = d.order_id || null;
-        // Sync parcel state from server — handles session resume and table switches
-        if (d.order_id) {
-          const serverParcelOn = !!d.parcel_on;
-          _parcelOn = serverParcelOn;
-          _parcelAppliedToOrder = serverParcelOn ? d.order_id : null;
-          // _syncParcelUI() below re-renders the parcel-row amount (and the
-          // Total, via renderCart()) FROM _parcelChargeAmount -- it must be
-          // updated here too, or it clobbers this with a stale value.
-          if (d.parcel_amount) _parcelChargeAmount = d.parcel_amount;
-        } else {
-          // No open order on this table — reset so parcel intent doesn't bleed across tables
-          _parcelOn = false;
-          _parcelAppliedToOrder = null;
-        }
-        _syncParcelUI();
-        let html = "";
-        if (!d.items || d.items.length === 0) {
-          html = "<div class='text-center text-muted mt-4' style='text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;'>No active services</div>";
-        } else {
-          d.items.forEach(i => {
-            const statusClass = i.status === "ready" ? "status-ready" : (i.status === "preparing" ? "border-warning text-warning" : "");
-            html += `<div class="running-row d-flex flex-column align-items-start"><div class="d-flex justify-content-between w-100"><span style="font-family:'DM Serif Display',serif;">${i.quantity} × ${i.name || "Item"}</span><span class="status-badge ${statusClass}">${i.status}</span></div>${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.7rem;color:var(--accent-gold);font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}</div>`;
-          });
-          if (d.order_id) {
-            html += `<div class="mt-4"><button class="btn-luxury w-100 border-danger text-danger" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Entire Order</button></div>`;
-          }
-        }
-        if (rd) rd.innerHTML = html;
-        if (rm) rm.innerHTML = html;
-      }).catch(err => console.error(err));
-  }
-
-  function submitOrder() {
-    if (sending) return;
-    if (cart.length === 0) { showToast("Empty order."); return; }
-    const tableId = document.getElementById("tableSelectDesktop").value;
-    sending = true;
-    document.querySelectorAll(".send-btn").forEach(b => { b.disabled = true; b.innerHTML = 'Dispatching...'; });
-    const isMobile = window.innerWidth < 992;
-    const source   = document.getElementById(isMobile ? "sourceSelectMobile"  : "sourceSelectDesktop").value;
-    const aggId    = document.getElementById(isMobile ? "aggregatorIdMobile"   : "aggregatorIdDesktop").value;
-    const orderPayload = { cart, table_id: tableId, source, aggregator_id: aggId, customer_name: '', customer_phone: '' };
-    if (currentOrderId) orderPayload.order_id = currentOrderId;
-
-    // Edge case: already offline before the cashier even hits submit — don't
-    // attempt the request at all, queue it straight away.
-    if (!navigator.onLine) {
-      offlineQueue.add(orderPayload)
-        .then(() => { ui.toast('Saved — will send to kitchen once back online', 'success'); clearCart(); })
-        .catch(() => { showToast('Could not save order offline on this device. Please note it down manually.'); });
-      resetSendBtn();
-      return;
-    }
-
-    fetch("{% url 'create-order' %}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify(orderPayload)
-    })
-      .then(r => r.json())
-      .then(d => {
-        if (!d.success) { showToast(d.error); resetSendBtn(); return; }
-        // Order now exists server-side (d.order_id) — everything below this
-        // line must NOT be retried via the offline queue, or it risks creating
-        // a duplicate order. Its own .catch() below just stops the spinner;
-        // staff can retry kitchen-send manually from the running order screen.
-        const afterCreate = () => fetch("{% url 'send-to-kitchen' 0 %}".replace('0', d.order_id), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } });
-        const needsParcel = _parcelOn && _parcelChargeAmount > 0 && _parcelAppliedToOrder !== d.order_id;
-        const applyParcel = needsParcel
-          ? fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + d.order_id + '/'), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
-              .then(r => { if (r.ok) _parcelAppliedToOrder = d.order_id; return r; })
-          : Promise.resolve();
-        applyParcel.then(() => afterCreate())
-          .then(r => r.json())
-          .then(k => {
-            showToast(k.error && k.error !== "No items to send to kitchen" ? k.error : "Order Sent");
-            clearCart();
-            resetSendBtn();
-            if (source !== 'dine_in' || !tableId) {
-              generateBill(d.order_id);
-            } else {
-              loadRunningOrder();
-            }
-            closeCartMobile();
-          }).catch(() => resetSendBtn());
-      })
-      .catch(err => {
-        // Only reachable for the initial create-order call (the inner chain
-        // above has its own catch) — no order_id exists yet, so it's safe to
-        // queue. err instanceof TypeError = genuine network failure (same
-        // heuristic apiClient.request() already uses), as opposed to a server
-        // error response, which should not be queued/retried blindly.
-        if (err instanceof TypeError) {
-          offlineQueue.add(orderPayload)
-            .then(() => { ui.toast('Connection dropped — order saved, will send to kitchen once back online', 'success'); clearCart(); })
-            .catch(() => { showToast('Could not save order offline on this device. Please note it down manually.'); });
-        } else {
-          showToast('Could not create order. Please try again.');
-        }
-        resetSendBtn();
-      });
-  }
-
-  function resetSendBtn() {
-    sending = false;
-    document.querySelectorAll(".send-btn").forEach(b => { b.disabled = false; b.innerHTML = 'Dispatch <i class="bi bi-arrow-right ms-2"></i>'; });
-  }
-
-  /* ── Agent-based printing (EC2 → ESC/POS JSON → local agent → TCP 9100) ── */
-  // Android phones run the agent on-device → always localhost.
-  // Desktops/tablets use the outlet-configured agent host.
-  const agentHost = () => (window.rasovaPlatform && rasovaPlatform.android)
-                      ? 'localhost'
-                      : "{{ outlet.agent_host|default:'localhost' }}";
-  const _stationPrinterIp = "{{ station_printer_ip }}";
-
-  async function printViaAgent(orderId) {
-    // iOS — no agent, open receipt page for browser/AirPrint
-    if (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.ios) {
-      window.open(`/orders/bill/${orderId}/?print=1`, '_blank');
-      return;
-    }
-
-    // Android — push to server-side print queue; agent polls and prints
-    // No WebSocket, no open port, survives background killing
-    if (typeof rasovaPlatform !== 'undefined' && rasovaPlatform.android) {
-      const resp = await fetch('/orders/agent/add-job/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-        body: JSON.stringify({ order_id: orderId }),
-      });
-      if (!resp.ok) {
-        const d = await resp.json().catch(() => ({}));
-        throw new Error(d.error || 'Queue failed');
-      }
-      return; // agent will print within ~2 s
-    }
-
-    // Desktop — existing WebSocket path (instant, no round-trip delay)
-    const qzResp = await fetch("{% url 'qz-receipt-data' 0 %}".replace('/0/', '/' + orderId + '/'), { headers: { "X-CSRFToken": apiClient.getCsrf() } });
-    const qzData = await qzResp.json();
-    if (!qzData.success || !qzData.lines) throw new Error("receipt-data-failed");
-
-    return new Promise((resolve, reject) => {
-      const ws  = new WebSocket(`ws://${agentHost()}:8765`);
-      const jid = "bill-" + orderId + "-" + Date.now();
-      const t   = setTimeout(() => { ws.close(); reject(new Error("timeout")); }, 10000);
-      ws.onopen = () => ws.send(JSON.stringify({
-        type: "print", job_id: jid,
-        lines: qzData.lines,
-        outlet_id: "{{ request.user.outlet.id }}",
-        network_host: _stationPrinterIp,
-        network_port: 9100,
-      }));
-      ws.onmessage = (e) => {
-        clearTimeout(t);
-        const d = JSON.parse(e.data);
-        if (d.job_id === jid) { ws.close(); d.type === "ok" ? resolve() : reject(new Error(d.message || "print-failed")); }
-      };
-      ws.onerror = () => { clearTimeout(t); reject(new Error("agent-offline")); };
-    });
-  }
-
-  function generateBill(orderId = null) {
-    if (!orderId) {
-      if (!currentOrderId) { showToast("No active order to bill."); return; }
-      orderId = currentOrderId;
-    }
-    fetch("{% url 'generate-bill' 0 %}".replace('0', orderId), { method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() } })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
-        } else {
-          showToast(data.error || "Failed to generate bill.");
-        }
-      })
-      .catch(() => showToast("Error generating bill."));
-  }
-
-  function cancelOrder(orderId) {
-    OrderEdit.configure({ cancelOrder: "{% url 'cancel-order' 0 %}" });
-    OrderEdit.cancelOrder(orderId).then(data => { if (data) loadRunningOrder(); });
-  }
-
-  // Waiter/QR/system badges on this page are kept in sync by the one
-  // global poller in core/base.html (runs every 8s, covers all three
-  // badges) -- this used to run its own separate, identically-scoped
-  // pollNotifications() hitting the same /api/notifications/ endpoint
-  // just to update the waiter badge, the same redundant-poller pattern
-  // already found and removed from tables.html.
-
-  document.addEventListener("DOMContentLoaded", () => {
-    renderCart();
-    loadRunningOrder();
-    updateOrderSummaryText('desktop');
-    updateOrderSummaryText('mobile');
-    setInterval(loadRunningOrder, 5000);
-    const f1 = document.querySelector(".category-sidebar .category-item"); if (f1) f1.classList.add("active");
-    const f2 = document.querySelector(".mobile-category-nav .category-item"); if (f2) f2.classList.add("active");
-
-    // ── Printer error polling ──────────────────────────────
-    function checkPrinterStatus() {
-      fetch("{% url 'printer-status' %}")
-        .then(r => r.json())
-        .then(d => {
-          const banner = document.getElementById("printer-error-banner");
-          if (d.error) {
-            document.getElementById("printer-error-text").textContent = d.message;
-            banner.style.display = "flex";
-          }
-        })
-        .catch(() => {});
-    }
-    setInterval(checkPrinterStatus, 20000);
-    checkPrinterStatus();
-
-    // ── Offline / online banner ────────────────────────────
-    const offlineBanner = document.getElementById("offline-banner");
-    function syncOnlineState() {
-      offlineBanner.style.display = navigator.onLine ? "none" : "block";
-    }
-    window.addEventListener("online",  syncOnlineState);
-    window.addEventListener("offline", syncOnlineState);
-    syncOnlineState();
-  });
-
-  {% if auto_kot_mode %}
-  // ── QSR AUTO-KOT MODE FUNCTIONS ──────────────────────────────────────
-  let _qsrMethod = null;
-  let _qsrTotal  = 0;
-
-  async function submitQSROrder() {
-    if (sending) return;
-    if (cart.length === 0) { showToast("Add items first."); return; }
-    sending = true;
-    document.querySelectorAll(".send-btn").forEach(b => { b.disabled = true; b.textContent = "Creating order…"; });
-
-    const isMobile = window.innerWidth < 992;
-    const source   = document.getElementById(isMobile ? "sourceSelectMobile" : "sourceSelectDesktop").value;
-
-    try {
-      // Step 1: create order (items remain pending — no send-to-kitchen)
-      const r1 = await fetch("{% url 'create-order' %}", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-        body: JSON.stringify({ cart, source, table_id: null })
-      });
-      const d1 = await r1.json();
-      if (!d1.success) { showToast(d1.error || "Order creation failed"); resetSendBtn(); return; }
-
-      qsrPendingOrderId = d1.order_id;
-
-      // Apply parcel charge if toggled ON before order creation
-      if (_parcelOn && _parcelChargeAmount > 0) {
-        await fetch("{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + qsrPendingOrderId + '/'), {
-          method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-        });
-        _parcelAppliedToOrder = qsrPendingOrderId;
-      }
-
-      // Step 2: generate bill to calculate totals
-      const r2 = await fetch("{% url 'generate-bill' 0 %}".replace("0", qsrPendingOrderId), {
-        method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-      });
-      const d2 = await r2.json();
-      if (!d2.success) { showToast(d2.error || "Could not calculate total"); resetSendBtn(); return; }
-
-      _qsrTotal = d2.grand_total || 0;
-      document.getElementById("qsrGrandTotal").textContent = "₹ " + parseFloat(_qsrTotal).toFixed(2);
-      document.getElementById("qsrAmount").value = "";
-      document.getElementById("qsrChangeLine").style.display = "none";
-      _qsrMethod = null;
-      document.querySelectorAll(".qsr-method-btn").forEach(b => b.style.background = "transparent");
-      document.getElementById("qsrPayBtn").disabled = true;
-
-      new bootstrap.Modal(document.getElementById("qsrPayModal")).show();
-    } catch (e) {
-      showToast("Network error. Try again.");
-    }
-    resetSendBtn();
-  }
-
-  function selectQSRMethod(btn) {
-    _qsrMethod = btn.dataset.method;
-    document.querySelectorAll(".qsr-method-btn").forEach(b => {
-      b.style.background = "transparent";
-      b.style.color = "var(--text-main)";
-      b.style.borderColor = "var(--border-color)";
-    });
-    btn.style.background = "var(--accent-gold)";
-    btn.style.color = "#fff";
-    btn.style.borderColor = "var(--accent-gold)";
-    // Auto-fill amount for non-cash (exact amount)
-    if (_qsrMethod !== "cash") {
-      document.getElementById("qsrAmount").value = parseFloat(_qsrTotal).toFixed(2);
-    }
-    updateQSRChange();
-  }
-
-  function updateQSRChange() {
-    const amt = parseFloat(document.getElementById("qsrAmount").value) || 0;
-    const changeLine = document.getElementById("qsrChangeLine");
-    const payBtn = document.getElementById("qsrPayBtn");
-    if (amt >= _qsrTotal && _qsrMethod) {
-      const change = (amt - _qsrTotal).toFixed(2);
-      if (parseFloat(change) > 0) {
-        changeLine.style.display = "block";
-        changeLine.textContent = "Change due: ₹" + change;
-      } else {
-        changeLine.style.display = "none";
-      }
-      payBtn.disabled = false;
-    } else {
-      changeLine.style.display = "none";
-      payBtn.disabled = !(_qsrMethod && amt > 0);
-    }
-  }
-
-  async function submitQSRPayment() {
-    if (!qsrPendingOrderId || !_qsrMethod) return;
-    const amount = parseFloat(document.getElementById("qsrAmount").value);
-    if (!amount || amount <= 0) { showToast("Enter amount"); return; }
-
-    const payBtn = document.getElementById("qsrPayBtn");
-
-    // Offline: only cash can be confirmed without a live gateway
-    // round-trip — same reasoning as recordPay() in bill.html.
-    if (!navigator.onLine) {
-      if (_qsrMethod !== 'cash') {
-        showToast("You are offline. Only cash payments can be taken right now.");
-        return;
-      }
-      try {
-        await offlinePaymentQueue.add(qsrPendingOrderId, amount.toFixed(2));
-        ui.toast('Offline — cash payment saved, will sync when back online. Print the slip manually for now.', 'success');
-        const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
-        if (modal) modal.hide();
-        clearCart();
-        qsrPendingOrderId = null;
-        _qsrMethod = null;
-        _qsrTotal = 0;
-      } catch (e) {
-        showToast("Could not save payment offline on this device. Please note it down manually.");
-      }
-      return;
-    }
-
-    payBtn.disabled = true;
-    payBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Processing…';
-
-    try {
-      const r = await fetch("{% url 'pay-order' 0 %}".replace("0", qsrPendingOrderId), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-        body: JSON.stringify({ method: _qsrMethod, amount: amount.toFixed(2) })
-      });
-      const d = await r.json();
-
-      if (d.success) {
-        // Close payment modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
-        if (modal) modal.hide();
-
-        // Print via local Rasova Agent (agent bridges EC2 → local printer over TCP 9100)
-        const orderId = qsrPendingOrderId;
-        try {
-          await printViaAgent(orderId);
-        } catch(printErr) {
-          // Agent offline or no printer configured — fall back to browser print popup
-          const receiptUrl = `/thermal-receipt/${orderId}/`;
-          const win = window.open(receiptUrl, '_blank', 'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
-          if (!win || win.closed) ui.toast('Popup blocked — <a href="' + receiptUrl + '" target="_blank">open receipt</a>', 'warning');
-          if (printErr.message === 'agent-offline')
-            ui.toast('Agent not running — start rasova_agent.py on the billing laptop', 'warning');
-        }
-
-        // Show full-screen confirmation briefly
-        const confirm = document.getElementById("qsrConfirm");
-        document.getElementById("qsrConfirmNum").textContent = "Order " + (d.order_number || qsrPendingOrderId);
-        const change = parseFloat(d.change_due || 0);
-        document.getElementById("qsrChangeDue").textContent = change > 0 ? "Change: ₹" + change.toFixed(2) : "";
-        confirm.style.display = "flex";
-
-        // Auto-reset after 2.5 seconds
-        setTimeout(() => {
-          confirm.style.display = "none";
-          clearCart();
-          qsrPendingOrderId = null;
-          _qsrMethod = null;
-          _qsrTotal = 0;
-        }, 2500);
-      } else {
-        showToast(d.error || "Payment failed");
-        payBtn.disabled = false;
-        payBtn.innerHTML = '<i class="bi bi-printer me-2"></i>CONFIRM & PRINT SLIP';
-      }
-    } catch (e) {
-      // Connection dropped mid-request — same TypeError heuristic used
-      // elsewhere. Only cash is safe to queue after the fact.
-      if (e instanceof TypeError && _qsrMethod === 'cash') {
-        try {
-          await offlinePaymentQueue.add(qsrPendingOrderId, amount.toFixed(2));
-          ui.toast('Connection dropped — cash payment saved, will sync once back online.', 'success');
-          const modal = bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"));
-          if (modal) modal.hide();
-          clearCart();
-          qsrPendingOrderId = null;
-          _qsrMethod = null;
-          _qsrTotal = 0;
-          return;
-        } catch (queueErr) {
-          showToast("Could not save payment offline on this device. Please note it down manually.");
-        }
-      } else {
-        showToast("Network error during payment");
-      }
-      payBtn.disabled = false;
-      payBtn.innerHTML = '<i class="bi bi-printer me-2"></i>CONFIRM & PRINT SLIP';
-    }
-  }
-
-  async function cancelQSROrder() {
-    if (!qsrPendingOrderId) { bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"))?.hide(); return; }
-    // The total was worked out (a bill number issued), so cancelling needs a
-    // manager's PIN like any printed bill: static/js/approval.js asks for it.
-    // If it is refused the order stays, and so does this screen.
-    try {
-      const res = await window.RasovaApproval.send(extra => fetch("{% url 'cancel-order' 0 %}".replace("0", qsrPendingOrderId), {
-        method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf(), ...extra }
-      }));
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        showToast(d.error || "Could not cancel the order.");
-        return;
-      }
-    } catch {
-      showToast("Network error, the order was not cancelled.");
-      return;
-    }
-    bootstrap.Modal.getInstance(document.getElementById("qsrPayModal"))?.hide();
-    clearCart();
-    qsrPendingOrderId = null;
-  }
-  {% endif %}
-</script>
+<script type="module" src="{% static 'js/billing/index.js' %}"></script>
 {% endblock %}

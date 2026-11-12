@@ -26,20 +26,25 @@ from orders.tests.test_cart_tax_js import NODE, _needs_node
 OFFERS_JS = Path(settings.BASE_DIR) / "static" / "js" / "offers.js"
 CART_TAX_JS = Path(settings.BASE_DIR) / "static" / "js" / "cart_tax.js"
 
+# The helpers are ES modules: each runner imports the path node is given.
 EVALUATE = """
-const { evaluate } = require(process.argv[1]);
-const cases = JSON.parse(require("fs").readFileSync(0, "utf8"));
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const { evaluate } = await import(pathToFileURL(process.argv[1]).href);
+const cases = JSON.parse(readFileSync(0, "utf8"));
 process.stdout.write(JSON.stringify(cases.map(c => evaluate(c.lines, c.rules, {cutoffHour: c.cutoff}))));
 """
 TOTALS = """
-const { totals } = require(process.argv[1]);
-const carts = JSON.parse(require("fs").readFileSync(0, "utf8"));
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const { totals } = await import(pathToFileURL(process.argv[1]).href);
+const carts = JSON.parse(readFileSync(0, "utf8"));
 process.stdout.write(JSON.stringify(carts.map(c => totals(c.lines, c.outlet))));
 """
 
 
 def node(script, path, payload):
-    done = subprocess.run([NODE, "-e", script, str(path)], input=json.dumps(payload),
+    done = subprocess.run([NODE, "--input-type=module", "-e", script, str(path)], input=json.dumps(payload),
                           capture_output=True, text=True, timeout=180, check=True)
     return json.loads(done.stdout)
 

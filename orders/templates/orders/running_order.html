@@ -161,7 +161,7 @@
 
 
 <script src="{% static 'vendor/sweetalert2/sweetalert2.all.min.js' %}"></script>
-<script src="{% static 'js/order_edit.js' %}"></script>
+<script type="module" src="{% static 'js/order_edit.js' %}"></script>
 <script>
     /* THEME MANAGEMENT */
     let isDark = localStorage.getItem("dark") === "true";
@@ -174,11 +174,12 @@
     function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
 
     /* CORE API FUNCTIONS */
-    OrderEdit.configure({
+    // order_edit.js is a module and runs once the page is parsed.
+    document.addEventListener("DOMContentLoaded", () => OrderEdit.configure({
         reduce: "{% url 'reduce-item' 0 %}",
         cancel: "{% url 'cancel-item' 0 %}",
         cancelOrder: "{% url 'cancel-order' 0 %}",
-    });
+    }));
     const USER_ROLE = "{{ request.user.role|escapejs }}";
     const CAN_EDIT = ["owner", "manager", "cashier", "captain"].includes(USER_ROLE);
     const IS_MANAGER = USER_ROLE === "owner" || USER_ROLE === "manager";

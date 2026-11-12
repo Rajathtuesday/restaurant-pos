@@ -768,14 +768,20 @@
 {{ item_modifier_data|json_script:"item-modifiers-raw" }}
 {{ dish_tax|json_script:"dish-tax" }}
 {{ page_offers|json_script:"page-offers" }}
-<script src="{% static 'js/cart_tax.js' %}"></script>
-<script src="{% static 'js/offers.js' %}"></script>
+<script type="module" src="{% static 'js/cart_tax.js' %}"></script>
+<script type="module" src="{% static 'js/offers.js' %}"></script>
 <script>
     const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
-    const DISH_TAX = RasovaCartTax.readTable('dish-tax');
-    // Offers the cart shows before ordering (static/js/offers.js); the
-    // server works the bill out again and never trusts this.
-    const PAGE_OFFERS = RasovaOffers.readPage('page-offers');
+    // Each dish's tax, and the offers the cart shows before ordering
+    // (static/js/offers.js; the server works the bill out again and never
+    // trusts this). Read once the page is parsed: the engines are modules,
+    // which run then, and the cart is only rendered on a tap after that.
+    let DISH_TAX = {};
+    let PAGE_OFFERS = null;
+    document.addEventListener('DOMContentLoaded', () => {
+        DISH_TAX = RasovaCartTax.readTable('dish-tax');
+        PAGE_OFFERS = RasovaOffers.readPage('page-offers');
+    });
     let cart = {};
 
     // Menu item names (and, below, order-status item names) come from a

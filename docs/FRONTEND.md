@@ -29,9 +29,12 @@ static/js/core/      what base.html runs on every page
   checklist.js       the setup checklist in the corner
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")
-static/js/billing/   phase 1: the billing screen, one module for dine-in and token mode
+static/js/billing/   the billing screen: one module for the dine-in screen, the QSR counter and the token counter
+  index.js           reads page-data, handles every data-action, wires the pieces below
+  cart.js, parcel.js, dispatch.js, counter.js, running_order.js, menu.js, printing.js, tokens.js, ui.js, urls.js
 static/js/pages/     phase 2: one module per remaining page
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
+static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)
 static/vendor/         third-party files Rasova serves itself; VENDOR.md lists versions and SHA-256
@@ -41,7 +44,9 @@ templates/core/public_base.html  no user, no chrome
 
 ## How a page gets its code
 
-1. The view passes what the script needs as a dict: `{"mode": "token", "outlet_id": 3, ...}`.
+1. The view passes what the script needs as a dict: `{"mode": "token", "outlet_id": 3, ...}`. Addresses go in it
+   too, reversed on the server with 0 for an id the script fills in (`orders.views.billing_core.billing_page_data`):
+   a script never types an address by hand.
 2. The template renders it once: `{{ page_data|json_script:"page-data" }}`.
 3. The template loads its module in `{% block extra_js %}`:
    `<script type="module" src="{% static 'js/pages/tables.js' %}"></script>`.
@@ -64,6 +69,11 @@ empty, the bridge is deleted.
 
 - `python manage.py test core.tests.test_frontend_js core.tests.test_frontend_hygiene core.tests.test_static_modules`
 - `node --test "static/js/tests/*.test.mjs"` runs the module tests on their own.
+- `python manage.py test orders.tests.test_billing_browser` runs the billing screens in Chromium (Playwright)
+  against a live test server. `core/tests/browser.py` has the base class: `self.run_page(url, steps, user=...)`
+  logs in, opens the page, runs each step's JavaScript in it and returns the results with every error the
+  browser saw. Use it for a page whose module was just written: it is the only test that fails on a wrong id,
+  a button without its `data-action`, or a module that throws while loading. Skipped without Playwright.
 - A module takes its dependencies as arguments (`createClient({ fetchFn, ui, csrf })`)
   so a test hands it fakes; `app.js` builds the real ones. Keep that shape.
 - After migrating a page, run `python -m core.tests.test_frontend_hygiene --write`

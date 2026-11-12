@@ -208,19 +208,60 @@ class IssuedBillRaceTest(TransactionTestCase):
         self.assertNotIn("error", outcome, outcome.get("error"))
         return outcome["response"]
 
+    def _lock_waiters(self, cursor):
+        """How many sessions on this test database are waiting for a lock
+        (only this database's: a parallel test run has its own).
+
+        Postgres freezes what pg_stat_activity shows for the length of a
+        transaction, at the first look, and this runs inside the one that
+        holds the order's lock. A request whose connection opens after
+        that first look would never appear, however long it waited: the
+        snapshot has to be dropped before every look. Without that, these
+        tests passed only when the request's connection opened before the
+        first poll, and failed on a busy machine."""
+        cursor.execute("SELECT pg_stat_clear_snapshot()")
+        cursor.execute(
+            "SELECT count(*) FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid "
+            "WHERE NOT l.granted AND a.datname = current_database()"
+        )
+        return cursor.fetchone()[0]
+
     def _wait_until_a_lock_is_awaited(self):
-        # Only this test database's sessions: a parallel test run has its own.
         deadline = time.monotonic() + 15
         with connection.cursor() as cursor:
             while time.monotonic() < deadline:
-                cursor.execute(
-                    "SELECT count(*) FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid "
-                    "WHERE NOT l.granted AND a.datname = current_database()"
-                )
-                if cursor.fetchone()[0]:
+                if self._lock_waiters(cursor):
                     return
                 time.sleep(0.02)
         self.fail("the request never waited for the order's lock")
+
+    def test_the_lock_watch_sees_a_request_that_connects_after_its_first_look(self):
+        # The watch itself. The sessions are read once before the request's
+        # connection exists, which is what a poll does on a busy machine
+        # (whenever some other test database has a lock wait of its own at
+        # that moment, the poll's join reads the session list).
+        order = _open_order(self)
+        done = {}
+
+        def run():
+            try:
+                with transaction.atomic():
+                    Order.objects.select_for_update().get(pk=order.pk)
+                done["locked"] = True
+            finally:
+                connection.close()
+
+        with transaction.atomic():
+            Order.objects.select_for_update().get(pk=order.pk)
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT count(*) FROM pg_stat_activity")
+                cursor.fetchone()
+                self.assertEqual(self._lock_waiters(cursor), 0)
+            worker = threading.Thread(target=run)
+            worker.start()
+            self._wait_until_a_lock_is_awaited()
+        worker.join(timeout=30)
+        self.assertTrue(done.get("locked"), "the waiting request never got the lock")
 
     def test_adding_items_during_a_payment_is_refused_not_reopened(self):
         order = _open_order(self)

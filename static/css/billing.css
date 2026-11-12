@@ -1,0 +1,209 @@
+/*
+ * The billing screen (orders/templates/orders/billing.html): the menu, the
+ * cart, the running order, the phone's cart page and the counter's payment
+ * sheet. Its script is static/js/billing/index.js; what that script draws
+ * is styled in billing_parts.css.
+ */
+::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+
+/* Override base header for sticky app mode */
+.pos-header {
+  padding: 1rem 1.5rem;
+  background: var(--bg-color);
+  z-index: 100;
+  position: sticky;
+  top: 0;
+}
+.brand-title { font-size: 1.3rem; margin: 0; color: var(--text-main); display: flex; align-items: center; gap: 10px; }
+.brand-title i { color: var(--accent-gold); }
+
+.btn-luxury-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-luxury-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+
+:root { --header-h: 65px; }
+.workspace { display: flex; height: calc(100vh - var(--header-h)); }
+
+.category-sidebar {
+  width: 260px; border-right: 1px solid var(--border-color);
+  padding: 1.5rem; overflow-y: auto; background: var(--panel-bg); flex-shrink: 0;
+}
+.mobile-category-nav {
+  display: none; overflow-x: auto; white-space: nowrap; padding: 1rem;
+  background: var(--panel-bg); border-bottom: 1px solid var(--border-color); scrollbar-width: none;
+}
+.mobile-category-nav::-webkit-scrollbar { display: none; }
+.category-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; color: var(--text-muted); margin-bottom: 1.5rem; font-weight: 600; }
+.category-list { list-style: none; padding: 0; margin: 0; }
+.category-item { padding: 0.8rem 0; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); transition: var(--transition-smooth); font-family: 'DM Serif Display', serif; position: relative; }
+.category-item:hover { color: var(--text-main); }
+.category-item.active { color: var(--accent-gold); font-weight: 700; font-style: italic; }
+.category-sidebar .category-item.active::before { content: ''; position: absolute; left: -1.5rem; top: 50%; transform: translateY(-50%); width: 3px; height: 50%; background: var(--accent-gold); }
+.mobile-category-nav .category-item { display: inline-block; margin-right: 1.5rem; padding: 0.5rem 0; }
+.mobile-category-nav .category-item.active { border-bottom: 2px solid var(--accent-gold); }
+
+.menu-area { flex-grow: 1; padding: 2rem; overflow-y: auto; background: var(--bg-color); }
+.search-box { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 0; font-size: 1rem; box-shadow: none !important; margin-bottom: 2rem; }
+.search-box:focus { border-color: var(--accent-gold); }
+.menu-section-title { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); padding-top: 1rem; }
+
+.menu-card { background: transparent; border: 1px solid var(--border-color); border-radius: 0; padding: 1.25rem; cursor: pointer; transition: var(--transition-smooth); height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+.menu-card:hover { border-color: var(--accent-gold); background: var(--panel-bg); transform: translateY(-2px); }
+.item-name { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.2; }
+.item-price { font-size: 0.9rem; color: var(--accent-gold); font-weight: 500; letter-spacing: 1px; }
+
+.context-sidebar { width: 380px; border-left: 1px solid var(--border-color); background: var(--panel-bg); display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease; }
+.context-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+.context-tab { flex: 1; text-align: center; padding: 1rem 0; cursor: pointer; font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--text-muted); border-bottom: 2px solid transparent; }
+.context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
+.context-body { flex-grow: 1; padding: 1.5rem; overflow-y: auto; }
+
+/* Collapsed table/source summary -- replaces two always-visible dropdowns
+   that rarely change once an order's started with one compact row,
+   expanded only when actually needed. */
+.order-summary-bar {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: transparent; border: 1px solid var(--border-color); border-radius: 4px;
+  padding: 0.65rem 0.9rem; margin-bottom: 1rem; color: var(--text-main);
+  font-size: 0.85rem; cursor: pointer; transition: var(--transition-smooth);
+}
+.order-summary-bar:hover { border-color: var(--accent-gold); }
+.order-settings-panel { margin-bottom: 1rem; }
+
+/* Bill/Clear are used far less often than Dispatch -- visually demoted
+   so Dispatch reads as the one obvious action, not one of three equals. */
+.secondary-actions .btn-luxury { font-size: 0.72rem; padding: 0.5rem 1rem; color: var(--text-muted); }
+
+.cart-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px dashed var(--border-color); }
+.cart-item-name { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem; }
+.cart-item-note { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
+.cart-controls { display: flex; align-items: center; gap: 10px; }
+.qty-controls { display: flex; align-items: center; border: 1px solid var(--border-color); }
+.qty-btn { min-width: 36px; min-height: 44px; border: none; background: transparent; color: var(--text-main); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+.qty-value { font-size: 0.85rem; width: 20px; text-align: center; }
+.cart-item-price { font-weight: 500; font-size: 0.85rem; width: 55px; text-align: right; color: var(--text-main); }
+
+/* Veg / non-veg indicator: Indian standard */
+.veg-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; flex-shrink: 0; vertical-align: middle; position: relative; top: -1px; }
+.veg-dot.veg { background: #22c55e; }
+.veg-dot.nonveg { background: #ef4444; }
+
+/* Printer error banner */
+#printer-error-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999; background:#dc2626; color:#fff; padding:10px 20px; font-size:var(--text-sm); font-weight:600; align-items:center; gap:10px; }
+#printer-error-banner i { font-size:1.1rem; }
+#printer-error-banner .dismiss { margin-left:auto; cursor:pointer; opacity:0.8; font-size:1.1rem; background:none; border:none; color:inherit; padding:0; }
+
+/* Offline indicator: the banner is base.html's; on this screen it is a
+   pill above the order button instead of a bar across the top. */
+#offline-banner { display:none; position:fixed; bottom:70px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fcd34d; border-radius:20px; padding:6px 18px; font-size:var(--text-xs); font-weight:600; z-index:9998; letter-spacing:1px; }
+
+.cart-summary { border-top: 1px solid var(--border-color); padding: 1.5rem; background: var(--panel-bg); }
+.summary-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.summary-total { display: flex; justify-content: space-between; margin: 1rem 0 1.5rem; font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text-main); }
+
+.form-select-luxury, .form-control-minimal { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; }
+.form-select-luxury { margin-bottom: 1.5rem; }
+.form-select-luxury:focus, .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); }
+
+.running-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-main); }
+.status-badge { font-size: 0.6rem; text-transform: uppercase; padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); }
+
+.modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
+.modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+.modal-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; }
+.modal-body { padding: 1.5rem; }
+.modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+
+.fab-cart {
+  display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  width: calc(100% - 40px); background: var(--accent-gold); color: #fff; padding: 1rem;
+  border-radius: 0; font-size: 0.9rem; font-weight: 500; text-transform: uppercase; letter-spacing: 2px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.2); z-index: 1020; text-align: center; border: none;
+  transition: var(--transition-smooth);
+}
+.offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+
+/* Mobile cart -- full-viewport "page" overlay, not a Bootstrap offcanvas drawer.
+   A capped-width side drawer left the item list squeezed into a small nested-scroll
+   pocket beneath the settings bar and above a tall pinned footer; this instead makes
+   the item list the one naturally-scrolling region with a slim pinned Dispatch bar. */
+.mobile-cart-page {
+  position: fixed; inset: 0; z-index: 1045;
+  background: var(--panel-bg); color: var(--text-main);
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: var(--transition-smooth); visibility: hidden;
+}
+.mobile-cart-page.show { transform: translateX(0); visibility: visible; }
+.mobile-cart-page-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+.mobile-cart-page .context-body { overflow-y: visible; flex-grow: 0; }
+.cart-page-breakdown { border-top: 1px dashed var(--border-color); margin-top: 1rem; padding-top: 1rem; }
+#cartSummaryBlockMobile { flex-shrink: 0; }
+
+.toast-minimal {
+  position: fixed; top: 20px; right: 20px; background: var(--text-main); color: var(--bg-color);
+  padding: 1rem 1.5rem; z-index: 1060; opacity: 0; transition: opacity 0.3s ease;
+  pointer-events: none; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;
+}
+.toast-minimal.show { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 991px) {
+  :root { --header-h: 60px; }
+  .category-sidebar { display: none; }
+  .mobile-category-nav { display: block; }
+  .context-sidebar { display: none; }
+  .fab-cart { display: block; }
+  .workspace { flex-direction: column; overflow-y: auto; height: 100vh; padding-bottom: 80px; }
+  .menu-area { padding: 1.5rem 1rem; overflow-y: visible; }
+  .pos-header { padding: 0.85rem 1rem; }
+  body { overflow-x: hidden; overflow-y: auto; }
+}
+@media (max-width: 480px) {
+  .brand-title { font-size: 1.05rem; }
+  .btn-icon { font-size: 1.1rem; padding: 0.35rem; }
+  .pos-header { gap: 0.25rem; }
+  .pos-header .d-flex.align-items-center.gap-2 { gap: 0.1rem !important; }
+}
+@media (min-width: 992px) {
+  .mobile-cart-page { display: none !important; }
+}
+
+/* ---- pieces that used to carry their look in a style attribute ---- */
+.brand-link { text-decoration: none; color: inherit; }
+.brand-sub { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; }
+.cart-items { min-height: 200px; }
+.parcel-row { color: var(--text-muted); }
+.parcel-btn {
+  width: 100%; padding: 0.6rem; margin: 0.4rem 0; border: 1.5px dashed var(--border-color);
+  background: transparent; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;
+  letter-spacing: 1.5px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+  justify-content: center; gap: 0.5rem; font-family: inherit;
+}
+.btn-luxury-primary.send-btn--pay { background: #10b981; border-color: #10b981; font-size: 0.85rem; letter-spacing: 2px; }
+.cart-summary--mobile { border-top: 1px solid var(--border-color); }
+.sheet-title { font-family: 'DM Serif Display', serif; }
+
+/* ---- the counter's payment sheet ---- */
+.qsr-dialog { max-width: 380px; }
+.qsr-sheet { border-radius: 0; background: var(--panel-bg); border: 1px solid var(--border-color); }
+.qsr-eyebrow { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-gold); margin: 0; }
+.qsr-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; }
+.qsr-total { font-size: 2.2rem; font-family: 'DM Serif Display', serif; text-align: center; padding: 0.5rem 0 1rem; }
+.qsr-methods { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.2rem; }
+.qsr-method-btn {
+  padding: 0.75rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
+  cursor: pointer; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; transition: all 0.15s;
+}
+.qsr-method-btn.is-selected { background: var(--accent-gold); color: #fff; border-color: var(--accent-gold); }
+.qsr-amount-row { margin-bottom: 0.75rem; }
+.qsr-amount-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); display: block; margin-bottom: 0.3rem; }
+.qsr-amount { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 1.2rem; padding: 0.4rem 0; outline: none; }
+.qsr-change { display: none; text-align: right; font-size: 0.9rem; color: #10b981; font-weight: 600; }
+.btn-luxury-primary.qsr-pay { font-size: 0.78rem; letter-spacing: 2px; background: #10b981; border-color: #10b981; }
+.btn-luxury.qsr-cancel { font-size: 0.75rem; color: var(--text-muted); border-color: transparent; }
+.qsr-confirm { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; flex-direction: column; }
+.qsr-confirm-body { text-align: center; color: #fff; }
+.qsr-confirm-tick { font-size: 5rem; margin-bottom: 1rem; }
+.qsr-confirm-word { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 0.5rem; }
+.qsr-confirm-num { font-size: 1rem; color: rgba(255,255,255,0.7); letter-spacing: 2px; text-transform: uppercase; }
+.qsr-confirm-next { margin-top: 1rem; font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+.qsr-confirm-change { margin-top: 0.5rem; font-size: 0.75rem; color: rgba(255,255,255,0.35); }

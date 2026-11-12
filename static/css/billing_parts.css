@@ -1,0 +1,31 @@
+/*
+ * What the billing script draws (static/js/billing/), on the dine-in
+ * screen and the token counter alike: cart rows, the running order, the
+ * item sheet's modifiers, and the states it switches by class.
+ */
+.panel-note { text-align: center; color: var(--text-muted); margin-top: 1.5rem; text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; }
+.panel-note--empty { margin-top: 20px; }
+.panel-note--paid { color: #10b981; }
+.panel-note--paid i { font-size: 1.5rem; }
+.panel-note--error { color: #ef4444; }
+.retry-btn { width: auto; border-radius: 6px; padding: 4px 14px; margin-top: 8px; }
+
+.cart-row-main { flex-grow: 1; padding-right: 10px; }
+.takeaway-badge { font-size: 0.5rem; vertical-align: middle; }
+.tkw-badge { font-size: 0.55rem; background: var(--accent-gold); color: #fff; padding: 1px 5px; vertical-align: middle; }
+
+.running-line { gap: 10px; }
+.running-name { font-family: 'DM Serif Display', serif; flex: 1; }
+.running-total { color: var(--text-muted); font-size: 0.85rem; flex-shrink: 0; }
+.running-mods { font-size: 0.7rem; color: var(--accent-gold); font-style: italic; }
+.btn-checkout--short { min-height: 48px; }
+.btn-luxury.btn-danger-outline { border-color: #ef4444; color: #ef4444; }
+
+.modifier-group-label { font-size: 0.8rem; letter-spacing: 1px; }
+.modifier-hint { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; margin-left: 6px; }
+.sheet-label { font-size: 0.75rem; letter-spacing: 1px; }
+.btn-luxury.btn-quiet { border-color: transparent; }
+
+.summary-row.is-hidden { display: none; }
+.parcel-btn.is-on { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(197,160,89,0.06); }
+.menu-card.just-added { border-color: var(--accent-gold); background: rgba(197,160,89,0.10); }

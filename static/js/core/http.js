@@ -14,13 +14,14 @@
  * `createClient` takes its dependencies as arguments so node can test the
  * behaviour with a fake fetch; app.js builds the real one.
  */
+import { send as approvalSend } from "../approval.js";
 import { csrfToken } from "./csrf.js";
 
 export function createClient({
   fetchFn = (...args) => globalThis.fetch(...args),
   csrf = () => csrfToken(),
   ui,
-  approval = () => globalThis.RasovaApproval,
+  approval = () => ({ send: approvalSend }),
   isOnline = () => globalThis.navigator.onLine,
 } = {}) {
   async function request(endpoint, options = {}) {

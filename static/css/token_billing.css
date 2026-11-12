@@ -1,0 +1,553 @@
+/*
+ * The token counter's billing screen (tokens/templates/tokens/token_billing.html):
+ * the menu with one-tap cards, the current order, today's active orders.
+ * Its script is static/js/billing/index.js; what that script draws is
+ * styled in billing_parts.css.
+ */
+/* ── Desktop: locked viewport, internal scroll ─────────────────── */
+:root { --header-h: 65px; }
+
+/* ── Large text mode: one class on <html> scales everything ── */
+html.large-text .menu-card   { min-height: 100px; }
+html.large-text .item-name   { font-size: 1.15rem !important; }
+html.large-text .item-price  { font-size: 1.1rem  !important; }
+html.large-text .search-box  { font-size: 1.1rem  !important; min-height: 60px; }
+html.large-text .btn-checkout{ font-size: 1.15rem !important; min-height: 70px; }
+html.large-text .mobile-category-nav .category-item { font-size: 1.05rem !important; height: 58px; }
+html.large-text .view-total  { font-size: 1.2rem  !important; font-weight: 800; }
+html.large-text .cart-item-name { font-size: 0.95rem !important; }
+html.large-text .qty-value   { font-size: 1rem    !important; }
+
+@media (min-width: 992px) {
+    body { overflow: hidden; }
+    :root { --header-h: 65px; }
+}
+@media (max-width: 991px) {
+    /* Mobile: let the page scroll naturally; no overflow tricks */
+    html, body { overflow-x: hidden; overflow-y: auto !important; }
+    :root { --header-h: 56px; }
+}
+
+/* ── Workspace ────────────────────────────────────────────────── */
+.workspace {
+    display: flex;
+    height: calc(100vh - var(--header-h));
+    height: calc(100dvh - var(--header-h));
+}
+@media (max-width: 991px) {
+    .workspace {
+        flex-direction: column;
+        height: auto;
+        padding-bottom: 76px; /* space for FAB */
+    }
+}
+
+/* ── Category sidebar (desktop left panel) ────────────────────── */
+.category-sidebar {
+    width: 210px;
+    border-right: 1px solid var(--border-color);
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: var(--panel-bg);
+    flex-shrink: 0;
+}
+@media (max-width: 991px) { .category-sidebar { display: none !important; } }
+
+/* ── Drag handles between the 3 desktop panels ────────────────── */
+.panel-handle {
+    width: 6px;
+    flex-shrink: 0;
+    cursor: col-resize;
+    align-self: stretch;
+    background: transparent;
+    border-left: 1px solid var(--border-color);
+    transition: background 0.12s;
+    touch-action: none;
+}
+.panel-handle:hover,
+.panel-handle.dragging {
+    background: rgba(197,160,89,0.25);
+    border-left-color: var(--accent-gold);
+}
+@media (max-width: 991px) { .panel-handle { display: none !important; } }
+
+.category-title {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+.category-list { list-style: none; padding: 0; margin: 0; }
+.category-item {
+    padding: 0.8rem 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    transition: var(--transition-smooth);
+    font-family: 'DM Serif Display', serif;
+    position: relative;
+}
+.category-item:hover { color: var(--text-main); }
+.category-item.active { color: var(--accent-gold); font-weight: 700; font-style: italic; }
+.category-sidebar .category-item.active::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 50%;
+    background: var(--accent-gold);
+}
+
+/* ── Mobile horizontal category chips ─────────────────────────── */
+.mobile-category-nav {
+    display: none;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0 1rem;
+    background: var(--panel-bg);
+    border-bottom: 1px solid var(--border-color);
+    scrollbar-width: none;
+    /* sticky so it stays visible while scrolling menu */
+    position: sticky;
+    top: var(--header-h);
+    z-index: 10;
+}
+.mobile-category-nav::-webkit-scrollbar { display: none; }
+@media (max-width: 991px) { .mobile-category-nav { display: block; } }
+.mobile-category-nav .category-item {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.25rem;
+    padding: 0 1rem;
+    height: 52px;          /* bigger tap target */
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    -webkit-tap-highlight-color: transparent;
+}
+.mobile-category-nav .category-item.active {
+    color: var(--accent-gold);
+    border-bottom-color: var(--accent-gold);
+    font-weight: 700;
+}
+
+/* ── Main menu area ───────────────────────────────────────────── */
+.menu-area {
+    flex-grow: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: var(--bg-color);
+}
+@media (max-width: 991px) {
+    .menu-area { padding: 0.75rem; overflow-y: visible; }
+}
+
+.search-box {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border-color);
+    color: var(--text-main);
+    padding: 0.9rem 1.2rem;
+    font-size: 1rem;           /* 16px: no iOS zoom */
+    box-shadow: none !important;
+    margin-bottom: 1rem;
+    width: 100%;
+    min-height: 54px;          /* bigger tap target */
+    outline: none;
+    border-radius: 0;
+}
+.search-box:focus { border-color: var(--accent-gold); }
+::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+
+.menu-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+    color: var(--accent-gold);
+}
+
+/* ── Menu item card: touch-optimized ────────────────────────── */
+.menu-card {
+    background: var(--panel-bg);
+    border: 1.5px solid var(--border-color);
+    padding: 1rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, transform 0.08s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 80px;
+    height: 100%;
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+.menu-card:active {
+    border-color: var(--accent-gold);
+    background: rgba(197,160,89,0.06);
+    transform: scale(0.97);
+}
+@media (hover: hover) {
+    .menu-card:hover { border-color: var(--accent-gold); background: rgba(197,160,89,0.04); }
+}
+/* Cart badge: shows how many of this item are in cart */
+.menu-card .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: var(--accent-gold);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 900;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    z-index: 2;
+}
+.menu-card.in-cart { border-color: rgba(197,160,89,0.5); }
+.menu-card.in-cart .cart-badge { display: flex; }
+.item-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.3;
+    flex: 1;
+}
+@media (max-width: 991px) { .item-name { font-size: 0.95rem; } }
+.item-price {
+    font-size: 1rem;
+    color: var(--accent-gold);
+    font-weight: 700;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.item-veg-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+/* ── Context sidebar (desktop right panel) ────────────────────── */
+.context-sidebar {
+    width: 350px;
+    border-left: 1px solid var(--border-color);
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-self: flex-start;
+    /* max-height (not height): a short order should only take up as
+       much vertical space as its own content needs, not stretch to
+       fill the full viewport and leave a dead gap between a couple
+       of items and the pinned totals/checkout block at the bottom.
+       Still caps at the same value as before for a long order, where
+       .context-body's own overflow-y:auto takes over as usual.
+       Subtract 70px for Android 3-button nav bar on tablets.
+       env(safe-area-inset-bottom) handles gesture nav mode. */
+    max-height: calc(100vh - var(--header-h) - 70px);
+    max-height: calc(100dvh - var(--header-h) - max(70px, env(safe-area-inset-bottom, 70px)));
+    overflow: hidden;
+}
+@media (max-width: 991px) { .context-sidebar { display: none !important; } }
+
+.context-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+}
+.context-tab {
+    flex: 1;
+    text-align: center;
+    padding: 1rem 0.5rem;
+    cursor: pointer;
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-bottom: 3px solid transparent;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: var(--transition-smooth);
+}
+.context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
+
+/* min-height:0 is required for flex children: without it, a flex item won't
+   shrink below its content size even with overflow-y:auto set, so the checkout
+   button gets pushed off screen in both the desktop sidebar and mobile offcanvas. */
+.context-body { flex-grow: 1; min-height: 0; padding: 1.25rem; overflow-y: auto; }
+
+/* ── Cart row ─────────────────────────────────────────────────── */
+.cart-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0.9rem 0;
+    border-bottom: 1px dashed var(--border-color);
+}
+.cart-item-name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    margin-bottom: 0.2rem;
+}
+.cart-item-note { font-size: 0.7rem; color: var(--accent-gold); font-style: italic; }
+.cart-controls { display: flex; align-items: center; gap: 8px; }
+.qty-controls {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+}
+.qty-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+}
+.qty-btn:active { background: var(--border-color); }
+.qty-value { font-size: 0.85rem; min-width: 24px; text-align: center; }
+.cart-item-price { font-weight: 600; font-size: 0.85rem; min-width: 55px; text-align: right; }
+
+/* ── Cart summary footer ──────────────────────────────────────── */
+.cart-summary {
+    border-top: 1px solid var(--border-color);
+    padding: 1.25rem;
+    background: var(--panel-bg);
+    flex-shrink: 0;
+}
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    margin: 0.9rem 0 1.25rem;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: var(--text-main);
+}
+
+/* ── Checkout button: UNMISSABLE ──────────────────────────────── */
+.btn-checkout {
+    background: var(--accent-gold);
+    border: none;
+    color: #fff;
+    width: 100%;
+    padding: 1.1rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    cursor: pointer;
+    min-height: 62px;          /* bigger tap surface */
+    transition: background 0.15s, transform 0.08s;
+    -webkit-tap-highlight-color: transparent;
+    font-family: inherit;
+}
+.btn-checkout:hover { background: var(--accent-hover); }
+.btn-checkout:active { transform: scale(0.98); }
+.btn-checkout:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-clear {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    width: 100%;
+    padding: 0.6rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+/* ── Running order rows ───────────────────────────────────────── */
+.running-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+.status-badge {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border-color);
+}
+.status-ready { border-color: #10b981; color: #10b981; }
+.review-item-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.review-action-btn {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-color);
+    background: transparent; display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; cursor: pointer; transition: background 0.15s;
+}
+.review-action-btn.approve { color: #10b981; border-color: #10b981; }
+.review-action-btn.approve:hover { background: rgba(16,185,129,0.12); }
+.review-action-btn.reject { color: #ef4444; border-color: #ef4444; }
+.review-action-btn.reject:hover { background: rgba(239,68,68,0.12); }
+
+/* ── Modal ────────────────────────────────────────────────────── */
+.modal-content {
+    background: var(--panel-bg);
+    border-radius: 0;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+.modal-header, .modal-footer { border-color: var(--border-color); padding: 1.25rem; }
+.modal-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; }
+.modal-body { padding: 1.25rem; }
+.form-control-minimal {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    width: 100%;
+    min-height: 48px;
+}
+.form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); outline: none; }
+
+/* ── Mobile FAB (floating action button for cart) ─────────────── */
+.fab-cart {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    background: var(--accent-gold);
+    color: #fff;
+    padding: 1rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    z-index: 1020;
+    text-align: center;
+    border: none;
+    min-height: 56px;
+    cursor: pointer;
+}
+@media (max-width: 991px) { .fab-cart { display: flex; align-items: center; justify-content: center; gap: 8px; } }
+@media (min-width: 992px) { .offcanvas-luxury { display: none !important; } }
+/* On large desktop monitors there's no Android nav bar: full height */
+@media (min-width: 1200px) {
+    .context-sidebar {
+        height: calc(100vh - var(--header-h));
+        height: calc(100dvh - var(--header-h));
+    }
+}
+
+.offcanvas-luxury {
+    background: var(--panel-bg);
+    color: var(--text-main);
+    border-left: 1px solid var(--border-color);
+}
+.offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.25rem; }
+
+/* Fix: Bootstrap sets overflow-y:auto on offcanvas-body which breaks our flex layout.
+   We need offcanvas-body to be a fixed-height flex column so cart-summary
+   (checkout button) pins to the bottom while only context-body scrolls. */
+.offcanvas-luxury .offcanvas-body {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 65px); /* 65px = offcanvas-header height */
+}
+
+/* ── Active orders list ───────────────────────────────────────── */
+.active-order-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: background 0.2s;
+    min-height: 56px;
+}
+.active-order-item:hover { background: var(--bg-color); color: var(--text-main); }
+.active-order-item.current {
+    background: linear-gradient(90deg, rgba(197,160,89,0.1) 0%, transparent 100%);
+    border-left: 3px solid var(--accent-gold);
+}
+.aoi-token { font-family: 'DM Serif Display', serif; font-size: 1.2rem; min-width: 44px; text-align: center; }
+.aoi-details { flex: 1; min-width: 0; }
+.aoi-customer { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aoi-amount { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
+.aoi-badge { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; }
+.aoi-badge.online { background: #fc8019; color: #fff; }
+.aoi-badge.billing { background: #f59e0b; color: #fff; }
+.aoi-badge.open { background: var(--border-color); color: var(--text-muted); }
+.aoi-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+
+/* ── Small phone tweaks ───────────────────────────────────────── */
+@media (max-width: 480px) {
+    .menu-card { padding: 0.75rem; }
+    .item-name { font-size: 0.9rem; }
+}
+
+/* ---- pieces that used to carry their look in a style attribute ---- */
+.brand-link { text-decoration: none; color: inherit; }
+.brand-title i { color: var(--accent-gold); }
+.category-item--popular { color: var(--accent-gold); }
+.mobile-category-nav .category-item--popular { font-weight: 700; }
+.menu-column { min-width: 0; overflow: hidden; }
+.menu-section-title--popular { color: var(--accent-gold); }
+.veg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
+.veg-dot.veg { background: #22c55e; }
+.veg-dot.nonveg { background: #ef4444; }
+.tab-count { font-size: 0.6rem; background: var(--accent-gold); color: #fff; border-radius: 9px; padding: 1px 6px; margin-left: 4px; }
+.order-token { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--accent-gold); line-height: 1; }
+.order-token--mobile { font-size: 1.5rem; line-height: inherit; }
+.order-status { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.btn-checkout--pay, .btn-checkout--pay:hover { background: #10b981; min-height: 52px; }
+.btn-tall { min-height: 52px; }
+.cart-items { min-height: 160px; }
+.context-body.active-orders-view { padding: 0; overflow-y: auto; }
+.aoi-token--counter { color: var(--accent-gold); }
+.aoi-token--online { color: #fc8019; }
+.aoi-name { font-size: 0.85rem; font-weight: 600; }
+.aoi-right { text-align: right; }
+.aoi-badge.pay { background: #10b981; color: #fff; }
+.aoi-badge.print { background: #6366f1; color: #fff; }
+.aoi-heading { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.75rem 1rem 0.25rem; }
+.aoi-empty-icon { font-size: 1.5rem; }
+.loyalty-field { margin-bottom: 0.9rem; }
+.loyalty-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.3rem; }
+.loyalty-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 1rem; outline: none; font-family: inherit; }
+.parcel-row { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+.parcel-btn {
+  width: 100%; padding: 0.55rem; margin-bottom: 0.5rem; border: 1.5px dashed var(--border-color);
+  background: transparent; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 1.5px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
+  justify-content: center; gap: 0.5rem; font-family: inherit;
+}
+.fab-badge { display: none; background: #fff; color: var(--accent-gold); font-size: 0.7rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; flex-shrink: 0; }
+.fab-label { flex: 1; text-align: center; }
+.offcanvas.offcanvas-cart { width: min(380px, 100vw); }
+.cart-row-main { padding-right: 8px; }

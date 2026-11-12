@@ -37,6 +37,8 @@ from orders.tests.test_cart_tax_js import NODE
 
 BASE = Path(settings.BASE_DIR)
 MODULE_DIRS = [BASE / "static" / "js" / "core", BASE / "static" / "js" / "billing", BASE / "static" / "js" / "pages"]
+# The engines and the shared order controls live at the top of static/js.
+TOP_LEVEL_MODULES = ["cart_tax.js", "offers.js", "order_edit.js", "approval.js"]
 IMPORT_RE = re.compile(r"""(?:^|\n)\s*(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']""")
 THIRD_PARTY = re.compile(r"https?://(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|code\.jquery\.com)")
 STATIC_TAG = re.compile(r"""{%\s*static\s+["']([^"'{}]+)["']\s*%}""")
@@ -55,6 +57,8 @@ def app_templates():
 
 
 def own_modules():
+    for name in TOP_LEVEL_MODULES:
+        yield BASE / "static" / "js" / name
     for folder in MODULE_DIRS:
         if folder.exists():
             yield from sorted(folder.glob("*.js"))

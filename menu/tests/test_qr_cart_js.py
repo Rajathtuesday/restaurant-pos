@@ -35,9 +35,18 @@ STATIC_JS = Path(settings.BASE_DIR) / "static" / "js"
 # (only ids the rendered HTML really has, so a missing element is null as in
 # a browser), class lists, a localStorage, and timers and fetch that never
 # fire. Every step's error is reported, not thrown.
+#
+# The page loads two kinds of script and the harness keeps the browser's
+# order: plain scripts run as the page is read, modules (cart_tax.js,
+# offers.js) run after that and before DOMContentLoaded. So an inline
+# script that reaches for a module before DOMContentLoaded fails here as it
+# would on a phone.
+NODE_ARGS = ["--input-type=module", "-e"]
 HARNESS = r"""
-const vm = require("vm");
-const fs = require("fs");
+import vm from "node:vm";
+import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 const page = JSON.parse(fs.readFileSync(0, "utf8"));
 
 class ClassList {
@@ -112,14 +121,21 @@ const sandbox = {
 };
 sandbox.window = sandbox;
 const context = vm.createContext(sandbox);
+// Modules run outside the sandbox: these two are how they reach the page.
+globalThis.window = sandbox;
+globalThis.document = document;
 
 const errors = [];
 function run(label, code) {
   try { vm.runInContext(code, context, { filename: label }); }
   catch (e) { errors.push(`${label}: ${e && e.name}: ${e && e.message}`); }
 }
-page.files.forEach(file => run(require("path").basename(file), fs.readFileSync(file, "utf8")));
+page.files.forEach(file => run(path.basename(file), fs.readFileSync(file, "utf8")));
 page.scripts.forEach((code, i) => run(`inline script ${i + 1}`, code));
+for (const file of page.modules) {
+  try { await import(pathToFileURL(file).href); }
+  catch (e) { errors.push(`${path.basename(file)}: ${e && e.name}: ${e && e.message}`); }
+}
 loaded.forEach((fn, i) => { try { fn(); } catch (e) { errors.push(`DOMContentLoaded ${i}: ${e.message}`); } });
 page.taps.forEach(([label, code]) => run(label, code));
 
@@ -140,6 +156,14 @@ process.stdout.write(JSON.stringify({
     .map(row => (row.innerHTML || "").match(/class="cart-offer"[^>]*>([^<]*)/)).filter(Boolean).map(m => m[1].trim()),
 }));
 """
+
+
+def our_scripts(page, module):
+    """Our own script files the page loads, in its order: the modules, or
+    the plain ones. Read from the page, so a new one can't be missed here."""
+    tags = re.findall(r'<script( type="module")? src="/static/js/([\w.]+)"', page)
+    return [str(STATIC_JS / name) for kind, name in tags
+            if bool(kind) == module and (STATIC_JS / name).exists()]
 
 
 class QrCartRunsTest(CartWiringBase):
@@ -165,12 +189,10 @@ class QrCartRunsTest(CartWiringBase):
         taps = [(f"ADD {dish.name}", onclick(rf'id="addBtn-{dish.id}"')) for dish in dishes]
         taps.append(("VIEW CART", onclick(r'class="view-cart-btn"')))
         done = subprocess.run(
-            [NODE, "-e", HARNESS], capture_output=True, text=True, timeout=60, check=True,
+            [NODE, *NODE_ARGS, HARNESS], capture_output=True, text=True, timeout=60, check=True,
             input=json.dumps({
-                # Every one of our own scripts the page loads, in its order
-                # (cart_tax.js, offers.js...), so a new one can't be missed here.
-                "files": [str(STATIC_JS / name) for name in re.findall(r'<script src="/static/js/([\w.]+)"', page)
-                          if (STATIC_JS / name).exists()],
+                "files": our_scripts(page, module=False),
+                "modules": our_scripts(page, module=True),
                 "ids": re.findall(r'\sid="([^"]+)"', page),
                 "json": dict(re.findall(r'<script id="([^"]+)" type="application/json">(.*?)</script>', page, re.S)),
                 "scripts": re.findall(r"<script>(.*?)</script>", page, re.S),

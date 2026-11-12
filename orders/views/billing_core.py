@@ -1,5 +1,4 @@
 # orders/views/billing_core.py
-import json
 import logging
 from decimal import Decimal
 
@@ -7,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch, Sum, Q
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from core.decorators import tenant_required
@@ -23,6 +23,61 @@ logger = logging.getLogger("pos.orders")
 # -------------------------------------------------
 # BILLING PAGE
 # -------------------------------------------------
+
+# The addresses the billing screen's script calls, by the name it knows
+# them by. Those that take an id are reversed with 0 standing in for it
+# (static/js/billing/urls.js puts the real one in).
+BILLING_URLS = {
+    "create_order": ("create-order", False),
+    "running_order_items": ("running-order-items", False),
+    "printer_status": ("printer-status", False),
+    "print_queue_add": ("print-queue-add", False),
+    "send_to_kitchen": ("send-to-kitchen", True),
+    "toggle_parcel": ("toggle-parcel", True),
+    "generate_bill": ("generate-bill", True),
+    "bill_view": ("bill-view", True),
+    "cancel_order": ("cancel-order", True),
+    "pay_order": ("pay-order", True),
+    "qz_receipt_data": ("qz-receipt-data", True),
+    "thermal_receipt": ("thermal-receipt", True),
+    "approve_item": ("approve-item", True),
+    "cancel_item": ("cancel-item", True),
+    "item_modifiers": ("menu_item_modifiers", True),
+}
+
+
+def billing_page_data(outlet, mode, station_printer_ip="", order_id=None):
+    """What static/js/billing/index.js needs from the server, rendered once
+    by the template as {{ page_data|json_script:"page-data" }}.
+
+    mode: "dine_in" (tables, dispatch to the kitchen), "counter" (pay and
+    print the slip in one go) or "token" (the token counter)."""
+    from core.features import has_feature
+    return {
+        "mode": mode,
+        # Without the feature the item-modifiers address answers 403, so
+        # the screen is told not to ask on every dish tap.
+        "modifiers": has_feature(outlet.tenant, "modifiers"),
+        "urls": {key: reverse(name, args=[0] if takes_id else None)
+                 for key, (name, takes_id) in BILLING_URLS.items()},
+        "outlet": {
+            "id": outlet.id,
+            "inclusive": bool(outlet.gst_inclusive),
+            "vatInclusive": bool(outlet.vat_inclusive),
+            "composition": bool(outlet.is_composition_scheme),
+            "gstRegistered": bool(outlet.is_gst_registered),
+            "parcelGstRate": float(outlet.parcel_gst_rate or 0),
+            "parcelCharge": float(outlet.parcel_charge_amount or 0),
+            # The outlet's rate is charged on every item, or once per order.
+            "parcelPerItem": bool(outlet.parcel_charge_per_item),
+        },
+        # An order through one of these apps carries no GST of its own,
+        # because the app pays it (orders/services/tax_engine.py).
+        "operator_sources": list(Order.OPERATOR_SOURCES),
+        "station_printer_ip": station_printer_ip or "",
+        "order_id": order_id,
+    }
+
 
 @login_required
 @tenant_required
@@ -100,8 +155,10 @@ def billing_view(request):
         "selected_table":  table_id,
         "auto_kot_mode":   auto_kot_mode,
         "outlet":          request.user.outlet,
-        "station_printer_ip": default_station.printer_ip if default_station else "",
-        "operator_sources_json": json.dumps(list(Order.OPERATOR_SOURCES)),
+        "page_data": billing_page_data(
+            request.user.outlet, "counter" if auto_kot_mode else "dine_in",
+            station_printer_ip=default_station.printer_ip if default_station else "",
+        ),
     })
 
 

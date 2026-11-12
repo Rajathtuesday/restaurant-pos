@@ -32,24 +32,29 @@ from orders.tests.money_scenarios import (
 HELPER = Path(settings.BASE_DIR) / "static" / "js" / "cart_tax.js"
 NODE = shutil.which("node")
 
+# The helper is an ES module: the runner imports it from the path node is given.
 RUNNER = """
-const { totals } = require(process.argv[1]);
-const carts = JSON.parse(require("fs").readFileSync(0, "utf8"));
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const { totals } = await import(pathToFileURL(process.argv[1]).href);
+const carts = JSON.parse(readFileSync(0, "utf8"));
 process.stdout.write(JSON.stringify(carts.map(c => totals(c.lines, c.outlet))));
 """
 
 
 def run_js(carts, runner=RUNNER):
     done = subprocess.run(
-        [NODE, "-e", runner, str(HELPER)], input=json.dumps(carts),
+        [NODE, "--input-type=module", "-e", runner, str(HELPER)], input=json.dumps(carts),
         capture_output=True, text=True, timeout=120, check=True,
     )
     return json.loads(done.stdout)
 
 
 LINE_RUNNER = """
-const { line } = require(process.argv[1]);
-const cases = JSON.parse(require("fs").readFileSync(0, "utf8"));
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const { line } = await import(pathToFileURL(process.argv[1]).href);
+const cases = JSON.parse(readFileSync(0, "utf8"));
 process.stdout.write(JSON.stringify(cases.map(c => line(c.amount, c.table, c.id, c.fallback))));
 """
 

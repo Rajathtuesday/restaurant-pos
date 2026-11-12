@@ -286,13 +286,15 @@
 {{ example_menu|json_script:"example-menu" }}
 {{ offer_forms|json_script:"offer-forms" }}
 {{ dish_tax|json_script:"dish-tax" }}
-<script src="{% static 'js/cart_tax.js' %}"></script>
-<script src="{% static 'js/offers.js' %}"></script>
+<script type="module" src="{% static 'js/cart_tax.js' %}"></script>
+<script type="module" src="{% static 'js/offers.js' %}"></script>
 <script>
     const MENU = JSON.parse(document.getElementById('example-menu').textContent);
     const OFFER_FORMS = JSON.parse(document.getElementById('offer-forms').textContent);
     let editing = null;           // the offer being edited, or null for a new one
-    const DISH_TAX = RasovaCartTax.readTable('dish-tax');
+    // Each dish's tax, read once the page is parsed (cart_tax.js is a module
+    // and runs then); the first example render waits for it below.
+    let DISH_TAX = {};
     const OUTLET = {
         inclusive: {{ current_outlet.gst_inclusive|yesno:"true,false" }},
         vatInclusive: {{ current_outlet.vat_inclusive|yesno:"true,false" }},
@@ -533,6 +535,9 @@
         if (id === 'f-buy' || id === 'f-free') exampleQty = {};
         renderExample();
     }));
-    renderExample();
+    document.addEventListener('DOMContentLoaded', () => {
+        DISH_TAX = RasovaCartTax.readTable('dish-tax');
+        renderExample();
+    });
 </script>
 {% endblock %}

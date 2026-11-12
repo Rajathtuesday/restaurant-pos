@@ -5,12 +5,19 @@ real engine. This checks the wiring: each page loads the script, hands it the
 outlet's real settings, and passes each dish's real rate (a 0% dish as 0,
 never a made-up 5%) (P3, P10).
 
+The POS and the QSR counter share one module now (static/js/billing/): it
+gets the outlet's settings in the page-data block and each dish's rate on
+its menu card, so that is what is checked for them. The module's own sums
+are checked in static/js/tests/cart.test.mjs.
+
 Run: python manage.py test orders.tests.test_cart_wiring
 """
 import json
 import re
 from decimal import Decimal as D
+from pathlib import Path
 
+from django.conf import settings
 from django.test import Client, TestCase
 
 from accounts.models import User
@@ -57,30 +64,42 @@ class CartWiringBase(TestCase):
     def qr_menu(self):
         return Client().get(f"/menu/{self.table.qr_token}/").content.decode()
 
+    def pos_outlet(self, page=None):
+        """The outlet's settings as a billing page (the POS, or the QSR
+        counter) hands them to its module."""
+        match = re.search(r'<script id="page-data" type="application/json">(.*?)</script>', page or self.pos(), re.S)
+        self.assertIsNotNone(match, "the page has no page-data block")
+        return json.loads(match.group(1))["outlet"]
+
 
 class GstExtraOutletTest(CartWiringBase):
 
     def test_every_cart_loads_the_shared_script(self):
-        for page in (self.pos(), self.qsr(), self.qr_menu()):
-            self.assertIn("js/cart_tax.js", page)
-            self.assertIn("RasovaCartTax.totals(", page)
+        qr = self.qr_menu()
+        self.assertIn("js/cart_tax.js", qr)
+        self.assertIn("RasovaCartTax.totals(", qr)
+        # the POS and the counter load the module, whose cart imports cart_tax.js itself
+        for page in (self.pos(), self.qsr()):
+            self.assertIn("js/billing/index.js", page)
+        cart = (Path(settings.BASE_DIR) / "static" / "js" / "billing" / "cart.js").read_text(encoding="utf-8")
+        self.assertIn('from "../cart_tax.js"', cart)
+        self.assertIn("taxTotals(lines", cart)
 
     def test_a_zero_percent_dish_is_passed_as_zero(self):
         pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
-        self.assertIn(f"openItemModal('{self.curd.id}', 'Curd', '30.00', '0.00'", pos)
-        self.assertIn(f"addDirectly('{self.curd.id}', 'Curd', 30.00, 0.00,", qsr)
+        self.assertIn(f'data-id="{self.curd.id}" data-name="Curd" data-price="30.00" data-gst="0.00"', pos)
+        self.assertIn(f'data-id="{self.curd.id}" data-name="Curd"', qsr)
+        self.assertIn('data-price="30.00" data-gst="0.00"', qsr)
         self.assertRegex(qr, rf"addItem\('{self.curd.id}', 'Curd', 30\.00, \d+, 0\.00\)")
         self.assertNotIn("|| 5", pos + qr)
 
     def test_the_outlet_settings_reach_the_script(self):
         pos, qsr = self.pos(), self.qsr()
-        self.assertIn("inclusive: false", pos)
-        self.assertIn("composition: false", pos)
-        self.assertIn("gstRegistered: true", pos)
-        self.assertIn("parcelGstRate: 18.00", pos)
-        self.assertIn("const IS_COMPOSITION = false;", qsr)
-        self.assertIn("const GST_REGISTERED = true;", qsr)
-        self.assertIn("const PARCEL_GST_RATE = 18.00;", qsr)
+        for page in (pos, qsr):
+            self.assertEqual(self.pos_outlet(page), {
+                "id": self.outlet.id, "inclusive": False, "vatInclusive": False, "composition": False,
+                "gstRegistered": True, "parcelGstRate": 18.0, "parcelCharge": 10.0, "parcelPerItem": True,
+            })
 
     def test_the_qr_cart_no_longer_claims_5_percent(self):
         qr = self.qr_menu()
@@ -92,7 +111,7 @@ class GstIncludedOutletTest(CartWiringBase):
     inclusive = True
 
     def test_carts_say_the_gst_is_included(self):
-        self.assertIn("inclusive: true", self.pos())
+        self.assertIs(self.pos_outlet()["inclusive"], True)
         self.assertIn("GST (incl.)", self.pos())
         self.assertIn("GST (included in prices)", self.qr_menu())
 
@@ -102,8 +121,8 @@ class CompositionOutletTest(CartWiringBase):
 
     def test_carts_show_no_gst_line(self):
         pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
-        self.assertIn("composition: true", pos)
-        self.assertIn("const IS_COMPOSITION = true;", qsr)
+        self.assertIs(self.pos_outlet(pos)["composition"], True)
+        self.assertIs(self.pos_outlet(qsr)["composition"], True)
         for page in (pos, qsr, qr):
             self.assertIsNone(re.search(r'class="view-gst"|id="billGst"', page))
 
@@ -114,8 +133,8 @@ class UnregisteredOutletTest(CartWiringBase):
 
     def test_carts_show_no_gst_line(self):
         pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
-        self.assertIn("gstRegistered: false", pos)
-        self.assertIn("const GST_REGISTERED = false;", qsr)
+        self.assertIs(self.pos_outlet(pos)["gstRegistered"], False)
+        self.assertIs(self.pos_outlet(qsr)["gstRegistered"], False)
         self.assertIn("gstRegistered: false", qr)
         for page in (pos, qsr, qr):
             self.assertIsNone(re.search(r'class="view-gst"|id="billGst"', page))
@@ -155,18 +174,18 @@ class LiquorOutletTest(CartWiringBase):
                 self.assertEqual(taxes[str(self.beer.id)], {"kind": "vat", "rate": "0.00"})
                 self.assertEqual(taxes[str(self.rum.id)], {"kind": "vat", "rate": "5.50"})
                 self.assertEqual(taxes[str(self.curd.id)], {"kind": "gst", "rate": "0.00"})
-                self.assertIn("RasovaCartTax.line(", page)
+                if name == "qr":        # the billing module's cart calls it (cart.test.mjs)
+                    self.assertIn("RasovaCartTax.line(", page)
 
     def test_every_cart_has_a_vat_line_hidden_until_there_is_vat(self):
         pos, qsr, qr = self.pos(), self.qsr(), self.qr_menu()
         self.assertIn('class="view-vat"', pos)
-        self.assertIn("vatInclusive: false", pos)
-        self.assertIn('class="view-vat"', qsr)
-        self.assertIn("const VAT_INCLUSIVE = false;", qsr)
+        for page in (pos, qsr):
+            self.assertIn('class="view-vat"', page)
+            self.assertIs(self.pos_outlet(page)["vatInclusive"], False)
+            self.assertIn('<div class="summary-row vat-row is-hidden">', page)
         self.assertIn('id="billVat"', qr)
         self.assertIn("vatInclusive: false", qr)
-        for page in (pos, qsr):
-            self.assertIn("t.vat > 0", page)
 
 
 class LiquorFeatureOffCartTest(LiquorOutletTest):

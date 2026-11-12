@@ -539,7 +539,9 @@ def token_billing(request, order_id):
         request.user.tenant,
     )
 
+    from orders.views.billing_core import billing_page_data
     return render(request, "tokens/token_billing.html", {
+        "page_data":      billing_page_data(outlet, "token", order_id=order.id),
         "order":          order,
         "token":          token,
         "categories":     categories,

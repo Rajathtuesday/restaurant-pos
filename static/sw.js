@@ -7,7 +7,7 @@
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
-const CACHE_VERSION = 'rasova-v4';
+const CACHE_VERSION = 'rasova-v5';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
 
@@ -26,12 +26,61 @@ const STATIC_ASSETS = [
     '/static/vendor/sweetalert2/sweetalert2.min.css',
 ];
 
-/* Pages to pre-warm on install (best-effort, need auth so may 302 — that's fine) */
+/* Pages to pre-warm on install (best-effort: they need a login, and a
+   page that answers with a redirect to the login page is not kept). */
 const OFFLINE_PAGES = [
     '/dashboard/',
     '/billing/',
     '/kitchen/',
 ];
+
+/* A pre-warmed page is only useful offline if what it loads is cached too.
+   Its code is in files now (static/js/billing/, static/js/core/), under
+   names that carry a hash in production, so no fixed list can name them:
+   the page's own HTML is read for its scripts and stylesheets, each script
+   for the modules it imports, each stylesheet for its fonts. */
+const ASSET_IN_PAGE = /<(?:script|link)\b[^>]*?\b(?:src|href)="([^"]+)"/g;
+const IMPORT_IN_SCRIPT = /(?:\bimport|\bfrom)\s*["'](\.{1,2}\/[^"']+)["']/g;
+const URL_IN_STYLE = /url\(\s*["']?([^"')]+)["']?\s*\)/g;
+
+function sameOriginStatic(reference, base) {
+    try {
+        const url = new URL(reference, base);
+        return url.origin === self.location.origin && url.pathname.startsWith('/static/') ? url.pathname : null;
+    } catch (notAUrl) {
+        return null;
+    }
+}
+
+async function cacheWithWhatItLoads(cache, path, seen) {
+    if (seen.has(path)) return;
+    seen.add(path);
+    let response = await cache.match(path);
+    if (!response) {
+        response = await fetch(path);
+        if (!response.ok) return;
+        await cache.put(path, response.clone());
+    }
+    const pattern = path.endsWith('.js') ? IMPORT_IN_SCRIPT : (path.endsWith('.css') ? URL_IN_STYLE : null);
+    if (!pattern) return;
+    const text = await response.text();
+    const next = [];
+    for (const match of text.matchAll(pattern)) {
+        const found = sameOriginStatic(match[1], self.location.origin + path);
+        if (found) next.push(found);
+    }
+    await Promise.allSettled(next.map(found => cacheWithWhatItLoads(cache, found, seen)));
+}
+
+async function cachePageAssets(html, pageUrl, seen) {
+    const cache = await caches.open(STATIC_CACHE);
+    const found = [];
+    for (const match of html.matchAll(ASSET_IN_PAGE)) {
+        const path = sameOriginStatic(match[1], self.location.origin + pageUrl);
+        if (path) found.push(path);
+    }
+    await Promise.allSettled(found.map(path => cacheWithWhatItLoads(cache, path, seen)));
+}
 
 /* ── Install: pre-cache static assets ──────────────────── */
 self.addEventListener('install', event => {
@@ -44,15 +93,25 @@ self.addEventListener('install', event => {
                     )
                 )
             ),
-            caches.open(MENU_CACHE).then(cache =>
-                Promise.allSettled(
+            caches.open(MENU_CACHE).then(cache => {
+                const seen = new Set();
+                return Promise.allSettled(
                     OFFLINE_PAGES.map(url =>
                         fetch(url, { credentials: 'include' })
-                            .then(r => r.ok ? cache.put(url, r) : null)
+                            .then(r => {
+                                // Logged out, the answer is the login page after a
+                                // redirect: keeping it as "/billing/" would show a
+                                // cashier a login form when the connection drops.
+                                if (!r.ok || r.redirected) return null;
+                                const copy = r.clone();
+                                return cache.put(url, r)
+                                    .then(() => copy.text())
+                                    .then(html => cachePageAssets(html, url, seen));
+                            })
                             .catch(() => {})
                     )
-                )
-            )
+                );
+            })
         ])
         .then(() => self.skipWaiting())
     );

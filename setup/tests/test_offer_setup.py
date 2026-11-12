@@ -17,7 +17,7 @@ from django.urls import reverse
 from accounts.models import User
 from menu.liquor import add_liquor_class
 from menu.models import MenuCategory, MenuItem
-from menu.tests.test_qr_cart_js import HARNESS, STATIC_JS
+from menu.tests.test_qr_cart_js import HARNESS, NODE_ARGS, our_scripts
 from offers.models import Offer
 from orders.models import Order
 from orders.services.order_service import add_items_to_order
@@ -231,10 +231,10 @@ class ThePageTest(OfferSetupBase):
             'const dump = e => [e.textContent || "", ...(e.children || []).map(dump)].filter(Boolean).join(" | ");process.stdout.write(JSON.stringify({errors, fields, example: dump(document.getElementById("example"))}));')
         self.assertIn("page.values", runner)
         done = subprocess.run(
-            [NODE, "-e", runner], capture_output=True, text=True, timeout=60, check=True,
+            [NODE, *NODE_ARGS, runner], capture_output=True, text=True, timeout=60, check=True,
             input=json.dumps({
-                "files": [str(STATIC_JS / n) for n in re.findall(r'<script src="/static/js/([\w.]+)"', page)
-                          if (STATIC_JS / n).exists()],
+                "files": our_scripts(page, module=False),
+                "modules": our_scripts(page, module=True),
                 "ids": re.findall(r'\sid="([^"]+)"', page),
                 "json": dict(re.findall(r'<script id="([^"]+)" type="application/json">(.*?)</script>', page, re.S)),
                 # Comments out first: the base template's head has a comment

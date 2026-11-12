@@ -273,7 +273,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/order_edit.js' %}"></script>
+<script type="module" src="{% static 'js/order_edit.js' %}"></script>
 <script>
     async function createNewToken() {
         const btn = document.getElementById('newOrderBtn');

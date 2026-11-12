@@ -390,7 +390,7 @@ class CartPagesTest(PubBills):
         paused.is_active = False
         paused.save()
         html = self.page(reverse("billing-view"))
-        self.assertIn("js/offers.js", html)
+        self.assertIn("js/billing/index.js", html)      # the module imports offers.js itself
         data = json.loads(re.search(r'<script id="page-offers" type="application/json">(.*?)</script>',
                                     html, re.S).group(1))
         self.assertEqual([rule["name"] for rule in data["rules"]], ["Buy 2 pitchers, get 1 free"])

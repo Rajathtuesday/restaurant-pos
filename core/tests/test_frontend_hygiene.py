@@ -41,7 +41,7 @@ SCRIPT_CLOSE = re.compile(r"</script\s*>", re.I)
 STYLE_OPEN = re.compile(r"<style\b[^>]*>", re.I)
 STYLE_CLOSE = re.compile(r"</style\s*>", re.I)
 THIRD_PARTY = re.compile(r"https?://(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|code\.jquery\.com)")
-SHARED_GLOBALS = re.compile(r"\b(apiClient|ui\.(toast|confirm|showLoading|hideLoading)|themeManager|offlineQueue|offlinePaymentQueue|rasovaPlatform|refreshNotifications|updateOfflineBanner)\b")
+SHARED_GLOBALS = re.compile(r"\b(apiClient|ui\.(toast|confirm|showLoading|hideLoading)|themeManager|offlineQueue|offlinePaymentQueue|rasovaPlatform|refreshNotifications|updateOfflineBanner|RasovaCartTax|RasovaOffers|OrderEdit|RasovaApproval)\b")
 TOP_LEVEL_SKIP = re.compile(r"^\s*(//|/\*|\*)")   # a comment mentioning a global is not a read
 
 SKIP_PARTS = {"md_files", "node_modules", "staticfiles", "rasova_android", "public", "js", "docs", ".venv", ".code-review-graph", "graft"}
@@ -146,21 +146,20 @@ BASELINE = {
     'inventory/templates/inventory/suppliers.html': {"script": 55, "style": 45, "onclick": 2, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/variance_report.html': {"script": 16, "style": 51, "onclick": 1, "third_party": 0, "globals": 0},
     'kitchen/templates/kitchen/kitchen.html': {"script": 151, "style": 187, "onclick": 8, "third_party": 0, "globals": 0},
-    'menu/templates/menu/digital_menu.html': {"script": 797, "style": 518, "onclick": 21, "third_party": 0, "globals": 0},
+    'menu/templates/menu/digital_menu.html': {"script": 803, "style": 518, "onclick": 21, "third_party": 0, "globals": 0},
     'menu/templates/menu/gst_management.html': {"script": 64, "style": 115, "onclick": 3, "third_party": 0, "globals": 0},
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 28, "third_party": 0, "globals": 0},
     'menu/templates/menu/modifiers_management.html': {"script": 139, "style": 46, "onclick": 10, "third_party": 0, "globals": 0},
     'menu/templates/menu/qsr_menu_management.html': {"script": 208, "style": 96, "onclick": 15, "third_party": 0, "globals": 0},
     'orders/templates/orders/bill.html': {"script": 541, "style": 132, "onclick": 20, "third_party": 0, "globals": 0},
-    'orders/templates/orders/billing.html': {"script": 798, "style": 161, "onclick": 32, "third_party": 0, "globals": 0},
-    'orders/templates/orders/live_orders.html': {"script": 194, "style": 93, "onclick": 1, "third_party": 0, "globals": 0},
+    'orders/templates/orders/live_orders.html': {"script": 195, "style": 93, "onclick": 1, "third_party": 0, "globals": 0},
     'orders/templates/orders/order_history.html': {"script": 223, "style": 172, "onclick": 8, "third_party": 0, "globals": 0},
     'orders/templates/orders/order_locked.html': {"script": 11, "style": 114, "onclick": 1, "third_party": 0, "globals": 0},
     'orders/templates/orders/order_timeline.html': {"script": 0, "style": 52, "onclick": 0, "third_party": 0, "globals": 0},
     'orders/templates/orders/public_bill.html': {"script": 0, "style": 54, "onclick": 0, "third_party": 0, "globals": 0},
     'orders/templates/orders/public_bill_expired.html': {"script": 0, "style": 16, "onclick": 0, "third_party": 0, "globals": 0},
     'orders/templates/orders/public_feedback.html': {"script": 0, "style": 53, "onclick": 0, "third_party": 0, "globals": 0},
-    'orders/templates/orders/running_order.html': {"script": 145, "style": 116, "onclick": 6, "third_party": 0, "globals": 0},
+    'orders/templates/orders/running_order.html': {"script": 146, "style": 116, "onclick": 6, "third_party": 0, "globals": 0},
     'orders/templates/orders/tables.html': {"script": 345, "style": 148, "onclick": 28, "third_party": 0, "globals": 0},
     'orders/templates/orders/thermal_receipt.html': {"script": 10, "style": 67, "onclick": 0, "third_party": 0, "globals": 0},
     'payments/templates/payments/pending_refunds.html': {"script": 35, "style": 15, "onclick": 2, "third_party": 0, "globals": 0},
@@ -182,7 +181,7 @@ BASELINE = {
     'setup/templates/setup/setup.html': {"script": 0, "style": 38, "onclick": 1, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_kitchen_stations.html': {"script": 235, "style": 92, "onclick": 10, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_menu.html': {"script": 0, "style": 22, "onclick": 1, "third_party": 0, "globals": 0},
-    'setup/templates/setup/setup_offers.html': {"script": 245, "style": 91, "onclick": 7, "third_party": 0, "globals": 0},
+    'setup/templates/setup/setup_offers.html': {"script": 250, "style": 91, "onclick": 7, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_payment_methods.html': {"script": 0, "style": 33, "onclick": 2, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_promos.html': {"script": 132, "style": 103, "onclick": 6, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_qr_codes.html': {"script": 0, "style": 21, "onclick": 2, "third_party": 0, "globals": 0},
@@ -194,7 +193,6 @@ BASELINE = {
     'shifts/templates/shifts/shift_templates.html': {"script": 32, "style": 19, "onclick": 3, "third_party": 0, "globals": 0},
     'templates/core/demo_switch.html': {"script": 0, "style": 105, "onclick": 0, "third_party": 0, "globals": 0},
     'tokens/templates/tokens/display_board.html': {"script": 50, "style": 56, "onclick": 0, "third_party": 0, "globals": 0},
-    'tokens/templates/tokens/token_billing.html': {"script": 728, "style": 506, "onclick": 33, "third_party": 0, "globals": 0},
     'tokens/templates/tokens/token_dashboard.html': {"script": 84, "style": 86, "onclick": 7, "third_party": 0, "globals": 0},
     'waiter/templates/waiter/waiter_dashboard.html': {"script": 30, "style": 73, "onclick": 3, "third_party": 0, "globals": 0},
 }

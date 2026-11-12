@@ -1,527 +1,21 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Token Billing {% if token %}— {{ token.display_number }}{% endif %} | {{ request.user.tenant.name }}{% endblock %}
+{% block title %}Token Billing {% if token %}{{ token.display_number }}{% endif %} | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* ── Desktop: locked viewport, internal scroll ─────────────────── */
-    :root { --header-h: 65px; }
-
-    /* ── Large text mode — one class on <html> scales everything ── */
-    html.large-text .menu-card   { min-height: 100px; }
-    html.large-text .item-name   { font-size: 1.15rem !important; }
-    html.large-text .item-price  { font-size: 1.1rem  !important; }
-    html.large-text .search-box  { font-size: 1.1rem  !important; min-height: 60px; }
-    html.large-text .btn-checkout{ font-size: 1.15rem !important; min-height: 70px; }
-    html.large-text .mobile-category-nav .category-item { font-size: 1.05rem !important; height: 58px; }
-    html.large-text .view-total  { font-size: 1.2rem  !important; font-weight: 800; }
-    html.large-text .cart-item-name { font-size: 0.95rem !important; }
-    html.large-text .qty-value   { font-size: 1rem    !important; }
-
-    @media (min-width: 992px) {
-        body { overflow: hidden; }
-        :root { --header-h: 65px; }
-    }
-    @media (max-width: 991px) {
-        /* Mobile: let the page scroll naturally; no overflow tricks */
-        html, body { overflow-x: hidden; overflow-y: auto !important; }
-        :root { --header-h: 56px; }
-    }
-
-    /* ── Workspace ────────────────────────────────────────────────── */
-    .workspace {
-        display: flex;
-        height: calc(100vh - var(--header-h));
-        height: calc(100dvh - var(--header-h));
-    }
-    @media (max-width: 991px) {
-        .workspace {
-            flex-direction: column;
-            height: auto;
-            padding-bottom: 76px; /* space for FAB */
-        }
-    }
-
-    /* ── Category sidebar (desktop left panel) ────────────────────── */
-    .category-sidebar {
-        width: 210px;
-        border-right: 1px solid var(--border-color);
-        padding: 1.5rem;
-        overflow-y: auto;
-        background: var(--panel-bg);
-        flex-shrink: 0;
-    }
-    @media (max-width: 991px) { .category-sidebar { display: none !important; } }
-
-    /* ── Drag handles between the 3 desktop panels ────────────────── */
-    .panel-handle {
-        width: 6px;
-        flex-shrink: 0;
-        cursor: col-resize;
-        align-self: stretch;
-        background: transparent;
-        border-left: 1px solid var(--border-color);
-        transition: background 0.12s;
-        touch-action: none;
-    }
-    .panel-handle:hover,
-    .panel-handle.dragging {
-        background: rgba(197,160,89,0.25);
-        border-left-color: var(--accent-gold);
-    }
-    @media (max-width: 991px) { .panel-handle { display: none !important; } }
-
-    .category-title {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        color: var(--text-muted);
-        margin-bottom: 1.5rem;
-        font-weight: 600;
-    }
-    .category-list { list-style: none; padding: 0; margin: 0; }
-    .category-item {
-        padding: 0.8rem 0;
-        cursor: pointer;
-        font-size: 0.95rem;
-        color: var(--text-muted);
-        transition: var(--transition-smooth);
-        font-family: 'DM Serif Display', serif;
-        position: relative;
-    }
-    .category-item:hover { color: var(--text-main); }
-    .category-item.active { color: var(--accent-gold); font-weight: 700; font-style: italic; }
-    .category-sidebar .category-item.active::before {
-        content: '';
-        position: absolute;
-        left: -1.5rem;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 50%;
-        background: var(--accent-gold);
-    }
-
-    /* ── Mobile horizontal category chips ─────────────────────────── */
-    .mobile-category-nav {
-        display: none;
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 0 1rem;
-        background: var(--panel-bg);
-        border-bottom: 1px solid var(--border-color);
-        scrollbar-width: none;
-        /* sticky so it stays visible while scrolling menu */
-        position: sticky;
-        top: var(--header-h);
-        z-index: 10;
-    }
-    .mobile-category-nav::-webkit-scrollbar { display: none; }
-    @media (max-width: 991px) { .mobile-category-nav { display: block; } }
-    .mobile-category-nav .category-item {
-        display: inline-flex;
-        align-items: center;
-        margin-right: 0.25rem;
-        padding: 0 1rem;
-        height: 52px;          /* bigger tap target */
-        font-size: 0.95rem;
-        font-weight: 500;
-        border-bottom: 3px solid transparent;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .mobile-category-nav .category-item.active {
-        color: var(--accent-gold);
-        border-bottom-color: var(--accent-gold);
-        font-weight: 700;
-    }
-
-    /* ── Main menu area ───────────────────────────────────────────── */
-    .menu-area {
-        flex-grow: 1;
-        padding: 1.5rem;
-        overflow-y: auto;
-        background: var(--bg-color);
-    }
-    @media (max-width: 991px) {
-        .menu-area { padding: 0.75rem; overflow-y: visible; }
-    }
-
-    .search-box {
-        background: var(--panel-bg);
-        border: 1.5px solid var(--border-color);
-        color: var(--text-main);
-        padding: 0.9rem 1.2rem;
-        font-size: 1rem;           /* 16px — no iOS zoom */
-        box-shadow: none !important;
-        margin-bottom: 1rem;
-        width: 100%;
-        min-height: 54px;          /* bigger tap target */
-        outline: none;
-        border-radius: 0;
-    }
-    .search-box:focus { border-color: var(--accent-gold); }
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-
-    .menu-section-title {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        margin-bottom: 0.5rem;
-        margin-top: 1rem;
-        color: var(--accent-gold);
-    }
-
-    /* ── Menu item card — touch-optimized ────────────────────────── */
-    .menu-card {
-        background: var(--panel-bg);
-        border: 1.5px solid var(--border-color);
-        padding: 1rem 1rem;
-        cursor: pointer;
-        transition: border-color 0.12s, background 0.12s, transform 0.08s;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        min-height: 80px;
-        height: 100%;
-        position: relative;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .menu-card:active {
-        border-color: var(--accent-gold);
-        background: rgba(197,160,89,0.06);
-        transform: scale(0.97);
-    }
-    @media (hover: hover) {
-        .menu-card:hover { border-color: var(--accent-gold); background: rgba(197,160,89,0.04); }
-    }
-    /* Cart badge — shows how many of this item are in cart */
-    .menu-card .cart-badge {
-        position: absolute;
-        top: -8px; right: -8px;
-        background: var(--accent-gold);
-        color: #000;
-        font-size: 0.65rem;
-        font-weight: 900;
-        width: 22px; height: 22px;
-        border-radius: 50%;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        z-index: 2;
-    }
-    .menu-card.in-cart { border-color: rgba(197,160,89,0.5); }
-    .menu-card.in-cart .cart-badge { display: flex; }
-    .item-name {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-main);
-        line-height: 1.3;
-        flex: 1;
-    }
-    @media (max-width: 991px) { .item-name { font-size: 0.95rem; } }
-    .item-price {
-        font-size: 1rem;
-        color: var(--accent-gold);
-        font-weight: 700;
-        white-space: nowrap;
-        flex-shrink: 0;
-    }
-    .item-veg-dot {
-        width: 10px; height: 10px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        margin-left: 4px;
-    }
-
-    /* ── Context sidebar (desktop right panel) ────────────────────── */
-    .context-sidebar {
-        width: 350px;
-        border-left: 1px solid var(--border-color);
-        background: var(--panel-bg);
-        display: flex;
-        flex-direction: column;
-        flex-shrink: 0;
-        align-self: flex-start;
-        /* max-height (not height): a short order should only take up as
-           much vertical space as its own content needs, not stretch to
-           fill the full viewport and leave a dead gap between a couple
-           of items and the pinned totals/checkout block at the bottom.
-           Still caps at the same value as before for a long order, where
-           .context-body's own overflow-y:auto takes over as usual.
-           Subtract 70px for Android 3-button nav bar on tablets.
-           env(safe-area-inset-bottom) handles gesture nav mode. */
-        max-height: calc(100vh - var(--header-h) - 70px);
-        max-height: calc(100dvh - var(--header-h) - max(70px, env(safe-area-inset-bottom, 70px)));
-        overflow: hidden;
-    }
-    @media (max-width: 991px) { .context-sidebar { display: none !important; } }
-
-    .context-tabs {
-        display: flex;
-        border-bottom: 1px solid var(--border-color);
-    }
-    .context-tab {
-        flex: 1;
-        text-align: center;
-        padding: 1rem 0.5rem;
-        cursor: pointer;
-        font-family: 'DM Serif Display', serif;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-        border-bottom: 3px solid transparent;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        transition: var(--transition-smooth);
-    }
-    .context-tab.active { color: var(--text-main); border-bottom-color: var(--accent-gold); }
-
-    /* min-height:0 is required for flex children — without it, a flex item won't
-       shrink below its content size even with overflow-y:auto set, so the checkout
-       button gets pushed off screen in both the desktop sidebar and mobile offcanvas. */
-    .context-body { flex-grow: 1; min-height: 0; padding: 1.25rem; overflow-y: auto; }
-
-    /* ── Cart row ─────────────────────────────────────────────────── */
-    .cart-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 0.9rem 0;
-        border-bottom: 1px dashed var(--border-color);
-    }
-    .cart-item-name {
-        font-family: 'DM Serif Display', serif;
-        font-size: 0.9rem;
-        color: var(--text-main);
-        margin-bottom: 0.2rem;
-    }
-    .cart-item-note { font-size: 0.7rem; color: var(--accent-gold); font-style: italic; }
-    .cart-controls { display: flex; align-items: center; gap: 8px; }
-    .qty-controls {
-        display: flex;
-        align-items: center;
-        border: 1px solid var(--border-color);
-    }
-    .qty-btn {
-        width: 32px;
-        height: 32px;
-        border: none;
-        background: transparent;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        cursor: pointer;
-    }
-    .qty-btn:active { background: var(--border-color); }
-    .qty-value { font-size: 0.85rem; min-width: 24px; text-align: center; }
-    .cart-item-price { font-weight: 600; font-size: 0.85rem; min-width: 55px; text-align: right; }
-
-    /* ── Cart summary footer ──────────────────────────────────────── */
-    .cart-summary {
-        border-top: 1px solid var(--border-color);
-        padding: 1.25rem;
-        background: var(--panel-bg);
-        flex-shrink: 0;
-    }
-    .summary-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 0.4rem;
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .summary-total {
-        display: flex;
-        justify-content: space-between;
-        margin: 0.9rem 0 1.25rem;
-        font-family: 'DM Serif Display', serif;
-        font-size: 1.4rem;
-        color: var(--text-main);
-    }
-
-    /* ── Checkout button — UNMISSABLE ──────────────────────────────── */
-    .btn-checkout {
-        background: var(--accent-gold);
-        border: none;
-        color: #fff;
-        width: 100%;
-        padding: 1.1rem;
-        font-size: 1.05rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        cursor: pointer;
-        min-height: 62px;          /* bigger tap surface */
-        transition: background 0.15s, transform 0.08s;
-        -webkit-tap-highlight-color: transparent;
-        font-family: inherit;
-    }
-    .btn-checkout:hover { background: var(--accent-hover); }
-    .btn-checkout:active { transform: scale(0.98); }
-    .btn-checkout:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-clear {
-        background: transparent;
-        border: none;
-        color: var(--text-muted);
-        width: 100%;
-        padding: 0.6rem;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        cursor: pointer;
-        min-height: 44px;
-    }
-
-    /* ── Running order rows ───────────────────────────────────────── */
-    .running-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.9rem 0;
-        border-bottom: 1px solid var(--border-color);
-        font-size: 0.85rem;
-    }
-    .status-badge {
-        font-size: 0.6rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        padding: 0.25rem 0.5rem;
-        border: 1px solid var(--border-color);
-    }
-    .status-ready { border-color: #10b981; color: #10b981; }
-    .review-item-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
-    .review-action-btn {
-        width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-color);
-        background: transparent; display: flex; align-items: center; justify-content: center;
-        font-size: 0.75rem; cursor: pointer; transition: background 0.15s;
-    }
-    .review-action-btn.approve { color: #10b981; border-color: #10b981; }
-    .review-action-btn.approve:hover { background: rgba(16,185,129,0.12); }
-    .review-action-btn.reject { color: #ef4444; border-color: #ef4444; }
-    .review-action-btn.reject:hover { background: rgba(239,68,68,0.12); }
-
-    /* ── Modal ────────────────────────────────────────────────────── */
-    .modal-content {
-        background: var(--panel-bg);
-        border-radius: 0;
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-    }
-    .modal-header, .modal-footer { border-color: var(--border-color); padding: 1.25rem; }
-    .modal-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; }
-    .modal-body { padding: 1.25rem; }
-    .form-control-minimal {
-        background-color: transparent;
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-        border-radius: 0;
-        padding: 0.75rem 1rem;
-        font-size: 0.9rem;
-        width: 100%;
-        min-height: 48px;
-    }
-    .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); outline: none; }
-
-    /* ── Mobile FAB (floating action button for cart) ─────────────── */
-    .fab-cart {
-        display: none;
-        position: fixed;
-        bottom: 16px;
-        left: 16px;
-        right: 16px;
-        background: var(--accent-gold);
-        color: #fff;
-        padding: 1rem 1.5rem;
-        font-size: 0.95rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-        z-index: 1020;
-        text-align: center;
-        border: none;
-        min-height: 56px;
-        cursor: pointer;
-    }
-    @media (max-width: 991px) { .fab-cart { display: flex; align-items: center; justify-content: center; gap: 8px; } }
-    @media (min-width: 992px) { .offcanvas-luxury { display: none !important; } }
-    /* On large desktop monitors there's no Android nav bar — full height */
-    @media (min-width: 1200px) {
-        .context-sidebar {
-            height: calc(100vh - var(--header-h));
-            height: calc(100dvh - var(--header-h));
-        }
-    }
-
-    .offcanvas-luxury {
-        background: var(--panel-bg);
-        color: var(--text-main);
-        border-left: 1px solid var(--border-color);
-    }
-    .offcanvas-header { border-bottom: 1px solid var(--border-color); padding: 1.25rem; }
-
-    /* Fix: Bootstrap sets overflow-y:auto on offcanvas-body which breaks our flex layout.
-       We need offcanvas-body to be a fixed-height flex column so cart-summary
-       (checkout button) pins to the bottom while only context-body scrolls. */
-    .offcanvas-luxury .offcanvas-body {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        height: calc(100% - 65px); /* 65px = offcanvas-header height */
-    }
-
-    /* ── Active orders list ───────────────────────────────────────── */
-    .active-order-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--border-color);
-        cursor: pointer;
-        text-decoration: none;
-        color: var(--text-main);
-        transition: background 0.2s;
-        min-height: 56px;
-    }
-    .active-order-item:hover { background: var(--bg-color); color: var(--text-main); }
-    .active-order-item.current {
-        background: linear-gradient(90deg, rgba(197,160,89,0.1) 0%, transparent 100%);
-        border-left: 3px solid var(--accent-gold);
-    }
-    .aoi-token { font-family: 'DM Serif Display', serif; font-size: 1.2rem; min-width: 44px; text-align: center; }
-    .aoi-details { flex: 1; min-width: 0; }
-    .aoi-customer { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .aoi-amount { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
-    .aoi-badge { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; }
-    .aoi-badge.online { background: #fc8019; color: #fff; }
-    .aoi-badge.billing { background: #f59e0b; color: #fff; }
-    .aoi-badge.open { background: var(--border-color); color: var(--text-muted); }
-    .aoi-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-
-    /* ── Small phone tweaks ───────────────────────────────────────── */
-    @media (max-width: 480px) {
-        .menu-card { padding: 0.75rem; }
-        .item-name { font-size: 0.9rem; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/token_billing.css' %}">
+<link rel="stylesheet" href="{% static 'css/billing_parts.css' %}">
 {% endblock %}
 
 {% block header_left %}
-<a href="/dashboard/" style="text-decoration:none; color:inherit;">
+<a href="/dashboard/" class="brand-link">
     <h1 class="brand-title mb-0">
-        <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
+        <i class="bi bi-diamond-half"></i>
         {{ request.user.tenant.name }}
     </h1>
 </a>
-<p class="brand-subtitle">POS Billing — {{ request.user.outlet.name }}</p>
+<p class="brand-subtitle">POS Billing &middot; {{ request.user.outlet.name }}</p>
 {% endblock %}
 
 {% block header_right %}
@@ -535,10 +29,10 @@
 {% include "core/_notif_badges.html" %}
 <a href="/reports/dashboard/" class="btn-icon d-md-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
 <a href="/logout/" class="btn-icon d-none d-md-inline-flex" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-<button class="btn-icon" onclick="toggleLargeText()" title="Large Text Mode" id="largeTextBtn">
+<button type="button" class="btn-icon" data-action="text.toggle" title="Large Text Mode" id="largeTextBtn">
     <i class="bi bi-type-h1" id="largeTextIcon"></i>
 </button>
-<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
+<button type="button" class="btn-icon" data-action="theme.toggle" title="Toggle Theme">
     <i class="bi bi-moon" id="themeIcon"></i>
 </button>
 {% endblock %}
@@ -551,12 +45,12 @@
         <div class="category-title">Menu</div>
         <ul class="category-list">
             {% if popular_items %}
-            <li class="category-item" onclick="scrollToCategory('cat-popular', this)" style="color:var(--accent-gold);">
+            <li class="category-item category-item--popular" data-action="menu.category" data-target="cat-popular">
                 ★ Popular
             </li>
             {% endif %}
             {% for category in categories %}
-            <li class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">
+            <li class="category-item" data-action="menu.category" data-target="cat{{ category.id }}">
                 {{ category.name }}
             </li>
             {% endfor %}
@@ -566,15 +60,15 @@
     <div class="panel-handle" id="handleLeft" data-panel="category-sidebar"></div>
 
     <!-- MOBILE: Horizontal category strip + menu -->
-    <div class="d-flex flex-column flex-grow-1" style="min-width:0; overflow:hidden;">
+    <div class="d-flex flex-column flex-grow-1 menu-column">
         <div class="mobile-category-nav">
             {% if popular_items %}
-            <div class="category-item" onclick="scrollToCategory('cat-popular', this)" style="color:var(--accent-gold);font-weight:700;">
+            <div class="category-item category-item--popular" data-action="menu.category" data-target="cat-popular">
                 ★ Popular
             </div>
             {% endif %}
             {% for category in categories %}
-            <div class="category-item" onclick="scrollToCategory('cat{{ category.id }}', this)">
+            <div class="category-item" data-action="menu.category" data-target="cat{{ category.id }}">
                 {{ category.name }}
             </div>
             {% endfor %}
@@ -582,21 +76,21 @@
 
         <!-- Menu items -->
         <main class="menu-area">
-            <input type="text" id="menuSearch" class="search-box" placeholder="Search the menu...">
+            <input type="text" id="menuSearch" class="search-box" placeholder="Search the menu..." data-action="menu.search">
 
             <div id="menuCardsContainer">
 
                 {% if popular_items %}
-                <h3 id="cat-popular" class="menu-section-title" style="color:var(--accent-gold);">★ Popular</h3>
+                <h3 id="cat-popular" class="menu-section-title menu-section-title--popular">★ Popular</h3>
                 <div class="row g-2 mb-3">
                     {% for item in popular_items %}
                     <div class="col-6 col-md-4 col-xl-3 menu-item-searchable">
-                        <div class="menu-card" id="card-{{ item.id }}"
-                            onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage }}, {{ item.is_veg|lower }})">
-                            <span class="cart-badge" id="badge-{{ item.id }}">0</span>
+                        <div class="menu-card" data-action="menu.pick" data-id="{{ item.id }}" data-name="{{ item.name }}"
+                             data-price="{{ item.price|stringformat:'s' }}" data-gst="{{ item.gst_percentage|stringformat:'s' }}"
+                             data-veg="{{ item.is_veg|yesno:'1,0' }}" data-parcel="{{ item.parcel_charge|default:0|stringformat:'s' }}">
+                            <span class="cart-badge">0</span>
                             <div class="item-name">
-                                {% if item.is_veg %}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>
-                                {% else %}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>{% endif %}
+                                <span class="veg-dot {% if item.is_veg %}veg{% else %}nonveg{% endif %}"></span>
                                 {{ item.name }}
                             </div>
                             <div class="item-price">₹{{ item.price|floatformat:0 }}</div>
@@ -611,12 +105,12 @@
                 <div class="row g-2 mb-3">
                     {% for item in category.sorted_items %}
                     <div class="col-6 col-md-4 col-xl-3 menu-item-searchable">
-                        <div class="menu-card" id="card-{{ item.id }}"
-                            onclick="addDirectly('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.gst_percentage }}, {{ item.is_veg|lower }})">
-                            <span class="cart-badge" id="badge-{{ item.id }}">0</span>
+                        <div class="menu-card" data-action="menu.pick" data-id="{{ item.id }}" data-name="{{ item.name }}"
+                             data-price="{{ item.price|stringformat:'s' }}" data-gst="{{ item.gst_percentage|stringformat:'s' }}"
+                             data-veg="{{ item.is_veg|yesno:'1,0' }}" data-parcel="{{ item.parcel_charge|default:0|stringformat:'s' }}">
+                            <span class="cart-badge">0</span>
                             <div class="item-name">
-                                {% if item.is_veg %}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>
-                                {% else %}<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:5px;vertical-align:middle;flex-shrink:0;"></span>{% endif %}
+                                <span class="veg-dot {% if item.is_veg %}veg{% else %}nonveg{% endif %}"></span>
                                 {{ item.name }}
                             </div>
                             <div class="item-price">₹{{ item.price|floatformat:0 }}</div>
@@ -634,68 +128,63 @@
     <!-- DESKTOP: Current Order / Active Orders sidebar -->
     <aside class="context-sidebar">
         <div class="context-tabs">
-            <div class="context-tab active" id="tabCart" onclick="switchTab('cart')">
+            <div class="context-tab active" id="tabCart" data-action="tab" data-tab="cart">
                 Current Order
             </div>
-            <div class="context-tab" id="tabActive" onclick="switchTab('active')">
+            <div class="context-tab" id="tabActive" data-action="tab" data-tab="active">
                 Active
                 {% with cnt=all_active|length %}
-                {% if cnt %}<span style="font-size:0.6rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}
+                {% if cnt %}<span class="tab-count">{{ cnt }}</span>{% endif %}
                 {% endwith %}
             </div>
         </div>
 
-        <!-- Current Order view — scrollable, checkout pinned below -->
+        <!-- Current Order view: scrollable, checkout pinned below -->
         <div class="context-body" id="cartView">
             <div class="text-center mb-3">
-                <div id="orderTokenDisplay" style="font-family:'DM Serif Display',serif; font-size:1.8rem; color:var(--accent-gold); line-height:1;">
-                    {% if token %}{{ token.display_number }}{% else %}—{% endif %}
+                <div id="orderTokenDisplay" class="order-token">
+                    {% if token %}{{ token.display_number }}{% else %}-{% endif %}
                 </div>
-                <div id="orderStatusDisplay" style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;">
+                <div id="orderStatusDisplay" class="order-status">
                     {{ order.get_status_display }}
                 </div>
             </div>
-            <script>window.addEventListener('DOMContentLoaded', () => { currentOrderId = {{ order.id }}; });</script>
             <div id="runningItemsDesktop" class="mb-3"></div>
 
             <div id="orderActionButtonDesktop">
                 {% if order.status == 'billing' %}
-                <a href="/bill/{{ order.id }}/"
-                   class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
-                   style="background:#10b981;min-height:52px;">
+                <a href="{% url 'bill-view' order.id %}" class="btn-checkout btn-checkout--pay d-flex align-items-center justify-content-center text-decoration-none mb-2">
                     <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
                 </a>
                 {% elif order.status == 'paid' or order.status == 'closed' %}
-                <button class="btn-luxury w-100 mb-2"
-                        onclick="printReceipt({{ order.id }})"
-                        style="min-height:52px;">
+                <button type="button" class="btn-luxury w-100 mb-2 btn-tall" data-action="receipt.print" data-id="{{ order.id }}">
                     <i class="bi bi-printer me-2"></i>Print Receipt
                 </button>
                 {% endif %}
             </div>
 
-            <div id="cartItemsContainerDesktop" style="min-height:160px;"></div>
+            <div id="cartItemsContainerDesktop" class="cart-items"></div>
         </div>
 
         <!-- Active Orders view -->
-        <div class="context-body d-none" id="activeOrdersView" style="padding:0; overflow-y:auto;">
+        <div class="context-body d-none active-orders-view" id="activeOrdersView">
             <div class="active-orders-list">
                 {% for t in counter_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
                    class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
                    id="aoi-{{ t.order.id }}" data-order-id="{{ t.order.id }}"
-                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
-                    <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
+                   data-action="token.select" data-id="{{ t.order.id }}">
+                    <div class="aoi-token aoi-token--counter">{{ t.token_number }}</div>
                     <div class="aoi-details">
-                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
+                        <div class="aoi-name">{{ t.order.customer_name|default:"Walk-in" }}</div>
                         <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
                     </div>
-                    <div style="text-align:right;">
-                        <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
+                    <div class="aoi-right">
+                        <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}-{% endif %}</div>
                         {% if t.order.status == 'billing' %}
-                        <div class="aoi-badge" style="background:#10b981;color:#fff;">Pay</div>
+                        <div class="aoi-badge pay">Pay</div>
                         {% elif t.order.status == 'paid' or t.order.status == 'closed' %}
-                        <div class="aoi-badge" style="background:#6366f1;color:#fff;">Print</div>
+                        <div class="aoi-badge print">Print</div>
                         {% else %}
                         <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
                         {% endif %}
@@ -704,21 +193,21 @@
                 {% endfor %}
 
                 {% if online_tokens %}
-                <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);padding:0.75rem 1rem 0.25rem;">
+                <div class="aoi-heading">
                     Online Orders
                 </div>
                 {% for t in online_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
                    class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
                    id="aoi-{{ t.order.id }}" data-order-id="{{ t.order.id }}"
-                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
-                    <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
+                   data-action="token.select" data-id="{{ t.order.id }}">
+                    <div class="aoi-token aoi-token--online">O-{{ t.token_number }}</div>
                     <div class="aoi-details">
-                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
+                        <div class="aoi-name">{{ t.order.get_source_display }}</div>
                         <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }} · {{ t.order.aggregator_order_id|default:"-" }}</div>
                     </div>
                     <div>
-                        <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}—{% endif %}</div>
+                        <div class="aoi-amount">{% if t.order.grand_total %}₹{{ t.order.grand_total|floatformat:0 }}{% else %}-{% endif %}</div>
                         <div class="aoi-badge online">Online</div>
                     </div>
                 </a>
@@ -727,46 +216,40 @@
 
                 {% if not counter_tokens and not online_tokens %}
                 <div class="aoi-empty">
-                    <i class="bi bi-inbox d-block mb-2" style="font-size:1.5rem;"></i>No active orders
+                    <i class="bi bi-inbox d-block mb-2 aoi-empty-icon"></i>No active orders
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Cart summary pinned at bottom — always visible, items scroll above -->
+        <!-- Cart summary pinned at bottom: always visible, items scroll above -->
         <div class="cart-summary" id="cartSummaryBlock">
             {% if 'loyalty_points' in tenant_features %}
-            <div style="margin-bottom:0.9rem;">
-                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
-                <input type="tel" id="loyaltyPhone" placeholder="10-digit number"
-                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:1rem;outline:none;font-family:inherit;"
-                    maxlength="10" inputmode="numeric">
+            <div class="loyalty-field">
+                <label class="loyalty-label">Customer Phone (for points)</label>
+                <input type="tel" id="loyaltyPhone" placeholder="10-digit number" class="loyalty-input" maxlength="10" inputmode="numeric">
             </div>
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
-            <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
+            <div class="summary-row is-hidden"><span>Offers</span><span class="view-offers">₹0</span></div>
             {% if request.user.outlet.collects_gst %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
             {% endif %}
-            <div class="summary-row vat-row" style="display:none;"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
+            <div class="summary-row vat-row is-hidden"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
             {% if request.user.outlet.parcel_charge_amount %}
-            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
+            <div class="summary-row parcel-row is-hidden">
                 <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
             </div>
-            <button class="parcel-btn" onclick="toggleParcel()"
-                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
-                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
-                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-                       justify-content:center;gap:0.5rem;font-family:inherit;">
+            <button type="button" class="parcel-btn" data-action="parcel.toggle">
                 <i class="bi bi-bag"></i>
                 <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
             </button>
             {% endif %}
             <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-            <button class="btn-checkout send-btn" onclick="submitOrder()">
+            <button type="button" class="btn-checkout send-btn" data-action="order.submit">
                 Checkout <i class="bi bi-arrow-right ms-1"></i>
             </button>
-            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
+            <button type="button" class="btn-clear" data-action="cart.clear">Clear Order</button>
         </div>
 
     </aside>
@@ -775,16 +258,15 @@
 
 <!-- MOBILE: Floating cart button -->
 <button class="fab-cart" data-bs-toggle="offcanvas" data-bs-target="#mobileCartOffcanvas" id="fabCart">
-    <span id="fabBadge" style="display:none;background:#fff;color:var(--accent-gold);font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">0</span>
-    <span style="flex:1;text-align:center;">
+    <span id="fabBadge" class="fab-badge">0</span>
+    <span class="fab-label">
         <i class="bi bi-bag me-1"></i>
         View Order &nbsp;·&nbsp; <span class="view-total">₹0</span>
     </span>
 </button>
 
 <!-- MOBILE: Offcanvas cart -->
-<div class="offcanvas offcanvas-end offcanvas-luxury" tabindex="-1" id="mobileCartOffcanvas"
-     style="width: min(380px, 100vw);">
+<div class="offcanvas offcanvas-end offcanvas-luxury offcanvas-cart" tabindex="-1" id="mobileCartOffcanvas">
     <div class="offcanvas-header">
         <h5 class="modal-title" id="orderTokenDisplayMobileTitle">
             Order {% if token %}{{ token.display_number }}{% endif %}
@@ -793,21 +275,21 @@
     </div>
 
     <div class="context-tabs">
-        <div class="context-tab active" id="tabCartMobile" onclick="switchTab('cart')">Current Order</div>
-        <div class="context-tab" id="tabActiveMobile" onclick="switchTab('active')">
+        <div class="context-tab active" id="tabCartMobile" data-action="tab" data-tab="cart">Current Order</div>
+        <div class="context-tab" id="tabActiveMobile" data-action="tab" data-tab="active">
             Active
             {% with cnt=all_active|length %}
-            {% if cnt %}<span style="font-size:0.6rem;background:var(--accent-gold);color:#fff;border-radius:9px;padding:1px 6px;margin-left:4px;">{{ cnt }}</span>{% endif %}
+            {% if cnt %}<span class="tab-count">{{ cnt }}</span>{% endif %}
             {% endwith %}
         </div>
     </div>
 
     <div class="offcanvas-body d-flex flex-column p-0">
 
-        <!-- Cart items — scrollable, checkout pinned below -->
+        <!-- Cart items: scrollable, checkout pinned below -->
         <div class="context-body flex-grow-1" id="cartViewMobile">
             <div class="text-center mb-3">
-                <div id="orderTokenDisplayMobile" style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent-gold);">
+                <div id="orderTokenDisplayMobile" class="order-token order-token--mobile">
                     {% if token %}{{ token.display_number }}{% endif %}
                 </div>
             </div>
@@ -815,15 +297,11 @@
 
             <div id="orderActionButtonMobile">
                 {% if order.status == 'billing' %}
-                <a href="/bill/{{ order.id }}/"
-                   class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2"
-                   style="background:#10b981;min-height:52px;">
+                <a href="{% url 'bill-view' order.id %}" class="btn-checkout btn-checkout--pay d-flex align-items-center justify-content-center text-decoration-none mb-2">
                     <i class="bi bi-credit-card me-2"></i>Pay Now · ₹{{ remaining|floatformat:0 }}
                 </a>
                 {% elif order.status == 'paid' or order.status == 'closed' %}
-                <button class="btn-luxury w-100 mb-2"
-                        onclick="printReceipt({{ order.id }})"
-                        style="min-height:52px;">
+                <button type="button" class="btn-luxury w-100 mb-2 btn-tall" data-action="receipt.print" data-id="{{ order.id }}">
                     <i class="bi bi-printer me-2"></i>Print Receipt
                 </button>
                 {% endif %}
@@ -832,16 +310,16 @@
             <div id="cartItemsContainerMobile"></div>
         </div>
 
-        <div class="context-body flex-grow-1 d-none" id="activeOrdersViewMobile" style="padding:0;overflow-y:auto;">
+        <div class="context-body flex-grow-1 d-none active-orders-view" id="activeOrdersViewMobile">
             <div class="active-orders-list">
                 {% for t in counter_tokens %}
                 <a href="{% url 'token-bill' t.order.id %}"
                    class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
                    data-order-id="{{ t.order.id }}"
-                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
-                    <div class="aoi-token" style="color:var(--accent-gold);">{{ t.token_number }}</div>
+                   data-action="token.select" data-id="{{ t.order.id }}">
+                    <div class="aoi-token aoi-token--counter">{{ t.token_number }}</div>
                     <div class="aoi-details">
-                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.customer_name|default:"Walk-in" }}</div>
+                        <div class="aoi-name">{{ t.order.customer_name|default:"Walk-in" }}</div>
                         <div class="aoi-customer">{{ t.order.created_at|date:"g:i A" }}</div>
                     </div>
                     <div class="aoi-badge {{ t.order.status }}">{{ t.order.get_status_display }}</div>
@@ -851,10 +329,10 @@
                 <a href="{% url 'token-bill' t.order.id %}"
                    class="active-order-item{% if t.order.id == order.id %} current{% endif %}"
                    data-order-id="{{ t.order.id }}"
-                   onclick="return selectToken(event, {{ t.order.id }}, this.href)">
-                    <div class="aoi-token" style="color:#fc8019;">O-{{ t.token_number }}</div>
+                   data-action="token.select" data-id="{{ t.order.id }}">
+                    <div class="aoi-token aoi-token--online">O-{{ t.token_number }}</div>
                     <div class="aoi-details">
-                        <div style="font-size:0.85rem;font-weight:600;">{{ t.order.get_source_display }}</div>
+                        <div class="aoi-name">{{ t.order.get_source_display }}</div>
                         <div class="aoi-customer">{{ t.order.aggregator_order_id|default:"-" }}</div>
                     </div>
                     <div class="aoi-badge online">Online</div>
@@ -869,37 +347,31 @@
         <!-- Cart summary pinned at bottom of offcanvas -->
         <div class="cart-summary" id="cartSummaryBlockMobile">
             {% if 'loyalty_points' in tenant_features %}
-            <div style="margin-bottom:0.9rem;">
-                <label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);font-weight:600;display:block;margin-bottom:0.3rem;">Customer Phone (for points)</label>
-                <input type="tel" id="loyaltyPhoneMobile" placeholder="10-digit number"
-                    style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border-color);color:var(--text-main);padding:0.4rem 0;font-size:1rem;outline:none;font-family:inherit;"
-                    maxlength="10" inputmode="numeric">
+            <div class="loyalty-field">
+                <label class="loyalty-label">Customer Phone (for points)</label>
+                <input type="tel" id="loyaltyPhoneMobile" placeholder="10-digit number" class="loyalty-input" maxlength="10" inputmode="numeric">
             </div>
             {% endif %}
             <div class="summary-row"><span>Subtotal</span><span class="view-subtotal">₹0</span></div>
-            <div class="summary-row" style="display:none"><span>Offers</span><span class="view-offers">₹0</span></div>
+            <div class="summary-row is-hidden"><span>Offers</span><span class="view-offers">₹0</span></div>
             {% if request.user.outlet.collects_gst %}
             <div class="summary-row"><span>GST</span><span class="view-gst">₹0</span></div>
             {% endif %}
-            <div class="summary-row vat-row" style="display:none;"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
+            <div class="summary-row vat-row is-hidden"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
             {% if request.user.outlet.parcel_charge_amount %}
-            <div class="summary-row parcel-row" style="display:none;font-size:0.82rem;color:var(--text-muted);justify-content:space-between;margin-bottom:0.3rem;">
+            <div class="summary-row parcel-row is-hidden">
                 <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
             </div>
-            <button class="parcel-btn" onclick="toggleParcel()"
-                style="width:100%;padding:0.55rem;margin-bottom:0.5rem;border:1.5px dashed var(--border-color);
-                       background:transparent;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;
-                       letter-spacing:1.5px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;
-                       justify-content:center;gap:0.5rem;font-family:inherit;">
+            <button type="button" class="parcel-btn" data-action="parcel.toggle">
                 <i class="bi bi-bag"></i>
                 <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
             </button>
             {% endif %}
             <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
-            <button class="btn-checkout send-btn mb-2" onclick="submitOrder()">
+            <button type="button" class="btn-checkout send-btn mb-2" data-action="order.submit">
                 Checkout <i class="bi bi-arrow-right ms-1"></i>
             </button>
-            <button class="btn-clear" onclick="clearCart()">Clear Order</button>
+            <button type="button" class="btn-clear" data-action="cart.clear">Clear Order</button>
         </div>
     </div>
 </div>
@@ -913,18 +385,18 @@
             </div>
             <div class="modal-body">
                 <div id="modifierContainer"></div>
-                <p class="text-muted text-uppercase mt-3" style="font-size:0.75rem;letter-spacing:1px;">Special Instructions</p>
+                <p class="text-muted text-uppercase mt-3 sheet-label">Special Instructions</p>
                 <textarea id="itemNote" class="form-control-minimal" rows="2" placeholder="Dietary requirements or prep notes..."></textarea>
                 <div class="form-check mt-3">
                     <input class="form-check-input" type="checkbox" id="itemTakeaway">
-                    <label class="form-check-label text-uppercase" style="font-size:0.75rem;letter-spacing:1px;" for="itemTakeaway">
+                    <label class="form-check-label text-uppercase sheet-label" for="itemTakeaway">
                         Pack as Takeaway
                     </label>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button class="btn-luxury" style="border-color:transparent;" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn-luxury btn-accent" onclick="addItemWithModifiers()">Add to Order</button>
+                <button type="button" class="btn-luxury btn-quiet" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn-luxury btn-accent" data-action="menu.add">Add to Order</button>
             </div>
         </div>
     </div>
@@ -932,738 +404,8 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/order_edit.js' %}"></script>
+{{ page_data|json_script:"page-data" }}
 {{ dish_tax|json_script:"dish-tax" }}
 {{ page_offers|json_script:"page-offers" }}
-<script src="{% static 'js/cart_tax.js' %}"></script>
-<script src="{% static 'js/offers.js' %}"></script>
-<script>
-    /* ── Resizable 3-panel layout (desktop only) ───────────────────────
-       Two drag handles: category-sidebar|menu-area and menu-area|context-
-       sidebar. menu-area itself is never given an explicit width -- it
-       just absorbs whatever the other two don't take (flex-grow:1). */
-    const panelResizer = (() => {
-        const STORAGE_KEY = 'rasova_billing_panel_widths';
-        const DEFAULTS = { 'category-sidebar': 210, 'context-sidebar': 350 };
-        const MIN = { 'category-sidebar': 150, 'context-sidebar': 280 };
-        const MAX = { 'category-sidebar': 320, 'context-sidebar': 480 };
-        const MIN_MENU_WIDTH = 320;
-
-        function loadWidths() {
-            try {
-                return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') };
-            } catch (e) { return { ...DEFAULTS }; }
-        }
-
-        function saveWidths(widths) {
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(widths)); } catch (e) {}
-        }
-
-        function applyWidths(widths) {
-            const cat = document.querySelector('.category-sidebar');
-            const ctx = document.querySelector('.context-sidebar');
-            if (cat) cat.style.width = widths['category-sidebar'] + 'px';
-            if (ctx) ctx.style.width = widths['context-sidebar'] + 'px';
-        }
-
-        function clamp(panelKey, value, workspace) {
-            value = Math.max(MIN[panelKey], Math.min(MAX[panelKey], value));
-            // Don't let the two side panels together crush the menu area.
-            const other = panelKey === 'category-sidebar' ? 'context-sidebar' : 'category-sidebar';
-            const otherWidth = parseFloat(document.querySelector('.' + other)?.style.width) || DEFAULTS[other];
-            const available = workspace.clientWidth - otherWidth - MIN_MENU_WIDTH;
-            return Math.max(MIN[panelKey], Math.min(value, available));
-        }
-
-        function initHandle(handleId, panelKey, direction) {
-            const handle = document.getElementById(handleId);
-            const panel = document.querySelector('.' + panelKey);
-            const workspace = document.querySelector('.workspace');
-            if (!handle || !panel || !workspace) return;
-
-            let dragging = false, startX = 0, startWidth = 0;
-
-            handle.addEventListener('pointerdown', (e) => {
-                dragging = true;
-                startX = e.clientX;
-                startWidth = panel.getBoundingClientRect().width;
-                handle.classList.add('dragging');
-                handle.setPointerCapture(e.pointerId);
-                e.preventDefault();
-            });
-
-            handle.addEventListener('pointermove', (e) => {
-                if (!dragging) return;
-                const delta = (e.clientX - startX) * direction;
-                panel.style.width = clamp(panelKey, startWidth + delta, workspace) + 'px';
-            });
-
-            const endDrag = (e) => {
-                if (!dragging) return;
-                dragging = false;
-                handle.classList.remove('dragging');
-                const widths = loadWidths();
-                widths[panelKey] = parseFloat(panel.style.width) || DEFAULTS[panelKey];
-                saveWidths(widths);
-            };
-            handle.addEventListener('pointerup', endDrag);
-            handle.addEventListener('pointercancel', endDrag);
-
-            handle.addEventListener('dblclick', () => {
-                panel.style.width = DEFAULTS[panelKey] + 'px';
-                const widths = loadWidths();
-                widths[panelKey] = DEFAULTS[panelKey];
-                saveWidths(widths);
-            });
-        }
-
-        function init() {
-            applyWidths(loadWidths());
-            // direction: which way a rightward drag should grow the panel.
-            // Left handle sits before category-sidebar -> dragging right grows it.
-            // Right handle sits before context-sidebar -> dragging right shrinks it.
-            initHandle('handleLeft', 'category-sidebar', 1);
-            initHandle('handleRight', 'context-sidebar', -1);
-        }
-
-        return { init };
-    })();
-    panelResizer.init();
-
-    /* ── Tab switching (Current Order ↔ Active Orders) ──────────────── */
-    function switchTab(tab) {
-        const toggle = (id, cls, add) => { const el = document.getElementById(id); if (el) el.classList[add ? 'add' : 'remove'](cls); };
-        const isCart = tab === 'cart';
-        toggle('cartView',           'd-none', !isCart);
-        toggle('cartViewMobile',     'd-none', !isCart);
-        toggle('activeOrdersView',   'd-none',  isCart);
-        toggle('activeOrdersViewMobile', 'd-none', isCart);
-        toggle('tabCart',   'active',  isCart); toggle('tabCartMobile',   'active',  isCart);
-        toggle('tabActive', 'active', !isCart); toggle('tabActiveMobile', 'active', !isCart);
-        toggle('cartSummaryBlock',       'd-none', !isCart);
-        toggle('cartSummaryBlockMobile', 'd-none', !isCart);
-    }
-
-    /* ── State ───────────────────────────────────────────────────────── */
-    let cart = [];
-    const GST_INCLUSIVE = {{ request.user.outlet.gst_inclusive|yesno:"true,false" }};
-    const IS_COMPOSITION = {{ request.user.outlet.is_composition_scheme|yesno:"true,false" }};
-    const GST_REGISTERED = {{ request.user.outlet.is_gst_registered|yesno:"true,false" }};
-    const VAT_INCLUSIVE = {{ request.user.outlet.vat_inclusive|yesno:"true,false" }};
-    // Each dish's tax as the bill will charge it (GST, or VAT for liquor)
-    const DISH_TAX = RasovaCartTax.readTable('dish-tax');
-    // Offers the cart shows before the order exists (static/js/offers.js).
-    const PAGE_OFFERS = RasovaOffers.readPage('page-offers');
-    const PARCEL_GST_RATE = {{ request.user.outlet.parcel_gst_rate|default:0 }};
-    let selectedItem = null;
-    let sending = false;
-    let currentOrderId = null;
-    let activeModal = null;
-
-    /* ── Menu search ─────────────────────────────────────────────────── */
-    document.getElementById('menuSearch').addEventListener('input', function () {
-        const t = this.value.toLowerCase();
-        document.querySelectorAll('.menu-item-searchable').forEach(c => {
-            c.style.display = c.querySelector('.item-name').textContent.toLowerCase().includes(t) ? '' : 'none';
-        });
-    });
-
-    /* ── Category scroll ─────────────────────────────────────────────── */
-    function scrollToCategory(id, el) {
-        document.querySelectorAll('.category-item').forEach(i => i.classList.remove('active'));
-        const idx = Array.from(el.parentNode.children).indexOf(el);
-        ['.category-sidebar .category-item', '.mobile-category-nav .category-item'].forEach(sel => {
-            const items = document.querySelectorAll(sel);
-            if (items[idx]) items[idx].classList.add('active');
-        });
-        const target = document.getElementById(id);
-        if (!target) return;
-        if (window.innerWidth < 992) {
-            window.scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-        } else {
-            document.querySelector('.menu-area').scrollTo({ top: target.offsetTop - 70, behavior: 'smooth' });
-        }
-    }
-
-    /* ── Item modal ──────────────────────────────────────────────────── */
-    function openItemModal(id, name, price, gst) {
-        selectedItem = { id, name, price, gst_percentage: parseFloat(gst) };
-        document.getElementById('modalItemName').textContent = name;
-        document.getElementById('itemNote').value = '';
-        document.getElementById('itemTakeaway').checked = false;
-        const modCont = document.getElementById('modifierContainer');
-        modCont.innerHTML = "<p class='text-center text-muted py-3 small'>Checking modifiers…</p>";
-
-        fetch(`/menu/item-modifiers/${id}/`)
-            .then(r => r.json())
-            .then(data => {
-                if (!data.groups || !data.groups.length) { modCont.innerHTML = ''; return; }
-                modCont.innerHTML = data.groups.map(g => `
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-uppercase" style="font-size:0.8rem;letter-spacing:1px;">
-                            ${g.group_name}${g.is_required ? ' <span class="text-danger">*</span>' : ''}
-                        </label>
-                        ${g.modifiers.map(m => {
-                            const type = g.max_select === 1 ? 'radio' : 'checkbox';
-                            const nm   = `mod_${g.group_name.replace(/\s+/g, '')}`;
-                            return `<div class="form-check">
-                                <input class="form-check-input modifier-check" type="${type}" name="${nm}" value="${m.name}" data-price="${m.price}" id="mod_${m.id}">
-                                <label class="form-check-label d-flex justify-content-between w-100" for="mod_${m.id}">
-                                    <span>${m.name}</span><span class="text-muted">+₹${m.price}</span>
-                                </label>
-                            </div>`;
-                        }).join('')}
-                    </div>`).join('');
-            })
-            .catch(() => { modCont.innerHTML = ''; });
-
-        activeModal = new bootstrap.Modal(document.getElementById('itemModal'));
-        activeModal.show();
-    }
-
-    /* ── Add to cart ─────────────────────────────────────────────────── */
-    function addItemWithModifiers() {
-        const note = document.getElementById('itemNote').value.trim();
-        let modsSelected = [], modsSelectedIds = [], addedPrice = 0;
-        document.querySelectorAll('.modifier-check:checked').forEach(cb => {
-            modsSelected.push(cb.value);
-            modsSelectedIds.push(parseInt(cb.id.replace('mod_', '')));
-            addedPrice += parseFloat(cb.getAttribute('data-price') || 0);
-        });
-        const finalNote  = [modsSelected.join(', '), note].filter(Boolean).join(' | ');
-        const finalPrice = parseFloat(selectedItem.price) + addedPrice;
-        const isTakeaway = document.getElementById('itemTakeaway').checked;
-        const existing   = cart.find(i => i.id === selectedItem.id && i.note === finalNote && i.is_takeaway === isTakeaway);
-        if (existing) existing.quantity++;
-        else cart.push({ id: selectedItem.id, name: selectedItem.name, price: finalPrice, quantity: 1,
-                         note: finalNote, is_takeaway: isTakeaway, modifiers: modsSelectedIds,
-                         gst_percentage: selectedItem.gst_percentage });
-        renderCart();
-        if (activeModal) activeModal.hide();
-    }
-
-    /* ── Render cart ─────────────────────────────────────────────────── */
-    function renderCart() {
-        const dc = document.getElementById('cartItemsContainerDesktop');
-        const mc = document.getElementById('cartItemsContainerMobile');
-        // Offers first: each line's offer, taken off before tax as on the bill.
-        const taxLines = cart.map(i => RasovaCartTax.line(i.price * i.quantity, DISH_TAX, i.id, i.gst_percentage));
-        const applied = RasovaOffers.onCart(PAGE_OFFERS, taxLines,
-            cart.map(i => ({ dishId: i.id, quantity: i.quantity, takeaway: !!i.is_takeaway })));
-        if (!cart.length) {
-            const empty = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.75rem;">Empty Order</div>`;
-            dc.innerHTML = empty; mc.innerHTML = empty;
-        } else {
-            const rows = cart.map((i, idx) => {
-                const total    = i.price * i.quantity;
-                return `<div class="cart-row">
-                    <div style="flex-grow:1;padding-right:8px;">
-                        <div class="cart-item-name">${i.name}${i.is_takeaway ? ' <span style="font-size:0.55rem;background:var(--accent-gold);color:#fff;padding:1px 5px;vertical-align:middle;">TKW</span>' : ''}</div>
-                        ${i.note ? `<div class="cart-item-note">${i.note}</div>` : ''}
-                        ${RasovaOffers.note(applied[idx])}
-                    </div>
-                    <div class="cart-controls">
-                        <div class="qty-controls">
-                            <button class="qty-btn" onclick="dec(${idx})"><i class="bi bi-dash"></i></button>
-                            <span class="qty-value">${i.quantity}</span>
-                            <button class="qty-btn" onclick="inc(${idx})"><i class="bi bi-plus"></i></button>
-                        </div>
-                        <div class="cart-item-price">₹${total}</div>
-                    </div>
-                </div>`;
-            }).join('');
-            dc.innerHTML = rows; mc.innerHTML = rows;
-        }
-
-        // The same rules as the bill (static/js/cart_tax.js): each line at its
-        // own rate, GST inside the price or on top, none on the composition
-        // scheme, and the parcel charge (once toggled on, see
-        // toggleParcel/_syncParcelUI) taxed like the food.
-        const t = RasovaCartTax.totals(
-            taxLines,
-            { inclusive: GST_INCLUSIVE, vatInclusive: VAT_INCLUSIVE, composition: IS_COMPOSITION, gstRegistered: GST_REGISTERED,
-              parcel: _parcelOn ? _parcelChargeAmount : 0, parcelGstRate: PARCEL_GST_RATE });
-        document.querySelectorAll('.view-subtotal').forEach(e => e.textContent = '₹' + t.subtotal);
-        document.querySelectorAll('.view-offers').forEach(e => {
-            e.textContent = '−₹' + t.offers.toFixed(2);
-            e.closest('.summary-row').style.display = t.offers > 0 ? '' : 'none';
-        });
-        document.querySelectorAll('.view-gst').forEach(e => {
-            e.textContent = '₹' + t.gst.toFixed(2);
-            // Show label hint so cashier knows it's included, not added
-            const label = e.closest('.summary-row')?.querySelector('span:first-child');
-            if (label) label.textContent = GST_INCLUSIVE ? 'GST (incl.)' : 'GST';
-        });
-        document.querySelectorAll('.view-vat').forEach(e => {
-            e.textContent = '₹' + t.vat.toFixed(2);
-            e.closest('.summary-row').style.display = t.vat > 0 ? '' : 'none';
-        });
-        document.querySelectorAll('.view-total').forEach(e => e.textContent = '₹' + t.roundedTotal);
-
-        // FAB badge — total item count
-        const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
-        const badge = document.getElementById('fabBadge');
-        if (badge) { badge.textContent = totalQty; badge.style.display = totalQty ? 'flex' : 'none'; }
-    }
-
-    function inc(i) { cart[i].quantity++; renderCart(); syncCardBadges(); }
-    function dec(i) { cart[i].quantity--; if (cart[i].quantity <= 0) cart.splice(i, 1); renderCart(); syncCardBadges(); }
-    function clearCart() { cart = []; renderCart(); syncCardBadges(); }
-
-    /* ── Direct add — single tap adds 1 immediately ─────────────── */
-    function addDirectly(id, name, price, gst, isVeg) {
-        const existing = cart.find(c => c.id === id);
-        if (existing) {
-            existing.quantity++;
-        } else {
-            cart.push({ id, name, price, quantity: 1, gst_percentage: gst, is_veg: isVeg, note: '', is_takeaway: false });
-        }
-        renderCart();
-        syncCardBadges();
-        // Brief gold flash on the card
-        const card = document.getElementById('card-' + id);
-        if (card) {
-            card.style.borderColor = 'var(--accent-gold)';
-            card.style.background  = 'rgba(197,160,89,0.10)';
-            setTimeout(() => {
-                card.style.borderColor = '';
-                card.style.background  = '';
-            }, 300);
-        }
-    }
-
-    /* ── Sync badge counts on menu cards ─────────────────────────── */
-    function syncCardBadges() {
-        // Reset all
-        document.querySelectorAll('.menu-card').forEach(c => c.classList.remove('in-cart'));
-        document.querySelectorAll('.cart-badge').forEach(b => { b.textContent = '0'; b.parentElement.classList.remove('in-cart'); });
-        // Set active
-        cart.forEach(item => {
-            const badge = document.getElementById('badge-' + item.id);
-            const card  = document.getElementById('card-' + item.id);
-            if (badge) badge.textContent = item.quantity;
-            if (card)  card.classList.add('in-cart');
-        });
-    }
-
-    /* ── Running order ───────────────────────────────────────────────── */
-    function renderOrderActionButton(orderId, status, remaining) {
-        let html = '';
-        if (status === 'billing') {
-            html = `<a href="/bill/${orderId}/" class="btn-checkout d-flex align-items-center justify-content-center text-decoration-none mb-2" style="background:#10b981;min-height:52px;">
-                <i class="bi bi-credit-card me-2"></i>Pay Now · ₹${Math.round(remaining || 0)}
-            </a>`;
-        } else if (status === 'paid' || status === 'closed') {
-            html = `<button class="btn-luxury w-100 mb-2" onclick="printReceipt(${orderId})" style="min-height:52px;">
-                <i class="bi bi-printer me-2"></i>Print Receipt
-            </button>`;
-        }
-        ['orderActionButtonDesktop', 'orderActionButtonMobile'].forEach(id => {
-            const el = document.getElementById(id); if (el) el.innerHTML = html;
-        });
-    }
-
-    // Guards against a slower earlier request resolving AFTER a later token
-    // switch and overwriting it with stale data -- fetches aren't guaranteed
-    // to resolve in the order they were sent.
-    let _runningOrderRequestId = 0;
-
-    function loadRunningOrder() {
-        if (!currentOrderId) return;
-        const requestId = ++_runningOrderRequestId;
-        const requestedOrderId = currentOrderId;
-
-        // On a slow/overloaded server, a hung request used to leave the
-        // "Loading order…" spinner spinning forever with no way to tell it
-        // apart from a genuine wait -- abort and show a retry option instead.
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-        fetch("{% url 'running-order-items' %}?order=" + requestedOrderId, { signal: controller.signal })
-            .then(r => r.json())
-            .then(d => {
-                clearTimeout(timeoutId);
-                if (requestId !== _runningOrderRequestId) return; // superseded by a newer request
-
-                ['orderTokenDisplay', 'orderTokenDisplayMobile'].forEach(id => {
-                    const el = document.getElementById(id); if (el) el.textContent = d.token_display || '—';
-                });
-                const titleEl = document.getElementById('orderTokenDisplayMobileTitle');
-                if (titleEl) titleEl.textContent = 'Order ' + (d.token_display || '');
-                const statusEl = document.getElementById('orderStatusDisplay');
-                if (statusEl) statusEl.textContent = d.order_status_display || '';
-                renderOrderActionButton(requestedOrderId, d.order_status, d.remaining);
-
-                const status = d.order_status || '';
-                let html = '';
-
-                if (!d.items || !d.items.length) {
-                    if (status === 'paid' || status === 'closed') {
-                        html = `<div class="text-center mt-4" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:2px;color:#10b981;">
-                            <i class="bi bi-check-circle-fill d-block mb-2" style="font-size:1.5rem;"></i>Paid
-                        </div>`;
-                    } else {
-                        html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">No active items</div>`;
-                    }
-                } else {
-                    const statusLabels = { review: 'Needs Approval' };
-                    let hasReviewItems = false;
-                    let hasBillableItems = false;
-                    html = d.items.map(i => {
-                        if (i.status === 'review') hasReviewItems = true;
-                        else hasBillableItems = true;
-                        const sc = i.status === 'ready' ? 'status-ready'
-                            : (i.status === 'preparing' ? 'border-warning text-warning'
-                            : (i.status === 'review' ? 'border-danger text-danger' : ''));
-                        // Items added by a guest via QR (counter or table) land
-                        // as "review" until staff act on them individually --
-                        // approve just accepts it onto the bill (approve-item;
-                        // the kitchen ticket fires once, at payment -- see
-                        // pay_order's _auto_kot), reject voids just that item
-                        // (cancel-item, already review-safe -- see
-                        // void_service.void_order_item). Deliberately
-                        // per-item, not an "approve all" bulk action, so a
-                        // bad/mistaken item can be rejected on its own
-                        // without forcing the rest through too.
-                        const statusCell = i.status === 'review'
-                            ? `<div class="review-item-actions">
-                                <button class="review-action-btn approve" title="Approve" onclick="approveRunningOrderItem(${i.id})"><i class="bi bi-check-lg"></i></button>
-                                <button class="review-action-btn reject" title="Reject" onclick="cancelRunningOrderItem(${i.id})"><i class="bi bi-x-lg"></i></button>
-                            </div>`
-                            : `<span class="status-badge ${sc}">${statusLabels[i.status] || i.status}</span>`;
-                        return `<div class="running-row d-flex flex-column">
-                            <div class="d-flex justify-content-between align-items-center w-100" style="gap:10px;">
-                                <span style="font-family:'DM Serif Display',serif;flex:1;">${i.quantity} × ${i.name}</span>
-                                <span style="color:var(--text-muted);font-size:0.85rem;flex-shrink:0;">₹${i.total}</span>
-                                ${statusCell}
-                            </div>
-                            ${i.modifiers && i.modifiers.length ? `<div style="font-size:0.7rem;color:var(--accent-gold);font-style:italic;">+ ${i.modifiers.join(', ')}</div>` : ''}
-                        </div>`;
-                    }).join('');
-
-                    // Checkout/Cancel only make sense for open orders, not billing/paid.
-                    if (d.order_id && status === 'open') {
-                        if (hasBillableItems && !hasReviewItems) {
-                            html += `<div class="mt-3"><button class="btn-checkout w-100" style="min-height:48px;" onclick="generateBill(${d.order_id})"><i class="bi bi-arrow-right-circle me-2"></i>Checkout</button></div>`;
-                        }
-                        html += `<div class="mt-2"><button class="btn-luxury w-100" style="border-color:#ef4444;color:#ef4444;" onclick="cancelOrder(${d.order_id})"><i class="bi bi-x-circle me-1"></i> Cancel Order</button></div>`;
-                    }
-                }
-                ['runningItemsDesktop', 'runningItemsMobile'].forEach(id => {
-                    const el = document.getElementById(id); if (el) el.innerHTML = html;
-                });
-            })
-            .catch(() => {
-                clearTimeout(timeoutId);
-                if (requestId !== _runningOrderRequestId) return;
-                showRunningOrderError();
-            });
-    }
-
-    function showRunningOrderError() {
-        const html = `<div class="text-center mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;color:#ef4444;">
-            Couldn't load this order.<br>
-            <button class="review-action-btn approve" style="width:auto;border-radius:6px;padding:4px 14px;margin-top:8px;" onclick="loadRunningOrder()">Retry</button>
-        </div>`;
-        ['runningItemsDesktop', 'runningItemsMobile'].forEach(id => {
-            const el = document.getElementById(id); if (el) el.innerHTML = html;
-        });
-    }
-
-    function showRunningOrderLoading() {
-        // Shown the instant a token is clicked / the page first loads, so
-        // the order-items area is never blank while the fetch is in flight
-        // -- blank there used to look identical to "this order has no
-        // items", right next to the cart's own always-empty-on-load state.
-        const html = `<div class="text-center text-muted mt-4" style="text-transform:uppercase;letter-spacing:2px;font-size:0.7rem;">
-            <span class="spinner-border spinner-border-sm me-2"></span>Loading order…
-        </div>`;
-        ['runningItemsDesktop', 'runningItemsMobile'].forEach(id => {
-            const el = document.getElementById(id); if (el) el.innerHTML = html;
-        });
-    }
-
-    function _setCurrentActiveListItem(orderId) {
-        document.querySelectorAll('.active-order-item.current').forEach(el => el.classList.remove('current'));
-        document.querySelectorAll(`.active-order-item[data-order-id="${orderId}"]`).forEach(el => el.classList.add('current'));
-    }
-
-    // Switching tokens used to be a full page reload -- re-rendering the
-    // entire menu grid, popularity sort, and payment config just to show a
-    // different order's items. The menu itself never changes between
-    // tokens, so only the Current Order panel needs to update; this swaps
-    // it via the same running-order-items fetch loadRunningOrder already
-    // uses, and keeps the URL bar in sync with pushState so refresh/back/
-    // bookmark all still land on a real, fully server-rendered page.
-    function selectToken(event, orderId, url) {
-        if (event) event.preventDefault();
-        if (orderId === currentOrderId) { switchTab('cart'); return false; }
-
-        currentOrderId = orderId;
-        if (url) history.pushState({ orderId }, '', url);
-        _setCurrentActiveListItem(orderId);
-        switchTab('cart');
-        clearCart();
-        showRunningOrderLoading();
-        loadRunningOrder();
-        return false;
-    }
-
-    window.addEventListener('popstate', () => {
-        const match = window.location.pathname.match(/\/token\/(\d+)\/bill\//);
-        if (!match) return;
-        const orderId = parseInt(match[1], 10);
-        if (orderId === currentOrderId) return;
-        currentOrderId = orderId;
-        _setCurrentActiveListItem(orderId);
-        switchTab('cart');
-        clearCart();
-        showRunningOrderLoading();
-        loadRunningOrder();
-    });
-
-    /* ── Submit order ────────────────────────────────────────────────── */
-    // QSR/token orders are pay-first, cook-after: the kitchen ticket fires
-    // once, at payment time (pay_order's _auto_kot), never when items are
-    // merely added or approved. So submitOrder() only ever needs to get
-    // items onto the order and then hand off to Checkout -- it no longer
-    // sends anything to the kitchen itself.
-    function submitOrder() {
-        if (sending) return;
-        if (!cart.length) {
-            // Nothing new to add -- if there's already an order with
-            // approved items sitting on it, "Checkout" should still work
-            // from this same button rather than just saying "Cart is empty"
-            // and stopping the cashier from finishing an order they already
-            // reviewed via the per-item approve/reject buttons above.
-            if (currentOrderId) { generateBill(currentOrderId); return; }
-            ui.toast('Cart is empty', 'warning');
-            return;
-        }
-        sending = true;
-        document.querySelectorAll('.send-btn').forEach(b => {
-            b.disabled = true;
-            b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing…';
-        });
-
-        // Pick up loyalty phone if feature is enabled
-        const loyaltyPhone = (
-            document.getElementById('loyaltyPhone')?.value ||
-            document.getElementById('loyaltyPhoneMobile')?.value || ''
-        ).trim();
-
-        const orderPayload = { cart, order_id: currentOrderId, source: 'counter', aggregator_id: '', customer_name: '', customer_phone: loyaltyPhone };
-
-        // Edge case: already offline before the cashier even hits submit —
-        // don't attempt the request at all, queue it straight away.
-        if (!navigator.onLine) {
-            offlineQueue.add(orderPayload)
-                .then(() => { ui.toast('Saved — will sync once back online', 'success'); clearCart(); })
-                .catch(() => { ui.toast('Could not save order offline on this device. Please note it down manually.', 'error'); });
-            resetSendBtn();
-            return;
-        }
-
-        fetch("{% url 'create-order' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-            body: JSON.stringify(orderPayload)
-        })
-        .then(r => r.json())
-        .then(d => {
-            if (!d.success) { ui.toast(d.error, 'error'); resetSendBtn(); return; }
-            clearCart();
-            resetSendBtn();
-            generateBill(d.order_id);
-            const oc = bootstrap.Offcanvas.getInstance(document.getElementById('mobileCartOffcanvas'));
-            if (oc) oc.hide();
-        })
-        .catch(err => {
-            // Only reachable for the create-order call itself — no order_id
-            // exists yet, safe to queue. TypeError = genuine network failure
-            // (same heuristic apiClient.request() already uses elsewhere).
-            if (err instanceof TypeError) {
-                offlineQueue.add(orderPayload)
-                    .then(() => { ui.toast('Connection dropped — order saved, will sync once back online', 'success'); clearCart(); })
-                    .catch(() => { ui.toast('Could not save order offline on this device. Please note it down manually.', 'error'); });
-            } else {
-                ui.toast('Could not create order. Please try again.', 'error');
-            }
-            resetSendBtn();
-        });
-    }
-
-    /* ── Print receipt ──────────────────────────────────────────────
-       Inside the Rasova Android app, the EC2 server cannot reach the LAN
-       printer, so we push the job to the print queue — the app's on-device
-       service polls it and sends bytes to the printer over WiFi.
-       On desktop/browser, fall back to the thermal-receipt print popup. */
-    async function printReceipt(orderId) {
-        const native = (typeof rasovaPlatform !== 'undefined' &&
-                        (rasovaPlatform.nativeAndroid || rasovaPlatform.android));
-        if (native) {
-            try {
-                const resp = await fetch("{% url 'print-queue-add' %}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-                    body: JSON.stringify({ order_id: orderId }),
-                });
-                const d = await resp.json().catch(() => ({}));
-                if (resp.ok && d.success) {
-                    ui.toast('Sent to printer', 'success');
-                } else {
-                    ui.toast(d.error || 'Could not reach printer', 'error');
-                }
-            } catch (e) {
-                ui.toast('Network error sending to printer', 'error');
-            }
-            return;
-        }
-        // Desktop / browser fallback
-        window.open('/thermal-receipt/' + orderId + '/', '_blank',
-            'width=420,height=680,menubar=no,toolbar=no,location=no,status=no');
-    }
-
-    /* ── Parcel charge toggle ──
-       toggle-parcel is server-authoritative about the real total either
-       way (Order.recalculate_totals() already includes parcel_surcharge,
-       so what actually gets charged at payment was always correct) -- the
-       bug was purely a display one: the Subtotal/GST/Total block here is
-       computed entirely client-side from the local unsent `cart`, and
-       never factored the parcel charge in at all, so it kept showing a
-       Total that didn't match what checkout would actually charge once
-       parcel was toggled on. _parcelChargeAmount now holds the REAL
-       amount the server just computed (qty/mode-aware -- ₹5/item on 3
-       items is ₹15, not the flat per-unit rate the button's own label
-       shows), and both the parcel line and the Total re-render from it. */
-    let _parcelOn = false;
-    let _parcelChargeAmount = {{ request.user.outlet.parcel_charge_amount|default:0 }};
-
-    async function toggleParcel() {
-        if (!currentOrderId) {
-            _parcelOn = !_parcelOn;
-            _syncParcelUI();
-            return;
-        }
-        try {
-            const d = await apiClient.post(
-                "{% url 'toggle-parcel' 0 %}".replace('/0/', '/' + currentOrderId + '/'), {}
-            );
-            _parcelOn = d.parcel_on;
-            _parcelChargeAmount = d.parcel_amount;
-            _syncParcelUI();
-        } catch(e) { ui.toast('Could not update parcel charge', 'error'); }
-    }
-
-    function _syncParcelUI() {
-        document.querySelectorAll('.parcel-row').forEach(el => {
-            el.style.display = _parcelOn ? 'flex' : 'none';
-            const amountEl = el.querySelector('span:last-child');
-            if (amountEl) amountEl.textContent = '₹' + _parcelChargeAmount;
-        });
-        document.querySelectorAll('.parcel-btn').forEach(btn => {
-            btn.style.borderColor = _parcelOn ? 'var(--accent-gold)' : 'var(--border-color)';
-            btn.style.color       = _parcelOn ? 'var(--accent-gold)' : 'var(--text-muted)';
-            btn.style.background  = _parcelOn ? 'rgba(197,160,89,0.06)' : 'transparent';
-        });
-        document.querySelectorAll('.parcel-btn-text').forEach(el => {
-            el.textContent = _parcelOn
-                ? 'Parcel Added ✓ (tap to remove)'
-                : `Add Parcel +₹${_parcelChargeAmount}`;
-        });
-        // The parcel charge isn't part of the local `cart` array renderCart()
-        // sums -- without this, the Total shown here wouldn't match what
-        // checkout actually charges once parcel is toggled on.
-        renderCart();
-    }
-
-    function resetSendBtn() {
-        sending = false;
-        document.querySelectorAll('.send-btn').forEach(b => {
-            b.disabled = false;
-            b.innerHTML = 'Checkout <i class="bi bi-arrow-right ms-1"></i>';
-        });
-    }
-
-    function generateBill(orderId) {
-        const id = orderId || currentOrderId;
-        if (!id) { ui.toast('No active order', 'warning'); return; }
-        fetch("{% url 'generate-bill' 0 %}".replace('0', id), {
-            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) window.location.href = "{% url 'bill-view' 0 %}".replace('0', data.order_id);
-            else ui.toast(data.error || 'Failed to generate bill', 'error');
-        })
-        .catch(() => ui.toast('Error generating bill', 'error'));
-    }
-
-    function approveRunningOrderItem(itemId) {
-        fetch("{% url 'approve-item' 0 %}".replace('0', itemId), {
-            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
-        })
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) { ui.toast('Item approved', 'success'); loadRunningOrder(); }
-            else ui.toast(d.error || 'Approval failed', 'error');
-        })
-        .catch(() => ui.toast('Could not approve item', 'error'));
-    }
-
-    function cancelRunningOrderItem(itemId) {
-        fetch("{% url 'cancel-item' 0 %}".replace('0', itemId), {
-            method: 'POST', headers: { 'X-CSRFToken': apiClient.getCsrf() }
-        })
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) { ui.toast('Item rejected', 'success'); loadRunningOrder(); }
-            else ui.toast(d.error || 'Could not reject item', 'error');
-        })
-        .catch(() => ui.toast('Could not reject item', 'error'));
-    }
-
-    function cancelOrder(orderId) {
-        OrderEdit.configure({ cancelOrder: "{% url 'cancel-order' 0 %}" });
-        OrderEdit.cancelOrder(orderId).then(data => { if (data) loadRunningOrder(); });
-    }
-
-    /* ── Large text mode (persists in localStorage) ─────────────── */
-    (function() {
-        if (localStorage.getItem('rasova_large_text') === '1') {
-            document.documentElement.classList.add('large-text');
-        }
-    })();
-
-    function toggleLargeText() {
-        const on = document.documentElement.classList.toggle('large-text');
-        localStorage.setItem('rasova_large_text', on ? '1' : '0');
-        const icon = document.getElementById('largeTextIcon');
-        if (icon) {
-            icon.className = on ? 'bi bi-type-h1' : 'bi bi-type';
-            icon.style.color = on ? 'var(--accent-gold)' : '';
-        }
-    }
-
-    // Sync icon on load
-    document.addEventListener('DOMContentLoaded', () => {
-        const on   = document.documentElement.classList.contains('large-text');
-        const icon = document.getElementById('largeTextIcon');
-        if (icon && on) { icon.style.color = 'var(--accent-gold)'; }
-    });
-
-    document.addEventListener('DOMContentLoaded', () => {
-        renderCart();
-        syncCardBadges();
-        showRunningOrderLoading();
-        loadRunningOrder();
-        setInterval(loadRunningOrder, 5000);
-        const f1 = document.querySelector('.category-sidebar .category-item'); if (f1) f1.classList.add('active');
-        const f2 = document.querySelector('.mobile-category-nav .category-item'); if (f2) f2.classList.add('active');
-    });
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
-    }
-</script>
+<script type="module" src="{% static 'js/billing/index.js' %}"></script>
 {% endblock %}

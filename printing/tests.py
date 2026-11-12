@@ -453,16 +453,33 @@ class KeySecurityTests(PrintQueueBase):
         self.assertEqual(r.status_code, 403)
 
     def test_pages_hand_the_key_over_without_putting_it_in_a_url(self):
-        """base.html gives the Android app the server and the key separately
-        and shows the PC agent --server/--key; it used to build
-        /orders/agent/<key>/ for both."""
+        """The Android app is given the server and the key separately, and
+        the PC agent is shown --server/--key; both used to be built into
+        /orders/agent/<key>/.
+
+        Since 12 Nov 2026 base.html carries no script: the page hands the
+        key over in its rasova-data block and static/js/core does the rest
+        (platform.js for the app, pwa.js for the PC agent's command)."""
+        import json
+        import re
+        from pathlib import Path
+        from django.conf import settings
         self.client.force_login(self.owner)
         html = self.client.get("/dashboard/").content.decode()
         key = str(self.outlet.print_agent_key)
-        self.assertIn("Android.startPrintingWithKey(serverUrl, agentKey)", html)
-        self.assertIn(f"const agentKey = '{key}'", html)
-        self.assertIn("--server '${SERVER_URL}' --key '${AGENT_KEY}'", html)
+        data = json.loads(re.search(r'<script id="rasova-data" type="application/json">(.*?)</script>', html, re.S).group(1))
+        self.assertEqual(data["agent_key"], key)
         self.assertNotIn(f"/orders/agent/{key}", html)
+        self.assertEqual(html.count(key), 1, "the key is on the page once, in the data block")
+
+        core = Path(settings.BASE_DIR) / "static" / "js" / "core"
+        self.assertIn("bridge.startPrintingWithKey(serverUrl, agentKey)", (core / "platform.js").read_text(encoding="utf-8"))
+        self.assertIn("--server '${serverUrl}' --key '${agentKey}'", (core / "pwa.js").read_text(encoding="utf-8"))
+        self.assertIn("agentKey: data.agent_key", (core / "app.js").read_text(encoding="utf-8"))
+        # no script puts a key into an agent address
+        for script in (Path(settings.BASE_DIR) / "static" / "js").rglob("*.js"):
+            self.assertIsNone(re.search(r"/orders/agent/[^\s\"'`]*\$\{", script.read_text(encoding="utf-8", errors="ignore")),
+                              f"{script.name} builds an agent address with a value in it")
 
 
 # ── Tenant isolation (new tenant_id filter) ───────────────────────────────────
