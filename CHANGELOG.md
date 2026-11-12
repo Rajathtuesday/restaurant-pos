@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-13: Light mode had a black page behind every screen
+
+### Fixed
+- **In light mode every page except billing was white cards on a black page, with the section headings unreadable.** Phase 0 moved base.html's inline styles into `static/css/rasova.css`. One of them, a black background on `<html>` and `<body>` to avoid a white flash before the stylesheets load, used to sit before the theme's stylesheet, where the theme's own body background replaced it; in `rasova.css` it came after the theme and won. It is removed from `rasova.css` (the style attribute on `<html>` still gives the dark first paint, and the theme paints `<body>`). Billing looked right only because its panels paint their own backgrounds. Never reached production: phase 0 has not been pushed.
+
+### Tests
+- `core/tests/test_theme_browser.py` (Playwright): the dashboard's page colour is the theme's in light mode, in dark mode after the toggle, and in light mode again, and text written on the page is never the page's own colour. No test looked at a colour before, which is how this got through.
+
 ## 2026-11-12: The frontend rebuild, phase 1: the billing screens
 
 The dine-in billing screen and the token counter were two pages with about 800 lines of inline script each, mostly the same code written twice. They are one module now, tested in node and in a real browser. A cashier sees the same screens; the fixes below are what the tests found on the way.
