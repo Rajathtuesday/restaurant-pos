@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The header on a phone is one row
+
+### Fixed
+- **On a phone the header's controls wrapped into two to four rows of icons**, eating the screen: the floor plan's header was 321px tall on an 844px phone, the token counter's 274px, billing's 172px. Under 576px wide they now form one row that scrolls sideways (the page itself never does), and clock in and order history step aside (both are on the dashboard). After: floor plan 153px, token counter 134px, billing 123px.
+
+### Tests
+- `core/tests/test_phone_header_browser.py` (Playwright, at 390px): billing, the floor plan, the kitchen, the dashboard and the token counter each have one row of header controls, a header under 160px, and no sideways page scroll. Fails on the old stylesheet.
+
 ## 2026-11-13: The setup badge no longer covers the billing buttons
 
 ### Fixed

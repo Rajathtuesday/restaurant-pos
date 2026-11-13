@@ -59,14 +59,14 @@
 
         <div class="header-right d-flex align-items-center gap-2">
             {% if request.user.is_authenticated %}
-            <a href="/shifts/" class="btn-icon" title="Clock In / Out"><i class="bi bi-clock"></i></a>
+            <a href="/shifts/" class="btn-icon header-clock" title="Clock In / Out"><i class="bi bi-clock"></i></a>
             {% endif %}
             {% block header_status %}{% endblock %}
             {% block header_links %}{% endblock %}
             {% if request.user.is_authenticated %}
             {% block header_badges %}{% include "core/_notif_badges.html" %}{% endblock %}
             {% if request.user.role != "chef" %}
-            <a href="{% url 'order-history' %}" class="btn-icon" title="Order History"><i class="bi bi-clock-history"></i></a>
+            <a href="{% url 'order-history' %}" class="btn-icon header-history" title="Order History"><i class="bi bi-clock-history"></i></a>
             {% endif %}
             {% endif %}
             {% block header_theme %}

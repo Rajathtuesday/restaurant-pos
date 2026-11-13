@@ -167,6 +167,27 @@ body {
     input, select, textarea { font-size: max(16px, 1em); }
 }
 
+/* The header on a phone: the name, then ONE row of controls that scrolls
+   sideways, never two to four rows of icons (the floor plan's header was
+   321px tall on a 844px phone, 13 Nov 2026). Clock in and history are on
+   the dashboard, so they step aside here. */
+@media (max-width: 575.98px) {
+    .pos-header { padding: 0.75rem 1rem; row-gap: 0.5rem; }
+    .header-right {
+        width: 100%;
+        flex-wrap: nowrap !important;
+        justify-content: flex-start;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+    }
+    .header-right::-webkit-scrollbar { display: none; }
+    .header-right > *, .header-right .d-flex > *, .header-right .action-group > * { flex-shrink: 0; }
+    .header-right .d-flex, .header-right .action-group { flex-wrap: nowrap !important; }
+    .header-right .btn-luxury { padding: 0.4rem 0.7rem; font-size: 0.7rem; white-space: nowrap; }
+    .header-clock, .header-history { display: none !important; }
+}
+
 /* The printer chip (core/_printer_chip.html, static/js/core/printing_status.js). */
 .printer-chip {
     display: inline-flex; align-items: center; gap: 6px;
