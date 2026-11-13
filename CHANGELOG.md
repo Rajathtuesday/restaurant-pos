@@ -7,6 +7,12 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The browser smoke walk
+
+### Tests
+- **Every page the owner can open is opened in a real browser** (`core/tests/test_browser_smoke_walk.py`, Playwright). The URL list is the tenant walk's: every named route, its ids filled from a fully set-up fine-dining restaurant's own rows; a route is a page when it answers the owner's GET with 200 and HTML (67 pages today). A page fails on an uncaught error, a console error, a static file that did not load, or stylesheet text among its words. A new page is walked the day its URL is added. About 80 seconds.
+- On its first run it found the two breaks fixed in the entries below (live orders, the reports dashboard). It would also have caught both breaks of the entry before them (the QR menu's stylesheet as text, the running order).
+
 ## 2026-11-13: The reports dashboard drew no charts
 
 ### Fixed
