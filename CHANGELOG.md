@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The reports dashboard drew no charts
+
+### Fixed
+- **The reports dashboard showed empty boxes where its two charts belong.** Its script read `themeManager` while the page was still parsing; `static/js/core/app.js` (a module since phase 0) sets it only once the page is parsed. It threw before either chart was drawn. The script now runs once the page is parsed. Found by the browser smoke walk. It never reached production: it came in with the unpushed phase 0 commit.
+
+### Tests
+- `reports/tests/test_dashboard_browser.py` (Playwright): the sales chart is drawn with no error in the browser. Fails on the old template with "themeManager is not defined".
+
 ## 2026-11-13: Live orders showed no orders
 
 ### Fixed

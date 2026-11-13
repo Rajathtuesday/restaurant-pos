@@ -616,7 +616,7 @@
 
 {% block extra_js %}
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
   const dark = themeManager.isDark();
   let chartTextColor = dark ? '#888888' : '#737373';
   let chartGridColor = dark ? '#262626' : '#eaeaea';
@@ -725,7 +725,7 @@
   }
 
   window.addEventListener('themeChanged', () => location.reload());
-})();
+});
 
 function triggerExport(type) {
   const params = new URLSearchParams(window.location.search);
