@@ -16,6 +16,7 @@ from notifications.models import Notification
 from kitchen.models import KitchenMessage
 from orders.services.cart_limits import QuantityError
 from waiter.models import WaiterCall
+from printing.services.status import printing_state
 
 @login_required
 @tenant_required
@@ -88,7 +89,10 @@ def notification_api(request):
         },
         "notifications": [
             {"id": n.id, "message": n.message} for n in unread_system
-        ]
+        ],
+        # The printer chip on billing, tables and the token counter
+        # (static/js/core/printing_status.js turns this into words).
+        "printing": printing_state(outlet),
     })
 
 from orders.models import Table, Order, OrderItem, Payment

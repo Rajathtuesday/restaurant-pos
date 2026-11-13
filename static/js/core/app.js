@@ -23,6 +23,7 @@ import {
 } from "./offline.js";
 import { pageData } from "./page_data.js";
 import { detectPlatform, startAndroidPrinting } from "./platform.js";
+import { createPrinterChip } from "./printing_status.js";
 import { registerServiceWorker, setupInstallPrompt } from "./pwa.js";
 import { createThemeManager } from "./theme.js";
 import { createUi } from "./toast.js";
@@ -45,7 +46,9 @@ const orderQueue = createOrderQueue({ store: indexedDbStore(ORDER_STORE), ...que
 const paymentQueue = createPaymentQueue({ store: indexedDbStore(PAYMENT_STORE), ...queueOptions });
 queues.push(orderQueue, paymentQueue);
 
-const poller = createNotificationPoller({ ui });
+// The printer chip, on the pages that show one (billing, tables, tokens).
+const printerChip = createPrinterChip({ el: document.getElementById("printer-chip"), platform });
+const poller = createNotificationPoller({ ui, onData: (answer) => printerChip.update(answer.printing) });
 
 theme.init();
 
@@ -62,6 +65,10 @@ window.addEventListener("offline", () => {
 // The header and the banners: one listener, by data-action.
 delegate(document.body, {
   "theme.toggle": () => theme.toggle(),
+  "printer.explain": () => {
+    const said = printerChip.current();
+    if (said) ui.toast(said.hint, said.level === "ok" ? "success" : said.level === "bad" ? "error" : "info");
+  },
   "banner.dismiss": (el) => {
     const banner = document.getElementById(el.dataset.target);
     if (banner) banner.remove();

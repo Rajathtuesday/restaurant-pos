@@ -12,4 +12,6 @@ urlpatterns = [
     path("orders/agent/jobs/", views.print_queue_poll, name="print-queue-poll"),
     path("orders/agent/done/<int:job_id>/", views.print_queue_done, name="print-queue-done"),
     path("orders/agent/failed/<int:job_id>/", views.print_queue_failed, name="print-queue-failed"),
+    # Staff, not the agent: setup's Test Print waits on it (setup/printer/).
+    path("printing/job/<int:job_id>/", views.print_job_status, name="print-job-status"),
 ]

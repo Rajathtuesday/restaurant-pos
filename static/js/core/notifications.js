@@ -46,6 +46,7 @@ export function createNotificationPoller({
   doc = document,
   nav = globalThis.navigator,
   interval = 8000,
+  onData = () => {},
 } = {}) {
   // -1 means "not seen yet": the first poll sets the badges without toasting
   // everything that was already there.
@@ -78,6 +79,13 @@ export function createNotificationPoller({
       const res = await fetchFn(URL, { headers: { "X-Requested-With": "XMLHttpRequest" } });
       if (!res.ok) return;
       const data = await res.json();
+      // Anything else the answer carries (the printing state) goes to
+      // whoever wants it; a listener that throws never stops the badges.
+      try {
+        onData(data);
+      } catch (listener) {
+        /* the badges still update */
+      }
 
       const waiter = data.waiter_calls.count || 0;
       const kitchen = data.kitchen_messages.count || 0;

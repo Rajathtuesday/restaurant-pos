@@ -917,6 +917,16 @@ def rename_table(request, table_id):
 # OUTLET SETTINGS
 # ==================================
 
+def printer_page_data():
+    """What static/js/setup/printer_setup.js needs: where Test Print sends,
+    and where it asks for the job (0 stands in for the job's id)."""
+    from django.urls import reverse
+    return {"urls": {
+        "test_print": reverse("printer_test_print"),
+        "job_status": reverse("print-job-status", args=[0]),
+    }}
+
+
 @login_required
 def printer_setup(request):
     """
@@ -959,7 +969,7 @@ def printer_setup(request):
         except Exception:
             messages.error(request, "That printer IP doesn't look valid — use a form like 192.168.1.100.")
             return render(request, "setup/printer_setup.html",
-                          {"outlet": outlet, "station": station, "saved": False})
+                          {"outlet": outlet, "station": station, "saved": False, "page_data": printer_page_data()})
 
         # Mirror paper width + MAC onto the outlet for any code still reading them.
         outlet.printer_mac    = request.POST.get("printer_mac", "").strip().upper()
@@ -968,7 +978,7 @@ def printer_setup(request):
         saved = True
 
     return render(request, "setup/printer_setup.html",
-                  {"outlet": outlet, "station": station, "saved": saved})
+                  {"outlet": outlet, "station": station, "saved": saved, "page_data": printer_page_data()})
 
 
 @login_required

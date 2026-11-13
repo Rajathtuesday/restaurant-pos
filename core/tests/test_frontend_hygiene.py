@@ -173,7 +173,7 @@ BASELINE = {
     'setup/templates/setup/approval_pin.html': {"script": 0, "style": 19, "onclick": 0, "third_party": 0, "globals": 0},
     'setup/templates/setup/onboard.html': {"script": 108, "style": 145, "onclick": 3, "third_party": 0, "globals": 0},
     'setup/templates/setup/outlet_settings.html': {"script": 65, "style": 40, "onclick": 0, "third_party": 0, "globals": 0},
-    'setup/templates/setup/printer_setup.html': {"script": 53, "style": 108, "onclick": 4, "third_party": 0, "globals": 0},
+    'setup/templates/setup/printer_setup.html': {"script": 15, "style": 108, "onclick": 3, "third_party": 0, "globals": 0},
     'setup/templates/setup/report_subscriptions.html': {"script": 34, "style": 27, "onclick": 3, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup.html': {"script": 0, "style": 38, "onclick": 0, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_kitchen_stations.html': {"script": 235, "style": 92, "onclick": 10, "third_party": 0, "globals": 0},

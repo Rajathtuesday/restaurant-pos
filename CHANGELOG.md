@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-13: Printing tells the cashier its state
+
+### Changed
+- **A printer chip on the billing, floor plan and token screens** says whether printing works and, when tapped, the one thing to do: "Printer ready", "Printing 2", "Print app not seen for 10 min" (open the Rasova app on the counter phone), "3 waiting to print (7 min)" (the app is connected but the printer is not taking jobs: power, paper, Wi-Fi), "Last print failed" (with the agent's reason), or, with no print app ever connected, "No print app connected" ("Prints from the bill" on an iPhone). It used to be that the cashier found out when no paper came out.
+- **The server knows when a print agent last asked for jobs** (`Outlet.print_agent_seen_at`, migration `tenants 0042`). The agent's poll records it at most once a minute behind a cache gate, so an idle poll still costs one cache read.
+- The printing state rides on the existing 8-second notifications answer (`printing.services.status.printing_state`): no new poll. The words are `static/js/core/printing_status.js`.
+- **Setup's Test Print waits for the printer.** It used to say "Test queued" the moment the server accepted the job, which proved nothing. It now asks for the job (`/printing/job/<id>/`, owner and manager, own outlet only) until an agent finishes it: "Printed", "The printer refused it: <reason>", or, after 20 seconds, which of the app or the printer to check. Its script is a module now (`static/js/setup/`).
+- No WebSocket probe of a desktop agent: the current printing model is a print app polling the server, and a probe would log a browser error on every billing screen without a desktop agent.
+
+### Tests
+- `printing/test_printing_status.py` (11 tests): the agent's poll recorded once a minute, an idle poll counts, a wrong key records nothing; the state for one outlet and no other (waiting, oldest, failures in the last hour, the last error); the notifications answer carries the user's own outlet; the job status for a manager, 404 for another outlet or restaurant, 403 for a waiter; Test Print answers with the job to wait on.
+- `printing/test_printing_browser.py` (Playwright, 6 tests): the chip ready, red with what to open (and its hint on a tap), red for stuck bills on the floor plan, grey with no app; Test Print showing "Printed" only once a stand-in agent finished the job, and the agent's reason when it refused.
+- `static/js/tests/printing_status.test.mjs` (16 tests): every state's words, the chip drawing and hiding, Test Print's waits, a dropped connection, no IP, a refusal, a double tap.
+- The tenant walk covers the new job status address (another restaurant's job is refused).
+
 ## 2026-11-13: One header for every page
 
 ### Changed

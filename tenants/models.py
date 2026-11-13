@@ -640,6 +640,10 @@ class Outlet(models.Model):
         unique=True,
         help_text="Secret key the Rasova Agent uses to poll for print jobs. Never share publicly."
     )
+    # When a print agent last asked for jobs with this outlet's key, written
+    # at most once a minute (printing.services.status.record_agent_seen).
+    # The billing screen's printer chip says "not seen for N min" from it.
+    print_agent_seen_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     paper_width_mm = models.IntegerField(
         default=80,

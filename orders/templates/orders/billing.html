@@ -10,6 +10,8 @@
 
 {% block page_title %}POS Billing{% endblock %}
 
+{% block header_status %}{% include "core/_printer_chip.html" %}{% endblock %}
+
 {% block header_links %}
 <div class="d-flex align-items-center gap-2">
   {% if 'floor_plan' in tenant_features %}

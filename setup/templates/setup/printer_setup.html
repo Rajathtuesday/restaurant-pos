@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Printer Setup | {{ request.user.tenant.name }}{% endblock %}
 
@@ -291,11 +292,11 @@
             <button type="submit" class="btn-save">
                 <i class="bi bi-check2-circle me-2"></i>Save
             </button>
-            <button type="button" class="btn-test" id="testBtn" onclick="testPrint()">
+            <button type="button" class="btn-test" id="testBtn" data-action="printer.test">
                 <i class="bi bi-printer me-2"></i>Test Print
             </button>
         </div>
-        <div class="test-result" id="testResult"></div>
+        <div class="test-result result-line" id="testResult" aria-live="polite"></div>
     </form>
 
 </div>
@@ -318,43 +319,7 @@
         }
         el.value = out;
     }
-
-    // Test print — queues a PrintJob the phone agent picks up (no direct socket)
-    async function testPrint() {
-        const btn    = document.getElementById('testBtn');
-        const result = document.getElementById('testResult');
-        const ip     = document.getElementById('ipInput').value.trim();
-
-        if (!ip) {
-            result.style.color = '#ef4444';
-            result.textContent = 'Enter a printer IP and Save first.';
-            return;
-        }
-
-        btn.disabled = true;
-        result.style.color = 'var(--text-muted)';
-        result.textContent = 'Queuing test print…';
-
-        try {
-            const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
-            const resp = await fetch("{% url 'printer_test_print' %}", {
-                method: 'POST',
-                headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
-            });
-            const data = await resp.json();
-            if (resp.ok && data.success) {
-                result.style.color = '#22c55e';
-                result.textContent = '✓ ' + data.message;
-            } else {
-                result.style.color = '#ef4444';
-                result.textContent = '✗ ' + (data.error || 'Could not queue test print.');
-            }
-        } catch (e) {
-            result.style.color = '#ef4444';
-            result.textContent = '✗ Network error — try again.';
-        } finally {
-            btn.disabled = false;
-        }
-    }
 </script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/setup/printer_setup.js' %}"></script>
 {% endblock %}

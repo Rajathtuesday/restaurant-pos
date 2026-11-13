@@ -28,6 +28,7 @@ static/js/core/      what base.html runs on every page
   pwa.js             service worker registration, the install banner, the printing sheet
   checklist.js       the setup checklist in the corner
   request_id.js      a UUID per order request, so the server answers a replayed order with the first one (orders.OrderRequest)
+  printing_status.js the printer chip's words, from the printing state in the 8-second notifications answer
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")
 static/js/billing/   the billing screen: one module for the dine-in screen, the QSR counter and the token counter
@@ -62,6 +63,7 @@ and logout. A page fills only its slots:
 | `header_links` | the page's own buttons and links |
 | `header_badges` | the alert badges; billing, tables and live orders use the wide ones |
 | `header_theme` | the theme switch; only the kitchen replaces it |
+| `header_status` | the printer chip, on the screens that print: `{% include "core/_printer_chip.html" %}` |
 
 There is no `header_left` or `header_right` any more: Django silently ignores a
 block the parent does not have, so `core/tests/test_one_header.py` fails on a page

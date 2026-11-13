@@ -160,6 +160,28 @@ body {
     font-family: var(--font-main, 'Outfit', sans-serif);
 }
 
+/* The printer chip (core/_printer_chip.html, static/js/core/printing_status.js). */
+.printer-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    min-height: 36px; padding: 0 12px; border-radius: 18px;
+    border: 1px solid var(--border-color); background: transparent;
+    color: var(--text-main); font-size: 0.8rem; white-space: nowrap; cursor: pointer;
+}
+.printer-chip[hidden] { display: none; }
+.printer-chip.is-ok   { border-color: #16a34a; color: #16a34a; }
+.printer-chip.is-warn { border-color: #d97706; color: #d97706; }
+.printer-chip.is-bad  { border-color: #dc2626; color: #fff; background: #dc2626; }
+.printer-chip.is-info { color: var(--text-muted); }
+@media (max-width: 575.98px) {
+    .printer-chip .printer-chip-text { display: none; }
+    .printer-chip.is-bad .printer-chip-text { display: inline; }
+}
+
+/* A one-line result under a button: waiting, done, refused. */
+.result-line.is-wait { color: var(--text-muted); }
+.result-line.is-ok   { color: #16a34a; }
+.result-line.is-bad  { color: #dc2626; }
+
 /* The subtitle is "Page · Outlet" (base.html). The dot only shows when the
    page named itself: an empty page-name span leaves just the outlet. */
 .brand-subtitle .page-name:not(:empty) + .outlet-name:not(:empty)::before { content: " · "; }

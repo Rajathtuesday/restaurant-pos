@@ -10,6 +10,8 @@
 
 {% block page_title %}Token Billing{% endblock %}
 
+{% block header_status %}{% include "core/_printer_chip.html" %}{% endblock %}
+
 {% block header_links %}
 <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Tokens</a>
 <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Kitchen</a>

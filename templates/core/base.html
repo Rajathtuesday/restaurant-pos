@@ -43,6 +43,7 @@
          header_links   the page's own buttons and links
          header_badges  the alert badges (billing, tables and live orders use the wide ones)
          header_theme   the theme switch (the kitchen has its own)
+         header_status  the printer chip, on the screens that print (core/_printer_chip.html)
        The brand, clock in/out, order history and logout are the same everywhere.
        core/tests/test_one_header.py holds every page to it.
     {% endcomment %}
@@ -59,6 +60,7 @@
             {% if request.user.is_authenticated %}
             <a href="/shifts/" class="btn-icon" title="Clock In / Out"><i class="bi bi-clock"></i></a>
             {% endif %}
+            {% block header_status %}{% endblock %}
             {% block header_links %}{% endblock %}
             {% if request.user.is_authenticated %}
             {% block header_badges %}{% include "core/_notif_badges.html" %}{% endblock %}

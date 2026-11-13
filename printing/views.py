@@ -131,6 +131,10 @@ def print_queue_poll(request):
     if outlet is None:
         return JsonResponse({"error": "Invalid key"}, status=403)
 
+    # Before the cheap early return below: an idle agent is still alive.
+    from printing.services.status import record_agent_seen
+    record_agent_seen(outlet)
+
     flag_key  = PrintJob.pending_flag_key(outlet.id)
     sweep_key = PrintJob.sweep_key(outlet.id)
 
@@ -252,6 +256,26 @@ def print_queue_poll(request):
             }
             for j in jobs
         ]
+    })
+
+
+@login_required
+@tenant_required
+@require_GET
+def print_job_status(request, job_id):
+    """Where one of this outlet's print jobs is: waiting, printing, printed
+    or failed (with the agent's reason). Setup's Test Print asks this until
+    the job is done, so "printed" means a printer took it, not just that the
+    server queued it."""
+    if request.user.role not in ("owner", "manager"):
+        return JsonResponse({"error": "Not allowed"}, status=403)
+    job = PrintJob.objects.filter(pk=job_id, tenant=request.user.tenant, outlet=request.user.outlet).first()
+    if job is None:
+        return JsonResponse({"error": "Not found"}, status=404)
+    return JsonResponse({
+        "status": job.status,
+        "error": job.error_msg if job.status == PrintJob.FAILED else "",
+        "age_seconds": max(0, int((timezone.now() - job.created_at).total_seconds())),
     })
 
 
