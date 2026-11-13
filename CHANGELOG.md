@@ -7,6 +7,31 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The frontend rebuild, phase 2: the floor plan
+
+The floor plan is the screen a fine-dining cashier lives on. Its 345 lines of inline script, 148 lines of inline style and 28 `onclick` attributes are modules and a stylesheet now, tested in node and in a real browser.
+
+### Changed
+- **The floor plan is markup only** (`orders/templates/orders/tables.html`): no inline script, no `<style>` block, no `onclick`, no `style=` attribute. Its code is `static/js/tables/`: `floor.js` (the cards, the alert strip, the numbers and the sheets as markup), `actions.js` (what a tap asks the server to do), `loader.js` (the 5-second refresh), `index.js` (reads the page's data, handles every `data-action`). Its CSS is `static/css/tables.css`.
+- **The page's addresses reach the script in one block** (`orders.views.table_views.tables_page_data`), reversed on the server. No address is typed in the script.
+- **No browser pop-ups on the floor plan.** Unmerge and Approve All Items asked with the browser's own `confirm()`, which never appears inside the Android app, so on a phone the two silently did nothing. They ask in the page's own dialog now.
+- Messages use the same toast as every other screen; the page's own toast box is gone. After combining, splitting or moving tables the floor is redrawn in place, where the whole page used to reload a second later.
+- Every name a person typed (a table, a section, a waiter) is escaped where it is drawn. A table named with `<` or a quote used to be put into the page as HTML.
+- "Floor Plan: Main" in the header, without the em dash.
+
+### Fixed
+- **The Transfer button in the header did nothing.** Its sheet showed the source table as an empty, disabled picker, and the order to move was only ever set from a table's More menu, so Execute Transfer returned without a word. The source can be picked now (the tables that have an open order), and the order moved is the one sitting at it.
+- **A name being typed in the Tables sheet was wiped every 5 seconds.** The refresh redrew the list of tables, and the pickers in Combine and Transfer, whether or not anything had changed. They are redrawn only when the tables, their names, sections or free state change; the cards likewise only when what they show changes.
+- **A table's QR was drawn by api.qrserver.com.** That site was sent the table's menu link with its token, and the QR was blank without internet. It is drawn on the page by the QR library Rasova already serves. View Large opens that same image in a new tab.
+- **An old answer could put the floor back.** The floor is asked for every 5 seconds and after every action; an answer to the earlier question arriving after the later one was drawn over it (a table just cleaned showing dirty again until the next refresh). Only the newest question's answer is drawn.
+- **A second tap on Bill, Mark Clean, Execute Merge or Execute Transfer sent the request twice.** A second tap is ignored until the first answers.
+- Combine and Transfer with a picker left empty say what is missing; they used to do nothing. A failed load says why (the server's message, a lost session, no connection) in place of a JSON parse error.
+
+### Tests
+- `static/js/tests/tables.test.mjs` (29 tests): the numbers and the alert strip; each kind of table's buttons; sections; escaping; the More sheet; which tables an order may move from and to; the sheets left alone while nothing changed; the QR link; the loader (a failure's reason, an old answer arriving late, a late failure); every action (what it sends, a refusal, offline, a double tap, asking before Unmerge and Approve).
+- `orders/tests/test_tables_browser.py` (Playwright, 11 tests, each ending in the database): the floor drawn with its sections and numbers; a free table starting an order; Bill; Mark Clean; an order moved from the header's Transfer and from a table's own sheet; two tables combined, and split only after the question is answered; a guest's QR order approved; a name typed across a refresh and saved; a table added; a waiter refused and told; a table's QR drawn on the page with no request to another host.
+- The ratchet: `tables.html` is gone from the baseline (80 templates left).
+
 ## 2026-11-13: The frontend rebuild, phase 2 begins: the bill page
 
 The bill page is where money changes hands: discounts, the UPI QR, cash, card, Razorpay, the cover, loyalty points, printing. Its 541 lines of inline script and 132 lines of inline style are modules and a stylesheet now, tested in node and in a real browser.

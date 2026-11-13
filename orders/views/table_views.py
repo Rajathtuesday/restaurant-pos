@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.utils import timezone
@@ -15,11 +16,36 @@ from tablemerge.models import TableMerge
 logger = logging.getLogger("pos.orders")
 
 
+def tables_page_data():
+    """What static/js/tables/index.js needs from the server, rendered once
+    by tables.html as {{ page_data|json_script:"page-data" }}: how often the
+    floor is asked for, and every address the script calls or sends the
+    cashier to (0 stands in for an id the script fills in)."""
+    return {
+        "poll_ms": 5000,
+        "urls": {
+            "tables_data": reverse("tables-data"),
+            "manage_table": reverse("manage-table"),
+            "clean_table": reverse("clean-table", args=[0]),
+            "transfer_table": reverse("transfer-table"),
+            "merge_tables": reverse("merge-tables"),
+            "unmerge_tables": reverse("unmerge-tables", args=[0]),
+            "generate_bill": reverse("generate-bill", args=[0]),
+            "approve_items": reverse("approve-items", args=[0]),
+            "billing": reverse("billing-view"),
+            "bill": reverse("bill-view", args=[0]),
+            "running_order": reverse("running-order", args=[0]),
+            # A table's QR opens the guest menu: this address plus ?table_token=
+            "digital_menu": reverse("digital_menu"),
+        },
+    }
+
+
 @login_required
 @tenant_required
 @feature_required("floor_plan")
 def table_dashboard(request):
-    return render(request, "orders/tables.html")
+    return render(request, "orders/tables.html", {"page_data": tables_page_data()})
 
 
 @login_required
@@ -109,7 +135,7 @@ def tables_data(request):
                     status = "billing"
                 else:
                     # Convert to list to use prefetch cache. Voided items are
-                    # excluded — they're inert and must never keep a table
+                    # excluded: they're inert and must never keep a table
                     # looking active (same fix as update_table_state).
                     items_list = [i for i in order.items.all() if i.status != "voided"]
 

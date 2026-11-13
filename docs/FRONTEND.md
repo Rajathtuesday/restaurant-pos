@@ -33,9 +33,11 @@ static/js/billing/   the billing screen: one module for the dine-in screen, the 
   index.js           reads page-data, handles every data-action, wires the pieces below
   cart.js, parcel.js, dispatch.js, counter.js, running_order.js, menu.js, printing.js, tokens.js, ui.js, urls.js
 static/js/bill/      the bill page: payment, discounts, printing, the Razorpay QR (phase 2's first page)
-static/js/pages/     phase 2: one module per remaining page
+static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server), loader.js (the 5-second refresh), index.js
+static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
+static/css/tables.css  the floor plan
 static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)
@@ -51,7 +53,7 @@ templates/core/public_base.html  no user, no chrome
    a script never types an address by hand.
 2. The template renders it once: `{{ page_data|json_script:"page-data" }}`.
 3. The template loads its module in `{% block extra_js %}`:
-   `<script type="module" src="{% static 'js/pages/tables.js' %}"></script>`.
+   `<script type="module" src="{% static 'js/tables/index.js' %}"></script>`.
 4. The module reads the data (`pageData("page-data")`), finds its root element, and
    handles clicks by `data-action`.
 
