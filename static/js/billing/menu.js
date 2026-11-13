@@ -2,6 +2,7 @@
  * The menu side of a billing screen: the category list, the search box,
  * the item sheet with its modifiers, and the counter's one-tap add.
  */
+import { rupees } from "../core/money.js";
 import { esc } from "../order_edit.js";
 
 export function createMenu({ doc = document, modifiersUrl, fetchFn = (...a) => fetch(...a), win = globalThis }) {
@@ -91,7 +92,7 @@ export function createMenu({ doc = document, modifiersUrl, fetchFn = (...a) => f
           <input class="form-check-input modifier-check" type="${type}" name="${esc(inputName)}" value="${esc(m.name)}"
                  data-price="${esc(m.price)}" data-group="${esc(g.group_name)}" data-max="${esc(g.max_select)}" id="mod_${esc(m.id)}" data-action="modifier.limit">
           <label class="form-check-label d-flex justify-content-between w-100" for="mod_${esc(m.id)}">
-            <span>${esc(m.name)}</span>${Number(m.price) > 0 ? `<span class="text-muted">+₹${esc(m.price)}</span>` : ""}
+            <span>${esc(m.name)}</span>${Number(m.price) > 0 ? `<span class="text-muted">+${esc(rupees(m.price))}</span>` : ""}
           </label>
         </div>`).join("");
       return `<div class="mb-3" data-group="${esc(g.group_name)}" data-max="${esc(g.max_select)}">

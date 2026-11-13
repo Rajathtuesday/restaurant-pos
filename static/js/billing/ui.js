@@ -3,11 +3,14 @@
  * parcel button, the tabs, the phone's cart page, the send button. It
  * reads state and writes DOM; it decides nothing.
  */
+import { rupees } from "../core/money.js";
 import { note as offerNote } from "../offers.js";
 import { esc } from "../order_edit.js";
 
-const money = (n) => "₹" + n;
-const money2 = (n) => "₹" + Number(n).toFixed(2);
+// One way to write money on every line of the cart (core/money.js): it used
+// to show "₹430", "₹20.00" and "₹450" side by side.
+const money = rupees;
+const money2 = rupees;
 
 export function createScreen({ doc = document, win = globalThis, mode }) {
   const el = (id) => doc.getElementById(id);

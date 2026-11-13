@@ -9,6 +9,7 @@
  * card need the gateway to confirm the money moved.
  */
 import { send as approvalSend } from "../approval.js";
+import { rupees } from "../core/money.js";
 import { createRequestIds } from "../core/request_id.js";
 import { withId } from "./urls.js";
 
@@ -78,7 +79,7 @@ export function createCounter({
           return;
         }
         total = Number(d2.grand_total) || 0;
-        el("qsrGrandTotal").textContent = "₹ " + total.toFixed(2);
+        el("qsrGrandTotal").textContent = rupees(total);
         el("qsrAmount").value = "";
         el("qsrChangeLine").style.display = "none";
         method = null;
@@ -106,7 +107,7 @@ export function createCounter({
       if (amount >= total && method) {
         const change = amount - total;
         line.style.display = change > 0 ? "block" : "none";
-        if (change > 0) line.textContent = "Change due: ₹" + change.toFixed(2);
+        if (change > 0) line.textContent = "Change due: " + rupees(change);
         payButton(false);
       } else {
         line.style.display = "none";
@@ -161,7 +162,7 @@ export function createCounter({
         const confirm = el("qsrConfirm");
         el("qsrConfirmNum").textContent = "Order " + (d.order_number || orderId);
         const change = parseFloat(d.change_due || 0);
-        el("qsrChangeDue").textContent = change > 0 ? "Change: ₹" + change.toFixed(2) : "";
+        el("qsrChangeDue").textContent = change > 0 ? "Change: " + rupees(change) : "";
         confirm.style.display = "flex";
         setTimeout(() => {
           confirm.style.display = "none";

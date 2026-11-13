@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-13: Money written one way on the billing screens
+
+### Fixed
+- **One cart wrote money three ways** (V12): "₹430", "₹20.00" and "₹450" side by side, and the counter's pay sheet said "₹ 264.00". The billing cart, the counter's pay sheet and change, the running order's lines, the token counter's Pay Now and the modifier prices all use one rule now (`static/js/core/money.js`, the same as the dashboard and the server's `core/money.py`): whole rupees when there are no paise ("₹20"), two decimals when there are ("₹13.60").
+- The bill page keeps two decimals: it is the invoice, and an invoice prints paise.
+
+### Tests
+- The billing screen's browser tests and node tests now expect the one format (GST "₹20", the pay sheet "₹264", change "₹36"). Three browser tests and three node tests fail on the old modules.
+
 ## 2026-11-13: The header on a phone is one row
 
 ### Fixed

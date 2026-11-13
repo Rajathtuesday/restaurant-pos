@@ -126,7 +126,7 @@ class DineInTest(BillingBrowserBase):
         self.assertEqual(seen["empty"], {"label": "Walk-in · Dine-in", "active": "Food"})
         # 2 x 200 at 5% and a curd at 0%: 430, GST 20, the guest pays 450
         self.assertEqual(seen["cart"], {"rows": ["Paneer Tikka x2", "Curd x1"],
-                                        "subtotal": "₹430", "gst": "₹20.00", "total": "₹450"})
+                                        "subtotal": "₹430", "gst": "₹20", "total": "₹450"})
         self.assertEqual(seen["table"], "T1 · Dine-in")
         self.assertEqual(seen["dispatch"]["cart"], "Empty Order")
         self.assertEqual(seen["dispatch"]["total"], "₹0")
@@ -197,13 +197,13 @@ class CounterTest(BillingBrowserBase):
         # items, with 18% GST on it: 20 + 3.60. The guest pays 263.60, rounded 264.
         # (The cart used to show one flat 10 and a total of 252 here, then the
         # payment sheet asked for 264.)
-        self.assertEqual(seen["cart"]["before"], {"subtotal": "₹230", "gst": "₹10.00", "total": "₹240"})
+        self.assertEqual(seen["cart"]["before"], {"subtotal": "₹230", "gst": "₹10", "total": "₹240"})
         self.assertEqual(seen["cart"]["after"], {"subtotal": "₹230", "gst": "₹13.60", "total": "₹264"})
         self.assertEqual(seen["cart"]["row"], "₹20")
         self.assertEqual(seen["cart"]["parcel"], "Parcel Added ✓ (tap to remove)")
         # the server's own total for the order, the same as the cart showed
-        self.assertEqual(seen["sheet"], {"total": "₹ 264.00", "payDisabled": True})
-        self.assertEqual(seen["pay"], {"change": "Change due: ₹36.00", "paid": "Change: ₹36.00", "hidden": "none"})
+        self.assertEqual(seen["sheet"], {"total": "₹264", "payDisabled": True})
+        self.assertEqual(seen["pay"], {"change": "Change due: ₹36", "paid": "Change: ₹36", "hidden": "none"})
 
         order = Order.objects.get(tenant=self.tenant)
         self.assertEqual(order.status, "closed")        # paid in full at the counter
@@ -257,7 +257,7 @@ class TokenCounterTest(BillingBrowserBase):
         self.assertEqual(seen["loaded"], {"token": token.display_number, "cart": "Empty Order"})
         self.assertEqual(seen["taps"], {
             "sheet": False, "badges": ["2", "1"], "marked": 2, "rows": ["Curd x2", "Paneer Tikka x1"],
-            "subtotal": "₹260", "gst": "₹10.00", "total": "₹270",
+            "subtotal": "₹260", "gst": "₹10", "total": "₹270",
         })
         # 10 a parcel on each of the 3 items, 18% GST on it: 30 + 5.40
         self.assertEqual(seen["parcel"], {"offer": "Add Parcel ₹10/item", "on": True,

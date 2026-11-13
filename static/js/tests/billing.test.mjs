@@ -375,7 +375,7 @@ test("the counter creates the order, works out its total and opens the payment s
   await rig.counter.start({ source: "takeaway" });
   assert.deepEqual(rig.urlsCalled(), ["/create-order/", "/generate-bill/5/"]);
   assert.equal(JSON.parse(rig.fetchFn.calls[0].options.body).table_id, null);
-  assert.equal(rig.el("qsrGrandTotal").textContent, "₹ 105.00");
+  assert.equal(rig.el("qsrGrandTotal").textContent, "₹105");
   assert.equal(rig.el("qsrPayBtn").disabled, true, "no method chosen yet");
   assert.equal(rig.modal.shown, 1);
   assert.equal(rig.counter.pendingOrderId, 5);
@@ -391,7 +391,7 @@ test("UPI and card fill the exact amount; cash shows the change", async () => {
   rig.counter.selectMethod({ dataset: { method: "cash" } });
   rig.el("qsrAmount").value = "200";
   rig.counter.updateChange();
-  assert.equal(rig.el("qsrChangeLine").textContent, "Change due: ₹95.00");
+  assert.equal(rig.el("qsrChangeLine").textContent, "Change due: ₹95");
   assert.equal(rig.el("qsrChangeLine").style.display, "block");
 });
 
@@ -406,7 +406,7 @@ test("payment: paid, the slip printed, the cart cleared for the next customer", 
   assert.deepEqual(rig.printed, [5]);
   assert.equal(rig.el("qsrConfirm").style.display, "flex");
   assert.equal(rig.el("qsrConfirmNum").textContent, "Order T-12");
-  assert.equal(rig.el("qsrChangeDue").textContent, "Change: ₹95.00");
+  assert.equal(rig.el("qsrChangeDue").textContent, "Change: ₹95");
   assert.equal(rig.cart.isEmpty(), false, "the sheet is still up");
   t.mock.timers.tick(2500);
   assert.equal(rig.el("qsrConfirm").style.display, "none");

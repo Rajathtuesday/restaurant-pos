@@ -5,6 +5,7 @@
  * after a newer one is thrown away, and a hung one gives up after 12
  * seconds and offers a retry, so the panel never spins forever.
  */
+import { rupees } from "../core/money.js";
 import { esc } from "../order_edit.js";
 
 const STATUS_LABELS = { review: "Needs Approval" };
@@ -64,7 +65,7 @@ export function renderTokenOrder(d) {
     return `<div class="running-row d-flex flex-column">
       <div class="d-flex justify-content-between align-items-center w-100 running-line">
         <span class="running-name">${esc(i.quantity)} × ${esc(i.name)}</span>
-        <span class="running-total">₹${esc(i.total)}</span>
+        <span class="running-total">${esc(rupees(i.total))}</span>
         ${statusCell}
       </div>
       ${modifiersLine(i)}
