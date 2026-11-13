@@ -16,6 +16,8 @@ other reasons first, each of which has taken one down for someone:
                writes the marker only after its upload is confirmed)
   printing     the oldest print job no agent has finished: printing is
                what fails most in a real restaurant
+  connections  database connections open against what Postgres allows: when
+               they run out, every page fails at once (core/db_limits.py)
 
 Each check answers ok True (fine), False (act now) or None (does not
 apply here, such as swap on a laptop). One False makes the answer 503,
@@ -134,6 +136,16 @@ def check_backup(now, marker=None):
     return True, f"last good backup {hours:.1f} hours ago"
 
 
+def check_connections(conn=None, warn_share=None):
+    from core.db_limits import CONNECTIONS_WARN_SHARE, connections_in_use
+    used, allowed = connections_in_use(conn or connection)
+    if used is None:
+        return None, "not Postgres: no connection limit"
+    share = used / allowed if allowed else 1
+    detail = f"{used} of {allowed} database connections open ({share:.0%})"
+    return share < (warn_share or CONNECTIONS_WARN_SHARE), detail
+
+
 def check_printing(now):
     from printing.models import PrintJob
     unfinished = PrintJob.objects.unscoped(reason="health: the oldest unprinted job in any restaurant").filter(
@@ -159,6 +171,7 @@ def detailed(now=None):
         _check("swap", check_swap),
         _check("backup", lambda: check_backup(now)),
         _check("printing", lambda: check_printing(now)),
+        _check("connections", check_connections),
     ])
     healthy = all(c["ok"] is not False for c in checks.values())
     return {"status": "healthy" if healthy else "unhealthy", "checks": checks}, (200 if healthy else 503)

@@ -95,7 +95,8 @@ class HealthDetailTest(TestCase):
         status, body = self.detail()
         self.assertEqual(status, 200, body)
         self.assertEqual(body["status"], "healthy")
-        self.assertEqual(set(body["checks"]), {"database", "cache", "heartbeat", "disk", "swap", "backup", "printing"})
+        self.assertEqual(set(body["checks"]), {"database", "cache", "heartbeat", "disk", "swap", "backup", "printing",
+                                                "connections"})
         self.assertTrue(body["checks"]["database"]["ok"])
         self.assertTrue(body["checks"]["heartbeat"]["ok"])
         self.assertTrue(body["checks"]["backup"]["ok"])

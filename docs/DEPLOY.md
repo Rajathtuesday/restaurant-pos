@@ -644,3 +644,25 @@ overwritten each deploy).
 The script's behaviour is tested by running it for real against a throwaway git
 repository with stand-ins for the server's commands: `core/tests/test_deploy_script.py`.
 
+
+## Database limits (since 14 Nov 2026)
+
+One slow query must not hold a 1 GB server (`core/db_limits.py`).
+
+- **Statement timeout, web only.** `core/wsgi.py` asks for
+  `DB_STATEMENT_TIMEOUT_MS` (15000 unless the environment sets it) before Django
+  reads its settings, so gunicorn's connections carry
+  `-c statement_timeout=15000`. Postgres cancels a web statement past 15 seconds
+  and the request fails with an error in `logs/errors.log` and Sentry.
+  `manage.py migrate`, Celery and the nightly backup do not load `core/wsgi.py`
+  and keep no limit. Do not put `DB_STATEMENT_TIMEOUT_MS` in `.env`: Celery
+  reads `.env` too.
+- **Slow queries.** Any web query over 500 ms is written to `logs/errors.log`
+  as `pos.slow_sql: slow query 812 ms on GET /reports/...: SELECT ...`.
+  `grep "slow query" logs/errors.log` shows which pages are getting slower.
+- **Connections.** `/health/` reports how many are open against what Postgres
+  allows, and fails at 80%. The most the server's processes can open together
+  (gunicorn twice during a reload, Celery, beat, migrate, the backup, two
+  people) is held below Postgres's default 97 by
+  `core/tests/test_db_limits.py`: raising `--workers`, `--threads` or
+  `--concurrency` in `systemd/` past it turns that test red.

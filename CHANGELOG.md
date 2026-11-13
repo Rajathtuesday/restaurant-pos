@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Limits on the database
+
+On a 1 GB server one slow query can hold everything: a gunicorn thread, its locks, its memory, and every request queued behind it. Nothing stopped a web query from running for minutes, nothing said a page was getting slower, and nothing checked that the processes could not open more connections than Postgres allows.
+
+### Added
+- **A 15 second statement timeout for web requests** (`core/db_limits.py`). `core/wsgi.py` and `core/asgi.py` ask for it before Django loads its settings, and `core/settings.py` turns it into the connection's `statement_timeout`. Migrations, Celery and the nightly backup load the settings without `wsgi.py` and keep no limit, on purpose.
+- **A slow query log**: `SlowQueryMiddleware` writes any web query over 500 ms to `logs/errors.log` (`pos.slow_sql`) with the address that ran it.
+- **`/health/` reports database connections** open against what Postgres allows, and fails at 80%.
+- `docs/DEPLOY.md`, "Database limits".
+
+### Tests
+- `core/tests/test_db_limits.py` (17 tests): a web process gets the timeout and a management or Celery process does not (each in a fresh Python process); the option really cancels a long statement on Postgres; slow, quick, long and cancelled statements in the log; the middleware runs a real request's queries through it; the systemd units' connection budget (gunicorn twice for a reload, Celery, beat, migrate, backup, two people) stays below 80% of what Postgres allows, and a unit asking for too many is caught; the health check, open and too many.
+
 ## 2026-11-13: The frontend rebuild, phase 2: the guest QR menu
 
 The only Rasova screen a guest sees, and the largest page left: 803 lines of inline script, 518 of inline style and 21 `onclick` attributes, as a standalone page with its own head. It is markup only now, on `templates/core/public_base.html`.

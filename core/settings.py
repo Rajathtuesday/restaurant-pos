@@ -193,6 +193,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ContextLoggingMiddleware',
+    # Logs any query slower than half a second, with its address (after the
+    # line above, so the log line carries the restaurant and outlet)
+    'core.db_limits.SlowQueryMiddleware',
     'core.middleware.NoStoreForAuthenticatedResponsesMiddleware',
     'core.middleware.RequestLoggingMiddleware',
 ]
@@ -253,6 +256,11 @@ DATABASES = {
         'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', '60')),
     }
 }
+
+# A statement timeout for web processes only (wsgi.py asks for it), so one
+# slow query cannot hold the server; core/db_limits.py says why and how.
+from core.db_limits import database_options  # noqa: E402
+DATABASES['default']['OPTIONS'] = database_options(DATABASES['default']['ENGINE'], os.environ)
 
 # The SQLite default above is for local use only; see core/db_guard.py.
 from core.db_guard import require_postgres_in_production  # noqa: E402

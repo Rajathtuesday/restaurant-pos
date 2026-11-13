@@ -11,6 +11,10 @@ import os
 
 from django.core.asgi import get_asgi_application
 
+from core.db_limits import ask_for_web_limits
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+# Web requests get a statement timeout; migrate and Celery do not.
+ask_for_web_limits(os.environ)
 
 application = get_asgi_application()
