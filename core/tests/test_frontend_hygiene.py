@@ -145,7 +145,6 @@ BASELINE = {
     'inventory/templates/inventory/requisitions.html': {"script": 89, "style": 51, "onclick": 6, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/suppliers.html': {"script": 55, "style": 45, "onclick": 2, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/variance_report.html': {"script": 16, "style": 51, "onclick": 1, "third_party": 0, "globals": 0},
-    'kitchen/templates/kitchen/kitchen.html': {"script": 151, "style": 187, "onclick": 8, "third_party": 0, "globals": 0},
     'menu/templates/menu/digital_menu.html': {"script": 803, "style": 518, "onclick": 21, "third_party": 0, "globals": 0},
     'menu/templates/menu/gst_management.html': {"script": 64, "style": 115, "onclick": 3, "third_party": 0, "globals": 0},
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 28, "third_party": 0, "globals": 0},

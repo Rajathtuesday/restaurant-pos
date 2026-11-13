@@ -5,6 +5,7 @@ import json
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.db import transaction
 
@@ -69,6 +70,23 @@ def send_to_kitchen(request, order_id):
         return JsonResponse({"error": "Could not send to kitchen. Please try again."}, status=400)
 
 
+def kitchen_page_data():
+    """What static/js/kitchen/index.js needs from the server, rendered once
+    by kitchen.html as {{ page_data|json_script:"page-data" }}: how often the
+    tickets are asked for, and every address the script calls (0 stands in
+    for an id the script fills in)."""
+    return {
+        "poll_ms": 5000,
+        "urls": {
+            "kitchen_data": reverse("kitchen-data"),
+            "item_start": reverse("item-start", args=[0]),
+            "mark_ready": reverse("mark-ready", args=[0]),
+            "bump_kot": reverse("bump-kot", args=[0]),
+            "clear_all": reverse("clear-all-kitchen"),
+        },
+    }
+
+
 @login_required
 @tenant_required
 @role_required("owner", "manager", "chef", "kitchen")
@@ -83,7 +101,7 @@ def kitchen_view(request):
         outlet=request.user.outlet,
         is_active=True
     )
-    return render(request, "kitchen/kitchen.html", {"stations": stations})
+    return render(request, "kitchen/kitchen.html", {"stations": stations, "page_data": kitchen_page_data()})
 
 
 @login_required

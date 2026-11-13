@@ -34,10 +34,12 @@ static/js/billing/   the billing screen: one module for the dine-in screen, the 
   cart.js, parcel.js, dispatch.js, counter.js, running_order.js, menu.js, printing.js, tokens.js, ui.js, urls.js
 static/js/bill/      the bill page: payment, discounts, printing, the Razorpay QR (phase 2's first page)
 static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server), loader.js (the 5-second refresh), index.js
+static/js/kitchen/   the kitchen display: board.js (the tickets as markup), loader.js (the 5-second refresh, by station), actions.js (start, ready, bump, clear all), light.js (its own light switch), index.js; boot.js is a plain script in the head that sets light or dark before the first paint
 static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
 static/css/tables.css  the floor plan
+static/css/kitchen.css the kitchen display
 static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)
@@ -78,6 +80,9 @@ empty, the bridge is deleted.
   logs in, opens the page, runs each step's JavaScript in it and returns the results with every error the
   browser saw. Use it for a page whose module was just written: it is the only test that fails on a wrong id,
   a button without its `data-action`, or a module that throws while loading. Skipped without Playwright.
+- `python manage.py test core.tests.test_browser_smoke_walk` opens every page the owner can reach in Chromium
+  (about 80 seconds) and fails on an uncaught error, a console error, a static file that did not load, or
+  stylesheet text on the page. Run it with any change to base.html, a shared module or a standalone template.
 - A module takes its dependencies as arguments (`createClient({ fetchFn, ui, csrf })`)
   so a test hands it fakes; `app.js` builds the real ones. Keep that shape.
 - After migrating a page, run `python -m core.tests.test_frontend_hygiene --write`

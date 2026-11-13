@@ -7,6 +7,28 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The frontend rebuild, phase 2: the kitchen display
+
+The kitchen display's 151 lines of inline script, 187 lines of inline style and 8 `onclick` attributes are modules and a stylesheet now, tested in node and in a real browser.
+
+### Changed
+- **The kitchen display is markup only** (`kitchen/templates/kitchen/kitchen.html`): no inline script, no `<style>` block, no `onclick`, no `style=` attribute. Its code is `static/js/kitchen/`: `board.js` (the tickets as markup), `loader.js` (the 5-second refresh), `actions.js` (start, ready, bump, clear all), `light.js` (the kitchen's own light switch), `index.js`, and `boot.js`, a plain script in the head that applies the light or dark choice before the first paint. Its style is `static/css/kitchen.css`.
+- **The page's addresses reach the script in one block** (`kitchen.views.kitchen_page_data`), reversed on the server. No address is typed in the script.
+- A refused tap (a dish someone else already moved on, a lost connection) is said in a toast. It used to be written to the browser console, where no cook looks.
+- A second tap on the same dish while the first is on its way is ignored.
+- The board is redrawn only when something on it changed, and only from the newest answer.
+
+### Fixed
+- **A station with an apostrophe in its name ("Chef's Grill") could not be picked.** The name was written into an `onclick` attribute, where the apostrophe ended the text early and the button became a syntax error. The name is a `data-station` attribute now.
+- **A refused refresh showed "All Caught Up".** When the server answered the 5-second refresh with an error, the screen said there were no orders. It says "Sync Failed" with the server's words and keeps trying.
+- **Picking a station while a refresh was on its way did nothing** until the next refresh 5 seconds later, and the old station's tickets stayed under the new station's tab. The pick asks at once, and the older answer is dropped.
+- With the kitchen's light switch on, the browser's own scrollbars and form controls stayed dark. They follow the switch.
+
+### Tests
+- `static/js/tests/kitchen.test.mjs` (21 tests): what a ticket shows, escaping, each tap's address, a refusal, the connection down, a late answer, a double tap, clear all answered No, the light switch with and without storage.
+- `kitchen/test_kitchen_browser.py` (Playwright, 5 tests): a dish from sent to cooking to ready, bump, the apostrophe station, the owner clearing the screen after being asked (the chef has no such button), the light switch surviving a reload. Each reads the database.
+- The ratchet (`core/tests/test_frontend_hygiene.py`) is down to 79 templates.
+
 ## 2026-11-13: The browser smoke walk
 
 ### Tests
