@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-13: QR codes drawn here, never fetched from a third party
+
+### Fixed
+- **The table QR page handed every table's private menu address to an outside service.** It loaded each QR code as an image from `api.qrserver.com`, with the table's token in the address, and with no internet every code was blank. The printer setup page did the same for its two codes (the app download and the restaurant's login). They are drawn on the page now by the QR library Rasova serves itself (`static/js/core/qr.js`, used by both pages), the way the floor plan already drew a table's code.
+- **The guard missed it**: `core/tests/test_static_modules.py` looked only for a list of known CDNs. It now fails on anything a page loads from another host (a script, an image, a stylesheet, a CSS `url()`), while a link the user follows is still fine.
+- The table QR page's Print All button no longer uses `onclick`.
+
+### Tests
+- `setup/tests/test_qr_codes_browser.py` (Playwright, 2 tests): every table's code is drawn and no request leaves the site; the printer page's two codes too. Both fail on the old pages.
+- `static/js/tests/qr.test.mjs` (2 tests): each spot drawn at its size and colours, and a missing library, an error or a throw said in the spot.
+- The broadened guard fails on the old pages (two outside images each).
+
 ## 2026-11-13: CI runs the browser tests
 
 ### Fixed

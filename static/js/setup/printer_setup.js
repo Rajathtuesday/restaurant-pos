@@ -6,6 +6,7 @@
 import { api } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
+import { drawQrCodes } from "../core/qr.js";
 import { createTestPrint } from "./test_print.js";
 
 const data = pageData("page-data");
@@ -21,6 +22,9 @@ const testPrint = createTestPrint({
     result.textContent = words;
   },
 });
+
+// The app download and this restaurant's login, drawn here: no outside host.
+drawQrCodes();
 
 delegate(document.body, {
   "printer.test": async () => {

@@ -175,7 +175,7 @@ BASELINE = {
     'setup/templates/setup/setup_offers.html': {"script": 250, "style": 91, "onclick": 6, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_payment_methods.html': {"script": 0, "style": 33, "onclick": 1, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_promos.html': {"script": 132, "style": 103, "onclick": 5, "third_party": 0, "globals": 0},
-    'setup/templates/setup/setup_qr_codes.html': {"script": 0, "style": 21, "onclick": 1, "third_party": 0, "globals": 0},
+    'setup/templates/setup/setup_qr_codes.html': {"script": 0, "style": 21, "onclick": 0, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_staff.html': {"script": 146, "style": 42, "onclick": 5, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_tables.html': {"script": 9, "style": 25, "onclick": 1, "third_party": 0, "globals": 0},
     'shifts/templates/shifts/cash_sessions.html': {"script": 10, "style": 11, "onclick": 2, "third_party": 0, "globals": 0},

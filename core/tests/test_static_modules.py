@@ -40,7 +40,15 @@ MODULE_DIRS = [BASE / "static" / "js" / "core", BASE / "static" / "js" / "billin
 # The engines and the shared order controls live at the top of static/js.
 TOP_LEVEL_MODULES = ["cart_tax.js", "offers.js", "order_edit.js", "approval.js"]
 IMPORT_RE = re.compile(r"""(?:^|\n)\s*(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']""")
-THIRD_PARTY = re.compile(r"https?://(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|code\.jquery\.com)")
+# A known CDN anywhere, or anything a page LOADS from another host: a script,
+# an image, a stylesheet, a CSS url(). (Two setup pages fetched their QR codes
+# from api.qrserver.com, handing it every table's private menu address; the
+# CDN list alone did not see it, 13 Nov 2026.) A link the user follows is fine.
+THIRD_PARTY = re.compile(
+    r"https?://(cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com|unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com|code\.jquery\.com)"
+    r"|(?:\bsrc|\bsrcset)\s*=\s*[\"']https?://"
+    r"|<link\b[^>]*\bhref\s*=\s*[\"']https?://"
+    r"|url\(\s*[\"']?https?://")
 STATIC_TAG = re.compile(r"""{%\s*static\s+["']([^"'{}]+)["']\s*%}""")
 
 

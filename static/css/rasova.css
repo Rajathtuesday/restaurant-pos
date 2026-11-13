@@ -184,6 +184,12 @@ body {
     .printer-chip.is-bad .printer-chip-text { display: inline; }
 }
 
+/* A QR code drawn on the page (core/qr.js). */
+.qr-draw { display: flex; align-items: center; justify-content: center; }
+.qr-draw canvas { display: block; max-width: 100%; height: auto; }
+.qr-draw.qr-small { width: 92px; height: 92px; flex-shrink: 0; border: 1px solid var(--border-color); }
+.qr-draw.qr-failed { font-size: 0.75rem; color: var(--text-muted); text-align: center; }
+
 /* An Android app older than the server needs (core/_app_update_banner.html). */
 .app-update-banner {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem;
