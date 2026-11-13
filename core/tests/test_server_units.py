@@ -58,9 +58,11 @@ class OneBeatTest(SimpleTestCase):
 
     def test_deploy_installs_the_beat_service_from_the_code_it_just_pulled(self):
         deploy = (ROOT / "deploy.sh").read_text(encoding="utf-8")
-        pull = deploy.find("git reset --hard")
+        # The main flow's pull and restart (the undo, defined above them since
+        # 13 Nov 2026, has its own git reset and calls the same restarts).
+        pull = deploy.find("git reset --hard origin/qsr")
         install = deploy.find("sudo cp \"$APP_DIR/systemd/celery-beat.service\" /etc/systemd/system/")
-        restart = deploy.find("systemctl restart celery-beat")
+        restart = deploy.find("\nrestart_services\n")
 
         self.assertNotEqual(install, -1, "deploy.sh no longer installs the beat service")
         # After the pull, or it would install the previous version of the file;
@@ -69,6 +71,7 @@ class OneBeatTest(SimpleTestCase):
         self.assertLess(install, restart)
         self.assertIn("cmp -s", deploy[pull:install])
         self.assertIn("systemctl enable celery-beat", deploy[install:restart])
+        self.assertIn("systemctl restart celery-beat", deploy[deploy.find("restart_services() {"):])
 
     def test_deploy_reports_how_many_beats_run(self):
         deploy = (ROOT / "deploy.sh").read_text(encoding="utf-8")
@@ -82,7 +85,7 @@ class DeployChecksPdfsTest(SimpleTestCase):
     def test_deploy_stops_before_pulling_when_weasyprint_cannot_load(self):
         deploy = (ROOT / "deploy.sh").read_text(encoding="utf-8")
         check = deploy.find('python -c "import weasyprint"')
-        pull = deploy.find("git reset --hard")
+        pull = deploy.find("git reset --hard origin/qsr")
 
         self.assertNotEqual(check, -1, "deploy.sh no longer checks that WeasyPrint loads")
         self.assertLess(check, pull, "the WeasyPrint check must run before the new code is pulled")
