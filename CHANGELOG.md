@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-13: Live orders showed no orders
+
+### Fixed
+- **The live orders screen stayed on "Loading" and listed nothing.** Its script asked for the orders while the page was still parsing; that reads `OrderEdit`, which `order_edit.js` (a module since phase 1) sets only once the page is parsed. It threw, and the 8-second refresh on the next line never started. The whole script now runs once the page is parsed. Found by the browser smoke walk. It never reached production: it came in with the unpushed phase 1 commit.
+
+### Tests
+- `orders/tests/test_live_orders_browser.py` (Playwright): the screen lists the open order and its dish with no error in the browser. Fails on the old template with "OrderEdit is not defined".
+
 ## 2026-11-13: The QR menu printed its stylesheet as text
 
 ### Fixed
