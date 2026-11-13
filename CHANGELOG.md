@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-13: Pinch zoom works again
+
+### Fixed
+- **Every app page, the guest QR menu and login blocked pinch zoom** (V13): their viewport said `maximum-scale=1` (and two of them `user-scalable=no`), so a guest or a cashier with weak eyesight could not zoom anything. Removed. The reason it was there (iPhone Safari zooms into an input whose text is under 16px) is handled in `static/css/rasova.css`: on iPhones, inputs are at least 16px.
+
+### Tests
+- `core/tests/test_page_zoom.py`: no template blocks pinch zoom; the iPhone input rule is there. Both fail on the old pages.
+
 ## 2026-11-13: An old Android app is asked to update
 
 ### Changed
