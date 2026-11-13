@@ -81,6 +81,8 @@ FRONTEND = [
     "core.tests.test_static_modules",
     "core.tests.test_test_speed",
     "core.tests.test_fast_tests",
+    # A migration the previous version could not run against (deploy undo).
+    "core.tests.test_migrations_additive",
 ]
 
 FAST = MONEY + ISOLATION + FRONTEND

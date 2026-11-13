@@ -616,3 +616,31 @@ the oldest unprinted print job. One failed check makes it 503.
 3. The backup line reads `logs/last_backup_ok`, written by
    `scripts/backup/backup_to_r2.py` after a confirmed upload. It says "no good
    backup recorded yet" until the first nightly run after this deploy.
+
+## Undo (since 13 Nov 2026)
+
+`deploy.sh` saves what is running before it changes anything, in `versions/last/`:
+the commit, `pip freeze`, `staticfiles/staticfiles.json` (the hashed static
+names) and `before.sql.gz` (a database dump taken before migrate, one kept,
+overwritten each deploy).
+
+- **The new version does not come up** (`/health/` not 200 within 60 s) **or a
+  step fails** (migrate, collectstatic, a restart): the script puts the saved
+  version back by itself and exits 1, so the GitHub Actions deploy job is red.
+- **The new version is up but wrong**: on the server,
+  `cd /home/ubuntu/rasova && bash deploy.sh --undo`. About 30 seconds; minutes if
+  the libraries changed.
+- **The database is never rolled back.** The old code runs against the new
+  schema, which is safe because every migration only adds
+  (`core/tests/test_migrations_additive.py`). Removing a column or a table takes
+  two releases: stop using it, then remove it (listed in that test's `ALLOWED`).
+- After an undo, `origin/qsr` still points at the bad commit: revert or fix it
+  and push, or the next deploy brings it back.
+- A bad migration's data can be read back from `versions/last/before.sql.gz`
+  (by hand: it is a plain `pg_dump`).
+- CI runs the `deploy.sh` of the commit being deployed, from a copy, so a change
+  to the script applies to the deploy that carries it.
+
+The script's behaviour is tested by running it for real against a throwaway git
+repository with stand-ins for the server's commands: `core/tests/test_deploy_script.py`.
+

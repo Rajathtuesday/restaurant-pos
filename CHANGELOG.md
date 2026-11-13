@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-11-13: An undo for the deploy
+
+### Changed
+- **A bad deploy now puts the previous version back by itself** (B1, option B, Rajath's pick). Before anything changes, `deploy.sh` saves what is running in `versions/last/`: the commit, the installed libraries, the hashed static file names, and a database dump taken before migrate. If a step fails (migrate, collectstatic, a restart) or the new version does not answer `/health/` with 200 within 60 seconds, it resets to the saved commit, reinstalls the saved libraries if they differ, puts the saved static file names back, restarts, and exits 1 (the CI deploy job turns red). It used to be fixed only by another push through CI: 15 to 25 minutes.
+- **`bash deploy.sh --undo`** does the same by hand, for a version that is up but wrong.
+- The undo reads plain files with bash and git only, so a release that cannot even start Python can still be undone.
+- **The database is never rolled back.** A new test makes that safe: every migration from 13 Nov on may only add (no removed or renamed fields, models or tables; no new NOT NULL column without a default). Removing something takes two releases; the second is listed with its reason.
+- A failed database dump stops the deploy before anything changes.
+- **CI runs the `deploy.sh` of the commit being deployed**, from a copy. It used to run the server's old copy, which `git reset` replaced mid-run while bash kept reading the old one, so a change to the script took effect only a deploy later.
+- Em dashes are gone from `deploy.sh`. How to use it: `docs/DEPLOY.md`, "Undo".
+
+### Tests
+- `core/tests/test_deploy_script.py` (6 tests) runs the real `deploy.sh` against a throwaway git repository with stand-ins for the server's commands: a good deploy saves then moves on (the dump before migrate); a new version that does not come up is replaced by the old one with its libraries and static names; a migrate that fails half way puts the old one back; `--undo` after a good deploy; `--undo` with nothing saved changes nothing; a failed dump stops before anything changes. All six fail on the old script. Writing them found a bug before it shipped: a failed dump was reported as a success, because bash ignores `set -e` inside a function called from an `if`.
+- `core/tests/test_migrations_additive.py`: the rule above, on 13 Nov's own migrations and on a made-up one that breaks it. Added to the fast set.
+- Not yet done: a rehearsal on the server itself, with Rajath watching.
+
 ## 2026-11-13: Central kitchen and stock requisitions removed (release 1)
 
 ### Removed

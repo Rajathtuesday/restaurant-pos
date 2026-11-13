@@ -215,5 +215,14 @@ jobs:
             # repository was public (the 3 Oct deploy failed on exactly that).
             cd /home/ubuntu/rasova
             git remote set-url origin https://x-access-token:${{ github.token }}@github.com/Rajathtuesday/restaurant-pos.git
-            # Run the deploy script — setsid handles celery detachment
-            bash /home/ubuntu/rasova/deploy.sh
+            # Run the deploy.sh of the commit being deployed, from a copy.
+            # Run in place, the server's old copy did the deploy: git reset
+            # replaces the file while bash is still reading the old one, so a
+            # change to deploy.sh (like its undo) only took effect a deploy
+            # later. A failed deploy that undid itself exits 1: this job is red.
+            git fetch origin qsr
+            DEPLOY_SH=$(mktemp)
+            git show origin/qsr:deploy.sh > "$DEPLOY_SH"
+            bash "$DEPLOY_SH"; STATUS=$?
+            rm -f "$DEPLOY_SH"
+            exit $STATUS
