@@ -7,6 +7,23 @@ the source of truth.
 
 ---
 
+## 2026-11-13: A new restaurant's first day explains itself
+
+### Changed
+- **Every first-day list says what it is for and offers the one button that fills it** (V9 in the suggestions; setup in under 30 minutes is a deal blocker). A survey opened every owner page as a brand-new restaurant (no tables, dishes, staff or orders) and found six that left a new owner stuck:
+  - billing showed an empty "Menu" column: now "No dishes yet", with Add dishes;
+  - the floor plan said "All clear" with 0 tables: now "No tables yet", with Add tables;
+  - menu management showed only a GST note: now "No dishes yet", with Add sections and a word about AI Import;
+  - the table QR page was completely blank: now "No tables yet", with Add tables;
+  - the cash register showed a table header and nothing else: now "No register sessions yet", with Open register (the page's own sheet);
+  - the rota said "add staff first" with no link: now with Add staff.
+- One shared empty state: `templates/core/_empty_state.html` for a template, `emptyStateHtml()` in `static/js/core/empty_state.js` for a list a script draws (the floor plan). The rules are in `docs/FRONTEND.md`.
+- Not in this change: the guest QR menu still says "You've reached the end of the menu" when there are no dishes. Its script is inline and it is the next page to move to modules; its empty state goes in with that.
+
+### Tests
+- `core/tests/test_empty_states.py` (Playwright, 4 tests): the six first-day pages each show their empty state, and each button opens a page that answers 200; Open register opens the sheet; no owner page shows a new restaurant nothing at all; the include escapes and has one button. Three fail on the old pages.
+- `static/js/tests/empty_state.test.mjs` (3 tests): escaping, no button without an address, and a floor with no tables offering to add them instead of saying "All clear".
+
 ## 2026-11-13: Printing tells the cashier its state
 
 ### Changed

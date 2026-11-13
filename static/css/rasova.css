@@ -177,6 +177,15 @@ body {
     .printer-chip.is-bad .printer-chip-text { display: inline; }
 }
 
+/* A list with nothing in it yet (core/_empty_state.html, core/empty_state.js). */
+.rv-empty {
+    text-align: center; padding: 3.5rem 1.5rem; margin: 1rem auto; max-width: 34rem;
+    color: var(--text-muted);
+}
+.rv-empty > i { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; color: var(--accent-gold); }
+.rv-empty h3 { font-family: 'DM Serif Display', serif; color: var(--text-main); font-size: 1.4rem; margin-bottom: 0.5rem; }
+.rv-empty p { font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.25rem; }
+
 /* A one-line result under a button: waiting, done, refused. */
 .result-line.is-wait { color: var(--text-muted); }
 .result-line.is-ok   { color: #16a34a; }

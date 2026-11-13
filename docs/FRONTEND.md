@@ -70,6 +70,20 @@ block the parent does not have, so `core/tests/test_one_header.py` fails on a pa
 that still uses one. The smoke walk checks every owner page has one brand, one
 theme switch, one logout, none by `onclick`.
 
+## A list with nothing in it yet
+
+A new restaurant sees every list empty on day one. An empty list says what the
+page is for and offers the one button that fills it:
+
+- in a template: `{% include "core/_empty_state.html" with icon="grid-3x3-gap" title="No tables yet" text="..." href=url label="Add tables" %}`
+  (`modal="#id"` instead of `href` opens one of the page's sheets);
+- from a script: `emptyStateHtml({icon, title, text, href, label})` from `static/js/core/empty_state.js`.
+
+A list drawn by a script also needs its loading and failed states, and a failure
+is never shown as empty (the kitchen once said "All Caught Up" when the server
+refused). `core/tests/test_empty_states.py` opens the first-day pages as a new
+restaurant and checks that no owner page is blank.
+
 ## How a page gets its code
 
 1. The view passes what the script needs as a dict: `{"mode": "token", "outlet_id": 3, ...}`. Addresses go in it

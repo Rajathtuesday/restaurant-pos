@@ -37,6 +37,8 @@ def tables_page_data():
             "running_order": reverse("running-order", args=[0]),
             # A table's QR opens the guest menu: this address plus ?table_token=
             "digital_menu": reverse("digital_menu"),
+            # A restaurant with no tables yet is sent here (floor.js).
+            "setup_tables": reverse("setup_tables"),
         },
     }
 

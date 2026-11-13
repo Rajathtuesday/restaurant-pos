@@ -185,6 +185,9 @@
 <!-- CATEGORIES -->
 <div class="container-fluid mx-auto py-4" style="max-width:1400px;padding:0 2rem;">
   <div class="row g-4 overflow-hidden">
+    {% if not categories %}{% url 'setup_menu' as categories_url %}
+    <div class="col-12">{% include "core/_empty_state.html" with icon="journal-plus" title="No dishes yet" text="Start with the menu's sections (Starters, Mains, Drinks), then add dishes to each. AI Import can read your whole menu from a photo." href=categories_url label="Add sections" %}</div>
+    {% endif %}
     {% for category in categories %}
     <div class="col-12 col-md-6 col-xl-4 mb-4 category-section" id="cat-{{ category.id }}">
       <div class="category-card">

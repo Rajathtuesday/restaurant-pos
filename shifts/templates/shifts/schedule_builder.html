@@ -76,10 +76,8 @@
     <div class="row g-4">
         <div class="col-xl-9">
             {% if not grid %}
-            <div style="text-align:center; padding:4rem; color:var(--text-muted);">
-                <i class="bi bi-people" style="font-size:2.5rem;"></i>
-                <p class="mt-3">No active staff found. Add staff members first.</p>
-            </div>
+            {% url 'setup_staff' as staff_url %}
+            {% include "core/_empty_state.html" with icon="people" title="No staff yet" text="Add your team in Setup, then build the week's rota here." href=staff_url label="Add staff" %}
             {% else %}
             <div style="overflow-x:auto;">
             <table class="schedule-grid">

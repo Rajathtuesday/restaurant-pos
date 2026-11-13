@@ -47,6 +47,9 @@
 
 {% block content %}
 <div class="qr-container">
+    {% if not tables and not counter_qr_url %}{% url 'setup_tables' as tables_url %}
+    {% include "core/_empty_state.html" with icon="qr-code" title="No tables yet" text="Each table gets its own QR code here, for guests to scan and order. Add your tables first." href=tables_url label="Add tables" %}
+    {% endif %}
     <div class="qr-grid">
         {% if counter_qr_url %}
         <div class="qr-card">

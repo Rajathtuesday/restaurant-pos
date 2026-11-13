@@ -1,0 +1,18 @@
+{% comment %}
+What a list says when it has nothing yet (V9, 13 Nov 2026): what the page is
+for, and the one button that fills it. A new restaurant sees these on day one,
+so they are half of "setup in under 30 minutes".
+
+  {% include "core/_empty_state.html" with icon="grid-3x3-gap" title="No tables yet" text="..." href=url label="Add tables" %}
+
+Instead of href, modal="#someModal" opens one of the page's sheets. A list
+drawn by a script uses emptyStateHtml() from static/js/core/empty_state.js,
+which draws the same markup.
+{% endcomment %}
+<div class="rv-empty" data-empty-state>
+    <i class="bi bi-{{ icon|default:'inbox' }}" aria-hidden="true"></i>
+    <h3>{{ title }}</h3>
+    {% if text %}<p>{{ text }}</p>{% endif %}
+    {% if href %}<a class="btn-luxury text-decoration-none" href="{{ href }}">{{ label }}</a>
+    {% elif modal %}<button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="{{ modal }}">{{ label }}</button>{% endif %}
+</div>

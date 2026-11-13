@@ -69,6 +69,9 @@
   <main class="menu-area">
     <input type="text" id="menuSearch" class="form-control search-box" placeholder="Search the menu..." data-action="menu.search">
     <div id="menuCardsContainer">
+      {% if not categories %}{% url 'menu_management' as menu_url %}
+      {% include "core/_empty_state.html" with icon="journal-plus" title="No dishes yet" text="Add your menu and every dish appears here, ready to tap." href=menu_url label="Add dishes" %}
+      {% endif %}
       {% for category in categories %}
       <h3 id="cat{{ category.id }}" class="menu-section-title">{{ category.name }}</h3>
       <div class="row g-3 g-md-4 mb-5">

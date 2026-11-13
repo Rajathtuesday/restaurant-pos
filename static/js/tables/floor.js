@@ -6,6 +6,7 @@
  * list of tables. Every name a person typed (a table, a section, a waiter)
  * is escaped where it is drawn.
  */
+import { emptyStateHtml } from "../core/empty_state.js";
 import { esc } from "../order_edit.js";
 import { withId } from "../billing/urls.js";
 
@@ -166,6 +167,13 @@ function strip(sum) {
 
 /* The whole grid: the strip, then each section's heading and cards. */
 export function floorHtml(tables, urls) {
+  if (!tables.length) {
+    return `<div class="col-12">${emptyStateHtml({
+      icon: "grid-3x3-gap", title: "No tables yet",
+      text: "Add your tables and the floor shows each one: free, ordering, cooking, waiting to pay.",
+      href: urls.setup_tables, label: "Add tables",
+    })}</div>`;
+  }
   const to = addresses(urls);
   let html = strip(summarise(tables));
   bySection(tables).forEach(([section, list]) => {

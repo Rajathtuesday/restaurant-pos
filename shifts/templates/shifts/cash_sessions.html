@@ -79,6 +79,9 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% if not sessions %}
+        {% include "core/_empty_state.html" with icon="cash-stack" title="No register sessions yet" text="Open the register at the start of the day with the cash in the drawer; closing it gives the end-of-day count." modal="#openSessionModal" label="Open register" %}
+        {% endif %}
     </div>
 </div>
 
