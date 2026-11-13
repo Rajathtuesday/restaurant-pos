@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-14: A runbook for the night it breaks
+
+### Added
+- **`docs/RUNBOOK.md`**: "It is Saturday, 9 pm, and..." the site is down, printing stopped, payments fail, the disk is full, everything is slow. For each: how to tell, the two things to try, and when to undo the deploy or restore. Two rules up front: a deploy in the last hour is undone first (`bash deploy.sh --undo`), and the database is never restored to fix a slow or broken site. `docs/DEPLOY.md`'s troubleshooting part points to it.
+
+### Tests
+- `core/tests/test_runbook.py` (6 tests): every script and doc it names exists; every log it names is one the settings or a systemd unit writes; every service it restarts is ours or the system's; `--undo`, `--keep` and `versions/last/before.sql.gz` still exist; the `/health/` checks it quotes are real checks; the 15 second timeout and the slow query line match the code; no long dashes.
+
 ## 2026-11-14: The parcel charge on the screen comes from the bill's own rule
 
 In October the cart showed 252 and the bill 264: the screen had its own idea of the parcel rule. The screen's copy was fixed, but nothing held it to the server's, as the tax and offer engines' copies are held.

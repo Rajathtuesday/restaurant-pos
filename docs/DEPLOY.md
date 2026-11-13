@@ -469,6 +469,8 @@ Then restart gunicorn (see 12.1).
 
 ## PART 14: Common errors and fixes
 
+Something broken while the restaurant is open: read `docs/RUNBOOK.md` first.
+
 ### ❌ `dial tcp X.X.X.X:22: i/o timeout` (CI/CD deploy fails)
 **Cause:** EC2_HOST secret has wrong IP, or EC2 instance is stopped.
 **Fix:**
