@@ -151,7 +151,6 @@ BASELINE = {
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 28, "third_party": 0, "globals": 0},
     'menu/templates/menu/modifiers_management.html': {"script": 139, "style": 46, "onclick": 10, "third_party": 0, "globals": 0},
     'menu/templates/menu/qsr_menu_management.html': {"script": 208, "style": 96, "onclick": 15, "third_party": 0, "globals": 0},
-    'orders/templates/orders/bill.html': {"script": 541, "style": 132, "onclick": 20, "third_party": 0, "globals": 0},
     'orders/templates/orders/live_orders.html': {"script": 195, "style": 93, "onclick": 1, "third_party": 0, "globals": 0},
     'orders/templates/orders/order_history.html': {"script": 223, "style": 172, "onclick": 8, "third_party": 0, "globals": 0},
     'orders/templates/orders/order_locked.html': {"script": 11, "style": 114, "onclick": 1, "third_party": 0, "globals": 0},

@@ -7,6 +7,31 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The frontend rebuild, phase 2 begins: the bill page
+
+The bill page is where money changes hands: discounts, the UPI QR, cash, card, Razorpay, the cover, loyalty points, printing. Its 541 lines of inline script and 132 lines of inline style are modules and a stylesheet now, tested in node and in a real browser.
+
+### Changed
+- **The bill page is markup only** (`orders/templates/orders/bill.html`): no inline script, no `<style>` block, no `onclick`, no `style=` attribute. Its code is `static/js/bill/`: `index.js` (reads the page's data, handles every `data-action`), `amount.js` (change due, split share, the UPI link), `discounts.js` (what is checked before asking the server), `payment.js` (taking a payment, offline cash, opening the register), `bill_print.js` (where the bill is printed after a payment), `razorpay_qr.js` (the QR sheet and its polling), `dialogs.js` (the small forms). Its CSS is `static/css/bill.css`; the receipt roll's width for browser printing is `static/css/print/paper_58.css` or `paper_80.css`.
+- **The page's data reaches the script in one block** (`orders.views.billing_core.bill_page_data`): the balance, the UPI id while something is left to pay, the printing settings, and every address the script calls, reversed on the server. No address is typed in the script.
+- **No browser pop-ups on the bill page.** Split, closing a bill without payment, and opening the cash register from the bill used the browser's own `prompt()` and `confirm()`. Those never appear inside the Android app, so on a phone the three silently did nothing. They are themed forms now, each saying what is wrong when the input is not right (a split into 0 people, a missing reason).
+- Text the server sends back (a guest's name from loyalty lookup) is escaped where it is drawn.
+
+### Fixed
+- **A restaurant name with "&" broke the UPI QR.** The name went into the payment link as typed, so "Salt & Pepper" cut the link at the ampersand: the UPI app saw a payee called "Salt " and a stray parameter. The name is encoded now.
+- **A second tap on a payment button could record the payment twice.** Nothing stopped two requests while the first was on its way; a second tap is now ignored until the first answers.
+- **The bill PDF fetched its stylesheets from the server's own public address.** WeasyPrint loads what a page links, over HTTP, from the address it is given: on the production box that meant out through Cloudflare and back, slow on a small server, and an unstyled PDF whenever that failed. It would also have fetched any address a page named. `core/pdf.py` reads Rasova's static files from disk, lets only the restaurant's logo on R2 go to the network, and refuses everything else.
+
+### Tests
+- `static/js/tests/bill.test.mjs` (27 tests): change due, split shares, the UPI link with an ampersand in the name; discount and promo checks; a payment (recorded and printed, reloaded for the receipt page when no printer took it, offline cash queued and UPI refused, a dropped connection, a device that cannot save, no register open then opened once and the payment retried once, a double tap); printing (Android's queue, the queue refusing, the PC agent, no agent, split bills, nothing printed, the Print button, a blocked popup); the Razorpay sheet (the split amount sent, paid, expired by the clock and by the server, a failed check that keeps asking, a QR that cannot be made, Regenerate).
+- `orders/tests/test_bill_browser.py` (Playwright): the UPI QR's text read after typing an amount, Pay All, a refused split and a split into 3, with one QR on screen each time; change due; no UPI id, no QR; cash taken on a fine-dining bill with no register open (refused, the register opened on the page with its float, the same payment retried and recorded); a cashier held on an unpaid bill; closing without payment refused without a reason and recorded with one. The browser helper now names the address of each failed request, so a test lists the refusals it sets up and nothing else may appear.
+- `orders/tests/test_bill_qr_amount_sync.py` read the old inline script as text, because nothing could run it ("verified manually"). The browser test above now checks that behaviour for real; this file keeps the server's side (the balance and UPI id in the page data only when there is something to collect, the QR library loaded only then, no script of the page's own, only a cashier held on an unpaid bill).
+- `core/tests/test_pdf.py`: what a PDF may read (static files from disk on any host, a collected hashed file, a logo on R2 or on disk, data URIs) and what it may not (`../`, the dashboard, the cloud metadata address, `file:`, another host). The full render, with the network patched to fail, runs where WeasyPrint's system libraries are installed (the server, CI).
+- The ratchet: `bill.html` is gone from the baseline.
+- **Browser tests no longer leave a request running while the test database is emptied.** Closing the browser does not stop a request it already sent, and the token counter asks the server for its order every 5 seconds. In a full parallel run one such request was still reading the tables when the test's cleanup emptied them, and Postgres deadlocked the two. `core/tests/browser.py` now waits, after closing the browser, until no request of the test server is still working in the database.
+- The browser helper's waits give up after 15 seconds, not 5. A wait ends the moment what it waits for is there, so a passing test is no slower; a second full parallel run took 97 minutes instead of about 30, and a step of three requests in a row needed more than 5 seconds there, though every request succeeded.
+- `core/tests/test_pdf.py` tells the real WeasyPrint from the stand-in that `billing/tests.py` and the inventory tests put in place on machines without its system libraries (the real `HTML` is a class, the stand-in's a function), whichever file loads first.
+
 ## 2026-11-13: Light mode had a black page behind every screen
 
 ### Fixed

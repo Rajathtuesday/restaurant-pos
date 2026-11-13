@@ -32,9 +32,11 @@ static/js/tests/     node tests for the above (node --test "static/js/tests/*.te
 static/js/billing/   the billing screen: one module for the dine-in screen, the QSR counter and the token counter
   index.js           reads page-data, handles every data-action, wires the pieces below
   cart.js, parcel.js, dispatch.js, counter.js, running_order.js, menu.js, printing.js, tokens.js, ui.js, urls.js
+static/js/bill/      the bill page: payment, discounts, printing, the Razorpay QR (phase 2's first page)
 static/js/pages/     phase 2: one module per remaining page
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
+static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)
 static/vendor/         third-party files Rasova serves itself; VENDOR.md lists versions and SHA-256

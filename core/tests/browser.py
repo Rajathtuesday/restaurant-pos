@@ -20,13 +20,17 @@ from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client, override_settings
 
 # What a step can use, as `t`, on every page the browser opens:
-#   t.until(fn)        wait until fn() is truthy (5 seconds), return it
+#   t.until(fn)        wait until fn() is truthy (15 seconds at most), return it.
+#                      It returns the moment fn() holds, so a passing test is no
+#                      slower; the ceiling is for a loaded machine (a full parallel
+#                      run once took three times as long, and a three-request step
+#                      needed more than 5 seconds).
 #   t.click(selector)  click the first match (it must exist)
 #   t.text(selector)   its text, trimmed
 #   t.all(selector)    every match, as an array
 HELPERS = """
 window.t = {
-  async until(fn, ms = 5000) {
+  async until(fn, ms = 15000) {
     const end = Date.now() + ms;
     for (;;) {
       const value = await fn();
@@ -48,6 +52,46 @@ window.t = {
   all: (selector) => Array.from(document.querySelectorAll(selector)),
 };
 """
+
+
+def _wait_until_the_server_is_idle(timeout=15):
+    """Return once no request of the live server is still working in this
+    test's database.
+
+    Closing the browser does not stop a request it already sent: a page
+    that polls (the token counter asks for its order every 5 seconds) can
+    leave one running in the server's thread. The test's cleanup then
+    empties every table while that request reads them, and Postgres
+    deadlocks the two (12 November 2026, the token counter test in a full
+    parallel run). Waiting here puts the cleanup after the last request.
+
+    pg_stat_activity is frozen for the length of a transaction, at the
+    first look, so the snapshot is dropped before every look."""
+    import time
+
+    from django.db import connection
+    if connection.vendor != "postgresql":
+        return
+    deadline = time.monotonic() + timeout
+    with connection.cursor() as cursor:
+        while time.monotonic() < deadline:
+            cursor.execute("SELECT pg_stat_clear_snapshot()")
+            cursor.execute(
+                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() "
+                "AND pid <> pg_backend_pid() AND state <> 'idle'"
+            )
+            if cursor.fetchone()[0] == 0:
+                return
+            time.sleep(0.05)
+
+
+def _console_error(message):
+    """A console error, with the address that failed when it is a request
+    ("console.error: ... 400 (Bad Request) /pay/7/"), so a test can expect
+    a refusal by where it came from."""
+    url = (message.location or {}).get("url") or ""
+    where = urlparse(url).path if "/static/" not in url else ""
+    return f"console.error: {message.text}" + (f" {where}" if where else "")
 
 
 @override_settings(SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False,
@@ -105,7 +149,7 @@ class BrowserTestCase(StaticLiveServerTestCase):
             page.set_default_timeout(30_000)
             errors, results = [], {}
             page.on("pageerror", lambda error: errors.append(f"uncaught: {error}"))
-            page.on("console", lambda message: errors.append(f"console.error: {message.text}")
+            page.on("console", lambda message: errors.append(_console_error(message))
                     if message.type == "error" else None)
             page.goto(self.live_server_url + url, wait_until="load")
             for step in steps:
@@ -123,3 +167,4 @@ class BrowserTestCase(StaticLiveServerTestCase):
             return {"errors": errors, "results": results}
         finally:
             context.close()
+            _wait_until_the_server_is_idle()

@@ -1,0 +1,6 @@
+/* A 58 mm receipt roll. The browser sends the page at this size to a
+   handheld's built-in printer (Sunmi, PAX) or to a network printer. */
+@page {
+    size: 58mm auto;
+    margin: 3mm 2mm;
+}

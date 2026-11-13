@@ -1,0 +1,228 @@
+/*
+ * The bill page (orders/templates/orders/bill.html): the receipt card,
+ * discounts, the payment buttons, loyalty points, the Razorpay sheet.
+ * Its script is static/js/bill/index.js.
+ *
+ * The same template is rendered to a PDF by WeasyPrint
+ * (orders/views/print_views.py, download_pdf_bill), which reads this file
+ * from disk, so the PDF never depends on the server reaching itself.
+ */
+/* ── Bill page: centre a receipt card in the viewport ─── */
+.bill-page {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1rem 4rem;
+    min-height: calc(100vh - 65px);
+    background: var(--bg-color);
+}
+.bill-wrap { position: relative; width: 100%; max-width: 440px; }
+
+/* ── Receipt card ─────────────────────────────────────── */
+.receipt-container {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    padding: 2.5rem 2rem;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.12);
+}
+.r-header  { text-align: center; margin-bottom: 1.5rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 1.5rem; }
+.r-logo    { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.4rem; }
+.r-address { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
+.r-gst     { font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; font-weight: 600; }
+
+.meta { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.9rem; }
+.meta div { display: flex; flex-direction: column; }
+.label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 2px; }
+
+.item-list { border-bottom: 1px dashed var(--border-color); margin-bottom: 1.25rem; padding-bottom: 0.75rem; }
+/* A dish: its line (name left, amount right), then small rows under it.
+   Every amount sits in one right-aligned column, offers included, in
+   the same font as the totals below (Space Mono has no rupee sign). */
+.item { padding: 0.35rem 0; font-size: 0.85rem; }
+.item-line { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.item-name { flex: 1; min-width: 0; }
+.item-qty  { color: var(--text-muted); }
+.item-val  { font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.item-note { font-size: 0.7rem; color: var(--text-muted); padding-left: 0.4rem; margin-top: 0.1rem; }
+.item-offer { font-size: 0.72rem; color: #10b981; margin-top: 0.15rem; padding-left: 0.4rem; }
+
+.total-row { display: flex; justify-content: space-between; padding: 0.22rem 0; font-size: 0.85rem; }
+.grand-total {
+    display: flex; justify-content: space-between;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem; font-weight: 700; color: var(--accent-gold);
+    border-top: 1px solid var(--border-color);
+    margin-top: 0.9rem; padding-top: 0.9rem;
+}
+
+/* ── Balance / status card ────────────────────────────── */
+.balance-card {
+    background: rgba(197,160,89,0.07);
+    border: 1px solid var(--border-color);
+    padding: 1.1rem; text-align: center; margin: 1.25rem 0;
+}
+.balance-card.fully-paid { background: rgba(16,185,129,0.07); border-color: rgba(16,185,129,0.25); }
+.balance-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 4px; }
+.balance-val { font-size: 1.2rem; font-weight: 700; font-family: 'Space Mono', monospace; }
+
+/* ── Payment UI ───────────────────────────────────────── */
+.pay-area { margin-top: 1.5rem; }
+.input-pay {
+    width: 100%; background: transparent;
+    border: 1px solid var(--border-color); color: var(--text-main);
+    padding: 0.9rem 1rem; font-size: 1.1rem;
+    font-family: 'Space Mono', monospace; text-align: center;
+    outline: none; margin-bottom: 0.75rem; min-height: 52px;
+}
+.input-pay:focus { border-color: var(--accent-gold); }
+
+.btn-set { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.6rem; flex: 1; cursor: pointer; min-height: 44px; }
+.btn-set:hover { border-color: var(--accent-gold); color: var(--text-main); }
+
+.pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
+.btn-pay { background: var(--panel-bg); border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 72px; }
+.btn-pay i { font-size: 1.2rem; }
+.btn-pay:hover { background: var(--accent-gold); color: #000; }
+.btn-pay:active { opacity: 0.85; }
+
+.btn-action { width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; cursor: pointer; margin-top: 1.5rem; min-height: 48px; }
+.btn-action:hover { border-color: var(--text-main); color: var(--text-main); }
+
+/* ── Back nav ─────────────────────────────────────────── */
+.nav-back { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 1rem; }
+.nav-back:hover { color: var(--accent-gold); }
+
+/* ── GST breakdown ────────────────────────────────────── */
+.gst-breakdown { margin: 0.75rem 0; padding: 0.75rem; border: 1px dashed var(--border-color); background: rgba(197,160,89,0.03); }
+.gst-breakdown-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 600; }
+
+/* ── Discount section ─────────────────────────────────── */
+.discount-section { margin: 1.25rem 0; padding: 1.1rem; border: 1px solid var(--border-color); }
+.discount-title { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 0.75rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
+.field-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+.field-select, .field-num {
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+    padding: 0.55rem 0.7rem; font-size: 0.85rem; outline: none; flex: 1; min-width: 70px; min-height: 44px;
+}
+.btn-apply { background: var(--accent-gold); color: #fff; border: none; padding: 0.55rem 1.1rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
+.btn-remove { background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.55rem 1rem; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
+
+/* ── Loyalty points section ───────────────────────────── */
+.loyalty-section { border: 1px dashed var(--border-color); padding: 1.1rem; margin-top: 1.25rem; }
+.loyalty-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 600; }
+.loyalty-info { font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0 0.6rem; padding: 0.5rem; border: 1px solid var(--border-color); }
+.loyalty-msg { display: none; margin-top: 0.6rem; font-size: 0.75rem; text-align: center; letter-spacing: 1px; }
+
+/* ── GST print block (hidden on screen, shown on print) ── */
+.print-gst { display: none; }
+
+/* ── Print styles ─────────────────────────────────────── */
+/* The paper's width is a setting (58 or 80 mm, KitchenStation.paper_width_mm):
+   the page links css/print/paper_58.css or paper_80.css for the @page rule. */
+@media print {
+    /* Hide everything except the receipt card */
+    .nav-back, .pay-area, .discount-section, .loyalty-section,
+    .gst-breakdown, .balance-card, .no-print,
+    .pos-header { display: none !important; }
+    /* UPI QR prints on the receipt: customer scans after meal */
+    #upi-qr-wrap { display: block !important; border: none; padding: 0.5rem 0; }
+    /* CGST/SGST lines required on printed GST invoice */
+    .print-gst { display: block !important; }
+    body, html { background: #fff !important; color: #000 !important; }
+    .bill-page { padding: 0; min-height: 0; }
+    .bill-wrap { max-width: 100% !important; }
+    .receipt-container { box-shadow: none; border: none; padding: 0; }
+    .item-val, .item-offer, .grand-total, .r-logo, .total-row { color: #000 !important; }
+    * { border-color: #000 !important; }
+}
+
+/* ---- pieces that used to carry their look in a style attribute ---- */
+.invoice-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; }
+.invoice-title i { color: var(--accent-gold); }
+.r-logo-img { max-height: 80px; margin-bottom: 0.5rem; }
+.r-outlet { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
+.meta--second { margin-top: -6px; }
+.meta .meta-right { text-align: right; }
+.item-discount-btn { background: transparent; border: none; color: var(--accent-gold); cursor: pointer; padding: 0 4px; font-size: 0.7rem; }
+.total-row--off { color: #ef4444; }
+.total-row--muted { color: var(--text-muted); }
+.total-row--small { font-size: 0.78rem; padding: 0.1rem 0; }
+.total-row--sum { font-size: 0.82rem; font-weight: 700; }
+.total-row--balance { margin-top: 0.4rem; font-weight: 700; }
+.tax-included { border-top: 1px dashed var(--border-color); padding: 0.35rem 0; margin: 0.4rem 0; }
+.tax-included-title { font-size: 0.72rem; font-style: italic; }
+.tax-included-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-top: 0.2rem; }
+.bill-statement { font-size: 0.68rem; color: var(--text-muted); text-align: right; margin-top: 3px; }
+.payments { margin-top: 1.25rem; border-top: 1px dashed var(--border-color); padding-top: 0.9rem; }
+.payments-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.5rem; }
+.payment-time { color: var(--text-muted); }
+
+#upi-qr-wrap { margin: 1.25rem 0; text-align: center; border: 1px dashed var(--border-color); padding: 1.25rem; }
+.upi-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.75rem; }
+#upi-qr-canvas { display: inline-block; }
+#upi-qr-fallback { display: none; font-size: 0.78rem; color: #dc2626; margin-top: 0.4rem; }
+#upi-qr-fallback.is-shown { display: block; }
+.upi-id { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.6rem; }
+.upi-apps { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+
+.promo-row { margin-bottom: 0.75rem; }
+#promo-select { width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.82rem; outline: none; }
+.field-select--narrow { max-width: 110px; }
+.field-num--reason { max-width: none; flex: 1 1 140px; }
+.discount-active { margin-top: 0.7rem; font-size: 0.78rem; color: var(--accent-gold); }
+.discount-paused { margin-top: 0.4rem; font-size: 0.78rem; color: var(--danger, #ef4444); }
+
+#change-display { display: none; background: #dc2626; color: #fff; text-align: center; padding: 0.9rem 1rem; margin-bottom: 0.75rem; }
+#change-display.is-shown { display: block; }
+.change-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; opacity: .85; margin-bottom: 0.2rem; }
+#change-amount { font-family: 'DM Serif Display', serif; font-size: 2.8rem; font-weight: 700; line-height: 1.1; }
+.pay-shortcuts { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.btn-pay--wide { width: 100%; }
+.btn-action--quiet { border-color: var(--border-color); color: var(--text-muted); }
+.btn-action--gold { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn-action--link { text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.paid-note { text-align: center; padding: 1rem; color: #10b981; font-weight: 700; letter-spacing: 2px; font-size: 0.75rem; }
+.after-pay { display: flex; gap: 0.5rem; margin-top: 1.25rem; }
+.after-pay .btn-action { margin-top: 0; }
+
+.loyalty-title i { color: var(--accent-gold); }
+.loyalty-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+.input-pay--text { padding: 0.6rem 0.8rem; font-size: 0.9rem; font-family: 'Outfit', sans-serif; text-align: left; }
+.input-pay--inline { margin: 0; flex: 1; }
+.input-pay--name { margin-bottom: 0.5rem; }
+.input-pay--redeem { margin: 0; flex: 1; padding: 0.5rem; font-size: 0.9rem; }
+.btn-set--lookup { flex: 0 0 80px; }
+.loyalty-info { display: none; }
+.loyalty-info.is-shown { display: block; }
+.loyalty-points { color: var(--accent-gold); }
+.redeem-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
+.redeem-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); white-space: nowrap; }
+.btn-pay--award { width: 100%; padding: 0.9rem; }
+.loyalty-msg.is-shown { display: block; color: #10b981; }
+.loyalty-msg.is-shown.is-error { color: #ef4444; }
+
+/* ---- the Razorpay QR sheet (static/js/bill/razorpay_qr.js) ---- */
+#razorpay-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+#razorpay-modal-overlay.is-open { display: flex; }
+#razorpay-modal-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2.5rem; max-width: 420px; width: 92%; text-align: center; transition: background 0.25s; }
+#razorpay-modal-card.is-paid { background: rgba(34,197,94,0.10); }
+#razorpay-qr-header { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 1.2rem; }
+#razorpay-qr-area { min-height: 280px; display: flex; align-items: center; justify-content: center; }
+#razorpay-qr-status { margin-top: 1rem; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); }
+#razorpay-modal-buttons { display: flex; gap: 0.5rem; margin-top: 1.25rem; }
+#razorpay-modal-buttons .btn-action { margin-top: 0; }
+#razorpay-modal-card.is-paid #razorpay-qr-header,
+#razorpay-modal-card.is-paid #razorpay-modal-buttons { display: none; }
+#razorpay-modal-card.is-paid #razorpay-qr-status { color: #16a34a; font-size: 1.3rem; }
+.razorpay-note { color: var(--text-muted); font-size: 0.85rem; }
+.razorpay-note--error { color: #dc2626; }
+.razorpay-qr-image { width: 280px; height: 280px; image-rendering: pixelated; }
+.razorpay-paid-mark { width: 90px; height: 90px; border-radius: 50%; background: #16a34a; display: flex; align-items: center; justify-content: center; }
+.razorpay-paid-mark span { color: #fff; font-size: 3rem; line-height: 1; }
+
+/* ---- the small forms (static/js/bill/dialogs.js) ---- */
+.bill-form-label { display: block; text-align: left; font-size: 0.8rem; margin-top: 0.8rem; }
+.bill-form-label--first { margin-top: 0.4rem; }
+.swal2-input.bill-form-input { margin: 0.3rem 0 0; width: 100%; }
+.swal2-input.bill-form-input--code { text-transform: uppercase; letter-spacing: 0.3em; text-align: center; }
+.bill-form-hint { text-align: left; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem; }
+.bill-form-hint--lead { font-size: 0.85rem; margin: 0 0 0.4rem; }

@@ -166,6 +166,50 @@ def billing_view(request):
 # BILL VIEW
 # -------------------------------------------------
 
+def bill_page_data(order, remaining, config, station, user, is_qsr, auto_print):
+    """What static/js/bill/index.js needs from the server, rendered once
+    by bill.html as {{ page_data|json_script:"page-data" }}. Money travels
+    as text ("450.00"), as the page shows it."""
+    outlet = order.outlet
+    return {
+        "order_id": order.id,
+        "outlet_id": outlet.id,
+        "bill_number": str(order.display_number),
+        "payee": order.tenant.name,
+        "remaining": str(remaining),
+        "subtotal": str(order.subtotal or 0),
+        # The UPI QR is drawn only while something is left to pay.
+        "upi_id": (config.upi_id or "") if remaining > 0 else "",
+        # Printing after a payment (static/js/bill/bill_print.js)
+        "split_mode": bool(outlet.split_bill_by_category),
+        "use_agent": bool(outlet.use_qz_tray),
+        "printer_name": (station.printer_name or "") if station else "",
+        "printer_mac": outlet.printer_mac or "",
+        # ?print=1: a payment was just taken and no printer took the bill
+        "auto_print": auto_print,
+        # A cashier may not leave an unpaid bill; a manager or the owner may.
+        "guard_back": remaining > 0 and user.role not in ("owner", "manager"),
+        "after_close": reverse("token-dashboard") if is_qsr else "/tables/",
+        "urls": {
+            "pay_order": reverse("pay-order", args=[order.id]),
+            "apply_discount": reverse("apply-discount", args=[order.id]),
+            "log_bypass": reverse("log-bypass", args=[order.id]),
+            "cover_redeem": reverse("cover-redeem", args=[order.id]),
+            "link_guest": reverse("link-guest", args=[order.id]),
+            "guest_lookup": reverse("guest-lookup"),
+            "list_promos": reverse("list-promos"),
+            "open_register": reverse("open-cash-session"),
+            "print_bill": reverse("print-bill", args=[order.id]),
+            "print_split_bill": reverse("print-split-bill", args=[order.id]),
+            "print_queue_add": reverse("print-queue-add"),
+            "qz_receipt_data": reverse("qz-receipt-data", args=[0]),
+            "thermal_receipt": reverse("thermal-receipt", args=[0]),
+            "razorpay_create_qr": reverse("razorpay-create-qr", args=[order.id]),
+            "razorpay_qr_status": reverse("razorpay-qr-status", args=["PLACEHOLDER"]),
+        },
+    }
+
+
 @never_cache
 @login_required
 @tenant_required
@@ -249,6 +293,7 @@ def bill_view(request, order_id):
             "paper_width_mm":  paper_width_mm,
             "auto_print":      auto_print,
             "default_station": station,
+            "page_data": bill_page_data(order, remaining, config, station, request.user, is_qsr, auto_print),
         })
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)

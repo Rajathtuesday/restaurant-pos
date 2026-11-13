@@ -340,7 +340,7 @@ def download_pdf_bill(request, order_id):
     # is a 404 and nothing heavier than that lookup runs for it.
     order = get_object_or_404(Order, id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
 
-    import weasyprint
+    from core.pdf import render_pdf
 
     # Exclude refund rows (negative amounts) - including them inflates 'remaining'.
     # This mirrors the correct calculation already used in bill_view and pay_order.
@@ -350,14 +350,10 @@ def download_pdf_bill(request, order_id):
     html_string = render_to_string("orders/bill.html", {
         "order": order, "layout": bill_layout(order), "request": request, "remaining": remaining,
     })
-    # bill.html renders guest-supplied text (item notes, names) -- explicit
-    # presentational_hints=False (already the library default, made explicit
-    # here) closes GHSA-jhhc-3hcp-qhm5 / CVE-2026-49452, a CSS-injection bug
-    # that only fires when this flag is on. No patched WeasyPrint release
-    # exists yet, so this is the actual fix, not a stopgap for one.
-    pdf_file = weasyprint.HTML(string=html_string, base_url=request.build_absolute_uri('/')).write_pdf(
-        presentational_hints=False
-    )
+    # bill.html links its stylesheets; core/pdf.py reads them from disk
+    # rather than fetching them from this same server over the internet,
+    # and keeps presentational_hints=False (GHSA-jhhc-3hcp-qhm5).
+    pdf_file = render_pdf(html_string, base_url=request.build_absolute_uri('/'))
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="bill_{order.id}.pdf"'

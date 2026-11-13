@@ -3,150 +3,19 @@
 {% block title %}Invoice #{{ order.display_number }} | {{ order.outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* ── Bill page: centre a receipt card in the viewport ─── */
-    .bill-page {
-        display: flex;
-        justify-content: center;
-        padding: 2rem 1rem 4rem;
-        min-height: calc(100vh - 65px);
-        background: var(--bg-color);
-    }
-    .bill-wrap { position: relative; width: 100%; max-width: 440px; }
-
-    /* ── Receipt card ─────────────────────────────────────── */
-    .receipt-container {
-        background: var(--panel-bg);
-        border: 1px solid var(--border-color);
-        padding: 2.5rem 2rem;
-        box-shadow: 0 15px 50px rgba(0,0,0,0.12);
-    }
-    .r-header  { text-align: center; margin-bottom: 1.5rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 1.5rem; }
-    .r-logo    { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.4rem; }
-    .r-address { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
-    .r-gst     { font-size: 0.68rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; font-weight: 600; }
-
-    .meta { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.9rem; }
-    .meta div { display: flex; flex-direction: column; }
-    .label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 2px; }
-
-    .item-list { border-bottom: 1px dashed var(--border-color); margin-bottom: 1.25rem; padding-bottom: 0.75rem; }
-    /* A dish: its line (name left, amount right), then small rows under it.
-       Every amount sits in one right-aligned column, offers included, in
-       the same font as the totals below (Space Mono has no rupee sign). */
-    .item { padding: 0.35rem 0; font-size: 0.85rem; }
-    .item-line { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
-    .item-name { flex: 1; min-width: 0; }
-    .item-qty  { color: var(--text-muted); }
-    .item-val  { font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-    .item-note { font-size: 0.7rem; color: var(--text-muted); padding-left: 0.4rem; margin-top: 0.1rem; }
-    .item-offer { font-size: 0.72rem; color: #10b981; margin-top: 0.15rem; padding-left: 0.4rem; }
-
-    .total-row { display: flex; justify-content: space-between; padding: 0.22rem 0; font-size: 0.85rem; }
-    .grand-total {
-        display: flex; justify-content: space-between;
-        font-family: 'DM Serif Display', serif;
-        font-size: 1.5rem; font-weight: 700; color: var(--accent-gold);
-        border-top: 1px solid var(--border-color);
-        margin-top: 0.9rem; padding-top: 0.9rem;
-    }
-
-    /* ── Balance / status card ────────────────────────────── */
-    .balance-card {
-        background: rgba(197,160,89,0.07);
-        border: 1px solid var(--border-color);
-        padding: 1.1rem; text-align: center; margin: 1.25rem 0;
-    }
-    .balance-card.fully-paid { background: rgba(16,185,129,0.07); border-color: rgba(16,185,129,0.25); }
-    .balance-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 4px; }
-    .balance-val { font-size: 1.2rem; font-weight: 700; font-family: 'Space Mono', monospace; }
-
-    /* ── Payment UI ───────────────────────────────────────── */
-    .pay-area { margin-top: 1.5rem; }
-    .input-pay {
-        width: 100%; background: transparent;
-        border: 1px solid var(--border-color); color: var(--text-main);
-        padding: 0.9rem 1rem; font-size: 1.1rem;
-        font-family: 'Space Mono', monospace; text-align: center;
-        outline: none; margin-bottom: 0.75rem; min-height: 52px;
-    }
-    .input-pay:focus { border-color: var(--accent-gold); }
-
-    .btn-set { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.6rem; flex: 1; cursor: pointer; min-height: 44px; }
-    .btn-set:hover { border-color: var(--accent-gold); color: var(--text-main); }
-
-    .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
-    .btn-pay { background: var(--panel-bg); border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 72px; }
-    .btn-pay i { font-size: 1.2rem; }
-    .btn-pay:hover { background: var(--accent-gold); color: #000; }
-    .btn-pay:active { opacity: 0.85; }
-
-    .btn-action { width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; cursor: pointer; margin-top: 1.5rem; min-height: 48px; }
-    .btn-action:hover { border-color: var(--text-main); color: var(--text-main); }
-
-    /* ── Back nav ─────────────────────────────────────────── */
-    .nav-back { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 1rem; }
-    .nav-back:hover { color: var(--accent-gold); }
-
-    /* ── GST breakdown ────────────────────────────────────── */
-    .gst-breakdown { margin: 0.75rem 0; padding: 0.75rem; border: 1px dashed var(--border-color); background: rgba(197,160,89,0.03); }
-    .gst-breakdown-title { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.6rem; font-weight: 600; }
-
-    /* ── Discount section ─────────────────────────────────── */
-    .discount-section { margin: 1.25rem 0; padding: 1.1rem; border: 1px solid var(--border-color); }
-    .discount-title { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 0.75rem; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
-    .field-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-    .field-select, .field-num {
-        background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
-        padding: 0.55rem 0.7rem; font-size: 0.85rem; outline: none; flex: 1; min-width: 70px; min-height: 44px;
-    }
-    .btn-apply { background: var(--accent-gold); color: #fff; border: none; padding: 0.55rem 1.1rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
-    .btn-remove { background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.55rem 1rem; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
-
-    /* ── Loyalty points section ───────────────────────────── */
-    .loyalty-section { border: 1px dashed var(--border-color); padding: 1.1rem; margin-top: 1.25rem; }
-    .loyalty-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.75rem; font-weight: 600; }
-    .loyalty-info { font-size: 0.8rem; color: var(--text-muted); margin: 0.4rem 0 0.6rem; padding: 0.5rem; border: 1px solid var(--border-color); }
-    .loyalty-msg { display: none; margin-top: 0.6rem; font-size: 0.75rem; text-align: center; letter-spacing: 1px; }
-
-    /* ── GST print block (hidden on screen, shown on print) ── */
-    .print-gst { display: none; }
-
-    /* ── Print styles ─────────────────────────────────────── */
-    /* @page sets physical paper dimensions — browser routes to built-in
-       printer on handhelds (Sunmi, PAX, etc.) or to network printer.
-       paper_width_mm comes from KitchenStation.paper_width_mm (58 or 80). */
-    @page {
-        size: {{ paper_width_mm|default:80 }}mm auto;
-        margin: 3mm 2mm;
-    }
-    @media print {
-        /* Hide everything except the receipt card */
-        .nav-back, .pay-area, .discount-section, .loyalty-section,
-        .gst-breakdown, .balance-card, .no-print,
-        .pos-header { display: none !important; }
-        /* UPI QR prints on the receipt — customer scans after meal */
-        #upi-qr-wrap { display: block !important; border: none; padding: 0.5rem 0; }
-        /* CGST/SGST lines required on printed GST invoice */
-        .print-gst { display: block !important; }
-        body, html { background: #fff !important; color: #000 !important; }
-        .bill-page { padding: 0; min-height: 0; }
-        .bill-wrap { max-width: 100% !important; }
-        .receipt-container { box-shadow: none; border: none; padding: 0; }
-        .item-val, .item-offer, .grand-total, .r-logo, .total-row { color: #000 !important; }
-        * { border-color: #000 !important; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/bill.css' %}">
+{# The receipt roll's width, for printing from the browser: 58 or 80 mm. #}
+{% if paper_width_mm == 58 %}<link rel="stylesheet" href="{% static 'css/print/paper_58.css' %}">{% else %}<link rel="stylesheet" href="{% static 'css/print/paper_80.css' %}">{% endif %}
 {% endblock %}
 
 {% block header_left %}
-<span style="font-family:'DM Serif Display',serif;font-size:1.1rem;">
-    <i class="bi bi-receipt me-2" style="color:var(--accent-gold)"></i>Invoice
+<span class="invoice-title">
+    <i class="bi bi-receipt me-2"></i>Invoice
 </span>
 {% endblock %}
 
 {% block header_right %}
-<button class="btn-icon" onclick="window.print()" title="Print this page (full)"><i class="bi bi-printer"></i></button>
+<button type="button" class="btn-icon" data-action="page.print" title="Print this page (full)"><i class="bi bi-printer"></i></button>
 <a href="{% url 'thermal-receipt' order.id %}" target="_blank"
    class="btn-luxury ms-2 no-print" title="Open thermal receipt (80mm printer)">
   <i class="bi bi-receipt me-1"></i>Thermal Print
@@ -157,11 +26,11 @@
 <div class="bill-page">
 <div class="bill-wrap">
 
-    <!-- Back navigation — QSR goes to Tokens, fine-dining goes to Tables -->
+    <!-- Back navigation: QSR goes to Tokens, fine-dining goes to Tables -->
     {# Going back never closes the bill. A manager closes an unpaid bill #}
     {# with the "Close without payment" button below, giving a reason.  #}
     {% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
-        <a href="#" onclick="ui.toast('Complete payment before leaving','warning'); return false;" class="nav-back no-print">
+        <a href="#" data-action="bill.stay" class="nav-back no-print">
             <i class="bi bi-arrow-left"></i> Back
         </a>
     {% else %}
@@ -179,11 +48,11 @@
         <!-- Restaurant header -->
         <div class="r-header">
             {% if request.user.tenant.logo %}
-            <img src="{{ request.user.tenant.logo.url }}" alt="Logo" style="max-height:80px;margin-bottom:0.5rem;">
+            <img src="{{ request.user.tenant.logo.url }}" alt="Logo" class="r-logo-img">
             {% else %}
             <div class="r-logo">{{ request.user.tenant.name }}</div>
             {% endif %}
-            <div style="font-size:0.85rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.4rem;">{{ order.outlet.name }}</div>
+            <div class="r-outlet">{{ order.outlet.name }}</div>
             <div class="r-address">{{ order.outlet.address|default:""|linebreaksbr }}</div>
             {% if order.outlet.gst_no %}<div class="r-gst">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
             {% if order.outlet.fssai_no %}<div class="r-gst">FSSAI: {{ order.outlet.fssai_no }}</div>{% endif %}
@@ -193,14 +62,14 @@
         <!-- Order meta -->
         <div class="meta">
             <div><span class="label">{{ layout.title }}</span><span>{{ order.display_number }}</span></div>
-            <div style="text-align:right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
+            <div class="meta-right"><span class="label">Date</span><span>{{ order.created_at|date:"d.M.Y H:i" }}</span></div>
         </div>
-        <div class="meta" style="margin-top:-6px">
+        <div class="meta meta--second">
             <div>
                 <span class="label">{% if order.token %}Token{% else %}Table{% endif %}</span>
                 <span>{% if order.token %}{{ order.token.display_number }}{% else %}{{ order.table.name|default:"Walk-in" }}{% endif %}</span>
             </div>
-            <div style="text-align:right"><span class="label">Staff</span><span>{{ request.user.username|title }}</span></div>
+            <div class="meta-right"><span class="label">Staff</span><span>{{ request.user.username|title }}</span></div>
         </div>
 
         <!-- Items -->
@@ -211,11 +80,10 @@
                     <span class="item-name">
                         {{ item.menu_item.name }}<span class="item-qty"> × {{ item.quantity }}</span>
                         {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
-                        <button type="button" class="item-discount-btn" onclick="promptItemDiscount(this)"
+                        <button type="button" class="item-discount-btn" data-action="discount.item"
                                 data-url="{% url 'item-discount' item.id %}" data-name="{{ item.menu_item.name }}"
                                 data-pct="{{ item.item_discount_pct|floatformat:'-2' }}"
-                                aria-label="Discount on {{ item.menu_item.name }}"
-                                style="background:transparent;border:none;color:var(--accent-gold);cursor:pointer;padding:0 4px;font-size:0.7rem;">
+                                aria-label="Discount on {{ item.menu_item.name }}">
                             <i class="bi bi-tag"></i>
                         </button>
                         {% endif %}
@@ -243,7 +111,7 @@
 
         <!-- Totals: rows that add up to the total (orders/services/bill_layout.py) -->
         {% for row in layout.rows %}
-        <div class="total-row"{% if row.key == "discount" or row.key == "promo" %} style="color:#ef4444"{% elif row.key == "round_off" %} style="color:var(--text-muted)"{% endif %}>
+        <div class="total-row{% if row.key == "discount" or row.key == "promo" %} total-row--off{% elif row.key == "round_off" %} total-row--muted{% endif %}">
             <span>{% if row.key == "charge" %}<i class="bi bi-bag me-1"></i>{% endif %}{{ row.label }}</span>
             <span>{% if row.negative %}−{% elif row.key == "round_off" %}+{% endif %}₹{{ row.magnitude }}</span>
         </div>
@@ -255,58 +123,58 @@
 
         {% if layout.included %}
         {# Tax inside the prices: shown with its taxable value, never added again #}
-        <div class="tax-included" style="border-top:1px dashed var(--border-color);padding:0.35rem 0;margin:0.4rem 0;">
-            <div style="font-size:0.72rem;font-style:italic;">{% if layout.prices_include_gst %}Prices include GST{% else %}Prices include tax{% endif %}</div>
+        <div class="tax-included">
+            <div class="tax-included-title">{% if layout.prices_include_gst %}Prices include GST{% else %}Prices include tax{% endif %}</div>
             {% for tax in layout.included %}
-            <div style="font-size:0.7rem;color:var(--text-muted);font-weight:600;margin-top:0.2rem;">{{ tax.label }} on ₹{{ tax.taxable }}</div>
+            <div class="tax-included-label">{{ tax.label }} on ₹{{ tax.taxable }}</div>
             {% if tax.kind == "gst" %}
-            <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span>CGST @ {{ tax.half_rate }}</span><span>₹{{ tax.cgst }}</span></div>
-            <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span>{{ layout.state_tax }} @ {{ tax.half_rate }}</span><span>₹{{ tax.sgst }}</span></div>
+            <div class="total-row total-row--small"><span>CGST @ {{ tax.half_rate }}</span><span>₹{{ tax.cgst }}</span></div>
+            <div class="total-row total-row--small"><span>{{ layout.state_tax }} @ {{ tax.half_rate }}</span><span>₹{{ tax.sgst }}</span></div>
             {% else %}
-            <div class="total-row" style="font-size:0.78rem;padding:0.1rem 0;"><span>VAT</span><span>₹{{ tax.tax }}</span></div>
+            <div class="total-row total-row--small"><span>VAT</span><span>₹{{ tax.tax }}</span></div>
             {% endif %}
             {% endfor %}
             {% if layout.included|length > 1 %}
-            <div class="total-row" style="font-size:0.82rem;font-weight:700;"><span>Total tax included</span><span>₹{{ layout.included_total }}</span></div>
+            <div class="total-row total-row--sum"><span>Total tax included</span><span>₹{{ layout.included_total }}</span></div>
             {% endif %}
         </div>
         {% endif %}
         {% if layout.statement %}
-        <div style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">{{ layout.statement }}</div>
+        <div class="bill-statement">{{ layout.statement }}</div>
         {% elif is_unregistered %}
-        <div class="no-print" style="font-size:0.68rem;color:var(--text-muted);text-align:right;margin-top:3px;">No GST: this outlet has no GSTIN (Outlet Settings)</div>
+        <div class="bill-statement no-print">No GST: this outlet has no GSTIN (Outlet Settings)</div>
         {% endif %}
 
         <!-- Payment splits -->
         {% if order.payments.exists %}
-        <div class="no-print" style="margin-top:1.25rem;border-top:1px dashed var(--border-color);padding-top:0.9rem;">
-            <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.5rem;">Payments</div>
+        <div class="payments no-print">
+            <div class="payments-title">Payments</div>
             {% for p in order.payments.all %}
-            <div class="total-row" style="font-size:0.85rem;">
-                <span>{{ p.method|title }} <small style="color:var(--text-muted)">({{ p.created_at|date:"H:i" }})</small></span>
+            <div class="total-row">
+                <span>{{ p.method|title }} <small class="payment-time">({{ p.created_at|date:"H:i" }})</small></span>
                 <span>−₹{{ p.amount }}</span>
             </div>
             {% endfor %}
-            <div class="total-row" style="margin-top:0.4rem;font-weight:700;">
+            <div class="total-row total-row--balance">
                 <span>Balance Due</span><span>₹{{ remaining }}</span>
             </div>
         </div>
         {% endif %}
 
-        <!-- UPI QR — show when upi_id configured and order not yet fully paid -->
+        <!-- UPI QR: shown when a UPI id is set and something is left to pay -->
         {% if config.upi_id and remaining > 0 %}
-        <div id="upi-qr-wrap" style="margin:1.25rem 0;text-align:center;border:1px dashed var(--border-color);padding:1.25rem;">
-            <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:0.75rem;">
+        <div id="upi-qr-wrap">
+            <div class="upi-title">
                 Scan &amp; Pay  ·  ₹{{ remaining }}
             </div>
-            <div id="upi-qr-canvas" style="display:inline-block;"></div>
-            <div id="upi-qr-fallback" style="display:none;font-size:0.78rem;color:#dc2626;margin-top:0.4rem;">
-                Couldn't load the QR — have the customer pay directly to the UPI ID below in any UPI app.
+            <div id="upi-qr-canvas"></div>
+            <div id="upi-qr-fallback">
+                Couldn't load the QR. Have the customer pay directly to the UPI ID below in any UPI app.
             </div>
-            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.6rem;">
+            <div class="upi-id">
                 {{ config.upi_id }}
             </div>
-            <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">
+            <div class="upi-apps">
                 Works with GPay, PhonePe, Paytm, any UPI app
             </div>
         </div>
@@ -322,32 +190,31 @@
         {% if request.user.role in "owner,manager,cashier,captain" and order.status != 'paid' and order.status != 'closed' %}
         <div class="discount-section no-print">
             <div class="discount-title">Apply Discount</div>
-            <div style="margin-bottom:0.75rem;">
-                <select id="promo-select" onchange="applyPromo(this)"
-                        style="width:100%;background:transparent;border:1px solid var(--border-color);color:var(--text-main);padding:0.6rem;font-size:0.82rem;outline:none;">
+            <div class="promo-row">
+                <select id="promo-select" data-action="discount.promo">
                     <option value="">Select a promo…</option>
                 </select>
             </div>
             <div class="field-row">
-                <select id="discount-type" class="field-select" style="max-width:110px;">
+                <select id="discount-type" class="field-select field-select--narrow">
                     <option value="percentage">% Off</option>
                     <option value="amount">₹ Flat</option>
                 </select>
                 <input type="number" id="discount-value" class="field-num" placeholder="0" min="0" step="0.01">
-                <input type="text" id="discount-reason" class="field-num" placeholder="Reason" maxlength="200"
-                       aria-label="Reason for the discount" style="max-width:none;flex:1 1 140px;">
-                <button class="btn-apply" onclick="applyDiscount()">Apply</button>
+                <input type="text" id="discount-reason" class="field-num field-num--reason" placeholder="Reason" maxlength="200"
+                       aria-label="Reason for the discount">
+                <button type="button" class="btn-apply" data-action="discount.apply">Apply</button>
                 {% if order.discount_value > 0 %}
-                <button class="btn-remove" onclick="removeDiscount()">Remove</button>
+                <button type="button" class="btn-remove" data-action="discount.remove">Remove</button>
                 {% endif %}
             </div>
             {% if order.discount_value > 0 %}
-            <div style="margin-top:0.7rem;font-size:0.78rem;color:var(--accent-gold);" data-testid="active-discount">
+            <div class="discount-active" data-testid="active-discount">
                 Active: {% if order.promo_name %}Promo {{ order.promo_name }}{% if order.promo_code %} ({{ order.promo_code }}){% endif %}, {% endif %}{% if order.discount_type == 'percentage' %}{{ order.discount_value }}% Off{% else %}₹{{ order.discount_value }} Flat{% endif %}
                 &nbsp;(−₹{{ order.order_discount_total }})
             </div>
             {% if promo_paused_note %}
-            <div style="margin-top:0.4rem;font-size:0.78rem;color:var(--danger, #ef4444);" data-testid="promo-paused">
+            <div class="discount-paused" data-testid="promo-paused">
                 <i class="bi bi-pause-circle"></i> Paused: {{ promo_paused_note }}
             </div>
             {% endif %}
@@ -359,51 +226,49 @@
         <div class="pay-area no-print">
             {% if remaining > 0 %}
                 <input type="number" id="payAmount" class="input-pay" value="{{ remaining }}" placeholder="Enter amount…"
-                       oninput="updateChange(this.value)">
-                <!-- Change-to-give — appears only when cashier enters more than balance -->
-                <div id="change-display" style="display:none;background:#dc2626;color:#fff;text-align:center;padding:0.9rem 1rem;margin-bottom:0.75rem;">
-                    <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;opacity:.85;margin-bottom:0.2rem;">Change to Give Back</div>
-                    <div id="change-amount" style="font-family:'DM Serif Display',serif;font-size:2.8rem;font-weight:700;line-height:1.1;">₹0</div>
+                       data-action="pay.amount">
+                <!-- Change to give: shown only when the cashier enters more than the balance -->
+                <div id="change-display">
+                    <div class="change-title">Change to Give Back</div>
+                    <div id="change-amount">₹0</div>
                 </div>
-                <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
-                    <button class="btn-set" onclick="setVal('{{ remaining }}')">Pay All</button>
-                    <button class="btn-set" onclick="splitPay('{{ remaining }}')">Split</button>
+                <div class="pay-shortcuts">
+                    <button type="button" class="btn-set" data-action="pay.all">Pay All</button>
+                    <button type="button" class="btn-set" data-action="pay.split">Split</button>
                 </div>
                 <div class="pay-grid">
-                    {% if config.cash_enabled %}<button class="btn-pay" onclick="recordPay('cash')"><i class="bi bi-cash"></i>{{ config.cash_label }}</button>{% endif %}
-                    {% if config.upi_enabled %}<button class="btn-pay" onclick="recordPay('upi')"><i class="bi bi-qr-code"></i>{{ config.upi_label }}</button>{% endif %}
-                    {% if config.card_enabled %}<button class="btn-pay" onclick="recordPay('card')"><i class="bi bi-credit-card"></i>{{ config.card_label }}</button>{% endif %}
-                    {% if razorpay_feature_enabled and config.razorpay_enabled %}<button class="btn-pay" onclick="openRazorpayQR()"><i class="bi bi-qr-code-scan"></i>Razorpay QR</button>{% endif %}
-                    {% if 'cover_charge' in tenant_features %}<button class="btn-pay" id="pay-cover" onclick="payFromCover()"><i class="bi bi-ticket-perforated"></i>Cover</button>{% endif %}
+                    {% if config.cash_enabled %}<button type="button" class="btn-pay" data-action="pay.method" data-method="cash"><i class="bi bi-cash"></i>{{ config.cash_label }}</button>{% endif %}
+                    {% if config.upi_enabled %}<button type="button" class="btn-pay" data-action="pay.method" data-method="upi"><i class="bi bi-qr-code"></i>{{ config.upi_label }}</button>{% endif %}
+                    {% if config.card_enabled %}<button type="button" class="btn-pay" data-action="pay.method" data-method="card"><i class="bi bi-credit-card"></i>{{ config.card_label }}</button>{% endif %}
+                    {% if razorpay_feature_enabled and config.razorpay_enabled %}<button type="button" class="btn-pay" data-action="pay.razorpay"><i class="bi bi-qr-code-scan"></i>Razorpay QR</button>{% endif %}
+                    {% if 'cover_charge' in tenant_features %}<button type="button" class="btn-pay" id="pay-cover" data-action="pay.cover"><i class="bi bi-ticket-perforated"></i>Cover</button>{% endif %}
                 </div>
-                <button class="btn-action" onclick="printReceipt({{ order.id }})"><i class="bi bi-printer me-2"></i>Print Bill</button>
+                <button type="button" class="btn-action" data-action="bill.print"><i class="bi bi-printer me-2"></i>Print Bill</button>
                 {% if request.user.role == 'owner' or request.user.role == 'manager' %}
-                <button class="btn-action" id="close-unpaid" onclick="closeWithoutPayment()"
-                        style="border-color:var(--border-color);color:var(--text-muted);">
+                <button type="button" class="btn-action btn-action--quiet" id="close-unpaid" data-action="bill.close_unpaid">
                     <i class="bi bi-x-octagon me-2"></i>Close Without Payment
                 </button>
                 {% endif %}
             {% else %}
                 {% if order.status != 'closed' and order.status != 'paid' %}
-                <button class="btn-pay" style="width:100%;" onclick="recordPay('cash', 0)">
+                <button type="button" class="btn-pay btn-pay--wide" data-action="pay.method" data-method="cash" data-amount="0">
                     <i class="bi bi-check-circle"></i>Close Zero-Total Order
                 </button>
                 {% else %}
-                <div style="text-align:center;padding:1rem;color:#10b981;font-weight:700;letter-spacing:2px;font-size:0.75rem;">
+                <div class="paid-note">
                     <i class="bi bi-patch-check-fill me-2"></i>PAYMENT COMPLETE
                 </div>
                 {% endif %}
-                <div style="display:flex;gap:0.5rem;margin-top:1.25rem;">
-                    <button class="btn-action" style="margin-top:0;border-color:var(--accent-gold);color:var(--accent-gold);"
-                            onclick="printReceipt({{ order.id }})">
+                <div class="after-pay">
+                    <button type="button" class="btn-action btn-action--gold" data-action="bill.print">
                         <i class="bi bi-printer me-2"></i>Print Receipt
                     </button>
                     {% if is_qsr %}
-                    <a href="/token/" class="btn-action" style="margin-top:0;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;">
+                    <a href="/token/" class="btn-action btn-action--link">
                         <i class="bi bi-123 me-2"></i>Next Token
                     </a>
                     {% else %}
-                    <a href="/tables/" class="btn-action" style="margin-top:0;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;">
+                    <a href="/tables/" class="btn-action btn-action--link">
                         <i class="bi bi-grid me-2"></i>Tables
                     </a>
                     {% endif %}
@@ -413,26 +278,24 @@
 
     </div><!-- .receipt-container -->
 
-    <!-- Loyalty points — only when feature is on -->
+    <!-- Loyalty points: only when the feature is on -->
     {% if 'loyalty_points' in tenant_features %}
     <div class="loyalty-section no-print">
-        <div class="loyalty-title"><i class="bi bi-stars me-1" style="color:var(--accent-gold)"></i>Guest &amp; Loyalty Points</div>
-        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;">
-            <input id="guestPhone" type="tel" class="input-pay"
-                   style="margin:0;flex:1;padding:0.6rem 0.8rem;font-size:0.9rem;font-family:'Outfit',sans-serif;text-align:left;"
+        <div class="loyalty-title"><i class="bi bi-stars me-1"></i>Guest &amp; Loyalty Points</div>
+        <div class="loyalty-row">
+            <input id="guestPhone" type="tel" class="input-pay input-pay--text input-pay--inline"
                    placeholder="Guest phone number" maxlength="10" inputmode="numeric"
                    value="{{ order.customer_phone|default:'' }}">
-            <button class="btn-set" style="flex:0 0 80px;" onclick="lookupGuest()">Lookup</button>
+            <button type="button" class="btn-set btn-set--lookup" data-action="guest.lookup">Lookup</button>
         </div>
-        <div id="guestInfo" class="loyalty-info" style="display:none;"></div>
-        <input id="guestName" type="text" class="input-pay"
-               style="margin-bottom:0.5rem;padding:0.6rem 0.8rem;font-size:0.9rem;font-family:'Outfit',sans-serif;text-align:left;"
+        <div id="guestInfo" class="loyalty-info"></div>
+        <input id="guestName" type="text" class="input-pay input-pay--text input-pay--name"
                placeholder="Guest name (optional)">
-        <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">
-            <label style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);white-space:nowrap;">Redeem pts:</label>
-            <input id="redeemPts" type="number" min="0" value="0" class="input-pay" style="margin:0;flex:1;padding:0.5rem;font-size:0.9rem;">
+        <div class="redeem-row">
+            <label class="redeem-label" for="redeemPts">Redeem pts:</label>
+            <input id="redeemPts" type="number" min="0" value="0" class="input-pay input-pay--redeem">
         </div>
-        <button class="btn-pay" style="width:100%;padding:0.9rem;" onclick="linkGuest()">
+        <button type="button" class="btn-pay btn-pay--award" data-action="guest.award">
             <i class="bi bi-stars"></i>Award Points
         </button>
         <div id="loyaltyMsg" class="loyalty-msg"></div>
@@ -443,16 +306,16 @@
 </div><!-- .bill-page -->
 
 {% if razorpay_feature_enabled and config.razorpay_enabled %}
-<div id="razorpay-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;">
-    <div id="razorpay-modal-card" style="background:var(--panel-bg);border:1px solid var(--border-color);padding:2.5rem;max-width:420px;width:92%;text-align:center;transition:background 0.25s;">
-        <div id="razorpay-qr-header" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);margin-bottom:1.2rem;">Scan with any UPI app</div>
-        <div id="razorpay-qr-area" style="min-height:280px;display:flex;align-items:center;justify-content:center;">
-            <span style="color:var(--text-muted);font-size:0.85rem;">Generating QR…</span>
+<div id="razorpay-modal-overlay">
+    <div id="razorpay-modal-card">
+        <div id="razorpay-qr-header">Scan with any UPI app</div>
+        <div id="razorpay-qr-area">
+            <span class="razorpay-note">Generating QR…</span>
         </div>
-        <div id="razorpay-qr-status" style="margin-top:1rem;font-size:0.95rem;font-weight:600;color:var(--text-muted);">Waiting for payment…</div>
-        <div id="razorpay-modal-buttons" style="display:flex;gap:0.5rem;margin-top:1.25rem;">
-            <button class="btn-action" style="margin-top:0;" onclick="openRazorpayQR()">Regenerate</button>
-            <button class="btn-action" style="margin-top:0;border-color:var(--border-color);color:var(--text-muted);" onclick="closeRazorpayModal()">Close</button>
+        <div id="razorpay-qr-status">Waiting for payment…</div>
+        <div id="razorpay-modal-buttons">
+            <button type="button" class="btn-action" data-action="pay.razorpay">Regenerate</button>
+            <button type="button" class="btn-action btn-action--quiet" data-action="razorpay.close">Close</button>
         </div>
     </div>
 </div>
@@ -461,572 +324,8 @@
 {% endblock %}
 
 {% block extra_js %}
-{% if config.upi_id and remaining > 0 %}
-{% comment %}
-Self-hosted, not CDN -- the CDN URL this used to point at
-(the jsdelivr copy of qrcode 1.5.3's build/qrcode.min.js) 404s: that path
-doesn't exist in the published package (confirmed directly), so this QR
-has been silently broken on every single load, on every network, since
-the day it was written -- not an occasional CDN hiccup. This is also the
-one script in the whole app that sits directly on the "can this
-restaurant collect a payment" path, so it shouldn't depend on reaching a
-third party at the exact moment a customer is standing at the counter
-trying to pay, even if the path had been right.
-{% endcomment %}
-<script src="{% static 'js/vendor/qrcode.min.js' %}"></script>
-<script>
-// A named, callable function instead of a run-once IIFE -- the QR used to
-// be drawn exactly once at page load from {{ remaining }}, which meant it
-// never reflected the amount actually being collected once Split (or any
-// manual edit to the payment field) changed it. Now re-callable any time
-// the amount changes, from updateChange() below.
-function renderUpiQR(amount) {
-    const upiString = "upi://pay?pa={{ config.upi_id|escapejs }}&pn={{ order.tenant.name|escapejs }}&am=" + amount + "&cu=INR&tn=Bill%20{{ order.display_number|urlencode }}";
-    const canvasWrap = document.getElementById('upi-qr-canvas');
-    const fallback = document.getElementById('upi-qr-fallback');
-    canvasWrap.innerHTML = '';       // clear the previous canvas -- otherwise
-    fallback.style.display = 'none'; // re-rendering stacks a new one on top
-    try {
-        QRCode.toCanvas(upiString, { width: 180, margin: 1, color: { dark: "#000000", light: "#ffffff" } }, function(err, canvas) {
-            if (err || !canvas) { fallback.style.display = 'block'; return; }
-            canvasWrap.appendChild(canvas);
-        });
-    } catch (e) {
-        // QRCode itself failed to load/init -- same visible fallback as a
-        // draw failure, so staff never see a silent empty box either way.
-        fallback.style.display = 'block';
-    }
-}
-renderUpiQR({{ remaining }});
-</script>
-{% endif %}
-{% if razorpay_feature_enabled and config.razorpay_enabled %}
-<script>
-    /* ── Razorpay QR ──────────────────────────────────────── */
-    let _razorpayPollTimer = null;
-
-    function closeRazorpayModal() {
-        document.getElementById('razorpay-modal-overlay').style.display = 'none';
-        if (_razorpayPollTimer) { clearInterval(_razorpayPollTimer); _razorpayPollTimer = null; }
-    }
-
-    // Big, unmistakable states — a waiter glancing at this for one second
-    // must know "paid" or "not paid" without reading English carefully.
-    function razorpaySetState(kind) {
-        const card   = document.getElementById('razorpay-modal-card');
-        const header = document.getElementById('razorpay-qr-header');
-        const status = document.getElementById('razorpay-qr-status');
-        const btns   = document.getElementById('razorpay-modal-buttons');
-        if (kind === 'paid') {
-            card.style.background = 'rgba(34,197,94,0.10)';
-            header.style.display = 'none';
-            status.style.color = '#16a34a';
-            status.style.fontSize = '1.3rem';
-            status.textContent = 'PAID ✓';
-            btns.style.display = 'none';
-        } else {
-            card.style.background = 'var(--panel-bg)';
-            header.style.display = '';
-            status.style.color = 'var(--text-muted)';
-            status.style.fontSize = '0.95rem';
-            btns.style.display = 'flex';
-        }
-    }
-
-    async function openRazorpayQR() {
-        if (_razorpayPollTimer) { clearInterval(_razorpayPollTimer); _razorpayPollTimer = null; }
-        const overlay = document.getElementById('razorpay-modal-overlay');
-        const area    = document.getElementById('razorpay-qr-area');
-        const status  = document.getElementById('razorpay-qr-status');
-        razorpaySetState('waiting');
-        overlay.style.display = 'flex';
-        area.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">Generating QR…</span>';
-        status.textContent = 'Waiting for payment…';
-
-        try {
-            // Same field Split writes the per-person share into -- without
-            // this, the Razorpay QR always billed the full remaining balance
-            // regardless of what the cashier had just split the order into.
-            const amtEl  = document.getElementById('payAmount');
-            const amount = amtEl && amtEl.value ? amtEl.value : {{ remaining }};
-            const data = await apiClient.post('{% url "razorpay-create-qr" order.id %}', { amount });
-            area.innerHTML = `<img src="${data.image_url}" alt="Razorpay UPI QR" style="width:280px;height:280px;image-rendering:pixelated;">`;
-
-            const expiresAt = new Date(data.expires_at).getTime();
-            _razorpayPollTimer = setInterval(async () => {
-                if (Date.now() > expiresAt) {
-                    clearInterval(_razorpayPollTimer); _razorpayPollTimer = null;
-                    status.textContent = 'QR expired — tap Regenerate';
-                    return;
-                }
-                try {
-                    const statusUrl = '{% url "razorpay-qr-status" "PLACEHOLDER" %}'.replace('PLACEHOLDER', data.qr_code_id);
-                    const s = await apiClient.get(statusUrl);
-                    if (s.status === 'paid') {
-                        clearInterval(_razorpayPollTimer); _razorpayPollTimer = null;
-                        // Replace the QR with a big green checkmark — held on
-                        // screen for 2s so it's actually seen, not just flashed.
-                        area.innerHTML = `<div style="width:90px;height:90px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;">
-                            <span style="color:#fff;font-size:3rem;line-height:1;">✓</span>
-                        </div>`;
-                        razorpaySetState('paid');
-                        ui.toast('Payment received', 'success');
-                        setTimeout(() => location.reload(), 2000);
-                    } else if (s.status === 'expired') {
-                        clearInterval(_razorpayPollTimer); _razorpayPollTimer = null;
-                        status.textContent = 'QR expired — tap Regenerate';
-                    }
-                } catch (e) { /* keep polling — a transient network blip shouldn't stop it */ }
-            }, 3000);
-        } catch (e) {
-            area.innerHTML = '<span style="color:#dc2626;font-size:0.85rem;">Could not generate QR</span>';
-            status.textContent = 'Tap Regenerate to try again';
-        }
-    }
-</script>
-{% endif %}
-<script>
-    /* ── Discount ─────────────────────────────────────────── */
-    /* Pay from a cover bought at the door (covers/services.py): it pays as
-       much of what is left as the cover has. The bill itself doesn't change. */
-    async function payFromCover() {
-        const result = await Swal.fire({
-            title: 'Pay from a cover',
-            html: '<label for="cover-code" style="display:block;text-align:left;font-size:.8rem;">Code on the slip</label>' +
-                  '<input id="cover-code" class="swal2-input" maxlength="8" autocomplete="off" ' +
-                  'style="width:100%;margin:.3rem 0 0;text-transform:uppercase;letter-spacing:.3em;text-align:center;">',
-            showCancelButton: true,
-            confirmButtonText: 'Use cover',
-            focusConfirm: false,
-            didOpen: () => document.getElementById('cover-code').focus(),
-            preConfirm: () => {
-                const code = document.getElementById('cover-code').value.trim();
-                if (!code) { Swal.showValidationMessage('Type the code from the slip.'); return false; }
-                return { code };
-            },
-        });
-        if (!result.isConfirmed) return;
-        try {
-            const d = await apiClient.post('{% url "cover-redeem" order.id %}', result.value);
-            if (d.success) location.reload();
-        } catch (e) { /* apiClient has already shown the error */ }
-    }
-
-    async function applyDiscount(promoId = null) {
-        const type  = document.getElementById('discount-type').value;
-        const value = parseFloat(document.getElementById('discount-value').value);
-        if (!value || value <= 0) { ui.toast('Enter a valid discount value', 'warning'); return; }
-        // A promo needs no reason; a discount typed by hand does (it goes on
-        // the discount audit report).
-        const reason = promoId ? '' : document.getElementById('discount-reason').value.trim();
-        if (!promoId && reason.length < 3) {
-            ui.toast('Give a reason for the discount (for example: regular guest, food complaint).', 'warning');
-            document.getElementById('discount-reason').focus();
-            return;
-        }
-        try {
-            const d = await apiClient.post('{% url "apply-discount" order.id %}', { type, value, promo_id: promoId, reason });
-            if (d.success) location.reload();
-            else ui.toast(d.error, 'error');
-        } catch(e) { /* apiClient has already shown the error */ }
-    }
-
-    async function removeDiscount() {
-        try {
-            const d = await apiClient.post('{% url "apply-discount" order.id %}', { type: 'percentage', value: 0 });
-            if (d.success) location.reload();
-        } catch(e) {}
-    }
-
-    /* A dish's own discount: one form, the % and the reason together.
-       It used to be a confirm with nothing to type in, then two browser
-       prompts (which never show in the Android app), posting to an address
-       that didn't exist, so it never applied (fixed 19 Oct 2026). The address
-       now comes from the URL name on the button. */
-    async function promptItemDiscount(button) {
-        const name = button.dataset.name;
-        const result = await Swal.fire({
-            titleText: `Discount on ${name}`,
-            html: `
-                <label for="item-discount-pct" style="display:block;text-align:left;font-size:.8rem;margin-top:.4rem;">Discount %</label>
-                <input id="item-discount-pct" type="number" min="0" max="100" step="0.01" inputmode="decimal"
-                       class="swal2-input" style="margin:.3rem 0 0;width:100%;" value="${button.dataset.pct}">
-                <div style="text-align:left;font-size:.72rem;color:var(--text-muted);margin-top:.2rem;">0 takes the discount off.</div>
-                <label for="item-discount-reason" style="display:block;text-align:left;font-size:.8rem;margin-top:.8rem;">Reason</label>
-                <input id="item-discount-reason" type="text" maxlength="200" class="swal2-input"
-                       style="margin:.3rem 0 0;width:100%;" placeholder="For example: regular guest, food complaint">`,
-            showCancelButton: true,
-            confirmButtonText: 'Apply',
-            confirmButtonColor: 'var(--accent-gold)',
-            cancelButtonColor: 'var(--text-muted)',
-            background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
-            color: 'var(--text-main)',
-            customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
-            focusConfirm: false,
-            didOpen: () => document.getElementById('item-discount-pct').select(),
-            preConfirm: () => {
-                const raw = document.getElementById('item-discount-pct').value.trim();
-                const percent = Number(raw);
-                const reason = document.getElementById('item-discount-reason').value.trim();
-                if (raw === '' || !Number.isFinite(percent) || percent < 0 || percent > 100) {
-                    Swal.showValidationMessage('Enter a discount from 0 to 100.');
-                    return false;
-                }
-                if (percent > 0 && reason.length < 3) {
-                    Swal.showValidationMessage('Give a reason for the discount (for example: regular guest, food complaint).');
-                    return false;
-                }
-                return { percent, reason };
-            },
-        });
-        if (!result.isConfirmed) return;
-        try {
-            const d = await apiClient.post(button.dataset.url, result.value);
-            if (d.success) location.reload();
-        } catch (e) { /* apiClient has already shown the error */ }
-    }
-
-    /* Auto-populate promo picker */
-    document.addEventListener('DOMContentLoaded', () => {
-        const sel = document.getElementById('promo-select');
-        if (!sel) return;
-        fetch('{% url "list-promos" %}').then(r => r.json()).then(data => {
-            (data.promos || []).forEach(p => {
-                const label = p.discount_type === 'percentage'
-                    ? `${p.name} — ${p.discount_value}% Off`
-                    : `${p.name} — ₹${p.discount_value} Flat`;
-                sel.appendChild(new Option(label, JSON.stringify(p)));
-            });
-        }).catch(() => {});
-
-        /* Auto-lookup if order had a customer phone */
-        const phone = document.getElementById('guestPhone');
-        if (phone && phone.value.trim()) lookupGuest();
-    });
-
-    function applyPromo(select) {
-        if (!select.value) return;
-        let promo;
-        try { promo = JSON.parse(select.value); } catch(e) { return; }
-        const subtotal = parseFloat('{{ order.subtotal|default:0 }}');
-        if (promo.min_order && subtotal < parseFloat(promo.min_order)) {
-            ui.toast(`Minimum order ₹${promo.min_order} required`, 'warning');
-            select.selectedIndex = 0; return;
-        }
-        document.getElementById('discount-type').value = promo.discount_type;
-        document.getElementById('discount-value').value = promo.discount_value;
-        applyDiscount(promo.id);
-        select.selectedIndex = 0;
-    }
-
-    /* ── Payment ──────────────────────────────────────────── */
-    function setVal(v) {
-        document.getElementById('payAmount').value = v;
-        updateChange(v);
-    }
-
-    function updateChange(enteredVal) {
-        const entered = parseFloat(enteredVal) || 0;
-        // Single hook point for "the amount to collect changed" -- covers
-        // Split, Pay All, and manual typing, since all three end up calling
-        // this function. typeof-guarded because renderUpiQR only exists when
-        // the UPI QR block actually rendered (config.upi_id set, remaining > 0).
-        if (typeof renderUpiQR === 'function') renderUpiQR(entered);
-
-        const balance = {{ remaining }};
-        const change  = Math.round(entered - balance);
-        const display = document.getElementById('change-display');
-        if (!display) return;
-        if (change > 0) {
-            document.getElementById('change-amount').textContent = '₹' + change;
-            display.style.display = 'block';
-        } else {
-            display.style.display = 'none';
-        }
-    }
-    function splitPay(v) {
-        const n = parseInt(prompt('Split into how many people?'));
-        if (n > 0) {
-            const share = (v / n).toFixed(2);
-            document.getElementById('payAmount').value = share;
-            // Was missing entirely -- Split set the field's value directly,
-            // which doesn't fire the input's oninput handler, so neither the
-            // change-due display nor (now) the QR ever reacted to a split.
-            updateChange(share);
-        }
-    }
-
-    // Manual receipt print. On the Rasova app / any device, queue to the on-LAN
-    // print agent; on a plain desktop browser, fall back to window.print().
-    async function printReceipt(orderId) {
-        const p = window.rasovaPlatform || {};
-        if (p.nativeAndroid || p.android) {
-            try {
-                const resp = await fetch("{% url 'print-queue-add' %}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-                    body: JSON.stringify({ order_id: orderId }),
-                });
-                const d = await resp.json().catch(() => ({}));
-                if (resp.ok && d.success) ui.toast('Sent to printer', 'success');
-                else ui.toast(d.error || 'Could not reach printer', 'error');
-            } catch (e) { ui.toast('Network error sending to printer', 'error'); }
-            return;
-        }
-        window.print();
-    }
-
-    async function recordPay(method, amountOverride = null) {
-        const amtEl  = document.getElementById('payAmount');
-        const amount = amountOverride !== null ? amountOverride : (amtEl ? amtEl.value : 0);
-
-        // Offline: only cash can be confirmed without a live gateway
-        // round-trip (UPI/card verification can't happen without one — see
-        // offlinePaymentQueue's own comment in base.html). Queue it and
-        // stop here; the print/redirect flow below all depends on the
-        // payment actually existing server-side, which it doesn't yet.
-        if (!navigator.onLine) {
-            if (method !== 'cash') {
-                ui.toast('You are offline. Only cash payments can be taken right now.', 'error');
-                return;
-            }
-            try {
-                await offlinePaymentQueue.add({{ order.id }}, amount);
-                ui.toast('Offline — cash payment saved, will sync when back online. Print the receipt manually for now.', 'success');
-                window.onbeforeunload = null;
-            } catch (e) {
-                ui.toast('Could not save payment offline on this device. Please note it down manually.', 'error');
-            }
-            return;
-        }
-
-        try {
-            const data = await apiClient.post('{% url "pay-order" order.id %}', { method, amount });
-            if (data.success) {
-                ui.toast(data.message || 'Payment recorded', 'success');
-                window.onbeforeunload = null;
-
-                const splitMode  = {% if order.outlet.split_bill_by_category %}true{% else %}false{% endif %};
-                const useAgent  = {% if order.outlet.use_qz_tray %}true{% else %}false{% endif %};
-                const agentPrinterName = "{{ default_station.printer_name|default:'' }}";
-
-                let printed = false;
-
-                // 0. Rasova Android app (or any device): push to the print queue so
-                //    the on-LAN agent (PC/phone) prints it. The EC2 server itself
-                //    cannot reach a local printer, so this is the cloud-correct path.
-                const _p = window.rasovaPlatform || {};
-                if (_p.nativeAndroid || _p.android) {
-                    try {
-                        const ar = await fetch("{% url 'print-queue-add' %}", {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-                            body: JSON.stringify({ order_id: {{ order.id }} }),
-                        });
-                        const ad = await ar.json().catch(() => ({}));
-                        if (ar.ok && ad.success) { printed = true; ui.toast('Sent to printer', 'success'); }
-                        else ui.toast(ad.error || 'Printer queue failed', 'error');
-                    } catch { ui.toast('Network error reaching printer', 'error'); }
-                }
-
-                // 1. Try QZ Tray (USB real cuts) if enabled
-                if (!printed && useAgent && agentPrinterName) {
-                    printed = await printWithAgent(agentPrinterName, {{ order.id }}, splitMode);
-                }
-
-                // 2. Try ESC/POS over network if QZ Tray didn't work
-                if (!printed) {
-                    const printUrl = splitMode
-                        ? '{% url "print-split-bill" order.id %}'
-                        : '{% url "print-bill" order.id %}';
-                    try {
-                        const pr = await fetch(printUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': apiClient.getCsrf() },
-                        });
-                        const pd = await pr.json();
-                        if (pr.ok && pd.success) printed = true;
-                    } catch {}
-                }
-
-                // 3. Browser print fallback
-                setTimeout(() => {
-                    window.location.href = window.location.pathname + (printed ? '' : '?print=1');
-                }, 600);
-            } else {
-                ui.toast(data.error || 'Payment failed', 'error');
-            }
-        } catch(e) {
-            // Connection dropped between the navigator.onLine check above and
-            // this request actually landing — same TypeError heuristic
-            // apiClient.request() and the order queue already use elsewhere.
-            // Only cash is safe to queue after the fact for the same reason
-            // as the upfront offline check.
-            if (e instanceof TypeError && method === 'cash') {
-                try {
-                    await offlinePaymentQueue.add({{ order.id }}, amount);
-                    ui.toast('Connection dropped — cash payment saved, will sync once back online.', 'success');
-                    window.onbeforeunload = null;
-                } catch (queueErr) {
-                    ui.toast('Could not save payment offline on this device. Please note it down manually.', 'error');
-                }
-                return;
-            }
-
-            // apiClient already surfaced the real server message as a toast and
-            // re-threw it. Don't bury it under a generic "Connection error".
-            const msg = (e && e.message) || '';
-            if (/cash session/i.test(msg)) {
-                // Fine-dining payment needs an open cash register. Let the cashier
-                // open it right here, then retry the same payment automatically.
-                await offerOpenRegister(() => recordPay(method, amountOverride));
-            }
-            // For genuine network errors apiClient has already toasted; nothing to add.
-        }
-    }
-
-    // Opens the cash register inline (used when a payment is blocked because no
-    // session is open), then re-runs the caller's payment attempt.
-    async function offerOpenRegister(retry) {
-        if (!confirm('No cash register is open for this outlet.\n\nOpen it now to take payment?')) return;
-        const floatStr = prompt('Opening cash already in the drawer (starting float):', '0');
-        if (floatStr === null) return;
-        try {
-            const r = await apiClient.post('/shifts/sessions/open/', { opening_balance: floatStr || '0' });
-            if (r && r.success) {
-                ui.toast('Cash register opened', 'success');
-                if (retry) await retry();
-            }
-        } catch (_) { /* apiClient already toasted the failure */ }
-    }
-
-    /* ── Rasova Print Agent ── */
-    const RASOVA_AGENT_URL = 'ws://{{ request.user.outlet.agent_host|default:"localhost" }}:8765';
-    let _agentSocket = null;
-
-    async function connectAgent() {
-        if (_agentSocket && _agentSocket.readyState === WebSocket.OPEN) return _agentSocket;
-        return new Promise((resolve, reject) => {
-            const ws = new WebSocket(RASOVA_AGENT_URL);
-            const timeout = setTimeout(() => { ws.close(); reject(new Error('timeout')); }, 2000);
-            ws.onopen  = () => { clearTimeout(timeout); _agentSocket = ws; resolve(ws); };
-            ws.onerror = () => { clearTimeout(timeout); reject(new Error('not running')); };
-        });
-    }
-
-    async function printWithAgent(printerName, orderId, splitMode) {
-        try {
-            const ws = await connectAgent();
-
-            // Fetch ESC/POS lines from backend
-            const resp = await fetch("{% url 'qz-receipt-data' 0 %}".replace('/0/', '/' + orderId + '/') + `?split=${splitMode?1:0}`);
-            if (!resp.ok) return false;
-            const { lines } = await resp.json();
-
-            return new Promise((resolve) => {
-                const jobId = Date.now().toString();
-                const handler = (event) => {
-                    const msg = JSON.parse(event.data);
-                    if (msg.job_id === jobId) {
-                        ws.removeEventListener('message', handler);
-                        resolve(msg.type === 'ok');
-                    }
-                };
-                ws.addEventListener('message', handler);
-                ws.send(JSON.stringify({
-                    type: 'print',
-                    printer: printerName,
-                    lines,
-                    job_id: jobId,
-                    encoding: 'cp437',
-                    outlet_id: '{{ order.outlet.id }}',
-                    printer_mac: '{{ request.user.outlet.printer_mac|default:"" }}',
-                }));
-                // Timeout if no response in 10s
-                setTimeout(() => { ws.removeEventListener('message', handler); resolve(false); }, 10000);
-            });
-        } catch(e) {
-            console.warn('Rasova Agent not available:', e.message);
-            return false;
-        }
-    }
-
-    function closeWithoutPayment() {
-        ui.confirm('Close this bill without payment?',
-                   '₹{{ remaining }} stays unpaid. It goes on the audit report with your name and reason.',
-                   'Close Bill').then(r => {
-            if (!r.isConfirmed) return;
-            const reason = (prompt('Why is this bill closed without payment? (for example: guest walked out)') || '').trim();
-            if (reason.length < 3) { ui.toast('Closing without payment needs a reason.', 'warning'); return; }
-            apiClient.post('{% url "log-bypass" order.id %}', { reason })
-                .then(d => {
-                    if (!d.success) return;
-                    window.location.href = {% if is_qsr %}'/token/'{% else %}'/tables/'{% endif %};
-                })
-                .catch(() => { /* apiClient has already shown the error; the bill stays open */ });
-        });
-    }
-
-    function openThermalReceipt() {
-        const win = window.open('/thermal-receipt/{{ order.id }}/', '_blank',
-            'width=440,height=700,menubar=no,toolbar=no,location=no,status=no');
-        if (!win || win.closed) {
-            window.location.href = '/thermal-receipt/{{ order.id }}/';
-        }
-    }
-
-    {% if auto_print %}
-    // Payment just completed — auto-open receipt immediately
-    window.addEventListener('load', function() {
-        setTimeout(openThermalReceipt, 600);
-    });
-    {% endif %}
-
-    /* ── Loyalty / CRM ────────────────────────────────────── */
-    async function lookupGuest() {
-        const phone = document.getElementById('guestPhone')?.value.trim();
-        if (!phone) return;
-        const info = document.getElementById('guestInfo');
-        info.style.display = 'block'; info.textContent = 'Looking up…';
-        try {
-            const r = await fetch(`/crm/lookup/?phone=${encodeURIComponent(phone)}`);
-            const d = await r.json();
-            if (d.found) {
-                info.innerHTML = `<strong>${d.name || 'Guest'}</strong> &nbsp;·&nbsp; ${d.visits} visits &nbsp;·&nbsp; <span style="color:var(--accent-gold)">${d.points} pts</span>`;
-                if (d.name) document.getElementById('guestName').value = d.name;
-            } else {
-                info.textContent = 'New guest — will be registered on award.';
-            }
-        } catch(e) { info.textContent = 'Lookup failed'; }
-    }
-
-    async function linkGuest() {
-        const phone  = document.getElementById('guestPhone')?.value.trim();
-        const name   = document.getElementById('guestName')?.value.trim();
-        const redeem = parseInt(document.getElementById('redeemPts')?.value) || 0;
-        const msg    = document.getElementById('loyaltyMsg');
-        if (!phone) { ui.toast('Phone required', 'warning'); return; }
-        try {
-            const d = await apiClient.post('/crm/link/{{ order.id }}/', { phone, name, redeem_points: redeem });
-            msg.style.display = 'block';
-            if (d.success) {
-                msg.style.color = '#10b981';
-                msg.textContent = `+${d.points_earned} pts earned! Balance: ${d.total_points} pts`;
-            } else {
-                msg.style.color = '#ef4444'; msg.textContent = d.error;
-            }
-        } catch(e) { msg.style.display='block'; msg.style.color='#ef4444'; msg.textContent='Failed'; }
-    }
-</script>
-
-{% if remaining > 0 and request.user.role != 'owner' and request.user.role != 'manager' %}
-<script>
-    /* Prevent cashier from navigating away before payment */
-    history.pushState(null, null, location.href);
-    window.onpopstate = () => {
-        history.go(1);
-        ui.toast('Complete payment before leaving', 'warning');
-    };
-</script>
-{% endif %}
+{{ page_data|json_script:"page-data" }}
+{# The QR library is Rasova's own copy: this script is on the "can the restaurant take a payment" path. #}
+{% if config.upi_id and remaining > 0 %}<script src="{% static 'js/vendor/qrcode.min.js' %}"></script>{% endif %}
+<script type="module" src="{% static 'js/bill/index.js' %}"></script>
 {% endblock %}
