@@ -18,7 +18,7 @@ from accounts.dashboard_tiles import dashboard_tiles, needs_a_look, today_blocks
 from core.tests.test_tenant_walk import Restaurant
 
 ALL = {"floor_plan", "token_system", "running_order", "cover_charge", "kitchen_display", "waiter_call",
-       "reports", "qr_menu", "inventory", "central_kitchen", "shift_management", "reservations", "crm"}
+       "reports", "qr_menu", "inventory", "shift_management", "reservations", "crm"}
 
 
 def person(role, superuser=False):
@@ -54,7 +54,6 @@ class TilesTest(TestCase):
         seen = labels(dashboard_tiles(person("owner"), {"floor_plan"}))
         self.assertEqual(seen["service"], ["Tables", "Billing"])
         self.assertEqual(seen["office"], ["Cash Register", "History", "Menu", "Setup"])
-        self.assertNotIn("Central Kitchen", seen["office"])
 
     def test_a_direct_billing_counter_gets_new_order_as_an_action_with_its_count(self):
         tiles = dashboard_tiles(person("owner"), {"token_system"}, direct_billing_mode=True, active_token_count=3)

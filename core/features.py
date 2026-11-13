@@ -77,8 +77,6 @@ TENANT_FEATURES = {
         # Ordering
         'token_system',
         'simple_billing',
-        'barcode_transfer',
-        'central_kitchen',
         # Kitchen
         'kot_system',
         'kitchen_display',
@@ -106,7 +104,7 @@ TENANT_FEATURES = {
         # Menu
         'qr_menu',
         'ai_menu_import',
-        # Operations — no central_kitchen (that's franchise/hub-spoke only)
+        # Operations
         'inventory',
         'purchase_orders',
         'reports',
@@ -164,8 +162,6 @@ FEATURE_GROUPS = {
     ],
     'Inventory': [
         'inventory',
-        'barcode_transfer',
-        'central_kitchen',
         'purchase_orders',
     ],
     'Reports': [

@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-13: Central kitchen and stock requisitions removed (release 1)
+
+### Removed
+- **Central kitchen** (production batches, dispatch to outlets, receiving by scan) and **stock requisitions** (P2 in the suggestions, decided by Rajath). They were built for chains that cook in one kitchen and send to branches; Rasova sells to single outlets. They were the largest block of phase 2 work no customer needs: five pages with 575 lines of inline code, 1,096 lines of views, 17 addresses.
+- Gone: the pages, the addresses, `inventory/central_kitchen_views.py` and `inventory/requisition_views.py`, the dashboard tiles, the inventory board's two links, the "this outlet is the central kitchen" checkbox in outlet settings, and two feature flags (`central_kitchen`, and `barcode_transfer`, which only its receive scanner used).
+- The public QSR page no longer offers it: its descriptions, the feature card, the FAQ entry (also in the page's structured data) and the line under "More than one outlet". `docs/MARKET_COMPARISON.md` says it was removed.
+- **Kept on purpose for one more release**: the models and their tables (`StockRequisition`, `RequisitionItem`, `ProductionBatch`, `BatchItem`, `BatchTransfer`) and `Outlet.is_central_kitchen`, so the version now live still runs against the database after this deploy. Release 2 drops them, after a check on the server that no restaurant has rows.
+- The code as it was is under the git tag `archive/central-kitchen`: `git checkout archive/central-kitchen -- <paths>` brings it back.
+- The ratchet is down to 73 templates.
+
+### Tests
+- `inventory/tests/test_central_kitchen_removed.py`: the old addresses answer 404, the two flags are unknown, and no screen links to them.
+- Removed with the views: `ConvertToPOTests`, `RequisitionOutletScopingTests`, `CentralKitchenOutletScopingTests` (inventory) and `OutletSettingsCentralKitchenTest` (setup). `AutoRouteTests` stays: it tests a model method that stays until release 2.
+- The tenant walk no longer maps `req_id`, `batch_id` and `transfer_id` (no address takes them).
+
 ## 2026-11-13: The dashboard: today first, tiles by job
 
 ### Changed

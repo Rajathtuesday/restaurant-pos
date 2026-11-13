@@ -1114,9 +1114,6 @@ def outlet_settings(request):
             outlet.is_composition_scheme = wants_composition
         outlet.is_union_territory     = "is_union_territory"     in request.POST
         outlet.split_bill_by_category = "split_bill_by_category" in request.POST
-        from core.features import has_feature
-        if has_feature(tenant, "central_kitchen"):
-            outlet.is_central_kitchen = "is_central_kitchen" in request.POST
         outlet.po_vendor_email_enabled = "po_vendor_email_enabled" in request.POST
         # A negative parcel charge used to be saved (a discount on every
         # parcel), and a bad value was dropped without a word.

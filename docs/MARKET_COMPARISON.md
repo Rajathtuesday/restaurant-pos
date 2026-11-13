@@ -41,7 +41,7 @@
 | **Shift Management**     | ✅     | ✅    | ✅     | ✅         | ✅          | ✅    | ✅     | ✅    |
 | **QR Digital Menu**      | ✅     | ✅    | ✅     | ✅         | ✅          | ✅    | ✅     | ❌    |
 | **Waiter Call System**   | ✅     | ❌    | ❌     | ❌         | ❌          | ❌    | ❌     | ❌    |
-| **Central Kitchen / Batch Transfer** | ✅ | ❌ | ❌ | ❌     | ❌          | ✅    | ❌     | ✅    |
+| **Central Kitchen / Batch Transfer** | ❌ (removed 13 Nov 2026, kept under the git tag archive/central-kitchen) | ❌ | ❌ | ❌     | ❌          | ✅    | ❌     | ✅    |
 | **Offline Mode**         | ⚠️ partial | ✅ | ✅  | ✅         | ✅          | ✅    | ✅     | ✅    |
 | **Native Mobile App**    | ❌ web | ✅    | ✅     | ✅         | ✅ iPad     | ✅    | ✅     | ❌    |
 | **Payment Gateway**      | ❌ wip | ✅    | ✅ built-in | ✅    | ✅          | ✅    | ✅ built-in | ✅ |

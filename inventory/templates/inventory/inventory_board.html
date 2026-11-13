@@ -93,10 +93,6 @@
 <a href="{% url 'purchase_order_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-receipt me-1"></i> Purchase Orders</a>
 <a href="{% url 'supplier_list' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-truck me-1"></i> Suppliers</a>
 {% endif %}
-{% if 'central_kitchen' in tenant_features %}
-<a href="/inventory/requisitions/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-up-right-circle me-1"></i> Requisitions</a>
-<a href="/inventory/central-kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-building me-1"></i> Central Kitchen</a>
-{% endif %}
 {% endblock %}
 
 {% block content %}

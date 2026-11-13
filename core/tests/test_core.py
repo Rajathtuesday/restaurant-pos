@@ -232,7 +232,7 @@ class UnscopedCallSiteAllowlistTest(TestCase):
         # The tenant isolation walk's deliberately leaky view: it fetches an
         # order by id alone so the walk can prove it catches a leak
         # (core/tests/test_tenant_walk.py, TenantWalkDetectsLeaksTest).
-        "core/tests/test_tenant_walk.py:424",
+        "core/tests/test_tenant_walk.py:421",
         # /health/'s detail, for a superuser or the monitor's token only:
         # the age of the oldest unprinted job in any restaurant. It shows a
         # count and an age, never a row (core/health.py, check_printing).

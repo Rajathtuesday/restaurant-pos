@@ -91,9 +91,6 @@ def dashboard_tiles(user, features, *, direct_billing_mode=False, active_token_c
         add(Tile("Table QR Codes", "Print and display board", "qr-code", reverse("setup_qr_codes")))
     if has("inventory"):
         add(Tile("Inventory", "Stock levels", "box-seam", reverse("inventory_board")))
-    if has("central_kitchen"):
-        add(Tile("Central Kitchen", "Batches and dispatch", "building-gear", reverse("central-kitchen")))
-        add(Tile("Stock Requests", "Requisitions", "clipboard-check", reverse("requisition-list")))
     if has("shift_management"):
         add(Tile("Shifts", "Who is on", "person-badge", reverse("shift-dashboard")))
     if has("reservations"):

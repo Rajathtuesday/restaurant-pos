@@ -81,7 +81,7 @@ PRESETS = {
                     "inventory", "reports", "ai_menu_import", "crm",
                     "composition_scheme", "parcel_charge"],
         "disable": ["token_system", "simple_billing", "direct_billing_mode",
-                    "barcode_transfer", "counter_billing"],
+                    "counter_billing"],
         "outlet":  {"split_bill_by_category": False},
     },
     "pub": {
@@ -94,7 +94,7 @@ PRESETS = {
                     "reservations", "parcel_charge", "liquor_vat"],
         # No composition scheme: liquor sellers can't use it (s.10(2)(b)).
         "disable": ["token_system", "simple_billing", "direct_billing_mode",
-                    "barcode_transfer", "counter_billing", "composition_scheme"],
+                    "counter_billing", "composition_scheme"],
         # Free drinks are a pub's biggest leak: cashiers and captains may
         # give up to 10% on their own; more needs a manager.
         "outlet":  {"split_bill_by_category": False, "staff_discount_limit_pct": Decimal("10.00")},
@@ -107,7 +107,7 @@ PRESETS = {
                     "kot_system", "kitchen_display", "inventory", "reports",
                     "ai_menu_import", "parcel_charge", "composition_scheme"],
         "disable": ["merge_tables", "split_bill", "crm", "reservations",
-                    "barcode_transfer", "counter_billing"],
+                    "counter_billing"],
         "outlet":  {"split_bill_by_category": False},
     },
 }
