@@ -88,3 +88,20 @@ The `Rasova_Test` AVD (Android 16, x86_64, Pixel 6) runs headless on the build P
 ## Status
 
 No live install right now: the first cafe (Malenadu, phone-only since June 2026) is no longer a customer. Version 1.2.0 is the one on the site (`rasova.net/android/rasova.apk`).
+
+## Asking old apps to update (since 1.2.1, 13 Nov 2026)
+
+The app names its real version in every request: `RasovaPOS-Android/<versionName>`
+(`AppUserAgent.kt`). Every app before 1.2.1 says `1.0`, whatever it really is.
+The server compares it with `MINIMUM_ANDROID_APP` in `core/app_version.py`; an older
+app sees a red "This Rasova app is out of date" banner on every page, linking to
+`/android/rasova.apk`.
+
+To make every phone update:
+
+1. Build and sign the new release (`./gradlew assembleRelease`), install it on a phone,
+   print a test page.
+2. Copy `app/build/outputs/apk/release/app-release.apk` to `public/android/rasova.apk`.
+3. Raise `MINIMUM_ANDROID_APP` to the new version, in the same push. Never before
+   the new APK is the download: the banner would ask phones to install an app that
+   is not there.

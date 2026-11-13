@@ -211,7 +211,8 @@ class MainActivity : AppCompatActivity() {
         settings.mixedContentMode         = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
-        settings.userAgentString = settings.userAgentString + " RasovaPOS-Android/1.0"
+        // The real version, so the server can ask an old app to update (AppUserAgent.kt).
+        settings.userAgentString = AppUserAgent.append(settings.userAgentString, BuildConfig.VERSION_NAME)
         webView.addJavascriptInterface(JSBridge(this), "Android")
         // Without this the pages' alert/confirm/prompt never show (JsDialogs.kt).
         webView.webChromeClient = JsDialogs(this)

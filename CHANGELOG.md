@@ -7,6 +7,17 @@ the source of truth.
 
 ---
 
+## 2026-11-13: An old Android app is asked to update
+
+### Changed
+- **The Android app tells the server its real version** (B16 in the suggestions). It used to add `RasovaPOS-Android/1.0` to every request whatever it was, so the server could never tell an old app from a new one. From 1.2.1 it adds its real version (`rasova_android/.../AppUserAgent.kt`). The app is 1.2.1 (version code 5); the signed release APK builds, and the download in `public/android/rasova.apk` is unchanged until Rajath has tried it on a phone.
+- **An app older than the server needs sees a red banner on every page**: "This Rasova app is out of date", with a "Get the new app" link to the download. It is drawn by the server (`templates/core/_app_update_banner.html`), so it shows even if the page's scripts fail, and it cannot be dismissed: an old app stops printing.
+- The minimum is `MINIMUM_ANDROID_APP` in `core/app_version.py`, today `1.0`, which asks no one. Every app before 1.2.1 reports "1.0", so raising it to `1.2.1` asks every older phone to update: do that in the same push that makes 1.2.1 the download (`rasova_android/README.md`, "Asking old apps to update").
+
+### Tests
+- `core/tests/test_app_version.py` (7 tests): the version read from the user agent; versions compared as numbers (1.10 is newer than 1.9); today's minimum asks no one; below the minimum the banner shows on billing, the dashboard and the kitchen, with the download link; a new app and a browser see nothing; the download answers.
+- `rasova_android/.../AppUserAgentTest.kt` (3 JVM tests): the real version on the end, added once, an odd version name cannot break the header.
+
 ## 2026-11-13: An undo for the deploy
 
 ### Changed

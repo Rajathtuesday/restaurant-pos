@@ -48,4 +48,7 @@ def frontend(request):
         # The outlet's agent key, for the Android app's print service. It
         # travels to the server in a header, never in a URL (printing/views.py).
         page["agent_key"] = getattr(outlet, "print_agent_key", "") or ""
-    return {"rasova_page": page}
+    # An Android app older than the server needs: base.html shows the
+    # "update the app" banner (core/app_version.py).
+    from core.app_version import app_update
+    return {"rasova_page": page, "app_update": app_update(request)}
