@@ -105,6 +105,9 @@ def main():
         s3.delete_object(Bucket=BUCKET, Key=key)
         _fail(f"dump suspiciously small ({size} bytes) — aborting (DB empty or dump failed?).")
     print(f"[backup] uploaded s3://{BUCKET}/{key}  ({size // 1024} KB)")
+    # Only now is there a good backup: /health/'s detail reads this marker.
+    from core.health import record_backup
+    record_backup()
 
     # 3 ── prune old backups
     cutoff  = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=RETAIN_DAYS)

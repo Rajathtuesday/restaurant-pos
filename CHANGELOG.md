@@ -7,6 +7,17 @@ the source of truth.
 
 ---
 
+## 2026-11-13: /health/ checks what takes a small server down
+
+### Changed
+- **`/health/` has a detailed answer for a monitor or a superuser** (`core/health.py`). It used to check the database and nothing else, so a stopped Celery worker, a full disk, full swap, a backup that quietly stopped, or a dead print agent all said "healthy". The detail checks each: Redis, the worker and beat (beat queues `core.tasks.heartbeat` every minute and its result row proves both ran), free disk (under 10% fails), swap (over 80% used fails), the last good backup (older than 26 hours fails), and the oldest print job not yet printed (10 minutes fails). One failure makes the answer 503.
+- Everyone else, a load balancer included, gets the same one-line answer as before. The detail needs a superuser login or the `HEALTH_TOKEN` from the server's environment in an `X-Health-Token` header; with no token set, only a superuser sees it. No exception text, host or restaurant name is ever in the answer.
+- `scripts/backup/backup_to_r2.py` writes `logs/last_backup_ok` after a confirmed upload, which is what the backup check reads.
+- Setting up the monitor: `docs/DEPLOY.md`, "Health detail for an outside monitor".
+
+### Tests
+- `core/tests/test_health.py` (16 tests): who sees the detail and who does not, a healthy server check by check, a stopped heartbeat, a heartbeat never seen, an old or missing backup, a nearly full disk, swap read from /proc/meminfo, a stuck print job (a finished one ignored), a broken check failing without showing why, no restaurant named, the heartbeat scheduled every minute, and the backup marker written only after the upload. Eight fail on the old view.
+
 ## 2026-11-13: A fast test set, and a test suite that is quicker everywhere
 
 The full suite took about 30 minutes, so it was not run before a commit. There is now a set for that.

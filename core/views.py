@@ -120,7 +120,25 @@ def demo_switch(request):
     })
 
 
+def _may_see_health_detail(request):
+    """A superuser, or a monitor sending the HEALTH_TOKEN from the server's
+    environment in an X-Health-Token header. No token configured means
+    only a superuser."""
+    import hmac
+    if getattr(request.user, "is_superuser", False):
+        return True
+    token = getattr(settings, "HEALTH_TOKEN", "")
+    sent = request.headers.get("X-Health-Token", "")
+    return bool(token) and hmac.compare_digest(sent.encode(), token.encode())
+
+
 def health_check(request):
+    # The detail (core/health.py) for whoever may see it; the one-line
+    # answer below for everyone else, as a load balancer expects.
+    if _may_see_health_detail(request):
+        from core.health import detailed
+        body, status = detailed()
+        return JsonResponse(body, status=status)
     try:
         connection.ensure_connection()
         return JsonResponse({"status": "healthy", "database": "connected"}, status=200)

@@ -825,6 +825,10 @@ RATELIMIT_ENABLE = not _TESTING
 # it was most of the time in hundreds of tests (13 Nov 2026). A hash made
 # here never leaves the test database. Production is untouched: this list
 # is only set when `manage.py test` is running.
+# The secret an outside monitor sends (X-Health-Token) to get /health/'s
+# detail. Unset means only a superuser sees it.
+HEALTH_TOKEN = os.getenv("HEALTH_TOKEN", "")
+
 if _TESTING:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
@@ -895,6 +899,13 @@ CELERY_BEAT_SCHEDULE = {
     "reset-public-demo-tenant": {
         "task": "orders.tasks.reset_demo_tenant_task",
         "schedule": crontab(minute=0, hour="*/2"),
+    },
+    # Proof that beat and the worker are both alive, read by /health/'s
+    # detail (core/health.py). Its result rows are cleared daily by
+    # Celery's own backend_cleanup, which beat schedules by itself.
+    "heartbeat": {
+        "task": "core.tasks.heartbeat",
+        "schedule": 60.0,
     },
 }
 if BOX:

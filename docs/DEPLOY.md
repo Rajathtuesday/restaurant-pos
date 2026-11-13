@@ -601,3 +601,18 @@ Every release must be signed with the same key, or phones refuse it as an update
 ---
 
 *Rasova POS · Branch: `qsr` · Founder: Rajath · rajath@rasova.net*
+
+## Health detail for an outside monitor (since 13 Nov 2026)
+
+`/health/` answers everyone with one line (the database). Whoever sends the
+server's `HEALTH_TOKEN` in an `X-Health-Token` header, or is logged in as a
+superuser, gets every check (`core/health.py`): Redis, the Celery worker and
+beat (a heartbeat every minute), free disk, swap, the last good backup, and
+the oldest unprinted print job. One failed check makes it 503.
+
+1. Put a long random `HEALTH_TOKEN=` in the server's `.env` and restart gunicorn.
+2. Point an outside monitor at `https://<host>/health/` every minute, with the
+   header, alerting on any status that is not 200.
+3. The backup line reads `logs/last_backup_ok`, written by
+   `scripts/backup/backup_to_r2.py` after a confirmed upload. It says "no good
+   backup recorded yet" until the first nightly run after this deploy.

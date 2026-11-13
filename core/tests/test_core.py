@@ -233,6 +233,10 @@ class UnscopedCallSiteAllowlistTest(TestCase):
         # order by id alone so the walk can prove it catches a leak
         # (core/tests/test_tenant_walk.py, TenantWalkDetectsLeaksTest).
         "core/tests/test_tenant_walk.py:424",
+        # /health/'s detail, for a superuser or the monitor's token only:
+        # the age of the oldest unprinted job in any restaurant. It shows a
+        # count and an age, never a row (core/health.py, check_printing).
+        "core/health.py:139",
     }
 
     # Files that reference ".unscoped(" in prose (docstrings/comments)
