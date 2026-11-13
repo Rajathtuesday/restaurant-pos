@@ -102,7 +102,7 @@ class SheetPageTest(SimpleTestCase):
         self.assertEqual(page.count("<img "), 3)
         self.assertIn("uncaught: boom &lt;b&gt;", page)
         self.assertIn("1 problem(s)", page)
-        self.assertNotIn("2014", page)   # no em dash
+        self.assertNotIn("—", page)   # no em dash
 
     def test_the_ten_screens(self):
         class Fake:
