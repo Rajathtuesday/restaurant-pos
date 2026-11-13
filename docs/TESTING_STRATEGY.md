@@ -16,6 +16,18 @@ database (435 migrations, over a minute); leave it off after adding a migration.
 The full suite (`manage.py test --parallel 8`) runs before a push, and in CI.
 Browser tests and thread-race tests are only in the full suite.
 
+## Before a push: look at the screens
+
+```bash
+SCREENSHOTS=1 .venv/Scripts/python.exe manage.py test core.tests.test_screenshot_sheet --keepdb
+```
+
+Ten screens (login, dashboard, billing, bill, floor plan, kitchen, QR menu,
+token counter, reports, setup) in light and dark, desktop and phone: forty
+pictures on one page in `md_files/screens/<date>_<time>/index.html`, with any
+page error written under its picture. About 80 seconds. Scroll it before
+saying push: a broken look is for a person to see, not a pixel test.
+
 ---
 
 ## The Testing Pyramid

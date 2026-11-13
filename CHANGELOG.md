@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-13: A screenshot sheet to look at before a push
+
+### Added (test tooling)
+- **`SCREENSHOTS=1 python manage.py test core.tests.test_screenshot_sheet`** makes one page of forty pictures: ten screens (login, dashboard, billing, bill, floor plan, kitchen, QR menu, token counter, reports, setup) in light and dark, at desktop and phone width, with any page error written under its picture. It is written to `md_files/screens/` (not in git) in about 80 seconds. It is not a pixel test: it is for a person to scroll through before a push, so a broken look is seen before a customer sees it. Without `SCREENSHOTS=1` it is skipped, so the suite does not spend the time.
+- Its first run showed three things to fix: the "Setup 4/5 complete" badge covers the billing screen's bottom buttons, the billing subtitle is nearly invisible in dark mode, and the dashboard subtitle still has an em dash.
+
+### Tests
+- The page-building half always runs: one row per screen, a problem under its picture and escaped, ten distinct screens.
+
 ## 2026-11-13: /health/ checks what takes a small server down
 
 ### Changed
