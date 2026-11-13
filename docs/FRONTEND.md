@@ -39,12 +39,14 @@ static/js/bill/      the bill page: payment, discounts, printing, the Razorpay Q
 static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server), loader.js (the 5-second refresh), index.js
 static/js/kitchen/   the kitchen display: board.js (the tickets as markup), loader.js (the 5-second refresh, by station), actions.js (start, ready, bump, clear all), light.js (its own light switch), index.js; boot.js is a plain script in the head that sets light or dark before the first paint
 static/js/dashboard/ the owner's dashboard: today.js (the minute's refresh of today's numbers), index.js (refresh, New Order, the Zomato and Swiggy switches)
+static/js/qr_menu/   the guest QR menu (on public_base.html): cart.js, modifiers.js (a dish's options), order.js (placing it, a second round, the request id), status.js (the pill and sheet), view.js (what it draws, escaped), index.js; boot.js sets dark mode before the first paint
 static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
 static/css/tables.css  the floor plan
 static/css/kitchen.css the kitchen display
 static/css/dashboard.css the owner's dashboard
+static/css/qr_menu.css the guest QR menu
 static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)

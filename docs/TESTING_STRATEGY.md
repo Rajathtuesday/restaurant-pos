@@ -775,7 +775,7 @@ MONEY_THOROUGH=1 python manage.py test orders.tests.test_totals_properties
 
 | What | File | Guards |
 |---|---|---|
-| QR menu cart | `menu/tests/test_qr_cart_js.py` | Runs the rendered QR page's script in Node with a fake page and taps ADD and VIEW CART. HTML-only tests missed a broken cart once; this one runs the script. |
+| QR menu cart | `menu/tests/test_qr_cart_browser.py` | Opens the QR menu in Chromium, taps ADD and VIEW CART, and checks the cart's numbers are the bill's (GST, liquor VAT, offers). HTML-only tests missed a broken cart once; this one runs the page. |
 | User messages | `core/tests/test_user_errors.py` | Only messages written for users reach the screen; anything else is logged behind "Something went wrong" |
 | Search indexing | `core/tests/test_search_indexing.py` | Only public pages are indexable; login and app pages are `noindex`; marketing copies on subdomains and www move to rasova.net |
 | Public pages | `core/tests/test_public_pages.py` | Every page in `public/` is in `core/public_pages.py`, served, in the sitemap, linked from home, with FAQ markup matching the visible questions |

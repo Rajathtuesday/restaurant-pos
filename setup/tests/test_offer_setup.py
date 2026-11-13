@@ -17,7 +17,7 @@ from django.urls import reverse
 from accounts.models import User
 from menu.liquor import add_liquor_class
 from menu.models import MenuCategory, MenuItem
-from menu.tests.test_qr_cart_js import HARNESS, NODE_ARGS, our_scripts
+from core.tests.node_page import HARNESS, NODE_ARGS, our_scripts
 from offers.models import Offer
 from orders.models import Order
 from orders.services.order_service import add_items_to_order

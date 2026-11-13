@@ -90,12 +90,15 @@ def measure(text):
         if opened and not SCRIPT_CLOSE.search(line[opened.end():]):
             attrs = opened.group(1)
             # src= scripts have no body; json_script and the boot script are
-            # the two inline forms that are allowed.
-            allowed_block = "src=" in attrs or "application/json" in attrs or "data-rasova-boot" in attrs
+            # the two inline forms that are allowed (structured data for
+            # search engines, application/ld+json, is data too).
+            allowed_block = ("src=" in attrs or "application/json" in attrs or "application/ld+json" in attrs
+                             or "data-rasova-boot" in attrs)
             in_script = True
             depth = 0
             continue
-        if opened and "src=" not in opened.group(1) and "application/json" not in opened.group(1) and "data-rasova-boot" not in opened.group(1):
+        if (opened and "src=" not in opened.group(1) and "application/json" not in opened.group(1)
+                and "application/ld+json" not in opened.group(1) and "data-rasova-boot" not in opened.group(1)):
             script += 1      # a one-line inline script
         if STYLE_OPEN.search(line) and not STYLE_CLOSE.search(line):
             in_style = True
@@ -139,7 +142,6 @@ BASELINE = {
     'inventory/templates/inventory/recipe_import_review.html': {"script": 108, "style": 29, "onclick": 3, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/suppliers.html': {"script": 55, "style": 45, "onclick": 2, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/variance_report.html': {"script": 16, "style": 51, "onclick": 0, "third_party": 0, "globals": 0},
-    'menu/templates/menu/digital_menu.html': {"script": 803, "style": 518, "onclick": 21, "third_party": 0, "globals": 0},
     'menu/templates/menu/gst_management.html': {"script": 64, "style": 115, "onclick": 3, "third_party": 0, "globals": 0},
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 27, "third_party": 0, "globals": 0},
     'menu/templates/menu/modifiers_management.html': {"script": 139, "style": 46, "onclick": 10, "third_party": 0, "globals": 0},

@@ -54,14 +54,15 @@ class PageStylesTest(BrowserTestCase):
     def test_the_qr_menu_is_styled_not_printed(self):
         seen = self.look(f"/menu/digital-menu/?table_token={self.table.qr_token}")
         self.assertFalse(seen["css_as_text"], "the QR menu shows its stylesheet as text")
-        self.assertIn("inline", seen["loaded"], "the page's own <style> block did not load")
+        # Its own stylesheet since 13 Nov 2026 (it was an inline <style> block).
+        self.assertIn("css/qr_menu.css", seen["loaded"], "the QR menu's stylesheet did not load")
         self.assertIn("vendor/fonts/fonts.css", seen["loaded"])
         self.assertIn("Outfit", seen["font"])
 
     def test_the_qr_menu_from_a_staff_login_too(self):
         seen = self.look("/menu/qr/", user=self.owner)
         self.assertFalse(seen["css_as_text"])
-        self.assertIn("inline", seen["loaded"])
+        self.assertIn("css/qr_menu.css", seen["loaded"])
 
     def test_login_loads_its_icons(self):
         seen = self.look("/login/")

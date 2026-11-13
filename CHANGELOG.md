@@ -7,6 +7,26 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The frontend rebuild, phase 2: the guest QR menu
+
+The only Rasova screen a guest sees, and the largest page left: 803 lines of inline script, 518 of inline style and 21 `onclick` attributes, as a standalone page with its own head. It is markup only now, on `templates/core/public_base.html`.
+
+### Changed
+- **Its code is `static/js/qr_menu/`**: `cart.js`, `modifiers.js` (a dish's options), `order.js` (placing the order, a second round on the same bill), `status.js` (the status pill and sheet), `view.js` (what it draws, every name escaped), `index.js`, and `boot.js`, which sets dark mode before the first paint. Its style is `static/css/qr_menu.css`. Its addresses, the outlet's tax rules and the CSRF token reach it in one block (`menu.views.customer_views.qr_menu_page_data`); its structured data for search engines is built on the server and escaped.
+- **No browser pop-ups for guests.** A missing required option is said inside the options sheet; clearing the cart takes two taps instead of `confirm()`; every other message uses the page's own toast. `alert()` and `confirm()` showed the server's address and looked broken on a phone.
+- **A guest's order carries a request id**, like the billing screen's: a tap again after a lost connection cannot order twice.
+- After an order is sent the cart empties and the status pill starts at once; the page no longer reloads itself.
+- **Veg and non-veg come from the dish's own setting** (`is_veg`). They were guessed from the dish's name ("chicken", "mutton", "fish" or "meat" meant non-veg, so a paneer dish could never be marked otherwise, and "Fish Tikka Masala" filtered wrongly). The "BESTSELLER" tag, which was shown on any dish whose name contained "tikka" or "biryani", is gone: it was not true.
+- A menu with no dishes yet says "The menu is being set up" instead of "You've reached the end of the menu".
+- The diet filters, the status pill and each option are buttons now, so a keyboard or a screen reader reaches them. Money is written the one way (`core/money.js`).
+- `public_base.html` gained `icon` and `head` blocks for a page's own icon and meta tags; the ratchet counts structured data (`application/ld+json`) as data, like `application/json`. 72 templates are left in it.
+
+### Tests
+- `menu/tests/test_qr_menu_browser.py` (Playwright, 6 tests, as a guest on a phone): a dish with a required option (said in the sheet), the cart and its GST, placing the order, a second round on the same bill (each with its own request id), the status pill; filters and search; calling a waiter; clearing in two taps; dark mode across a reload; a menu with no dishes.
+- `menu/tests/test_qr_cart_browser.py` replaces `test_qr_cart_js.py` (which ran the inline script in Node): the same dishes and numbers in Chromium, for GST, liquor VAT, an offer taken off before tax, and no offer row without offers. Its Node harness moved to `core/tests/node_page.py` for the offer setup page, which still has inline code.
+- `static/js/tests/qr_menu.test.mjs` (14 tests): the cart, options, placing the order (a second round, no answer, another table's order, a billed table, a refusal, a double tap, blocked storage), every backend stage on the timeline, when a status is finished, the poller, escaping.
+- Two test classes in `menu/tests/test_menu.py` read the page's inline script as text; their markup checks stay, their behaviour checks are the tests above.
+
 ## 2026-11-13: Money written one way on the billing screens
 
 ### Fixed

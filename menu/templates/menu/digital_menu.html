@@ -1,612 +1,64 @@
+{% extends 'core/public_base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ tenant.name }} | Premium Digital Menu</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Explore our curated selection of gourmet dishes. Order online from your table at {{ tenant.name }}.">
-    <meta name="robots" content="index, follow">
-    {% if tenant.logo %}
-    <link rel="icon" href="{{ tenant.logo.url }}">
-    <link rel="apple-touch-icon" href="{{ tenant.logo.url }}">
-    {% else %}
-    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
-    <link rel="apple-touch-icon" href="{% static 'icon-512.svg' %}">
-    {% endif %}
 
-    <!-- Open Graph / Social Media / AI Previews -->
+{% block title %}{{ tenant.name }} | Digital Menu{% endblock %}
+
+{% block icon %}{% if tenant.logo %}<link rel="icon" href="{{ tenant.logo.url }}"><link rel="apple-touch-icon" href="{{ tenant.logo.url }}">{% else %}<link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}"><link rel="apple-touch-icon" href="{% static 'icon-512.svg' %}">{% endif %}{% endblock %}
+
+{% block head %}
+    <meta name="description" content="Explore our menu and order from your table at {{ tenant.name }}.">
+    <meta name="robots" content="index, follow">
     <meta property="og:type" content="website">
     <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:title" content="{{ tenant.name }} Digital Menu">
-    <meta property="og:description" content="Experience bespoke dining. View our menu and order instantly.">
-    {% if tenant.logo %}
-    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tenant.logo.url }}">
-    {% endif %}
+    <meta property="og:description" content="View our menu and order instantly.">
+    {% if tenant.logo %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ tenant.logo.url }}">{% endif %}
+    <script type="application/ld+json">{{ structured_data }}</script>
+{% endblock %}
 
-    <!-- Structured Data (Schema.org) for AI Understanding -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Restaurant",
-      "name": "{{ tenant.name }}",
-      "image": "{% if tenant.logo %}{{ request.scheme }}://{{ request.get_host }}{{ tenant.logo.url }}{% endif %}",
-      "@id": "{{ request.build_absolute_uri }}",
-      "url": "{{ request.build_absolute_uri }}",
-      "telephone": "{{ outlet.phone|default:'' }}",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "{{ outlet.address|default:'' }}",
-        "addressLocality": "{{ outlet.city|default:'' }}",
-        "addressCountry": "IN"
-      },
-      "menu": "{{ request.build_absolute_uri }}",
-      "servesCuisine": "Multi-cuisine",
-      "priceRange": "₹₹"
-    }
-    </script>
+{% block extra_css %}
+    <script src="{% static 'js/qr_menu/boot.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/qr_menu.css' %}">
+{% endblock %}
 
-    <link href="{% static 'vendor/bootstrap/bootstrap.min.css' %}" rel="stylesheet">
-    <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
-    <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
-    <style>
-        :root {
-            --bg-color: #fafafa;
-            --panel-bg: #ffffff;
-            --text-main: #111111;
-            --text-muted: #737373;
-            --border-color: #eaeaea;
-            --accent-gold: #c5a059;
-            --veg-color: #16a34a;
-            --nonveg-color: #dc2626;
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        body.dark {
-            --bg-color: #0a0a0a;
-            --panel-bg: #111111;
-            --text-main: #f5f5f5;
-            --text-muted: #888888;
-            --border-color: #262626;
-            --accent-gold: #d4af37;
-        }
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            padding-bottom: 80px; /* space for cart bar */
-            transition: var(--transition-smooth);
-        }
-        .serif-text { font-family: 'DM Serif Display', serif; }
-        .text-accent-gold { color: var(--accent-gold); }
-        
-        /* HEADER */
-        .menu-header {
-            background: var(--panel-bg);
-            padding: 1.5rem 1rem;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0;
-            z-index: 1020;
-        }
-        .brand-title {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.5rem;
-            margin-bottom: 0.2rem;
-            color: var(--text-main);
-        }
-        .branch-info {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+{% block body_class %}qr-menu{% endblock %}
 
-        /* SEARCH & FILTERS */
-        .search-container {
-            padding: 1rem;
-            background: var(--bg-color);
-        }
-        .search-input {
-            width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-family: 'Outfit', sans-serif;
-            background: var(--panel-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23737373' class='bi bi-search' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E") no-repeat 12px center;
-        }
-        .search-input:focus { outline: none; border-color: var(--accent-gold); }
-        
-        .diet-filters {
-            display: flex;
-            gap: 1rem;
-            padding: 0 1rem 1rem;
-        }
-        .diet-filter {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0.3rem 0.8rem;
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            background: var(--panel-bg);
-            transition: all 0.2s ease;
-        }
-        .diet-filter.active {
-            border-color: var(--text-main);
-            color: var(--text-main);
-        }
-        .dot-veg { color: var(--veg-color); font-size: 0.6rem; }
-        .dot-nonveg { color: var(--nonveg-color); font-size: 0.6rem; }
-
-        /* HORIZONTAL TABS */
-        .category-tabs {
-            display: flex;
-            overflow-x: auto;
-            white-space: nowrap;
-            padding: 0 1rem;
-            background: var(--panel-bg);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky;
-            top: 0; /* below header */
-            z-index: 1010;
-            -ms-overflow-style: none; scrollbar-width: none;
-        }
-        .category-tabs::-webkit-scrollbar { display: none; }
-        .cat-tab {
-            padding: 1rem 1.5rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-decoration: none;
-            border-bottom: 2px solid transparent;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-            transition: all 0.2s ease;
-        }
-        .cat-tab.active {
-            color: var(--accent-gold);
-            border-bottom-color: var(--accent-gold);
-        }
-
-        /* MENU CARDS */
-        .category-section {
-            padding-top: 1.5rem;
-            scroll-margin-top: 130px;
-        }
-        .category-title {
-            padding: 0 1rem 1rem;
-            margin: 0;
-            font-size: 1.5rem;
-        }
-        .menu-list {
-            padding: 0 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .item-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem;
-            display: flex;
-            gap: 1rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-        }
-        .item-photo {
-            width: 90px;
-            height: 90px;
-            background: #f0f0f0;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #aaa;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-        .item-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .item-details {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .item-header {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            margin-bottom: 0.2rem;
-        }
-        .item-name {
-            font-weight: 600;
-            font-size: 1.05rem;
-            margin: 0;
-            line-height: 1.2;
-        }
-        .bestseller-tag {
-            font-size: 0.65rem;
-            background: rgba(254, 243, 199, 0.15);
-            color: #d97706;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            margin-bottom: 0.3rem;
-            display: inline-block;
-            border: 1px solid #fef3c722;
-        }
-        .item-desc {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-        .item-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: auto;
-        }
-        .item-price {
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        /* BUTTONS & CONTROLS */
-        .add-btn {
-            background: transparent;
-            color: var(--accent-gold);
-            border: 1px solid var(--accent-gold);
-            padding: 0.5rem 1.1rem;
-            min-height: 40px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
-        }
-        .qty-controls {
-            display: none;
-            align-items: center;
-            gap: 0.2rem;
-            background: var(--panel-bg);
-            border: 1px solid var(--accent-gold);
-            border-radius: 8px;
-            padding: 0.1rem;
-        }
-        .qty-controls.active {
-            display: flex;
-        }
-        .add-btn.hidden { display: none; }
-
-        /* 40px, not the ideal 48px -- these sit inline in a compact pill next
-           to price/add-button in the item card; 48px here would visually
-           overwhelm that layout. Still a large jump from the ~24px it was. */
-        .qty-btn {
-            background: none; border: none;
-            color: var(--accent-gold);
-            font-size: 1.2rem;
-            font-weight: 600;
-            width: 40px; height: 40px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .qty-num {
-            font-weight: 600;
-            font-size: 0.95rem;
-            min-width: 15px;
-            text-align: center;
-        }
-
-        /* STICKY BOTTOM BAR */
-        .cart-bar {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: var(--panel-bg);
-            border-top: 1px solid var(--border-color);
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-            z-index: 1030;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        .cart-bar.visible { transform: translateY(0); }
-        .cart-info { display: flex; flex-direction: column; }
-        .cart-items-text { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
-        .cart-total-text { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
-        .view-cart-btn {
-            background: var(--accent-gold);
-            color: #fff; border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        /* CART MODAL (Slide Up) */
-        .cart-modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 1040;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        .cart-modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .cart-modal {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: var(--bg-color);
-            border-radius: 20px 20px 0 0;
-            padding: 1.5rem;
-            z-index: 1050;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-        .cart-modal.active { transform: translateY(0); }
-        .modal-drag-handle {
-            width: 40px; height: 4px; background: #ddd;
-            border-radius: 2px; margin: 0 auto 1.5rem;
-        }
-        .cart-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; margin-bottom: 1rem; }
-        
-        .cart-item-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .cart-item-name { font-weight: 600; margin-bottom: 0.3rem; }
-        .cart-item-price { font-weight: 700; color: var(--text-main); }
-        
-        .bill-summary {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-top: 1.5rem;
-        }
-        .bill-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
-        .bill-total { display: flex; justify-content: space-between; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px dashed var(--border-color); font-weight: 700; font-size: 1.2rem; color: var(--text-main); }
-        
-        .special-instructions {
-            width: 100%; border: 1px solid var(--border-color);
-            border-radius: 8px; padding: 0.8rem;
-            font-family: inherit; font-size: 0.9rem;
-            margin-top: 1.5rem; resize: none; background: var(--panel-bg);
-        }
-        .special-instructions:focus { outline: none; border-color: var(--accent-gold); }
-        
-        .place-order-btn {
-            background: var(--text-main); color: #fff;
-            border: none; padding: 1rem;
-            border-radius: 12px; font-weight: 600;
-            font-size: 1rem; letter-spacing: 1px;
-            text-transform: uppercase;
-            display: flex; justify-content: center; align-items: center; gap: 0.5rem;
-        }
-        .close-modal-btn {
-            position: absolute; right: 1rem; top: 1rem;
-            background: none; border: none; font-size: 1.5rem; color: var(--text-muted);
-            width: 44px; height: 44px;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; cursor: pointer; padding: 0.4rem; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; transition: var(--transition-smooth); }
-        .btn-icon:hover { color: var(--accent-gold); }
-
-        /* MODIFIER MODAL */
-        .modifier-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-            z-index: 1060; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        .modifier-overlay.active { opacity: 1; pointer-events: all; }
-        .modifier-modal {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: var(--panel-bg); border-radius: 20px 20px 0 0;
-            padding: 1.5rem; z-index: 1070;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            max-height: 80vh; overflow-y: auto;
-        }
-        .modifier-modal.active { transform: translateY(0); }
-        .modifier-item-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; margin-bottom: 1rem; }
-        .modifier-group-section { margin-bottom: 1.5rem; }
-        .modifier-group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-        .modifier-req-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; font-weight: 600; background: var(--border-color); color: var(--text-muted); }
-        .modifier-options { display: flex; flex-direction: column; gap: 0.5rem; }
-        .modifier-option {
-            display: flex; align-items: center; gap: 0.75rem;
-            padding: 0.75rem; border: 1px solid var(--border-color);
-            border-radius: 10px; cursor: pointer; transition: border-color 0.2s;
-        }
-        .modifier-option:hover { border-color: var(--accent-gold); }
-        .modifier-check {
-            width: 20px; height: 20px; border-radius: 50%;
-            border: 2px solid var(--border-color); flex-shrink: 0; transition: all 0.2s;
-        }
-        .modifier-check.checked { background: var(--accent-gold); border-color: var(--accent-gold); }
-        .modifier-price { font-size: 0.85rem; font-weight: 600; color: var(--accent-gold); }
-        .modifier-total { font-size: 1rem; font-weight: 700; color: var(--text-main); }
-        .confirm-modifier-btn {
-            background: var(--accent-gold); color: #fff; border: none;
-            padding: 0.75rem 1.5rem; border-radius: 10px;
-            font-weight: 600; font-size: 0.95rem; text-transform: uppercase;
-        }
-        .cart-modifier-names { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
-
-        /* ORDER STATUS PILL — a small floating button, same idea as the
-           sticky cart bar below, shown once a guest has placed at least one
-           order for this table. Replaces the old full-width banner that
-           used to sit under the header and push the whole menu down for
-           as long as an order was active. Tapping it opens the status
-           sheet (a slide-up drawer, same mechanics as the cart modal). */
-        .order-status-pill {
-            position: fixed; right: 1rem; bottom: 1rem; z-index: 1032;
-            display: flex; align-items: center; gap: 0.5rem;
-            background: var(--panel-bg); border: 1px solid var(--accent-gold);
-            border-radius: 999px; padding: 0.55rem 0.9rem;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.18); cursor: pointer;
-            transition: var(--transition-smooth), bottom 0.25s ease;
-        }
-        .order-status-pill.hidden { display: none; }
-        /* Shifted up when the cart bar is also visible (a second round
-           added while the first is still cooking) so the two never overlap. */
-        .order-status-pill.above-cart-bar { bottom: 5.5rem; }
-        .order-status-pill:active { transform: scale(0.96); }
-        .order-status-number {
-            background: var(--accent-gold); color: #fff; font-weight: 700;
-            font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px;
-            flex-shrink: 0; letter-spacing: 0.02em;
-        }
-        .order-status-number.hidden { display: none; }
-        .order-status-dot {
-            width: 9px; height: 9px; border-radius: 50%; background: var(--accent-gold);
-            flex-shrink: 0; animation: statusPulse 1.6s ease-in-out infinite;
-        }
-        .order-status-dot.done { animation: none; background: var(--veg-color); }
-        @keyframes statusPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
-        .order-status-pill-label { font-size: 0.82rem; font-weight: 600; color: var(--text-main); white-space: nowrap; }
-
-        /* STATUS SHEET — slide-up drawer, copied from the cart modal's own
-           overlay/transform pattern so both feel like one consistent app
-           instead of two different popup styles. */
-        .status-sheet-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4); z-index: 1041;
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .status-sheet-overlay.active { opacity: 1; pointer-events: auto; }
-        .status-sheet {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: var(--bg-color); border-radius: 20px 20px 0 0;
-            padding: 1.5rem; z-index: 1051;
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            max-height: 80vh; overflow-y: auto;
-        }
-        .status-sheet.active { transform: translateY(0); }
-        .status-sheet-title { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin: 0; }
-        .status-sheet-table { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.15rem; }
-        .status-stages { display: flex; justify-content: space-between; position: relative; margin: 1.4rem 0 1.6rem; }
-        .status-stages::before {
-            content: ''; position: absolute; top: 8px; left: 8%; right: 8%; height: 2px;
-            background: var(--border-color); z-index: 0;
-        }
-        .status-stage { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; z-index: 1; background: var(--bg-color); padding: 0 0.3rem; }
-        .status-stage .dot { width: 18px; height: 18px; border-radius: 50%; background: var(--border-color); border: 2px solid var(--border-color); }
-        .status-stage.done .dot { background: var(--veg-color); border-color: var(--veg-color); }
-        .status-stage.active .dot { background: var(--bg-color); border-color: var(--accent-gold); box-shadow: 0 0 0 4px rgba(197,160,89,0.2); }
-        .status-stage .t { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
-        .status-stage.done .t, .status-stage.active .t { color: var(--text-main); }
-        .status-sheet-item-row {
-            display: flex; justify-content: space-between; font-size: 0.88rem;
-            padding: 0.45rem 0; border-bottom: 1px solid var(--border-color); color: var(--text-muted);
-        }
-        .status-sheet-item-row:last-child { border-bottom: none; }
-        .status-sheet-item-row .name { color: var(--text-main); font-weight: 500; }
-
-        /* CALL WAITER BUTTON */
-        .call-waiter-btn {
-            display: flex; align-items: center; gap: 0.4rem;
-            background: transparent;
-            color: var(--accent-gold);
-            border: 1.5px solid var(--accent-gold);
-            padding: 0.65rem 1.1rem;
-            min-height: 40px;
-            border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-            transition: var(--transition-smooth);
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .call-waiter-btn i { font-size: 0.85rem; }
-        .call-waiter-btn:hover:not(:disabled) { background: var(--accent-gold); color: #fff; }
-        .call-waiter-btn:active:not(:disabled) { transform: scale(0.96); }
-        .call-waiter-btn:disabled { cursor: default; opacity: 0.85; }
-        .call-waiter-btn.notified {
-            background: var(--veg-color); border-color: var(--veg-color); color: #fff; opacity: 1;
-        }
-        .call-waiter-btn.ringing i { animation: bellRing 0.5s ease-in-out 2; }
-        @keyframes bellRing {
-            0%, 100% { transform: rotate(0deg); }
-            20% { transform: rotate(15deg); }
-            40% { transform: rotate(-15deg); }
-            60% { transform: rotate(10deg); }
-            80% { transform: rotate(-10deg); }
-        }
-
-        /* MINI TOAST */
-        .mini-toast {
-            position: fixed; top: 76px; left: 50%; z-index: 1080;
-            transform: translateX(-50%) translateY(-16px);
-            background: var(--text-main); color: var(--bg-color);
-            padding: 0.7rem 1.25rem; border-radius: 30px;
-            font-size: 0.82rem; font-weight: 600;
-            display: flex; align-items: center; gap: 0.5rem; white-space: nowrap;
-            box-shadow: 0 10px 28px rgba(0,0,0,0.18);
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.25s ease, transform 0.25s ease;
-        }
-        .mini-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .mini-toast.error { background: var(--nonveg-color); color: #fff; }
-    </style>
-</head>
-<body>
-
+{% block content %}
     <!-- HEADER -->
     <header class="menu-header">
         <div class="d-flex justify-content-between align-items-center px-2">
-            <div style="width: 40px;"></div> <!-- Spacer -->
+            <div class="header-spacer"></div>
             <h1 class="brand-title mb-0"><i class="bi bi-diamond-half text-accent-gold me-2"></i>{{ tenant.name }}</h1>
-            <button class="btn-icon" onclick="toggleDark()" title="Toggle Theme">
+            <button type="button" class="btn-icon" data-action="theme.toggle" title="Light or dark" aria-label="Light or dark">
                 <i class="bi bi-moon" id="themeIcon"></i>
             </button>
         </div>
         <div class="branch-info d-flex justify-content-center align-items-center gap-2 mt-2">
             <span>{{ outlet.name }} &middot; {% if table %}Table {{ table.name }}{% else %}Counter Order{% endif %}</span>
             {% if table %}
-            <button class="call-waiter-btn" id="callWaiterBtn" onclick="callWaiter()">
+            <button type="button" class="call-waiter-btn" id="callWaiterBtn" data-action="waiter.call">
                 <i class="bi bi-bell"></i><span id="callWaiterLabel">Call Waiter</span>
             </button>
             {% endif %}
         </div>
     </header>
 
-    <div class="mini-toast" id="miniToast"></div>
+    <div class="mini-toast" id="miniToast" role="status" aria-live="polite"></div>
 
-    <!-- ORDER STATUS PILL — hidden until this table has a placed order.
-         Floats bottom-right instead of sitting inline under the header;
-         tapping it opens the status sheet below. -->
-    <div class="order-status-pill hidden" id="orderStatusPill" onclick="openStatusSheet()">
+    <!-- ORDER STATUS PILL: hidden until this table has a placed order. -->
+    <button type="button" class="order-status-pill hidden" id="orderStatusPill" data-action="status.open">
         <span class="order-status-dot" id="orderStatusDot"></span>
         <span class="order-status-number hidden" id="orderStatusNumber"></span>
         <span class="order-status-pill-label" id="orderStatusPillLabel">Order status</span>
-    </div>
+    </button>
 
-    <!-- STATUS SHEET — slide-up drawer, same mechanics as the cart modal -->
-    <div class="status-sheet-overlay" id="statusSheetOverlay" onclick="closeStatusSheet()"></div>
-    <div class="status-sheet" id="statusSheet">
+    <!-- STATUS SHEET -->
+    <div class="status-sheet-overlay" id="statusSheetOverlay" data-action="status.close"></div>
+    <div class="status-sheet" id="statusSheet" role="dialog" aria-labelledby="statusSheetLabel">
         <div class="modal-drag-handle"></div>
-        <button class="close-modal-btn" onclick="closeStatusSheet()"><i class="bi bi-x"></i></button>
+        <button type="button" class="close-modal-btn" data-action="status.close" aria-label="Close"><i class="bi bi-x"></i></button>
         <h3 class="status-sheet-title" id="statusSheetLabel">Order received</h3>
         <div class="status-sheet-table" id="statusSheetTable"></div>
         <div class="status-stages" id="statusStages">
@@ -618,16 +70,17 @@
         <div id="statusSheetItems"></div>
     </div>
 
+    {% if has_dishes %}
     <!-- SEARCH -->
     <div class="search-container">
-        <input type="text" id="searchInput" class="search-input" placeholder="Search dishes...">
+        <input type="search" id="searchInput" class="search-input" placeholder="Search dishes..." aria-label="Search dishes">
     </div>
 
     <!-- DIET FILTERS -->
-    <div class="diet-filters">
-        <div class="diet-filter active" data-filter="all">ALL</div>
-        <div class="diet-filter" data-filter="veg"><i class="bi bi-circle-fill dot-veg"></i> VEG</div>
-        <div class="diet-filter" data-filter="nonveg"><i class="bi bi-circle-fill dot-nonveg"></i> NON-VEG</div>
+    <div class="diet-filters" role="group" aria-label="Veg or non-veg">
+        <button type="button" class="diet-filter active" data-action="diet.filter" data-filter="all">ALL</button>
+        <button type="button" class="diet-filter" data-action="diet.filter" data-filter="veg"><i class="bi bi-circle-fill dot-veg"></i> VEG</button>
+        <button type="button" class="diet-filter" data-action="diet.filter" data-filter="nonveg"><i class="bi bi-circle-fill dot-nonveg"></i> NON-VEG</button>
     </div>
 
     <!-- CATEGORY TABS -->
@@ -644,44 +97,33 @@
             <h2 class="serif-text category-title">{{ category.name }}</h2>
             <div class="menu-list">
                 {% for item in category.items.all %}
-                    {% if item.is_available %}
-                    <!-- We are mocking diet preference based on name keywords for the UI demo -->
-                    <div class="item-card" 
-                         data-name="{{ item.name|lower }}" 
-                         data-preptime="{{ item.estimated_prep_time }}"
-                         data-diet="{% if 'chicken' in item.name|lower or 'mutton' in item.name|lower or 'fish' in item.name|lower or 'meat' in item.name|lower %}nonveg{% else %}veg{% endif %}">
-                        <div class="item-photo">
-                            {% if item.image %}
-                                <img src="{{ item.image.url }}" alt="{{ item.name }}">
-                            {% else %}
-                                [ PHOTO ]
-                            {% endif %}
+                {% if item.is_available %}
+                <div class="item-card" data-id="{{ item.id }}" data-name="{{ item.name }}" data-search="{{ item.name|lower }}"
+                     data-price="{{ item.price|stringformat:'s' }}" data-prep="{{ item.estimated_prep_time }}"
+                     data-gst="{{ item.gst_percentage|stringformat:'s' }}" data-diet="{% if item.is_veg %}veg{% else %}nonveg{% endif %}">
+                    <div class="item-photo{% if not item.image %} is-empty{% endif %}">
+                        {% if item.image %}<img src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy">{% else %}<i class="bi bi-image" aria-hidden="true"></i>{% endif %}
+                    </div>
+                    <div class="item-details">
+                        <div class="item-header">
+                            <i class="bi bi-circle-fill {% if item.is_veg %}dot-veg{% else %}dot-nonveg{% endif %} mt-1" aria-label="{% if item.is_veg %}Veg{% else %}Non-veg{% endif %}"></i>
+                            <div><h3 class="item-name">{{ item.name }}</h3></div>
                         </div>
-                        <div class="item-details">
-                            <div class="item-header">
-                                <i class="bi bi-circle-fill {% if 'chicken' in item.name|lower or 'mutton' in item.name|lower or 'fish' in item.name|lower or 'meat' in item.name|lower %}dot-nonveg{% else %}dot-veg{% endif %} mt-1"></i>
-                                <div>
-                                    <h3 class="item-name">{{ item.name }}</h3>
-                                    {% if 'tikka' in item.name|lower or 'biryani' in item.name|lower %}
-                                    <span class="bestseller-tag"><i class="bi bi-star-fill"></i> BESTSELLER</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            <p class="item-desc">{{ item.description|default:"Delicious and freshly prepared." }}</p>
-                            <div class="item-footer">
-                                <div class="item-price">₹{{ item.price }}</div>
-                                <div>
-                            <button class="add-btn" id="addBtn-{{ item.id }}" onclick="addItem('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, {{ item.estimated_prep_time }}, {{ item.gst_percentage }})">ADD +</button>
-                                    <div class="qty-controls" id="qtyCtrl-{{ item.id }}">
-                                        <button class="qty-btn" onclick="decreaseItem('{{ item.id }}')">−</button>
-                                        <span class="qty-num" id="qty-{{ item.id }}">1</span>
-                                        <button class="qty-btn" onclick="increaseItem('{{ item.id }}')">+</button>
-                                    </div>
+                        <p class="item-desc">{{ item.description|default:"Freshly prepared." }}</p>
+                        <div class="item-footer">
+                            <div class="item-price">₹{{ item.price|floatformat:"-2" }}</div>
+                            <div>
+                                <button type="button" class="add-btn" id="addBtn-{{ item.id }}" data-action="dish.add">ADD +</button>
+                                <div class="qty-controls" id="qtyCtrl-{{ item.id }}">
+                                    <button type="button" class="qty-btn" data-action="dish.dec" data-id="{{ item.id }}" aria-label="One fewer">−</button>
+                                    <span class="qty-num" id="qty-{{ item.id }}">1</span>
+                                    <button type="button" class="qty-btn" data-action="dish.inc" data-id="{{ item.id }}" aria-label="One more">+</button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    {% endif %}
+                </div>
+                {% endif %}
                 {% endfor %}
             </div>
         </div>
@@ -690,872 +132,83 @@
             <p><i class="bi bi-check2-circle text-accent-gold me-1"></i>You've reached the end of the menu</p>
         </div>
     </div>
+    {% else %}
+    <div class="menu-empty" data-empty-state>
+        <i class="bi bi-journal-text" aria-hidden="true"></i>
+        <h2>The menu is being set up</h2>
+        <p>{{ tenant.name }} has not put its dishes here yet. Please ask a member of staff to take your order.</p>
+    </div>
+    {% endif %}
 
     <!-- STICKY BOTTOM BAR -->
     <div class="cart-bar" id="cartBar">
         <div class="cart-info">
             <span class="cart-items-text"><span id="totalItems">0</span> ITEMS</span>
-            <span class="cart-total-text">₹<span id="totalPrice">0</span></span>
+            <span class="cart-total-text" id="totalPrice">₹0</span>
         </div>
-        <button class="view-cart-btn" onclick="openCart()">VIEW CART <i class="bi bi-arrow-right"></i></button>
+        <button type="button" class="view-cart-btn" data-action="cart.open">VIEW CART <i class="bi bi-arrow-right"></i></button>
     </div>
 
-    <!-- MODIFIER SELECTION MODAL -->
-    <div class="modifier-overlay" id="modifierOverlay" onclick="closeModifierModal()"></div>
-    <div class="modifier-modal" id="modifierModal">
+    <!-- OPTIONS SHEET -->
+    <div class="modifier-overlay" id="modifierOverlay" data-action="modifier.close"></div>
+    <div class="modifier-modal" id="modifierModal" role="dialog" aria-labelledby="modifierItemName">
         <div class="modal-drag-handle"></div>
-        <button class="close-modal-btn" onclick="closeModifierModal()"><i class="bi bi-x"></i></button>
+        <button type="button" class="close-modal-btn" data-action="modifier.close" aria-label="Close"><i class="bi bi-x"></i></button>
         <h3 id="modifierItemName" class="modifier-item-title"></h3>
         <div id="modifierGroupsContainer"></div>
-        <div class="d-flex justify-content-between align-items-center mt-3 pt-2" style="border-top:1px solid var(--border-color);">
-            <div class="modifier-total">Total: ₹<span id="modTotalAmt">0</span></div>
-            <button class="confirm-modifier-btn" onclick="confirmModifiers()">ADD TO CART <i class="bi bi-cart-plus"></i></button>
+        <p class="modifier-error" id="modifierError" role="alert"></p>
+        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 modifier-footer">
+            <div class="modifier-total">Total: <span id="modTotalAmt">₹0</span></div>
+            <button type="button" class="confirm-modifier-btn" data-action="modifier.confirm">ADD TO CART <i class="bi bi-cart-plus"></i></button>
         </div>
     </div>
 
-    <!-- CART MODAL -->
-    <div class="cart-modal-overlay" id="cartOverlay" onclick="closeCart()"></div>
-    <div class="cart-modal" id="cartModal">
+    <!-- CART SHEET -->
+    <div class="cart-modal-overlay" id="cartOverlay" data-action="cart.close"></div>
+    <div class="cart-modal" id="cartModal" role="dialog" aria-labelledby="cartTitle">
         <div class="modal-drag-handle"></div>
-        <button class="close-modal-btn" onclick="closeCart()"><i class="bi bi-x"></i></button>
-        <h2 class="cart-title">Your Order</h2>
-        
-        <div id="cartItemsContainer">
-            <!-- Items injected by JS -->
-        </div>
+        <button type="button" class="close-modal-btn" data-action="cart.close" aria-label="Close"><i class="bi bi-x"></i></button>
+        <h2 class="cart-title" id="cartTitle">Your Order</h2>
+
+        <div id="cartItemsContainer"></div>
 
         <div class="bill-summary">
-            <div class="bill-row">
-                <span>Subtotal</span>
-                <span>₹<span id="billSubtotal">0</span></span>
-            </div>
-            <div class="bill-row" id="billOffersRow" style="display:none;color:#10b981;">
-                <span>Offers</span>
-                <span>&minus;₹<span id="billOffers">0</span></span>
-            </div>
+            <div class="bill-row"><span>Subtotal</span><span id="billSubtotal">₹0</span></div>
+            <div class="bill-row is-offer" id="billOffersRow" hidden><span>Offers</span><span>&minus;<span id="billOffers">₹0</span></span></div>
             {% if outlet.collects_gst %}
             <div class="bill-row">
                 <span>{% if outlet.gst_inclusive %}GST (included in prices){% else %}GST{% endif %}</span>
-                <span>₹<span id="billGst">0</span></span>
+                <span id="billGst">₹0</span>
             </div>
             {% endif %}
-            <div class="bill-row" id="billVatRow" style="display:none;">
+            <div class="bill-row" id="billVatRow" hidden>
                 <span>{% if outlet.vat_inclusive %}VAT on liquor (included in prices){% else %}VAT on liquor{% endif %}</span>
-                <span>₹<span id="billVat">0</span></span>
+                <span id="billVat">₹0</span>
             </div>
-            <div class="bill-total">
-                <span>Total</span>
-                <span>₹<span id="billTotal">0</span></span>
-            </div>
+            <div class="bill-total"><span>Total</span><span id="billTotal">₹0</span></div>
         </div>
 
-        <textarea id="specialInstructions" class="special-instructions" rows="2" maxlength="200" placeholder="📝 Special instructions (e.g. less spicy)"></textarea>
+        <textarea id="specialInstructions" class="special-instructions" rows="2" maxlength="200" placeholder="Special instructions (e.g. less spicy)" aria-label="Special instructions"></textarea>
 
-        <div class="prep-time-banner mt-3 p-2 text-center" id="etaBanner" style="background: #fdf6e3; border: 1px solid #fde08b; border-radius: 8px; font-size: 0.85rem; color: #92400e; font-weight: 600;">
-            <i class="bi bi-clock-history me-1" style="color:#c5a059;"></i> Estimated time: <span id="etaText">—</span>
+        <div class="prep-time-banner eta-banner mt-3 p-2 text-center" id="etaBanner">
+            <i class="bi bi-clock-history me-1"></i> Estimated time: <span id="etaText">-</span>
         </div>
 
         <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-outline-danger w-25" style="border-radius: 12px; font-weight: 600;" onclick="clearCart()" title="Clear Cart">
-                <i class="bi bi-trash3"></i>
+            <button type="button" class="btn btn-outline-danger w-25 clear-cart-btn" id="clearCartBtn" data-action="cart.clear" title="Clear the cart" aria-label="Clear the cart">
+                <i class="bi bi-trash3"></i> <span id="clearCartLabel"></span>
             </button>
-            <button class="place-order-btn w-75 m-0" id="placeOrderBtn" onclick="submitOrder()">
+            <button type="button" class="place-order-btn w-75 m-0" id="placeOrderBtn" data-action="order.place">
                 PLACE ORDER <i class="bi bi-arrow-right"></i>
             </button>
         </div>
     </div>
+{% endblock %}
 
+{% block extra_js %}
+{{ page_data|json_script:"page-data" }}
 {{ item_modifier_data|json_script:"item-modifiers-raw" }}
 {{ dish_tax|json_script:"dish-tax" }}
 {{ page_offers|json_script:"page-offers" }}
-<script type="module" src="{% static 'js/cart_tax.js' %}"></script>
-<script type="module" src="{% static 'js/offers.js' %}"></script>
-<script>
-    const ITEM_MODIFIERS = JSON.parse(document.getElementById('item-modifiers-raw').textContent || '{}');
-    // Each dish's tax, and the offers the cart shows before ordering
-    // (static/js/offers.js; the server works the bill out again and never
-    // trusts this). Read once the page is parsed: the engines are modules,
-    // which run then, and the cart is only rendered on a tap after that.
-    let DISH_TAX = {};
-    let PAGE_OFFERS = null;
-    document.addEventListener('DOMContentLoaded', () => {
-        DISH_TAX = RasovaCartTax.readTable('dish-tax');
-        PAGE_OFFERS = RasovaOffers.readPage('page-offers');
-    });
-    let cart = {};
-
-    // Menu item names (and, below, order-status item names) come from a
-    // tenant's own menu data and get re-interpolated into innerHTML here --
-    // escapejs on the server only protects the onclick="addItem(...)"
-    // attribute they were originally written into, not this later reuse.
-    // Without escaping here, a menu item named e.g. <img src=x onerror=...>
-    // executes in every guest's browser who opens the cart or watches the
-    // order-status banner, pre-login, on the page that leads into payment.
-    function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = str == null ? '' : String(str);
-        return div.innerHTML;
-    }
-
-    // --- Search & Filter Logic ---
-    const searchInput = document.getElementById('searchInput');
-    const dietFilters = document.querySelectorAll('.diet-filter');
-    const itemCards = document.querySelectorAll('.item-card');
-
-    let currentSearch = '';
-    let currentDiet = 'all';
-
-    searchInput.addEventListener('input', (e) => {
-        currentSearch = e.target.value.toLowerCase();
-        filterItems();
-    });
-
-    dietFilters.forEach(btn => {
-        btn.addEventListener('click', () => {
-            dietFilters.forEach(f => f.classList.remove('active'));
-            btn.classList.add('active');
-            currentDiet = btn.dataset.filter;
-            filterItems();
-        });
-    });
-
-    function filterItems() {
-        itemCards.forEach(card => {
-            const name = card.dataset.name;
-            const diet = card.dataset.diet;
-            
-            const matchesSearch = name.includes(currentSearch);
-            const matchesDiet = currentDiet === 'all' || diet === currentDiet;
-            
-            if(matchesSearch && matchesDiet) {
-                card.style.display = 'flex';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-    }
-
-    // --- Tab Scroll Spy ---
-    const sections = document.querySelectorAll('.category-section');
-    const navLinks = document.querySelectorAll('.cat-tab');
-
-    window.addEventListener('scroll', () => {
-        let current = '';
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop;
-            if(scrollY >= (sectionTop - 150)) {
-                current = section.getAttribute('id');
-            }
-        });
-        navLinks.forEach(link => {
-            link.classList.remove('active');
-            if(link.getAttribute('href') === `#${current}`) {
-                link.classList.add('active');
-                // Scroll tab bar to show active item
-                const tabsContainer = document.getElementById('catTabs');
-                tabsContainer.scrollTo({
-                    left: link.offsetLeft - 20,
-                    behavior: 'smooth'
-                });
-            }
-        });
-    });
-
-    // --- Cart Logic ---
-    function addItem(id, name, price, prepTime, gstRate) {
-        const groups = ITEM_MODIFIERS[String(id)];
-        if (groups && groups.length > 0 && !cart[id]) {
-            openModifierModal(id, name, price, prepTime, gstRate, groups);
-        } else {
-            addToCart(id, name, price, prepTime, gstRate, [], 0);
-        }
-    }
-
-    function addToCart(id, name, price, prepTime, gstRate, modifiers, modifierPrice) {
-        if (!cart[id]) {
-            cart[id] = { id, name, price, qty: 1, prepTime: prepTime || 15, gstRate: Number(gstRate) || 0, modifiers: modifiers || [], modifierPrice: modifierPrice || 0 };
-            document.getElementById(`addBtn-${id}`).classList.add('hidden');
-            document.getElementById(`qtyCtrl-${id}`).classList.add('active');
-        } else {
-            cart[id].qty++;
-        }
-        updateItemUI(id);
-        updateCartBar();
-    }
-
-    // --- Modifier Modal ---
-    let pendingModifierItem = null;
-    let selectedModifiers = {};
-
-    function openModifierModal(id, name, price, prepTime, gstRate, groups) {
-        pendingModifierItem = { id, name, price, prepTime, gstRate };
-        selectedModifiers = {};
-        document.getElementById('modifierItemName').textContent = name;
-        const container = document.getElementById('modifierGroupsContainer');
-        container.innerHTML = '';
-        // Built with createElement/textContent, not innerHTML + template
-        // strings -- group/modifier names are staff-entered (Setup >
-        // Modifiers), but this page is public and unauthenticated, so a
-        // name containing markup must never be interpreted as HTML here.
-        // The old onclick="...'${m.name}'..." string-built handler was
-        // worse: it only escaped single quotes, not the double quotes the
-        // attribute itself was delimited by, so a name with a `"` in it
-        // could break out of the attribute entirely.
-        groups.forEach(group => {
-            const section = document.createElement('div');
-            section.className = 'modifier-group-section';
-
-            const header = document.createElement('div');
-            header.className = 'modifier-group-header';
-            const groupNameEl = document.createElement('strong');
-            groupNameEl.textContent = group.name;
-            header.appendChild(groupNameEl);
-
-            const badge = document.createElement('span');
-            badge.className = 'modifier-req-badge';
-            if (group.is_required) {
-                badge.style.background = '#fef3c7';
-                badge.style.color = '#92400e';
-                badge.textContent = `Required · pick ${group.max_select}`;
-            } else {
-                badge.textContent = `Optional · max ${group.max_select}`;
-            }
-            header.appendChild(badge);
-            section.appendChild(header);
-
-            const optionsWrap = document.createElement('div');
-            optionsWrap.className = 'modifier-options';
-
-            group.modifiers.forEach(m => {
-                const label = document.createElement('label');
-                label.className = 'modifier-option';
-                label.onclick = () => toggleModifier(group.id, m.id, m.name, m.price, group.max_select);
-
-                const check = document.createElement('div');
-                check.className = 'modifier-check';
-                check.id = `modcheck-${m.id}`;
-                label.appendChild(check);
-
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = m.name;
-                label.appendChild(nameSpan);
-
-                const priceSpan = document.createElement('span');
-                if (m.price > 0) {
-                    priceSpan.className = 'modifier-price ms-auto';
-                    priceSpan.textContent = `+₹${m.price}`;
-                } else {
-                    priceSpan.className = 'ms-auto';
-                }
-                label.appendChild(priceSpan);
-
-                optionsWrap.appendChild(label);
-            });
-
-            section.appendChild(optionsWrap);
-            container.appendChild(section);
-        });
-        document.getElementById('modTotalAmt').textContent = price.toFixed(2);
-        document.getElementById('modifierOverlay').classList.add('active');
-        document.getElementById('modifierModal').classList.add('active');
-    }
-
-    function toggleModifier(groupId, modId, modName, modPrice, maxSelect) {
-        if (!selectedModifiers[groupId]) selectedModifiers[groupId] = [];
-        const idx = selectedModifiers[groupId].findIndex(m => m.id === modId);
-        if (idx >= 0) {
-            selectedModifiers[groupId].splice(idx, 1);
-            document.getElementById(`modcheck-${modId}`).classList.remove('checked');
-        } else {
-            if (selectedModifiers[groupId].length >= maxSelect) {
-                const removed = selectedModifiers[groupId].shift();
-                document.getElementById(`modcheck-${removed.id}`).classList.remove('checked');
-            }
-            selectedModifiers[groupId].push({ id: modId, name: modName, price: modPrice });
-            document.getElementById(`modcheck-${modId}`).classList.add('checked');
-        }
-        let extra = 0;
-        for (let gId in selectedModifiers) selectedModifiers[gId].forEach(m => extra += m.price);
-        document.getElementById('modTotalAmt').textContent = (pendingModifierItem.price + extra).toFixed(2);
-    }
-
-    function closeModifierModal() {
-        document.getElementById('modifierOverlay').classList.remove('active');
-        document.getElementById('modifierModal').classList.remove('active');
-        pendingModifierItem = null;
-        selectedModifiers = {};
-    }
-
-    function confirmModifiers() {
-        const groups = ITEM_MODIFIERS[String(pendingModifierItem.id)] || [];
-        for (const group of groups) {
-            if (group.is_required && (!selectedModifiers[group.id] || selectedModifiers[group.id].length === 0)) {
-                alert(`Please select an option for "${group.name}"`);
-                return;
-            }
-        }
-        let allModifiers = [], modifierPrice = 0;
-        for (let gId in selectedModifiers) {
-            selectedModifiers[gId].forEach(m => { allModifiers.push(m); modifierPrice += m.price; });
-        }
-        addToCart(pendingModifierItem.id, pendingModifierItem.name, pendingModifierItem.price,
-                  pendingModifierItem.prepTime, pendingModifierItem.gstRate, allModifiers, modifierPrice);
-        closeModifierModal();
-    }
-
-    function increaseItem(id) {
-        if(cart[id]) {
-            cart[id].qty++;
-            updateItemUI(id);
-            updateCartBar();
-            renderCartModal(); // if open
-        }
-    }
-
-    function decreaseItem(id) {
-        if(cart[id]) {
-            cart[id].qty--;
-            if(cart[id].qty <= 0) {
-                delete cart[id];
-                document.getElementById(`addBtn-${id}`).classList.remove('hidden');
-                document.getElementById(`qtyCtrl-${id}`).classList.remove('active');
-            } else {
-                updateItemUI(id);
-            }
-            updateCartBar();
-            renderCartModal(); // if open
-        }
-    }
-
-    function updateItemUI(id) {
-        if(cart[id]) {
-            const qtyEl = document.getElementById(`qty-${id}`);
-            if(qtyEl) qtyEl.innerText = cart[id].qty;
-        }
-    }
-
-    function updateCartBar() {
-        let totalItems = 0;
-        let totalPrice = 0;
-        for(let key in cart) {
-            totalItems += cart[key].qty;
-            totalPrice += cart[key].qty * (cart[key].price + (cart[key].modifierPrice || 0));
-        }
-        
-        document.getElementById('totalItems').innerText = totalItems;
-        document.getElementById('totalPrice').innerText = totalPrice.toFixed(2);
-        
-        const bar = document.getElementById('cartBar');
-        if(totalItems > 0) {
-            bar.classList.add('visible');
-            updateETA();
-        } else {
-            bar.classList.remove('visible');
-            closeCart();
-        }
-        repositionStatusPill();
-    }
-
-    function updateETA() {
-        // ETA = max prep time among all cart items (kitchen works in parallel)
-        let maxPrep = 0;
-        for(let key in cart) {
-            const pt = cart[key].prepTime || 15;
-            if(pt > maxPrep) maxPrep = pt;
-        }
-        const etaEl = document.getElementById('etaText');
-        if(etaEl) {
-            const low = Math.max(5, maxPrep - 3);
-            const high = maxPrep + 5;
-            etaEl.innerText = `${low}–${high} mins`;
-        }
-    }
-
-    // --- Modal Logic ---
-    function openCart() {
-        renderCartModal();
-        document.getElementById('cartOverlay').classList.add('active');
-        document.getElementById('cartModal').classList.add('active');
-    }
-
-    function closeCart() {
-        document.getElementById('cartOverlay').classList.remove('active');
-        document.getElementById('cartModal').classList.remove('active');
-    }
-
-    function renderCartModal() {
-        const container = document.getElementById('cartItemsContainer');
-        container.innerHTML = '';
-
-        // Already-placed items from this table's current order, shown
-        // read-only above the items being newly added -- same idea as
-        // Swiggy/Zomato showing your earlier round when you add more to an
-        // in-progress order, so a guest isn't left guessing what they
-        // already ordered before deciding what else to add.
-        if (_lastKnownOrderItems.length > 0) {
-            const already = document.createElement('div');
-            already.innerHTML = `
-                <div class="cart-items-text" style="margin-bottom:0.5rem;">Already ordered</div>
-                ${_lastKnownOrderItems.map(i => `
-                    <div class="status-sheet-item-row">
-                        <span class="name">${escapeHtml(i.quantity)}x ${escapeHtml(i.name)}</span>
-                        <span>${escapeHtml(i.status)}</span>
-                    </div>
-                `).join('')}
-            `;
-            container.appendChild(already);
-
-            if (Object.keys(cart).length > 0) {
-                const addingNow = document.createElement('div');
-                addingNow.className = 'cart-items-text';
-                addingNow.style.cssText = 'margin:1.1rem 0 0.5rem;';
-                addingNow.textContent = 'Adding now';
-                container.appendChild(addingNow);
-            }
-        }
-
-        const keys = Object.keys(cart);
-        const lines = keys.map(key => RasovaCartTax.line(
-            cart[key].qty * (cart[key].price + (cart[key].modifierPrice || 0)), DISH_TAX, cart[key].id, cart[key].gstRate));
-        const applied = RasovaOffers.onCart(PAGE_OFFERS, lines,
-            keys.map(key => ({ dishId: cart[key].id, quantity: cart[key].qty })));
-
-        keys.forEach((key, idx) => {
-            const item = cart[key];
-            const itemTotal = item.qty * (item.price + (item.modifierPrice || 0));
-
-            const modNames = item.modifiers && item.modifiers.length > 0
-                ? `<div class="cart-modifier-names">${item.modifiers.map(m => escapeHtml(m.name)).join(', ')}</div>` : '';
-            const row = document.createElement('div');
-            row.className = 'cart-item-row';
-            row.innerHTML = `
-                <div>
-                    <div class="cart-item-name">${escapeHtml(item.name)}</div>
-                    ${modNames}
-                    ${RasovaOffers.note(applied[idx])}
-                    <div class="qty-controls active" style="padding: 0.1rem 0.4rem;">
-                        <button class="qty-btn" onclick="decreaseItem('${item.id}')">−</button>
-                        <span class="qty-num">${item.qty}</span>
-                        <button class="qty-btn" onclick="increaseItem('${item.id}')">+</button>
-                    </div>
-                </div>
-                <div class="cart-item-price">₹${itemTotal.toFixed(2)}</div>
-            `;
-            container.appendChild(row);
-        });
-
-        // The same rules as the bill (static/js/cart_tax.js): each dish at
-        // its own rate, GST inside the price or on top, none at all on the
-        // composition scheme or without a GSTIN.
-        const t = RasovaCartTax.totals(lines, {
-            inclusive: {{ outlet.gst_inclusive|yesno:"true,false" }},
-            vatInclusive: {{ outlet.vat_inclusive|yesno:"true,false" }},
-            composition: {{ outlet.is_composition_scheme|yesno:"true,false" }},
-            gstRegistered: {{ outlet.is_gst_registered|yesno:"true,false" }},
-        });
-
-        document.getElementById('billSubtotal').innerText = t.subtotal.toFixed(2);
-        document.getElementById('billOffers').innerText = t.offers.toFixed(2);
-        document.getElementById('billOffersRow').style.display = t.offers > 0 ? '' : 'none';
-        const gstEl = document.getElementById('billGst');
-        if (gstEl) gstEl.innerText = t.gst.toFixed(2);
-        document.getElementById('billVat').innerText = t.vat.toFixed(2);
-        document.getElementById('billVatRow').style.display = t.vat > 0 ? '' : 'none';
-        document.getElementById('billTotal').innerText = t.total.toFixed(2);
-    }
-
-    // --- Order tracking (lets a guest add a SECOND round of items to the
-    // SAME table bill instead of it silently failing, and shows live status).
-    // Scoped to this table's QR token so a different table's browser session
-    // never sees or reuses this table's order.
-    // The token this page was reached with -- a Table's qr_token if a table
-    // was scanned, otherwise the Outlet's counter/walk-in token. Never
-    // table.qr_token alone: that's empty for a tableless counter order and
-    // used to block submitOrder() outright ("No table detected").
-    const _tableToken = "{{ qr_token|default:'' }}";
-    const _orderStorageKey = _tableToken ? `rasova_order_${_tableToken}` : null;
-
-    function getStoredOrderId() {
-        if (!_orderStorageKey) return null;
-        return localStorage.getItem(_orderStorageKey);
-    }
-    function setStoredOrderId(id) {
-        if (_orderStorageKey) localStorage.setItem(_orderStorageKey, id);
-    }
-    function clearStoredOrderId() {
-        if (_orderStorageKey) localStorage.removeItem(_orderStorageKey);
-    }
-
-    // A second, genuinely separate localStorage key for the status banner --
-    // the merge key above is deliberately cleared as soon as an order is
-    // billed (can_add_more goes false), so a NEW cart submission starts a
-    // fresh order instead of merging into an already-paid one. But payment
-    // is still well before pickup for a token order, so a guest who
-    // refreshes the tab (or reopens it) between paying and collecting used
-    // to lose the "Ready for pickup" banner entirely, since it was only ever
-    // re-derived from the already-cleared merge key on page load. This key
-    // tracks "which order to show status for" on its own lifecycle instead:
-    // set once at order creation, and only cleared once pollOrderStatus()
-    // itself decides the order is truly finished (or gone) -- so it survives
-    // any number of refreshes across the whole payment-to-pickup wait.
-    const _statusStorageKey = _tableToken ? `rasova_order_status_${_tableToken}` : null;
-    function getStatusOrderId() {
-        if (!_statusStorageKey) return null;
-        return localStorage.getItem(_statusStorageKey);
-    }
-    function setStatusOrderId(id) {
-        if (_statusStorageKey) localStorage.setItem(_statusStorageKey, id);
-    }
-    function clearStatusOrderId() {
-        if (_statusStorageKey) localStorage.removeItem(_statusStorageKey);
-    }
-
-    let _pollingToken = null;  // a signed order-status token now, not a raw order id
-
-    // --- Submit Order ---
-    function submitOrder() {
-        const tableId = "{{ table.id|default:'' }}";
-        const tableToken = _tableToken;
-
-        if(!tableToken && !tableId) {
-            alert("No table detected. Please scan a valid table QR.");
-            return;
-        }
-
-        const btn = document.getElementById('placeOrderBtn');
-        btn.disabled = true;
-        btn.innerHTML = 'PROCESSING... <span class="spinner-border spinner-border-sm ms-2"></span>';
-
-        const cartArray = Object.values(cart).map(i => ({
-            id: i.id,
-            quantity: i.qty,
-            price: i.price,
-            modifiers: (i.modifiers || []).map(m => m.id)
-        }));
-
-        const instructions = document.getElementById('specialInstructions').value;
-        const existingOrderId = getStoredOrderId();
-
-        const payload = {
-            cart: cartArray,
-            table_id: tableId,
-            table_token: tableToken,
-            source: "web",
-            notes: instructions
-        };
-        // If we already have an order for this table (an earlier round this
-        // visit), send it back so the server MERGES these items into the same
-        // bill instead of creating a second, separate order for the table.
-        if (existingOrderId) payload.order_id = parseInt(existingOrderId, 10);
-
-        fetch("{% url 'create-order' %}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRFToken": "{{ csrf_token }}"
-            },
-            body: JSON.stringify(payload)
-        })
-        .then(r => r.json().then(data => ({ ok: r.ok, data })))
-        .then(({ ok, data }) => {
-            if(ok && data.success) {
-                setStoredOrderId(data.order_id);
-                setStatusOrderId(data.status_token);
-                btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i> ORDER SENT!';
-                btn.style.background = '#16a34a';
-                setTimeout(() => location.reload(), 1200);
-            } else if (!ok && (data.error || '').includes('does not belong')) {
-                // Very rare: stale/mismatched stored id — drop it and retry once.
-                clearStoredOrderId();
-                alert("Starting a new order for this table — please tap Place Order again.");
-                btn.disabled = false;
-                btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
-            } else if (!ok && (data.error || '').includes('already been billed')) {
-                clearStoredOrderId();
-                alert("Your table's bill is already being prepared — please ask a waiter for more items.");
-                btn.disabled = false;
-                btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
-            } else {
-                alert("Error: " + (data.error || "Could not place order."));
-                btn.disabled = false;
-                btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert("Network error. Please try again.");
-            btn.disabled = false;
-            btn.innerHTML = 'PLACE ORDER <i class="bi bi-arrow-right"></i>';
-        });
-    }
-
-    // --- Order status banner (poll while this table has an active order) ---
-    let _statusPollTimer = null;
-
-    // Items already placed on this table's current order, from the last
-    // order-status poll -- lets the cart show them (like Swiggy/Zomato do)
-    // when a guest opens the cart to add a second round, instead of only
-    // ever showing what's newly being added with no memory of what's
-    // already on its way to the kitchen.
-    let _lastKnownOrderItems = [];
-
-    function openStatusSheet() {
-        document.getElementById('statusSheetOverlay').classList.add('active');
-        document.getElementById('statusSheet').classList.add('active');
-    }
-    function closeStatusSheet() {
-        document.getElementById('statusSheetOverlay').classList.remove('active');
-        document.getElementById('statusSheet').classList.remove('active');
-    }
-
-    // placed/confirmed/waiting_confirmation all collapse into the same
-    // "Received" tier of the timeline -- the guest doesn't need to
-    // distinguish "the kitchen hasn't looked at it yet" from "review
-    // pending", just that it hasn't started cooking yet.
-    const STATUS_STAGE_INDEX = {
-        placed: 0, confirmed: 0, waiting_confirmation: 0,
-        preparing: 1, ready: 2, served: 3,
-    };
-    const STATUS_PILL_SHORT_LABEL = {
-        placed: 'Received', confirmed: 'Received', waiting_confirmation: 'Received',
-        preparing: 'Preparing', ready: 'Ready!', served: 'Served',
-    };
-
-    // The pill can be visible at the same time as the cart bar (a second
-    // round added while the first is still cooking) -- shift it up above
-    // the cart bar instead of letting them overlap.
-    function repositionStatusPill() {
-        const pill = document.getElementById('orderStatusPill');
-        const cartBarVisible = document.getElementById('cartBar').classList.contains('visible');
-        pill.classList.toggle('above-cart-bar', cartBarVisible);
-    }
-
-    function renderOrderStatus(data) {
-        const pill = document.getElementById('orderStatusPill');
-        const dot = document.getElementById('orderStatusDot');
-        const number = document.getElementById('orderStatusNumber');
-        const pillLabel = document.getElementById('orderStatusPillLabel');
-        const sheetLabel = document.getElementById('statusSheetLabel');
-        const sheetTable = document.getElementById('statusSheetTable');
-        const items = document.getElementById('statusSheetItems');
-
-        pill.classList.remove('hidden');
-        repositionStatusPill();
-
-        // token_display only exists for QSR/franchise/cafe orders -- a
-        // fine-dining table order never gets a TokenOrder, so this stays
-        // null there and the badge never shows, with no tenant-type check
-        // needed on the frontend at all.
-        if (data.token_display) {
-            number.textContent = data.token_display;
-            number.classList.remove('hidden');
-        } else {
-            number.classList.add('hidden');
-        }
-
-        dot.classList.toggle('done', data.stage === 'ready' || data.stage === 'served' || data.token_ready);
-
-        // QSR token ready-for-pickup overrides the generic per-item label --
-        // matches the wording on the public "Now Serving" display board.
-        pillLabel.textContent = data.token_ready ? 'Ready for pickup!' : (STATUS_PILL_SHORT_LABEL[data.stage] || 'Order status');
-        sheetLabel.textContent = data.token_ready ? 'Ready for pickup!' : data.label;
-        sheetTable.textContent = data.table;
-
-        const currentIndex = data.token_ready ? 2 : (STATUS_STAGE_INDEX[data.stage] ?? 0);
-        document.querySelectorAll('#statusStages .status-stage').forEach(el => {
-            const idx = parseInt(el.dataset.stage, 10);
-            el.classList.toggle('done', idx < currentIndex);
-            el.classList.toggle('active', idx === currentIndex);
-        });
-
-        _lastKnownOrderItems = data.items || [];
-
-        items.innerHTML = _lastKnownOrderItems.map(i => `
-            <div class="status-sheet-item-row">
-                <span class="name">${escapeHtml(i.quantity)}x ${escapeHtml(i.name)}</span>
-                <span>${escapeHtml(i.status)}</span>
-            </div>
-        `).join('') || '<div class="status-sheet-item-row"><span>No items yet</span></div>';
-    }
-
-    // Once polling ends (order gone, or truly done), the status pill used
-    // to just freeze showing whatever it last rendered ("Ready for pickup!",
-    // "Enjoy your meal!") forever in this tab -- a guest who left the tab
-    // open past actual completion would see stale info indefinitely. This
-    // resets the visible UI at the same transitions that already correctly
-    // stop polling; it's not a new localStorage key, and it must never call
-    // localStorage.clear() as a shortcut -- that would also wipe the
-    // unrelated "dark" theme preference.
-    function resetOrderStatusUI() {
-        const pill = document.getElementById('orderStatusPill');
-        if (pill) pill.classList.add('hidden');
-        closeStatusSheet();
-        _lastKnownOrderItems = [];
-    }
-
-    async function pollOrderStatus() {
-        if (!_pollingToken) return;
-        try {
-            const res = await fetch(`/menu/order-status/${_pollingToken}/`);
-            if (!res.ok) {
-                _pollingToken = null;
-                clearStoredOrderId();
-                clearStatusOrderId();
-                resetOrderStatusUI();
-                if (_statusPollTimer) clearInterval(_statusPollTimer);
-                return;
-            } // order gone/invalid
-            const data = await res.json();
-            renderOrderStatus(data);
-            // Once the order is no longer open/billing (paid, closed, cancelled),
-            // stop treating it as "the active order for this table" — the next
-            // Place Order press should start a fresh one, not try to merge in.
-            // Polling itself keeps going for QSR orders (token_display set)
-            // until the token is actually collected, or the order was
-            // cancelled — payment and kitchen prep both happen after
-            // can_add_more already flips false.
-            if (!data.can_add_more) clearStoredOrderId();
-            const done = data.order_status === 'cancelled'
-                || (!data.token_display && !data.can_add_more)
-                || (data.token_display && data.token_collected);
-            if (done) {
-                _pollingToken = null;
-                clearStatusOrderId();
-                resetOrderStatusUI();
-                if (_statusPollTimer) clearInterval(_statusPollTimer);
-            }
-        } catch (e) { /* network blip — try again next tick */ }
-    }
-
-    function startOrderStatusPolling() {
-        // getStatusOrderId(), not getStoredOrderId() -- the merge key is
-        // already gone by the time a token order reaches "ready for
-        // pickup", but this key isn't, so a refresh mid-wait still resumes
-        // the banner instead of showing nothing until pickup actually happens.
-        _pollingToken = getStatusOrderId();
-        if (!_pollingToken) return;
-        pollOrderStatus();
-        _statusPollTimer = setInterval(pollOrderStatus, 6000);
-    }
-    document.addEventListener('DOMContentLoaded', startOrderStatusPolling);
-
-    // --- Utility Features ---
-    /* THEME MANAGEMENT */
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateTheme() {
-        let icon = document.getElementById("themeIcon");
-        if (isDark) {
-            document.body.classList.add("dark");
-            if (icon) { icon.classList.remove("bi-moon"); icon.classList.add("bi-sun"); }
-        } else {
-            document.body.classList.remove("dark");
-            if (icon) { icon.classList.remove("bi-sun"); icon.classList.add("bi-moon"); }
-        }
-    }
-    updateTheme();
-    function toggleDark() {
-        isDark = !isDark;
-        localStorage.setItem("dark", isDark);
-        updateTheme();
-    }
-
-    function clearCart() {
-        if(confirm("Are you sure you want to clear your cart?")) {
-            cart = {};
-            document.querySelectorAll('.add-btn').forEach(btn => btn.classList.remove('hidden'));
-            document.querySelectorAll('.qty-controls').forEach(ctrl => ctrl.classList.remove('active'));
-            updateCartBar();
-            closeCart();
-        }
-    }
-
-    let miniToastTimer = null;
-    function showMiniToast(msg, isError) {
-        const toast = document.getElementById("miniToast");
-        clearTimeout(miniToastTimer);
-        toast.innerHTML = `<i class="bi ${isError ? 'bi-exclamation-circle' : 'bi-check-circle'}"></i> ${msg}`;
-        toast.classList.toggle("error", !!isError);
-        toast.classList.add("show");
-        miniToastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
-    }
-
-    function setWaiterBtnState(btn, label, opts = {}) {
-        document.getElementById("callWaiterLabel").textContent = label;
-        btn.classList.toggle("notified", !!opts.notified);
-        btn.querySelector("i").className = opts.icon || "bi bi-bell";
-    }
-
-    function callWaiter() {
-        const tableToken = "{{ table.qr_token|default:'' }}";
-        if(!tableToken) return;
-
-        const btn = document.getElementById("callWaiterBtn");
-        btn.disabled = true;
-        btn.classList.add("ringing");
-        setWaiterBtnState(btn, "Calling…");
-
-        fetch(`/menu/call-waiter/${tableToken}/`, {
-            method: "POST",
-            headers: {
-                "X-CSRFToken": "{{ csrf_token }}"
-            }
-        })
-        .then(r => r.json())
-        .then(data => {
-            btn.classList.remove("ringing");
-            if(data.success) {
-                setWaiterBtnState(btn, "Notified", { notified: true, icon: "bi bi-check-circle-fill" });
-                showMiniToast("A waiter has been notified");
-                setTimeout(() => {
-                    btn.disabled = false;
-                    setWaiterBtnState(btn, "Call Waiter");
-                }, 60000);
-            } else {
-                setWaiterBtnState(btn, "Call Waiter");
-                showMiniToast(data.error || "Could not call waiter", true);
-                btn.disabled = false;
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            btn.classList.remove("ringing");
-            setWaiterBtnState(btn, "Call Waiter");
-            showMiniToast("Network error, please try again", true);
-            btn.disabled = false;
-        });
-    }
-    function fixStickyNav() {
-    const header = document.querySelector('.menu-header');
-    const stickyNav = document.querySelector('.category-tabs');
-
-    if (header && stickyNav) {
-        const headerHeight = header.getBoundingClientRect().height;
-        const navHeight = stickyNav.getBoundingClientRect().height;
-
-        // Position nav just below header
-        stickyNav.style.top = headerHeight + 'px';
-
-        // Offset anchor-scroll targets (tapping a category tab) so a section's
-        // title doesn't land hidden under the two sticky bars.
-        //
-        // Deliberately NOT pushing .search-container down with a matching
-        // marginTop -- .menu-header and .category-tabs are both
-        // position:sticky, which already reserves their real height in the
-        // normal page flow. Adding that height again as margin on top of it
-        // double-counted the header, leaving a blank gap at the top of the
-        // page equal to header+nav height. That marginTop push (removed
-        // here) was written for a different, position:fixed header on
-        // another page -- this function used to fall back to '.pos-header'/
-        // '.cat-nav-bar' selectors that don't exist anywhere in this
-        // template, confirming it was copied over rather than written for
-        // this page's actual (sticky) layout.
-        document.querySelectorAll('.category-section').forEach(section => {
-            section.style.scrollMarginTop = (headerHeight + navHeight + 16) + 'px';
-        });
-    }
-}
-fixStickyNav();
-window.addEventListener('resize', fixStickyNav);
-</script>
-</body>
-</html>
+<script type="module" src="{% static 'js/qr_menu/index.js' %}"></script>
+{% endblock %}

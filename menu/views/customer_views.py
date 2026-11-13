@@ -12,6 +12,62 @@ from orders.models import Table
 from waiter.models import WaiterCall
 from offers.services import page_offers
 
+
+def qr_menu_page_data(request, outlet, table, qr_token):
+    """What static/js/qr_menu/index.js needs, rendered once by
+    digital_menu.html as {{ page_data|json_script:"page-data" }}: where it
+    sends and asks, the outlet's tax rules for the cart's total (the same
+    ones the bill uses), and the token this page was reached with (a
+    table's, or the outlet's counter token: never table.qr_token alone, or a
+    counter order would have nothing to identify itself with)."""
+    from django.middleware.csrf import get_token
+    from django.urls import reverse
+    return {
+        "urls": {
+            "create_order": reverse("create-order"),
+            # The status page's address with TOKEN where the signed token goes.
+            "order_status": reverse("order_status", args=["TOKEN"]),
+            "call_waiter": reverse("call_waiter", args=[table.qr_token]) if table else "",
+        },
+        # Also sets the CSRF cookie: a guest has no session.
+        "csrf": get_token(request),
+        "table_id": table.id if table else "",
+        "table_token": qr_token,
+        "poll_ms": 6000,
+        "outlet": {
+            "inclusive": bool(outlet.gst_inclusive),
+            "vatInclusive": bool(outlet.vat_inclusive),
+            "composition": bool(outlet.is_composition_scheme),
+            "gstRegistered": bool(outlet.is_gst_registered),
+        },
+    }
+
+
+def _has_dishes(categories):
+    """Whether the menu has a dish a guest can order: without one the page
+    says the menu is being set up, instead of "the end of the menu"."""
+    return any(item.is_available for category in categories for item in category.items.all())
+
+
+def qr_menu_structured_data(request, tenant, outlet):
+    """The schema.org Restaurant for search engines and link previews, as
+    safe JSON text: < > & are escaped, so a name cannot end the script tag."""
+    import json
+    from django.utils.safestring import mark_safe
+    here = request.build_absolute_uri()
+    logo = (f"{request.scheme}://{request.get_host()}{tenant.logo.url}" if tenant.logo else "")
+    data = {
+        "@context": "https://schema.org", "@type": "Restaurant", "name": tenant.name, "image": logo,
+        "@id": here, "url": here, "telephone": getattr(outlet, "phone", "") or "",
+        "address": {"@type": "PostalAddress", "streetAddress": getattr(outlet, "address", "") or "",
+                    "addressLocality": getattr(outlet, "city", "") or "", "addressCountry": "IN"},
+        "menu": here, "servesCuisine": "Multi-cuisine", "priceRange": "₹₹",
+    }
+    text = json.dumps(data, ensure_ascii=False)
+    for raw, safe in (("<", "\\u003C"), (">", "\\u003E"), ("&", "\\u0026")):
+        text = text.replace(raw, safe)
+    return mark_safe(text)
+
 logger = logging.getLogger("pos.menu")
 
 
@@ -102,11 +158,15 @@ def menu_view(request, qr_token):
         "dish_tax":            _dish_tax(categories, tenant),
         "page_offers":         page_offers(tenant, outlet),
         # The token this page was reached with -- a Table's if one matched,
-        # otherwise the Outlet's counter token. submitOrder() sends this
-        # straight back as table_token; it must never fall back to
-        # table.qr_token alone, or a tableless counter order has nothing to
-        # identify itself with and the frontend blocks submission outright.
+        # otherwise the Outlet's counter token. The page sends it straight
+        # back as table_token; it must never fall back to table.qr_token
+        # alone, or a tableless counter order has nothing to identify itself
+        # with.
         "qr_token":            str(table.qr_token) if table else str(outlet.qr_token),
+        "page_data":           qr_menu_page_data(request, outlet, table,
+                                                 str(table.qr_token) if table else str(outlet.qr_token)),
+        "structured_data":     qr_menu_structured_data(request, tenant, outlet),
+        "has_dishes":          _has_dishes(categories),
     })
 
 
@@ -287,4 +347,8 @@ def digital_menu(request):
         "dish_tax": _dish_tax(categories, tenant),
         "page_offers": page_offers(tenant, outlet),
         "qr_token": str(table.qr_token) if table else str(outlet.qr_token),
+        "page_data": qr_menu_page_data(request, outlet, table,
+                                       str(table.qr_token) if table else str(outlet.qr_token)),
+        "structured_data": qr_menu_structured_data(request, tenant, outlet),
+        "has_dishes": _has_dishes(categories),
     })

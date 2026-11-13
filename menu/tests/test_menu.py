@@ -372,14 +372,15 @@ class DigitalMenuTableTokenTest(TestCase):
 
 class DigitalMenuOrderStatusUITest(TestCase):
     """
-    The order-status UI used to be a full-width banner that sat right under
-    the header and pushed the whole menu down for as long as a guest had an
-    active order. Replaced with a small floating pill (same idea as the
-    existing sticky cart bar) that opens a slide-up status sheet instead.
+    The order-status UI is a small floating pill that opens a slide-up
+    status sheet (it used to be a full-width banner under the header).
 
-    These are template-rendering checks -- they confirm the right markup
-    and wiring are present in the response HTML, not actual browser-executed
-    behaviour (no JS/browser test runner exists in this project).
+    The markup is checked here. What the page does with it (every backend
+    stage on the timeline, the pill moving above the cart bar, the cart
+    showing what is already ordered, the status reset when an order is gone)
+    is tested on the modules since 13 Nov 2026, when the page's inline script
+    became static/js/qr_menu/: static/js/tests/qr_menu.test.mjs, and in a
+    browser, menu/tests/test_qr_menu_browser.py.
     """
 
     def setUp(self):
@@ -398,100 +399,25 @@ class DigitalMenuOrderStatusUITest(TestCase):
         html = self._get_html()
         self.assertNotIn("order-status-banner", html)
         self.assertNotIn("orderStatusBanner", html)
-        self.assertNotIn("toggleOrderStatusDetail", html)
 
     def test_pill_and_sheet_markup_present(self):
         html = self._get_html()
         self.assertIn('id="orderStatusPill"', html)
-        self.assertIn('onclick="openStatusSheet()"', html)
+        self.assertIn('data-action="status.open"', html)
         self.assertIn('id="statusSheetOverlay"', html)
         self.assertIn('id="statusSheet"', html)
         # Received / Preparing / Ready / Served
         self.assertEqual(html.count('class="status-stage"'), 4)
 
     def test_pill_starts_hidden(self):
-        """No order placed yet for this table -- the pill must not show."""
+        """No order placed yet for this table: the pill must not show."""
+        self.assertIn("order-status-pill hidden", self._get_html())
+
+    def test_the_page_has_no_inline_code_left(self):
         html = self._get_html()
-        self.assertIn('order-status-pill hidden', html)
-
-    def test_cart_bar_hooks_into_pill_repositioning(self):
-        """Without this wiring, a second round added mid-cook would leave
-        the pill sitting underneath the cart bar instead of above it."""
-        html = self._get_html()
-        self.assertIn("repositionStatusPill();", html)
-        self.assertIn("function repositionStatusPill", html)
-
-    def test_stage_index_covers_every_real_backend_stage(self):
-        """menu/views/customer_views.py::order_status can return stage values
-        placed/confirmed/waiting_confirmation/preparing/ready/served -- every
-        one of them must map to a timeline position, or a guest could see a
-        stage with no dot lit up at all."""
-        html = self._get_html()
-        for stage in ("placed", "confirmed", "waiting_confirmation", "preparing", "ready", "served"):
-            self.assertIn(f"{stage}:", html)
-
-    def test_no_double_counted_gap_above_search_bar(self):
-        """fixStickyNav() used to push .search-container down by ANOTHER
-        full header+nav height on top of the space .menu-header and
-        .category-tabs (both position:sticky, already in normal flow)
-        naturally take up -- doubling the header's height as blank space at
-        the top of the page. That marginTop push must be gone; the harmless
-        stickyNav.style.top positioning and scrollMarginTop offset must stay."""
-        html = self._get_html()
-        self.assertNotIn("firstContent.style.marginTop", html)
-        self.assertIn("stickyNav.style.top = headerHeight", html)
-        self.assertIn("section.style.scrollMarginTop", html)
-
-
-class DigitalMenuReorderCartTest(TestCase):
-    """
-    The cart used to only ever show items the guest was newly adding --
-    opening it to add a second round while a first round was already
-    cooking gave no reminder of what was already ordered, unlike the
-    Swiggy/Zomato pattern of showing an earlier round above new additions.
-    renderCartModal() now prepends a read-only "Already ordered" section
-    sourced from the same order-status data already being polled.
-    """
-
-    def setUp(self):
-        from orders.models import Table
-
-        self.tenant = Tenant.objects.create(name="Reorder Cart Tenant", tenant_type="fine_dining")
-        self.outlet = Outlet.objects.create(tenant=self.tenant, name="Main")
-        self.table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
-
-    def _get_html(self):
-        resp = self.client.get(reverse("digital_menu"), {"table_token": str(self.table.qr_token)})
-        self.assertEqual(resp.status_code, 200)
-        return resp.content.decode()
-
-    def test_last_known_order_items_is_cached_from_polling(self):
-        html = self._get_html()
-        self.assertIn("let _lastKnownOrderItems = [];", html)
-        self.assertIn("_lastKnownOrderItems = data.items || [];", html)
-
-    def test_cart_modal_renders_already_ordered_section(self):
-        html = self._get_html()
-        self.assertIn("Already ordered", html)
-        self.assertIn("_lastKnownOrderItems.length > 0", html)
-        self.assertIn("_lastKnownOrderItems.map(i =>", html)
-
-    def test_adding_now_label_only_shown_alongside_new_cart_items(self):
-        """If there's nothing new being added yet, showing an "Adding now"
-        header above an empty list would be confusing -- it must be gated
-        on the local cart actually having items."""
-        html = self._get_html()
-        self.assertIn("Object.keys(cart).length > 0", html)
-        self.assertIn("Adding now", html)
-
-    def test_reset_clears_the_cached_items(self):
-        """Once an order is truly finished, its items shouldn't keep
-        appearing as "already ordered" reference for whatever the guest
-        orders next."""
-        html = self._get_html()
-        reset_fn = html[html.index("function resetOrderStatusUI"):]
-        reset_fn = reset_fn[:reset_fn.index("\n    }")]
-        self.assertIn("_lastKnownOrderItems = [];", reset_fn)
+        self.assertNotIn("onclick=", html)
+        self.assertNotIn("<style>", html)
+        self.assertIn("js/qr_menu/index.js", html)
 
 
 class CounterMenuQRTest(TestCase):
