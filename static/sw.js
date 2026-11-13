@@ -7,7 +7,7 @@
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
-const CACHE_VERSION = 'rasova-v5';
+const CACHE_VERSION = 'rasova-v6';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
 
@@ -33,6 +33,10 @@ const OFFLINE_PAGES = [
     '/billing/',
     '/kitchen/',
 ];
+
+/* Django's hashed static names: name.<12 hex digits>.ext. A file under such
+   a name never changes, so a kept copy is always right. */
+const HASHED_NAME = /\.[0-9a-f]{12}\.[a-z0-9]+$/i;
 
 /* A pre-warmed page is only useful offline if what it loads is cached too.
    Its code is in files now (static/js/billing/, static/js/core/), under
@@ -151,7 +155,30 @@ self.addEventListener('fetch', event => {
     // reasoning as the landing page skip just above.
     if (url.pathname === '/live-demo/') return;
 
-    // Static assets (JS, CSS, fonts) — cache first
+    // Our own static files whose name does not carry a hash of their content
+    // (every one of them on a development machine, where nothing is hashed):
+    // the server first, the kept copy only when there is no network. Kept
+    // first, a stylesheet that was fixed went on being served as it was
+    // before the fix, on every normal page load, for as long as the cache
+    // lived: only a hard refresh showed the new one.
+    if (url.hostname === location.hostname && url.pathname.startsWith('/static/') && !HASHED_NAME.test(url.pathname)) {
+        event.respondWith(
+            fetch(request).then(response => {
+                if (response.ok) {
+                    const clone = response.clone();
+                    caches.open(STATIC_CACHE).then(c => c.put(request, clone));
+                }
+                return response;
+            }).catch(() =>
+                caches.match(request).then(cached => cached || new Response('Offline', { status: 503, statusText: 'Offline' }))
+            )
+        );
+        return;
+    }
+
+    // Static files that can never change under the same name (production's
+    // hashed names, app.3f2a9c1b7d4e.js) and files from other hosts: the kept
+    // copy first.
     if (
         url.hostname !== location.hostname ||
         url.pathname.startsWith('/static/')

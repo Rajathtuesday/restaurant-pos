@@ -14,9 +14,9 @@
 }
 
 /* No background on <html> or <body> here. This file loads after the theme,
-   so a colour set here would beat the theme's own body background in both
-   modes. The dark first paint before any stylesheet arrives is the style
-   attribute on <html> in base.html; the theme then paints <body>. */
+   so a colour set here would beat the theme's own in both modes. The theme
+   paints both; before it arrives the browser paints by the color-scheme
+   meta tag, which the boot script in base.html sets for dark mode. */
 
 body {
     min-height: 100vh;

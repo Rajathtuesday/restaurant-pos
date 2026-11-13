@@ -1,11 +1,12 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en" style="background:#0a0a0a;--font-scale:{{ request.user.tenant.font_scale|default:1.0 }};font-size:calc(16px * {{ request.user.tenant.font_scale|default:1.0 }});">
+<html lang="en" style="--font-scale:{{ request.user.tenant.font_scale|default:1.0 }};font-size:calc(16px * {{ request.user.tenant.font_scale|default:1.0 }});">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="color-scheme" content="dark">
-    <meta name="theme-color" content="#0a0a0a">
+    {# Light until the boot script below says otherwise. These two are what the browser paints with before any stylesheet arrives, and what it colours its own bars with. #}
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#fafafa">
     <title>{% block title %}{{ request.user.tenant.name|default:"Rasova POS" }}{% endblock %}</title>
 
     <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
@@ -18,8 +19,8 @@
     <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
     <link rel="stylesheet" href="{% static 'vendor/sweetalert2/sweetalert2.min.css' %}">
 
-    {# The one inline script Rasova keeps: the dark class must be on <html> before the theme CSS loads, or dark-mode users see a flash of the light page. #}
-    <script data-rasova-boot>if (localStorage.getItem("dark") === "true") document.documentElement.classList.add("dark");</script>
+    {# The one inline script Rasova keeps. It runs before the theme CSS loads: in dark mode it puts the dark class on <html> and tells the browser to paint dark, so nobody sees a flash of the other mode. Nothing here sets a colour on an element: the theme (css/themes/luxury.css) paints <html> and <body> in both modes. #}
+    <script data-rasova-boot>(function () { var dark = false; try { dark = localStorage.getItem("dark") === "true"; } catch (e) {} if (!dark) return; document.documentElement.classList.add("dark"); document.querySelector('meta[name="color-scheme"]').content = "dark"; document.querySelector('meta[name="theme-color"]').content = "#000000"; })();</script>
 
     <link rel="stylesheet" href="{% static 'css/themes/luxury.css' %}">
     <link rel="stylesheet" href="{% static 'css/rasova.css' %}">

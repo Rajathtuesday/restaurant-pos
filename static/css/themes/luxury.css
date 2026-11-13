@@ -58,6 +58,11 @@ html.dark {
 
 /* ── Base Typography ─────────────────────────────────────── */
 html {
+    /* The page itself, in both modes. <html> must carry the colour, not
+       only <body>: whatever <body> does not cover (a short page, the
+       overscroll, the moment before <body> is laid out) shows <html>. */
+    background-color: var(--bg-color);
+    color-scheme: light;
     font-size: 16px;                 /* explicit root — prevents browser scaling */
     -webkit-text-size-adjust: 100%;  /* no iPhone auto-inflate on rotation       */
 }
@@ -72,6 +77,8 @@ body {
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 0.3s, color 0.3s;
 }
+
+html.dark { color-scheme: dark; }
 
 /* ── Heading Scale — DM Serif Display ───────────────────── */
 h1, h2, h3, h4, h5, h6,

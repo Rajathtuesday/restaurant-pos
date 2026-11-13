@@ -81,9 +81,11 @@ class BrowserTestCase(StaticLiveServerTestCase):
         page. Returns {"errors": [...], "results": {name: value}}.
 
         A step is (name, javascript): the body of an async function, whose
-        return value is the step's result. A step that sends the browser to
-        another page is (name, javascript, path): the next step runs once
-        the page whose address starts with that path has loaded.
+        return value is the step's result. A step that sends the browser
+        somewhere, or reloads the page, says what to wait for as a third
+        item, so the next step does not run on a page that is going away:
+          (name, javascript, "/bill/7/")       the address starts with this
+          (name, javascript, {"selector": s})  an element matching s is there
 
         An error is an uncaught exception in the page, a console.error
         (which is how Chromium reports a failed request), or a step that
@@ -110,7 +112,9 @@ class BrowserTestCase(StaticLiveServerTestCase):
                 name, script = step[0], step[1]
                 try:
                     results[name] = page.evaluate("async () => {" + script + "}")
-                    if len(step) > 2:
+                    if len(step) > 2 and isinstance(step[2], dict):
+                        page.wait_for_selector(step[2]["selector"])
+                    elif len(step) > 2:
                         page.wait_for_url(lambda address, path=step[2]: urlparse(address).path.startswith(path),
                                           wait_until="load")
                 except Exception as e:  # noqa: BLE001 -- reported to the test as an error
