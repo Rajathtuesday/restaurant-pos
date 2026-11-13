@@ -305,13 +305,8 @@
     }
 
 
-    // Initial fetch and polling loop. Not before DOMContentLoaded: the
-    // refresh reads OrderEdit, which order_edit.js (a module) only sets once
-    // the page is parsed. Called earlier it threw, and the list stayed empty.
-    document.addEventListener("DOMContentLoaded", () => {
-        refreshRunningOrder();
-        setInterval(refreshRunningOrder, 3000);
-    });
+    // At DOMContentLoaded: the refresh reads OrderEdit, set by order_edit.js (a module) only after parsing.
+    document.addEventListener("DOMContentLoaded", () => { refreshRunningOrder(); setInterval(refreshRunningOrder, 3000); });
 
 </script>
 
