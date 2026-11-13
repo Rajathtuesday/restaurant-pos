@@ -51,4 +51,16 @@ def frontend(request):
     # An Android app older than the server needs: base.html shows the
     # "update the app" banner (core/app_version.py).
     from core.app_version import app_update
-    return {"rasova_page": page, "app_update": app_update(request)}
+    return {"rasova_page": page, "app_update": app_update(request),
+            "show_setup_checklist": shows_setup_checklist(request.path)}
+
+
+# Where the "Setup 3/5 complete" checklist is offered: the pages an owner
+# sets up from. On a working screen (billing, the bill, the floor plan, the
+# kitchen, the token counter) its corner badge covered the screen's own
+# buttons (seen on the screenshot sheet, 13 Nov 2026).
+SETUP_CHECKLIST_PAGES = ("/dashboard/", "/setup/", "/menu/")
+
+
+def shows_setup_checklist(path):
+    return any(path == p or path.startswith(p) for p in SETUP_CHECKLIST_PAGES) and not path.startswith("/menu/qr")

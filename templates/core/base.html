@@ -84,7 +84,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    {% if user.is_authenticated and user.tenant %}
+    {% if user.is_authenticated and user.tenant and show_setup_checklist %}
     <div id="setup-checklist-widget" class="setup-checklist" hidden>
         <div id="setup-checklist-panel" class="setup-checklist__panel" hidden>
             <div class="setup-checklist__head">

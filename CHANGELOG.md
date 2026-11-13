@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The setup badge no longer covers the billing buttons
+
+### Fixed
+- **"Setup 4/5 complete" covered the billing screen's own buttons**: Bill and Print on a laptop, View Order on a phone (seen on the screenshot sheet). The badge sat in the corner of every page until setup was done. It is offered now where an owner sets up: the dashboard, setup and menu pages; never on billing, the bill, the floor plan, the kitchen, the token counter or live orders.
+
+### Tests
+- `core/tests/test_setup_checklist_where.py` (3 tests): the pages it shows on and the working screens it never does; billing and the floor plan rendered without it, the dashboard and setup with it.
+
 ## 2026-11-13: QR codes drawn here, never fetched from a third party
 
 ### Fixed
