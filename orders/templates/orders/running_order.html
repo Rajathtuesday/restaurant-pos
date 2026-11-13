@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Running Order</title>
 
-    <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}"
+    <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
     <link href="{% static 'vendor/bootstrap/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
 
@@ -305,9 +305,13 @@
     }
 
 
-    // Initial fetch and polling loop
-    refreshRunningOrder();
-    setInterval(refreshRunningOrder, 3000);
+    // Initial fetch and polling loop. Not before DOMContentLoaded: the
+    // refresh reads OrderEdit, which order_edit.js (a module) only sets once
+    // the page is parsed. Called earlier it threw, and the list stayed empty.
+    document.addEventListener("DOMContentLoaded", () => {
+        refreshRunningOrder();
+        setInterval(refreshRunningOrder, 3000);
+    });
 
 </script>
 

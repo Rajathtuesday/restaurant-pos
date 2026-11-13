@@ -7,6 +7,17 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The QR menu printed its stylesheet as text
+
+### Fixed
+- **The QR menu showed its whole stylesheet as text above the dishes, unstyled.** Phase 0 swapped the Google Fonts links for Rasova's own `vendor/fonts/fonts.css` and the new `<link>` lost its closing `>` in seven templates that do not extend base.html. A browser reads the next tag as more attributes of the link and drops it. On the QR menu that tag was `<style>`; on login and the demo switch it was Bootstrap's icons; on the running order, the order-locked page and inspect it was Bootstrap itself. All seven are closed.
+- **The running order showed no dishes and never refreshed.** It called its first refresh while the page was still parsing; the refresh reads `OrderEdit`, which `order_edit.js` (a module since phase 1) sets only once the page is parsed. It threw, and the 3-second refresh on the next line never started. The refresh now starts at `DOMContentLoaded`.
+- Neither reached production: both came in with the unpushed phase 0 and phase 1 commits.
+
+### Tests
+- `core/tests/test_template_tags_closed.py`: no template leaves a tag open into the next one (Django tags, comments and inline scripts set aside). Fails on the old code with the seven, at their lines.
+- `core/tests/test_page_styles_browser.py` (Playwright): the QR menu by table token and from a staff login is styled, with no CSS on the page as text; login loads its icons; the running order loads Bootstrap and lists its dishes with no error in the browser. All four fail on the old templates.
+
 ## 2026-11-13: The frontend rebuild, phase 2: the floor plan
 
 The floor plan is the screen a fine-dining cashier lives on. Its 345 lines of inline script, 148 lines of inline style and 28 `onclick` attributes are modules and a stylesheet now, tested in node and in a real browser.
