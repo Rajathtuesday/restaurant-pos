@@ -82,7 +82,8 @@ FRONTEND = [
     "core.tests.test_test_speed",
     "core.tests.test_fast_tests",
     # A migration the previous version could not run against (deploy undo).
-    "core.tests.test_migrations_additive",
+    "core.tests.test_migrations_additive",    # No test reaches Google, R2, Razorpay or mail with a real key.
+    "core.tests.test_no_real_services",
 ]
 
 FAST = MONEY + ISOLATION + FRONTEND

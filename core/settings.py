@@ -14,6 +14,20 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()  # Load environment variables from .env file
 
+# Under the test runner no outside service is reached with a real key: the
+# developer laptop's .env holds production ones. They are blanked here,
+# before anything below reads them. On 13 Nov 2026 a test reached Google's AI
+# with the real key (a real 503 in the test log), and every run had to blank
+# the R2 storage keys by hand or risk writing to the production bucket. A test
+# that needs a key sets its own fake (core/tests/test_no_real_services.py).
+import sys as _sys_argv
+if len(_sys_argv.argv) > 1 and _sys_argv.argv[1] == "test":
+    for _secret in ("AWS_STORAGE_BUCKET_NAME", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_S3_ENDPOINT_URL",
+                    "R2_BACKUP_BUCKET", "GOOGLE_API_KEY", "GOOGLE_API_KEY_FALLBACK", "ANTHROPIC_API_KEY",
+                    "RASOVA_RAZORPAY_KEY_ID", "RASOVA_RAZORPAY_KEY_SECRET", "EMAIL_PASSWORD", "SENTRY_DSN",
+                    "META_WHATSAPP_TOKEN"):
+        os.environ[_secret] = ""
+
 # -------------------------------------------------------
 # SENTRY — initialise as early as possible, before apps
 # -------------------------------------------------------

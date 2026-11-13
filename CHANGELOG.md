@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-13: No test reaches a real outside service
+
+### Fixed
+- **A test called Google's AI with the real key** (T3): `core/settings.py` loads `.env`, and the developer laptop's `.env` holds production keys, so a menu-import path without a fake made a real request (a real "503 high demand" and a "429 quota" in the test logs: slow, costs money, fails for reasons that are not ours). The same mechanism is why every test run had to blank the R2 storage keys by hand, or risk writing to the production bucket.
+- Under the test runner, `core/settings.py` now blanks the outside-service secrets before anything reads them: R2 storage, the backup bucket, Google and Anthropic AI, Rasova's Razorpay keys, the mail password, Sentry, WhatsApp. A test that needs a key sets its own fake, as the AI tests already did. `export AWS_...=` before a test run is no longer needed.
+
+### Tests
+- `core/tests/test_no_real_services.py`: every secret is blank under the test runner; files go to disk, not the bucket; the menu AI is off; no real payment or mail key. Three of four fail on the old settings on a machine whose `.env` has keys. Added to the fast set.
+
 ## 2026-11-13: Pinch zoom works again
 
 ### Fixed
