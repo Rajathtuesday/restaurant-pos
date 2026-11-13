@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-13: The dashboard: today first, tiles by job
+
+### Changed
+- **The owner's dashboard opens on today** (V6 in the suggestions): sales, orders, the average bill, tables open and dishes in the kitchen, then anything that needs a look (voids, discounts, low stock), each a link to where it is dealt with. It used to open on a wall of identical tiles with "Today's Performance" at the bottom on a laptop. One block per outlet for an owner with several. It updates every minute and on the refresh button; a failed update keeps the numbers and says they are the last ones.
+- **The tiles are grouped by job**: Service (tables, tokens, live orders, covers, kitchen, billing, calls) and Back office (reports first, cash register, history, menu, QR, stock, shifts, reservations, guests, setup), filling the row instead of leaving gaps.
+- **Rasova's own tools are in their own group, "Rasova staff"**, seen only by a superuser (a reseller sees Partner). They used to sit among the owner's tiles.
+- Who sees which tile is plain data now (`accounts/dashboard_tiles.py`) instead of some forty nested template conditions. The minute's refresh sends the same ready-made blocks as the page, so the screen never works out a rule of its own.
+- The page is markup only: its script is `static/js/dashboard/`, its style `static/css/dashboard.css`. The Zomato and Swiggy switches no longer reload the page; New Order (a direct-billing counter) ignores a second tap. The ratchet is down to 78 templates.
+- **Money written one way** (the start of V12): `core/money.py` and `static/js/core/money.js` write whole rupees when there are no paise ("₹430"), two decimals when there are ("₹20.50"), with Indian grouping ("₹1,25,000"). The dashboard uses it; the billing cart moves onto it next.
+
+### Tests
+- `accounts/tests/test_dashboard.py` (11 tests): the tiles for an owner, a superuser, a reseller, a manager and a cashier; tiles following the features; New Order as an action with its count; today's numbers as words and what needs a look; today before the tiles on the page; no backend link for an owner; the refresh sending the same blocks.
+- `accounts/tests/test_dashboard_browser.py` (Playwright, 4 tests): today first and the refresh drawing the server's numbers; the Zomato switch turning on with no reload and saved; the superuser's group; New Order opening a new token's bill.
+- `static/js/tests/dashboard.test.mjs` (5 tests), `money.test.mjs` and `core/tests/test_money.py`: one table of money examples read by both copies of the rule.
+
 ## 2026-11-13: A new restaurant's first day explains itself
 
 ### Changed

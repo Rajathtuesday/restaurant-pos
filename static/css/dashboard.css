@@ -1,0 +1,128 @@
+/*
+ * The owner's dashboard (accounts/templates/accounts/owner_dashboard.html):
+ * today first, then the tiles grouped by job (accounts/dashboard_tiles.py).
+ */
+
+.dash { padding: 1rem 1rem 3rem; max-width: 1400px; margin: 0 auto; }
+@media (min-width: 768px) { .dash { padding: 1.5rem 1.5rem 3rem; } }
+
+/* ── Today ─────────────────────────────────────────── */
+.dash-today { margin-bottom: 1.5rem; }
+.today-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    padding: 1.25rem 1.25rem 1rem;
+    margin-bottom: 0.75rem;
+}
+.today-outlet {
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-muted); margin-bottom: 0.4rem;
+}
+.today-main { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.75rem 2rem; }
+.today-label {
+    display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-muted);
+}
+.today-revenue {
+    display: block; font-family: 'DM Serif Display', serif; font-size: 2.6rem;
+    line-height: 1.1; color: var(--accent-gold);
+}
+.today-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.95rem; color: var(--text-muted); }
+.today-facts strong { color: var(--text-main); font-weight: 700; }
+.today-alerts { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+.today-alert {
+    display: inline-flex; align-items: center; min-height: 36px; padding: 0 0.9rem;
+    border: 1px solid; border-radius: 18px; font-size: 0.85rem; text-decoration: none;
+}
+.today-alert.is-alert { border-color: #dc2626; color: #dc2626; }
+.today-alert.is-warn  { border-color: #d97706; color: #d97706; }
+.today-ok { font-size: 0.85rem; color: #16a34a; }
+.today-foot { display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; font-size: 0.75rem; color: var(--text-muted); }
+
+/* ── Tile groups ───────────────────────────────────── */
+.section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 2rem 0 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.section-title small {
+    font-size: 0.7rem;
+    font-family: 'Outfit', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+/* Tiles fill the row: as many as fit, each at least 150 px wide. */
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem; }
+
+.quick-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+    min-height: 110px;
+    width: 100%;
+    font: inherit;
+}
+.quick-card.is-accent { border-color: var(--accent-gold); }
+.quick-card.is-accent .icon { color: var(--accent-gold); }
+@media (hover: hover) {
+    .quick-card:hover { transform: translateY(-3px); border-color: var(--accent-gold); color: var(--text-main); box-shadow: var(--shadow-hover); }
+    .quick-card:hover .icon { color: var(--accent-gold); }
+}
+.quick-card:active { transform: translateY(0); border-color: var(--accent-gold); }
+.quick-card .icon { position: relative; font-size: 1.75rem; margin-bottom: 0.6rem; color: var(--text-muted); }
+.tile-label { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; }
+.tile-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+.tile-badge {
+    position: absolute; top: -6px; right: -12px; background: var(--accent-gold); color: #fff;
+    border-radius: 9px; font-size: 0.65rem; padding: 1px 6px; font-weight: 700; line-height: 1.4;
+}
+.dash-group-staff .quick-card { border-style: dashed; }
+
+/* ── Online ordering switches (header) ─────────────── */
+.aggregator-bar {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    padding: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.aggregator-bar span {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin: 0 0.4rem;
+}
+.agg-btn {
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+    padding: 0.3rem 0.6rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+    min-height: 32px; cursor: pointer;
+}
+.agg-btn.agg-zomato.is-on { background: #e23744; border-color: #e23744; color: #fff; }
+.agg-btn.agg-swiggy.is-on { background: #fc8019; border-color: #fc8019; color: #fff; }
+
+@media (max-width: 575.98px) {
+    .today-revenue { font-size: 2.1rem; }
+    .tile-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+    .quick-card { min-height: 90px; padding: 1rem 0.75rem; }
+    .quick-card .icon { font-size: 1.5rem; margin-bottom: 0.4rem; }
+    .tile-hint { display: none; }
+    .section-title { font-size: 1.1rem; }
+}

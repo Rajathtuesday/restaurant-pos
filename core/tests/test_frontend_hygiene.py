@@ -115,7 +115,6 @@ def measure_all():
 BASELINE = {
     'accounts/templates/accounts/feature_flags.html': {"script": 29, "style": 65, "onclick": 0, "third_party": 0, "globals": 0},
     'accounts/templates/accounts/login.html': {"script": 13, "style": 298, "onclick": 1, "third_party": 0, "globals": 0},
-    'accounts/templates/accounts/owner_dashboard.html': {"script": 71, "style": 193, "onclick": 3, "third_party": 0, "globals": 0},
     'accounts/templates/accounts/sales_dashboard.html': {"script": 0, "style": 23, "onclick": 0, "third_party": 0, "globals": 0},
     'accounts/templates/accounts/superuser_panel.html': {"script": 39, "style": 31, "onclick": 1, "third_party": 0, "globals": 0},
     'accounts/templates/accounts/superuser_tenant.html': {"script": 11, "style": 18, "onclick": 1, "third_party": 0, "globals": 0},

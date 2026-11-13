@@ -8,6 +8,7 @@ from core.decorators import tenant_required, role_required
 from notifications.models import Notification
 from reports.services.dashboard_metrics import owner_dashboard_metrics
 from menu.models import MenuItem
+from accounts.dashboard_tiles import dashboard_tiles, today_blocks
 
 
 @never_cache
@@ -52,7 +53,23 @@ def owner_dashboard(request):
     ).exists():
         return redirect("/setup/onboard/")
 
+    from core.features import get_all_known_features
+    from django.urls import reverse
+    # The same features the templates see (core.context_processors.tenant_features).
+    features = {f for f in get_all_known_features() if has_feature(tenant, f)}
+    groups = dashboard_tiles(request.user, features,
+                             direct_billing_mode=direct_billing_mode, active_token_count=active_token_count)
     return render(request, "accounts/owner_dashboard.html", {
+        "today":               today_blocks(metrics),
+        "groups":              groups,
+        "page_data": {
+            "refresh_ms": 60000,
+            "urls": {
+                "metrics": reverse("dashboard-metrics-json"),
+                "new_order": reverse("create-and-bill"),
+                "toggle_aggregator": reverse("toggle_aggregator"),
+            },
+        },
         "metrics":             metrics,
         "notifications":       notifications,
         "aggregator":          aggregator_config,
@@ -70,7 +87,7 @@ def dashboard_metrics_json(request):
     if request.user.role not in ["owner", "manager", "cashier"]:
         return JsonResponse({"error": "forbidden"}, status=403)
     metrics = owner_dashboard_metrics(request.user)
-    return JsonResponse({"metrics": metrics})
+    return JsonResponse({"metrics": metrics, "today": today_blocks(metrics)})
 
 
 @login_required

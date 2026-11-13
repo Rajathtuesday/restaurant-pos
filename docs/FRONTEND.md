@@ -29,6 +29,7 @@ static/js/core/      what base.html runs on every page
   checklist.js       the setup checklist in the corner
   request_id.js      a UUID per order request, so the server answers a replayed order with the first one (orders.OrderRequest)
   printing_status.js the printer chip's words, from the printing state in the 8-second notifications answer
+  money.js           rupees(): money written one way (core/money.py is the server's copy; one table of examples tests both)
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")
 static/js/billing/   the billing screen: one module for the dine-in screen, the QSR counter and the token counter
@@ -37,11 +38,13 @@ static/js/billing/   the billing screen: one module for the dine-in screen, the 
 static/js/bill/      the bill page: payment, discounts, printing, the Razorpay QR (phase 2's first page)
 static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server), loader.js (the 5-second refresh), index.js
 static/js/kitchen/   the kitchen display: board.js (the tickets as markup), loader.js (the 5-second refresh, by station), actions.js (start, ready, bump, clear all), light.js (its own light switch), index.js; boot.js is a plain script in the head that sets light or dark before the first paint
+static/js/dashboard/ the owner's dashboard: today.js (the minute's refresh of today's numbers), index.js (refresh, New Order, the Zomato and Swiggy switches)
 static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
 static/css/tables.css  the floor plan
 static/css/kitchen.css the kitchen display
+static/css/dashboard.css the owner's dashboard
 static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)
