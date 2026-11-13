@@ -1,6 +1,21 @@
 # Rasova POS: Testing Strategy
 **What to test, why, how, with real code examples from this codebase.**
 
+## Before every commit: the fast set (since 13 Nov 2026)
+
+```bash
+.venv/Scripts/python.exe -m core.fast_tests --keepdb    # about 90 seconds, 425 tests
+```
+
+Money (tax, bills, payments, discounts, offers, bill numbers, an order made
+once), tenant isolation (the walk), and the frontend guards (the ratchet, the
+modules, the node tests). The list and why each is there: `core/fast_tests.py`.
+It blanks the storage keys itself. `--keepdb` skips rebuilding the test
+database (435 migrations, over a minute); leave it off after adding a migration.
+
+The full suite (`manage.py test --parallel 8`) runs before a push, and in CI.
+Browser tests and thread-race tests are only in the full suite.
+
 ---
 
 ## The Testing Pyramid

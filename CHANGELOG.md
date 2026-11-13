@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-13: A fast test set, and a test suite that is quicker everywhere
+
+The full suite took about 30 minutes, so it was not run before a commit. There is now a set for that.
+
+### Changed
+- **`python -m core.fast_tests` runs the tests a commit must never break, in about 90 seconds** (425 tests): the tax engine and its browser copy, bills, payments, discounts, offers, promos, bill numbers, an order made once, the tenant isolation walk, and the frontend guards with the node module tests. It runs as `manage.py test` (so settings sees a test run), eight processes, and blanks the storage keys first so no test can reach the production bucket. `--keepdb` skips rebuilding the test database. The full suite still runs before a push and in CI.
+- **Tests hash passwords with Django's fast test hasher** (`core/settings.py`, only under the test runner; production is untouched). The production hasher cost 1.4 seconds per user, and most tests make several: one test class went from 23 seconds to under 1. The fast set went from 7.7 minutes to 84 seconds, and the whole suite gets the same saving. A few test files already switched it off for themselves; those switches are now redundant and harmless.
+
+### Tests
+- `core/tests/test_fast_tests.py`: every label in the set still names tests; no label twice; no browser test and no thread-race class slips in (they belong in the full run); the guards the set exists for are in it; it runs as `manage.py test` with the storage keys blanked.
+- `core/tests/test_test_speed.py`: the suite uses the fast hasher, a password still checks as one, and a hundred hashes take under a second. Fails on the old settings.
+
 ## 2026-11-13: An order taken offline can never be made twice
 
 Offline mode is one of the three deal blockers. Its promise is that an order taken with no internet reaches the kitchen once the connection is back, exactly once. This closes the one way it could arrive twice.

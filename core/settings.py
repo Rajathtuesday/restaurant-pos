@@ -819,6 +819,15 @@ RATELIMIT_FAIL_OPEN = True
 # and removes a source of CI flakiness that was blocking auto-deploy.
 RATELIMIT_ENABLE = not _TESTING
 
+# Under the test runner only: hash passwords with a fast hasher. The real
+# one (PBKDF2, about a million rounds) is right for production and costs
+# 1.4 seconds per user on the laptop, and most tests make several users:
+# it was most of the time in hundreds of tests (13 Nov 2026). A hash made
+# here never leaves the test database. Production is untouched: this list
+# is only set when `manage.py test` is running.
+if _TESTING:
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
 CELERY_BROKER_URL = REDIS_URL or "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "django-cache"
