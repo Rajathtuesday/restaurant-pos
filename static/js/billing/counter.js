@@ -9,11 +9,13 @@
  * card need the gateway to confirm the money moved.
  */
 import { send as approvalSend } from "../approval.js";
+import { createRequestIds } from "../core/request_id.js";
 import { withId } from "./urls.js";
 
 export function createCounter({
   cart, parcel, urls, csrf, ui, screen, printer, offlinePaymentQueue,
   doc = document, win = globalThis, fetchFn = (...a) => fetch(...a), isOnline = () => globalThis.navigator.onLine,
+  requestIds = createRequestIds(),
 }) {
   let pendingOrderId = null;
   let method = null;
@@ -58,7 +60,11 @@ export function createCounter({
       sending = true;
       screen.sending(true, { busyLabel: "Creating order…", idleHtml });
       try {
-        const d1 = await (await jsonPost(urls.create_order, { cart: cart.toPayload(), source, table_id: null })).json();
+        // The same cart sent again after "Network error" carries the same
+        // id, so an order the server did take is not made a second time.
+        const order = requestIds.stamp({ cart: cart.toPayload(), source, table_id: null });
+        const d1 = await (await jsonPost(urls.create_order, order)).json();
+        requestIds.settle();              // the server answered, yes or no
         if (!d1.success) {
           screen.flash(d1.error || "Order creation failed");
           return;

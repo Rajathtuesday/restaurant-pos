@@ -27,6 +27,7 @@ static/js/core/      what base.html runs on every page
   platform.js        where Rasova runs; the Android print bridge
   pwa.js             service worker registration, the install banner, the printing sheet
   checklist.js       the setup checklist in the corner
+  request_id.js      a UUID per order request, so the server answers a replayed order with the first one (orders.OrderRequest)
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")
 static/js/billing/   the billing screen: one module for the dine-in screen, the QSR counter and the token counter

@@ -7,6 +7,26 @@ the source of truth.
 
 ---
 
+## 2026-11-13: An order taken offline can never be made twice
+
+Offline mode is one of the three deal blockers. Its promise is that an order taken with no internet reaches the kitchen once the connection is back, exactly once. This closes the one way it could arrive twice.
+
+### Fixed
+- **An order whose answer was lost on the way back was made a second time.** When the server took an order and the connection dropped before its answer reached the tablet, the tablet could not know: it kept the order and sent it again once the connection was back. A walk-in became two orders; a table got every dish twice on its bill. Two tabs of the same device replaying the same saved order at the same moment did the same.
+- Every order request now carries its own id (`request_id`, a UUID made by `static/js/core/request_id.js`). The server remembers the ids it has taken (`orders.OrderRequest`, migration `0072`) and answers a repeat with the first order, changing nothing. The row is written in the same transaction as the dishes, so a refused order leaves nothing behind and can be sent again. A unique index, not the view, stops two requests that arrive at the same moment.
+- The id is fixed when the cashier taps Dispatch, Checkout or Pay and Print, and the copy saved on the device keeps it. Tapping again after "Network error" sends the same id; a changed cart, or the next customer's order, gets a new one.
+- A guest is only answered about the table they scanned, so an id cannot be used to reach another table's order.
+- A request with no id works as it always did.
+
+### Not in this change
+- The guest QR menu does not send an id yet. Its script is still inline and is the next page to move to modules; the server already accepts an id from a guest.
+- A cash payment saved offline whose answer was lost is still sent again. The server refuses it (the order is already paid), so no money is counted twice, but the cashier sees "could not be synced" for a payment that did go through.
+
+### Tests
+- `orders/tests/test_order_request_id.py` (12 tests): a walk-in and a table order sent twice, a second round with its own id, no id, a refused request, an id that is not one, another restaurant with the same id, a guest twice, a guest at another table, token numbers, and six real threads sending the same request at the same moment. Nine fail on the old view.
+- `orders/tests/test_offline_order_browser.py` (Playwright, 2 tests): the billing screen with the browser's network cut takes an order, the network comes back, and the database has exactly one order, sent to the kitchen. And the lost answer itself: the server takes the order, the test cuts the connection before the answer, the saved copy is replayed. The old code makes two orders.
+- `static/js/tests/request_id.test.mjs` (17 tests): the id from each kind of browser, the same request keeping its id, a new request never sharing one, the offline queue replaying with the id it stored, two tabs.
+
 ## 2026-11-13: The frontend rebuild, phase 2: the kitchen display
 
 The kitchen display's 151 lines of inline script, 187 lines of inline style and 8 `onclick` attributes are modules and a stylesheet now, tested in node and in a real browser.

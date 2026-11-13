@@ -16,9 +16,10 @@
 from core.errors import UserError, error_response
 import json
 import logging
+import re
 from decimal import Decimal, InvalidOperation
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
@@ -26,7 +27,7 @@ from django_ratelimit.decorators import ratelimit
 from core.ratelimit_keys import order_placer, order_rate
 
 from orders.exceptions import CartError, MenuItemError, ModifierError, OrderError
-from orders.models import Order, OrderEvent, Table
+from orders.models import Order, OrderEvent, OrderRequest, Table
 from orders.services.discount_policy import (
     bill_discount_percent, check_within_limit, read_discount, read_reason,
 )
@@ -122,6 +123,54 @@ def with_cart_note(cart, note):
     return [{**line, "note": line.get("note") or note} if isinstance(line, dict) else line for line in cart]
 
 
+# A request id is the screen's own name for one tap of Dispatch or Checkout
+# (static/js/core/request_id.js makes a UUID). Letters, digits, dash and
+# underscore only, so it is safe to log and to index.
+_REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
+
+
+class _RepeatedRequest(Exception):
+    """Raised inside create_order's transaction when another request with
+    the same id was taken while this one was working: everything this one
+    did is rolled back and the first one's order is the answer."""
+
+
+def _read_request_id(data):
+    """The request's id, None when the screen sent none. ValueError for
+    anything that is not one."""
+    value = data.get("request_id")
+    if value in (None, ""):
+        return None
+    if not isinstance(value, str) or not _REQUEST_ID.match(value):
+        raise ValueError("not a request id")
+    return value
+
+
+def _repeat_response(tenant, outlet, key, user, table):
+    """The answer to a request id this outlet has already taken: the first
+    order again, with nothing changed. None when the id is new.
+
+    A guest is only ever answered about the table they scanned (the same
+    rule as order_id below), so an id cannot be used to learn about, or
+    get the status link of, another table's order."""
+    taken = (OrderRequest.objects.for_outlet(tenant, outlet)
+             .filter(key=key).select_related("order").first())
+    if taken is None:
+        return None
+    order = taken.order
+    if user is None and (order.table_id != (table.id if table else None) or order.created_by_id is not None):
+        return JsonResponse({"error": "This request was already used. Please place the order again."}, status=409)
+    from orders.views.public_views import make_order_status_token
+    logger.info("Request %s for order #%s arrived again; answered with the first order", key, order.id)
+    return JsonResponse({
+        "success": True,
+        "order_id": order.id,
+        "status_token": make_order_status_token(order.id),
+        "repeat": True,
+    })
+
+
+
 # @login_required -- Removed to allow QR guest ordering
 # Rate-limit BEFORE require_POST so the check runs before any body parsing.
 # 20 requests/minute per IP. Guests hit this via QR; staff calls are authenticated
@@ -169,6 +218,11 @@ def create_order(request):
 
     if not cart:
         return JsonResponse({"error": "Cart empty"}, status=400)
+
+    try:
+        request_key = _read_request_id(data)
+    except ValueError:
+        return JsonResponse({"error": "Invalid request id."}, status=400)
 
     tenant = None
     outlet = None
@@ -218,6 +272,14 @@ def create_order(request):
         # order for this physical table would.
         from tablemerge.services import resolve_primary_table
         table = resolve_primary_table(table, tenant, outlet)
+
+    # The same request again (a saved offline order replayed after its first
+    # answer was lost, or a second tab replaying it): the first order is the
+    # answer and nothing is changed.
+    if request_key:
+        repeat = _repeat_response(tenant, outlet, request_key, user, table)
+        if repeat is not None:
+            return repeat
 
     # Validate phone BEFORE opening the transaction so a bad number returns a
     # clean 400 instead of a DB truncation error (which would leak column names).
@@ -422,6 +484,17 @@ def create_order(request):
                     created_by=user,
                 )
 
+            if request_key:
+                # Last, and in this transaction: a refusal above leaves no
+                # row, so its id can be sent again. Two requests with the
+                # same id at the same moment both get this far; the unique
+                # index lets one through and the other is rolled back whole.
+                try:
+                    with transaction.atomic():
+                        OrderRequest.objects.create(tenant=tenant, outlet=outlet, key=request_key, order=order)
+                except IntegrityError:
+                    raise _RepeatedRequest() from None
+
             u_name = user.username if user else "Guest (QR)"
             logger.info(
                 "User %s created/updated order #%s on table %s source %s",
@@ -434,6 +507,12 @@ def create_order(request):
             "order_id": order.id,
             "status_token": make_order_status_token(order.id),
         })
+    except _RepeatedRequest:
+        repeat = _repeat_response(tenant, outlet, request_key, user, table)
+        if repeat is not None:
+            return repeat
+        logger.error("Request %s collided but its first order cannot be found", request_key)
+        return JsonResponse({"error": "Could not create the order. Please try again."}, status=400)
     except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
         return approvals.approval_response(e, tenant, outlet)
     except (CartError, MenuItemError, ModifierError, OrderError, OrderSourceError) as e:

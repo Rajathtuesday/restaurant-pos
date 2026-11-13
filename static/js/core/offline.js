@@ -19,9 +19,16 @@
  * cashier can confirm by hand, and the one a restaurant falls back to when
  * the internet or the card machine is down anyway.
  *
+ * A queued order carries a request id (core/request_id.js). The server
+ * answers an id it has already taken with the first order, so an order
+ * whose answer was lost, or that two tabs replay at once, is still one
+ * order.
+ *
  * Storage is behind a tiny interface (add, all, remove) so the queues are
  * tested in node with memoryStore(); the browser uses indexedDbStore().
  */
+
+import { newRequestId } from "./request_id.js";
 
 const DB_NAME = "rasova_offline";
 const DB_VERSION = 2; // v2 added the offline_payments store
@@ -105,11 +112,16 @@ function jsonHeaders(csrf) {
   return { "Content-Type": "application/json", "X-CSRFToken": csrf() };
 }
 
-export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange = () => {} }) {
+export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange = () => {}, newId = newRequestId }) {
   let flushing = false;
   return {
     async add(payload) {
-      const id = await store.add({ payload, queued_at: Date.now() });
+      // The id is fixed here, once, and stored with the order: every
+      // replay sends the same one. The billing screen has already given
+      // the order its id (it may have reached the server); anything else
+      // gets one now.
+      const stamped = payload && payload.request_id ? payload : { ...payload, request_id: newId() };
+      const id = await store.add({ payload: stamped, queued_at: Date.now() });
       await onChange();
       return id;
     },
@@ -146,7 +158,7 @@ export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange 
           try {
             data = await created.json();
           } catch (notJson) {
-            break;
+            break; // the answer was lost or was not ours: the next replay sends the same request id
           }
 
           if (!created.ok || !data.success) {

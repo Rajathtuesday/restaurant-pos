@@ -1055,3 +1055,36 @@ class BillSeries(TenantScopedModel):
 # The underlying table is still orders_printjob; nothing here changed in the DB.
 
 
+
+
+class OrderRequest(TenantScopedModel):
+    """One create-order request the server has taken, by the id the screen
+    gave it (request_id in the request).
+
+    An order placed with no internet is kept on the device and sent again
+    when the connection is back. If the server took it but the answer was
+    lost on the way, the device cannot tell and sends it again; two tabs
+    can also replay the same saved order at once. The same id a second
+    time is answered with the first order and changes nothing
+    (orders.views.billing_views.create_order).
+
+    The row is written in the same transaction as the order's dishes, so
+    a refused request leaves no row and its id can be sent again. One row
+    per accepted request, never deleted: a tablet left in a drawer for a
+    month still replays safely.
+    """
+    tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
+    outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
+    key = models.CharField(max_length=64)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="requests")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            # The database, not the view, is what stops two requests with
+            # the same id that arrive at the same moment.
+            models.UniqueConstraint(fields=["outlet", "key"], name="one_order_request_per_key"),
+        ]
+
+    def __str__(self):
+        return f"{self.key} -> order {self.order_id}"
