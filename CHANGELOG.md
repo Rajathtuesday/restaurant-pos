@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-13: CI runs the browser tests
+
+### Fixed
+- **Every browser test skipped in CI** (T2): they need Playwright and Chromium, and CI had neither, so the smoke walk, the page tests of everything moved to modules, offline, printing and the empty states never ran where they matter most. `requirements-test.txt` pins Playwright 1.62.0 (the version on the development laptop) and CI installs Chromium before the suite.
+- Expect the CI run to take longer, and watch the first one: it is the first time these tests run on Linux. A failure there blocks the auto-deploy, as it should.
+
+### Tests
+- `core/tests/test_ci_runs_browser_tests.py`: CI installs Chromium before the suite runs; the pinned Playwright is the one on this machine. Both fail on the old files.
+
 ## 2026-11-13: No test reaches a real outside service
 
 ### Fixed

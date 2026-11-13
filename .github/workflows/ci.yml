@@ -144,6 +144,13 @@ jobs:
           echo "/usr/lib/postgresql/$major/bin" >> "$GITHUB_PATH"
           "/usr/lib/postgresql/$major/bin/pg_dump" --version
 
+      # The browser tests (Playwright and Chromium, core/tests/browser.py)
+      # skipped here until 13 Nov 2026, because CI had neither: every page
+      # test, the smoke walk, the offline and printing tests. CI is where
+      # they matter most.
+      - name: Chromium for the browser tests
+        run: python -m playwright install --with-deps chromium
+
       - name: Run test suite
         env:
           SECRET_KEY:    ci-test-secret-key-not-real-replace-in-prod

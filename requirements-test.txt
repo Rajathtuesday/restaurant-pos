@@ -7,8 +7,11 @@
 # ruff:       CI lint for unused or undefined names and syntax errors (ruff.toml)
 # tblib:      lets `manage.py test --parallel` send a failing test's traceback
 #             back from its worker; without it one failure crashes the whole run
+# playwright: the browser tests (core/tests/browser.py) drive Chromium; CI
+#             installs the browser itself (python -m playwright install)
 
 hypothesis==6.168.2
 coverage==7.16.2
 ruff==0.16.10
 tblib==3.2.2
+playwright==1.62.0
