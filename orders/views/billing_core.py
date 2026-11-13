@@ -16,6 +16,7 @@ from tablemerge.models import TableMerge
 from orders.services.order_lock_service import lock_order
 from setup.models import PaymentConfig
 from offers.services import page_offers
+from orders.services.parcel import offer_text as parcel_offer_text
 
 logger = logging.getLogger("pos.orders")
 
@@ -71,6 +72,8 @@ def billing_page_data(outlet, mode, station_printer_ip="", order_id=None):
             # The outlet's rate is charged on every item, or once per order.
             "parcelPerItem": bool(outlet.parcel_charge_per_item),
         },
+        # The parcel button's words, money written the one way ("₹2.50/item")
+        "parcelOffer": parcel_offer_text(outlet),
         # An order through one of these apps carries no GST of its own,
         # because the app pays it (orders/services/tax_engine.py).
         "operator_sources": list(Order.OPERATOR_SOURCES),

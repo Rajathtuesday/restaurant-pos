@@ -3,7 +3,8 @@
  *
  * Before an order exists the toggle is only a wish the screen remembers,
  * and the cart shows what the server will charge for it, by the server's
- * own rule (orders/views/order_actions.py, toggle_parcel):
+ * own rule (orders/services/parcel.py, which toggle_parcel uses; held equal
+ * to this copy by orders/tests/test_parcel_parity.py):
  *   a dish with its own parcel charge: that, times its quantity; if no
  *   dish in the cart has one, the outlet's rate times every item when the
  *   outlet charges per item, else the outlet's rate once.

@@ -227,11 +227,11 @@
             <div class="summary-row vat-row is-hidden"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
             {% if request.user.outlet.parcel_charge_amount %}
             <div class="summary-row parcel-row is-hidden">
-                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
+                <span>Parcel Charge</span><span></span>
             </div>
             <button type="button" class="parcel-btn" data-action="parcel.toggle">
                 <i class="bi bi-bag"></i>
-                <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
+                <span class="parcel-btn-text">{{ page_data.parcelOffer }}</span>
             </button>
             {% endif %}
             <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>
@@ -349,11 +349,11 @@
             <div class="summary-row vat-row is-hidden"><span>{% if request.user.outlet.vat_inclusive %}VAT on liquor (incl.){% else %}VAT on liquor{% endif %}</span><span class="view-vat">₹0</span></div>
             {% if request.user.outlet.parcel_charge_amount %}
             <div class="summary-row parcel-row is-hidden">
-                <span>Parcel Charge</span><span>₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}</span>
+                <span>Parcel Charge</span><span></span>
             </div>
             <button type="button" class="parcel-btn" data-action="parcel.toggle">
                 <i class="bi bi-bag"></i>
-                <span class="parcel-btn-text">Add Parcel {% if request.user.outlet.parcel_charge_per_item %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }}/item{% else %}₹{{ request.user.outlet.parcel_charge_amount|floatformat:0 }} flat{% endif %}</span>
+                <span class="parcel-btn-text">{{ page_data.parcelOffer }}</span>
             </button>
             {% endif %}
             <div class="summary-total"><span>Total</span><span class="view-total">₹0</span></div>

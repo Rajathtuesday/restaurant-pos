@@ -7,6 +7,17 @@ the source of truth.
 
 ---
 
+## 2026-11-14: The parcel charge on the screen comes from the bill's own rule
+
+In October the cart showed 252 and the bill 264: the screen had its own idea of the parcel rule. The screen's copy was fixed, but nothing held it to the server's, as the tax and offer engines' copies are held.
+
+### Changed
+- **The rule is one function, `orders/services/parcel.py`**, which `toggle_parcel` now calls instead of working it out inline. `static/js/billing/parcel.js` is the screen's copy and says so.
+- **The parcel button says the rate the one way money is written**: "Add Parcel ₹2.50/item", not "₹3/item" (the templates rounded it with `floatformat:0`). The words come from the billing page's data (`parcelOffer`) on both billing screens. The hidden parcel row no longer prints the outlet's rate as its amount: the screen draws the charge itself before showing the row.
+
+### Tests
+- `orders/tests/test_parcel_parity.py` (4 tests, needs Node like the other parity tests): 300 random carts through the screen's own cart and parcel modules against the server's rule, to the paisa; a real billing page's data (the outlet's rate, each dish's `data-parcel`) through the same modules against `toggle_parcel` on an order of the same dishes, flat, per item, a dish's own charge, and paise; the button's words. A copy of the rule that adds the outlet's rate to the dishes' own charges fails 241 of them.
+
 ## 2026-11-14: Limits on the database
 
 On a 1 GB server one slow query can hold everything: a gunicorn thread, its locks, its memory, and every request queued behind it. Nothing stopped a web query from running for minutes, nothing said a page was getting slower, and nothing checked that the processes could not open more connections than Postgres allows.

@@ -9,6 +9,7 @@ from core.decorators import tenant_required, role_required
 from orders.models import Order, OrderItem
 from orders.exceptions import OrderError
 from orders.services import approvals
+from orders.services.parcel import parcel_charge
 
 logger = logging.getLogger("pos.orders")
 
@@ -195,9 +196,6 @@ def toggle_parcel(request, order_id):
                 outlet=request.user.outlet,
                 status__in=["open", "billing"],
             )
-            charge   = Decimal(str(getattr(order.outlet, "parcel_charge_amount", "5") or "0"))
-            per_item = getattr(order.outlet, "parcel_charge_per_item", True)
-
             bill_before = order.grand_total
             printed_by = None
             # Toggle: if already set → remove; if zero → add
@@ -211,20 +209,12 @@ def toggle_parcel(request, order_id):
                 # The rate is copied now, so a later change to the outlet setting
                 # never changes this bill (see Order.parcel_gst_rate).
                 order.parcel_gst_rate = order.outlet.parcel_gst_rate
-                active_items = list(order.items.exclude(status="voided").select_related("menu_item"))
-                # Per-item mode: if ANY menu item has its own parcel_charge set, sum those
-                per_item_total = sum(
-                    (item.menu_item.parcel_charge or Decimal("0")) * item.quantity
-                    for item in active_items
-                    if item.menu_item and (item.menu_item.parcel_charge or Decimal("0")) > 0
-                )
-                if per_item_total > 0:
-                    order.parcel_surcharge = per_item_total
-                elif per_item:
-                    total_qty = sum(item.quantity for item in active_items)
-                    order.parcel_surcharge = charge * Decimal(total_qty)
-                else:
-                    order.parcel_surcharge = charge
+                # One rule, which the billing screens copy (orders/services/parcel.py)
+                active_items = order.items.exclude(status="voided").select_related("menu_item")
+                order.parcel_surcharge = parcel_charge(
+                    ((item.menu_item.parcel_charge if item.menu_item else None, item.quantity)
+                     for item in active_items),
+                    order.outlet.parcel_charge_amount, order.outlet.parcel_charge_per_item)
 
             order.save(update_fields=["parcel_surcharge", "parcel_gst_rate"])
             order.recalculate_totals()
