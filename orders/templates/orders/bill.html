@@ -8,13 +8,9 @@
 {% if paper_width_mm == 58 %}<link rel="stylesheet" href="{% static 'css/print/paper_58.css' %}">{% else %}<link rel="stylesheet" href="{% static 'css/print/paper_80.css' %}">{% endif %}
 {% endblock %}
 
-{% block header_left %}
-<span class="invoice-title">
-    <i class="bi bi-receipt me-2"></i>Invoice
-</span>
-{% endblock %}
+{% block page_title %}Invoice{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <button type="button" class="btn-icon" data-action="page.print" title="Print this page (full)"><i class="bi bi-printer"></i></button>
 <a href="{% url 'thermal-receipt' order.id %}" target="_blank"
    class="btn-luxury ms-2 no-print" title="Open thermal receipt (80mm printer)">

@@ -19,26 +19,13 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
-        <h1 class="brand-title mb-0">
-            <i class="bi bi-clock-history" style="color:var(--accent-gold);"></i>
-            Shift Management
-        </h1>
-    </a>
-    <p class="brand-subtitle">{{ request.user.tenant.name }} — {{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}Shifts{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <form method="GET" class="d-flex align-items-center">
     <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control-shift" style="max-width:160px;" onchange="this.form.submit()">
 </form>
 <a href="/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Dashboard</a>
-<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
-</button>
 {% endblock %}
 
 {% block content %}

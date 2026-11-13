@@ -191,8 +191,6 @@ body { overflow-x: hidden; }
 }
 
 /* ── Header ──────────────────────────────────────── */
-.kitchen-brand-link { text-decoration: none; color: inherit; }
-.kitchen-brand-icon { color: var(--c-fresh); }
 .btn-luxury.btn-clear-all, .btn-icon.btn-clear-all { border-color: var(--c-urgent); color: var(--c-urgent); }
 
 /* ── What the board draws ────────────────────────── */

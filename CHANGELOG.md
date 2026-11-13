@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-13: One header for every page
+
+### Changed
+- **`base.html` draws the header for every page** (V2 in the suggestions). 56 pages used to write their own: 32 had their own theme button (by `onclick`), about 22 had none, most had no logout, billing had two, and the name and subtitle were written a dozen ways (some with em dashes). Now every page has, in the same order: the brand (to the dashboard), the subtitle "Page · Outlet", clock in/out, the page's own links, the alert badges, order history, the theme switch and logout.
+- A page fills only its slots: `page_title` (a breadcrumb may link its parent: "Inventory / Variance"), `page_outlet`, `header_links`, `header_badges` (billing, tables and live orders keep the wide badges) and `header_theme` (only the kitchen, for its own light switch). The rules are in `docs/FRONTEND.md`.
+- 60 pages moved in one change: once the base drops the old `header_left` and `header_right` blocks, Django silently ignores a page still using them, so a half-moved state would have lost buttons with no error.
+- 32 `onclick` theme buttons are gone (the ratchet's counts moved by exactly those).
+- The billing subtitle is readable in dark mode again (it was dark grey on black).
+
+### Tests
+- `core/tests/test_one_header.py` (9 tests): no template uses the old blocks; no page repeats the theme switch, logout or badges in its own slots; no em dash in a title; the subtitle is page then outlet; a breadcrumb links its parent; every part once on billing, tables, reports, setup, kitchen and tokens; the kitchen keeps its switch; billing keeps its wide badges; no template comment shows on the page. Four fail on the old templates.
+- The smoke walk checks the header on every owner page: one brand link, one theme switch, one logout, none by `onclick`. On the old templates it finds 110 problems across the pages.
+- Two older tests read the old header (the reports page's `onclick` button, the floor plan's old subtitle) and now read the new one.
+- Full suite: 2,398 tests in 5.8 minutes.
+
 ## 2026-11-13: A screenshot sheet to look at before a push
 
 ### Added (test tooling)

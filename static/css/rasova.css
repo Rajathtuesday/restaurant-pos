@@ -160,6 +160,12 @@ body {
     font-family: var(--font-main, 'Outfit', sans-serif);
 }
 
+/* The subtitle is "Page · Outlet" (base.html). The dot only shows when the
+   page named itself: an empty page-name span leaves just the outlet. */
+.brand-subtitle .page-name:not(:empty) + .outlet-name:not(:empty)::before { content: " · "; }
+.brand-subtitle a { color: inherit; text-decoration: none; }
+.brand-subtitle a:hover { color: var(--accent-gold); }
+
 .btn-icon {
     background: transparent;
     border: none;

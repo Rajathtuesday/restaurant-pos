@@ -16,6 +16,8 @@ page when it answers the owner's GET with 200 and HTML. Each page fails on:
   - an uncaught error, or a console.error (how Chromium reports a failed request)
   - a static file that did not load
   - stylesheet text among the words on the page
+  - a header that is not the one header (base.html): exactly one brand
+    link, one theme switch, one logout, none by onclick (V2, 13 Nov 2026)
 
 A new page is walked the day its URL is added, with no change here.
 """
@@ -45,6 +47,29 @@ CSS_AS_TEXT = r"""
 const text = document.body ? document.body.innerText : "";
 const found = text.match(/[.#@:\w\]\)*][^{}\n]{0,80}\{\s*[a-z-]+\s*:\s*[^{}"]{1,200}\}/);
 return found ? found[0].slice(0, 120) : null;
+"""
+
+# The one header (templates/core/base.html): what every page that has the
+# app's header must show once, and only once. A page that is not an app
+# page (login, a receipt) has no header and is not asked.
+HEADER = r"""
+const header = document.querySelector("header.pos-header");
+if (!header) return [];
+const wrong = [];
+const once = (what, selector) => {
+  const n = header.querySelectorAll(selector).length;
+  if (n !== 1) wrong.push(`${n} ${what} in the header, expected 1`);
+};
+once("brand links", 'a[href="/dashboard/"].brand-title');
+once("theme switches", "#themeIcon");
+once("logout links", 'a[href="/logout/"]');
+const icons = document.querySelectorAll("#themeIcon").length;
+if (icons !== 1) wrong.push(`${icons} #themeIcon on the page, expected 1`);
+// The shared parts never by onclick. A page's own header buttons still
+// using onclick are counted by the ratchet (test_frontend_hygiene) instead.
+const inline = header.querySelectorAll('[data-header][onclick], [onclick*="themeManager"]').length;
+if (inline) wrong.push(`${inline} shared header part(s) by onclick`);
+return wrong;
 """
 
 
@@ -105,6 +130,7 @@ class BrowserSmokeWalkTest(BrowserTestCase):
             css = page.evaluate("async () => {" + CSS_AS_TEXT + "}")
             if css:
                 problems.append(f"stylesheet shown as text: {css!r}")
+            problems.extend(page.evaluate("async () => {" + HEADER + "}"))
         except Exception as e:  # noqa: BLE001 -- reported as this page's problem
             problems.append(f"could not open: {str(e).splitlines()[0]}")
         finally:

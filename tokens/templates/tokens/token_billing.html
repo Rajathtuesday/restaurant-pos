@@ -8,17 +8,9 @@
 <link rel="stylesheet" href="{% static 'css/billing_parts.css' %}">
 {% endblock %}
 
-{% block header_left %}
-<a href="/dashboard/" class="brand-link">
-    <h1 class="brand-title mb-0">
-        <i class="bi bi-diamond-half"></i>
-        {{ request.user.tenant.name }}
-    </h1>
-</a>
-<p class="brand-subtitle">POS Billing &middot; {{ request.user.outlet.name }}</p>
-{% endblock %}
+{% block page_title %}Token Billing{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Tokens</a>
 <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Kitchen</a>
 <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Reports</a>
@@ -26,14 +18,9 @@
 <!-- Mobile icon nav -->
 <a href="{% url 'token-dashboard' %}" class="btn-icon d-md-none" title="Tokens"><i class="bi bi-grid-3x3"></i></a>
 <a href="/kitchen/" class="btn-icon d-md-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-{% include "core/_notif_badges.html" %}
 <a href="/reports/dashboard/" class="btn-icon d-md-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
-<a href="/logout/" class="btn-icon d-none d-md-inline-flex" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
 <button type="button" class="btn-icon" data-action="text.toggle" title="Large Text Mode" id="largeTextBtn">
     <i class="bi bi-type-h1" id="largeTextIcon"></i>
-</button>
-<button type="button" class="btn-icon" data-action="theme.toggle" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
 </button>
 {% endblock %}
 

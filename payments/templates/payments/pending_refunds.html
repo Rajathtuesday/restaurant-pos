@@ -21,16 +21,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">{{ request.user.outlet.name }}</p>
-  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
-    <h1 class="brand-title mb-0"><i class="bi bi-arrow-counterclockwise me-2" style="color:var(--accent-gold);"></i>Pending Refunds</h1>
-  </a>
-</div>
-{% endblock %}
+{% block page_title %}<a href="{% url 'order-history' %}">Order History</a> / Pending Refunds{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="{% url 'order-history' %}" class="btn-luxury">
   <i class="bi bi-clock-history me-1"></i>Order History
 </a>

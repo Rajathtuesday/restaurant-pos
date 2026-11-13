@@ -56,20 +56,11 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-fire" style="color:#ef4444;"></i>
-        <span>{{ request.user.tenant.name }}</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }} · Kitchen Operations</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/reports/dashboard/">Reports</a> / Kitchen{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
 <button onclick="window.print()" class="btn-icon no-print" title="Print"><i class="bi bi-printer"></i></button>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

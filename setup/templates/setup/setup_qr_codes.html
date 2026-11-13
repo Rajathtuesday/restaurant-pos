@@ -29,19 +29,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/setup/" style="text-decoration:none;color:inherit;">
-        <h1 class="brand-title mb-0" style="font-family:'DM Serif Display',serif;font-size:1.5rem;">
-            <i class="bi bi-qr-code-scan" style="color:var(--accent-gold);"></i>
-            Table QR Codes
-        </h1>
-    </a>
-    <p class="brand-subtitle">Print and place these on tables for digital ordering</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/setup/tables/">Tables</a> / QR Codes{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="/setup/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">
     <i class="bi bi-arrow-left me-1"></i> Back
 </a>
@@ -52,9 +42,6 @@
 {% endif %}
 <button onclick="window.print()" class="btn-luxury">
     <i class="bi bi-printer me-1"></i> Print All
-</button>
-<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
 </button>
 {% endblock %}
 

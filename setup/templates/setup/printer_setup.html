@@ -115,19 +115,10 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="{% url 'outlet_settings' %}" class="brand-title" style="font-size:1.1rem;">
-        <i class="bi bi-arrow-left" style="color:var(--text-muted); font-size:0.9rem;"></i>
-        <span style="color:var(--accent-gold);">Printer Setup</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="{% url 'outlet_settings' %}">Outlet Settings</a> / Printers{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="{% url 'setup_kitchen_stations' %}" class="btn-luxury d-none d-sm-inline-flex">Kitchen Stations</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

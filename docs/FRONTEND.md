@@ -49,6 +49,25 @@ templates/core/base.html         the logged-in app shell
 templates/core/public_base.html  no user, no chrome
 ```
 
+## The header (one for every page, since 13 Nov 2026)
+
+`templates/core/base.html` draws it: the brand (to the dashboard), the subtitle
+"Page · Outlet", clock in/out, the alert badges, order history, the theme switch
+and logout. A page fills only its slots:
+
+| Block | What goes in it |
+|---|---|
+| `page_title` | the page's name; a breadcrumb may link its parent: `<a href="/inventory/board/">Inventory</a> / Variance` |
+| `page_outlet` | the outlet named in the subtitle, only when it is not the user's own |
+| `header_links` | the page's own buttons and links |
+| `header_badges` | the alert badges; billing, tables and live orders use the wide ones |
+| `header_theme` | the theme switch; only the kitchen replaces it |
+
+There is no `header_left` or `header_right` any more: Django silently ignores a
+block the parent does not have, so `core/tests/test_one_header.py` fails on a page
+that still uses one. The smoke walk checks every owner page has one brand, one
+theme switch, one logout, none by `onclick`.
+
 ## How a page gets its code
 
 1. The view passes what the script needs as a dict: `{"mode": "token", "outlet_id": 3, ...}`. Addresses go in it

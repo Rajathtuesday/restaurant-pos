@@ -81,17 +81,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-box-seam" style="color:var(--accent-gold);"></i>
-        <span>{{ request.user.tenant.name }}</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }} · Inventory Management</p>
-</div>
-{% endblock %}
+{% block page_title %}Inventory{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
 <a href="{% url 'inventory_consumption' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-graph-up me-1"></i> Consumption</a>
 <a href="{% url 'inventory_variance' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-droplet-half me-1"></i> Variance</a>
@@ -105,7 +97,6 @@
 <a href="/inventory/requisitions/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-arrow-up-right-circle me-1"></i> Requisitions</a>
 <a href="/inventory/central-kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-building me-1"></i> Central Kitchen</a>
 {% endif %}
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

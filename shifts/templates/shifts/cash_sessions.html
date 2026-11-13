@@ -18,19 +18,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
-        <h1 class="brand-title mb-0">
-            <i class="bi bi-safe2" style="color:var(--accent-gold);"></i>
-            Cash Sessions & EOD
-        </h1>
-    </a>
-    <p class="brand-subtitle">{{ request.user.tenant.name }} — {{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}Cash Register{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="{% url 'export-z-report' %}" class="btn-luxury text-decoration-none" style="border-color:var(--accent-gold);color:var(--accent-gold);">
     <i class="bi bi-file-earmark-spreadsheet me-1"></i> Z-Report
 </a>
@@ -40,9 +30,6 @@
 <button class="btn-luxury" style="background:#dc3545; color:white; border:none;" data-bs-toggle="modal" data-bs-target="#closeSessionModal">Close Register</button>
 {% endif %}
 <a href="/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Exit</a>
-<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
-</button>
 {% endblock %}
 
 {% block content %}

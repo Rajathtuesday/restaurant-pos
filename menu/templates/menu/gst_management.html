@@ -122,15 +122,7 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="{% url 'menu_management' %}" class="brand-title" style="font-size:1.2rem;">
-        <i class="bi bi-arrow-left" style="color:var(--text-muted); font-size:0.9rem;"></i>
-        <span style="color:var(--accent-gold);">GST Rates</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="{% url 'menu_management' %}">Menu</a> / GST Rates{% endblock %}
 
 {% block content %}
 <main class="gst-main">

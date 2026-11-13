@@ -889,7 +889,7 @@ class InventoryReportSharedHeaderTest(TestCase):
         response = self.client.get("/reports/inventory/")
         content = response.content.decode()
         self.assertIn('class="pos-header"', content)
-        self.assertIn("themeManager.toggle()", content)
+        self.assertIn('data-action="theme.toggle" data-header="theme"', content)
 
     def test_no_longer_has_its_own_incompatible_dark_mode_storage(self):
         response = self.client.get("/reports/inventory/")

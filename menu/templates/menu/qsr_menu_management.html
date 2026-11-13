@@ -103,24 +103,15 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
-        <span>{{ request.user.tenant.name }}</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }} · QSR Menu Management</p>
-</div>
-{% endblock %}
+{% block page_title %}Menu{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <button class="btn-luxury" onclick="openCategoryModal()"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
 <button class="btn-luxury btn-gold-solid" onclick="openItemModal()"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
 {% if request.user.role == 'owner' %}
 <button class="btn-luxury d-none d-sm-inline-flex" onclick="syncMenu()"><i class="bi bi-cloud-arrow-up me-1"></i> Sync to Branches</button>
 {% endif %}
 <a href="/dashboard/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-house me-1"></i> Dashboard</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

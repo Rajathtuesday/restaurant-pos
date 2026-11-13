@@ -57,17 +57,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
-    <a href="/inventory/board/" style="color:var(--accent-gold);text-decoration:none;">Inventory</a> / Requisitions
-  </p>
-  <h1 class="brand-title mb-0"><i class="bi bi-clipboard-check me-2" style="color:var(--accent-gold);"></i>Stock Requisitions</h1>
-  <p class="brand-subtitle">{{ outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/inventory/board/">Inventory</a> / Requisitions{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <button class="btn-luxury btn-gold" onclick="autoGenerate()" id="autoBtn">
   <i class="bi bi-magic me-1"></i>Auto-Generate from Low Stock
 </button>

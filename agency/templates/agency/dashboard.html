@@ -18,19 +18,10 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-diagram-3" style="color:var(--accent-gold);"></i>
-        <span>Channel Administration</span>
-    </a>
-    <p class="brand-subtitle">Global Performance Matrix</p>
-</div>
-{% endblock %}
+{% block page_title %}Channel Administration{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="/sales/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-arrow-left me-2"></i> Back to Agents</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

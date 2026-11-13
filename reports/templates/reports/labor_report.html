@@ -54,19 +54,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<a href="/dashboard/" class="brand-title">
-  <i class="bi bi-diamond-half"></i>
-  <span>{{ request.user.tenant.name }}</span>
-</a>
-<p class="brand-subtitle"><i class="bi bi-geo-alt me-1"></i>{{ request.user.outlet.name }}</p>
-{% endblock %}
+{% block page_title %}<a href="/reports/dashboard/">Reports</a> / Labour{% endblock %}
 
-{% block header_right %}
-<a href="/dashboard/" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
-<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme"><i class="bi bi-moon" id="themeIcon"></i></button>
-<a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-{% endblock %}
+
 
 {% block content %}
 <nav class="report-subnav">

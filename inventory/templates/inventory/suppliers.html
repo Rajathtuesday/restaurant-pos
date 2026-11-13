@@ -52,21 +52,12 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-truck" style="color:var(--accent-gold);"></i>
-        <span>{{ request.user.tenant.name }}</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }} · Supplier Directory</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/inventory/board/">Inventory</a> / Suppliers{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <input class="search-bar d-none d-sm-block" type="text" id="searchInput" placeholder="Search suppliers…" oninput="filterSuppliers()">
 <a href="{% url 'purchase_order_list' %}" class="btn-lux d-none d-sm-inline-block">Purchase Orders</a>
 <a href="{% url 'inventory_board' %}" class="btn-lux d-none d-sm-inline-block">Inventory</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

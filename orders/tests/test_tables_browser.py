@@ -112,7 +112,7 @@ class FloorTest(FloorPlanBase):
                   // the stylesheet is there: a class, not a style attribute, colours the legend
                   swatch: getComputedStyle(document.querySelector(".legend-swatch.bg-free")).backgroundColor,
                   inline: t.all("[onclick], #tableGrid [style]").length,
-                  heading: t.text(".brand-sub"),
+                  heading: t.text(".brand-subtitle .page-name") + " / " + t.text(".brand-subtitle .outlet-name"),
                 };
             """),
             ("new_order", CARD + 'tap("Door", "table.go"); return true;', "/billing/"),
@@ -126,7 +126,7 @@ class FloorTest(FloorPlanBase):
         self.assertEqual(floor["waiter"], "AR")
         self.assertEqual(floor["swatch"], "rgb(16, 185, 129)")
         self.assertEqual(floor["inline"], 0)
-        self.assertEqual(floor["heading"], "Floor Plan: Main")
+        self.assertEqual(floor["heading"], "Floor Plan / Main")
         self.assertEqual(seen["landed"], f"/billing/?table={self.door.id}")
 
     def test_bill_makes_the_bill_and_opens_it(self):

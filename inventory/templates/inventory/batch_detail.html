@@ -46,18 +46,10 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
-    <a href="/inventory/central-kitchen/" style="color:var(--accent-gold);text-decoration:none;">Central Kitchen</a>
-    / {{ batch.batch_number }}
-  </p>
-  <h1 class="brand-title mb-0"><i class="bi bi-box-seam me-2" style="color:var(--accent-gold);"></i>{{ batch.batch_number }}</h1>
-  <p class="brand-subtitle">{{ batch.source_outlet.name }} · {{ batch.created_at|date:"d M Y, H:i" }}</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/inventory/central-kitchen/">Central Kitchen</a> / {{ batch.batch_number }}{% endblock %}
+{% block page_outlet %}{{ batch.source_outlet.name }}{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 {% if batch.transfers.filter %}
 <button onclick="dispatchAll()" class="btn-luxury" style="background:var(--accent-gold);border-color:var(--accent-gold);color:#fff;" id="dispatchBtn">
   <i class="bi bi-truck me-1"></i>Dispatch All

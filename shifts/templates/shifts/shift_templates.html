@@ -26,24 +26,11 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" style="text-decoration:none;color:inherit;">
-        <h1 class="brand-title mb-0">
-            <i class="bi bi-grid-3x3-gap" style="color:var(--accent-gold);"></i>
-            Shift Templates
-        </h1>
-    </a>
-    <p class="brand-subtitle">{{ request.user.tenant.name }} — {{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="{% url 'shift-dashboard' %}">Shifts</a> / Templates{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="{% url 'schedule-builder' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Schedule</a>
 <a href="{% url 'shift-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Shifts</a>
-<button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
-</button>
 {% endblock %}
 
 {% block content %}

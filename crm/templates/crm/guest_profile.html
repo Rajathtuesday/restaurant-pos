@@ -20,15 +20,7 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/crm/" class="brand-title" style="font-size:1.2rem;">
-        <i class="bi bi-arrow-left" style="color:var(--text-muted); font-size:0.9rem;"></i>
-        <span style="color:var(--accent-gold);">{{ guest.name|default:guest.phone }}</span>
-    </a>
-    <p class="brand-subtitle">Guest Profile · CRM</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/crm/">Guests</a> / {{ guest.name|default:guest.phone }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid mx-auto" style="max-width:1100px; padding:1.5rem;">

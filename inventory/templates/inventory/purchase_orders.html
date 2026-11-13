@@ -84,21 +84,12 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-box-seam" style="color:var(--accent-gold);"></i>
-        <span>{{ request.user.tenant.name }}</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }} · Purchase Orders</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/inventory/board/">Inventory</a> / Purchase Orders{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <button class="btn-lux" onclick="openDrawer()"><i class="bi bi-plus-lg me-1"></i>New PO</button>
 <a href="{% url 'supplier_list' %}" class="btn-lux d-none d-sm-inline-block">Suppliers</a>
 <a href="{% url 'inventory_board' %}" class="btn-lux d-none d-sm-inline-block">Inventory</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

@@ -24,17 +24,10 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">
-    <a href="/superuser/" style="color:var(--accent-gold);text-decoration:none;">Control Panel</a> / {{ tenant.name }}
-  </p>
-  <h1 class="brand-title mb-0"><i class="bi bi-building me-2" style="color:var(--accent-gold);"></i>{{ tenant.name }}</h1>
-  <p class="brand-subtitle">{{ tenant.get_tenant_type_display }} — {{ outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="/superuser/">Control Panel</a> / {{ tenant.name }}{% endblock %}
+{% block page_outlet %}{{ outlet.name }}{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="/settings/features/?tenant_id={{ tenant.id }}" class="btn-luxury me-2"><i class="bi bi-toggles me-1"></i>Feature Flags</a>
 <a href="/superuser/" class="btn-luxury">All Restaurants</a>
 {% endblock %}

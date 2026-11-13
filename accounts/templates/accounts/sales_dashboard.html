@@ -30,24 +30,15 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-person-lines-fill" style="color:var(--accent-gold);"></i>
-        <span>Reseller Dashboard</span>
-    </a>
-    <p class="brand-subtitle">Client & Agency Management</p>
-</div>
-{% endblock %}
+{% block page_title %}Reseller Dashboard{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 {% if request.user.is_superuser %}
 <a href="/agency/dashboard/" class="btn-luxury" style="background:var(--accent-gold); border-color:var(--accent-gold); color:white;">
     <i class="bi bi-graph-up-arrow me-1"></i> Channel Analytics
 </a>
 <span class="badge bg-danger">Admin View</span>
 {% endif %}
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

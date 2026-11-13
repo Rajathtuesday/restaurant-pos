@@ -53,20 +53,11 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-diamond-half" style="color:var(--accent-gold);"></i>
-        <span>Modifier Architecture</span>
-    </a>
-    <p class="brand-subtitle">Customize your menu selections</p>
-</div>
-{% endblock %}
+{% block page_title %}<a href="{% url 'menu_management' %}">Menu</a> / Modifiers{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <button class="btn-luxury" onclick="openGroupModal()">Create Group</button>
 <a href="{% url 'menu_management' %}" class="btn-luxury d-none d-sm-inline-flex">Back to Menu</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

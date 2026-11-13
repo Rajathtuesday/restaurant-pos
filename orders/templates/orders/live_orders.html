@@ -101,16 +101,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div class="d-flex flex-column">
-  <a href="/dashboard/" style="text-decoration:none;color:inherit;">
-    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2" style="color:var(--accent-gold);"></i>{{ request.user.tenant.name }}</h1>
-  </a>
-  <p class="mb-0" style="font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">Live Orders · {{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}Live Orders{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <div class="action-group d-flex align-items-center flex-wrap gap-2">
   {% if 'floor_plan' in tenant_features %}
   <a href="{% url 'table-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
@@ -124,12 +117,10 @@
   <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
   <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen" aria-label="Kitchen"><i class="bi bi-fire"></i></a>
   {% endif %}
-  {% include "core/_notif_badges_luxury.html" %}
-  <button class="btn-icon" onclick="themeManager.toggle()" title="Toggle Theme" aria-label="Toggle theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
-  </button>
-</div>
+  </div>
 {% endblock %}
+
+{% block header_badges %}{% include "core/_notif_badges_luxury.html" %}{% endblock %}
 
 {% block content %}
 <div class="lo-wrap">

@@ -99,13 +99,9 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<a href="/setup/" style="text-decoration:none;color:inherit;font-family:'DM Serif Display',serif;font-size:1.1rem;">
-  <i class="bi bi-asterisk me-2" style="color:var(--accent-gold)"></i>Setup
-</a>
-{% endblock %}
+{% block page_title %}<a href="/setup/">Setup</a> / Kitchen Stations{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="/setup/" class="btn-luxury d-none d-sm-inline-flex">
   <i class="bi bi-arrow-left me-1"></i> Setup Home
 </a>

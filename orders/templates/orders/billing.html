@@ -8,16 +8,9 @@
 <link rel="stylesheet" href="{% static 'css/billing_parts.css' %}">
 {% endblock %}
 
-{% block header_left %}
-<div class="d-flex flex-column">
-  <a href="/dashboard/" class="brand-link">
-    <h1 class="brand-title mb-0"><i class="bi bi-diamond-half me-2"></i>{{ request.user.tenant.name }}</h1>
-  </a>
-  <p class="mb-0 text-muted brand-sub">POS Billing &middot; {{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}POS Billing{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <div class="d-flex align-items-center gap-2">
   {% if 'floor_plan' in tenant_features %}
   <a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
@@ -28,8 +21,6 @@
   {% if 'reports' in tenant_features %}
   <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
   {% endif %}
-  <a href="/logout/" class="btn-icon d-none d-sm-inline-flex ms-2" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-
   {% if 'floor_plan' in tenant_features %}
   <a href="/tables/" class="btn-icon d-sm-none" title="Tables"><i class="bi bi-grid-3x3"></i></a>
   {% endif %}
@@ -39,14 +30,10 @@
   {% if 'reports' in tenant_features %}
   <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
   {% endif %}
-  <a href="/logout/" class="btn-icon d-sm-none" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
-  {% include "core/_notif_badges_luxury.html" %}
-
-  <button type="button" class="btn-icon ms-1" data-action="theme.toggle" title="Toggle Theme">
-    <i class="bi bi-moon" id="themeIcon"></i>
-  </button>
-</div>
+  </div>
 {% endblock %}
+
+{% block header_badges %}{% include "core/_notif_badges_luxury.html" %}{% endblock %}
 
 {% block content %}
 <div id="toastBox" class="toast-minimal">Message</div>

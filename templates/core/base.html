@@ -36,31 +36,44 @@
     <div id="offline-banner"><i class="bi bi-wifi-off me-2"></i>You are currently offline. Actions may not be saved.</div>
     <div id="global-loader"></div>
 
+    {% comment %}
+    One header for every page (V2, 13 Nov 2026). A page fills only its slots:
+         page_title     the page's name, may be a breadcrumb ("<a ...>Inventory</a> / Variance")
+         page_outlet    the outlet named in the subtitle, when it is not the user's own
+         header_links   the page's own buttons and links
+         header_badges  the alert badges (billing, tables and live orders use the wide ones)
+         header_theme   the theme switch (the kitchen has its own)
+       The brand, clock in/out, order history and logout are the same everywhere.
+       core/tests/test_one_header.py holds every page to it.
+    {% endcomment %}
     <header class="pos-header">
         <div class="header-left">
-            {% block header_left %}
-            <a href="/dashboard/" class="brand-title">
+            <a href="/dashboard/" class="brand-title" data-header="brand">
                 <i class="bi bi-diamond-half"></i>
-                <span>{{ request.user.tenant.name|default:"Rasova POS" }}</span>
+                <span>{{ request.user.tenant.name|default:"Rasova" }}</span>
             </a>
-            <p class="brand-subtitle">{{ request.user.outlet.name|default:"Standard Outlet" }}</p>
-            {% endblock %}
+            <p class="brand-subtitle"><span class="page-name">{% block page_title %}{% endblock %}</span><span class="outlet-name">{% block page_outlet %}{{ request.user.outlet.name|default:"" }}{% endblock %}</span></p>
         </div>
 
         <div class="header-right d-flex align-items-center gap-2">
             {% if request.user.is_authenticated %}
             <a href="/shifts/" class="btn-icon" title="Clock In / Out"><i class="bi bi-clock"></i></a>
             {% endif %}
-            {% block header_right %}
-            {% include "core/_notif_badges.html" %}
-            {% if request.user.role != "chef" and request.user.is_authenticated %}
+            {% block header_links %}{% endblock %}
+            {% if request.user.is_authenticated %}
+            {% block header_badges %}{% include "core/_notif_badges.html" %}{% endblock %}
+            {% if request.user.role != "chef" %}
             <a href="{% url 'order-history' %}" class="btn-icon" title="Order History"><i class="bi bi-clock-history"></i></a>
             {% endif %}
-            <button type="button" class="btn-icon" data-action="theme.toggle" title="Toggle Theme">
+            {% endif %}
+            {% block header_theme %}
+            <button type="button" class="btn-icon" data-action="theme.toggle" data-header="theme" title="Toggle Theme">
                 <i class="bi bi-moon" id="themeIcon"></i>
             </button>
-            <a href="/logout/" class="btn-icon" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
             {% endblock %}
+            {% if request.user.is_authenticated %}
+            <a href="/logout/" class="btn-icon" data-header="logout" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+            {% endif %}
         </div>
     </header>
 

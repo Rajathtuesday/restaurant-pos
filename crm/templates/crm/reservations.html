@@ -23,21 +23,12 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-calendar-check" style="color:var(--accent-gold);"></i>
-        <span>Reservations</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }}</p>
-</div>
-{% endblock %}
+{% block page_title %}Reservations{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <input type="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control d-none d-sm-block" style="width:160px; border-radius:0; background:transparent; border-color:var(--border-color); color:var(--text-main);" onchange="window.location.href='?date='+encodeURIComponent(this.value)">
 <button class="btn-luxury" data-bs-toggle="modal" data-bs-target="#newBookingModal">New Booking</button>
 <a href="/dashboard/" class="btn-luxury d-none d-sm-inline-flex">Exit</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}

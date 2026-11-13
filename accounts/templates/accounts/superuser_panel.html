@@ -37,14 +37,10 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin:0;">Rasova Staff</p>
-  <h1 class="brand-title mb-0"><i class="bi bi-shield-lock me-2" style="color:var(--accent-gold);"></i>Control Panel</h1>
-</div>
-{% endblock %}
+{% block page_title %}Control Panel{% endblock %}
+{% block page_outlet %}Rasova Staff{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <a href="/sales/" class="btn-luxury me-2">Reseller Dashboard</a>
 <a href="/settings/features/" class="btn-luxury me-2">Feature Flags</a>
 <a href="/admin/" class="btn-luxury">Django Admin</a>

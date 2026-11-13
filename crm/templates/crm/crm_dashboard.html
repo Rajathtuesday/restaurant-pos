@@ -20,22 +20,13 @@
 </style>
 {% endblock %}
 
-{% block header_left %}
-<div>
-    <a href="/dashboard/" class="brand-title">
-        <i class="bi bi-people" style="color:var(--accent-gold);"></i>
-        <span>{{ request.user.tenant.name }}</span>
-    </a>
-    <p class="brand-subtitle">{{ request.user.outlet.name }} · Guest Relations</p>
-</div>
-{% endblock %}
+{% block page_title %}Guest Relations{% endblock %}
 
-{% block header_right %}
+{% block header_links %}
 <form method="GET" class="m-0">
     <input type="search" name="q" value="{{ query }}" placeholder="Search guests…" class="search-bar" onchange="this.form.submit()">
 </form>
 <a href="/dashboard/" class="btn-luxury d-none d-sm-inline-flex">Dashboard</a>
-{{ block.super }}
 {% endblock %}
 
 {% block content %}
