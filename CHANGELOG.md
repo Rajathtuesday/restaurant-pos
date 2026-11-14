@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Kitchen Stations on modules; One Printer mode and Remove work in the Android app
+
+### Fixed
+- **Switching to One Printer mode and removing a station asked with the browser's `confirm()`**, which never shows in the Android app, so neither could be done there. Both ask in Rasova's own sheet.
+- The printer scan wrote the addresses the agent found into the page as HTML, each with an inline handler; they are buttons with text now. The agent's error words are text too.
+- The test page printed an arrow ("Agent → Printer") that CP437 printers cannot print; it says "Agent to printer".
+
+### Changed
+- `/setup/kitchen-stations/` runs on `static/js/setup/stations.js` and `station_agent.js` (the agent's WebSocket); data and addresses from `setup.views.core_views.stations_page_data()`; style in `static/css/setup/setup_kitchen_stations.css`. Set Default no longer needs a click stopper to keep the card shut.
+- The ratchet holds 3 templates (was 4).
+
+### Tests
+- `setup/tests/test_kitchen_stations_browser.py` (4, Chromium): One Printer mode and Remove ask in a sheet (both fail on the old page); a station opens and saves its printer; Set Default does not open the card.
+- `static/js/tests/setup_stations.test.mjs` (6): the agent's address, Test Print waits for its own job, a refusal in the agent's words, no agent, the scan, a test page the printer can print.
+
 ## 2026-11-14: Setup, Offers on modules
 
 ### Changed

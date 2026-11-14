@@ -3,100 +3,7 @@
 {% block title %}Kitchen Stations | Setup{% endblock %}
 
 {% block extra_css %}
-<style>
-  .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-  .page-title   { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
-  .divider      { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
-  .page-sub     { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
-  .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
-
-  .page-body { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem; display: grid; grid-template-columns: 1fr 1.6fr; gap: 3rem; align-items: start; }
-  @media(max-width: 700px) { .page-body { grid-template-columns: 1fr; } }
-
-  /* Add-station form */
-  .field-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.4rem; }
-  .field-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.55rem 0; font-size: 1rem; outline: none; margin-bottom: 1.4rem; font-family: inherit; transition: border-color 0.2s; }
-  .field-input:focus { border-bottom-color: var(--accent-gold); }
-  .btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
-  .btn-add:hover { opacity: 0.88; }
-
-  /* Agent status pill */
-  .agent-row { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.9rem; border: 1px solid var(--border-color); margin-bottom: 1.25rem; font-size: 0.72rem; color: var(--text-muted); gap: 0.75rem; flex-wrap: wrap; }
-  .agent-pill { display: inline-flex; align-items: center; gap: 0.4rem; }
-
-  /* Print mode */
-  .print-mode-box { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.1rem; margin-bottom: 1.25rem; }
-  .print-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-  .print-mode-opt {
-    background: transparent; border: 1.5px solid var(--border-color);
-    padding: 0.8rem 0.75rem; cursor: pointer; text-align: left;
-    display: flex; flex-direction: column; gap: 2px;
-    transition: border-color 0.15s, background 0.15s; font-family: inherit;
-  }
-  .print-mode-opt:hover  { border-color: var(--accent-gold); }
-  .print-mode-opt.active { border-color: var(--accent-gold); background: rgba(197,160,89,0.07); }
-  .pm-icon  { font-size: 1.2rem; margin-bottom: 0.2rem; }
-  .pm-title { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
-  .pm-desc  { font-size: 0.65rem; color: var(--text-muted); line-height: 1.4; }
-  @media(max-width:500px) { .print-mode-grid { grid-template-columns: 1fr; } }
-  #printModeHint { margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted); line-height: 1.6; }
-
-  /* Station cards */
-  .station-card { background: var(--panel-bg); border: 1px solid var(--border-color); margin-bottom: 0.75rem; transition: border-color 0.2s; }
-  .station-card.is-default { border-color: var(--accent-gold); }
-  .station-header { padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
-  .station-name { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
-  .badge-default { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 2px 8px; }
-  .btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 10px; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s; }
-  .btn-ghost:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-  .chevron { transition: transform 0.2s; font-size: 0.8rem; }
-  .chevron.open { transform: rotate(180deg); }
-
-  /* Printer config panel */
-  .printer-panel { border-top: 1px solid var(--border-color); padding: 1.25rem; display: none; }
-  .printer-panel.open { display: block; }
-  .printer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
-  @media(max-width:500px) { .printer-grid { grid-template-columns: 1fr; } }
-  .field-select { width: 100%; background: var(--panel-bg); border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.55rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.4rem; font-family: inherit; cursor: pointer; appearance: none; }
-  .field-select:focus { border-bottom-color: var(--accent-gold); }
-
-  /* Advanced toggle */
-  .advanced-toggle { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); cursor: pointer; background: none; border: none; padding: 0; font-family: inherit; display: flex; align-items: center; gap: 0.3rem; margin-bottom: 1rem; }
-  .advanced-toggle:hover { color: var(--text-main); }
-  .advanced-panel { display: none; }
-  .advanced-panel.open { display: block; }
-
-  .hint { font-size: 0.68rem; color: var(--text-muted); margin-bottom: 1.2rem; line-height: 1.5; }
-
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-color); display: inline-block; }
-  .dot.green  { background: #10b981; }
-  .dot.red    { background: #ef4444; }
-  .dot.orange { background: #f59e0b; }
-
-  .printer-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
-
-  .btn-row  { display: flex; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
-  .btn-save { padding: 0.6rem 1.4rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; cursor: pointer; }
-  .btn-test { padding: 0.6rem 1.4rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.2s; }
-  .btn-test:hover     { border-color: var(--text-main); }
-  .btn-test:disabled  { opacity: 0.4; cursor: not-allowed; }
-  .btn-delete-station { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 0.4rem 0.9rem; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-  .btn-delete-station:hover { border-color: #ef4444; color: #ef4444; }
-
-  .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }
-
-  /* Print strip */
-  .strip-block { border: 1px solid var(--border-color); background: var(--panel-bg); padding: 0.5rem 0.9rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; text-align: center; line-height: 1.3; min-width: 70px; }
-  .strip-bill  { border-color: var(--accent-gold); color: var(--accent-gold); }
-  .strip-kot   { border-color: var(--text-muted); color: var(--text-main); }
-  .strip-cut   { display: flex; align-items: center; padding: 0 0.4rem; font-size: 0.6rem; letter-spacing: 1px; font-weight: 600; white-space: nowrap; }
-  .strip-part  { color: var(--text-muted); }
-  .strip-full  { color: var(--accent-gold); font-size: 0.65rem; }
-  @media(max-width:600px) {
-    .strip-block { min-width: 56px; padding: 0.4rem 0.5rem; font-size: 0.65rem; }
-    .strip-cut   { padding: 0 0.25rem; font-size: 0.55rem; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/setup_kitchen_stations.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/setup/">Setup</a> / Kitchen Stations{% endblock %}
@@ -152,14 +59,14 @@
     <div class="print-mode-box">
       <p class="section-label" style="margin-bottom:0.75rem;">How Are Printers Set Up?</p>
       <div class="print-mode-grid">
-        <button class="print-mode-opt {% if not any_station_has_printer %}active{% endif %}"
-                id="modeCashier" onclick="setPrintMode('cashier')">
+        <button type="button" class="print-mode-opt {% if not any_station_has_printer %}active{% endif %}"
+                id="modeCashier" data-action="station.mode" data-mode="cashier">
           <span class="pm-icon">🖨</span>
           <span class="pm-title">One Printer at Counter</span>
           <span class="pm-desc">Bill + all KOTs print as one strip. Only the default station needs a printer IP.</span>
         </button>
-        <button class="print-mode-opt {% if any_station_has_printer %}active{% endif %}"
-                id="modeStation" onclick="setPrintMode('station')">
+        <button type="button" class="print-mode-opt {% if any_station_has_printer %}active{% endif %}"
+                id="modeStation" data-action="station.mode" data-mode="station">
           <span class="pm-icon">🖨🖨</span>
           <span class="pm-title">Printer per Station</span>
           <span class="pm-desc">Each kitchen station has its own printer. KOTs print directly at the station.</span>
@@ -173,7 +80,7 @@
     {% for station in stations %}
     <div class="station-card {% if station.is_default %}is-default{% endif %}" id="card-{{ station.id }}">
 
-      <div class="station-header" onclick="togglePanel({{ station.id }})">
+      <div class="station-header" data-action="station.toggle" data-station="{{ station.id }}">
         <div class="station-name">
           <i class="bi bi-fire" style="color:{% if station.is_default %}var(--accent-gold){% else %}var(--text-muted){% endif %}"></i>
           {{ station.name }}
@@ -188,7 +95,7 @@
             <span class="printer-status"><span class="dot"></span>No printer</span>
           {% endif %}
           {% if not station.is_default %}
-            <form method="post" action="/setup/set-default-station/{{ station.id }}/" onclick="event.stopPropagation()" style="display:inline;">
+            <form method="post" action="{% url 'set-default-station' station.id %}" style="display:inline;">
               {% csrf_token %}
               <button type="submit" class="btn-ghost">Set Default</button>
             </form>
@@ -201,7 +108,7 @@
 
         <label style="display:flex;gap:0.6rem;align-items:flex-start;font-size:0.78rem;line-height:1.5;margin-bottom:1rem;cursor:pointer;">
           <input type="checkbox" class="made-on-send" data-station="{{ station.id }}" {% if station.made_on_send %}checked{% endif %}
-                 onchange="setMadeOnSend({{ station.id }}, this)" style="margin-top:0.2rem;">
+                 data-action="station.madeOnSend" style="margin-top:0.2rem;">
           <span><strong>Made as soon as sent</strong> (turn on for a bar). A drink cancelled after it was sent counts as
             poured: it becomes wastage and needs a manager's PIN, instead of going back into stock.</span>
         </label>
@@ -221,8 +128,8 @@
                 value="{{ station.printer_ip|default:'' }}"
                 placeholder="e.g. 192.168.1.100"
                 style="margin-bottom:0;flex:1;">
-              <button class="btn-ghost" id="discover-btn-{{ station.id }}"
-                onclick="discoverPrinterIp({{ station.id }})"
+              <button type="button" class="btn-ghost" id="discover-btn-{{ station.id }}"
+                data-action="station.discover" data-station="{{ station.id }}"
                 title="Auto-scan network for printers"
                 style="white-space:nowrap;padding:4px 10px;height:2.1rem;">
                 <i class="bi bi-search"></i>
@@ -240,8 +147,8 @@
         </div>
 
         <!-- Advanced fields: collapsed by default -->
-        <button class="advanced-toggle" onclick="toggleAdvanced({{ station.id }})">
-          <i class="bi bi-chevron-right" id="adv-icon-{{ station.id }}" style="font-size:0.6rem;"></i>
+        <button type="button" class="advanced-toggle" data-action="station.advanced" data-station="{{ station.id }}">
+          <i class="bi bi-chevron-right adv-icon" id="adv-icon-{{ station.id }}"></i>
           Advanced
         </button>
         <div class="advanced-panel" id="adv-{{ station.id }}">
@@ -270,12 +177,11 @@
         </div>
 
         <div class="btn-row">
-          <button class="btn-save" onclick="saveConfig({{ station.id }})">
+          <button type="button" class="btn-save" data-action="station.save" data-station="{{ station.id }}">
             <i class="bi bi-floppy me-1"></i> Save
           </button>
-          <button class="btn-test" id="test-btn-{{ station.id }}"
-            {% if not station.printer_ip %}disabled title="Save a printer IP first"{% endif %}
-            onclick="testPrint({{ station.id }})">
+          <button type="button" class="btn-test" id="test-btn-{{ station.id }}" data-action="station.test" data-station="{{ station.id }}"
+            {% if not station.printer_ip %}disabled title="Save a printer IP first"{% endif %}>
             <i class="bi bi-printer me-1"></i> Test Print
           </button>
           <span class="printer-status" id="status-{{ station.id }}"></span>
@@ -283,7 +189,7 @@
 
         {% if stations|length > 1 %}
         <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-color);">
-          <button class="btn-delete-station" onclick="deleteStation({{ station.id }}, '{{ station.name|escapejs }}', {{ station.is_default|lower }})">
+          <button type="button" class="btn-delete-station" data-action="station.remove" data-station="{{ station.id }}" data-name="{{ station.name }}" data-default="{{ station.is_default|lower }}">
             <i class="bi bi-trash me-1"></i> Remove Station
           </button>
         </div>
@@ -359,241 +265,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-// Android phones run the agent on-device; desktops use the configured host
-const agentWs = () => 'ws://' + ((window.rasovaPlatform && rasovaPlatform.android)
-    ? 'localhost'
-    : '{{ request.user.outlet.agent_host|default:"localhost" }}') + ':8765';
-let _agentWs = null;
-
-async function connectAgent(timeout = 2000) {
-  if (_agentWs && _agentWs.readyState === WebSocket.OPEN) return _agentWs;
-  return new Promise((res, rej) => {
-    const ws = new WebSocket(agentWs());
-    const t  = setTimeout(() => { ws.close(); rej(new Error('timeout')); }, timeout);
-    ws.onopen  = () => { clearTimeout(t); _agentWs = ws; res(ws); };
-    ws.onerror = () => { clearTimeout(t); rej(new Error('not running')); };
-  });
-}
-
-async function checkAgentStatus() {
-  const dot  = document.getElementById('agentDot');
-  const text = document.getElementById('agentStatusText');
-  try {
-    const ws = await connectAgent(2000);
-    ws.send(JSON.stringify({ type: 'ping' }));
-    dot.className  = 'dot green';
-    text.textContent = 'Rasova Agent running';
-    text.style.color = '#10b981';
-  } catch {
-    dot.className  = 'dot red';
-    text.innerHTML = 'Agent not running. <a href="{% url 'agent_download' 'rasova_agent_installer.bat' %}" download style="color:var(--accent-gold);">Download installer</a>';
-    text.style.color = 'var(--text-muted)';
-  }
-}
-
-async function setPrintMode(mode) {
-  const hint = document.getElementById('printModeHint');
-  if (mode === 'cashier') {
-    if (!confirm(
-      'Switch to One Printer mode?\n\n' +
-      'This will clear the printer IP from all stations except the default station.\n\n' +
-      'The default station keeps its IP: bill + KOTs print there as one strip.'
-    )) return;
-    try {
-      await apiClient.post('/setup/kitchen-stations/set-mode/cashier/', {});
-      hint.textContent = '✓ One Printer mode active.';
-      hint.style.color = '#10b981';
-      document.getElementById('modeCashier').classList.add('active');
-      document.getElementById('modeStation').classList.remove('active');
-      setTimeout(() => window.location.reload(), 800);
-    } catch(e) {}
-  } else {
-    hint.textContent = 'Enter a printer IP for each station below.';
-    hint.style.color = 'var(--text-muted)';
-    document.getElementById('modeStation').classList.add('active');
-    document.getElementById('modeCashier').classList.remove('active');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  checkAgentStatus();
-  const hint = document.getElementById('printModeHint');
-  {% if any_station_has_printer %}
-  hint.textContent = 'Each station has its own printer. KOTs print at the station when the order is sent.';
-  {% else %}
-  hint.innerHTML = '✓ One Printer mode: enter the IP on the <strong>{% if default_station %}{{ default_station.name }}{% else %}default{% endif %}</strong> station only.';
-  hint.style.color = '#10b981';
-  {% endif %}
-});
-
-function togglePanel(id) {
-  const panel   = document.getElementById(`panel-${id}`);
-  const chevron = document.getElementById(`chevron-${id}`);
-  const isOpen  = panel.classList.contains('open');
-  panel.classList.toggle('open', !isOpen);
-  chevron.classList.toggle('open', !isOpen);
-}
-
-function toggleAdvanced(id) {
-  const panel = document.getElementById(`adv-${id}`);
-  const icon  = document.getElementById(`adv-icon-${id}`);
-  const isOpen = panel.classList.contains('open');
-  panel.classList.toggle('open', !isOpen);
-  icon.className = isOpen ? 'bi bi-chevron-right' : 'bi bi-chevron-down';
-  icon.style.fontSize = '0.6rem';
-}
-
-function setStatus(id, type, msg) {
-  const el = document.getElementById(`status-${id}`);
-  const colors = { ok: '#10b981', err: '#ef4444', busy: 'var(--text-muted)' };
-  el.innerHTML = `<span class="dot" style="background:${colors[type]}"></span> ${msg}`;
-}
-
-async function saveConfig(id) {
-  const ip    = document.getElementById(`ip-${id}`).value.trim();
-  const port  = document.getElementById(`port-${id}`).value.trim();
-  const paper = document.getElementById(`paper-${id}`).value;
-  const cut   = document.getElementById(`cut-${id}`).value;
-  const enc   = document.getElementById(`enc-${id}`).value;
-  setStatus(id, 'busy', 'Saving…');
-  try {
-    const data = await apiClient.post(`/setup/kitchen-stations/${id}/printer/`, {
-      printer_ip: ip, printer_port: port,
-      paper_width_mm: paper, cut_type: cut, printer_encoding: enc,
-    });
-    setStatus(id, 'ok', data.message || 'Saved');
-    const testBtn = document.getElementById(`test-btn-${id}`);
-    if (ip) { testBtn.disabled = false; testBtn.title = ''; }
-    const dots = document.getElementById(`card-${id}`).querySelectorAll('.dot');
-    if (dots.length) dots[0].style.background = ip ? '#f59e0b' : 'var(--border-color)';
-  } catch {
-    setStatus(id, 'err', 'Save failed');
-  }
-}
-
-async function testPrint(id) {
-  const btn = document.getElementById(`test-btn-${id}`);
-  const ip  = document.getElementById(`ip-${id}`).value.trim();
-  const port = parseInt(document.getElementById(`port-${id}`)?.value || '9100');
-  if (!ip) { setStatus(id, 'err', 'Enter a printer IP first'); return; }
-
-  btn.disabled = true;
-  setStatus(id, 'busy', 'Connecting to agent…');
-
-  const ESC = '\x1b', GS = '\x1d';
-  const lines = [
-    ESC + '@',
-    ESC + 'a\x01',
-    ESC + '!\x18',
-    'Rasova\n',
-    ESC + '!\x00',
-    ESC + 'a\x01',
-    'Test Print\n',
-    '--------------------------------\n',
-    ESC + 'a\x00',
-    'Agent → Printer connection OK\n',
-    `IP: ${ip}:${port}\n`,
-    '--------------------------------\n\n\n',
-    GS + 'V\x41\x03',
-  ];
-
-  try {
-    const ws  = await connectAgent(3000);
-    const jid = `test-${id}-${Date.now()}`;
-    await new Promise((res, rej) => {
-      const t = setTimeout(() => rej(new Error('Print timeout')), 10000);
-      const onMsg = (e) => {
-        const d = JSON.parse(e.data);
-        if (d.job_id !== jid) return;
-        clearTimeout(t);
-        ws.removeEventListener('message', onMsg);
-        d.type === 'ok' ? res(d) : rej(new Error(d.message || 'Print failed'));
-      };
-      ws.addEventListener('message', onMsg);
-      ws.send(JSON.stringify({ type: 'print', job_id: jid, lines, network_host: ip, network_port: port }));
-    });
-    setStatus(id, 'ok', 'Printed!');
-    const dots = document.getElementById(`card-${id}`).querySelectorAll('.dot');
-    if (dots.length) dots[0].style.background = '#10b981';
-  } catch(e) {
-    const msg = e.message === 'not running' ? 'Rasova Agent not running' : (e.message || 'Could not reach printer');
-    setStatus(id, 'err', msg);
-    ui.toast(msg, 'error');
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function discoverPrinterIp(id) {
-  const btn    = document.getElementById(`discover-btn-${id}`);
-  const result = document.getElementById(`discover-result-${id}`);
-  btn.disabled = true;
-  result.textContent = 'Scanning network…';
-  result.style.color = 'var(--text-muted)';
-
-  try {
-    const ws = await connectAgent(3000);
-    const found = await new Promise((res, rej) => {
-      const t = setTimeout(() => rej(new Error('timeout')), 8000);
-      const onMsg = (e) => {
-        const d = JSON.parse(e.data);
-        if (d.type !== 'network_printers') return;
-        clearTimeout(t);
-        ws.removeEventListener('message', onMsg);
-        res(d.list || []);
-      };
-      ws.addEventListener('message', onMsg);
-      ws.send(JSON.stringify({ type: 'discover_network_printers', port: 9100, timeout: 0.4 }));
-    });
-
-    if (found.length === 0) {
-      result.textContent = 'No printers found on network';
-      result.style.color = '#ef4444';
-    } else if (found.length === 1) {
-      document.getElementById(`ip-${id}`).value = found[0].ip;
-      result.textContent = `✓ Found: ${found[0].ip} (${found[0].responded_ms}ms)`;
-      result.style.color = '#10b981';
-    } else {
-      const links = found.map(p =>
-        `<a href="#" onclick="event.preventDefault();document.getElementById('ip-${id}').value='${p.ip}';document.getElementById('discover-result-${id}').textContent='Selected ${p.ip}';document.getElementById('discover-result-${id}').style.color='#10b981';" style="color:var(--accent-gold);">${p.ip}</a>`
-      ).join(' &nbsp;·&nbsp; ');
-      result.innerHTML = `Found ${found.length}: ${links}`;
-      result.style.color = 'var(--text-muted)';
-    }
-  } catch(e) {
-    result.textContent = e.message === 'not running' ? 'Rasova Agent not running' : 'Scan failed: ' + e.message;
-    result.style.color = '#ef4444';
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-async function setMadeOnSend(id, box) {
-  try {
-    await apiClient.post(`/setup/kitchen-stations/${id}/made-on-send/`, { on: box.checked });
-    ui.toast(box.checked ? "Drinks from this station now count as made when sent." : "Back to the kitchen rule (made after 10 minutes).", "success");
-  } catch (e) {
-    box.checked = !box.checked;
-  }
-}
-
-async function deleteStation(id, name, isDefault) {
-  const warning = isDefault
-    ? `"${name}" is the default station. Another station will become the default automatically.\n\nDelete anyway?`
-    : `Remove kitchen station "${name}"?\n\nMenu items assigned to it will move to the default station.`;
-  if (!confirm(warning)) return;
-  try {
-    const data = await apiClient.post(`/setup/kitchen-stations/${id}/delete/`, {});
-    ui.toast(data.message || 'Station removed', 'success');
-    const card = document.getElementById(`card-${id}`);
-    if (card) {
-      card.style.transition = 'opacity 0.3s, transform 0.3s';
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(20px)';
-      setTimeout(() => { card.remove(); window.location.reload(); }, 350);
-    }
-  } catch { }
-}
-</script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/setup/stations.js' %}"></script>
 {% endblock %}

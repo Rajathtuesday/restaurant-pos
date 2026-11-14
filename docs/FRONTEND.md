@@ -51,6 +51,7 @@ static/js/qr_menu/   the guest QR menu (on public_base.html): cart.js, modifiers
 static/js/live_orders/ the live orders board: board.js (the tickets as markup, filters, search), loader.js (the 8-second refresh, newest answer only), index.js
 static/js/order_history/ order history's detail panel: detail.js (the panel as markup, escaped), index.js (open, refund form, approve and reject in Rasova's sheets, redraw by the order's id)
 static/js/setup/offers.js, offer_example.js  Setup, Offers: the form, Edit, and the example bill (offer_example.js, pure, the cart's own offer engine and tax sums)
+static/js/setup/stations.js, station_agent.js  Setup, Kitchen Stations: the station cards, print mode, remove in Rasova's sheet; station_agent.js is the print agent's WebSocket (status, Test Print, network scan)
 static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws

@@ -220,6 +220,24 @@ def set_station_made_on_send(request, station_id):
     return JsonResponse({"success": True, "made_on_send": on})
 
 
+def stations_page_data(outlet, default_station, any_station_has_printer):
+    """Everything static/js/setup/stations.js reads; 0 stands in for a
+    station's id in the addresses."""
+    from django.urls import reverse
+    return {
+        "agentHost": (outlet.agent_host if outlet else "") or "localhost",
+        "anyStationHasPrinter": any_station_has_printer,
+        "defaultStationName": default_station.name if default_station else "",
+        "urls": {
+            "installer": reverse("agent_download", args=["rasova_agent_installer.bat"]),
+            "cashierMode": reverse("set_print_mode", args=["cashier"]),
+            "printer": reverse("update_printer_config", args=[0]),
+            "remove": reverse("delete_station", args=[0]),
+            "madeOnSend": reverse("set_station_made_on_send", args=[0]),
+        },
+    }
+
+
 @login_required
 def setup_kitchen_stations(request):
 
@@ -286,6 +304,7 @@ def setup_kitchen_stations(request):
             "cashier_ip": cashier_ip,
             "default_station": default_station,
             "outlet": request.user.outlet,
+            "page_data": stations_page_data(request.user.outlet, default_station, any_station_has_printer),
         }
     )
 
