@@ -13,6 +13,10 @@ All with the password given (--password, default "pubdemo123"). Liquor hours
 are off on the demo, so it can be recorded at any time; switch them on in
 Outlet Settings to show the lock.
 
+It opens on a Friday night already under way (devtools/pub_night.py): four
+tables drinking, eight bills paid, the register open, the lager keg nearly dry.
+Each run starts the night over; --no-night leaves the pub's orders alone.
+
 Run locally only:  python manage.py seed_pub_demo
 """
 from datetime import time
@@ -20,6 +24,8 @@ from decimal import Decimal as D
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+
+from devtools.pub_night import start_the_night
 
 from accounts.models import User
 from inventory.models import InventoryItem, Recipe
@@ -55,9 +61,10 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--password", default="pubdemo123")
+        parser.add_argument("--no-night", action="store_true", help="set up the pub, leave its orders alone")
 
     @transaction.atomic
-    def handle(self, *args, password, **options):
+    def handle(self, *args, password, no_night=False, **options):
         tenant, _ = Tenant.objects.get_or_create(name=NAME, defaults={"tenant_type": "pub"})
         if tenant.tenant_type != "pub":
             tenant.tenant_type = "pub"
@@ -117,5 +124,9 @@ class Command(BaseCommand):
                 OfferTarget.objects.create(offer=offer, menu_item=dish)
             OfferWindow.objects.create(offer=offer, start_time=time(19, 0), end_time=time(21, 0))
 
+        if not no_night:
+            night = start_the_night(tenant, outlet, staff)
+            self.stdout.write(f"Tonight so far: {night['open']} tables open, {night['paid']} bills paid "
+                              f"({night['takings']}), {night['keg_left_ml']} ml left in the lager keg.")
         self.stdout.write(self.style.SUCCESS(
             f"{NAME} is ready. Log in as demo_pub_cashier / demo_pub_manager (PIN 2580) with the password you gave."))

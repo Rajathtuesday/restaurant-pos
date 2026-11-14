@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-11-14: The demo pub opens on a Friday night
+
+A stranger opening the demo pub found an empty bar: drinks, a keg and a happy hour set up, but no night to look at.
+
+### Changed
+- **`python manage.py seed_pub_demo` plays a Friday night up to now** (`devtools/pub_night.py`): four tables drinking, eight bills paid tonight by cash, UPI and card with liquor taxed at VAT, the register open with a float, and the lager keg tapped at the start of the night and nearly dry, so the keg board shows it and the low-stock alert has gone off. The night is built the way service builds it: the dishes are sent and their recipes leave the stock, and each line takes the tax the till would copy. Each run starts the night over; `--no-night` sets up the pub and leaves its orders alone.
+
+### Tests
+- `devtools/tests/test_pub_night.py` (6 tests): the open tables, the paid bills and the register; liquor VAT on the bills; the keg at 80% or more sold, low stock and its alert; tonight's report equals the payments; a second run starts the night over; the cashier can open the floor plan and a bill.
+
 ## 2026-11-14: Touch, not hover
 
 A touch screen keeps the last tapped element "hovered": on a tablet, a card that lifted on hover stayed lifted after a tap.
