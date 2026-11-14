@@ -7,6 +7,26 @@ the source of truth.
 
 ---
 
+## 2026-11-14: The running order page on modules (phase 2)
+
+The running order page (`/order/<id>/`) asked why a dish was free with the browser's `prompt()`, which never shows in the Android app, so Comp did nothing there. It also kept its own list of who may do what, and the list had drifted from the server's.
+
+### Fixed
+- **Comp opens Rasova's own sheet** (`OrderEdit.complimentary` in `static/js/order_edit.js`, the same sheet as cancel and remove one): quick reasons (birthday, food complaint, long wait, regular guest) or a typed one, at least 3 characters as the server asks. A manager's PIN, when the bill is printed, is asked as for any other change.
+- **Captains get Comp.** The server lets a captain make a dish free; the page showed the button to owners and managers only. A waiter no longer sees Cancel Order, which the server refuses them.
+- **A dish already free says Free and has no Comp button.** The poll (`running-order-data`) now sends `is_complimentary`; before, Comp stayed on the dish and could be tapped again.
+- **A failed refresh says so** above the last list ("Could not refresh this order. Check the connection."); before, it went to the console and the page looked current.
+- **Totals** are written the one way (`rupees()`, "₹525", not "₹525.00").
+
+### Changed
+- `orders/running_order.html` is on `base.html` (the one header, its theme switch) and holds markup only: `static/js/running_order/` (`view.js`, `loader.js`, `actions.js`, `index.js`) and `static/css/running_order.css`. Its data comes from `running_order_page_data()` as one `page-data` block. The list is redrawn only when it changed, only the newest answer is drawn, a second tap while the first is out is ignored, and the 3-second poll waits while a sheet is open or the tab is hidden. Off the ratchet (71 templates left).
+- **`core.decorators.may(user, view)`**: `role_required` and `feature_required` now record their roles and features on the view, and `may()` answers what those checks would. Page data asks it instead of copying role lists (`docs/FRONTEND.md`, "How a page gets its code").
+
+### Tests
+- `static/js/tests/running_order.test.mjs` (22): badges, order of dishes, who gets which button, Free, escaping, the empty state; refused, offline, a login page, a late answer; serve, comp, a double tap, cancelling the order.
+- `orders/tests/test_running_order_page.py`: `may()` (roles, features, superuser, two role lists), the page data for owner, captain and waiter, `is_complimentary` in the poll, no browser pop-ups in the page or its modules.
+- `orders/tests/test_running_order_browser.py`: a captain makes a dish free through the sheet (total to ₹0, Comp gone); a waiter gets no edit buttons; a failed refresh shows its line and keeps the list. The first and last fail on the old page.
+
 ## 2026-11-14: The demo pub opens on a Friday night
 
 A stranger opening the demo pub found an empty bar: drinks, a keg and a happy hour set up, but no night to look at.

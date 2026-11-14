@@ -153,7 +153,6 @@ BASELINE = {
     'orders/templates/orders/public_bill.html': {"script": 0, "style": 54, "onclick": 0, "third_party": 0, "globals": 0},
     'orders/templates/orders/public_bill_expired.html': {"script": 0, "style": 16, "onclick": 0, "third_party": 0, "globals": 0},
     'orders/templates/orders/public_feedback.html': {"script": 0, "style": 53, "onclick": 0, "third_party": 0, "globals": 0},
-    'orders/templates/orders/running_order.html': {"script": 145, "style": 116, "onclick": 6, "third_party": 0, "globals": 0},
     'orders/templates/orders/thermal_receipt.html': {"script": 10, "style": 67, "onclick": 0, "third_party": 0, "globals": 0},
     'payments/templates/payments/pending_refunds.html': {"script": 35, "style": 15, "onclick": 2, "third_party": 0, "globals": 0},
     'reports/templates/reports/_report_tabs.html': {"script": 7, "style": 0, "onclick": 0, "third_party": 0, "globals": 0},

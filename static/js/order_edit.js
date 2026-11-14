@@ -6,6 +6,7 @@
  *   OrderEdit.reduce(item)            take one off a line ("2 naan -> 1")
  *   OrderEdit.remove(item)            cancel the whole line
  *   OrderEdit.cancelOrder(id, opts)   cancel a whole order
+ *   OrderEdit.complimentary(item)     make a line free, with a reason
  *
  * item = {id, name, quantity, status} plus the kitchen hints from the
  * server (in_kitchen, made_locked, suggest_made, restock_needs_manager).
@@ -19,8 +20,14 @@
 import { send as approvalSend } from "./approval.js";
 import { csrfToken } from "./core/csrf.js";
 
-var URLS = { reduce: "/reduce-item/0/", cancel: "/cancel-item/0/", cancelOrder: "/cancel-order/0/" };
+var URLS = {
+  reduce: "/reduce-item/0/", cancel: "/cancel-item/0/", cancelOrder: "/cancel-order/0/",
+  complimentary: "/complimentary-item/0/",
+};
 var REASONS = ["Customer changed mind", "Wrong order", "Out of stock", "Kitchen issue"];
+var COMP_REASONS = ["Birthday", "Food complaint", "Long wait", "Regular guest"];
+// The server's shortest reason (orders.services.discount_policy.REASON_MIN_LENGTH).
+var COMP_REASON_MIN = 3;
 
 function urlFor(template, id) {
   return template.replace("/0/", "/" + encodeURIComponent(id) + "/");
@@ -90,8 +97,8 @@ function injectStyles() {
   document.head.appendChild(el);
 }
 
-function reasonBlock(optional) {
-  var chips = REASONS.map(function (r) {
+function reasonBlock(optional, reasons) {
+  var chips = (reasons || REASONS).map(function (r) {
     return '<button type="button" class="oe-chip" aria-pressed="false" data-reason="' + esc(r) + '">' + esc(r) + "</button>";
   }).join("");
   return (
@@ -225,8 +232,8 @@ function ask(opts) {
     preConfirm: function () {
       var popup = window.Swal.getPopup();
       var reason = popup.querySelector(".oe-chips") ? readReason(popup) : "";
-      if (opts.needReason && !reason) {
-        window.Swal.showValidationMessage("Pick a reason or type one, it goes in the void report.");
+      if (opts.needReason && reason.length < (opts.reasonMin || 1)) {
+        window.Swal.showValidationMessage(opts.reasonNote || "Pick a reason or type one, it goes in the void report.");
         return false;
       }
       return { reason: reason, made: readMade(popup, opts.item) };
@@ -315,6 +322,31 @@ function remove(item) {
   });
 }
 
+// ── a free dish ─────────────────────────────────────────────────────
+
+// Asks why (it goes on the discount audit report with the reason), then
+// marks the line free. Replaces a browser prompt(), which never shows in
+// the Android app. A manager's PIN, when the bill is printed, is asked by
+// post() itself (approval.js).
+function complimentary(item) {
+  return ask({
+    title: "Make " + item.name + " free?",
+    html:
+      '<p class="oe-hint">The dish stays on the order at no charge. It shows on the discount report with the reason.</p>' +
+      reasonBlock(false, COMP_REASONS),
+    confirmText: "Make it free",
+    needReason: true,
+    reasonMin: COMP_REASON_MIN,
+    reasonNote: "Pick a reason or type one, it goes on the discount report.",
+    item: item,
+  }).then(function (answer) {
+    if (!answer) return null;
+    return post(urlFor(URLS.complimentary, item.id), { reason: answer.reason })
+      .then(function (data) { toast(item.name + " is now free", "success"); return data; })
+      .catch(function (err) { toast(err.message, "error"); return null; });
+  });
+}
+
 // ── cancelling a whole order ────────────────────────────────────────
 
 var STATUS_LABEL = { sent: "In the kitchen", preparing: "Cooking", ready: "Ready", served: "Served" };
@@ -395,10 +427,11 @@ const OrderEdit = {
   reduce: reduce,
   remove: remove,
   cancelOrder: cancelOrder,
+  complimentary: complimentary,
   esc: esc,
   toast: toast,
   post: post,
 };
-export { configure, sheetOpen, reduce, remove, cancelOrder, esc, toast, post };
+export { configure, sheetOpen, reduce, remove, cancelOrder, complimentary, esc, toast, post };
 export default OrderEdit;
 if (typeof window !== "undefined") window.OrderEdit = OrderEdit;

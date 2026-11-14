@@ -1,314 +1,44 @@
-{% load static %}<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Running Order</title>
+{% extends 'core/base.html' %}
+{% load static %}
 
-    <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
-    <link href="{% static 'vendor/bootstrap/bootstrap.min.css' %}" rel="stylesheet">
-    <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">
+{% block title %}Running Order #{{ order.id }} | {{ request.user.tenant.name }}{% endblock %}
 
-    <style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-        :root {
-            --bg-color: #f3f4f6;
-            --panel-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --border-color: #e5e7eb;
-            --accent-gold: #c5a059;
-            --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/running_order.css' %}">
+{% endblock %}
 
-            --c-pending: #9ca3af;
-            --c-order: #eab308;
-            --c-prepare: #f97316;
-            --c-ready: #10b981;
-            --c-serve: #3b82f6;
+{% block page_title %}Running Order{% endblock %}
 
-            --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
+{% block header_links %}
+{% if page_data.can.cancel_order %}
+<button type="button" class="btn-luxury ro-danger text-decoration-none d-none d-sm-inline-flex" data-action="order.cancel">Cancel Order</button>
+<button type="button" class="btn-icon d-sm-none" data-action="order.cancel" title="Cancel Order" aria-label="Cancel Order"><i class="bi bi-x-circle" aria-hidden="true"></i></button>
+{% endif %}
+{% if 'floor_plan' in tenant_features %}
+<a href="{{ page_data.urls.tables }}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
+<a href="{{ page_data.urls.tables }}" class="btn-icon d-sm-none" title="Tables" aria-label="Tables"><i class="bi bi-grid-3x3" aria-hidden="true"></i></a>
+{% endif %}
+{% endblock %}
 
-        body.dark {
-            --bg-color: #0f1115;
-            --panel-bg: #1a1d24;
-            --text-main: #f9fafb;
-            --text-muted: #9ca3af;
-            --border-color: #2d3139;
-            --accent-gold: #d4af37;
-            --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.4);
-        }
+{% block content %}
+<div class="ro-page">
+    <p class="ro-subtitle">Table: {{ order.table.name|default:"Takeaway" }} · Order #{{ order.id }}</p>
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            transition: var(--transition-smooth);
-            min-height: 100vh;
-            padding: 2rem 1rem;
-        }
+    <div class="ro-status" id="ro-status" role="alert" hidden></div>
 
-        /* HEADER */
-        .page-header {
-            display: flex; justify-content: space-between; align-items: center;
-            max-width: 800px; margin: 0 auto 2rem auto; padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .route-title { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; color: var(--text-main); line-height: 1; margin: 0; }
-        .route-subtitle { font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 5px; }
-
-        .btn-luxury {
-            border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
-            padding: 0.6rem 1.2rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
-            transition: var(--transition-smooth); border-radius: 4px; text-decoration: none; cursor: pointer;
-        }
-        .btn-luxury:hover { background: var(--text-main); color: var(--bg-color); }
-        .btn-gold { border-color: var(--accent-gold); color: var(--accent-gold); }
-        .btn-gold:hover { background: var(--accent-gold); color: #fff; }
-
-        /* ITEM CARD */
-        .order-container {
-            max-width: 800px; margin: 0 auto;
-        }
-        .item-card {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1rem 1.5rem;
-            margin-bottom: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: var(--shadow-soft);
-            transition: var(--transition-smooth);
-        }
-        @media (hover: hover) { .item-card:hover { transform: translateY(-2px); border-color: var(--accent-gold); } }
-        
-        .item-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
-        .item-meta { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; align-items: center; }
-
-        /* BADGES */
-        .status-badge {
-            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
-            padding: 4px 8px; border-radius: 4px;
-        }
-        .badge-pending { background: rgba(156, 163, 175, 0.1); color: var(--c-pending); border: 1px solid var(--c-pending); }
-        .badge-ordering { background: rgba(234, 179, 8, 0.1); color: var(--c-order); border: 1px solid var(--c-order); }
-        .badge-preparing { background: rgba(249, 115, 22, 0.1); color: var(--c-prepare); border: 1px solid var(--c-prepare); }
-        .badge-ready { background: rgba(16, 185, 129, 0.1); color: var(--c-ready); border: 1px solid var(--c-ready); }
-        .badge-served { background: rgba(59, 130, 246, 0.1); color: var(--c-serve); border: 1px solid var(--c-serve); }
-
-        /* TOTALS BLOCK */
-        .totals-block {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            box-shadow: var(--shadow-soft);
-        }
-        .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.95rem; color: var(--text-muted); }
-        .total-row.final { border-top: 1px solid var(--border-color); font-size: 1.4rem; font-weight: 700; font-family: 'DM Serif Display', serif; color: var(--text-main); margin-top: 10px; padding-top: 15px; }
-
-        .btn-theme { background: transparent; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; transition: color 0.3s ease; }
-        .btn-theme:hover { color: var(--text-main); }
-
-        .btn-step {
-            width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
-            border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
-            border-radius: 4px; cursor: pointer; font-size: 1.05rem; transition: var(--transition-smooth);
-        }
-        .btn-step:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-        .btn-step:focus-visible, .btn-luxury:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
-        .item-card.is-voided { opacity: 0.55; box-shadow: none; }
-        @media (hover: hover) { .item-card.is-voided:hover { transform: none; border-color: var(--border-color); } }
-        .item-card.is-voided .item-name { text-decoration: line-through; }
-        .void-reason { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
-        .badge-voided { background: rgba(239, 68, 68, 0.08); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.5); }
-    </style>
-</head>
-<body>
-
-    <div style="width: 100%;">
-        <!-- HEADER -->
-        <div class="page-header">
-            <div>
-                <h1 class="route-title">Running Order</h1>
-                <div class="route-subtitle">Table: {{ order.table.name|default:"Takeaway" }} | Order #{{ order.id }}</div>
-            </div>
-            <div class="d-flex align-items-center gap-3">
-                <button class="btn-theme" onclick="toggleDark()"><i class="bi bi-moon" id="themeIcon"></i></button>
-                <button class="btn-luxury border-danger text-danger" onclick="cancelOrder('{{ order.id }}')"><i class="bi bi-x-circle me-1"></i> Cancel Order</button>
-                <a href="{% url 'table-dashboard' %}" class="btn-luxury"><i class="bi bi-grid-3x3 me-1"></i> Tables</a>
-            </div>
-        </div>
-
-        <!-- MAIN CONTAINER -->
-        <div class="order-container">
-            <div id="items">
-                <!-- Javascript will inject item cards here -->
-            </div>
-
-            <!-- TOTALS -->
-            <div class="totals-block">
-                <div class="total-row"><span>Subtotal</span><span id="subtotal">₹0.00</span></div>
-                <div class="total-row"><span>GST (Tax)</span><span id="gst">₹0.00</span></div>
-                <div class="total-row final"><span>Total</span><span id="total">₹0.00</span></div>
-            </div>
-        </div>
+    <div id="items" aria-live="polite">
+        <div class="text-center py-5"><div class="spinner-border" role="status"><span class="visually-hidden">Loading the order</span></div></div>
     </div>
 
+    <div class="totals-block">
+        <div class="total-row"><span>Subtotal</span><span id="subtotal">₹0</span></div>
+        <div class="total-row"><span>GST (Tax)</span><span id="gst">₹0</span></div>
+        <div class="total-row final"><span>Total</span><span id="total">₹0</span></div>
+    </div>
+</div>
+{% endblock %}
 
-<script src="{% static 'vendor/sweetalert2/sweetalert2.all.min.js' %}"></script>
-<script type="module" src="{% static 'js/order_edit.js' %}"></script>
-<script>
-    /* THEME MANAGEMENT */
-    let isDark = localStorage.getItem("dark") === "true";
-    function updateIcons() {
-        let icon = document.getElementById("themeIcon");
-        if(isDark) { document.body.classList.add("dark"); icon.classList.replace("bi-moon", "bi-sun"); } 
-        else { document.body.classList.remove("dark"); icon.classList.replace("bi-sun", "bi-moon"); }
-    }
-    updateIcons();
-    function toggleDark() { isDark = !isDark; localStorage.setItem("dark", isDark); updateIcons(); }
-
-    /* CORE API FUNCTIONS */
-    // order_edit.js is a module and runs once the page is parsed.
-    document.addEventListener("DOMContentLoaded", () => OrderEdit.configure({
-        reduce: "{% url 'reduce-item' 0 %}",
-        cancel: "{% url 'cancel-item' 0 %}",
-        cancelOrder: "{% url 'cancel-order' 0 %}",
-    }));
-    const USER_ROLE = "{{ request.user.role|escapejs }}";
-    const CAN_EDIT = ["owner", "manager", "cashier", "captain"].includes(USER_ROLE);
-    const IS_MANAGER = USER_ROLE === "owner" || USER_ROLE === "manager";
-    let itemsById = {};
-    let busy = false;
-
-    function cancelOrder(id){
-        if (busy) return;
-        busy = true;
-        OrderEdit.cancelOrder(id, { billUrl: "{% url 'bill-view' order.id %}" }).then(data => {
-            busy = false;
-            if (data) window.location.href = "{% url 'table-dashboard' %}";
-            else refreshRunningOrder();
-        }, () => { busy = false; });
-    }
-
-    function editItem(kind, id){
-        const item = itemsById[id];
-        if (!item || busy) return;
-        busy = true;
-        const action = kind === "reduce" ? OrderEdit.reduce(item) : OrderEdit.remove(item);
-        action.then(() => { busy = false; refreshRunningOrder(); }, () => { busy = false; });
-    }
-
-    function simpleAction(url, id, failText){
-        OrderEdit.post(url.replace('/0/', '/' + id + '/'), {})
-            .then(() => refreshRunningOrder())
-            .catch(err => OrderEdit.toast(err.message || failText, "error"));
-    }
-
-    function serveItem(id){ simpleAction("{% url 'serve-item' 0 %}", id, "Couldn't serve this item."); }
-    function makeComplimentary(id){
-        // A free dish goes on the discount audit report with its reason.
-        const reason = (prompt("Why is this dish free? (for example: birthday, food complaint)") || "").trim();
-        if (reason.length < 3) { OrderEdit.toast("A free dish needs a reason.", "warning"); return; }
-        OrderEdit.post("{% url 'make-complimentary' 0 %}".replace('/0/', '/' + id + '/'), { reason })
-            .then(() => refreshRunningOrder())
-            .catch(err => OrderEdit.toast(err.message || "Couldn't mark this complimentary.", "error"));
-    }
-
-    function refreshRunningOrder(){
-        if (busy || OrderEdit.sheetOpen()) return;
-        fetch("{% url 'running-order-data' order.id %}")
-        .then(res => res.json())
-        .then(data => {
-
-            document.getElementById("subtotal").innerText = "₹" + data.subtotal.toFixed(2);
-            document.getElementById("gst").innerText = "₹" + data.gst.toFixed(2);
-            document.getElementById("total").innerText = "₹" + data.total.toFixed(2);
-
-            let container = document.getElementById("items");
-            let fullHtml = "";
-
-            if (data.items.length === 0) {
-                container.innerHTML = `<div class="text-center py-5" style="color: var(--text-muted); font-style: italic;">No items currently in this order.</div>`;
-                return;
-            }
-
-            const esc = OrderEdit.esc;
-            itemsById = {};
-            // Active dishes first, cancelled ones underneath as a record.
-            const sorted = data.items.slice().sort((a, b) => (a.status === "voided") - (b.status === "voided"));
-            sorted.forEach(i => {
-                itemsById[i.id] = i;
-                const voided = i.status === "voided";
-                let badgeClass = "badge-pending";
-                if(i.status === "sent") badgeClass = "badge-ordering";
-                if(i.status === "preparing") badgeClass = "badge-preparing";
-                if(i.status === "ready") badgeClass = "badge-ready";
-                if(i.status === "served") badgeClass = "badge-served";
-                if(voided) badgeClass = "badge-voided";
-
-                let actions = "";
-                if (!voided) {
-                    if(i.status === "ready") {
-                        actions += `<button class="btn-luxury btn-gold me-2" onclick="serveItem(${i.id})"><i class="bi bi-check2-circle"></i> Serve</button>`;
-                    }
-                    const locked = i.status === "served" && !IS_MANAGER;
-                    if (CAN_EDIT && !locked) {
-                        actions += `<button class="btn-step me-2" onclick="editItem('reduce', ${i.id})" aria-label="Remove one ${esc(i.name)}" title="Remove one"><i class="bi bi-dash-lg"></i></button>`;
-                        actions += `<button class="btn-luxury me-2 text-danger border-danger px-2" style="font-size:0.7rem;min-height:44px;" onclick="editItem('remove', ${i.id})">CANCEL</button>`;
-                    }
-                    if (IS_MANAGER) {
-                        actions += `<button class="btn-luxury px-2" style="font-size:0.7rem;min-height:44px;" title="Make Complimentary" onclick="makeComplimentary(${i.id})">COMP</button>`;
-                    }
-                }
-
-                const reason = voided && i.void_reason ? `<div class="void-reason">Cancelled: ${esc(i.void_reason)}</div>` : '';
-                fullHtml += `
-                    <div class="item-card${voided ? ' is-voided' : ''}">
-                        <div>
-                            <div class="item-name">${esc(i.name)}</div>
-                            ${i.modifiers && i.modifiers.length > 0 ? `<div style="font-size:0.75rem; color:var(--accent-gold); font-style:italic; margin-bottom:4px;">+ ${esc(i.modifiers.join(', '))}</div>` : ''}
-                            <div class="item-meta">
-                                <span>Qty: ${esc(i.quantity)}</span>
-                                <span class="status-badge ${badgeClass}">${esc(voided ? 'cancelled' : i.status)}</span>
-                            </div>
-                            ${reason}
-                        </div>
-                        <div class="d-flex align-items-center flex-wrap justify-content-end">
-                            ${actions}
-                        </div>
-                    </div>
-                `;
-            });
-            container.innerHTML = fullHtml;
-        }).catch(err => console.error("Polling error:", err));
-    }
-
-    function getCookie(name){
-        let cookieValue = null;
-        if(document.cookie && document.cookie !== ""){
-            let cookies = document.cookie.split(";");
-            for(let i=0; i<cookies.length; i++){
-                let cookie = cookies[i].trim();
-                if(cookie.substring(0,name.length+1) === (name+"=")){
-                    cookieValue = decodeURIComponent(cookie.substring(name.length+1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-
-
-    // At DOMContentLoaded: the refresh reads OrderEdit, set by order_edit.js (a module) only after parsing.
-    document.addEventListener("DOMContentLoaded", () => { refreshRunningOrder(); setInterval(refreshRunningOrder, 3000); });
-
-</script>
-
-</body>
-</html>
+{% block extra_js %}
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/running_order/index.js' %}"></script>
+{% endblock %}

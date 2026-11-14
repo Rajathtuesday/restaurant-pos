@@ -6,12 +6,48 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from django.db import transaction
-from core.decorators import tenant_required, feature_required
+from core.decorators import may, tenant_required, feature_required
+from django.urls import reverse
 from orders.models import Order, OrderItem
 from tablemerge.models import TableMerge
 from orders.services.event_service import log_event
 
 logger = logging.getLogger("pos.orders")
+
+
+def running_order_page_data(order, user):
+    """What static/js/running_order/index.js needs from the server, rendered
+    once by running_order.html as {{ page_data|json_script:"page-data" }}:
+    how often the order is asked for, what this user may do (asked of the
+    views themselves, so a button shows exactly when the server would take
+    the tap), and every address the script calls (0 stands in for an id
+    the script fills in)."""
+    from kitchen.views import serve_item
+    from orders.services import approvals
+    from orders.views.discount_views import make_item_complimentary
+    from orders.views.order_actions import cancel_item, cancel_order, reduce_item
+    return {
+        "poll_ms": 3000,
+        "order_id": order.id,
+        "can": {
+            "edit": may(user, reduce_item) and may(user, cancel_item),
+            "cancel_order": may(user, cancel_order),
+            "serve": may(user, serve_item),
+            "comp": may(user, make_item_complimentary),
+            # A served dish needs a manager (void_service): locked for the rest.
+            "edit_served": approvals.approves_own(user),
+        },
+        "urls": {
+            "data": reverse("running-order-data", args=[order.id]),
+            "reduce": reverse("reduce-item", args=[0]),
+            "cancel": reverse("cancel-item", args=[0]),
+            "cancel_order": reverse("cancel-order", args=[0]),
+            "serve": reverse("serve-item", args=[0]),
+            "comp": reverse("make-complimentary", args=[0]),
+            "bill": reverse("bill-view", args=[order.id]),
+            "tables": reverse("table-dashboard"),
+        },
+    }
 
 
 @login_required
@@ -27,7 +63,8 @@ def running_order_view(request, order_id):
     if not order:
         return JsonResponse({"error": "Order not found"}, status=404)
 
-    return render(request, "orders/running_order.html", {"order": order})
+    return render(request, "orders/running_order.html",
+                  {"order": order, "page_data": running_order_page_data(order, request.user)})
 
 
 @login_required
@@ -206,6 +243,7 @@ def running_order_data(request, order_id):
             "quantity": i.quantity,
             "status": i.status,
             "void_reason": i.void_reason or "",
+            "is_complimentary": i.is_complimentary,
             "modifiers": [m.name for m in i.modifiers.all()],
             **kitchen_stock_hint(i, is_manager, now),
         })
@@ -268,9 +306,9 @@ def approve_items(request, order_id):
 @require_POST
 def approve_item(request, item_id):
     """
-    Singular sibling of approve_items — lets staff approve one QR-guest
+    Singular sibling of approve_items: lets staff approve one QR-guest
     item at a time instead of all-or-nothing, with cancel_item (existing,
-    already "review"-safe — see void_service.void_order_item) as the
+    already "review"-safe, see void_service.void_order_item) as the
     per-item counterpart for rejecting instead of approving.
 
     Deliberately does NOT create a KOT (unlike approve_items, which does).

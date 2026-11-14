@@ -24,8 +24,27 @@ def role_required(*roles):
             if request.user.role not in roles and not request.user.is_superuser:
                 return JsonResponse({"error": "Permission denied"}, status=403)
             return view_func(request, *args, **kwargs)
+        # Kept on the view so a page can ask may() which buttons to show
+        # instead of copying the list. Two role_required on one view: both apply.
+        inner = getattr(view_func, "allowed_roles", None)
+        _wrapped_view.allowed_roles = frozenset(roles) & inner if inner is not None else frozenset(roles)
         return _wrapped_view
     return decorator
+
+
+def may(user, view):
+    """True when `user` gets past `view`'s role_required and
+    feature_required, the same checks the view makes. A page uses it to
+    decide which buttons to draw, so a button never shows for a request the
+    server refuses, and never hides from someone the server lets through."""
+    if user.is_superuser:
+        return True
+    roles = getattr(view, "allowed_roles", None)
+    if roles is not None and getattr(user, "role", None) not in roles:
+        return False
+    from core.features import has_feature
+    tenant = getattr(user, "tenant", None)
+    return all(has_feature(tenant, f) for f in getattr(view, "required_features", ()))
 
 
 def tenant_required(view_func):
@@ -34,7 +53,7 @@ def tenant_required(view_func):
     and that any subdomain matches the user's assigned tenant.
     Apply after @login_required.
 
-    Superusers bypass every check below, same as feature_required — a
+    Superusers bypass every check below, same as feature_required: a
     platform superuser normally has tenant=None (they aren't scoped to any
     one restaurant), so the "must have a tenant/outlet" and "subdomain must
     match your tenant" checks would otherwise lock them out of any view
@@ -42,7 +61,7 @@ def tenant_required(view_func):
     own explicit superuser tenant-selection logic (e.g. reports.dashboard's
     ?tenant_id=). Views that need real tenant/outlet data for a superuser
     to actually do anything must resolve that themselves, same as they
-    already do today — this decorator's job is only "don't block the
+    already do today; this decorator's job is only "don't block the
     superuser," not "guess which tenant they mean."
     """
     @wraps(view_func)
@@ -134,5 +153,6 @@ def feature_required(*features):
 
             return view_func(request, *args, **kwargs)
 
+        _wrapped_view.required_features = tuple(getattr(view_func, "required_features", ())) + features
         return _wrapped_view
     return decorator

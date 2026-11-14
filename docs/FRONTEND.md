@@ -38,6 +38,7 @@ static/js/billing/   the billing screen: one module for the dine-in screen, the 
 static/js/bill/      the bill page: payment, discounts, printing, the Razorpay QR (phase 2's first page)
 static/js/tables/    the floor plan: floor.js (the cards and sheets as markup), actions.js (what a tap asks the server), loader.js (the 5-second refresh), index.js
 static/js/kitchen/   the kitchen display: board.js (the tickets as markup), loader.js (the 5-second refresh, by station), actions.js (start, ready, bump, clear all), light.js (its own light switch), index.js; boot.js is a plain script in the head that sets light or dark before the first paint
+static/js/running_order/ one order's dishes (/order/<id>/): view.js (the cards and who gets which button), loader.js (the 3-second refresh, newest answer only), actions.js (serve, remove one, cancel, comp, cancel the order; a second tap is ignored), index.js
 static/js/dashboard/ the owner's dashboard: today.js (the minute's refresh of today's numbers), index.js (refresh, New Order, the Zomato and Swiggy switches)
 static/js/qr_menu/   the guest QR menu (on public_base.html): cart.js, modifiers.js (a dish's options), order.js (placing it, a second round, the request id), status.js (the pill and sheet), view.js (what it draws, escaped), index.js; boot.js sets dark mode before the first paint
 static/js/<page>/    phase 2: one folder per remaining page, as above
@@ -45,6 +46,7 @@ static/css/rasova.css  the page frame (header, banners, loader, badges, checklis
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws
 static/css/tables.css  the floor plan
 static/css/kitchen.css the kitchen display
+static/css/running_order.css the running order page
 static/css/dashboard.css the owner's dashboard
 static/css/qr_menu.css the guest QR menu
 static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
@@ -99,6 +101,11 @@ restaurant and checks that no owner page is blank.
    `<script type="module" src="{% static 'js/tables/index.js' %}"></script>`.
 4. The module reads the data (`pageData("page-data")`), finds its root element, and
    handles clicks by `data-action`.
+5. Which buttons a person gets is in the data too, asked of the views that take the tap:
+   `core.decorators.may(user, view)` answers what that view's `role_required` and
+   `feature_required` would (`orders.views.order_views.running_order_page_data`). A page never
+   keeps its own list of roles, so a button never shows for a tap the server refuses, or hides
+   from someone it lets through.
 
 Modules run after the document is parsed and before `DOMContentLoaded`
 handlers, so a module can touch the DOM at its top level.
