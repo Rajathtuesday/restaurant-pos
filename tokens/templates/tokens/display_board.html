@@ -1,67 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Now Serving | {{ outlet.name }}</title>
-<style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-        background: #0a0a0a;
-        color: #f5f5f5;
-        font-family: 'Segoe UI', Arial, sans-serif;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 2.5rem 1.5rem;
-    }
-    .board-header { text-align: center; margin-bottom: 2.5rem; }
-    .board-title { font-size: 1.6rem; text-transform: uppercase; letter-spacing: 4px; color: #c5a059; }
-    .board-sub { font-size: 1rem; color: #888; margin-top: 0.4rem; text-transform: uppercase; letter-spacing: 2px; }
-
-    .token-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 2rem;
-        width: 100%;
-        max-width: 1400px;
-    }
-    .token-tile {
-        background: #161616;
-        border: 2px solid #c5a059;
-        border-radius: 12px;
-        text-align: center;
-        padding: 2.5rem 1rem;
-        animation: pop 0.4s ease-out;
-    }
-    .token-tile .num {
-        font-size: 5rem;
-        font-weight: 700;
-        color: #fff;
-        line-height: 1;
-    }
-    .token-tile .label {
-        margin-top: 0.75rem;
-        font-size: 0.9rem;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #c5a059;
-    }
-    @keyframes pop {
-        from { transform: scale(0.85); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-    }
-
-    .empty-state {
-        text-align: center;
-        color: #555;
-        margin-top: 4rem;
-        font-size: 1.1rem;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/tokens/display_board.css' %}">
 </head>
 <body>
 
@@ -70,61 +14,10 @@
     <div class="board-sub">{{ outlet.name }}</div>
 </div>
 
-<div class="token-grid" id="tokenGrid"></div>
-<div class="empty-state" id="emptyState" style="display:none;">Waiting for orders to be ready…</div>
+<div class="token-grid" id="tokenGrid" aria-live="polite" data-stream="{% url 'display-stream' outlet.display_token %}" data-data="{% url 'display-data' outlet.display_token %}"></div>
+<div class="empty-state" id="emptyState" hidden>Waiting for orders to be ready…</div>
 
-<script>
-    const STREAM_URL = "{% url 'display-stream' outlet.display_token %}";
-    const DATA_URL   = "{% url 'display-data' outlet.display_token %}";
-
-    function render(data) {
-        const grid = document.getElementById('tokenGrid');
-        const empty = document.getElementById('emptyState');
-        const tokens = data.tokens || [];
-
-        if (tokens.length === 0) {
-            grid.innerHTML = '';
-            empty.style.display = 'block';
-            return;
-        }
-        empty.style.display = 'none';
-        grid.innerHTML = tokens.map(t => `
-            <div class="token-tile">
-                <div class="num">${t.display}</div>
-                <div class="label">Ready for pickup</div>
-            </div>
-        `).join('');
-    }
-
-    // Fallback for the rare case EventSource itself is unavailable/blocked
-    // (e.g. some locked-down kiosk browsers) -- same 4s poll this page used
-    // before SSE, kept only as a safety net, not the normal path.
-    async function pollOnce() {
-        try {
-            const res = await fetch(DATA_URL);
-            render(await res.json());
-        } catch (e) { /* try again next tick */ }
-    }
-
-    if (typeof EventSource === 'undefined') {
-        pollOnce();
-        setInterval(pollOnce, 4000);
-    } else {
-        // One long-lived connection instead of polling -- the server only
-        // sends a message when the ready-tokens list actually changes, and
-        // self-closes periodically (see _SSE_MAX_MINUTES in tokens/views.py),
-        // which EventSource treats like any dropped connection and
-        // reconnects from automatically, no extra code needed here.
-        const source = new EventSource(STREAM_URL);
-        source.onmessage = (e) => render(JSON.parse(e.data));
-        source.onerror = () => {
-            // EventSource already retries the same URL on its own; this is
-            // just so a genuinely stuck connection doesn't leave the board
-            // frozen indefinitely between retries.
-            pollOnce();
-        };
-    }
-</script>
+<script type="module" src="{% static 'js/tokens/display_board.js' %}"></script>
 
 </body>
 </html>

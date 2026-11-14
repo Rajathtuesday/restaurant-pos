@@ -1,0 +1,42 @@
+/* shifts/templates/shifts/schedule_builder.html */
+:root {
+    --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main);
+    --muted: var(--text-muted); --border: var(--border-color); --gold: var(--accent-gold);
+    --smooth: var(--transition-smooth);
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b; --blue: #3b82f6;
+}
+
+.week-nav { display: flex; align-items: center; gap: 1rem; }
+.week-label { font-family: 'DM Serif Display', serif; font-size: 1.05rem; }
+
+.schedule-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.schedule-grid th { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--border); text-align: center; }
+.schedule-grid th.staff-col { text-align: left; width: 160px; }
+.schedule-grid td { border: 1px solid var(--border); vertical-align: top; padding: 0.4rem; min-height: 70px; position: relative; }
+.schedule-grid td.staff-name { font-size: 0.85rem; font-weight: 500; vertical-align: middle; padding: 0.6rem 0.8rem; border-right: 1px solid var(--gold); background: var(--panel); }
+.today-col { background: rgba(197,160,89,0.05) !important; }
+
+.sched-chip { background: rgba(197,160,89,0.15); border-left: 3px solid var(--gold); padding: 0.25rem 0.4rem; font-size: 0.72rem; border-radius: 2px; display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; margin-bottom: 3px; }
+.sched-chip.overtime { border-left-color: var(--red); background: rgba(239,68,68,0.12); }
+.chip-label { line-height: 1.3; }
+.chip-delete { color: var(--muted); font-size: 0.8rem; cursor: pointer; flex-shrink: 0; }
+.chip-delete:hover { color: var(--red); }
+.actual-badge { font-size: 0.65rem; color: var(--green); margin-top: 2px; }
+.overtime-badge { font-size: 0.65rem; color: var(--red); }
+
+.add-cell { display: flex; align-items: center; justify-content: center; color: var(--border); font-size: 1.3rem; cursor: pointer; min-height: 48px; transition: var(--smooth); }
+.add-cell:hover { color: var(--gold); }
+
+.side-panel { background: var(--panel); border: 1px solid var(--border); padding: 1.5rem; height: fit-content; position: sticky; top: 1.5rem; }
+.panel-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
+.form-field { margin-bottom: 1rem; }
+.form-field label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); display: block; margin-bottom: 0.4rem; }
+.form-field select, .form-field input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: 0.4rem 0; font-size: 0.85rem; font-family: 'Outfit', sans-serif; outline: none; appearance: none; }
+.form-field select:focus, .form-field input:focus { border-color: var(--gold); }
+.form-field select option { background: var(--panel); color: var(--text); }
+
+.template-chip { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.82rem; }
+
+/* An empty cell is a button (keyboard and screen reader reachable). */
+button.add-cell { width: 100%; background: none; border: 0; padding: 0; font: inherit; }
+button.add-cell:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }

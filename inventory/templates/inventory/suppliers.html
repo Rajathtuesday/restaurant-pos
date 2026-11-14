@@ -1,61 +1,16 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Suppliers | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* CSS aliases so existing code continues to work */
-    :root {
-        --bg:     var(--bg-color);
-        --panel:  var(--panel-bg);
-        --text:   var(--text-main);
-        --muted:  var(--text-muted);
-        --border: var(--border-color);
-        --gold:   var(--accent-gold);
-        --red:    #ef4444;
-        --smooth: var(--transition-smooth);
-    }
-
-    .btn-lux {
-        border:1px solid var(--border); background:transparent; color:var(--text);
-        border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px;
-        padding:0.6rem 1.3rem; transition:var(--smooth); cursor:pointer;
-        text-decoration:none; display:inline-block;
-    }
-    .btn-lux:hover { border-color:var(--gold); background:var(--gold); color:#fff; }
-    .btn-lux.danger { border-color:var(--red); color:var(--red); }
-    .btn-lux.danger:hover { background:var(--red); color:#fff; }
-    .section-title { font-family:'DM Serif Display',serif; font-size:1rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:1.5rem; }
-    .card-lux { background:var(--panel); border:1px solid var(--border); }
-    .form-field { margin-bottom:1rem; }
-    .form-field label { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); display:block; margin-bottom:0.4rem; }
-    .form-field input { width:100%; background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); padding:0.4rem 0; font-size:0.88rem; font-family:'Outfit',sans-serif; outline:none; }
-    .form-field input:focus { border-color:var(--gold); }
-    .supplier-card { background:var(--panel); border:1px solid var(--border); padding:1.25rem 1.5rem; position:relative; transition:var(--smooth); }
-    .supplier-card:hover { border-color:var(--gold); }
-    .supplier-name { font-size:1.05rem; font-weight:600; margin-bottom:0.25rem; }
-    .supplier-meta { font-size:0.78rem; color:var(--muted); }
-    .supplier-meta i { margin-right:4px; }
-    .delete-btn { position:absolute; top:1rem; right:1rem; }
-    .gst-badge { font-size:0.68rem; letter-spacing:1px; padding:2px 7px; border:1px solid var(--border); color:var(--muted); text-transform:uppercase; margin-top:0.5rem; display:inline-block; }
-    .empty-state { text-align:center; padding:3rem; color:var(--muted); }
-    .toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
-    .toast-msg { background:#111; color:#fff; padding:0.75rem 1.25rem; margin-top:0.5rem; font-size:0.82rem; border-left:3px solid var(--gold); }
-    .toast-msg.err { border-left-color:var(--red); }
-    .search-bar {
-        background:transparent; border:none; border-bottom:1px solid var(--border);
-        color:var(--text); font-family:'Outfit',sans-serif; font-size:0.88rem;
-        padding:0.4rem 0; outline:none; width:200px;
-    }
-    .search-bar::placeholder { color:var(--muted); opacity:0.7; }
-    .search-bar:focus { border-color:var(--gold); }
-</style>
+<link rel="stylesheet" href="{% static 'css/inventory/suppliers.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/inventory/board/">Inventory</a> / Suppliers{% endblock %}
 
 {% block header_links %}
-<input class="search-bar d-none d-sm-block" type="text" id="searchInput" placeholder="Search suppliers…" oninput="filterSuppliers()">
+<input class="search-bar d-none d-sm-block" type="search" id="searchInput" placeholder="Search suppliers…" aria-label="Search suppliers" data-action="suppliers.search">
 <a href="{% url 'purchase_order_list' %}" class="btn-lux d-none d-sm-inline-block">Purchase Orders</a>
 <a href="{% url 'inventory_board' %}" class="btn-lux d-none d-sm-inline-block">Inventory</a>
 {% endblock %}
@@ -65,7 +20,7 @@
 
     <!-- Mobile search -->
     <div class="d-sm-none mb-3">
-        <input class="search-bar w-100" type="text" id="searchInputMobile" placeholder="Search suppliers…" oninput="filterSuppliersMobile()">
+        <input class="search-bar w-100" type="search" id="searchInputMobile" placeholder="Search suppliers…" aria-label="Search suppliers" data-action="suppliers.search">
     </div>
 
     <div class="row g-4">
@@ -81,7 +36,7 @@
                 {% for s in suppliers %}
                 <div class="col-md-6 supplier-item" data-name="{{ s.name|lower }}" id="sc-{{ s.id }}">
                     <div class="supplier-card">
-                        <button class="btn-icon delete-btn" title="Remove supplier" onclick="deleteSupplier({{ s.id }}, '{{ s.name|escapejs }}')">
+                        <button type="button" class="btn-icon delete-btn" title="Remove supplier" aria-label="Remove {{ s.name }}" data-action="post" data-url="{% url 'supplier_delete' s.id %}" data-confirm="Remove {{ s.name }}?" data-confirm-text="They will no longer appear in new purchase orders. Existing ones are kept." data-confirm-button="Remove" data-done="{{ s.name }} removed." data-remove="#sc-{{ s.id }}">
                             <i class="bi bi-trash3"></i>
                         </button>
                         <div class="supplier-name">{{ s.name }}</div>
@@ -117,98 +72,41 @@
         <!-- Add Supplier Form -->
         <div class="col-lg-4">
             <h5 class="section-title">Add Supplier</h5>
-            <div class="card-lux p-3">
+            <form class="card-lux p-3" data-action="post" data-url="{% url 'supplier_create' %}" data-done="Supplier added.">
                 <div class="form-field">
-                    <label>Supplier Name <span style="color:var(--red);">*</span></label>
-                    <input type="text" id="s_name" placeholder="e.g. Fresh Farm Produce Co.">
+                    <label for="s_name">Supplier Name <span style="color:var(--red);">*</span></label>
+                    <input type="text" id="s_name" name="name" placeholder="e.g. Fresh Farm Produce Co." required>
                 </div>
                 <div class="form-field">
-                    <label>Contact Person</label>
-                    <input type="text" id="s_contact" placeholder="Primary contact name">
+                    <label for="s_contact">Contact Person</label>
+                    <input type="text" id="s_contact" name="contact_person" placeholder="Primary contact name">
                 </div>
                 <div class="form-field">
-                    <label>Phone</label>
-                    <input type="tel" id="s_phone" placeholder="+91 98765 43210">
+                    <label for="s_phone">Phone</label>
+                    <input type="tel" id="s_phone" name="phone" placeholder="+91 98765 43210">
                 </div>
                 <div class="form-field">
-                    <label>Email</label>
-                    <input type="email" id="s_email" placeholder="orders@supplier.com">
+                    <label for="s_email">Email</label>
+                    <input type="email" id="s_email" name="email" placeholder="orders@supplier.com">
                 </div>
                 <div class="form-field">
-                    <label>GST No.</label>
-                    <input type="text" id="s_gst" placeholder="15-character GSTIN" maxlength="15">
+                    <label for="s_gst">GST No.</label>
+                    <input type="text" id="s_gst" name="gst_no" placeholder="15-character GSTIN" maxlength="15">
                 </div>
                 <div class="form-field">
-                    <label>Address</label>
-                    <input type="text" id="s_address" placeholder="Street, City">
+                    <label for="s_address">Address</label>
+                    <input type="text" id="s_address" name="address" placeholder="Street, City">
                 </div>
-                <button class="btn-lux w-100 mt-2" onclick="createSupplier()">
+                <button type="submit" class="btn-lux w-100 mt-2">
                     <i class="bi bi-plus-lg me-1"></i>Add Supplier
                 </button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<div class="toast-container" id="toastContainer"></div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken2=')).split('=')[1];
-
-function filterSuppliers() {
-    const q = (document.getElementById('searchInput')?.value || document.getElementById('searchInputMobile')?.value || '').toLowerCase();
-    let visible = 0;
-    document.querySelectorAll('.supplier-item').forEach(el => {
-        const match = el.dataset.name.includes(q);
-        el.style.display = match ? '' : 'none';
-        if (match) visible++;
-    });
-    document.getElementById('supplierCount').textContent = `${visible} suppliers`;
-}
-function filterSuppliersMobile() { filterSuppliers(); }
-
-async function createSupplier() {
-    const name = document.getElementById('s_name').value.trim();
-    if (!name) { toast('Supplier name is required.', true); return; }
-    const body = {
-        name,
-        contact_person: document.getElementById('s_contact').value.trim(),
-        phone: document.getElementById('s_phone').value.trim(),
-        email: document.getElementById('s_email').value.trim(),
-        gst_no: document.getElementById('s_gst').value.trim(),
-        address: document.getElementById('s_address').value.trim(),
-    };
-    const res = await fetch('/inventory/suppliers/create/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (data.success) {
-        toast(`${data.name} added.`);
-        ['s_name','s_contact','s_phone','s_email','s_gst','s_address'].forEach(id => document.getElementById(id).value = '');
-        setTimeout(() => location.reload(), 700);
-    } else { toast(data.error, true); }
-}
-
-async function deleteSupplier(id, name) {
-    if (!confirm(`Remove "${name}"? They will no longer appear in new POs. Existing POs are kept.`)) return;
-    const res = await fetch(`/inventory/suppliers/${id}/delete/`, {
-        method: 'POST', headers: { 'X-CSRFToken': CSRF }
-    });
-    const data = await res.json();
-    if (data.success) { document.getElementById(`sc-${id}`)?.remove(); toast(`${name} removed.`); }
-    else { toast(data.error, true); }
-}
-
-function toast(msg, isErr = false) {
-    const div = document.createElement('div');
-    div.className = 'toast-msg' + (isErr ? ' err' : '');
-    div.textContent = msg;
-    document.getElementById('toastContainer').appendChild(div);
-    setTimeout(() => div.remove(), 3500);
-}
-</script>
+<script type="module" src="{% static 'js/inventory/suppliers.js' %}"></script>
 {% endblock %}

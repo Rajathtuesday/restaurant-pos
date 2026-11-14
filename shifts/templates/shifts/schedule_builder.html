@@ -1,47 +1,10 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Schedule Builder | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main);
-        --muted: var(--text-muted); --border: var(--border-color); --gold: var(--accent-gold);
-        --smooth: var(--transition-smooth);
-        --green: #10b981; --red: #ef4444; --amber: #f59e0b; --blue: #3b82f6;
-    }
-
-    .week-nav { display: flex; align-items: center; gap: 1rem; }
-    .week-label { font-family: 'DM Serif Display', serif; font-size: 1.05rem; }
-
-    .schedule-grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .schedule-grid th { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--border); text-align: center; }
-    .schedule-grid th.staff-col { text-align: left; width: 160px; }
-    .schedule-grid td { border: 1px solid var(--border); vertical-align: top; padding: 0.4rem; min-height: 70px; position: relative; }
-    .schedule-grid td.staff-name { font-size: 0.85rem; font-weight: 500; vertical-align: middle; padding: 0.6rem 0.8rem; border-right: 1px solid var(--gold); background: var(--panel); }
-    .today-col { background: rgba(197,160,89,0.05) !important; }
-
-    .sched-chip { background: rgba(197,160,89,0.15); border-left: 3px solid var(--gold); padding: 0.25rem 0.4rem; font-size: 0.72rem; border-radius: 2px; display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; margin-bottom: 3px; }
-    .sched-chip.overtime { border-left-color: var(--red); background: rgba(239,68,68,0.12); }
-    .chip-label { line-height: 1.3; }
-    .chip-delete { color: var(--muted); font-size: 0.8rem; cursor: pointer; flex-shrink: 0; }
-    .chip-delete:hover { color: var(--red); }
-    .actual-badge { font-size: 0.65rem; color: var(--green); margin-top: 2px; }
-    .overtime-badge { font-size: 0.65rem; color: var(--red); }
-
-    .add-cell { display: flex; align-items: center; justify-content: center; color: var(--border); font-size: 1.3rem; cursor: pointer; min-height: 48px; transition: var(--smooth); }
-    .add-cell:hover { color: var(--gold); }
-
-    .side-panel { background: var(--panel); border: 1px solid var(--border); padding: 1.5rem; height: fit-content; position: sticky; top: 1.5rem; }
-    .panel-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }
-    .form-field { margin-bottom: 1rem; }
-    .form-field label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); display: block; margin-bottom: 0.4rem; }
-    .form-field select, .form-field input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: 0.4rem 0; font-size: 0.85rem; font-family: 'Outfit', sans-serif; outline: none; appearance: none; }
-    .form-field select:focus, .form-field input:focus { border-color: var(--gold); }
-    .form-field select option { background: var(--panel); color: var(--text); }
-
-    .template-chip { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border); font-size: 0.82rem; }
-</style>
+<link rel="stylesheet" href="{% static 'css/shifts/schedule_builder.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="{% url 'shift-dashboard' %}">Shifts</a> / Schedule{% endblock %}
@@ -122,16 +85,15 @@
                                     <div class="overtime-badge"><i class="bi bi-exclamation-triangle-fill"></i> +{{ cell.overtime }}h OT</div>
                                     {% endif %}
                                 </div>
-                                <button class="chip-delete btn-icon"
-                                    onclick="deleteSchedule({{ cell.schedule.id }}, '{{ row.staff.id }}', '{{ cell.day|date:'Y-m-d' }}')">
-                                    <i class="bi bi-x"></i>
+                                <button type="button" class="chip-delete btn-icon" aria-label="Remove this shift"
+                                    data-action="post" data-url="{% url 'schedule-delete' cell.schedule.id %}" data-confirm="Remove this scheduled shift?" data-confirm-button="Remove" data-done="Schedule removed.">
+                                    <i class="bi bi-x" aria-hidden="true"></i>
                                 </button>
                             </div>
                             {% else %}
-                            <div class="add-cell"
-                                onclick="openAssignPanel({{ row.staff.id }}, '{{ row.staff.get_full_name|default:row.staff.username }}', '{{ cell.day|date:'Y-m-d' }}')">
-                                <i class="bi bi-plus-circle"></i>
-                            </div>
+                            <button type="button" class="add-cell" data-action="schedule.open" data-staff="{{ row.staff.id }}" data-name="{{ row.staff.get_full_name|default:row.staff.username }}" data-date="{{ cell.day|date:'Y-m-d' }}" aria-label="Assign {{ row.staff.get_full_name|default:row.staff.username }} on {{ cell.day|date:'D j M' }}">
+                                <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                            </button>
                             {% endif %}
                         </td>
                         {% endfor %}
@@ -149,9 +111,9 @@
                 <p id="panelPrompt" style="font-size:0.8rem; color:var(--text-muted);">
                     Click a <i class="bi bi-plus-circle"></i> cell in the grid to assign a shift.
                 </p>
-                <form id="assignForm" style="display:none;">
-                    <input type="hidden" id="f_staff_id">
-                    <input type="hidden" id="f_date">
+                <form id="assignForm" hidden data-action="post" data-url="{% url 'schedule-create' %}" data-done="Shift saved.">
+                    <input type="hidden" id="f_staff_id" name="staff_id">
+                    <input type="hidden" id="f_date" name="date">
                     <div class="form-field">
                         <label>Staff</label>
                         <div id="f_staff_name" style="font-size:0.9rem; font-weight:500; padding:0.4rem 0; border-bottom:1px solid var(--border-color);">-</div>
@@ -161,8 +123,8 @@
                         <div id="f_date_display" style="font-size:0.9rem; padding:0.4rem 0; border-bottom:1px solid var(--border-color);">-</div>
                     </div>
                     <div class="form-field">
-                        <label>Shift Template (optional)</label>
-                        <select id="f_template">
+                        <label for="f_template">Shift Template (optional)</label>
+                        <select id="f_template" name="template_id" data-action="schedule.template">
                             <option value="">Custom times</option>
                             {% for t in templates %}
                             <option value="{{ t.id }}">{{ t.name }} ({{ t.start_time|time:"H:i" }}–{{ t.end_time|time:"H:i" }})</option>
@@ -171,19 +133,19 @@
                     </div>
                     <div id="customTimes">
                         <div class="form-field">
-                            <label>Start Time</label>
-                            <input type="time" id="f_start">
+                            <label for="f_start">Start Time</label>
+                            <input type="time" id="f_start" name="start_time">
                         </div>
                         <div class="form-field">
-                            <label>End Time</label>
-                            <input type="time" id="f_end">
+                            <label for="f_end">End Time</label>
+                            <input type="time" id="f_end" name="end_time">
                         </div>
                     </div>
                     <div class="form-field">
-                        <label>Notes (optional)</label>
-                        <input type="text" id="f_notes" placeholder="e.g. cover for Raj">
+                        <label for="f_notes">Notes (optional)</label>
+                        <input type="text" id="f_notes" name="notes" placeholder="e.g. cover for Raj">
                     </div>
-                    <button type="button" class="btn-luxury w-100 mt-2" onclick="submitAssign()">
+                    <button type="submit" class="btn-luxury w-100 mt-2">
                         <i class="bi bi-check-lg me-1"></i>Assign
                     </button>
                 </form>
@@ -210,65 +172,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.getElementById('f_template').addEventListener('change', function () {
-        document.getElementById('customTimes').style.display = this.value ? 'none' : 'block';
-    });
-
-    function openAssignPanel(staffId, staffName, date) {
-        document.getElementById('panelPrompt').style.display = 'none';
-        document.getElementById('assignForm').style.display = 'block';
-        document.getElementById('f_staff_id').value = staffId;
-        document.getElementById('f_date').value = date;
-        document.getElementById('f_staff_name').textContent = staffName;
-        const d = new Date(date + 'T00:00:00');
-        document.getElementById('f_date_display').textContent =
-            d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-    }
-
-    async function submitAssign() {
-        const staffId = document.getElementById('f_staff_id').value;
-        const date = document.getElementById('f_date').value;
-        const templateId = document.getElementById('f_template').value;
-        const startTime = document.getElementById('f_start').value;
-        const endTime = document.getElementById('f_end').value;
-        const notes = document.getElementById('f_notes').value;
-
-        if (!templateId && (!startTime || !endTime)) {
-            ui.toast('Please select a template or enter start and end times.', 'error');
-            return;
-        }
-
-        const body = { staff_id: staffId, date, notes };
-        if (templateId) body.template_id = templateId;
-        else { body.start_time = startTime; body.end_time = endTime; }
-
-        try {
-            const data = await apiClient.post('/shifts/schedule/create/', body);
-            if (data.success) {
-                ui.toast(data.created ? 'Shift assigned.' : 'Shift updated.');
-                setTimeout(() => location.reload(), 600);
-            } else {
-                ui.toast(data.error, 'error');
-            }
-        } catch (e) {}
-    }
-
-    async function deleteSchedule(scheduleId, staffId, date) {
-        if (!await ui.confirm('Remove this scheduled shift?')) return;
-        try {
-            const data = await apiClient.post(`/shifts/schedule/${scheduleId}/delete/`, {});
-            if (data.success) {
-                const chip = document.getElementById(`chip-${scheduleId}`);
-                if (chip) {
-                    const cell = document.getElementById(`cell-${staffId}-${date}`);
-                    cell.innerHTML = `<div class="add-cell" onclick="openAssignPanel(${staffId}, '', '${date}')"><i class="bi bi-plus-circle"></i></div>`;
-                }
-                ui.toast('Schedule removed.');
-            } else {
-                ui.toast(data.error, 'error');
-            }
-        } catch (e) {}
-    }
-</script>
+<script type="module" src="{% static 'js/shifts/schedule_builder.js' %}"></script>
 {% endblock %}

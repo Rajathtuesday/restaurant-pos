@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Six mid-size pages on modules; a shift kept on Cancel, O'Brien can be scheduled
+
+### Fixed
+- **The schedule builder deleted a shift even on Cancel** (the same `ui.confirm` mistake as shift templates). Removing a shift is a shared post button now.
+- **Nobody called O'Brien could be given a shift.** The schedule builder put the staff member's name straight into an `onclick`; an apostrophe broke the button ("missing ) after argument list"). The empty cells are buttons carrying the name as data.
+- **The pickup display board drew a token's text unescaped**; it is escaped now.
+- **The token dashboard's 15-second refresh could reload the page while the Cancel sheet was open**; it waits while a sheet is open or the tab is hidden. Cancelling the last token now shows the empty state (it only rendered when the page loaded with none).
+
+### Changed
+- Off the ratchet: the schedule builder (`shifts/schedule_builder.js`; assigning is a shared post form, the server's "a template, or both times" check is what the person sees), suppliers (shared form and button; the search reuses the inventory row filter; its own toast box is gone), the pickup display board (`tokens/display_board.js`), outlet settings (`setup/outlet_settings.js`; the ticked option boxes light up by CSS `:has`), GST rates (`menu/gst.js`, `gst_rows.js`; each category's title is a button that folds it), the token dashboard (`tokens/token_dashboard.js`, `refresher.js`; Mark Ready, Picked Up and the Zomato and Swiggy switches are post buttons).
+- The ratchet holds 14 templates (was 20).
+
+### Tests
+- `core/tests/test_mid_pages_browser.py` (6, Chromium): a shift delete cancelled keeps it and O'Brien is assigned a shift (both fail on the old page), the board shows a ready token, a dish's GST rate saves, a ticked option box lights up and a short GSTIN is flagged, a supplier is added.
+- `static/js/tests/mid_pages.test.mjs` (9).
+
 ## 2026-11-14: Post buttons and forms written once (V1); twelve more pages on them
 
 Most of what a page does is "send this, then reload or take the row away". Every page wrote that itself, a little differently, and some got it wrong.

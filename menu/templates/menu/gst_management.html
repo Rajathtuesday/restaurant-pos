@@ -1,125 +1,10 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}GST Rates · {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --blue:   #60a5fa;
-        --orange: #f97316;
-        --radius: 8px;
-    }
-
-    /* ── TOAST ── */
-    .toast-float {
-        position: fixed;
-        bottom: 1.5rem;
-        left: 50%;
-        transform: translateX(-50%) translateY(100px);
-        background: var(--panel-bg);
-        border: 1px solid var(--border-color);
-        color: var(--text-main);
-        padding: 0.75rem 1.5rem;
-        border-radius: 50px;
-        font-size: 0.82rem;
-        letter-spacing: 0.3px;
-        transition: transform 0.3s ease;
-        z-index: 9999;
-        white-space: nowrap;
-        max-width: 90vw;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .toast-float.show { transform: translateX(-50%) translateY(0); }
-    .toast-float.success { border-color: var(--success); color: var(--success); }
-    .toast-float.error   { border-color: var(--danger);  color: var(--danger); }
-
-    /* ── MAIN ── */
-    .gst-main { padding: 1.5rem; max-width: 720px; margin: 0 auto; }
-
-    /* ── INFO BANNER ── */
-    .info-banner {
-        background: var(--panel-bg);
-        border: 1px solid var(--border-color);
-        border-left: 3px solid var(--accent-gold);
-        border-radius: var(--radius);
-        padding: 1rem 1.2rem;
-        margin-bottom: 1.5rem;
-        font-size: 0.81rem;
-        color: var(--text-muted);
-        line-height: 1.7;
-    }
-    .info-banner strong { color: var(--text-main); }
-
-    /* ── RATE LEGEND ── */
-    .rate-legend { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
-    .rate-chip { display: flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.3px; border: 1px solid; }
-    .chip-0  { background: rgba(128,128,128,0.1); color: var(--text-muted); border-color: var(--border-color); }
-    .chip-5  { background: rgba(34,197,94,0.1); color: var(--success); border-color: var(--success); }
-    .chip-18 { background: rgba(249,115,22,0.1); color: var(--orange); border-color: var(--orange); }
-
-    /* ── RETIRED RATES (12% / 28% before GST 2.0) ── */
-    .retired-banner { border-left-color: var(--orange); }
-    .gst-off-banner { border-left-color: var(--orange); }
-    .vat-tag { font-size: 0.75rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 4px; padding: 0.2rem 0.5rem; }
-    .retired-tag {
-        display: inline-block; margin-left: 0.4rem; padding: 0 0.4rem;
-        border: 1px solid var(--orange); border-radius: 3px; color: var(--orange);
-        font-size: 0.62rem; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
-        vertical-align: middle;
-    }
-
-    /* ── CATEGORY CARD ── */
-    .category-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: var(--radius); margin-bottom: 0.75rem; overflow: hidden; transition: border-color 0.2s; }
-    .category-card:hover { border-color: var(--accent-gold); }
-    .category-header { padding: 0.9rem 1.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--border-color); cursor: pointer; user-select: none; }
-    .category-card.collapsed .category-header { border-bottom-color: transparent; }
-    .category-header:hover { background: rgba(0,0,0,0.02); }
-    html.dark .category-header:hover { background: rgba(255,255,255,0.02); }
-    .cat-title-wrap { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 0; }
-    .collapse-icon { color: var(--text-muted); transition: transform 0.2s; font-size: 0.8rem; flex-shrink: 0; }
-    .category-card.collapsed .collapse-icon { transform: rotate(-90deg); }
-    .category-name { font-size: 0.88rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .category-count { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; flex-shrink: 0; }
-    .bulk-section { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
-    .bulk-label { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; white-space: nowrap; }
-
-    /* ── SELECT ── */
-    .gst-select {
-        background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
-        font-family: 'Outfit', sans-serif; font-size: 0.78rem; padding: 0.35rem 0.55rem;
-        border-radius: 6px; cursor: pointer; outline: none; transition: border-color 0.2s;
-    }
-    .gst-select:focus { border-color: var(--accent-gold); }
-    .gst-select option { background: var(--panel-bg); color: var(--text-main); }
-
-    .btn-bulk { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.7rem; padding: 0.35rem 0.7rem; border-radius: 6px; cursor: pointer; transition: all 0.2s; white-space: nowrap; letter-spacing: 0.3px; }
-    .btn-bulk:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-
-    /* ── ITEMS LIST ── */
-    .items-list { padding: 0.25rem 0; }
-    .item-row { display: flex; align-items: center; padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--border-color); gap: 1rem; transition: background 0.15s; }
-    .item-row:last-child { border-bottom: none; }
-    .item-row:hover { background: rgba(0,0,0,0.01); }
-    html.dark .item-row:hover { background: rgba(255,255,255,0.01); }
-    .item-info { flex: 1; min-width: 0; }
-    .item-name { font-size: 0.86rem; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .item-price { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.1rem; }
-    .item-gst-control { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
-    .saving-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-gold); display: none; flex-shrink: 0; animation: pulse 0.9s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-    .empty { padding: 2rem; text-align: center; color: var(--text-muted); font-size: 0.82rem; font-style: italic; }
-
-    @media (max-width: 520px) {
-        .gst-main { padding: 1rem; }
-        .bulk-label { display: none; }
-        .category-header { flex-wrap: wrap; gap: 0.6rem; }
-        .bulk-section { width: 100%; justify-content: flex-end; }
-        .item-row { flex-wrap: wrap; gap: 0.4rem; padding: 0.85rem 1rem; }
-        .item-gst-control { width: 100%; }
-        .item-gst-control .gst-select { flex: 1; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/menu/gst_management.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="{% url 'menu_management' %}">Menu</a> / GST Rates{% endblock %}
@@ -158,20 +43,20 @@
     {% if categories %}
         {% for category in categories %}
         <div class="category-card" id="card-{{ category.id }}">
-            <div class="category-header" onclick="toggleCategory({{ category.id }})">
-                <div class="cat-title-wrap">
-                    <i class="bi bi-chevron-down collapse-icon" id="icon-{{ category.id }}"></i>
+            <div class="category-header">
+                <button type="button" class="cat-title-wrap" data-action="gst.collapse" data-category="{{ category.id }}" aria-expanded="true" aria-controls="cat-{{ category.id }}">
+                    <i class="bi bi-chevron-down collapse-icon" id="icon-{{ category.id }}" aria-hidden="true"></i>
                     <span class="category-name">{{ category.name }}</span>
                     <span class="category-count">{{ category.items.count }} item{{ category.items.count|pluralize }}</span>
-                </div>
+                </button>
                 <div class="bulk-section">
                     <span class="bulk-label">Apply all:</span>
-                    <select class="gst-select" id="bulk-{{ category.id }}" onclick="event.stopPropagation()">
+                    <select class="gst-select" id="bulk-{{ category.id }}" aria-label="Rate for every dish in {{ category.name }}">
                         {% for rate in gst_rates %}
                         <option value="{{ rate.value }}">{{ rate.label }}</option>
                         {% endfor %}
                     </select>
-                    <button class="btn-bulk" onclick="event.stopPropagation(); applyBulkGST({{ category.id }})">Apply</button>
+                    <button type="button" class="btn-bulk" data-action="gst.bulk" data-category="{{ category.id }}" data-url="{% url 'update_category_gst' category.id %}">Apply</button>
                 </div>
             </div>
 
@@ -187,7 +72,7 @@
                         {% if item.vat_class_id %}
                         <span class="vat-tag">Liquor: VAT {{ item.vat_class }}, no GST</span>
                         {% else %}
-                        <select class="gst-select" id="gst-{{ item.id }}" onchange="updateItemGST({{ item.id }}, this.value)">
+                        <select class="gst-select" id="gst-{{ item.id }}" data-action="gst.item" data-item="{{ item.id }}" data-url="{% url 'update_item_gst' item.id %}" aria-label="GST rate for {{ item.name }}">
                             {% if current not in valid_rates %}
                             <option value="{{ current }}" selected disabled>{{ item.gst_percentage|floatformat:"-2" }}%, no longer a GST rate</option>
                             {% endif %}
@@ -197,7 +82,7 @@
                             </option>
                             {% endfor %}
                         </select>
-                        <div class="saving-dot" id="dot-{{ item.id }}"></div>
+                        <div class="saving-dot" id="dot-{{ item.id }}" hidden></div>
                         {% endif %}
                     </div>
                     {% endwith %}
@@ -214,74 +99,8 @@
 
 </main>
 
-<div class="toast-float" id="gst-toast"></div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const CSRF = "{{ csrf_token }}";
-
-function toggleCategory(catId) {
-    const list = document.getElementById(`cat-${catId}`);
-    const card = document.getElementById(`card-${catId}`);
-    const isCollapsed = card.classList.contains('collapsed');
-    if (isCollapsed) { list.style.display = 'block'; card.classList.remove('collapsed'); }
-    else { list.style.display = 'none'; card.classList.add('collapsed'); }
-}
-
-async function updateItemGST(itemId, gstValue) {
-    const dot = document.getElementById(`dot-${itemId}`);
-    dot.style.display = 'block';
-    try {
-        const res = await fetch(`{% url 'update_item_gst' 0 %}`.replace('/0/', `/${itemId}/`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-            body: JSON.stringify({ gst_percentage: gstValue })
-        });
-        const data = await res.json();
-        showToast(data.success ? data.message : (data.error || 'Update failed'), data.success ? 'success' : 'error');
-        if (data.success) clearRetired([itemId]);
-    } catch (e) { showToast('Connection error', 'error'); }
-    finally { dot.style.display = 'none'; }
-}
-
-// An item moved off a retired rate (12% / 28%): drop its "old rate" tag and
-// option, and the banner once no item is left on one.
-function clearRetired(itemIds) {
-    itemIds.forEach(id => {
-        document.getElementById(`retired-${id}`)?.remove();
-        document.querySelector(`#gst-${id} option[disabled]`)?.remove();
-    });
-    if (!document.querySelector('.retired-tag[id^="retired-"]')) {
-        document.getElementById('retired-banner')?.remove();
-    }
-}
-
-async function applyBulkGST(categoryId) {
-    const gstValue = document.getElementById(`bulk-${categoryId}`).value;
-    try {
-        const res = await fetch(`{% url 'update_category_gst' 0 %}`.replace('/0/', `/${categoryId}/`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-            body: JSON.stringify({ gst_percentage: gstValue })
-        });
-        const data = await res.json();
-        if (data.success) {
-            const selects = document.getElementById(`cat-${categoryId}`).querySelectorAll('select[id^="gst-"]');
-            selects.forEach(sel => { sel.value = gstValue; });
-            clearRetired([...selects].map(sel => sel.id.slice(4)));
-            showToast(data.message, 'success');
-        } else { showToast(data.error || 'Bulk update failed', 'error'); }
-    } catch (e) { showToast('Connection error', 'error'); }
-}
-
-let toastTimer;
-function showToast(msg, type = '') {
-    const toast = document.getElementById('gst-toast');
-    toast.textContent = msg;
-    toast.className = `toast-float ${type} show`;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.className = 'toast-float'; }, 3000);
-}
-</script>
+<script type="module" src="{% static 'js/menu/gst.js' %}"></script>
 {% endblock %}

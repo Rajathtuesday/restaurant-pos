@@ -4,48 +4,7 @@
 {% block title %}Outlet Settings | {{ tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .page-body { max-width: 700px; margin: 3rem auto 5rem; padding: 0 1.5rem; }
-    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-    .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0 2rem; }
-
-    .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
-    .alert-success { border-left-color: #22c55e; background: rgba(34,197,94,0.07); color: #22c55e; }
-    .alert-error   { border-left-color: #ef4444; background: rgba(239,68,68,0.07);  color: #ef4444; }
-    .alert-warning { border-left-color: #f59e0b; background: rgba(245,158,11,0.08); color: #f59e0b; }
-    .field-hint.gst-off { color: #f59e0b; }
-
-    .settings-section { border: 1px solid var(--border-color); background: var(--panel-bg); margin-bottom: 1.5rem; overflow: hidden; }
-    .section-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.6rem; }
-    .section-icon { color: var(--accent-gold); font-size: 1rem; }
-    .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
-    .section-body { padding: 1.5rem; }
-
-    .field-row { margin-bottom: 1.6rem; }
-    .field-row:last-child { margin-bottom: 0; }
-    .field-label { display: block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.4rem; }
-    .field-hint { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.3rem; }
-    .field-input, .field-textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem 0; font-size: 1rem; font-weight: 500; outline: none; font-family: 'Outfit', sans-serif; transition: border-color 0.2s; }
-    .field-input:focus, .field-textarea:focus { border-bottom-color: var(--accent-gold); }
-    .field-textarea { resize: vertical; min-height: 70px; font-size: 0.9rem; }
-    .field-mono { font-family: 'Space Mono', monospace; font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
-
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-    @media (max-width: 560px) { .two-col { grid-template-columns: 1fr; gap: 0; } }
-
-    .logo-preview { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem; }
-    .logo-img { width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--border-color); padding: 6px; background: var(--panel-bg); }
-    .logo-placeholder { width: 72px; height: 72px; border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 1.6rem; }
-    .logo-info { font-size: 0.75rem; color: var(--text-muted); line-height: 1.6; }
-
-    .compliance-note { background: rgba(197,160,89,0.06); border: 1px solid rgba(197,160,89,0.25); padding: 0.75rem 1rem; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; }
-    .compliance-note strong { color: var(--text-main); }
-
-    .btn-save { width: 100%; padding: 1.1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: background 0.2s, transform 0.1s; font-family: 'Outfit', sans-serif; }
-    .btn-save:hover { background: var(--accent-hover); }
-    .btn-save:active { transform: scale(0.99); }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/outlet_settings.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/setup/">Setup</a> / Outlet Settings{% endblock %}
@@ -92,7 +51,7 @@
                 </div>
                 <div class="field-row">
                     <label class="field-label">Upload New Logo</label>
-                    <input type="file" name="logo" accept="image/*" class="field-input" style="font-size:0.82rem;" onchange="previewLogo(this)">
+                    <input type="file" name="logo" accept="image/*" class="field-input" style="font-size:0.82rem;" data-action="logo.preview">
                 </div>
                 <div class="two-col">
                     <div class="field-row">
@@ -153,13 +112,13 @@
                 <div class="two-col">
                     <div class="field-row">
                         <label class="field-label" for="gst_no">GSTIN</label>
-                        <input type="text" id="gst_no" name="gst_no" class="field-input field-mono" value="{{ outlet.gst_no|default:'' }}" maxlength="15" placeholder="27AABCU9603R1ZX" oninput="this.value = this.value.toUpperCase()">
+                        <input type="text" id="gst_no" name="gst_no" class="field-input field-mono" value="{{ outlet.gst_no|default:'' }}" maxlength="15" placeholder="27AABCU9603R1ZX" data-action="field.upper" data-check="gstin">
                         <div class="field-hint">15-character GST Identification Number</div>
                         {% if not outlet.is_gst_registered %}<div class="field-hint gst-off">No GSTIN, so bills carry no GST. Registered for GST? Enter the GSTIN here.</div>{% endif %}
                     </div>
                     <div class="field-row">
                         <label class="field-label" for="fssai_no">FSSAI License No.</label>
-                        <input type="text" id="fssai_no" name="fssai_no" class="field-input field-mono" value="{{ outlet.fssai_no|default:'' }}" maxlength="14" placeholder="12345678901234">
+                        <input type="text" id="fssai_no" name="fssai_no" class="field-input field-mono" value="{{ outlet.fssai_no|default:'' }}" maxlength="14" placeholder="12345678901234" inputmode="numeric" data-check="fssai">
                         <div class="field-hint">14-digit FSSAI license number</div>
                     </div>
                     <div class="field-row">
@@ -175,7 +134,7 @@
                     </div>
                     <div class="field-row">
                         <label class="field-label" for="bill_code">Bill Number Code</label>
-                        <input type="text" id="bill_code" name="bill_code" class="field-input field-mono" value="{{ outlet.bill_code }}" maxlength="3" placeholder="SG" oninput="this.value = this.value.toUpperCase()">
+                        <input type="text" id="bill_code" name="bill_code" class="field-input field-mono" value="{{ outlet.bill_code }}" maxlength="3" placeholder="SG" data-action="field.upper">
                         <div class="field-hint">
                             Bills are numbered <strong>{{ bill_number_example }}</strong> and on: one series for this outlet each financial year (April to March), within the 16 characters the GST rules allow.
                             Up to 3 letters or digits, different for each outlet. Changing it starts a new series; earlier bills keep their numbers.
@@ -305,8 +264,7 @@
                         <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="po-email-box">
                             <input type="checkbox" name="po_vendor_email_enabled" value="true"
                                 {% if outlet.po_vendor_email_enabled %}checked{% endif %}
-                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
-                                onchange="togglePoEmail(this)">
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;">
                             <div>
                                 <div style="font-weight:600;font-size:0.88rem;">Email purchase orders to vendors automatically</div>
                                 <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
@@ -326,8 +284,7 @@
                         <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="comp-scheme-box">
                             <input type="checkbox" name="is_composition_scheme" value="true"
                                 {% if outlet.is_composition_scheme %}checked{% endif %}
-                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
-                                onchange="toggleCompScheme(this)">
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;">
                             <div>
                                 <div style="font-weight:600;font-size:0.88rem;">Composition Scheme <span style="font-size:0.7rem;color:var(--accent-gold);background:rgba(197,160,89,0.1);padding:1px 6px;border-radius:3px;">COT</span></div>
                                 <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
@@ -380,8 +337,7 @@
                         <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-top:0.4rem;padding:0.9rem;border:1.5px solid var(--border-color);transition:border-color 0.15s;" id="split-bill-box">
                             <input type="checkbox" name="split_bill_by_category" value="true"
                                 {% if outlet.split_bill_by_category %}checked{% endif %}
-                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;"
-                                onchange="toggleSplitBill(this)">
+                                style="margin-top:3px;accent-color:var(--accent-gold);width:16px;height:16px;flex-shrink:0;">
                             <div>
                                 <div style="font-weight:600;font-size:0.88rem;">Counter Billing Mode <span style="font-size:0.7rem;color:#6366f1;background:rgba(99,102,241,0.1);padding:1px 6px;border-radius:3px;">Food Court</span></div>
                                 <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">
@@ -474,65 +430,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    function previewLogo(input) {
-        if (!input.files || !input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const prev = document.getElementById("logoPreview");
-            if (prev.tagName === "IMG") {
-                prev.src = e.target.result;
-            } else {
-                const img = document.createElement("img");
-                img.src = e.target.result;
-                img.className = "logo-img";
-                img.id = "logoPreview";
-                img.alt = "Logo preview";
-                prev.replaceWith(img);
-            }
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    document.getElementById("gst_no").addEventListener("blur", function() {
-        const v = this.value.trim();
-        this.style.borderBottomColor = (v && v.length !== 15) ? "#ef4444" : "";
-        this.title = (v && v.length !== 15) ? "GSTIN must be exactly 15 characters" : "";
-    });
-
-    document.getElementById("fssai_no").addEventListener("blur", function() {
-        const v = this.value.trim();
-        const invalid = v && (v.length !== 14 || !/^\d+$/.test(v));
-        this.style.borderBottomColor = invalid ? "#ef4444" : "";
-        this.title = invalid ? "FSSAI must be exactly 14 digits" : "";
-    });
-
-    document.getElementById("settingsForm").addEventListener("submit", function() {
-        const btn = document.getElementById("saveBtn");
-        btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Saving...';
-    });
-
-    function togglePoEmail(cb) {
-        document.getElementById('po-email-box').style.borderColor =
-            cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
-    }
-    function toggleCompScheme(cb) {
-        document.getElementById('comp-scheme-box').style.borderColor =
-            cb.checked ? 'var(--accent-gold)' : 'var(--border-color)';
-    }
-    function toggleSplitBill(cb) {
-        document.getElementById('split-bill-box').style.borderColor =
-            cb.checked ? '#6366f1' : 'var(--border-color)';
-    }
-    // Set initial border state
-    document.addEventListener('DOMContentLoaded', () => {
-        const comp = document.querySelector('[name="is_composition_scheme"]');
-        const split = document.querySelector('[name="split_bill_by_category"]');
-        const poEmail = document.querySelector('[name="po_vendor_email_enabled"]');
-        if (comp && comp.checked) toggleCompScheme(comp);
-        if (split && split.checked) toggleSplitBill(split);
-        if (poEmail && poEmail.checked) togglePoEmail(poEmail);
-    });
-</script>
+<script type="module" src="{% static 'js/setup/outlet_settings.js' %}"></script>
 {% endblock %}
