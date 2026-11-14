@@ -4,99 +4,7 @@
 {% block title %}Offers | {{ current_outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main); --muted: var(--text-muted);
-        --border: var(--border-color); --gold: var(--accent-gold); --success: #16a34a; --danger: #dc2626;
-        --radius: 10px;
-    }
-    .page { max-width: 1100px; margin: 2.5rem auto; padding: 0 1.5rem 4rem; }
-    .eyebrow { font-size: .62rem; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); margin-bottom: .4rem; }
-    .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: .4rem; }
-    .page-lead { color: var(--muted); font-size: .85rem; max-width: 60ch; }
-    .divider { width: 36px; height: 2px; background: var(--gold); margin: 1rem 0 2rem; }
-
-    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 1.5rem; align-items: start; }
-    .layout > * { min-width: 0; }       /* the table scrolls in its card, never the page */
-    @media (max-width: 900px) { .layout { grid-template-columns: minmax(0, 1fr); } }
-    @media (max-width: 600px) {
-        .page { margin-top: 1.5rem; padding: 0 16px 3rem; }
-        .offer-table th:nth-child(2), .offer-table td:nth-child(2) { display: none; }
-    }
-
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 1.5rem; }
-    .card-hdr { padding: .9rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .5rem; }
-    .card-hdr-title { font-size: .68rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; flex: 1; }
-    .card-hdr i { color: var(--gold); }
-    .card-body { padding: 1.2rem; }
-
-    .offer-table { width: 100%; border-collapse: collapse; }
-    .offer-table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: .6rem .8rem; border-bottom: 1px solid var(--border); text-align: left; }
-    .offer-table td { padding: .75rem .8rem; border-bottom: 1px solid var(--border); font-size: .82rem; vertical-align: top; }
-    .offer-table tr:last-child td { border-bottom: none; }
-    .sub { font-size: .7rem; color: var(--muted); margin-top: 2px; }
-
-    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
-    .badge-active { background: #dcfce7; color: #15803d; }
-    .badge-paused { background: #fee2e2; color: #991b1b; }
-    .badge-all { background: #ede9fe; color: #6d28d9; }
-
-    .tbl-actions { display: flex; gap: .4rem; }
-    .tbl-btn { border: none; border-radius: 6px; padding: .4rem .6rem; min-height: 34px; cursor: pointer; font-size: .72rem; display: inline-flex; align-items: center; gap: 3px; }
-    .tbl-btn-toggle { background: #f0fdf4; color: #15803d; }
-    .tbl-btn-toggle.off { background: #fef2f2; color: #dc2626; }
-    .tbl-btn-del { background: #fef2f2; color: #dc2626; }
-    .tbl-btn-edit { background: rgba(197,160,89,.12); color: var(--gold); }
-    .history { margin-top: 4px; }
-    .history summary { font-size: .65rem; color: var(--muted); cursor: pointer; text-transform: none; letter-spacing: 0; margin: 0; }
-    .history li { font-size: .7rem; color: var(--muted); list-style: none; }
-    .history ul { padding-left: .6rem; margin: .2rem 0 0; }
-    .btn-cancel { width: 100%; padding: .7rem; background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: .68rem; text-transform: uppercase; letter-spacing: 2px; border-radius: 6px; margin-top: .6rem; cursor: pointer; min-height: 44px; }
-    tr.editing td { background: rgba(197,160,89,.08); }
-    .btn-pause-all { border: 1px solid var(--danger); background: transparent; color: var(--danger); border-radius: 6px; padding: .35rem .7rem; font-size: .65rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
-
-    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .85rem; }
-    .empty-state i { font-size: 2rem; display: block; margin-bottom: .5rem; color: var(--border); }
-
-    .templates { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-bottom: 1.2rem; }
-    .tpl { border: 1px solid var(--border); border-radius: 8px; padding: .6rem .7rem; cursor: pointer; background: transparent; color: var(--text); text-align: left; font-family: 'Outfit', sans-serif; }
-    .tpl b { display: block; font-size: .8rem; }
-    .tpl span { font-size: .65rem; color: var(--muted); }
-    .tpl[aria-pressed="true"] { border-color: var(--gold); background: rgba(197,160,89,.08); }
-
-    .field { margin-bottom: 1rem; }
-    .field > label, .field-label { display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: .35rem; font-weight: 600; }
-    .field input, .field select { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: .4rem 0; font-size: .9rem; font-family: 'Outfit', sans-serif; outline: none; }
-    .field input:focus, .field select:focus { border-bottom-color: var(--gold); }
-    .field-hint { font-size: .62rem; color: var(--muted); margin-top: .25rem; }
-    .two { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
-
-    .days { display: flex; flex-wrap: wrap; gap: .35rem; }
-    .day { border: 1px solid var(--border); border-radius: 999px; padding: .35rem .65rem; min-height: 34px; font-size: .72rem; background: transparent; color: var(--text); cursor: pointer; }
-    .day[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: #fff; }
-
-    .picker { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: .4rem .6rem; }
-    .picker .cat { font-size: .78rem; font-weight: 700; margin: .4rem 0 .2rem; display: flex; align-items: center; gap: .4rem; }
-    .picker .dish { font-size: .78rem; display: flex; align-items: center; gap: .4rem; padding: .15rem 0 .15rem 1.2rem; }
-    .picker .dish span.price { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
-    .picker input { width: auto; }
-
-    .example { border: 1px dashed var(--gold); border-radius: 8px; padding: .8rem .9rem; font-variant-numeric: tabular-nums; }
-    .ex-line { display: flex; align-items: center; gap: .5rem; font-size: .8rem; padding: .2rem 0; }
-    .ex-line .name { flex: 1; }
-    .ex-line input { width: 3.2rem; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text); text-align: center; padding: .15rem; }
-    .ex-offer { font-size: .7rem; color: #10b981; padding-left: 3.7rem; }
-    .ex-row { display: flex; justify-content: space-between; font-size: .8rem; padding: .15rem 0; }
-    .ex-row.total { font-weight: 700; border-top: 1px solid var(--border); margin-top: .3rem; padding-top: .4rem; font-size: .9rem; }
-    .ex-save { color: #10b981; font-size: .78rem; margin-top: .3rem; }
-
-    .btn-create { width: 100%; padding: 1rem; background: var(--gold); border: none; color: #fff; font-size: .72rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; border-radius: 6px; margin-top: 1.2rem; font-family: 'Outfit', sans-serif; }
-    .btn-create:disabled { opacity: .5; cursor: not-allowed; }
-    #form-msg { margin-top: .6rem; font-size: .75rem; display: none; }
-    .switch-row { display: flex; align-items: center; justify-content: space-between; gap: .8rem; padding: .2rem 0 1rem; font-size: .78rem; }
-    details summary { font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); cursor: pointer; margin-bottom: .6rem; }
-    :focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/setup_offers.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/setup/">Setup</a> / Offers{% endblock %}
@@ -120,9 +28,9 @@
                 <div class="card-hdr">
                     <i class="bi bi-gift"></i>
                     <span class="card-hdr-title">Offers, {{ current_outlet.name }} and every outlet</span>
-                    {% if offers %}<button class="btn-pause-all" id="pause-all" onclick="pauseAll()">Pause all</button>{% endif %}
+                    {% if offers %}<button type="button" class="btn-pause-all" id="pause-all" data-action="post" data-url="{% url 'offers_pause_all' %}" data-confirm="Pause every offer?" data-confirm-text="Dishes already ordered keep their offer. Switch each back on when you are ready." data-confirm-button="Pause all">Pause all</button>{% endif %}
                 </div>
-                <div style="overflow-x:auto;">
+                <div class="table-scroll">
                 {% if offers %}
                     <table class="offer-table">
                         <thead><tr><th>Offer</th><th>Covers</th><th>When</th><th>Status</th><th></th></tr></thead>
@@ -130,9 +38,9 @@
                         {% for o in offers %}
                         <tr id="row-{{ o.id }}">
                             <td>
-                                <div style="font-weight:600;">{{ o.name }}</div>
+                                <div class="offer-name">{{ o.name }}</div>
                                 <div class="sub">{{ o.summary }}{% if o.priority %} &middot; priority {{ o.priority }}{% endif %}</div>
-                                {% if not o.outlet %}<span class="badge badge-all" style="margin-top:4px;">All outlets</span>{% endif %}
+                                {% if not o.outlet %}<span class="badge badge-all badge-below">All outlets</span>{% endif %}
                                 {% with o.changes.all as changes %}{% if changes %}
                                 <details class="history">
                                     <summary>Edited {{ changes.0.changed_at|date:"d M, H:i" }} by {{ changes.0.changed_by.username|default:"someone" }}{% if changes|length > 1 %} ({{ changes|length }} edits){% endif %}</summary>
@@ -155,14 +63,14 @@
                             <td>{% if o.is_active %}<span class="badge badge-active">On</span>{% else %}<span class="badge badge-paused">Paused</span>{% endif %}</td>
                             <td>
                                 <div class="tbl-actions">
-                                    <button class="tbl-btn tbl-btn-edit" onclick="startEdit({{ o.id }})" title="Edit" aria-label="Edit {{ o.name }}">
+                                    <button type="button" class="tbl-btn tbl-btn-edit" data-action="offer.edit" data-offer="{{ o.id }}" title="Edit" aria-label="Edit {{ o.name }}">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button class="tbl-btn tbl-btn-toggle {% if not o.is_active %}off{% endif %}" onclick="toggleOffer({{ o.id }})"
+                                    <button type="button" class="tbl-btn tbl-btn-toggle {% if not o.is_active %}off{% endif %}" data-action="post" data-url="{% url 'offer_toggle' o.id %}"
                                             title="{% if o.is_active %}Pause{% else %}Switch on{% endif %}" aria-label="{% if o.is_active %}Pause{% else %}Switch on{% endif %} {{ o.name }}">
                                         <i class="bi bi-{% if o.is_active %}pause{% else %}play{% endif %}-fill"></i>
                                     </button>
-                                    <button class="tbl-btn tbl-btn-del" onclick="deleteOffer({{ o.id }})" title="Remove" aria-label="Remove {{ o.name }}">
+                                    <button type="button" class="tbl-btn tbl-btn-del" data-action="post" data-url="{% url 'offer_delete' o.id %}" data-confirm="Remove this offer?" data-confirm-text="Bills that already used it keep it." data-confirm-button="Remove" title="Remove" aria-label="Remove {{ o.name }}">
                                         <i class="bi bi-trash3"></i>
                                     </button>
                                 </div>
@@ -183,10 +91,10 @@
                 <div class="card-hdr" id="form-card"><i class="bi bi-plus-circle" id="form-icon"></i><span class="card-hdr-title" id="form-title">New offer</span></div>
                 <div class="card-body">
                     <div class="templates" role="group" aria-label="Kind of offer">
-                        <button type="button" class="tpl" data-tpl="buy_get_free" aria-pressed="true"><b>Buy N, get free</b><span>2 pitchers, the 3rd free</span></button>
-                        <button type="button" class="tpl" data-tpl="happy_hour" aria-pressed="false"><b>Happy hour</b><span>% off at set hours</span></button>
-                        <button type="button" class="tpl" data-tpl="percent_off" aria-pressed="false"><b>% off</b><span>on some dishes</span></button>
-                        <button type="button" class="tpl" data-tpl="amount_off" aria-pressed="false"><b>&#8377; off each</b><span>&#8377;100 off every whisky</span></button>
+                        <button type="button" class="tpl" data-action="offer.template" data-tpl="buy_get_free" aria-pressed="true"><b>Buy N, get free</b><span>2 pitchers, the 3rd free</span></button>
+                        <button type="button" class="tpl" data-action="offer.template" data-tpl="happy_hour" aria-pressed="false"><b>Happy hour</b><span>% off at set hours</span></button>
+                        <button type="button" class="tpl" data-action="offer.template" data-tpl="percent_off" aria-pressed="false"><b>% off</b><span>on some dishes</span></button>
+                        <button type="button" class="tpl" data-action="offer.template" data-tpl="amount_off" aria-pressed="false"><b>&#8377; off each</b><span>&#8377;100 off every whisky</span></button>
                     </div>
 
                     <div class="field">
@@ -226,13 +134,13 @@
                     <div class="field">
                         <span class="field-label">Days</span>
                         <div class="days" role="group" aria-label="Days">
-                            <button type="button" class="day" data-day="0" aria-pressed="false">Mon</button>
-                            <button type="button" class="day" data-day="1" aria-pressed="false">Tue</button>
-                            <button type="button" class="day" data-day="2" aria-pressed="false">Wed</button>
-                            <button type="button" class="day" data-day="3" aria-pressed="false">Thu</button>
-                            <button type="button" class="day" data-day="4" aria-pressed="false">Fri</button>
-                            <button type="button" class="day" data-day="5" aria-pressed="false">Sat</button>
-                            <button type="button" class="day" data-day="6" aria-pressed="false">Sun</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="0" aria-pressed="false">Mon</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="1" aria-pressed="false">Tue</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="2" aria-pressed="false">Wed</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="3" aria-pressed="false">Thu</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="4" aria-pressed="false">Fri</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="5" aria-pressed="false">Sat</button>
+                            <button type="button" class="day" data-action="offer.day" data-day="6" aria-pressed="false">Sun</button>
                         </div>
                         <div class="field-hint">None picked: every day. Nights count as the day they started: 1 AM after Friday is still Friday.</div>
                     </div>
@@ -240,7 +148,7 @@
                         <div class="field"><label for="f-start">From</label><input type="time" id="f-start"></div>
                         <div class="field"><label for="f-end">Until</label><input type="time" id="f-end"></div>
                     </div>
-                    <p class="field-hint" style="margin-top:-.6rem;">Blank: all day. An end before the start runs past midnight (20:00 to 02:00).</p>
+                    <p class="field-hint field-hint-tight">Blank: all day. An end before the start runs past midnight (20:00 to 02:00).</p>
 
                     <details>
                         <summary>More: dates, outlets, priority</summary>
@@ -258,16 +166,16 @@
                         </div>
                     </details>
 
-                    <div class="field" style="margin-top:1rem;">
+                    <div class="field field-spaced">
                         <span class="field-label">Example bill, with your menu's prices</span>
                         <div class="example" id="example" aria-live="polite"></div>
                         <div class="field-hint">Change the quantities to try it. The real bill works it out the same way.</div>
                     </div>
 
                     <p class="field-hint" id="edit-hint" hidden>Saving changes it on open bills now (so a mistake stops costing money). Paid bills keep what they were billed. The change is recorded with your name.</p>
-                    <button class="btn-create" id="create-btn" onclick="createOffer()"><i class="bi bi-plus-lg"></i> Save offer</button>
-                    <button class="btn-cancel" id="cancel-edit" onclick="cancelEdit()" hidden>Cancel editing</button>
-                    <div id="form-msg" role="status"></div>
+                    <button type="button" class="btn-create" id="create-btn" data-action="offer.save"><i class="bi bi-plus-lg"></i> Save offer</button>
+                    <button type="button" class="btn-cancel" id="cancel-edit" data-action="offer.cancel" hidden>Cancel editing</button>
+                    <div id="form-msg" role="status" hidden></div>
                 </div>
             </div>
         </div>
@@ -276,261 +184,6 @@
 {% endblock %}
 
 {% block extra_js %}
-{{ example_menu|json_script:"example-menu" }}
-{{ offer_forms|json_script:"offer-forms" }}
-{{ dish_tax|json_script:"dish-tax" }}
-<script type="module" src="{% static 'js/cart_tax.js' %}"></script>
-<script type="module" src="{% static 'js/offers.js' %}"></script>
-<script>
-    const MENU = JSON.parse(document.getElementById('example-menu').textContent);
-    const OFFER_FORMS = JSON.parse(document.getElementById('offer-forms').textContent);
-    let editing = null;           // the offer being edited, or null for a new one
-    // Each dish's tax, read once the page is parsed (cart_tax.js is a module
-    // and runs then); the first example render waits for it below.
-    let DISH_TAX = {};
-    const OUTLET = {
-        inclusive: {{ current_outlet.gst_inclusive|yesno:"true,false" }},
-        vatInclusive: {{ current_outlet.vat_inclusive|yesno:"true,false" }},
-        composition: {{ current_outlet.is_composition_scheme|yesno:"true,false" }},
-        gstRegistered: {{ current_outlet.is_gst_registered|yesno:"true,false" }},
-    };
-    let template = 'buy_get_free';
-    const EXAMPLE_NAMES = {
-        buy_get_free: 'Buy 2 pitchers, get 1 free', happy_hour: 'Happy hour 25% off',
-        percent_off: '10% off desserts', amount_off: 'Rs 100 off every whisky',
-    };
-    let exampleQty = {};          // dish id -> quantity the owner set in the example
-
-    const $ = (id) => document.getElementById(id);
-    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
-    const money = (n) => '₹' + Number(n).toFixed(2);
-
-    function picked(cls) { return [...document.querySelectorAll('.' + cls + ':checked')].map((e) => Number(e.value)); }
-    function days() { return [...document.querySelectorAll('.day[aria-pressed="true"]')].map((e) => Number(e.dataset.day)); }
-
-    function setTemplate(tpl) {
-        template = tpl;
-        document.querySelectorAll('.tpl').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tpl === tpl)));
-        $('grp-bgf').hidden = tpl !== 'buy_get_free';
-        $('bgf-hint').hidden = tpl !== 'buy_get_free';
-        $('grp-pct').hidden = !(tpl === 'happy_hour' || tpl === 'percent_off');
-        $('grp-amt').hidden = tpl !== 'amount_off';
-        if (tpl === 'happy_hour' && !$('f-start').value && !$('f-end').value) {
-            $('f-start').value = '17:00'; $('f-end').value = '20:00';
-            document.querySelectorAll('.day').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.day) <= 4)));
-        }
-        $('f-name').placeholder = EXAMPLE_NAMES[tpl];
-        exampleQty = {};
-        renderExample();
-    }
-
-    // The draft offer, as static/js/offers.js reads one. The example shows the
-    // offer while it runs, so it leaves out the days, times and dates.
-    function draftRule() {
-        const tpl = template;
-        return {
-            id: 1, name: $('f-name').value.trim() || EXAMPLE_NAMES[tpl], priority: 0,
-            kind: tpl === 'buy_get_free' ? 'buy_get_free' : (tpl === 'amount_off' ? 'amount_off' : 'percent_off'),
-            buy: Number($('f-buy').value) || 0, free: Number($('f-free').value) || 0,
-            percent: $('f-pct').value || 0, amount: $('f-amt').value || 0,
-            dishes: picked('pick-dish'), categories: picked('pick-cat'), windows: [],
-        };
-    }
-
-    function covered(rule) {
-        if (!rule.dishes.length && !rule.categories.length) return MENU;
-        return MENU.filter((d) => rule.dishes.includes(d.id) || rule.categories.includes(d.category));
-    }
-
-    // A sensible first example: one full group for "buy N get M", one of each
-    // (up to three) otherwise; the owner can change any quantity.
-    function defaultQty(rule, dishes) {
-        const qty = {};
-        if (rule.kind === 'buy_get_free') {
-            const units = Math.max(rule.buy + rule.free, 1);
-            const shown = dishes.slice(0, Math.min(3, units));
-            shown.forEach((d, i) => { qty[d.id] = i === 0 ? units - (shown.length - 1) : 1; });
-        } else {
-            dishes.slice(0, 3).forEach((d) => { qty[d.id] = 1; });
-        }
-        return qty;
-    }
-
-    function renderExample() {
-        const box = $('example');
-        const rule = draftRule();
-        const dishes = covered(rule).slice(0, 6);
-        if (!dishes.length) { box.textContent = 'No dishes to show yet.'; return; }
-        if (!Object.keys(exampleQty).length) exampleQty = defaultQty(rule, dishes);
-        const lines = dishes.map((d, i) => ({
-            key: i, position: i, dishId: d.id, categoryId: d.category, unitPrice: d.price,
-            quantity: exampleQty[d.id] || 0, addedAt: null, eligible: true,
-        }));
-        const applied = RasovaOffers.evaluate(lines, [rule], {});
-        const taxLines = dishes.map((d, i) => {
-            const line = RasovaCartTax.line(Number(d.price) * (exampleQty[d.id] || 0), DISH_TAX, d.id, 0);
-            line.offer = applied[i] ? applied[i].discount : 0;
-            return line;
-        });
-        const t = RasovaCartTax.totals(taxLines, OUTLET);
-        // Built from elements with every name and number set as text, never
-        // as HTML, so nothing typed into the form or the menu can become markup.
-        const node = (tag, cls, text) => {
-            const e = document.createElement(tag);
-            if (cls) e.className = cls;
-            if (text != null) e.textContent = text;
-            return e;
-        };
-        const row = (cls, label, value) => {
-            const r = node('div', cls);
-            r.appendChild(node('span', '', label));
-            r.appendChild(node('span', '', value));
-            return r;
-        };
-        box.innerHTML = '';
-        dishes.forEach((d, i) => {
-            const line = node('div', 'ex-line');
-            const qty = node('input');
-            qty.type = 'number'; qty.min = '0'; qty.max = '20';
-            qty.value = String(exampleQty[d.id] || 0);
-            qty.dataset.dish = String(d.id);
-            qty.setAttribute('aria-label', 'Quantity of ' + d.name);
-            qty.addEventListener('change', () => {
-                exampleQty[d.id] = Math.max(0, Math.min(20, parseInt(qty.value, 10) || 0));
-                renderExample();
-            });
-            line.appendChild(qty);
-            line.appendChild(node('span', 'name', d.name));
-            line.appendChild(node('span', '', money(Number(d.price) * (exampleQty[d.id] || 0))));
-            box.appendChild(line);
-            if (applied[i]) box.appendChild(node('div', 'ex-offer', applied[i].offerName + ' \u2212' + money(applied[i].discount)));
-        });
-        const subtotal = row('ex-row', 'Subtotal', money(t.subtotal));
-        subtotal.style.marginTop = '.4rem';
-        box.appendChild(subtotal);
-        if (t.offers > 0) {
-            const offers = row('ex-row', 'Offers', '\u2212' + money(t.offers));
-            offers.style.color = '#10b981';
-            box.appendChild(offers);
-        }
-        if (t.gst > 0) box.appendChild(row('ex-row', 'GST' + (OUTLET.inclusive ? ' (incl.)' : ''), money(t.gst)));
-        if (t.vat > 0) box.appendChild(row('ex-row', 'VAT' + (OUTLET.vatInclusive ? ' (incl.)' : ''), money(t.vat)));
-        box.appendChild(row('ex-row total', 'Guest pays', '\u20b9' + t.roundedTotal));
-        if (t.offers > 0) {
-            box.appendChild(node('div', 'ex-save', 'The guest saves ' + money(t.offers) + '.'));
-        } else {
-            const none = node('div', 'sub', 'No offer on this example yet' +
-                (rule.kind === 'buy_get_free' ? ': a group needs ' + (rule.buy + rule.free) + ' covered dishes' : '') + '.');
-            none.style.marginTop = '.3rem';
-            box.appendChild(none);
-        }
-    }
-
-    function showMsg(text, ok) {
-        const el = $('form-msg');
-        el.style.display = 'block';
-        el.style.color = ok ? 'var(--success)' : 'var(--danger)';
-        el.textContent = text;
-    }
-
-    async function createOffer() {
-        const btn = $('create-btn');
-        const all = $('f-all') && $('f-all').checked;
-        const payload = {
-            template: template, name: $('f-name').value.trim(),
-            buy_qty: $('f-buy').value, free_qty: $('f-free').value,
-            percent: $('f-pct').value, amount: $('f-amt').value,
-            dish_ids: picked('pick-dish'), category_ids: picked('pick-cat'),
-            days: days(), start_time: $('f-start').value || null, end_time: $('f-end').value || null,
-            valid_from: $('f-from').value || null, valid_until: $('f-until').value || null,
-            priority: $('f-priority').value || 0, all_outlets: !!all,
-        };
-        if (!payload.name) { showMsg('Give the offer a name, as the bill will show it.', false); return; }
-        btn.disabled = true;
-        try {
-            const url = editing ? `/setup/offers/${editing}/edit/` : '{% url "offer_create" %}';
-            const data = await apiClient.post(url, payload);
-            if (data.success) {
-                const bills = editing && data.bills ? ` ${data.bills} open bill${data.bills === 1 ? '' : 's'} re-totalled.` : '';
-                const same = editing && !(data.changes || []).length ? ' Nothing was different.' : '';
-                showMsg(`Saved: ${data.name} (${data.summary}).${same}${bills}`, true);
-                setTimeout(() => location.reload(), 1200);
-            }
-            else { showMsg(data.error || 'Could not save.', false); btn.disabled = false; }
-        } catch (e) { btn.disabled = false; /* apiClient has shown the error */ }
-    }
-
-    // Load an offer back into the form (the live example follows it).
-    function startEdit(id) {
-        const d = OFFER_FORMS[String(id)];
-        if (!d) return;
-        editing = id;
-        $('f-start').value = ''; $('f-end').value = '';
-        document.querySelectorAll('.day').forEach((b) => b.setAttribute('aria-pressed', 'false'));
-        setTemplate(d.template);
-        $('f-name').value = d.name;
-        $('f-buy').value = d.buy_qty; $('f-free').value = d.free_qty;
-        if (d.percent) $('f-pct').value = d.percent;
-        if (d.amount) $('f-amt').value = d.amount;
-        document.querySelectorAll('.pick-cat').forEach((c) => {
-            c.checked = d.category_ids.includes(Number(c.value));
-        });
-        document.querySelectorAll('.pick-dish').forEach((x) => {
-            const inCategory = d.category_ids.includes(Number(x.dataset.cat));
-            x.disabled = inCategory;
-            x.checked = !inCategory && d.dish_ids.includes(Number(x.value));
-        });
-        document.querySelectorAll('.day').forEach((b) =>
-            b.setAttribute('aria-pressed', String(d.days.includes(Number(b.dataset.day)))));
-        $('f-start').value = d.start_time; $('f-end').value = d.end_time;
-        $('f-from').value = d.valid_from; $('f-until').value = d.valid_until;
-        $('f-priority').value = d.priority;
-        if ($('f-all')) $('f-all').checked = !!d.all_outlets;
-        $('form-title').textContent = 'Edit offer';
-        $('form-icon').className = 'bi bi-pencil';
-        $('create-btn').innerHTML = '<i class="bi bi-check-lg"></i> Save changes';
-        $('cancel-edit').hidden = false;
-        $('edit-hint').hidden = false;
-        $('form-msg').style.display = 'none';
-        document.querySelectorAll('tr.editing').forEach((r) => r.classList.remove('editing'));
-        const row = $(`row-${id}`);
-        if (row) row.classList.add('editing');
-        exampleQty = {};
-        renderExample();
-        if ($('form-card') && $('form-card').scrollIntoView) $('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function cancelEdit() { location.href = location.pathname; }
-
-    async function toggleOffer(id) {
-        try { const d = await apiClient.post(`/setup/offers/${id}/toggle/`, {}); if (d.success) location.reload(); } catch (e) {}
-    }
-    async function deleteOffer(id) {
-        const r = await ui.confirm('Remove this offer?', 'Bills that already used it keep it.', 'Remove');
-        if (!r.isConfirmed) return;
-        try { const d = await apiClient.post(`/setup/offers/${id}/delete/`, {}); if (d.success) location.reload(); } catch (e) {}
-    }
-    async function pauseAll() {
-        const r = await ui.confirm('Pause every offer?', 'Dishes already ordered keep their offer. Switch each back on when you are ready.', 'Pause all');
-        if (!r.isConfirmed) return;
-        try { const d = await apiClient.post('{% url "offers_pause_all" %}', {}); if (d.success) location.reload(); } catch (e) {}
-    }
-
-    document.querySelectorAll('.tpl').forEach((b) => b.addEventListener('click', () => setTemplate(b.dataset.tpl)));
-    document.querySelectorAll('.day').forEach((b) => b.addEventListener('click', () =>
-        b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
-    document.querySelectorAll('.pick-cat').forEach((c) => c.addEventListener('change', () => {
-        document.querySelectorAll(`.pick-dish[data-cat="${c.value}"]`).forEach((d) => { d.disabled = c.checked; if (c.checked) d.checked = false; });
-        exampleQty = {}; renderExample();
-    }));
-    document.querySelectorAll('.pick-dish').forEach((d) => d.addEventListener('change', () => { exampleQty = {}; renderExample(); }));
-    ['f-name', 'f-buy', 'f-free', 'f-pct', 'f-amt'].forEach((id) => $(id).addEventListener('input', () => {
-        if (id === 'f-buy' || id === 'f-free') exampleQty = {};
-        renderExample();
-    }));
-    document.addEventListener('DOMContentLoaded', () => {
-        DISH_TAX = RasovaCartTax.readTable('dish-tax');
-        renderExample();
-    });
-</script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/setup/offers.js' %}"></script>
 {% endblock %}

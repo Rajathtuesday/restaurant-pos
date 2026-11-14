@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Setup, Offers on modules
+
+### Changed
+- `/setup/offers/` runs on `static/js/setup/offers.js` with the example bill in `static/js/setup/offer_example.js` (pure, the cart's own offer engine and tax sums); data and addresses from `setup.views.offer_views.offers_page_data()`; style in `static/css/setup/setup_offers.css`. Pause, Remove and Pause all are shared post buttons, Remove and Pause all asked in Rasova's own sheet. Save ignores a second tap while the first is out.
+- The ratchet holds 4 templates (was 5).
+
+### Tests
+- `setup/tests/test_offer_setup_browser.py` (6, Chromium): the example bill for buy 2 get 1 and for 25% off, a dish name typed as HTML shows as text, Edit loads an offer and saves it, Remove and Pause all ask in a sheet. They replace the Node harness that ran the old inline script.
+- `static/js/tests/setup_offers.test.mjs` (5): the example bill's sums, kept quantities, category picks, the default name.
+
 ## 2026-11-14: Order history on modules; the detail panel escaped and redrawn after a refund
 
 ### Fixed

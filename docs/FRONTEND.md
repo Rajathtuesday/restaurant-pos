@@ -50,6 +50,7 @@ static/js/dashboard/ the owner's dashboard: today.js (the minute's refresh of to
 static/js/qr_menu/   the guest QR menu (on public_base.html): cart.js, modifiers.js (a dish's options), order.js (placing it, a second round, the request id), status.js (the pill and sheet), view.js (what it draws, escaped), index.js; boot.js sets dark mode before the first paint
 static/js/live_orders/ the live orders board: board.js (the tickets as markup, filters, search), loader.js (the 8-second refresh, newest answer only), index.js
 static/js/order_history/ order history's detail panel: detail.js (the panel as markup, escaped), index.js (open, refund form, approve and reject in Rasova's sheets, redraw by the order's id)
+static/js/setup/offers.js, offer_example.js  Setup, Offers: the form, Edit, and the example bill (offer_example.js, pure, the cart's own offer engine and tax sums)
 static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws

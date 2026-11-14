@@ -251,6 +251,23 @@ def retotal_open_bills(tenant, outlet):
     return count
 
 
+def offers_page_data(offers, dishes, dish_tax, outlet):
+    """Everything static/js/setup/offers.js reads: the menu for the example
+    bill, each dish's tax, the outlet's tax setup, each offer as the form
+    holds it, and the addresses (0 stands in for an offer's id)."""
+    from django.urls import reverse
+    return {
+        "menu": [{"id": d.id, "name": d.name, "price": str(d.price), "category": d.category_id} for d in dishes],
+        "dishTax": dish_tax,
+        "outlet": {
+            "inclusive": bool(outlet.gst_inclusive), "vatInclusive": bool(outlet.vat_inclusive),
+            "composition": bool(outlet.is_composition_scheme), "gstRegistered": bool(outlet.is_gst_registered),
+        },
+        "forms": {str(o.id): form_data(o) for o in offers},
+        "urls": {"create": reverse("offer_create"), "update": reverse("offer_update", args=[0])},
+    }
+
+
 @login_required
 @tenant_required
 @feature_required("offers")
@@ -275,18 +292,13 @@ def setup_offers(request):
     categories = MenuCategory.objects.filter(tenant=tenant, outlet=outlet).order_by("display_order", "name")
     dishes = list(MenuItem.objects.filter(tenant=tenant, outlet=outlet).select_related("category", "vat_class")
                   .order_by("category__display_order", "category__name", "name"))
-    from core.utils import _cutoff_hour
     return render(request, "setup/setup_offers.html", {
         "offers": offers,
-        "offer_forms": {str(o.id): form_data(o) for o in offers},
         "categories": categories,
         "dishes": dishes,
-        "example_menu": [{"id": d.id, "name": d.name, "price": str(d.price), "category": d.category_id}
-                         for d in dishes],
-        "dish_tax": sale_tax_map(dishes, tenant),
+        "page_data": offers_page_data(offers, dishes, sale_tax_map(dishes, tenant), outlet),
         "outlets": Outlet.objects.filter(tenant=tenant).order_by("name"),
         "current_outlet": outlet,
-        "cutoff_hour": _cutoff_hour(outlet),
     })
 
 

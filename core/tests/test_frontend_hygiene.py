@@ -120,7 +120,6 @@ BASELINE = {
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 27, "third_party": 0, "globals": 0},
     'menu/templates/menu/qsr_menu_management.html': {"script": 208, "style": 96, "onclick": 15, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_kitchen_stations.html': {"script": 235, "style": 92, "onclick": 10, "third_party": 0, "globals": 0},
-    'setup/templates/setup/setup_offers.html': {"script": 250, "style": 91, "onclick": 6, "third_party": 0, "globals": 0},
 }
 
 

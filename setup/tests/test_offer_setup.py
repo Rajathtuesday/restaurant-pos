@@ -5,10 +5,7 @@ the live example bill on the page prices it with the real menu.
 
 Run: python manage.py test setup.tests.test_offer_setup
 """
-import html
 import json
-import re
-import subprocess
 from decimal import Decimal as D
 
 from django.test import Client, TestCase
@@ -17,11 +14,9 @@ from django.urls import reverse
 from accounts.models import User
 from menu.liquor import add_liquor_class
 from menu.models import MenuCategory, MenuItem
-from core.tests.node_page import HARNESS, NODE_ARGS, our_scripts
 from offers.models import Offer
 from orders.models import Order
 from orders.services.order_service import add_items_to_order
-from orders.tests.test_cart_tax_js import NODE, _needs_node
 from tenants.models import Outlet, Tenant, TenantFeatureOverride
 
 
@@ -215,65 +210,14 @@ class ThePageTest(OfferSetupBase):
         self.assertIn("Fri 20:00-02:00", page)
         self.assertIn("(category)", page)
 
-    def example(self, *taps, read=()):
-        """Run the page's own script in Node and return the example bill's HTML."""
-        _needs_node(self)
-        page = self.page()
-        values = dict(re.findall(r'id="(f-[\w-]+)"[^>]*\svalue="([^"]*)"', page))
-        runner = HARNESS.replace(
-            "      if (id in page.json) el.textContent = page.json[id];",
-            "      if (id in page.json) el.textContent = page.json[id];\n"
-            "      if (page.values && id in page.values) el.value = page.values[id];",
-        )
-        runner = runner[:runner.index("const el = id =>")] + (
-            'const fields = {}; (page.read || []).forEach(id => { const el = document.getElementById(id); '
-            'fields[id] = el ? (id === "form-title" ? el.textContent : el.value) : null; });'
-            'const dump = e => [e.textContent || "", ...(e.children || []).map(dump)].filter(Boolean).join(" | ");process.stdout.write(JSON.stringify({errors, fields, example: dump(document.getElementById("example"))}));')
-        self.assertIn("page.values", runner)
-        done = subprocess.run(
-            [NODE, *NODE_ARGS, runner], capture_output=True, text=True, timeout=60, check=True,
-            input=json.dumps({
-                "files": our_scripts(page, module=False),
-                "modules": our_scripts(page, module=True),
-                "ids": re.findall(r'\sid="([^"]+)"', page),
-                "json": dict(re.findall(r'<script id="([^"]+)" type="application/json">(.*?)</script>', page, re.S)),
-                # Comments out first: the base template's head has a comment
-                # that mentions "<script>" in its prose.
-                "scripts": re.findall(r"<script>(.*?)</script>", re.sub(r"<!--.*?-->", "", page, flags=re.S), re.S),
-                "values": values, "taps": list(taps), "read": list(read),
-            }),
-        )
-        out = json.loads(done.stdout)
-        self.assertEqual(out["errors"], [])
-        self.fields = out["fields"]
-        return html.unescape(out["example"])
-
-    def test_the_example_bill_prices_buy_two_get_one(self):
-        # Whole menu, buy 2 get 1: two Craft (2,500) and one Lager (2,300); the
-        # Lager is free. Beer VAT is 0% here.
-        example = self.plain(self.example())
-        self.assertIn("Buy 2 pitchers, get 1 free 2300.00", example)         # under the free Lager
-        self.assertIn("Offers | 2300.00", example)
-        self.assertIn("Guest pays | 5000", example)
-        self.assertIn("The guest saves 2300.00.", example)
-
-    def test_the_example_follows_the_kind_of_offer(self):
-        example = self.plain(self.example(("PERCENT", "setTemplate('percent_off')")))
-        # 25% off one of each: 4,800 less 1,200.
-        self.assertIn("Offers | 1200.00", example)
-        self.assertIn("Guest pays | 3600", example)
-
-    @staticmethod
-    def plain(example):
-        """The example without its currency and minus signs, one space apart."""
-        return re.sub(r"\s+", " ", re.sub(r"[^\x00-\x7f]", "", example))
+    # The example bill and Edit run in a real browser now (14 Nov 2026,
+    # static/js/setup/offers.js): test_offer_setup_browser.py.
 
 
 class EditTest(OfferSetupBase):
     """Fixing an offer made by mistake: open bills follow at once, paid bills
     never move, and the change is on record."""
     page = ThePageTest.page
-    example = ThePageTest.example
 
     def half_off_lager(self):
         resp = self.create(template="percent_off", name="Lager deal", percent="50", dish_ids=[self.lager.id])
@@ -364,10 +308,7 @@ class EditTest(OfferSetupBase):
         open_bill.refresh_from_db()
         self.assertEqual(open_bill.offer_total, D("0.00"))
 
-    def test_edit_loads_the_offer_into_the_form(self):
-        offer = self.half_off_lager()
-        offer.refresh_from_db()
+    def test_the_page_carries_each_offer_for_the_form(self):
+        self.half_off_lager()
         self.assertIn('"template": "percent_off"', self.page())
-        self.example(("EDIT", f"startEdit({offer.id})"), read=("f-name", "f-pct", "form-title"))
-        self.assertEqual(self.fields, {"f-name": "Lager deal", "f-pct": "50.00", "form-title": "Edit offer"})
 
