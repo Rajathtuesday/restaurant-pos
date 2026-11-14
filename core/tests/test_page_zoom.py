@@ -28,5 +28,7 @@ class PinchZoomTest(SimpleTestCase):
 
     def test_iphone_inputs_stay_at_16px(self):
         css = (settings.BASE_DIR / "static" / "css" / "rasova.css").read_text(encoding="utf-8")
-        self.assertIn("@supports (-webkit-touch-callout: none)", css)
-        self.assertIn("font-size: max(16px, 1em)", css)
+        # Every touch screen since 14 Nov 2026, and above any page's own field class
+        # (it was iPhones only and lost to .field-num; core/tests/test_text_floor.py).
+        self.assertIn("@media (hover: none) and (pointer: coarse)", css)
+        self.assertIn("font-size: max(16px, 1em) !important", css)

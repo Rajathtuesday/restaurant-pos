@@ -236,7 +236,7 @@ class UnscopedCallSiteAllowlistTest(TestCase):
         # /health/'s detail, for a superuser or the monitor's token only:
         # the age of the oldest unprinted job in any restaurant. It shows a
         # count and an age, never a row (core/health.py, check_printing).
-        "core/health.py:139",
+        "core/health.py:151",
     }
 
     # Files that reference ".unscoped(" in prose (docstrings/comments)
