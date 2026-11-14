@@ -109,6 +109,14 @@ class NotificationAnswerTest(PrintingWorld):
         self.assertEqual(answer["printing"]["waiting"], 1)
         self.assertEqual(answer["printing"]["oldest_seconds"] // 60, 3)
 
+    def test_a_platform_superuser_with_no_outlet_gets_an_answer_not_a_500(self):
+        """Found 14 Nov 2026: printing_state read outlet.pk of None, so every
+        page a platform superuser opened polled a 500 every 8 seconds."""
+        admin = User.objects.create_user(username="ps-admin", password="pw", is_superuser=True, is_staff=True)
+        response = self.client_as(admin).get("/api/notifications/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["printing"])
+
 
 class JobStatusTest(PrintingWorld):
 

@@ -45,7 +45,11 @@ def _seconds(delta):
 
 
 def printing_state(outlet, now=None):
-    """The facts the printer chip is drawn from, for one outlet."""
+    """The facts the printer chip is drawn from, for one outlet. None with
+    no outlet (a platform superuser has none): no chip, rather than a 500
+    on every page's 8-second notification poll."""
+    if outlet is None:
+        return None
     now = now or timezone.now()
     seen = Outlet.objects.filter(pk=outlet.pk).values_list("print_agent_seen_at", flat=True).first()
     jobs = PrintJob.objects.for_outlet(outlet.tenant_id, outlet.pk)
