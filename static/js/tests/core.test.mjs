@@ -64,7 +64,7 @@ test("in a browser nothing is started", () => {
 test("the CSRF token comes from the meta tag, or the cookie without one", () => {
   const withMeta = { querySelector: () => ({ getAttribute: () => "meta-token" }), cookie: "csrftoken=cookie-token" };
   assert.equal(csrfToken(withMeta), "meta-token");
-  const withoutMeta = { querySelector: () => null, cookie: "a=b; csrftoken=cookie%2Dtoken; c=d" };
+  const withoutMeta = { querySelector: () => null, cookie: "a=b; csrftoken2=cookie%2Dtoken; c=d" };  // settings.CSRF_COOKIE_NAME
   assert.equal(csrfToken(withoutMeta), "cookie-token");
   assert.equal(csrfToken({ querySelector: () => null, cookie: "" }), "");
 });
