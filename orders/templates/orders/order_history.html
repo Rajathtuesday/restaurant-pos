@@ -1,181 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Order History | {{ request.user.outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-  .hist-wrap { max-width: 1300px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
-
-  /* ── Filter bar ─────────────────────────────────────────────── */
-  .filter-bar {
-    background: var(--panel-bg); border: 1px solid var(--border-color);
-    padding: 1rem 1.25rem; margin-bottom: 1.5rem;
-    display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: flex-end;
-  }
-  .filter-bar .f-group { display: flex; flex-direction: column; gap: 3px; min-width: 130px; }
-  .filter-bar label { font-size: 0.58rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; }
-  .filter-bar input, .filter-bar select {
-    background: transparent; border: 1px solid var(--border-color);
-    color: var(--text-main); padding: 0.38rem 0.6rem;
-    font-size: 0.82rem; font-family: inherit; outline: none;
-  }
-  .filter-bar input:focus, .filter-bar select:focus { border-color: var(--accent-gold); }
-  .filter-bar select option { background: var(--panel-bg); }
-  .btn-filter { padding: 0.4rem 1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: inherit; }
-  .btn-filter:hover { background: #b59250; }
-  .btn-clear  { padding: 0.4rem 0.8rem; background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.78rem; cursor: pointer; font-family: inherit; }
-
-  /* ── Summary strip ──────────────────────────────────────────── */
-  .summary-strip {
-    display: flex; gap: 1rem; flex-wrap: wrap;
-    margin-bottom: 1.25rem; align-items: center;
-  }
-  .sum-chip {
-    background: var(--panel-bg); border: 1px solid var(--border-color);
-    padding: 0.5rem 1rem; font-size: 0.78rem;
-  }
-  .sum-chip strong { font-size: 1rem; font-family: 'DM Serif Display', serif; color: var(--text-main); display: block; }
-  .sum-chip span   { color: var(--text-muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; }
-  .pay-bar { display: flex; gap: 6px; align-items: center; font-size: 0.75rem; }
-  .pay-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-
-  /* ── Table ─────────────────────────────────────────────────── */
-  .hist-table { width: 100%; border-collapse: collapse; }
-  .hist-table th {
-    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--text-muted); font-weight: 600;
-    padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left;
-  }
-  .hist-table td {
-    padding: 0.75rem; border-bottom: 1px solid var(--border-color);
-    font-size: 0.85rem; vertical-align: middle;
-  }
-  .hist-table tr:hover td { background: var(--panel-bg); cursor: pointer; }
-  .hist-table tr.cancelled td { color: var(--text-muted); text-decoration: line-through; text-decoration-color: rgba(100,100,100,0.3); }
-
-  .order-num { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--accent-gold); }
-  .status-pill {
-    display: inline-block; padding: 2px 8px; border-radius: 12px;
-    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
-  }
-  .pill-closed    { background: rgba(16,185,129,.12); color: #10b981; }
-  .pill-cancelled { background: rgba(239,68,68,.1);   color: #ef4444; }
-  .pill-open      { background: rgba(234,179,8,.12);  color: #ca8a04; }
-  .pill-billing   { background: rgba(6,182,212,.12);  color: #06b6d4; }
-
-  .method-tag { font-size: 0.65rem; padding: 1px 6px; border: 1px solid var(--border-color); color: var(--text-muted); border-radius: 3px; margin-right: 3px; }
-
-  /* ── Pagination ─────────────────────────────────────────────── */
-  .pag { display: flex; gap: 0.4rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; }
-  .pag a, .pag span {
-    padding: 0.35rem 0.75rem; border: 1px solid var(--border-color);
-    font-size: 0.78rem; text-decoration: none; color: var(--text-main);
-  }
-  .pag .current { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-  .pag a:hover  { border-color: var(--accent-gold); color: var(--accent-gold); }
-
-  /* ── Detail panel (slide-in) ─────────────────────────────────── */
-  .detail-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.45); z-index: 1050;
-  }
-  .detail-overlay.open { display: block; }
-  .detail-panel {
-    position: fixed; top: 0; right: -520px; width: 500px; max-width: 100vw;
-    height: 100vh; background: var(--panel-bg); border-left: 1px solid var(--border-color);
-    overflow-y: auto; z-index: 1060; transition: right 0.28s ease;
-    display: flex; flex-direction: column;
-  }
-  .detail-panel.open { right: 0; }
-  .detail-panel-head {
-    padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color);
-    display: flex; justify-content: space-between; align-items: flex-start;
-    position: sticky; top: 0; background: var(--panel-bg); z-index: 2;
-  }
-  .detail-panel-body { padding: 1.25rem 1.5rem; flex: 1; }
-  .detail-section { margin-bottom: 1.5rem; }
-  .detail-section-title {
-    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--accent-gold); font-weight: 700; margin-bottom: 0.6rem;
-    padding-bottom: 0.4rem; border-bottom: 1px solid var(--border-color);
-  }
-  .detail-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.85rem; border-bottom: 1px dashed var(--border-color); }
-  .detail-row:last-child { border-bottom: none; }
-  .detail-row .name { color: var(--text-main); flex: 1; }
-  .detail-row .amt  { white-space: nowrap; padding-left: 1rem; color: var(--text-muted); }
-  .detail-row.voided .name { text-decoration: line-through; color: var(--text-muted); }
-  .detail-row.voided .amt  { color: #ef4444; }
-  .detail-row.comp   .name { color: #10b981; }
-  .void-reason { font-size: 0.72rem; color: #ef4444; display: block; }
-  .total-row { font-weight: 700; font-size: 0.95rem; border-top: 2px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.5rem; }
-  .refund-row { color: #ef4444; }
-
-  /* ── Refund UI ──────────────────────────────────────────────── */
-  .btn-refund {
-    font-size: 0.65rem; padding: 2px 8px; border: 1px solid #ef4444;
-    color: #ef4444; background: transparent; cursor: pointer;
-    font-family: inherit; letter-spacing: 1px; text-transform: uppercase;
-    margin-left: 8px; transition: all 0.2s;
-  }
-  .btn-refund:hover { background: #ef4444; color: #fff; }
-  .refund-entry {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0.3rem 0.5rem; margin-top: 4px; font-size: 0.78rem;
-    background: rgba(239,68,68,0.06); border-left: 2px solid #ef4444;
-  }
-  .refund-entry .refund-status {
-    font-size: 0.6rem; padding: 1px 6px; border-radius: 10px;
-    font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-  }
-  .status-pending  { background: rgba(234,179,8,.15);  color: #ca8a04; }
-  .status-approved { background: rgba(16,185,129,.12); color: #10b981; }
-  .status-rejected { background: rgba(100,100,100,.12);color: #6b6b6b; }
-  .btn-approve { font-size:0.65rem;padding:2px 8px;border:1px solid #10b981;color:#10b981;background:transparent;cursor:pointer;font-family:inherit;letter-spacing:1px;text-transform:uppercase;transition:all .2s; }
-  .btn-approve:hover { background:#10b981;color:#fff; }
-  .btn-reject  { font-size:0.65rem;padding:2px 8px;border:1px solid var(--border-color);color:var(--text-muted);background:transparent;cursor:pointer;font-family:inherit;letter-spacing:1px;text-transform:uppercase;margin-left:4px;transition:all .2s; }
-  .btn-reject:hover  { border-color:#ef4444;color:#ef4444; }
-
-  /* ── Refund modal ────────────────────────────────────────────── */
-  .refund-modal-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6); z-index: 2000;
-    align-items: center; justify-content: center;
-  }
-  .refund-modal-overlay.open { display: flex; }
-  .refund-modal {
-    background: var(--panel-bg); border: 1px solid var(--border-color);
-    padding: 1.5rem; width: 360px; max-width: 95vw;
-  }
-  .refund-modal h4 { font-family:'DM Serif Display',serif;font-size:1.1rem;font-weight:400;margin:0 0 1rem; }
-  .refund-modal label { font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);display:block;margin-bottom:3px;margin-top:0.75rem; }
-  .refund-modal input, .refund-modal textarea {
-    width:100%;background:transparent;border:1px solid var(--border-color);
-    color:var(--text-main);padding:0.4rem 0.6rem;font-size:0.85rem;font-family:inherit;outline:none;
-  }
-  .refund-modal input:focus, .refund-modal textarea:focus { border-color:var(--accent-gold); }
-  .refund-modal-actions { display:flex;gap:0.5rem;margin-top:1.25rem; }
-  .btn-refund-submit { flex:1;padding:0.6rem;background:#ef4444;border:none;color:#fff;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:inherit; }
-  .btn-refund-submit:hover { background:#dc2626; }
-  .btn-refund-cancel { padding:0.6rem 1rem;background:transparent;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.8rem;cursor:pointer;font-family:inherit; }
-
-  .audit-event { display: flex; gap: 0.75rem; padding: 0.5rem 0; font-size: 0.8rem; border-bottom: 1px dashed var(--border-color); }
-  .audit-event:last-child { border-bottom: none; }
-  .audit-time { color: var(--text-muted); white-space: nowrap; min-width: 48px; }
-  .audit-by   { color: var(--accent-gold); white-space: nowrap; }
-
-  .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; line-height: 1; }
-  .close-btn:hover { color: var(--text-main); }
-
-  .loading-detail { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.85rem; }
-
-  @media (max-width: 768px) {
-    .hist-table th:nth-child(3),
-    .hist-table td:nth-child(3),
-    .hist-table th:nth-child(5),
-    .hist-table td:nth-child(5) { display: none; }
-    .filter-bar .f-group { min-width: 100px; }
-    .detail-panel { width: 100vw; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/orders/order_history.css' %}">
 {% endblock %}
 
 {% block page_title %}Order History{% endblock %}
@@ -305,7 +133,7 @@
     </thead>
     <tbody>
       {% for order in page.object_list %}
-      <tr onclick="openDetail({{ order.id }})"
+      <tr data-action="oh.open" data-id="{{ order.id }}" tabindex="0"
           class="{% if order.status == 'cancelled' %}cancelled{% endif %}">
         <td><span class="order-num">{{ order.display_number }}</span></td>
         <td>
@@ -384,263 +212,40 @@
 
 <!-- Refund request modal -->
 <div class="refund-modal-overlay" id="refundModalOverlay">
-  <div class="refund-modal">
+  <form class="refund-modal" id="refundForm" data-action="oh.refund-submit">
     <h4>Request Refund</h4>
     <label>Max Refundable</label>
-    <div id="refundMaxAmt" style="font-size:0.95rem;font-weight:700;color:var(--accent-gold);margin-bottom:0.75rem;"></div>
-    <label>Amount (₹)</label>
-    <input type="number" id="refundAmount" min="1" step="0.01" placeholder="Enter amount">
-    <label style="margin-top:0.75rem;">Customer Complaint <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(optional: what the customer said)</span></label>
-    <textarea id="refundCustomerComplaint" rows="2" placeholder="e.g. Food arrived cold, Wrong order delivered..."></textarea>
-    <label style="margin-top:0.75rem;">Manager Note <span style="color:#e74c3c;">*</span> <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(internal reason for approval)</span></label>
-    <textarea id="refundReason" rows="2" placeholder="e.g. Verified complaint, approving refund..."></textarea>
+    <div id="refundMaxAmt" class="refund-max"></div>
+    <label for="refundAmount">Amount (₹)</label>
+    <input type="number" id="refundAmount" name="amount" min="0.01" step="0.01" placeholder="Enter amount" required>
+    <label for="refundCustomerComplaint" class="refund-label">Customer Complaint <span class="refund-hint">(optional: what the customer said)</span></label>
+    <textarea id="refundCustomerComplaint" name="customer_complaint" rows="2" placeholder="e.g. Food arrived cold, Wrong order delivered..."></textarea>
+    <label for="refundReason" class="refund-label">Manager Note <span class="refund-star">*</span> <span class="refund-hint">(internal reason for approval)</span></label>
+    <textarea id="refundReason" name="reason" rows="2" required placeholder="e.g. Verified complaint, approving refund..."></textarea>
     <div class="refund-modal-actions">
-      <button class="btn-refund-cancel" onclick="closeRefundModal()">Cancel</button>
-      <button class="btn-refund-submit" onclick="submitRefund()">Request Refund</button>
+      <button type="button" class="btn-refund-cancel" data-action="oh.refund-cancel">Cancel</button>
+      <button type="submit" class="btn-refund-submit">Request Refund</button>
     </div>
-  </div>
+  </form>
 </div>
 
 <!-- Detail overlay + panel -->
-<div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
+<div class="detail-overlay" id="detailOverlay" data-action="oh.close"></div>
 <div class="detail-panel" id="detailPanel">
   <div class="detail-panel-head">
     <div>
-      <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--accent-gold);margin:0;">Order Detail</p>
-      <h3 id="detailOrderNum" style="font-family:'DM Serif Display',serif;font-size:1.2rem;font-weight:400;margin:0;"></h3>
+      <p class="detail-kicker">Order Detail</p>
+      <h3 id="detailOrderNum" class="detail-title"></h3>
     </div>
-    <button class="close-btn" onclick="closeDetail()">×</button>
+    <button type="button" class="close-btn" data-action="oh.close" aria-label="Close">×</button>
   </div>
   <div class="detail-panel-body" id="detailBody">
-    <div class="loading-detail"><i class="bi bi-hourglass-split"></i> Loading…</div>
+    <div class="loading-detail"><i class="bi bi-hourglass-split"></i> Loading...</div>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function openDetail(orderId) {
-  document.getElementById("detailOverlay").classList.add("open");
-  document.getElementById("detailPanel").classList.add("open");
-  document.getElementById("detailBody").innerHTML =
-    '<div class="loading-detail"><i class="bi bi-hourglass-split"></i> Loading…</div>';
-  document.getElementById("detailOrderNum").textContent = "#" + orderId;
-
-  fetch(`/history/${orderId}/detail/`, { headers: { "X-Requested-With": "XMLHttpRequest" } })
-    .then(r => r.json())
-    .then(d => {
-      if (d.error) { document.getElementById("detailBody").innerHTML = `<p style="color:#ef4444;">${d.error}</p>`; return; }
-      renderDetail(d);
-    })
-    .catch(() => {
-      document.getElementById("detailBody").innerHTML = '<p style="color:#ef4444;">Failed to load order detail.</p>';
-    });
-}
-
-function closeDetail() {
-  document.getElementById("detailOverlay").classList.remove("open");
-  document.getElementById("detailPanel").classList.remove("open");
-}
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeDetail(); });
-
-function renderDetail(o) {
-  document.getElementById("detailOrderNum").textContent = o.order_number;
-
-  const statusColor = { closed: "#10b981", cancelled: "#ef4444", billing: "#06b6d4", open: "#ca8a04" };
-  const col = statusColor[o.status] || "#888";
-
-  let html = `
-  <div class="detail-section">
-    <div class="detail-section-title">Order Info</div>
-    <div class="detail-row"><span class="name">Date</span><span class="amt">${o.created_at}</span></div>
-    <div class="detail-row"><span class="name">Location</span><span class="amt">${o.location}</span></div>
-    <div class="detail-row"><span class="name">Source</span><span class="amt">${o.source.replace("_"," ")}</span></div>
-    <div class="detail-row"><span class="name">Waiter / Staff</span><span class="amt">${o.waiter || "-"}</span></div>
-    ${o.customer_name  ? `<div class="detail-row"><span class="name">Customer</span><span class="amt">${o.customer_name}</span></div>` : ""}
-    ${o.customer_phone ? `<div class="detail-row"><span class="name">Phone</span><span class="amt">${o.customer_phone}</span></div>` : ""}
-    ${o.duration_mins !== null ? `<div class="detail-row"><span class="name">Duration</span><span class="amt">${o.duration_mins} min</span></div>` : ""}
-    <div class="detail-row"><span class="name">Status</span><span class="amt" style="color:${col};font-weight:700;text-transform:uppercase;">${o.status}</span></div>
-  </div>`;
-
-  // Items
-  html += `<div class="detail-section"><div class="detail-section-title">Items (${o.items.length})</div>`;
-  if (!o.items.length) {
-    html += `<p style="color:var(--text-muted);font-size:0.82rem;">No items recorded.</p>`;
-  } else {
-    o.items.forEach(item => {
-      const cls = item.status === "voided" ? "voided" : item.is_complimentary ? "comp" : "";
-      const badge = item.status === "voided"
-        ? `<span style="font-size:0.65rem;background:rgba(239,68,68,.1);color:#ef4444;padding:1px 5px;border-radius:3px;margin-left:6px;">VOID</span>`
-        : item.is_complimentary
-        ? `<span style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:1px 5px;border-radius:3px;margin-left:6px;">COMP</span>`
-        : "";
-      const voidNote = item.void_reason
-        ? `<span class="void-reason">Reason: ${item.void_reason}</span>` : "";
-      const price = item.is_complimentary ? "Rs.0" : `Rs.${item.total.toFixed(0)}`;
-      html += `<div class="detail-row ${cls}">
-        <span class="name">${item.quantity}× ${item.name}${badge}${voidNote}</span>
-        <span class="amt">${price}</span>
-      </div>`;
-    });
-  }
-  html += `</div>`;
-
-  // Totals
-  html += `<div class="detail-section"><div class="detail-section-title">Totals</div>
-    <div class="detail-row"><span class="name">Subtotal</span><span class="amt">Rs.${o.subtotal.toFixed(0)}</span></div>
-    <div class="detail-row"><span class="name">GST</span><span class="amt">Rs.${o.gst_total.toFixed(0)}</span></div>`;
-  if (o.discount_total > 0) {
-    html += `<div class="detail-row"><span class="name">Discount</span><span class="amt" style="color:#10b981;">-Rs.${o.discount_total.toFixed(0)}</span></div>`;
-  }
-  html += `<div class="detail-row total-row"><span class="name">Grand Total</span><span class="amt">Rs.${o.grand_total.toFixed(0)}</span></div></div>`;
-
-  // Payments + refund UI
-  if (o.payments.length) {
-    html += `<div class="detail-section"><div class="detail-section-title">Payments</div>`;
-    o.payments.forEach(p => {
-      if (p.is_refund) {
-        html += `<div class="detail-row refund-row">
-          <span class="name">${p.method.toUpperCase()}${p.reference ? ` · ${p.reference}` : ""}</span>
-          <span class="amt">-Rs.${Math.abs(p.amount).toFixed(0)} <span style="color:var(--text-muted);font-size:0.7rem;">${p.paid_at}</span></span>
-        </div>`;
-        return;
-      }
-      // Calculate remaining refundable
-      const alreadyRefunded = p.refunds.filter(r => r.status !== "rejected")
-        .reduce((s, r) => s + r.amount, 0);
-      const remaining = (p.amount - alreadyRefunded).toFixed(2);
-      const refundBtn = (o.can_refund && parseFloat(remaining) > 0)
-        ? `<button class="btn-refund" onclick="openRefundModal(${p.id}, ${remaining})">Refund</button>`
-        : "";
-      html += `<div class="detail-row">
-        <span class="name">${p.method.toUpperCase()}${p.reference ? ` · ${p.reference}` : ""}${refundBtn}</span>
-        <span class="amt">Rs.${p.amount.toFixed(0)} <span style="color:var(--text-muted);font-size:0.7rem;">${p.paid_at}</span></span>
-      </div>`;
-      // Show existing refunds for this payment
-      p.refunds.forEach(r => {
-        const stCls = `status-${r.status}`;
-        const approveReject = (o.can_approve_refund && r.status === "pending")
-          ? `<button class="btn-approve" onclick="approveRefund(${r.id})">Approve</button>
-             <button class="btn-reject"  onclick="rejectRefund(${r.id})">Reject</button>`
-          : "";
-        html += `<div class="refund-entry">
-          <span>₹${r.amount.toFixed(0)} · ${r.reason || "No reason"} <span style="color:var(--text-muted);font-size:0.7rem;">by ${r.by}</span></span>
-          <span style="display:flex;align-items:center;gap:4px;">
-            <span class="refund-status ${stCls}">${r.status}</span>
-            ${approveReject}
-          </span>
-        </div>`;
-      });
-    });
-    html += `</div>`;
-  }
-
-  // Audit trail (owner/manager only: empty array for others)
-  if (o.events && o.events.length) {
-    html += `<div class="detail-section"><div class="detail-section-title">Audit Trail</div>`;
-    o.events.forEach(ev => {
-      html += `<div class="audit-event">
-        <span class="audit-time">${ev.at}</span>
-        <span style="flex:1;">${ev.label}</span>
-        <span class="audit-by">${ev.by || "System"}</span>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-
-  // Reprint button
-  html += `<div style="margin-top:1rem;">
-    <a href="/thermal-receipt/${o.id}/" target="_blank"
-       class="btn-luxury w-100" style="text-align:center;text-decoration:none;display:flex;justify-content:center;gap:6px;">
-      <i class="bi bi-printer"></i> Reprint Receipt
-    </a>
-  </div>`;
-
-  document.getElementById("detailBody").innerHTML = html;
-}
-
-// ── Refund modal ──────────────────────────────────────────────
-let _activePaymentId = null;
-
-function openRefundModal(paymentId, maxAmount) {
-  _activePaymentId = paymentId;
-  document.getElementById("refundMaxAmt").textContent = "₹" + parseFloat(maxAmount).toFixed(2);
-  document.getElementById("refundAmount").value = "";
-  document.getElementById("refundAmount").max = maxAmount;
-  document.getElementById("refundCustomerComplaint").value = "";
-  document.getElementById("refundReason").value = "";
-  document.getElementById("refundModalOverlay").classList.add("open");
-}
-
-function closeRefundModal() {
-  document.getElementById("refundModalOverlay").classList.remove("open");
-  _activePaymentId = null;
-}
-
-function submitRefund() {
-  const amount             = document.getElementById("refundAmount").value;
-  const customer_complaint = document.getElementById("refundCustomerComplaint").value.trim();
-  const reason             = document.getElementById("refundReason").value.trim();
-  if (!amount || parseFloat(amount) <= 0) { alert("Enter a valid amount."); return; }
-  if (!reason) { alert("Manager Note is required."); return; }
-
-  fetch(`/refund/${_activePaymentId}/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
-    body: JSON.stringify({ amount, customer_complaint, reason })
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      closeRefundModal();
-      // Refresh the detail panel
-      const orderId = parseInt(document.getElementById("detailOrderNum").textContent.replace("#",""));
-      if (orderId) openDetail(orderId);
-    } else {
-      alert(d.error || "Refund request failed.");
-    }
-  })
-  .catch(() => alert("Network error. Please try again."));
-}
-
-function approveRefund(refundId) {
-  if (!confirm("Approve this refund?")) return;
-  fetch(`/refund/approve/${refundId}/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
-    body: "{}"
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      const orderId = parseInt(document.getElementById("detailOrderNum").textContent.replace("#",""));
-      if (orderId) openDetail(orderId);
-    } else { alert(d.error || "Approval failed."); }
-  })
-  .catch(() => alert("Network error."));
-}
-
-function rejectRefund(refundId) {
-  const reason = prompt("Reason for rejection (optional):");
-  if (reason === null) return; // user cancelled
-  fetch(`/refund/reject/${refundId}/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
-    body: JSON.stringify({ reason })
-  })
-  .then(r => r.json())
-  .then(d => {
-    if (d.success) {
-      const orderId = parseInt(document.getElementById("detailOrderNum").textContent.replace("#",""));
-      if (orderId) openDetail(orderId);
-    } else { alert(d.error || "Rejection failed."); }
-  })
-  .catch(() => alert("Network error."));
-}
-
-function getCookie(name) {
-  const v = document.cookie.match("(^|;) ?" + name + "=([^;]*)(;|$)");
-  return v ? v[2] : null;
-}
-</script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/order_history/index.js' %}"></script>
 {% endblock %}

@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Order history on modules; the detail panel escaped and redrawn after a refund
+
+### Fixed
+- **The order detail panel wrote what people typed into the page as HTML**: the guest's name and phone, dish names, void and refund reasons, payment references, audit lines. All of it is text now (`order_history/detail.js`).
+- **After a refund request, approval or rejection, the panel never showed the change.** It read its heading back as the order id, but the heading is the bill number (`INV-1-...`), so it asked for nothing. The panel now keeps the order's id.
+- **Approve used `confirm()` and Reject used `prompt()`**, which never show in the Android app, so an owner there could not decide a refund. Both are Rasova's own sheets; the refund request is a form (the browser checks the amount and the note first) and refusals are toasts, not `alert()`.
+
+### Changed
+- `/history/` runs on `static/js/order_history/` with its addresses from `orders.views.history_views.order_history_page_data()`; style in `static/css/orders/order_history.css`. A row opens with a tap or Enter; Escape closes the refund form, then the panel; a quick second row tap never shows the first order.
+- The ratchet holds 5 templates (was 6).
+
+### Tests
+- `orders/tests/test_order_history_browser.py` (4, Chromium): a name typed as HTML shows as text; a refund request shows in the panel; Reject asks for its reason in a sheet; Approve asks in a sheet. All four fail on the old page.
+- `static/js/tests/order_history.test.mjs` (5): escaping of every typed field, what is left to refund, who sees Refund, Approve and Reject.
+
 ## 2026-11-14: The live orders board on modules
 
 ### Changed

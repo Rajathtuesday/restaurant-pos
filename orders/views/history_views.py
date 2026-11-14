@@ -17,6 +17,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum, Count, Prefetch
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 
 from core.decorators import tenant_required, role_required
@@ -158,6 +159,23 @@ def _apply_filters(qs, params, is_restricted, outlet=None):
 # MAIN VIEW
 # ---------------------------------------------------------------------------
 
+def order_history_page_data():
+    """What static/js/order_history/index.js needs, rendered once by
+    order_history.html as {{ page_data|json_script:"page-data" }}: every
+    address the detail panel calls (0 stands in for an id the script fills
+    in). Who may refund or approve is the detail answer's can_refund and
+    can_approve_refund, decided per order by order_detail_api."""
+    return {
+        "urls": {
+            "detail": reverse("order-detail-api", args=[0]),
+            "receipt": reverse("thermal-receipt", args=[0]),
+            "refund": reverse("refund-payment", args=[0]),
+            "approve": reverse("approve-refund", args=[0]),
+            "reject": reverse("reject-refund", args=[0]),
+        },
+    }
+
+
 @login_required
 @tenant_required
 def order_history_view(request):
@@ -209,6 +227,7 @@ def order_history_view(request):
     page = paginator.get_page(page_number)
 
     return render(request, "orders/order_history.html", {
+        "page_data":      order_history_page_data(),
         "page":           page,
         "total_orders":   total_orders,
         "total_revenue":  total_revenue,
