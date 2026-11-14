@@ -1,0 +1,17 @@
+/* orders/templates/orders/public_bill_expired.html */
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0a0a0a;
+  color: #e8e2d8;
+  font-family: -apple-system, 'Segoe UI', Inter, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+.card { max-width: 360px; }
+.card .icon { font-size: 2rem; color: #c5a059; margin-bottom: 1rem; }
+.card h1 { font-size: 1.1rem; font-weight: 600; margin-bottom: .5rem; }
+.card p { font-size: .85rem; color: #8a8278; line-height: 1.5; }

@@ -1,21 +1,10 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Agency Analytics | Global Admin{% endblock %}
 
 {% block extra_css %}
-<style>
-    .card-elegant { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; box-shadow: var(--shadow-soft); border-radius: 0; height: 100%; transition: var(--transition-smooth); }
-    @media (hover: hover) { .card-elegant:hover { border-color: var(--accent-gold); transform: translateY(-3px); } }
-    .metric-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.5rem; }
-    .metric-value { font-family: 'DM Serif Display', serif; font-size: 2rem; margin: 0; color: var(--accent-gold); }
-    .table-luxury { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    .table-luxury th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 1.2rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
-    .table-luxury td { padding: 1.2rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.95rem; }
-    .agent-name { font-weight: 600; color: var(--text-main); }
-    .revenue-pill { background: rgba(197,160,89,0.1); color: var(--accent-gold); padding: 4px 12px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.85rem; }
-    .progress { height: 6px; border-radius: 10px; background: var(--border-color); margin-top: 8px; }
-    .progress-bar { background: var(--accent-gold); }
-</style>
+<link rel="stylesheet" href="{% static 'css/agency/dashboard.css' %}">
 {% endblock %}
 
 {% block page_title %}Channel Administration{% endblock %}
@@ -63,7 +52,7 @@
             <div class="card-elegant">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 style="font-family:'DM Serif Display',serif; font-size:1.5rem;">Partner Performance Ranking</h5>
-                    <button class="btn-luxury" onclick="location.reload()"><i class="bi bi-arrow-clockwise me-2"></i> Sync Data</button>
+                    <button type="button" class="btn-luxury" data-action="page.reload"><i class="bi bi-arrow-clockwise me-2"></i> Sync Data</button>
                 </div>
                 <div class="table-responsive">
                     <table class="table-luxury">

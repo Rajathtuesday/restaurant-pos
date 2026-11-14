@@ -43,7 +43,7 @@ except OSError:
     # PDF), not something new. billing/services.py does `import weasyprint`
     # at module load, so without a stub even importing billing.tests would
     # fail before any test (or mock) runs. PDF tests below mock
-    # billing.services.weasyprint.HTML directly and never touch real
+    # weasyprint.HTML (core.pdf looks it up at call time) and never touch real
     # rendering internals, so a bare stub is sufficient. Wherever the real
     # native libs ARE installed (e.g. a proper Linux deployment/CI), this
     # except branch never fires and the real module is used untouched.
@@ -785,8 +785,9 @@ class RenderInvoicePdfServiceTest(TestCase):
             period_end=timezone.now().date() + timedelta(days=30), amount=Decimal("999.00"),
         )
 
-    @patch("billing.services.weasyprint.HTML")
-    def test_calls_weasyprint_with_presentational_hints_disabled(self, mock_html_cls):
+    @patch("core.pdf._fetcher", return_value="own-files-fetcher")
+    @patch("weasyprint.HTML")
+    def test_calls_weasyprint_with_presentational_hints_disabled(self, mock_html_cls, _fetcher):
         """
         presentational_hints=False is the actual fix for the WeasyPrint
         CSS-injection CVE (GHSA-jhhc-3hcp-qhm5) -- this invoice renders a
@@ -800,9 +801,13 @@ class RenderInvoicePdfServiceTest(TestCase):
         self.assertEqual(result, b"%PDF-fake%")
         _, kwargs = mock_html_cls.return_value.write_pdf.call_args
         self.assertIs(kwargs["presentational_hints"], False)
+        # Its stylesheet is a static file: read from disk by core.pdf's
+        # fetcher, never fetched from the server's own public address.
+        self.assertEqual(mock_html_cls.call_args.kwargs["url_fetcher"], "own-files-fetcher")
 
-    @patch("billing.services.weasyprint.HTML")
-    def test_template_renders_tenant_name_and_amount(self, mock_html_cls):
+    @patch("core.pdf._fetcher", return_value="own-files-fetcher")
+    @patch("weasyprint.HTML")
+    def test_template_renders_tenant_name_and_amount(self, mock_html_cls, _fetcher):
         mock_html_cls.return_value.write_pdf.return_value = b"%PDF-fake%"
 
         render_invoice_pdf(self.invoice)

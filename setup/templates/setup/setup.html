@@ -4,46 +4,7 @@
 {% block title %}Setup | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* ── Hero ── */
-    .hero { text-align: center; padding: 4rem 2rem 2rem; }
-    .hero-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 1rem; }
-    .hero-title { font-size: 2.5rem; font-family: 'DM Serif Display', serif; margin-bottom: 0.75rem; }
-    .hero-title i { font-style: italic; font-weight: 400; color: var(--accent-gold); }
-    .hero-sub { color: var(--text-muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto; line-height: 1.7; }
-    .hero-divider { width: 40px; height: 1px; background: var(--border-color); margin: 2rem auto; }
-
-    /* ── Logo upload card ── */
-    .upload-card { max-width: 600px; margin: 0 auto 3rem; background: var(--panel-bg); border: 1px dashed var(--border-color); padding: 1.5rem; text-align: center; border-radius: 8px; }
-    .upload-card input[type=file] { max-width: 100%; margin-bottom: 1rem; color: var(--text-main); font-size: 0.8rem; }
-
-    /* ── Setup cards grid ── */
-    .setup-grid { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1.5rem; }
-    .setup-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; transition: var(--transition-smooth); text-decoration: none; display: block; position: relative; overflow: hidden; box-shadow: var(--shadow-soft); color: var(--text-main); }
-    @media (hover: hover) { .setup-card:hover { border-color: var(--accent-gold); transform: translateY(-3px); color: var(--text-main); } }
-    .setup-card::before { content: ''; position: absolute; top: 0; left: 0; width: 0; height: 2px; background: var(--accent-gold); transition: width 0.4s ease; }
-    .setup-card:hover::before { width: 100%; }
-    .card-icon { font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 1.2rem; }
-    .card-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; color: var(--text-main); margin-bottom: 0.6rem; }
-    .card-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
-    .card-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 1.2rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
-    .status-done { color: #22c55e; }
-    .status-pending { color: var(--text-muted); }
-
-    @media (max-width: 600px) {
-        .hero { padding: 2.25rem 1.1rem 1.5rem; }
-        .hero-title { font-size: 1.9rem; }
-        /* Explicit single column, not just a smaller minmax() floor --
-           the min(260px, 100%) fix above stops the grid from forcing
-           overflow, but a phone-width screen still has technically
-           enough room for two very cramped columns at ~170px each
-           once auto-fit fits them; a real setup card (icon + title +
-           2-line description) needs the full width to stay readable. */
-        .setup-grid { grid-template-columns: 1fr; padding: 0 1.1rem 3rem; gap: 1.1rem; }
-        .setup-card { padding: 1.5rem; }
-        .upload-card { margin: 0 1.1rem 2.25rem; padding: 1.25rem; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/setup.css' %}">
 {% endblock %}
 
 {% block page_title %}Setup{% endblock %}

@@ -1,0 +1,14 @@
+/* crm/templates/crm/crm_dashboard.html */
+::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+.dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); }
+.section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
+.search-bar { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.6rem 0; font-size: 0.9rem; outline: none; width: 100%; max-width: 280px; }
+.search-bar:focus { border-color: var(--accent-gold); }
+.guest-table { width: 100%; border-collapse: collapse; }
+.guest-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+.guest-table td { padding: 0.9rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
+.guest-table tr:hover td { background: rgba(197,160,89,0.04); }
+.pts-badge { background: rgba(197,160,89,0.12); color: var(--accent-gold); font-size: 0.72rem; font-weight: 600; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; }
+.stat-box { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.5rem; text-align: center; }
+.stat-val { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--accent-gold); }
+.stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: 0.3rem; }

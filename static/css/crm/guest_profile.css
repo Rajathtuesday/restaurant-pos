@@ -1,0 +1,14 @@
+/* crm/templates/crm/guest_profile.html */
+::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+.profile-hero { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+.stat-item { text-align: center; border-left: 1px solid var(--border-color); padding-left: 1.5rem; }
+.stat-item:first-child { border-left: none; padding-left: 0; }
+.stat-val { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--accent-gold); }
+.stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
+.tx-table { width: 100%; border-collapse: collapse; }
+.tx-table th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 0; border-bottom: 1px solid var(--border-color); }
+.tx-table td { padding: 0.8rem 0; border-bottom: 1px dashed var(--border-color); font-size: 0.88rem; }
+.earn   { color: #10b981; font-weight: 600; }
+.redeem { color: #ef4444; font-weight: 600; }
+.dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; }

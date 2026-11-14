@@ -1,0 +1,24 @@
+/* inventory/templates/inventory/kegs.html */
+.page-body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
+.page-sub { color: var(--text-muted); font-size: .85rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.msg { padding: .7rem 1rem; margin-bottom: 1rem; font-size: .85rem; border: 1px solid var(--border-color); }
+.msg.error { border-color: #dc2626; color: #dc2626; }
+.msg.success { border-color: #10b981; color: #10b981; }
+.keg { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+       padding: 1rem; border: 1px solid var(--border-color); background: var(--panel-bg); margin-bottom: .75rem; }
+.keg-name { font-weight: 700; }
+.keg-meta { color: var(--text-muted); font-size: .8rem; margin-top: .2rem; }
+.bar { height: 6px; background: var(--border-color); margin-top: .5rem; width: 220px; max-width: 100%; }
+.bar > span { display: block; height: 100%; background: var(--accent-gold); }
+.btn-change { background: var(--accent-gold); border: none; color: #fff; padding: .7rem 1.1rem; font-size: .75rem;
+              text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; cursor: pointer; }
+.scroll { overflow-x: auto; margin-top: 2rem; }
+.table { width: 100%; border-collapse: collapse; min-width: 620px; }
+.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700;
+            padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
+.bad { color: #ef4444; font-weight: 700; }
+.empty { padding: 2rem; text-align: center; color: var(--text-muted); border: 1px dashed var(--border-color); }

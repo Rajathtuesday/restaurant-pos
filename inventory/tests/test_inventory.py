@@ -21,7 +21,7 @@ except OSError:
     # services.py does `import weasyprint` at module load (for the PO vendor-
     # email PDF), so without a stub even importing inventory.services would
     # fail before any test runs. PDF tests below mock
-    # inventory.services.weasyprint.HTML directly and never touch real
+    # weasyprint.HTML (core.pdf looks it up at call time) and never touch real
     # rendering internals, so a bare stub is sufficient. Wherever the real
     # native libs ARE installed (e.g. a proper Linux deployment/CI), this
     # except branch never fires and the real module is used untouched.
@@ -2482,8 +2482,9 @@ class POVendorEmailTests(TestCase):
         self.po.refresh_from_db()
         self.assertEqual(self.po.status, "ordered")
 
-    @patch("inventory.services.weasyprint.HTML")
-    def test_render_purchase_order_pdf_disables_presentational_hints(self, mock_html_cls):
+    @patch("core.pdf._fetcher", return_value="own-files-fetcher")
+    @patch("weasyprint.HTML")
+    def test_render_purchase_order_pdf_disables_presentational_hints(self, mock_html_cls, _fetcher):
         """
         presentational_hints=False is the actual fix for the WeasyPrint
         CSS-injection CVE (GHSA-jhhc-3hcp-qhm5) -- billing/services.py's
@@ -2500,9 +2501,13 @@ class POVendorEmailTests(TestCase):
         self.assertEqual(result, b"%PDF-fake%")
         _, kwargs = mock_html_cls.return_value.write_pdf.call_args
         self.assertIs(kwargs["presentational_hints"], False)
+        # Its stylesheet is a static file: read from disk by core.pdf's
+        # fetcher, never fetched from the server's own public address.
+        self.assertEqual(mock_html_cls.call_args.kwargs["url_fetcher"], "own-files-fetcher")
 
-    @patch("inventory.services.weasyprint.HTML")
-    def test_render_purchase_order_pdf_renders_po_number_and_supplier(self, mock_html_cls):
+    @patch("core.pdf._fetcher", return_value="own-files-fetcher")
+    @patch("weasyprint.HTML")
+    def test_render_purchase_order_pdf_renders_po_number_and_supplier(self, mock_html_cls, _fetcher):
         mock_html_cls.return_value.write_pdf.return_value = b"%PDF-fake%"
 
         from inventory.services import render_purchase_order_pdf

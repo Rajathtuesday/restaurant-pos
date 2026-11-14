@@ -3,16 +3,17 @@
 Vendor-email delivery for purchase orders.
 
 Mirrors billing/services.py's render_invoice_pdf (same weasyprint +
-render_to_string shape, same explicit presentational_hints=False — the
+render_to_string shape, same explicit presentational_hints=False, the
 real fix for GHSA-jhhc-3hcp-qhm5 / CVE-2026-49452, a WeasyPrint CSS-
 injection bug. A PO's notes field is tenant-influenced content the same
-way an invoice's tenant name is — same risk, same fix) and
+way an invoice's tenant name is, same risk, same fix) and
 billing/tasks.py's EmailMessage pattern for the send itself.
 """
 import logging
 
-import weasyprint
 from django.core.mail import EmailMessage
+
+from core.pdf import render_pdf
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -21,15 +22,15 @@ logger = logging.getLogger("pos.inventory")
 
 def render_purchase_order_pdf(po, base_url="https://rasova.net/"):
     html_string = render_to_string("inventory/purchase_order_print.html", {"po": po})
-    return weasyprint.HTML(string=html_string, base_url=base_url).write_pdf(
-        presentational_hints=False
-    )
+    # render_pdf reads the page's stylesheet from disk (and nothing outside
+    # Rasova's own files), with presentational_hints=False.
+    return render_pdf(html_string, base_url)
 
 
 def send_purchase_order_email(po):
     """
     Emails a PDF of this PO to its supplier, if the outlet has opted in
-    and the supplier has an email on file. Never raises — this is meant
+    and the supplier has an email on file. Never raises, this is meant
     to run from transaction.on_commit, where an uncaught exception would
     otherwise surface as a 500 on the "mark as ordered" request even
     though the status change itself already committed successfully.

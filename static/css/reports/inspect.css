@@ -1,0 +1,141 @@
+/* reports/templates/reports/inspect.html */
+:root {
+  --bg-color: #fafafa;
+  --panel-bg: #ffffff;
+  --text-main: #111111;
+  --text-muted: #737373;
+  --border-color: #eaeaea;
+  --accent-gold: #c5a059;
+}
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Outfit', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Top bar ─────────────────────────────────────── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
+}
+.brand-title {
+  font-size: 1.1rem; font-weight: 600; letter-spacing: 0.05em;
+  color: var(--text-main); text-decoration: none;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.report-header {
+  background: var(--panel-bg);
+  border-bottom: 2px solid var(--accent-gold);
+  padding: 2rem 2rem 1.5rem;
+  text-align: center;
+}
+.report-header .outlet-name {
+  font-size: 1.5rem; font-weight: 700; letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.report-header .gstin {
+  font-family: 'Space Mono', monospace; font-size: 0.85rem;
+  color: var(--text-muted); margin-bottom: 0.5rem;
+}
+.report-header .report-date {
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-muted);
+}
+.report-header .report-title {
+  font-size: 1rem; text-transform: uppercase; letter-spacing: 4px;
+  color: var(--accent-gold); margin-top: 0.75rem; font-weight: 600;
+}
+.composition-badge {
+  display: inline-block;
+  border: 1px solid var(--text-muted);
+  color: var(--text-muted);
+  font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase;
+  padding: 0.25rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Section headers ─────────────────────────────── */
+.section-label {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 3px;
+  color: var(--text-muted); margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;
+}
+
+/* ── Summary cards ───────────────────────────────── */
+.summary-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  text-align: center;
+}
+.summary-card .label {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-muted); margin-bottom: 0.5rem;
+}
+.summary-card .value {
+  font-size: 1.75rem; font-weight: 600; color: var(--text-main);
+}
+.summary-card .value.gold { color: var(--accent-gold); }
+.summary-card .sub {
+  font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;
+}
+
+/* ── Tables ──────────────────────────────────────── */
+.table-clean {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.table-clean th {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-muted); font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.5rem 0.75rem;
+}
+.table-clean td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+.table-clean tr:last-child td { border-bottom: none; }
+.table-clean .mono { font-family: 'Space Mono', monospace; font-size: 0.82rem; }
+.table-clean .text-end { text-align: right; }
+.table-clean .total-row td {
+  font-weight: 600; border-top: 1px solid var(--border-color);
+  background: #f5f5f5;
+}
+
+/* ── Panel ───────────────────────────────────────── */
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Status badge ────────────────────────────────── */
+.status-paid {
+  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px;
+  color: #1a7a4a; background: #e6f4ee;
+  padding: 0.15rem 0.5rem; border-radius: 2px;
+}
+
+/* ── Print ───────────────────────────────────────── */
+.no-print { }
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .panel, .summary-card { border: 1px solid #ccc; }
+  .report-header { border-bottom: 2px solid #000; }
+  .table-clean .total-row td { background: #eee; }
+  a { text-decoration: none; color: inherit; }
+}
+
+/* ── Empty state ─────────────────────────────────── */
+.empty-state {
+  text-align: center; padding: 2rem;
+  color: var(--text-muted); font-size: 0.9rem;
+}

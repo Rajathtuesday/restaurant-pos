@@ -1,27 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Bar Count {{ count.business_date }} | {{ request.user.outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
-.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
-.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
-.page-sub { color: var(--text-muted); font-size: .85rem; margin-bottom: 1.5rem; }
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-.summary-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; }
-.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent-gold); }
-.summary-num.bad { color: #ef4444; }
-.summary-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .2rem; }
-.scroll { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; min-width: 640px; }
-.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 700;
-            padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
-.table th:first-child, .table td:first-child { text-align: left; }
-.table td { padding: .7rem .5rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
-.short { color: #ef4444; font-weight: 700; }
-.found { color: #10b981; }
-.note { color: var(--text-muted); font-size: .78rem; margin-top: 1rem; line-height: 1.6; }
-</style>
+<link rel="stylesheet" href="{% static 'css/inventory/bar_count_result.css' %}">
 {% endblock %}
 
 {% block content %}

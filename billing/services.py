@@ -10,8 +10,8 @@ renders a tenant's name, which counts as guest-influenced content the same
 way bill.html's item notes do -- same risk, same fix, applied here too
 rather than assumed unnecessary because "it's just an invoice."
 """
-import weasyprint
 from django.template.loader import render_to_string
+from core.pdf import render_pdf
 
 
 def render_invoice_pdf(invoice, payment_link_url="", base_url="https://rasova.net/"):
@@ -19,6 +19,6 @@ def render_invoice_pdf(invoice, payment_link_url="", base_url="https://rasova.ne
         "billing/invoice.html",
         {"invoice": invoice, "payment_link_url": payment_link_url},
     )
-    return weasyprint.HTML(string=html_string, base_url=base_url).write_pdf(
-        presentational_hints=False
-    )
+    # render_pdf reads the page's stylesheet from disk (and nothing outside
+    # Rasova's own files), with presentational_hints=False.
+    return render_pdf(html_string, base_url)

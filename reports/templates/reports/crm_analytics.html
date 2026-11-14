@@ -1,54 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}CRM Analytics | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-  .report-subnav {
-    background: var(--panel-bg);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 1.5rem;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 0.75rem; flex-wrap: wrap;
-  }
-  .report-subnav-left  { display: flex; align-items: center; gap: 0; }
-  .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
-  .report-tab {
-    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
-    color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
-    border-bottom: 2px solid transparent; white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s; display: inline-block;
-  }
-  .report-tab:hover   { color: var(--text-main); }
-  .report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
-  .subnav-select {
-    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
-    color: var(--text-main); font-size: 0.82rem; font-family: inherit;
-    padding: 0.3rem 1.2rem 0.3rem 0; cursor: pointer; outline: none;
-  }
-  .subnav-select:focus { border-color: var(--accent-gold); }
-
-  .page-wrap { max-width: 900px; margin: 0 auto; padding: 2.5rem 2rem; }
-  .section-title {
-    font-size: 1.2rem; color: var(--text-main); margin-bottom: 0.5rem;
-    text-transform: uppercase; letter-spacing: 3px; text-align: center;
-  }
-  .section-sub { text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 2rem; }
-
-  .stat-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 0.75rem; margin-bottom: 2rem; }
-  .stat-card { padding: 0.9rem; border-left: 3px solid var(--accent-gold); background: var(--panel-bg); }
-  .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
-  .stat-value { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-top: 0.2rem; }
-
-  .trend-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; }
-  .trend-table th {
-    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
-    font-weight: 600; padding: 0.75rem 0.5rem; border-bottom: 1px solid var(--border-color); text-align: left;
-  }
-  .trend-table td { padding: 0.7rem 0.5rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
-  .trend-table td.num { text-align: right; font-family: 'Space Mono', monospace; }
-  .earn-badge { color: #10b981; } .redeem-badge { color: #ef4444; } .adjust-badge { color: var(--text-muted); }
-  .schema-note { font-size: 0.72rem; color: var(--text-muted); padding: 0.75rem 1rem; border-left: 2px solid var(--border-color); margin-bottom: 1.5rem; }
-</style>
+<link rel="stylesheet" href="{% static 'css/reports/crm_analytics.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/reports/dashboard/">Reports</a> / Guests{% endblock %}

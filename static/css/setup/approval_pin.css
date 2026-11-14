@@ -1,0 +1,20 @@
+/* setup/templates/setup/approval_pin.html */
+.page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+@media(max-width: 720px) { .page-body { grid-template-columns: 1fr; padding: 2rem 1rem; } }
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+.divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+.page-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; margin-bottom: 1.5rem; }
+.form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+.setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 1rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+.setup-input:focus { border-bottom-color: var(--accent-gold); }
+.btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; }
+.btn-plain { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 6px 12px; cursor: pointer; font-family: inherit; }
+.btn-plain:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+.pin-state { padding: 0.8rem 1rem; border: 1px solid var(--border-color); background: var(--panel-bg); font-size: 0.85rem; margin-bottom: 1.5rem; }
+.msg { padding: 0.7rem 1rem; margin-bottom: 1rem; font-size: 0.85rem; border: 1px solid var(--border-color); }
+.msg.error { border-color: #dc2626; color: #dc2626; }
+.msg.success { border-color: #10b981; color: #10b981; }
+.mgr-table { width: 100%; border-collapse: collapse; }
+.mgr-table td { padding: 0.8rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+.why li { margin-bottom: 0.4rem; }

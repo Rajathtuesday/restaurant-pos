@@ -29,6 +29,9 @@ static/js/core/      what base.html runs on every page
   checklist.js       the setup checklist in the corner
   request_id.js      a UUID per order request, so the server answers a replayed order with the first one (orders.OrderRequest)
   printing_status.js the printer chip's words, from the printing state in the 8-second notifications answer
+  page_actions.js    the shared buttons any page may have: page.print, page.reload, page.back, field.select
+                     (app.js handles them; no page module may handle these names again: one tap would run twice)
+  standalone.js      for a page without base.html (a printout): the shared buttons and nothing else
   money.js           rupees(): money written one way (core/money.py is the server's copy; one table of examples tests both)
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")
@@ -51,6 +54,8 @@ static/css/dashboard.css the owner's dashboard
 static/css/qr_menu.css the guest QR menu
 static/css/bill.css    the bill page; static/css/print/paper_58.css and paper_80.css set the receipt roll's width
 static/css/public.css  pages with no app chrome (errors, suspended, login as it is migrated)
+static/css/<app>/<template>.css  a page with no script of its own: its stylesheet, moved out of the template
+                     as it was (14 Nov 2026), e.g. static/css/reports/audit_report.css
 static/css/themes/     the theme tokens (--panel-bg, --text-main, --accent-gold, ...)
 static/vendor/         third-party files Rasova serves itself; VENDOR.md lists versions and SHA-256
 templates/core/base.html         the logged-in app shell

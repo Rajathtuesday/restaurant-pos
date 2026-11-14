@@ -21,6 +21,7 @@ import { createNotificationPoller } from "./notifications.js";
 import {
   ORDER_STORE, PAYMENT_STORE, createOfflineBanner, createOrderQueue, createPaymentQueue, indexedDbStore,
 } from "./offline.js";
+import { pageActions } from "./page_actions.js";
 import { pageData } from "./page_data.js";
 import { detectPlatform, startAndroidPrinting } from "./platform.js";
 import { createPrinterChip } from "./printing_status.js";
@@ -62,8 +63,9 @@ window.addEventListener("offline", () => {
   offlineBanner.update();
 });
 
-// The header and the banners: one listener, by data-action.
+// The header, the banners and the shared page buttons: one listener, by data-action.
 delegate(document.body, {
+  ...pageActions(window),
   "theme.toggle": () => theme.toggle(),
   "printer.explain": () => {
     const said = printerChip.current();

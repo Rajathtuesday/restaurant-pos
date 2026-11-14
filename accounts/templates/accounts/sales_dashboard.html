@@ -1,33 +1,10 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Reseller Dashboard | Rasova{% endblock %}
 
 {% block extra_css %}
-<style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-
-    .section-title { font-family: 'DM Serif Display', serif; font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; }
-
-    .dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; box-shadow: var(--shadow-soft); margin-bottom: 1rem; }
-
-    .client-table { width: 100%; border-collapse: collapse; }
-    .client-table th { font-size: 0.70rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 1rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
-    .client-table td { padding: 1rem 0; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
-    .status-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 8px; border-radius: 4px; font-weight: bold; background: rgba(16,185,129,0.1); color: #10b981; }
-    .status-badge.inactive { background: rgba(239,68,68,0.1); color: #ef4444; }
-
-    .form-select, .form-control { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.8rem; padding: 0.4rem 0.6rem; outline: none; }
-    .form-select:focus, .form-control:focus { border-color: var(--accent-gold); }
-    .btn-action { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); font-size: 0.7rem; padding: 0.4rem 0.8rem; cursor: pointer; transition: 0.2s; }
-    .btn-action:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-    .btn-danger-outline { color: #ef4444; border-color: rgba(239,68,68,0.3); }
-    .btn-danger-outline:hover { background: #ef4444; color: white; border-color: #ef4444; }
-
-    .modal-content { background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); }
-    .modal-header, .modal-footer { border-color: var(--border-color); }
-    .modal-title { font-family: 'DM Serif Display', serif; }
-    html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-</style>
+<link rel="stylesheet" href="{% static 'css/accounts/sales_dashboard.css' %}">
 {% endblock %}
 
 {% block page_title %}Reseller Dashboard{% endblock %}

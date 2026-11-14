@@ -1,39 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Covers | {{ request.user.outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 2.5rem; align-items: start; }
-@media (max-width: 760px) { .page-body { grid-template-columns: 1fr; } }
-.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
-.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
-.page-sub { color: var(--text-muted); font-size: .82rem; line-height: 1.6; margin-bottom: 1.25rem; }
-.form-label { display: block; font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: .35rem; }
-.field { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: .7rem; font-size: 1rem; font-family: inherit; margin-bottom: 1rem; }
-.field:focus { border-color: var(--accent-gold); outline: none; }
-.pay-row { display: flex; gap: .5rem; margin-bottom: 1rem; }
-.pay-row label { flex: 1; text-align: center; border: 1px solid var(--border-color); padding: .6rem; cursor: pointer; font-size: .85rem; }
-.pay-row input { margin-right: .3rem; }
-.btn-sell { width: 100%; padding: .95rem; background: var(--accent-gold); border: none; color: #fff; font-size: .8rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; }
-.msg { padding: .7rem 1rem; margin-bottom: 1rem; font-size: .85rem; border: 1px solid var(--border-color); }
-.msg.error { border-color: #dc2626; color: #dc2626; }
-.msg.success { border-color: #10b981; color: #10b981; }
-.slip { border: 2px dashed var(--accent-gold); padding: 1.2rem; text-align: center; margin-bottom: 1.5rem; background: var(--panel-bg); }
-.slip-code { font-family: 'Space Mono', monospace; font-size: 2.2rem; letter-spacing: .3em; font-weight: 700; }
-.slip-amount { font-size: 1.1rem; margin-top: .3rem; }
-.slip small { color: var(--text-muted); display: block; margin-top: .4rem; }
-.totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
-.total { background: var(--panel-bg); border: 1px solid var(--border-color); padding: .8rem; }
-.total-num { font-family: 'DM Serif Display', serif; font-size: 1.35rem; color: var(--accent-gold); }
-.total-lbl { font-size: .6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
-.scroll { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; min-width: 480px; }
-.table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: .6rem .4rem; border-bottom: 1px solid var(--border-color); text-align: right; }
-.table th:first-child, .table td:first-child { text-align: left; }
-.table td { padding: .6rem .4rem; border-bottom: 1px solid var(--border-color); font-size: .85rem; text-align: right; }
-.note { color: var(--text-muted); font-size: .75rem; line-height: 1.6; margin-top: 1rem; }
-@media print { body * { visibility: hidden; } .slip, .slip * { visibility: visible; } .slip { position: absolute; top: 0; left: 0; width: 72mm; border: 1px dashed #000; } }
-</style>
+<link rel="stylesheet" href="{% static 'css/covers/covers.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -52,7 +22,7 @@
             <div class="slip-code" id="slipCode">{{ slip.code }}</div>
             <div class="slip-amount">&#8377;{{ slip.amount }} to spend tonight{% if slip.guests > 1 %} &middot; {{ slip.guests }} guests{% endif %}</div>
             <small>Show this code when you pay. Good only on {{ slip.business_date|date:"D d M" }}.</small>
-            <button type="button" class="btn-sell" style="margin-top:.9rem;" onclick="window.print()">Print slip</button>
+            <button type="button" class="btn-sell" style="margin-top:.9rem;" data-action="page.print">Print slip</button>
         </div>
         {% endif %}
 

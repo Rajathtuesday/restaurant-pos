@@ -170,7 +170,7 @@ async function awardPoints() {
 /* ---- the actions --------------------------------------------------------- */
 
 delegate(document.body, {
-  "page.print": () => window.print(),
+  // "page.print" is core/page_actions.js, handled by core/app.js.
   "pay.all": () => setAmount(data.remaining),
   "pay.split": async () => {
     const share = await dialogs.split(data.remaining);

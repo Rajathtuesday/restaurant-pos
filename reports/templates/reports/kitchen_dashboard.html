@@ -1,66 +1,17 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Kitchen KPIs | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .form-select-luxury {
-        background: transparent; border: none; border-bottom: 1px solid var(--border-color);
-        color: var(--text-main); padding: 0.5rem 1.5rem 0.5rem 0; font-size: 0.9rem; cursor: pointer;
-    }
-    .form-select-luxury:focus { box-shadow: none; border-color: var(--accent-gold); outline: none; }
-
-    .card-elegant {
-        background: var(--panel-bg); border: 1px solid var(--border-color);
-        padding: 2.5rem 2rem; height: 100%; transition: var(--transition-smooth);
-    }
-    .card-elegant:hover { border-color: var(--accent-gold); }
-
-    .metric-group { text-align: center; }
-    .metric-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 1rem; display: block; }
-    .metric-value { font-family: 'DM Serif Display', serif; font-size: 2.75rem; color: var(--text-main); line-height: 1; margin: 0; }
-
-    .section-title { font-size: 1.2rem; margin-bottom: 2rem; text-transform: uppercase; letter-spacing: 3px; text-align: center; }
-    .section-title::after { content: ''; display: block; width: 40px; height: 1px; background: var(--accent-gold); margin: 15px auto 0; }
-
-    .table-minimal { width: 100%; color: var(--text-main); }
-    .table-minimal th { border-bottom: 1px solid var(--border-color); padding: 1rem 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
-    .table-minimal td { border-bottom: 1px solid var(--border-color); padding: 1.2rem 0; font-size: 0.95rem; }
-    .table-minimal tr:last-child td { border-bottom: none; }
-    .text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent-gold); }
-
-    .context-info { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 3rem; text-align: center; }
-    .context-info strong { color: var(--text-main); }
-
-    .report-subnav {
-        background: var(--panel-bg);
-        border-bottom: 1px solid var(--border-color);
-        padding: 0 0 1rem;
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem;
-    }
-    .report-subnav-left  { display: flex; align-items: center; gap: 0; }
-    .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
-    .report-tab {
-        font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
-        color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
-        border-bottom: 2px solid transparent; white-space: nowrap;
-        transition: color 0.2s, border-color 0.2s; display: inline-block;
-    }
-    .report-tab:hover  { color: var(--text-main); }
-    .report-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
-
-    @media print {
-        .no-print { display: none !important; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/reports/kitchen_dashboard.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/reports/dashboard/">Reports</a> / Kitchen{% endblock %}
 
 {% block header_links %}
 <a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
-<button onclick="window.print()" class="btn-icon no-print" title="Print"><i class="bi bi-printer"></i></button>
+<button type="button" data-action="page.print" class="btn-icon no-print" title="Print"><i class="bi bi-printer"></i></button>
 {% endblock %}
 
 {% block content %}

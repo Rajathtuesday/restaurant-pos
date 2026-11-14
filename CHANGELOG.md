@@ -7,6 +7,24 @@ the source of truth.
 
 ---
 
+## 2026-11-14: 29 pages lose their inline stylesheets; the invoice and PO PDFs read their CSS from disk
+
+The 29 templates with a `<style>` block and no script of their own hold markup only now.
+
+### Fixed
+- **The subscription invoice and the purchase order PDFs go through `core.pdf.render_pdf`.** `core/pdf.py` said it rendered them, but `billing/services.py` and `inventory/services.py` called WeasyPrint directly, without the fetcher that reads Rasova's static files from disk and refuses anything else. Their stylesheets are static files now, and with the old call WeasyPrint would have fetched them from the server's own public address.
+
+### Changed
+- **Each moved stylesheet is `static/css/<app>/<template>.css`**, linked where the `<style>` block was, so the cascade is the same (sales dashboard, agency, invoice, box health and setup, covers, CRM, bar count, kegs, the PO printout, the public bill, feedback and expired pages, six reports, the inspection page, seven setup pages, the demo switch).
+- **Shared page buttons** (`static/js/core/page_actions.js`): `page.print`, `page.reload`, `page.back`, `field.select`, handled by `core/app.js` on every `base.html` page and by `core/standalone.js` on a page without it. The 7 `onclick=` on these pages became `data-action`. The bill page and the QR codes page stop handling Print themselves.
+- **Removed two dead templates**: `orders/order_timeline.html` (no view renders it) and `core/templates/core/demo_switch.html` (an identical copy of `templates/core/demo_switch.html`, which is the one Django loads).
+- The ratchet holds 40 templates (was 71).
+
+### Tests
+- `billing.tests` and `inventory.tests.test_inventory`: the PDF is rendered with the own-files fetcher (fails on the old services).
+- `core/tests/test_page_actions.py`: no page module handles the shared names; in Chromium one tap prints once on the kitchen report, the bill page and the PO printout.
+- `static/js/tests/page_actions.test.mjs` (3).
+
 ## 2026-11-14: The running order page on modules (phase 2)
 
 The running order page (`/order/<id>/`) asked why a dish was free with the browser's `prompt()`, which never shows in the Android app, so Comp did nothing there. It also kept its own list of who may do what, and the list had drifted from the server's.
