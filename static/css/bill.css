@@ -88,7 +88,7 @@
 .btn-action:hover { border-color: var(--text-main); color: var(--text-main); }
 
 /* ── Back nav ─────────────────────────────────────────── */
-.nav-back { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 1rem; }
+.nav-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--text-muted); text-decoration: none; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 1rem; }
 .nav-back:hover { color: var(--accent-gold); }
 
 /* ── GST breakdown ────────────────────────────────────── */
@@ -142,7 +142,7 @@
 .r-outlet { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
 .meta--second { margin-top: -6px; }
 .meta .meta-right { text-align: right; }
-.item-discount-btn { background: transparent; border: none; color: var(--accent-gold); cursor: pointer; padding: 0 4px; font-size: 0.75rem; }
+.item-discount-btn { background: transparent; border: none; color: var(--accent-gold); cursor: pointer; padding: 0 4px; font-size: 0.75rem; min-width: 44px; min-height: 44px; margin: -12px 0; } /* 44px to tap, no taller line */
 .total-row--off { color: #ef4444; }
 .total-row--muted { color: var(--text-muted); }
 .total-row--small { font-size: 0.78rem; padding: 0.1rem 0; }
@@ -165,7 +165,7 @@
 .upi-apps { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 
 .promo-row { margin-bottom: 0.75rem; }
-#promo-select { width: 100%; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.82rem; outline: none; }
+#promo-select { width: 100%; min-height: 44px; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.82rem; outline: none; }
 .field-select--narrow { max-width: 110px; }
 .field-num--reason { max-width: none; flex: 1 1 140px; }
 .discount-active { margin-top: 0.7rem; font-size: 0.78rem; color: var(--accent-gold); }

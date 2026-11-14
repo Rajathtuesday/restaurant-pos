@@ -83,7 +83,7 @@
             box-shadow: var(--shadow-soft);
             transition: var(--transition-smooth);
         }
-        .item-card:hover { transform: translateY(-2px); border-color: var(--accent-gold); }
+        @media (hover: hover) { .item-card:hover { transform: translateY(-2px); border-color: var(--accent-gold); } }
         
         .item-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
         .item-meta { font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; align-items: center; }
@@ -122,7 +122,7 @@
         .btn-step:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
         .btn-step:focus-visible, .btn-luxury:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
         .item-card.is-voided { opacity: 0.55; box-shadow: none; }
-        .item-card.is-voided:hover { transform: none; border-color: var(--border-color); }
+        @media (hover: hover) { .item-card.is-voided:hover { transform: none; border-color: var(--border-color); } }
         .item-card.is-voided .item-name { text-decoration: line-through; }
         .void-reason { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
         .badge-voided { background: rgba(239, 68, 68, 0.08); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.5); }

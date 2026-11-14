@@ -41,6 +41,8 @@ class PhoneHeaderTest(BrowserTestCase):
         for url, m in seen.items():
             self.assertEqual(m["rows"], 1, f"{url}: {m}")
             # 13 Nov 2026, after: billing 123px (was 172), floor plan 153px (was 321).
-            self.assertLessEqual(m["height"], 160, f"{url}: {m}")
+            # 14 Nov 2026: floor plan 170px, as the brand link and the printer chip
+            # became 44px, a fingertip (V15, core/tests/test_touch.py).
+            self.assertLessEqual(m["height"], 175, f"{url}: {m}")
             self.assertGreater(m["controls"], 2, f"{url}: {m}")
             self.assertFalse(m["pageScrollsSideways"], f"{url}: {m}")

@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Touch, not hover
+
+A touch screen keeps the last tapped element "hovered": on a tablet, a card that lifted on hover stayed lifted after a tap.
+
+### Changed
+- **Every hover lift is for a mouse only.** The 15 `:hover` rules that moved something (table, menu, token, setup, QR code and other cards, the header's icon buttons) sit inside `@media (hover: hover)`, rewritten in place (`core/css_hover.py`). A finger gets a pressed state instead: a tapped button or link dims while pressed (`rasova.css`, `@media (hover: none)`).
+- **Controls on the service screens are at least 44px on a phone**: the brand link, the printer chip, the floor plan's card buttons, the bill page's back link, its per-dish discount button (without making the line taller) and promo list, and the token counter's register and live-order links.
+- **The token counter's cancel button shows on a touch screen.** It was invisible until hovered, which a finger cannot do.
+- The phone header's height budget is 175px (was 160): the floor plan's header is 17px taller for 44px controls, still one row.
+
+### Tests
+- `core/tests/test_touch.py`: no `:hover` rule that moves something outside `@media (hover: hover)` in any stylesheet or template (15 before); the finder and the in-place wrap; the pressed state; on a phone, every visible control on the five service screens at least 44px (13 before).
+
 ## 2026-11-14: Text a cashier can read at arm's length
 
 The luxury style leaned on very small capitals: labels at 0.6rem (about 10px), some at 0.55rem. Elegant on a laptop, hard on a tablet a metre away in a dim room.

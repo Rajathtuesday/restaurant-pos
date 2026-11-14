@@ -214,7 +214,7 @@ pre,
     min-height: var(--min-tap-target);
     min-width: var(--min-tap-target);
 }
-.btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); }
+@media (hover: hover) { .btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); } }
 
 /* ── Cards ───────────────────────────────────────────────── */
 .card {

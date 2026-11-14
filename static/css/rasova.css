@@ -147,6 +147,7 @@ body {
     align-items: center;
     gap: 12px;
     line-height: 1.1;
+    min-height: 44px;                /* a fingertip (V15) */
     text-decoration: none;
     font-weight: 700;
 }
@@ -193,7 +194,7 @@ body {
 /* The printer chip (core/_printer_chip.html, static/js/core/printing_status.js). */
 .printer-chip {
     display: inline-flex; align-items: center; gap: 6px;
-    min-height: 36px; padding: 0 12px; border-radius: 18px;
+    min-height: 44px; min-width: 44px; padding: 0 12px; border-radius: 22px;
     border: 1px solid var(--border-color); background: transparent;
     color: var(--text-main); font-size: 0.8rem; white-space: nowrap; cursor: pointer;
 }
@@ -254,7 +255,7 @@ body {
     justify-content: center;
     transition: var(--transition-smooth);
 }
-.btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); }
+@media (hover: hover) { .btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); } }
 
 /* ---- Setup checklist (bottom right until setup is complete) ---- */
 .setup-checklist {
@@ -455,3 +456,14 @@ body {
     padding: 0;
     min-height: 32px;
 }
+
+/* Touch, not hover (V15). A touch screen keeps the last tapped element
+   "hovered", so a card that lifted on hover stayed lifted after a tap: every
+   hover lift sits inside @media (hover: hover) (core/css_hover.py,
+   core/tests/test_touch.py). A finger gets a pressed state instead. */
+@media (hover: none) {
+    :is(button, a, [data-action], [role="button"]):active { opacity: 0.7; }
+}
+
+/* An icon-only control a finger must hit (V15). */
+.btn-tap { min-width: 44px; min-height: 44px; }

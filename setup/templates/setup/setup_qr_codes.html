@@ -10,7 +10,7 @@
     .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
 
     .qr-card { background: var(--panel-bg); padding: 30px; text-align: center; border: 1px solid var(--border-color); border-radius: 12px; position: relative; transition: var(--transition-smooth); }
-    .qr-card:hover { transform: translateY(-5px); border-color: var(--accent-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+    @media (hover: hover) { .qr-card:hover { transform: translateY(-5px); border-color: var(--accent-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.05); } }
 
     .restaurant-name { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 5px; }
     .table-name { text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 20px; }

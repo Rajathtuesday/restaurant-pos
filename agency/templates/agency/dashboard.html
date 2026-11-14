@@ -5,7 +5,7 @@
 {% block extra_css %}
 <style>
     .card-elegant { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; box-shadow: var(--shadow-soft); border-radius: 0; height: 100%; transition: var(--transition-smooth); }
-    .card-elegant:hover { border-color: var(--accent-gold); transform: translateY(-3px); }
+    @media (hover: hover) { .card-elegant:hover { border-color: var(--accent-gold); transform: translateY(-3px); } }
     .metric-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.5rem; }
     .metric-value { font-family: 'DM Serif Display', serif; font-size: 2rem; margin: 0; color: var(--accent-gold); }
     .table-luxury { width: 100%; border-collapse: collapse; margin-top: 1rem; }

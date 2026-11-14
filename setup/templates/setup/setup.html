@@ -20,7 +20,7 @@
     /* ── Setup cards grid ── */
     .setup-grid { max-width: 1000px; margin: 0 auto; padding: 0 2rem 5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 1.5rem; }
     .setup-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; transition: var(--transition-smooth); text-decoration: none; display: block; position: relative; overflow: hidden; box-shadow: var(--shadow-soft); color: var(--text-main); }
-    .setup-card:hover { border-color: var(--accent-gold); transform: translateY(-3px); color: var(--text-main); }
+    @media (hover: hover) { .setup-card:hover { border-color: var(--accent-gold); transform: translateY(-3px); color: var(--text-main); } }
     .setup-card::before { content: ''; position: absolute; top: 0; left: 0; width: 0; height: 2px; background: var(--accent-gold); transition: width 0.4s ease; }
     .setup-card:hover::before { width: 100%; }
     .card-icon { font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 1.2rem; }

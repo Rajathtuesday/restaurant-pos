@@ -48,7 +48,7 @@
 .menu-section-title { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-main); padding-top: 1rem; }
 
 .menu-card { background: transparent; border: 1px solid var(--border-color); border-radius: 0; padding: 1.25rem; cursor: pointer; transition: var(--transition-smooth); height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
-.menu-card:hover { border-color: var(--accent-gold); background: var(--panel-bg); transform: translateY(-2px); }
+@media (hover: hover) { .menu-card:hover { border-color: var(--accent-gold); background: var(--panel-bg); transform: translateY(-2px); } }
 .item-name { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.2; }
 .item-price { font-size: 0.9rem; color: var(--accent-gold); font-weight: 500; letter-spacing: 1px; }
 

@@ -58,7 +58,7 @@
     /* ── Token card ── */
     .token-wrap { position: relative; }
     .token-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem 1rem; text-align: center; cursor: pointer; text-decoration: none; display: block; color: var(--text); transition: var(--transition); }
-    .token-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); color: var(--text); }
+    @media (hover: hover) { .token-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.06); color: var(--text); } }
     .token-card.status-billing { border-left: 3px solid var(--warning); }
     .token-card.status-open { border-left: 3px solid var(--border); }
     .token-card.is-online { border-left: 3px solid var(--online); }
@@ -76,8 +76,8 @@
     .token-time { font-size: 0.75rem; color: var(--muted); margin-top: 0.35rem; }
 
     /* ── Cancel button (hover reveal) ── */
-    .btn-cancel-token { position: absolute; top: 4px; right: 4px; background: transparent; border: none; color: var(--muted); opacity: 0; font-size: 1rem; line-height: 1; padding: 2px 4px; cursor: pointer; transition: var(--transition); z-index: 10; }
-    .token-wrap:hover .btn-cancel-token { opacity: 0.5; }
+    .btn-cancel-token { position: absolute; top: 0; right: 0; min-width: 44px; min-height: 44px; background: transparent; border: none; color: var(--muted); opacity: 0; font-size: 1rem; line-height: 1; padding: 2px 4px; cursor: pointer; transition: var(--transition); z-index: 10; }
+    .token-wrap:hover .btn-cancel-token { opacity: 0.5; } @media (hover: none) { .btn-cancel-token { opacity: 0.5; } }
     .btn-cancel-token:hover { color: var(--danger); opacity: 1 !important; }
 
     /* ── Empty state ── */
@@ -105,11 +105,11 @@
 </div>
 {% endif %}
 {% if request.user.role == 'owner' or request.user.role == 'manager' %}
-<a href="/shifts/sessions/" class="btn-luxury text-decoration-none d-inline-flex align-items-center" title="Open / close the cash register & end-of-day">
+<a href="/shifts/sessions/" class="btn-luxury btn-tap text-decoration-none d-inline-flex align-items-center justify-content-center" title="Open / close the cash register & end-of-day">
     <i class="bi bi-cash-stack"></i><span class="d-none d-sm-inline ms-1">Cash Register</span>
 </a>
 {% endif %}
-<a href="{% url 'live-orders' %}" class="btn-luxury text-decoration-none d-inline-flex align-items-center" title="Every open order with its dishes">
+<a href="{% url 'live-orders' %}" class="btn-luxury btn-tap text-decoration-none d-inline-flex align-items-center justify-content-center" title="Every open order with its dishes">
     <i class="bi bi-card-checklist"></i><span class="d-none d-sm-inline ms-1">Live Orders</span>
 </a>
 {% if 'reports' in tenant_features %}

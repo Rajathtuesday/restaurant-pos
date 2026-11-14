@@ -33,7 +33,7 @@ html.dark {
   justify-content: space-between; height: 100%;
   border-radius: 12px; box-shadow: var(--shadow-soft);
 }
-.table-card:hover { border-color: var(--accent-gold); transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+@media (hover: hover) { .table-card:hover { border-color: var(--accent-gold); transform: translateY(-4px); box-shadow: var(--shadow-hover); } }
 .table-status-line { position: absolute; top: 0; left: 0; right: 0; height: 4px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
 .table-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .table-name { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--text-main); margin: 0; line-height: 1; }
@@ -53,7 +53,7 @@ html.dark {
 
 .card-actions { margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .btn-card-action {
-  flex: 1; min-width: 30%; padding: 0.6rem 0.2rem;
+  flex: 1; min-width: 30%; min-height: 44px; padding: 0.6rem 0.2rem;
   border: 1px solid var(--border-color); background: rgba(255,255,255,0.05);
   color: var(--text-main); font-size: 0.75rem; text-transform: uppercase;
   font-weight: 700; letter-spacing: 0.5px; border-radius: 4px;
@@ -71,7 +71,7 @@ html.dark {
   position: relative; overflow: hidden;
 }
 .metric-card::before { content: ''; position: absolute; top:0; left:0; width:4px; height:100%; background: var(--accent-gold); }
-.metric-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+@media (hover: hover) { .metric-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); } }
 .metric-val { font-family: 'DM Serif Display', serif; font-size: 2.5rem; font-weight: 700; color: var(--text-main); line-height: 1; }
 .metric-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: 0.5rem; font-weight: 600; }
 
