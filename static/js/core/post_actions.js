@@ -14,6 +14,7 @@
  *           data-ask-field="reason" data-ask-optional       sent as this field; may be left empty
  *           data-done="Expense deleted."                    a toast once done (optional)
  *           data-remove="#expense-row-7"                    take this away once done, or
+ *           data-go="{% url 'menu_management' %}"           go here once done, or
  *           data-then="reload">                             "reload" (the default) or "none"
  *
  *   <form data-action="post" data-url="..." data-done="..."> sends its named
@@ -47,7 +48,7 @@ function extraBody(el) {
   }
 }
 
-export function createPostActions({ api, ui, doc, reload, wait = (fn, ms) => setTimeout(fn, ms) }) {
+export function createPostActions({ api, ui, doc, reload, go = (url) => { globalThis.location.href = url; }, wait = (fn, ms) => setTimeout(fn, ms) }) {
   const out = new Set();
 
   async function send(el, body) {
@@ -81,6 +82,8 @@ export function createPostActions({ api, ui, doc, reload, wait = (fn, ms) => set
     if (d.remove) {
       const gone = doc.querySelector(d.remove);
       if (gone) gone.remove();
+    } else if (d.go) {
+      wait(() => go(d.go), d.done ? 700 : 0);
     } else if ((d.then || "reload") === "reload") {
       // Long enough to read the toast, when there is one.
       wait(() => reload(), d.done ? 700 : 0);

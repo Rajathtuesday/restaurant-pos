@@ -1,82 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Setup Rasova · Step {{ step }} of {{ total_steps }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main);
-        --muted: var(--text-muted); --border: var(--border-color); --gold: var(--accent-gold);
-    }
-
-    .wiz-shell { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
-
-    /* Progress bar */
-    .wiz-progress { display: flex; align-items: center; gap: 0; margin-bottom: 2.5rem; }
-    .wiz-step-dot {
-        width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
-        justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
-        border: 2px solid var(--border);
-        background: var(--panel); color: var(--muted);
-        transition: all 0.3s;
-    }
-    .wiz-step-dot.done  { background: var(--gold); border-color: var(--gold); color: #fff; }
-    .wiz-step-dot.active { border-color: var(--gold); color: var(--gold); font-weight: 800; }
-    .wiz-step-line { flex: 1; height: 1px; background: var(--border); }
-    .wiz-step-line.done { background: var(--gold); }
-
-    /* Card */
-    .wiz-card { background: var(--panel); border: 1px solid var(--border); padding: 2.5rem 2rem; }
-    .wiz-eyebrow { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-bottom: 0.5rem; }
-    .wiz-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 400; margin-bottom: 0.4rem; }
-    .wiz-sub { font-size: 0.85rem; color: var(--muted); line-height: 1.6; margin-bottom: 2rem; }
-
-    /* Fields */
-    .field { margin-bottom: 1.4rem; }
-    .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
-    .field input, .field select, .field textarea {
-        width: 100%; background: transparent; border: none;
-        border-bottom: 1px solid var(--border); color: var(--text);
-        padding: 0.5rem 0; font-size: 0.95rem; font-family: 'Outfit', sans-serif;
-        outline: none;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
-    .field textarea { resize: vertical; min-height: 60px; }
-    .field select option { background: var(--panel); }
-    .field-hint { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
-
-    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media(max-width:480px) { .field-row { grid-template-columns: 1fr; } }
-    .onboard-menu-choice { grid-template-columns: 1fr 1fr; }
-    @media(max-width:480px) { .onboard-menu-choice { grid-template-columns: 1fr; } }
-
-    /* Item rows */
-    .item-row { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; margin-bottom: 0.75rem; align-items: end; }
-    .item-row .field { margin-bottom: 0; }
-
-    /* Toggle row */
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 0; border-bottom: 1px solid var(--border); }
-    .toggle-row:last-of-type { border-bottom: none; }
-    .toggle-label-text { font-size: 0.9rem; font-weight: 500; }
-    .toggle-label-sub { font-size: 0.75rem; color: var(--muted); }
-    .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
-    .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-    .slider { position: absolute; inset: 0; background: var(--border); border-radius: 24px; cursor: pointer; transition: 0.3s; }
-    .slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: var(--muted); border-radius: 50%; transition: 0.3s; }
-    input:checked + .slider { background: var(--gold); }
-    input:checked + .slider::before { transform: translateX(20px); background: #fff; }
-
-    /* Buttons */
-    .btn-next { width: 100%; padding: 1rem; background: var(--gold); border: none; color: #fff; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 2rem; min-height: 52px; transition: opacity 0.2s; }
-    .btn-next:hover { opacity: 0.88; }
-    .btn-skip { display: block; text-align: center; margin-top: 1rem; font-size: 0.75rem; color: var(--muted); text-decoration: none; letter-spacing: 1px; }
-    .btn-skip:hover { color: var(--text); }
-
-    /* Logo preview */
-    .logo-preview { width: 80px; height: 80px; object-fit: contain; border: 1px solid var(--border); margin-bottom: 0.75rem; display: none; }
-    .logo-preview.show { display: block; }
-    .file-btn { display: inline-block; border: 1px dashed var(--border); padding: 0.5rem 1rem; font-size: 0.75rem; cursor: pointer; color: var(--muted); transition: border-color 0.2s; }
-    .file-btn:hover { border-color: var(--gold); color: var(--gold); }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/onboard.css' %}">
 {% endblock %}
 
 {% block page_title %}Setup{% endblock %}
@@ -155,161 +82,40 @@
                     <label class="gst-seg-opt" id="gst-seg-excl">
                         <input type="radio" name="gst_inclusive" value="false"
                                {% if not outlet.gst_inclusive %}checked{% endif %}
-                               onchange="syncGstSeg()">
+                               data-action="gst.seg">
                         <span class="gst-seg-name">Exclusive</span>
                         <span class="gst-seg-sub">+ GST on top · ₹24 + ₹1</span>
                     </label>
                     <label class="gst-seg-opt" id="gst-seg-incl">
                         <input type="radio" name="gst_inclusive" value="true"
                                {% if outlet.gst_inclusive %}checked{% endif %}
-                               onchange="syncGstSeg()">
+                               data-action="gst.seg">
                         <span class="gst-seg-name">Inclusive <span class="gst-seg-badge">QSR</span></span>
                         <span class="gst-seg-sub">GST included · ₹25 = ₹25</span>
                     </label>
                 </div>
-                <style>
-                .gst-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--border-color); }
-                .gst-seg-opt {
-                    padding: 0.6rem 0.9rem;
-                    cursor: pointer;
-                    user-select: none;
-                    transition: background 0.15s, border-color 0.15s;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 2px;
-                }
-                .gst-seg-opt:first-child { border-right: 1px solid var(--border-color); }
-                .gst-seg-opt input { display: none; }
-                .gst-seg-opt.active {
-                    background: rgba(197,160,89,0.08);
-                    outline: 1.5px solid var(--accent-gold);
-                    outline-offset: -1px;
-                }
-                .gst-seg-name {
-                    font-size: 0.8rem;
-                    font-weight: 700;
-                    color: var(--text-main);
-                    display: flex;
-                    align-items: center;
-                    gap: 0.4rem;
-                }
-                .gst-seg-sub { font-size: 0.68rem; color: var(--text-muted); font-family: 'Space Mono', monospace; }
-                .gst-seg-badge { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; background: rgba(16,185,129,.12); color: #10b981; padding: 1px 5px; }
-                </style>
-                <script>
-                function syncGstSeg() {
-                    document.getElementById('gst-seg-excl').classList.toggle('active',
-                        document.querySelector('input[name="gst_inclusive"][value="false"]').checked);
-                    document.getElementById('gst-seg-incl').classList.toggle('active',
-                        document.querySelector('input[name="gst_inclusive"][value="true"]').checked);
-                }
-                document.addEventListener('DOMContentLoaded', syncGstSeg);
-                </script>
             </div>
 
             <div class="field">
                 <label>Your POS Web Address</label>
                 <div class="subdomain-preview" id="subdomainPreview">
                     <span class="subdomain-val" id="subdomainDisplay">{{ tenant.slug }}</span><span class="subdomain-suffix">.rasova.net</span>
-                    <button type="button" class="subdomain-edit-btn" onclick="toggleSlugEdit()">
+                    <button type="button" class="subdomain-edit-btn" data-action="slug.edit" aria-controls="subdomainEdit" aria-expanded="false">
                         <i class="bi bi-pencil"></i> Change
                     </button>
                 </div>
-                <div class="subdomain-edit" id="subdomainEdit" style="display:none;">
+                <div class="subdomain-edit" id="subdomainEdit" hidden>
                     <div class="subdomain-input-row">
                         <input type="text" id="slugInput" name="custom_slug"
                                value="{{ tenant.slug }}" maxlength="30"
                                placeholder="{{ tenant.slug }}"
-                               oninput="checkSlug(this.value)"
+                               data-action="slug.check" data-check-url="{% url 'check_slug' %}" aria-label="Web address"
                                pattern="[a-z0-9-]+"
                                autocomplete="off">
                         <span class="subdomain-suffix">.rasova.net</span>
                     </div>
                     <div class="slug-status" id="slugStatus"></div>
                 </div>
-                <style>
-                .subdomain-preview {
-                    display: flex; align-items: center; gap: 0.5rem;
-                    background: var(--panel-bg);
-                    border: 1px solid var(--border-color);
-                    padding: 0.65rem 0.9rem;
-                    margin-top: 0.4rem;
-                    font-family: 'Space Mono', monospace;
-                    font-size: 0.82rem;
-                }
-                .subdomain-val { color: var(--accent-gold); font-weight: 700; }
-                .subdomain-suffix { color: var(--text-muted); }
-                .subdomain-edit-btn {
-                    margin-left: auto; background: transparent;
-                    border: 1px solid var(--border-color);
-                    color: var(--text-muted); font-size: 0.62rem;
-                    text-transform: uppercase; letter-spacing: 1px;
-                    padding: 2px 8px; cursor: pointer;
-                    transition: border-color 0.15s, color 0.15s;
-                    font-family: 'Outfit', sans-serif;
-                }
-                .subdomain-edit-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-                .subdomain-edit { margin-top: 0.5rem; }
-                .subdomain-input-row {
-                    display: flex; align-items: center;
-                    border: 1px solid var(--accent-gold);
-                    background: rgba(197,160,89,0.04);
-                }
-                .subdomain-input-row input {
-                    flex: 1; background: transparent; border: none;
-                    color: var(--text-main); padding: 0.6rem 0.75rem;
-                    font-size: 0.85rem; font-family: 'Space Mono', monospace;
-                    outline: none;
-                }
-                .subdomain-input-row .subdomain-suffix {
-                    padding-right: 0.75rem; font-family: 'Space Mono', monospace;
-                    font-size: 0.8rem;
-                }
-                .slug-status {
-                    margin-top: 0.35rem; font-size: 0.7rem;
-                    min-height: 1.2em; transition: color 0.2s;
-                }
-                .slug-ok  { color: #10b981; }
-                .slug-err { color: #ef4444; }
-                .slug-chk { color: var(--text-muted); }
-                </style>
-                <script>
-                let _slugTimer;
-                function toggleSlugEdit() {
-                    const edit = document.getElementById('subdomainEdit');
-                    const preview = document.getElementById('subdomainPreview');
-                    const isOpen = edit.style.display !== 'none';
-                    edit.style.display = isOpen ? 'none' : 'block';
-                    if (!isOpen) document.getElementById('slugInput').focus();
-                }
-                function checkSlug(val) {
-                    const slug = val.toLowerCase().replace(/[^a-z0-9-]/g,'');
-                    document.getElementById('slugInput').value = slug;
-                    document.getElementById('subdomainDisplay').textContent = slug || '{{ tenant.slug }}';
-                    const status = document.getElementById('slugStatus');
-                    clearTimeout(_slugTimer);
-                    if (!slug || slug.length < 3) {
-                        status.textContent = slug ? 'Too short: minimum 3 characters' : '';
-                        status.className = 'slug-status slug-err';
-                        return;
-                    }
-                    status.textContent = 'Checking…';
-                    status.className = 'slug-status slug-chk';
-                    _slugTimer = setTimeout(() => {
-                        fetch(`/setup/check-slug/?slug=${encodeURIComponent(slug)}`)
-                            .then(r => r.json())
-                            .then(d => {
-                                if (d.available) {
-                                    status.textContent = `✓ ${d.slug}.rasova.net is available`;
-                                    status.className = 'slug-status slug-ok';
-                                } else {
-                                    status.textContent = `✗ ${d.reason}`;
-                                    status.className = 'slug-status slug-err';
-                                }
-                            }).catch(() => { status.textContent = ''; });
-                    }, 450);
-                }
-                </script>
             </div>
 
             <div class="field">
@@ -321,7 +127,7 @@
                 {% endif %}
                 <label class="file-btn" for="logoFile"><i class="bi bi-upload me-1"></i>Upload Logo</label>
                 <input type="file" id="logoFile" name="logo" accept="image/*" style="display:none;"
-                       onchange="previewLogo(this)">
+                       data-action="logo.preview">
             </div>
 
             <button type="submit" class="btn-next">Continue: Add Menu <i class="bi bi-arrow-right ms-1"></i></button>
@@ -334,15 +140,15 @@
         <p class="wiz-sub">Choose how you'd like to add your menu.</p>
 
         <div class="onboard-menu-choice" style="display:grid;gap:1rem;margin-bottom:2rem;">
-            <div id="ai-import-box" style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.2s;" onclick="document.getElementById('ai-file-input').click()">
+            <div id="ai-import-box" style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.2s;" class="onboard-card" role="button" tabindex="0" data-action="file.pick" data-target="ai-file-input">
                 <div style="font-size:1.5rem;margin-bottom:0.4rem;">📷</div>
                 <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">AI Import</div>
                 <div style="font-size:0.72rem;color:var(--muted);line-height:1.4;">Upload a photo of your paper menu</div>
-                <input type="file" id="ai-file-input" accept="image/*" style="display:none;">
+                <input type="file" id="ai-file-input" accept="image/*" style="display:none;" data-action="ai.import" data-url="{% url 'ai_menu_importer' %}">
             </div>
             <form method="post" action="/setup/sample-menu/" id="sample-menu-form">
                 {% csrf_token %}
-                <div style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color 0.2s;" onclick="document.getElementById('sample-menu-form').submit()">
+                <div style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color 0.2s;" class="onboard-card" role="button" tabindex="0" data-action="onboard.sample">
                     <div style="font-size:1.5rem;margin-bottom:0.4rem;">🍽️</div>
                     <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">Load Sample Menu</div>
                     <div style="font-size:0.72rem;color:var(--muted);line-height:1.4;">8 items across 3 categories</div>
@@ -350,9 +156,10 @@
             </form>
         </div>
 
-        <div id="ai-status" style="display:none;text-align:center;padding:1rem 0;margin-bottom:1rem;">
+        <div id="ai-status" style="text-align:center;padding:1rem 0;margin-bottom:1rem;" hidden>
             <div id="ai-spinner" style="font-size:0.85rem;color:var(--muted);"><i class="bi bi-arrow-repeat" style="animation:spin 1s linear infinite;display:inline-block;"></i> Importing your menu…</div>
-            <div id="ai-success" style="display:none;">
+            <div id="ai-failed" class="ai-failed" role="alert" hidden></div>
+            <div id="ai-success" hidden>
                 <div style="color:#10b981;font-size:0.95rem;font-weight:600;" id="ai-success-msg"></div>
                 <a href="/setup/onboard/?step=3" class="btn-next" style="display:inline-block;margin-top:1rem;text-decoration:none;text-align:center;">Continue: Add Staff <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
@@ -455,11 +262,11 @@
             <div style="display:grid;grid-template-columns:80px 1fr auto;gap:0.75rem;align-items:end;margin-bottom:0.5rem;">
                 <div class="field" style="margin-bottom:0;">
                     <label>Count</label>
-                    <input type="number" name="table_count" id="tbl-count" value="8" min="1" max="200" oninput="updateTablePreview()">
+                    <input type="number" name="table_count" id="tbl-count" value="8" min="1" max="200" data-action="tables.preview">
                 </div>
                 <div class="field" style="margin-bottom:0;">
                     <label>Prefix</label>
-                    <input type="text" name="table_prefix" id="tbl-prefix" value="T" maxlength="10" oninput="updateTablePreview()">
+                    <input type="text" name="table_prefix" id="tbl-prefix" value="T" maxlength="10" data-action="tables.preview">
                 </div>
                 <button type="submit" class="btn-next" style="margin-top:0;padding:0.6rem 1rem;font-size:0.72rem;white-space:nowrap;">Create Tables</button>
             </div>
@@ -533,75 +340,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<style>
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>
-<script>
-function previewLogo(input) {
-    const img = document.getElementById('logoPreview');
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => { img.src = e.target.result; img.classList.add('show'); };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-(function() {
-    const fileInput = document.getElementById('ai-file-input');
-    if (!fileInput) return;
-    fileInput.addEventListener('change', function() {
-        if (!this.files || !this.files[0]) return;
-        const status = document.getElementById('ai-status');
-        const spinner = document.getElementById('ai-spinner');
-        const success = document.getElementById('ai-success');
-        status.style.display = 'block';
-        spinner.style.display = 'block';
-        success.style.display = 'none';
-
-        const fd = new FormData();
-        fd.append('image', this.files[0]);
-        fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
-
-        fetch('/menu/ai-import/', { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(data => {
-                spinner.style.display = 'none';
-                if (data.success) {
-                    document.getElementById('ai-success-msg').textContent = data.message + ' ✓';
-                    success.style.display = 'block';
-                } else {
-                    spinner.style.display = 'block';
-                    spinner.innerHTML = '<span style="color:#ef4444;">' + (data.message || 'Import failed. Try again.') + '</span>';
-                }
-            })
-            .catch(() => {
-                spinner.style.display = 'block';
-                spinner.innerHTML = '<span style="color:#ef4444;">Network error. Please try again.</span>';
-            });
-    });
-})();
-
-function updateTablePreview() {
-    const count = parseInt(document.getElementById('tbl-count')?.value) || 0;
-    const prefix = document.getElementById('tbl-prefix')?.value || 'T';
-    const preview = document.getElementById('table-preview');
-    if (!preview) return;
-    if (count <= 0) { preview.textContent = ''; return; }
-    const max = Math.min(count, 5);
-    let names = [];
-    for (let i = 1; i <= max; i++) names.push(prefix + i);
-    let text = 'Will create: ' + names.join(', ');
-    if (count > 5) text += ' … ' + prefix + count;
-    preview.textContent = text;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    updateTablePreview();
-    const boxes = document.querySelectorAll('#ai-import-box, #sample-menu-form > div');
-    boxes.forEach(b => {
-        b.addEventListener('mouseenter', () => b.style.borderColor = 'var(--gold)');
-        b.addEventListener('mouseleave', () => b.style.borderColor = 'var(--border)');
-    });
-});
-</script>
+<script type="module" src="{% static 'js/setup/onboard.js' %}"></script>
 {% endblock %}

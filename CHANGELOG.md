@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Five large pages on modules; promo delete, ingredient names and the recipe sheet fixed
+
+### Fixed
+- **Setup, Promos deleted a promo even on Cancel** (the `ui.confirm` mistake once more). Delete and Pause are shared post buttons now.
+- **The promo tiles (active, all outlets, uses) showed "-" until a script counted the rows**; the view counts them and the page renders the numbers.
+- **The modifier page's Inventory Link sheet put ingredient names into the page as HTML**; names are escaped (`menu/modifier_links.js`).
+- **The modifier page reloaded as if every change worked**: creating a group, adding a modifier, linking a dish ignored the server's answer. They are shared post forms and buttons, so a refusal is shown.
+- **The recipe import review asked for a new ingredient with two `prompt()`s, and said everything else with `alert()` and `confirm()`**, none of which show in the Android app. A new ingredient is one sheet (a name and a unit list, `inventory/recipe_lines.js`); the rest are toasts and Rasova's own sheets.
+- **The setup wizard's AI import put the server's error message into the page as HTML**; it is text now.
+
+### Changed
+- Off the ratchet: the setup wizard (`setup/onboard.js`; the menu cards answer Enter and Space, their hover border is CSS), the recipe import review (`inventory/recipe_review.js`), the sales report (`reports/dashboard.js`, `dashboard_parts.js`; the Export links are real links, the filters added on tap), Setup Promos (`setup/promos.js`, `promo_form.js`), modifier groups (`menu/modifiers.js`; Create Group opens its sheet by Bootstrap's own data attributes).
+- Shared parts: `data-go` on a post button (go to an address once done: Discard an import goes back to the menu); `field.upper` is a shared input action (promo codes, GSTIN, bill codes).
+- The ratchet holds 9 templates (was 14).
+
+### Tests
+- `core/tests/test_large_pages_browser.py` (5, Chromium): a promo delete cancelled keeps it and the tiles are numbers; an ingredient called `<b id="injected">Salt</b>` shows as text; a new ingredient added from the recipe review in one sheet (all three fail on the old pages); the sales report's two charts draw; the wizard checks a web address as it is typed.
+- `static/js/tests/large_pages_1.test.mjs` (12); `post_actions.test.mjs` gains `data-go`.
+
 ## 2026-11-14: Six mid-size pages on modules; a shift kept on Cancel, O'Brien can be scheduled
 
 ### Fixed

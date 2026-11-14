@@ -1,0 +1,121 @@
+/* reports/templates/reports/dashboard.html */
+::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
+
+.form-select-luxury {
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
+  border-radius: 0;
+  padding: 0.5rem 1.5rem 0.5rem 0;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  max-width: 250px;
+}
+.form-select-luxury:focus { box-shadow: none; border-color: var(--accent-gold); }
+
+.card-elegant {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0;
+  padding: 2.5rem 2rem;
+  height: 100%;
+  transition: var(--transition-smooth);
+}
+.card-elegant:hover { border-color: var(--accent-gold); }
+
+.metric-group { text-align: center; }
+.metric-label {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-muted); margin-bottom: 1rem; display: block;
+}
+.metric-value {
+  font-family: 'DM Serif Display', serif; font-size: 2.75rem;
+  font-weight: 400; color: var(--text-main); line-height: 1; margin: 0;
+}
+
+.section-title {
+  font-size: 1.2rem; color: var(--text-main); margin-bottom: 2rem;
+  text-transform: uppercase; letter-spacing: 3px; text-align: center;
+}
+.section-title::after {
+  content: ''; display: block; width: 40px; height: 1px;
+  background: var(--accent-gold); margin: 15px auto 0;
+}
+
+.table-minimal { width: 100%; color: var(--text-main); }
+.table-minimal th {
+  border-bottom: 1px solid var(--border-color); padding: 1rem 0;
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-muted); font-weight: 500;
+}
+.table-minimal td { border-bottom: 1px solid var(--border-color); padding: 1.2rem 0; font-size: 0.95rem; }
+.table-minimal tbody tr:last-child td { border-bottom: none; }
+.text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent-gold); }
+
+.context-info {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-muted); margin-bottom: 3rem; text-align: center;
+}
+.context-info strong { color: var(--text-main); font-weight: 600; }
+
+/* ── Report sub-nav ───────────────────────────────────────── */
+.report-subnav {
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.report-subnav-left  { display: flex; align-items: center; gap: 0; }
+.report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
+
+.report-tab {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: color 0.2s, border-color 0.2s; display: inline-block;
+}
+.report-tab:hover   { color: var(--text-main); }
+.report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
+
+.subnav-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 0.25rem; }
+
+.subnav-select {
+  background: transparent; border: none; border-bottom: 1px solid var(--border-color);
+  color: var(--text-main); font-size: 0.82rem; font-family: inherit;
+  padding: 0.3rem 1.2rem 0.3rem 0; cursor: pointer; outline: none;
+}
+.subnav-select:focus { border-color: var(--accent-gold); }
+.subnav-select option { background: var(--panel-bg); }
+
+.subnav-btn {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+  padding: 0.35rem 0.8rem; border: 1px solid var(--border-color);
+  background: transparent; color: var(--text-main); cursor: pointer;
+  white-space: nowrap; text-decoration: none; display: inline-flex;
+  align-items: center; gap: 5px; font-family: inherit;
+  transition: all 0.15s;
+}
+.subnav-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+.subnav-btn.gold  { border-color: var(--accent-gold); color: var(--accent-gold); }
+.subnav-btn.gold:hover { background: var(--accent-gold); color: #fff; }
+
+@media (max-width: 768px) {
+  .report-subnav { padding: 0 1rem; }
+  .report-subnav-right { gap: 0.35rem; }
+  .metric-value { font-size: 2rem; }
+  .card-elegant { padding: 1.5rem 1.25rem; }
+  .context-info { font-size: 0.7rem; margin-bottom: 1.5rem; }
+  #customDates { flex-direction: column !important; }
+  .subnav-hide-mobile { display: none !important; }
+}
+@media (max-width: 480px) {
+  .metric-value { font-size: 1.6rem; }
+}

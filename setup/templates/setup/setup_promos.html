@@ -4,111 +4,7 @@
 {% block title %}Promo Campaigns | {{ current_outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        /* Aliases for this page's local var names */
-        --bg: var(--bg-color);
-        --panel: var(--panel-bg);
-        --text: var(--text-main);
-        --muted: var(--text-muted);
-        --border: var(--border-color);
-        --gold: var(--accent-gold);
-        --success: #16a34a;
-        --danger: #dc2626;
-        --warning: #d97706;
-        --radius: 10px;
-        --trans: var(--transition-smooth);
-    }
-
-    .page { max-width: 1000px; margin: 2.5rem auto; padding: 0 1.5rem 4rem; }
-    .eyebrow { font-size: .62rem; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); margin-bottom: .4rem; }
-    .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: .4rem; }
-    .divider { width: 36px; height: 2px; background: var(--gold); margin: 1rem 0 2rem; }
-
-    .alert { padding: .7rem 1rem; margin-bottom: 1rem; border-left: 3px solid var(--gold); font-size: .78rem; border-radius: 0 4px 4px 0; }
-    .alert-s { border-left-color: var(--success); background: rgba(22,163,74,.08); color: var(--success); }
-    .alert-e { border-left-color: var(--danger);  background: rgba(220,38,38,.08);  color: var(--danger); }
-
-    .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.3rem; }
-    .stat-label { font-size: .6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: .3rem; }
-    .stat-val   { font-size: 1.8rem; font-weight: 700; color: var(--text); }
-    .stat-val.gold  { color: var(--gold); }
-    .stat-val.green { color: var(--success); }
-
-    .layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
-    @media(max-width: 760px) { .layout { grid-template-columns: 1fr; } }
-    @media(max-width: 480px) {
-        .two { grid-template-columns: 1fr; }
-        .tbl-btn { padding: .55rem .7rem; min-height: 40px; font-size: .74rem; }
-    }
-
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-    .card-hdr { padding: .9rem 1.2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .5rem; }
-    .card-hdr-title { font-size: .68rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
-    .card-hdr i { color: var(--gold); }
-    .card-body { padding: 1.2rem; }
-
-    .promo-table { width: 100%; border-collapse: collapse; }
-    .promo-table th { font-size: .6rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); padding: .6rem .55rem; border-bottom: 1px solid var(--border); text-align: left; }
-    .promo-table td { padding: .75rem .55rem; border-bottom: 1px solid var(--border); font-size: .82rem; vertical-align: middle; }
-    .promo-table tr:last-child td { border-bottom: none; }
-    .promo-table tr:hover td { background: rgba(197,160,89,.04); }
-
-    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
-    .badge-active   { background: #dcfce7; color: #15803d; }
-    .badge-inactive { background: #fee2e2; color: #991b1b; }
-    .badge-all      { background: #ede9fe; color: #6d28d9; }
-    .badge-outlet   { background: #dbeafe; color: #1d4ed8; }
-    .badge-pct      { background: #fef3c7; color: #92400e; }
-    .badge-flat     { background: #fce7f3; color: #9d174d; }
-    .badge-expired  { background: #f1f5f9; color: #94a3b8; }
-    .badge-starts   { background: #e0ecff; color: #1d4ed8; }
-    .badge-used     { background: #fef3c7; color: #92400e; }
-
-    .code-chip { font-family: 'Space Mono', monospace; font-size: .65rem; background: var(--bg); border: 1px solid var(--border); padding: 2px 7px; border-radius: 4px; letter-spacing: 1px; }
-
-    .tbl-actions { display: grid; grid-template-columns: auto; gap: .3rem; justify-content: start; }
-    .tbl-btn { border: none; border-radius: 6px; padding: .3rem .55rem; cursor: pointer; font-size: .7rem; display: inline-flex; align-items: center; gap: 3px; transition: var(--trans); }
-    .tbl-btn-toggle { background: #f0fdf4; color: #15803d; }
-    .tbl-btn-toggle.off { background: #fef2f2; color: #dc2626; }
-    .tbl-btn-del    { background: #fef2f2; color: #dc2626; }
-    .tbl-btn-edit   { background: #eff6ff; color: #1d4ed8; }
-    .owner-only     { font-size: .65rem; color: var(--muted); }
-    @media (hover: hover) { .tbl-btn:hover  { opacity: .8; transform: scale(1.05); } }
-
-    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: .85rem; }
-    .empty-state i { font-size: 2rem; display: block; margin-bottom: .5rem; color: var(--border); }
-
-    .field { margin-bottom: 1rem; }
-    .field:last-of-type { margin-bottom: 0; }
-    .field label { display: block; font-size: .6rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: .35rem; font-weight: 600; }
-    .field input, .field select, .field textarea { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: .4rem 0; font-size: .9rem; font-family: 'Outfit', sans-serif; outline: none; transition: border-color .2s; }
-    .field input:focus, .field select:focus, .field textarea:focus { border-bottom-color: var(--gold); }
-    .field textarea { resize: vertical; min-height: 52px; font-size: .82rem; }
-    .field-hint { font-size: .62rem; color: var(--muted); margin-top: .25rem; }
-    .two { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
-
-    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: .8rem 0; border-bottom: 1px solid var(--border); margin-bottom: .8rem; }
-    .toggle-label { font-size: .78rem; font-weight: 600; }
-    .toggle-hint  { font-size: .62rem; color: var(--muted); }
-    .switch { position: relative; display: inline-block; width: 38px; height: 22px; flex-shrink: 0; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; inset: 0; background: #ccc; border-radius: 34px; transition: .3s; cursor: pointer; }
-    .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
-    input:checked + .slider { background: var(--gold); }
-    input:checked + .slider::before { transform: translateX(16px); }
-
-    .btn-create { width: 100%; padding: 1rem; background: var(--gold); border: none; color: #fff; font-size: .72rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; border-radius: 6px; margin-top: 1.2rem; font-family: 'Outfit', sans-serif; transition: var(--trans); }
-    .btn-create:hover { background: var(--accent-hover); }
-    .btn-create:disabled { opacity: .5; cursor: not-allowed; }
-
-    #form-msg { margin-top: .6rem; font-size: .75rem; display: none; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; flex-shrink: 0; }
-    .dot-g { background: var(--success); }
-    .dot-r { background: var(--danger); }
-    .dot-y { background: var(--warning); }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/setup_promos.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/setup/">Setup</a> / Promos{% endblock %}
@@ -137,15 +33,15 @@
         </div>
         <div class="stat-card">
             <div class="stat-label">Active Now</div>
-            <div class="stat-val green"><span id="active-count">-</span></div>
+            <div class="stat-val green"><span id="active-count">{{ stats.active }}</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-label">All-Outlet Promos</div>
-            <div class="stat-val" id="alloutlet-count">-</div>
+            <div class="stat-val" id="alloutlet-count">{{ stats.all_outlets }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Uses</div>
-            <div class="stat-val" id="uses-count">-</div>
+            <div class="stat-val" id="uses-count">{{ stats.uses }}</div>
         </div>
     </div>
 
@@ -227,14 +123,14 @@
                         <td>
                             {% if p.can_manage %}
                             <div class="tbl-actions">
-                                <button class="tbl-btn tbl-btn-edit" onclick="editPromo({{ p.id }})" title="Edit" aria-label="Edit {{ p.name }}">
+                                <button type="button" class="tbl-btn tbl-btn-edit" data-action="promo.edit" data-promo="{{ p.id }}" title="Edit" aria-label="Edit {{ p.name }}">
                                     <i class="bi bi-pencil"></i>
                                 </button>
-                                <button class="tbl-btn {% if p.is_active %}tbl-btn-toggle{% else %}tbl-btn-toggle off{% endif %}"
-                                        onclick="togglePromo({{ p.id }}, this)" title="{% if p.is_active %}Pause{% else %}Activate{% endif %}">
+                                <button type="button" class="tbl-btn {% if p.is_active %}tbl-btn-toggle{% else %}tbl-btn-toggle off{% endif %}"
+                                        data-action="post" data-url="{% url 'promo_toggle' p.id %}" title="{% if p.is_active %}Pause{% else %}Activate{% endif %}" aria-label="{% if p.is_active %}Pause{% else %}Activate{% endif %} {{ p.name }}">
                                     <i class="bi bi-{% if p.is_active %}pause{% else %}play{% endif %}-fill"></i>
                                 </button>
-                                <button class="tbl-btn tbl-btn-del" onclick="deletePromo({{ p.id }})" title="Delete">
+                                <button type="button" class="tbl-btn tbl-btn-del" title="Delete" aria-label="Delete {{ p.name }}" data-action="post" data-url="{% url 'promo_delete' p.id %}" data-confirm="Delete this promo?" data-confirm-text="Bills that used it keep its name." data-confirm-button="Delete" data-done="Promo deleted.">
                                     <i class="bi bi-trash3"></i>
                                 </button>
                             </div>
@@ -269,7 +165,7 @@
                         <div class="toggle-hint">Applies this promo tenant-wide</div>
                     </div>
                     <label class="switch">
-                        <input type="checkbox" id="all-outlets-toggle" onchange="toggleOutletPicker()">
+                        <input type="checkbox" id="all-outlets-toggle" data-action="promo.scope" aria-label="Run on all outlets">
                         <span class="slider"></span>
                     </label>
                 </div>
@@ -294,7 +190,7 @@
 
                 <div class="field">
                     <label>Promo Code <span style="color:var(--muted);font-size:.6rem;">(optional)</span></label>
-                    <input type="text" id="f-code" placeholder="HH20" oninput="this.value=this.value.toUpperCase()"
+                    <input type="text" id="f-code" placeholder="HH20" data-action="field.upper"
                            style="font-family:'Space Mono',monospace;letter-spacing:1px;">
                     <div class="field-hint">Printed on the bill ("Promo HH20"). Unique per tenant.</div>
                 </div>
@@ -339,12 +235,12 @@
                     <textarea id="f-desc" placeholder="e.g. Valid only on dine-in orders, weekdays 3–7 PM"></textarea>
                 </div>
 
-                <button class="btn-create" id="create-btn" onclick="savePromo()">
+                <button type="button" class="btn-create" id="create-btn" data-action="promo.save" data-create-url="{% url 'promo_create' %}" data-update-url="{% url 'promo_update' 0 %}">
                     <i class="bi bi-plus-lg"></i> Create Campaign
                 </button>
-                <button type="button" class="tbl-btn" id="cancel-edit-btn" onclick="cancelEdit()"
-                        style="display:none;margin-top:.5rem;width:100%;justify-content:center;">Cancel edit</button>
-                <div id="form-msg"></div>
+                <button type="button" class="tbl-btn" id="cancel-edit-btn" data-action="promo.cancel" hidden
+                        style="margin-top:.5rem;width:100%;justify-content:center;">Cancel edit</button>
+                <div id="form-msg" role="status" hidden></div>
             </div>
         </div>
 
@@ -354,138 +250,5 @@
 
 {% block extra_js %}
 {{ edit_data|json_script:"promo-edit-data" }}
-<script>
-    function toggleOutletPicker() {
-        const toggle = document.getElementById('all-outlets-toggle');
-        const picker = document.getElementById('outlet-picker');
-        if (toggle && picker) picker.style.display = toggle.checked ? 'none' : '';
-    }
-
-    const EDIT_DATA = JSON.parse(document.getElementById('promo-edit-data').textContent);
-    let editingId = null;
-    const FIELDS = {name: 'f-name', code: 'f-code', discount_type: 'f-type', discount_value: 'f-value',
-                    min_order_value: 'f-min', max_uses: 'f-maxuses', valid_from: 'f-from',
-                    valid_until: 'f-until', description: 'f-desc'};
-    const CREATE_LABEL = '<i class="bi bi-plus-lg"></i> Create Campaign';
-    const SAVE_LABEL = '<i class="bi bi-check-lg"></i> Save changes';
-
-    function editPromo(id) {
-        const data = EDIT_DATA[id];
-        if (!data) return;
-        editingId = id;
-        Object.entries(FIELDS).forEach(([key, el]) => {
-            document.getElementById(el).value = data[key] ?? '';
-        });
-        document.getElementById('form-title').textContent = `Edit: ${data.name}`;
-        document.getElementById('create-btn').innerHTML = SAVE_LABEL;
-        document.getElementById('cancel-edit-btn').style.display = '';
-        const scope = document.getElementById('scope-row');
-        const picker = document.getElementById('outlet-picker');
-        if (scope) scope.style.display = 'none';      // where it runs stays as it was made
-        if (picker) picker.style.display = 'none';
-        document.getElementById('f-name').focus();
-    }
-
-    function cancelEdit() {
-        editingId = null;
-        Object.values(FIELDS).forEach(el => { document.getElementById(el).value = ''; });
-        document.getElementById('f-type').value = 'percentage';
-        document.getElementById('f-min').value = '0';
-        document.getElementById('form-title').textContent = 'New Campaign';
-        document.getElementById('create-btn').innerHTML = CREATE_LABEL;
-        document.getElementById('cancel-edit-btn').style.display = 'none';
-        const scope = document.getElementById('scope-row');
-        if (scope) scope.style.display = '';
-        toggleOutletPicker();
-    }
-
-    async function savePromo() {
-        const btn = document.getElementById('create-btn');
-        const msg = document.getElementById('form-msg');
-        const allToggle = document.getElementById('all-outlets-toggle');
-        const allOutlets = !!(allToggle && allToggle.checked);
-        const outletSelect = document.getElementById('f-outlet');
-
-        const payload = {
-            name:            document.getElementById('f-name').value.trim(),
-            code:            document.getElementById('f-code').value.trim(),
-            discount_type:   document.getElementById('f-type').value,
-            discount_value:  document.getElementById('f-value').value,
-            min_order_value: document.getElementById('f-min').value || 0,
-            max_uses:        document.getElementById('f-maxuses').value || null,
-            valid_from:      document.getElementById('f-from').value || null,
-            valid_until:     document.getElementById('f-until').value || null,
-            description:     document.getElementById('f-desc').value.trim(),
-        };
-        if (!editingId) {
-            payload.all_outlets = allOutlets;
-            payload.outlet_id = allOutlets || !outletSelect ? null : outletSelect.value;
-        }
-
-        if (!payload.name || !(parseFloat(payload.discount_value) > 0)) {
-            showMsg(msg, 'Name and a valid positive value are required.', 'e');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.textContent = editingId ? 'Saving…' : 'Creating…';
-        const url = editingId ? `/setup/promos/${editingId}/update/` : '/setup/promos/create/';
-
-        try {
-            const data = await apiClient.post(url, payload);
-            btn.disabled = false;
-            btn.innerHTML = editingId ? SAVE_LABEL : CREATE_LABEL;
-            if (data.success) {
-                showMsg(msg, editingId ? `✓ "${data.name}" saved.` : `✓ "${data.name}" created for ${data.scope}.`, 's');
-                setTimeout(() => location.reload(), 900);
-            } else {
-                showMsg(msg, data.error || 'Failed.', 'e');
-            }
-        } catch (e) {
-            btn.disabled = false;
-            btn.innerHTML = editingId ? SAVE_LABEL : CREATE_LABEL;
-            if (e && e.message && e.message !== 'Offline') showMsg(msg, e.message, 'e');   // also in a toast
-        }
-    }
-
-    async function togglePromo(id, btn) {
-        try {
-            const data = await apiClient.post(`/setup/promos/${id}/toggle/`, {});
-            if (data.success) location.reload();
-        } catch (e) { /* apiClient showed error toast */ }
-    }
-
-    async function deletePromo(id) {
-        if (!await ui.confirm('Delete this promo? Bills that used it keep its name.')) return;
-        try {
-            const data = await apiClient.post(`/setup/promos/${id}/delete/`, {});
-            if (data.success) { document.getElementById(`row-${id}`).remove(); updateStats(); }
-        } catch (e) { /* apiClient showed error toast */ }
-    }
-
-    function showMsg(el, text, type) {
-        el.style.display = 'block';
-        el.style.color   = type === 's' ? 'var(--success)' : 'var(--danger)';
-        el.textContent   = text;
-    }
-
-    function updateStats() {
-        const rows   = document.querySelectorAll('#promo-tbody tr');
-        let active   = 0, allOut = 0, uses = 0;
-        rows.forEach(r => {
-            if (r.querySelector('.badge-active'))  active++;
-            if (r.querySelector('.badge-all'))     allOut++;
-            const usesTd = r.querySelector('[data-uses]');
-            if (usesTd) uses += parseInt(usesTd.dataset.uses) || 0;
-        });
-        const ac = document.getElementById('active-count');
-        const ao = document.getElementById('alloutlet-count');
-        const uc = document.getElementById('uses-count');
-        if (ac) ac.textContent = active;
-        if (ao) ao.textContent = allOut;
-        if (uc) uc.textContent = uses;
-    }
-
-    document.addEventListener('DOMContentLoaded', updateStats);
-</script>
+<script type="module" src="{% static 'js/setup/promos.js' %}"></script>
 {% endblock %}

@@ -89,6 +89,14 @@ test("a toast before a reload waits long enough to be read; then=none stays", as
   assert.equal(w2.seen.reloads, 0);
 });
 
+test("done: go somewhere else instead of reloading", async () => {
+  const went = [];
+  const api = fakeApi();
+  const posts = createPostActions({ api, ui: fakeUi(), doc: {}, reload: () => assert.fail("no reload"), go: (url) => went.push(url), wait: (fn) => fn() });
+  await posts.click(el({ url: "/recipe-import/3/discard/", go: "/menu/" }));
+  assert.deepEqual(went, ["/menu/"]);
+});
+
 test("a 200 that carries an error is a refusal: shown, no reload", async () => {
   const w = world({ api: fakeApi([{ error: "A session is already open" }]) });
   assert.equal(await w.posts.click(el({ url: "/x/" })), false);

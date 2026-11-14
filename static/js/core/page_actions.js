@@ -8,6 +8,7 @@
  *   <select name="date_filter" data-action="range.pick" data-range="customRange">
  *       a report's period: "custom" shows the From/To fields (the element
  *       data-range names), anything else sends the form at once
+ *   <input name="code" data-action="field.upper">   (as typed: capital letters)
  *
  * core/app.js handles them on every base.html page; a page without
  * base.html loads core/standalone.js, which handles them alone. A page's
@@ -38,5 +39,12 @@ export function pageChangeActions() {
       if (range) range.style.setProperty("display", custom ? "flex" : "none", "important");
       if (!custom && el.form) el.form.submit();
     },
+  };
+}
+
+/* What typing does: a code kept in capital letters as it is typed. */
+export function pageInputActions() {
+  return {
+    "field.upper": (el) => { el.value = el.value.toUpperCase(); },
   };
 }

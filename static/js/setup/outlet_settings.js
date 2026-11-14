@@ -1,6 +1,7 @@
 /*
  * Outlet Settings (setup/templates/setup/outlet_settings.html): the logo
- * preview, upper-casing GSTIN and the bill code as they are typed, a
+ * preview (GSTIN and the bill code are upper-cased by the shared
+ * field.upper, core/page_actions.js), a
  * warning on a GSTIN or FSSAI number of the wrong length when the field
  * is left (a warning only: the server decides), and "Saving..." while the
  * form is sent. The boxes that light up when ticked are CSS (:has).
@@ -30,9 +31,6 @@ export function showLogo(doc, dataUrl) {
 }
 
 if (typeof document !== "undefined") {
-  delegate(document.body, {
-    "field.upper": (input) => { input.value = input.value.toUpperCase(); },
-  }, "input");
   delegate(document.body, {
     "logo.preview": (input) => {
       if (!input.files || !input.files[0]) return;

@@ -180,8 +180,17 @@ def setup_promos(request):
         for promo in promos if promo.can_manage
     }
 
+    # The three tiles above the list (they were counted by the page's script
+    # after it loaded, and showed "-" until then).
+    stats = {
+        "active": sum(1 for p in promos if p.status_key == "active"),
+        "all_outlets": sum(1 for p in promos if p.outlet_id is None),
+        "uses": sum(p.uses or 0 for p in promos),
+    }
+
     return render(request, "setup/setup_promos.html", {
         "promos": promos,
+        "stats": stats,
         "outlets": all_outlets,
         "current_outlet": outlet,
         "is_owner": may_manage(request.user, None),

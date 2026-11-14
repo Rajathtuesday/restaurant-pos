@@ -1,68 +1,22 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Modifier Architecture | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .modifier-card {
-        background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0;
-        padding: 2rem; height: 100%; transition: var(--transition-smooth); box-shadow: var(--shadow-soft);
-    }
-    .modifier-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
-
-    .group-title {
-        font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px;
-        color: var(--text-main); margin-bottom: 1.5rem;
-        border-bottom: 1px solid var(--border-color);
-        padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;
-    }
-    .modifier-row { padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
-    .modifier-row:last-child { border-bottom: none; }
-    .modifier-name { font-weight: 500; }
-    .modifier-price { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
-
-    .form-input-luxury {
-        background: transparent; border: none; border-bottom: 1px solid var(--border-color);
-        color: var(--text-main); border-radius: 0; padding: 0.5rem 0; width: 100%; margin-bottom: 1rem;
-    }
-    .form-input-luxury:focus { outline: none; border-bottom-color: var(--accent-gold); }
-
-    .luxury-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 2px 6px; border: 1px solid var(--border-color); margin-left: 5px; }
-    .badge-required { color: #ef4444; border-color: #ef4444; }
-
-    .mapping-section { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-top: 3rem; }
-
-    .btn-luxury {
-        border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
-        padding: 0.6rem 1.4rem; font-size: 0.75rem; text-transform: uppercase;
-        letter-spacing: 2px; font-weight: 600; border-radius: 0;
-        transition: var(--transition-smooth); display: inline-flex; align-items: center; text-decoration: none;
-    }
-    .btn-luxury:hover { border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main); }
-    .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-    .btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
-
-    html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-    html.dark .modal-content { background: var(--panel-bg); border-color: var(--border-color); color: var(--text-main); }
-    html.dark .modal-header, html.dark .modal-footer { border-color: var(--border-color); }
-    html.dark .table { color: var(--text-main); }
-    html.dark .table thead { background: var(--panel-bg); }
-
-    .modifier-search { max-width: 420px; margin-bottom: 2rem; }
-    .filtered-out { display: none; }
-</style>
+<link rel="stylesheet" href="{% static 'css/menu/modifiers_management.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="{% url 'menu_management' %}">Menu</a> / Modifiers{% endblock %}
 
 {% block header_links %}
-<button class="btn-luxury" onclick="openGroupModal()">Create Group</button>
+<button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#groupModal">Create Group</button>
 <a href="{% url 'menu_management' %}" class="btn-luxury d-none d-sm-inline-flex">Back to Menu</a>
 {% endblock %}
 
 {% block content %}
 <div class="container py-5">
-    <input type="text" id="groupSearchInput" class="form-input-luxury modifier-search" placeholder="Search modifier groups or modifiers...">
+    <input type="search" id="groupSearchInput" class="form-input-luxury modifier-search" placeholder="Search modifier groups or modifiers..." aria-label="Search modifier groups" data-action="groups.search">
 
     <div class="row g-4" id="modifierCardsGrid">
         {% for group in groups %}
@@ -75,7 +29,7 @@
                         <span class="luxury-badge badge-required">Required</span>
                         {% endif %}
                     </div>
-                    <button class="btn-icon" onclick="deleteGroup('{{ group.id }}')"><i class="bi bi-trash3"></i></button>
+                    <button type="button" class="btn-icon" aria-label="Delete {{ group.name }}" data-action="post" data-url="{% url 'delete_modifier_group' group.id %}" data-confirm="Erase this group and all its modifiers?" data-confirm-button="Erase"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                 </div>
 
                 <div class="modifiers-list mb-4">
@@ -90,8 +44,8 @@
                                 {% for link in mod.inventory_links.all %}{{ link.inventory_item.name }} ×{{ link.quantity_required }}{{ link.unit }}{% if not forloop.last %}, {% endif %}{% endfor %}
                             </span>
                             {% endif %}
-                            <button class="btn-icon" onclick="openInventoryModal('{{ mod.id }}', '{{ mod.name|escapejs }}')" title="Link inventory"><i class="bi bi-box-seam" style="font-size:0.9rem;"></i></button>
-                            <button class="btn-icon ms-1" onclick="deleteModifier('{{ mod.id }}')"><i class="bi bi-x-circle"></i></button>
+                            <button type="button" class="btn-icon" data-action="modlink.open" data-modifier="{{ mod.id }}" data-name="{{ mod.name }}" title="Link inventory" aria-label="Link inventory to {{ mod.name }}"><i class="bi bi-box-seam" style="font-size:0.9rem;" aria-hidden="true"></i></button>
+                            <button type="button" class="btn-icon ms-1" aria-label="Delete {{ mod.name }}" data-action="post" data-url="{% url 'delete_modifier' mod.id %}"><i class="bi bi-x-circle" aria-hidden="true"></i></button>
                         </div>
                     </div>
                     {% empty %}
@@ -99,11 +53,12 @@
                     {% endfor %}
                 </div>
 
-                <div class="add-modifier-box pt-3 border-top">
-                    <input type="text" id="modName-{{ group.id }}" class="form-input-luxury" placeholder="Modifier Name (e.g. Extra Cheese)">
-                    <input type="number" id="modPrice-{{ group.id }}" class="form-input-luxury" placeholder="Price (0.00)">
-                    <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="addModifier('{{ group.id }}')">Add Modifier</button>
-                </div>
+                <form class="add-modifier-box pt-3 border-top" data-action="post" data-url="{% url 'add_modifier' %}">
+                    <input type="hidden" name="group_id" value="{{ group.id }}">
+                    <input type="text" id="modName-{{ group.id }}" name="name" class="form-input-luxury" placeholder="Modifier Name (e.g. Extra Cheese)" aria-label="Modifier name" required>
+                    <input type="number" id="modPrice-{{ group.id }}" name="price" class="form-input-luxury" placeholder="Price (0.00)" aria-label="Price" min="0" step="0.01">
+                    <button type="submit" class="btn-luxury btn-gold w-100 justify-content-center">Add Modifier</button>
+                </form>
             </div>
         </div>
         {% endfor %}
@@ -111,28 +66,28 @@
 
     <div class="mapping-section">
         <h5 class="serif-text text-uppercase mb-4" style="letter-spacing:2px;">Item-Group Assignments</h5>
-        <div class="row">
+        <form class="row" data-action="post" data-url="{% url 'link_modifier_group' %}">
             <div class="col-md-5">
-                <label class="small text-muted text-uppercase fw-bold">Select Menu Item</label>
-                <input type="text" id="linkItemFilter" class="form-input-luxury" placeholder="Type to filter items..." style="margin-bottom:0.5rem;">
-                <select id="linkItem" class="form-control form-input-luxury">
+                <label class="small text-muted text-uppercase fw-bold" for="linkItem">Select Menu Item</label>
+                <input type="search" id="linkItemFilter" class="form-input-luxury" placeholder="Type to filter items..." style="margin-bottom:0.5rem;" aria-label="Filter menu items" data-action="items.filter">
+                <select id="linkItem" name="item_id" class="form-control form-input-luxury">
                     {% for item in items %}
                     <option value="{{ item.id }}">{{ item.name }} ({{ item.category.name }})</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-5">
-                <label class="small text-muted text-uppercase fw-bold">Select Modifier Group</label>
-                <select id="linkGroup" class="form-control form-input-luxury">
+                <label class="small text-muted text-uppercase fw-bold" for="linkGroup">Select Modifier Group</label>
+                <select id="linkGroup" name="group_id" class="form-control form-input-luxury">
                     {% for group in groups %}
                     <option value="{{ group.id }}">{{ group.name }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-                <button class="btn-luxury btn-gold w-100 mb-2" onclick="linkGroup()">Assign</button>
+                <button type="submit" class="btn-luxury btn-gold w-100 mb-2">Assign</button>
             </div>
-        </div>
+        </form>
 
         <div class="mt-4">
             <table class="table table-hover border">
@@ -149,7 +104,7 @@
                         <td class="fw-bold">{{ mapping.menu_item.name }}</td>
                         <td>{{ mapping.modifier_group.name }}</td>
                         <td class="text-end">
-                            <button class="btn-icon" onclick="unlinkGroup('{{ mapping.menu_item.id }}', '{{ mapping.modifier_group.id }}')">
+                            <button type="button" class="btn-icon" data-action="post" data-url="{% url 'unlink_modifier_group' %}" data-body='{"item_id": {{ mapping.menu_item.id }}, "group_id": {{ mapping.modifier_group.id }}}'>
                                 <i class="bi bi-link-45deg"></i> Unlink
                             </button>
                         </td>
@@ -166,9 +121,9 @@
 </div>
 
 <!-- INVENTORY LINK MODAL -->
-<div class="modal fade" id="inventoryModal" tabindex="-1">
+<div class="modal fade" id="inventoryModal" tabindex="-1" data-links-url="{% url 'modifier_inventory_links' 0 %}" data-add-url="{% url 'add_modifier_recipe' 0 %}" data-remove-url="{% url 'delete_modifier_recipe' 0 %}">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:0;border:1px solid var(--border-color);background:var(--panel-bg);color:var(--text-main);">
+        <form class="modal-content" data-action="modlink.save" style="border-radius:0;border:1px solid var(--border-color);background:var(--panel-bg);color:var(--text-main);">
             <div class="modal-header" style="border-color:var(--border-color);">
                 <h5 class="modal-title serif-text text-uppercase">Inventory Link: <span id="invModalName"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -201,178 +156,38 @@
                 </div>
             </div>
             <div class="modal-footer border-0">
-                <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="saveInventoryLink()">
-                    <i class="bi bi-box-seam me-2"></i>Save Link
+                <button type="submit" class="btn-luxury btn-gold w-100 justify-content-center">
+                    <i class="bi bi-box-seam me-2" aria-hidden="true"></i>Save Link
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
 <!-- CREATE GROUP MODAL -->
 <div class="modal fade" id="groupModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius:0; border:1px solid var(--border-color); background:var(--panel-bg); color:var(--text-main);">
+        <form class="modal-content" data-action="post" data-url="{% url 'create_modifier_group' %}" style="border-radius:0; border:1px solid var(--border-color); background:var(--panel-bg); color:var(--text-main);">
             <div class="modal-header" style="border-color:var(--border-color);">
                 <h5 class="modal-title serif-text text-uppercase">New Modifier Group</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="text" id="groupName" class="form-input-luxury" placeholder="Group Name (e.g. Toppings, Size)">
+                <input type="text" id="groupName" name="name" class="form-input-luxury" placeholder="Group Name (e.g. Toppings, Size)" aria-label="Group name" required>
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="groupRequired">
+                    <input class="form-check-input" type="checkbox" id="groupRequired" name="is_required">
                     <label class="form-check-label small text-uppercase fw-bold" for="groupRequired">Selection Required</label>
                 </div>
-                <input type="number" id="groupMax" class="form-input-luxury" value="1" placeholder="Max Selections">
+                <input type="number" id="groupMax" name="max_select" class="form-input-luxury" value="1" min="1" placeholder="Max Selections" aria-label="Max selections">
             </div>
             <div class="modal-footer border-0">
-                <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createGroup()">Establish Group</button>
+                <button type="submit" class="btn-luxury btn-gold w-100 justify-content-center">Establish Group</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie) {
-        for (let c of document.cookie.split(';')) {
-            c = c.trim();
-            if (c.startsWith(name + '=')) cookieValue = decodeURIComponent(c.substring(name.length + 1));
-        }
-    }
-    return cookieValue;
-}
-
-function openGroupModal() { new bootstrap.Modal(document.getElementById('groupModal')).show(); }
-
-function createGroup() {
-    const name = document.getElementById('groupName').value;
-    const is_required = document.getElementById('groupRequired').checked;
-    const max_select = document.getElementById('groupMax').value;
-    fetch("{% url 'create_modifier_group' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ name, is_required, max_select })
-    }).then(() => location.reload());
-}
-
-function deleteGroup(id) {
-    if (!confirm('Erase this group and all its modifiers?')) return;
-    fetch("{% url 'delete_modifier_group' 0 %}".replace('0', id), {
-        method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken2') }
-    }).then(() => location.reload());
-}
-
-function addModifier(groupId) {
-    const name = document.getElementById(`modName-${groupId}`).value;
-    const price = document.getElementById(`modPrice-${groupId}`).value;
-    fetch("{% url 'add_modifier' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ group_id: groupId, name, price })
-    }).then(() => location.reload());
-}
-
-function deleteModifier(id) {
-    fetch("{% url 'delete_modifier' 0 %}".replace('0', id), {
-        method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken2') }
-    }).then(() => location.reload());
-}
-
-function linkGroup() {
-    const item_id = document.getElementById('linkItem').value;
-    const group_id = document.getElementById('linkGroup').value;
-    fetch("{% url 'link_modifier_group' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ item_id, group_id })
-    }).then(() => location.reload());
-}
-
-function unlinkGroup(itemId, groupId) {
-    fetch("{% url 'unlink_modifier_group' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ item_id: itemId, group_id: groupId })
-    }).then(() => location.reload());
-}
-
-// ── Inventory linking ─────────────────────────────────────────
-let _currentModifierId = null;
-
-function openInventoryModal(modifierId, modifierName) {
-    _currentModifierId = modifierId;
-    document.getElementById('invModalName').textContent = modifierName;
-    document.getElementById('invQty').value = '';
-
-    // Load existing links
-    fetch(`/menu/modifiers/${modifierId}/inventory/`)
-        .then(r => r.json())
-        .then(data => {
-            const box = document.getElementById('existingLinks');
-            if (!data.links.length) { box.innerHTML = '<p class="small text-muted">No ingredients linked yet.</p>'; return; }
-            box.innerHTML = '<p class="small text-uppercase fw-bold mb-2" style="letter-spacing:1px;">Existing Links</p>' +
-                data.links.map(l =>
-                    `<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                       <span class="small">${l.inventory_item_name} &times;${l.quantity}${l.unit}</span>
-                       <button class="btn-icon" onclick="removeInventoryLink(${l.inventory_item_id})">
-                           <i class="bi bi-x-circle text-danger"></i>
-                       </button>
-                     </div>`
-                ).join('');
-        });
-
-    new bootstrap.Modal(document.getElementById('inventoryModal')).show();
-}
-
-function saveInventoryLink() {
-    const inventory_item_id = document.getElementById('invItemSelect').value;
-    const quantity = document.getElementById('invQty').value;
-    const unit = document.getElementById('invUnit').value;
-    if (!inventory_item_id || !quantity) { alert('Select an ingredient and enter a quantity.'); return; }
-    fetch(`/menu/modifiers/${_currentModifierId}/inventory/add/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ inventory_item_id, quantity, unit })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) location.reload();
-        else alert(data.error || 'Failed to save link');
-    });
-}
-
-function removeInventoryLink(inventoryItemId) {
-    fetch(`/menu/modifiers/${_currentModifierId}/inventory/delete/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ inventory_item_id: inventoryItemId })
-    }).then(() => location.reload());
-}
-
-// ── Search: filter the modifier group cards by group/modifier name ──
-document.getElementById('groupSearchInput').addEventListener('input', (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    document.querySelectorAll('#modifierCardsGrid > [class*="col-"]').forEach(col => {
-        const matches = !q || col.textContent.toLowerCase().includes(q);
-        col.classList.toggle('filtered-out', !matches);
-    });
-});
-
-// ── Search: filter the "Select Menu Item" dropdown's options as you type ──
-document.getElementById('linkItemFilter').addEventListener('input', (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    const select = document.getElementById('linkItem');
-    let firstVisible = null;
-    Array.from(select.options).forEach(opt => {
-        const matches = !q || opt.textContent.toLowerCase().includes(q);
-        opt.hidden = !matches;
-        if (matches && !firstVisible) firstVisible = opt;
-    });
-    if (firstVisible && select.selectedOptions[0]?.hidden) select.value = firstVisible.value;
-});
-</script>
+<script type="module" src="{% static 'js/menu/modifiers.js' %}"></script>
 {% endblock %}

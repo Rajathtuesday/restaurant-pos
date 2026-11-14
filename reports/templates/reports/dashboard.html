@@ -4,128 +4,7 @@
 
 {% block extra_css %}
 <script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
-<style>
-  ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-  ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-
-  .form-select-luxury {
-    background-color: transparent;
-    border: none;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-main);
-    border-radius: 0;
-    padding: 0.5rem 1.5rem 0.5rem 0;
-    font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    max-width: 250px;
-  }
-  .form-select-luxury:focus { box-shadow: none; border-color: var(--accent-gold); }
-
-  .card-elegant {
-    background: var(--panel-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 0;
-    padding: 2.5rem 2rem;
-    height: 100%;
-    transition: var(--transition-smooth);
-  }
-  .card-elegant:hover { border-color: var(--accent-gold); }
-
-  .metric-group { text-align: center; }
-  .metric-label {
-    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--text-muted); margin-bottom: 1rem; display: block;
-  }
-  .metric-value {
-    font-family: 'DM Serif Display', serif; font-size: 2.75rem;
-    font-weight: 400; color: var(--text-main); line-height: 1; margin: 0;
-  }
-
-  .section-title {
-    font-size: 1.2rem; color: var(--text-main); margin-bottom: 2rem;
-    text-transform: uppercase; letter-spacing: 3px; text-align: center;
-  }
-  .section-title::after {
-    content: ''; display: block; width: 40px; height: 1px;
-    background: var(--accent-gold); margin: 15px auto 0;
-  }
-
-  .table-minimal { width: 100%; color: var(--text-main); }
-  .table-minimal th {
-    border-bottom: 1px solid var(--border-color); padding: 1rem 0;
-    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--text-muted); font-weight: 500;
-  }
-  .table-minimal td { border-bottom: 1px solid var(--border-color); padding: 1.2rem 0; font-size: 0.95rem; }
-  .table-minimal tbody tr:last-child td { border-bottom: none; }
-  .text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent-gold); }
-
-  .context-info {
-    font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;
-    color: var(--text-muted); margin-bottom: 3rem; text-align: center;
-  }
-  .context-info strong { color: var(--text-main); font-weight: 600; }
-
-  /* ── Report sub-nav ───────────────────────────────────────── */
-  .report-subnav {
-    background: var(--panel-bg);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-  .report-subnav-left  { display: flex; align-items: center; gap: 0; }
-  .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
-
-  .report-tab {
-    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
-    color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
-    border-bottom: 2px solid transparent; white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s; display: inline-block;
-  }
-  .report-tab:hover   { color: var(--text-main); }
-  .report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
-
-  .subnav-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 0.25rem; }
-
-  .subnav-select {
-    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
-    color: var(--text-main); font-size: 0.82rem; font-family: inherit;
-    padding: 0.3rem 1.2rem 0.3rem 0; cursor: pointer; outline: none;
-  }
-  .subnav-select:focus { border-color: var(--accent-gold); }
-  .subnav-select option { background: var(--panel-bg); }
-
-  .subnav-btn {
-    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
-    padding: 0.35rem 0.8rem; border: 1px solid var(--border-color);
-    background: transparent; color: var(--text-main); cursor: pointer;
-    white-space: nowrap; text-decoration: none; display: inline-flex;
-    align-items: center; gap: 5px; font-family: inherit;
-    transition: all 0.15s;
-  }
-  .subnav-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-  .subnav-btn.gold  { border-color: var(--accent-gold); color: var(--accent-gold); }
-  .subnav-btn.gold:hover { background: var(--accent-gold); color: #fff; }
-
-  @media (max-width: 768px) {
-    .report-subnav { padding: 0 1rem; }
-    .report-subnav-right { gap: 0.35rem; }
-    .metric-value { font-size: 2rem; }
-    .card-elegant { padding: 1.5rem 1.25rem; }
-    .context-info { font-size: 0.7rem; margin-bottom: 1.5rem; }
-    #customDates { flex-direction: column !important; }
-    .subnav-hide-mobile { display: none !important; }
-  }
-  @media (max-width: 480px) {
-    .metric-value { font-size: 1.6rem; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/reports/dashboard.css' %}">
 {% endblock %}
 
 {% block page_title %}Reports{% endblock %}
@@ -150,7 +29,7 @@
 
       <!-- Outlet (owner only, multi-branch) -->
       {% if request.user.role == "owner" and outlets|length > 1 %}
-      <select name="outlet" class="subnav-select subnav-hide-mobile" onchange="document.getElementById('filterForm').submit()">
+      <select name="outlet" class="subnav-select subnav-hide-mobile" data-action="form.submit" aria-label="Branch">
         <option value="">All Branches</option>
         {% for o in outlets %}
         <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
@@ -160,9 +39,7 @@
       {% endif %}
 
       <!-- Date range -->
-      <select name="date_filter" class="subnav-select" onchange="
-        if(this.value==='custom'){document.getElementById('customDates').style.display='flex';}
-        else{document.getElementById('filterForm').submit();}">
+      <select name="date_filter" class="subnav-select" data-action="range.pick" data-range="customDates" aria-label="Period">
         <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
         <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
         <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
@@ -188,20 +65,20 @@
       </button>
       <ul class="dropdown-menu dropdown-menu-end" style="border-radius:0;border-color:var(--border-color);min-width:200px;">
         <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">CSV</h6></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('orders')">Orders Details</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('items')">Items Sales</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('categories')">Category Breakdown</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('waiters')">Staff Performance</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=orders" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="orders">Orders Details</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=items" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="items">Items Sales</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=categories" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="categories">Category Breakdown</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=waiters" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="waiters">Staff Performance</a></li>
         {% if net_pl %}
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('pl')">Net Profit</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('menu_engineering')">Menu Engineering</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('labor')">Labor Cost</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('audit')">Discount/Void Audit</a></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('crm_analytics')">CRM Analytics</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=pl" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="pl">Net Profit</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=menu_engineering" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="menu_engineering">Menu Engineering</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=labor" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="labor">Labor Cost</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=audit" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="audit">Discount/Void Audit</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=crm_analytics" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="crm_analytics">CRM Analytics</a></li>
         {% endif %}
         <li><hr class="dropdown-divider"></li>
         <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">Compliance</h6></li>
-        <li><a class="dropdown-item" href="#" onclick="triggerExport('gstr1')"><i class="bi bi-file-earmark-excel me-2" style="color:#107c41;"></i>GSTR-1 B2CS</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=gstr1" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="gstr1"><i class="bi bi-file-earmark-excel me-2" style="color:#107c41;"></i>GSTR-1 B2CS</a></li>
       </ul>
     </div>
 
@@ -214,7 +91,7 @@
     {% endif %}
 
     <!-- Print -->
-    <button class="btn-icon" onclick="window.print()" title="Print"><i class="bi bi-printer"></i></button>
+    <button type="button" class="btn-icon" data-action="page.print" title="Print" aria-label="Print"><i class="bi bi-printer" aria-hidden="true"></i></button>
   </div>
 </nav>
 <!-- ── END SUB-NAV ────────────────────────────────────────────── -->
@@ -605,122 +482,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const dark = themeManager.isDark();
-  let chartTextColor = dark ? '#888888' : '#737373';
-  let chartGridColor = dark ? '#262626' : '#eaeaea';
-
-  Chart.defaults.color = chartTextColor;
-  Chart.defaults.font.family = "'Outfit', sans-serif";
-  Chart.defaults.font.size = 11;
-
-  const paymentsRaw = JSON.parse(document.getElementById('payments-data').textContent);
-  const hourlyRaw   = JSON.parse(document.getElementById('hourly-data').textContent);
-
-  if (document.getElementById('paymentChart')) {
-    const paymentColors = dark
-      ? ['#ffffff', '#d4af37', '#555555', '#333333']
-      : ['#111111', '#c5a059', '#aaaaaa', '#e0e0e0'];
-
-    new Chart(document.getElementById('paymentChart'), {
-      type: 'doughnut',
-      data: {
-        labels: paymentsRaw.map(p => p.method),
-        datasets: [{
-          data: paymentsRaw.map(p => p.total || 0),
-          backgroundColor: paymentColors,
-          borderWidth: 1,
-          borderColor: dark ? '#111111' : '#ffffff',
-          hoverOffset: 4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { padding: 20, usePointStyle: true, boxWidth: 8, font: { family: "'Outfit', sans-serif", size: 10, weight: '500' } }
-          }
-        },
-        cutout: '80%'
-      }
-    });
-  }
-
-  if (document.getElementById('salesChart')) {
-    const ctx = document.getElementById('salesChart').getContext('2d');
-    let grad = ctx.createLinearGradient(0, 0, 0, 350);
-    if (dark) {
-      grad.addColorStop(0, 'rgba(212,175,55,0.4)');
-      grad.addColorStop(1, 'rgba(212,175,55,0)');
-    } else {
-      grad.addColorStop(0, 'rgba(17,17,17,0.15)');
-      grad.addColorStop(1, 'rgba(17,17,17,0)');
-    }
-    const lineColor = dark ? '#d4af37' : '#111111';
-
-    new Chart(document.getElementById('salesChart'), {
-      type: 'line',
-      data: {
-        labels: hourlyRaw.map(h => h.label),
-        datasets: [{
-          label: 'Revenue',
-          data: hourlyRaw.map(h => h.total || 0),
-          borderColor: lineColor,
-          borderWidth: 2,
-          backgroundColor: grad,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: dark ? '#111111' : '#ffffff',
-          pointBorderColor: lineColor,
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: dark ? '#ffffff' : '#111111',
-            titleColor: dark ? '#111111' : '#ffffff',
-            bodyColor:  dark ? '#111111' : '#ffffff',
-            titleFont: { family: "'DM Serif Display', serif", size: 14 },
-            bodyFont:  { family: "'Outfit', sans-serif", size: 13 },
-            padding: 12,
-            displayColors: false,
-            cornerRadius: 0,
-            callbacks: { label: ctx => '₹' + ctx.parsed.y }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            grid: { color: chartGridColor, drawBorder: false },
-            border: { display: false },
-            ticks: { padding: 10 }
-          },
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: { padding: 10 }
-          }
-        }
-      }
-    });
-  }
-
-  window.addEventListener('themeChanged', () => location.reload());
-});
-
-function triggerExport(type) {
-  const params = new URLSearchParams(window.location.search);
-  params.set('type', type);
-  window.location.href = '/reports/export/?' + params.toString();
-}
-</script>
+<script type="module" src="{% static 'js/reports/dashboard.js' %}"></script>
 {% endblock %}

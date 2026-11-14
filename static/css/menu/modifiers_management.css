@@ -1,0 +1,49 @@
+/* menu/templates/menu/modifiers_management.html */
+.modifier-card {
+    background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0;
+    padding: 2rem; height: 100%; transition: var(--transition-smooth); box-shadow: var(--shadow-soft);
+}
+.modifier-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
+
+.group-title {
+    font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px;
+    color: var(--text-main); margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;
+}
+.modifier-row { padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+.modifier-row:last-child { border-bottom: none; }
+.modifier-name { font-weight: 500; }
+.modifier-price { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
+
+.form-input-luxury {
+    background: transparent; border: none; border-bottom: 1px solid var(--border-color);
+    color: var(--text-main); border-radius: 0; padding: 0.5rem 0; width: 100%; margin-bottom: 1rem;
+}
+.form-input-luxury:focus { outline: none; border-bottom-color: var(--accent-gold); }
+
+.luxury-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 2px 6px; border: 1px solid var(--border-color); margin-left: 5px; }
+.badge-required { color: #ef4444; border-color: #ef4444; }
+
+.mapping-section { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-top: 3rem; }
+
+.btn-luxury {
+    border: 1px solid var(--border-color); background: transparent; color: var(--text-main);
+    padding: 0.6rem 1.4rem; font-size: 0.75rem; text-transform: uppercase;
+    letter-spacing: 2px; font-weight: 600; border-radius: 0;
+    transition: var(--transition-smooth); display: inline-flex; align-items: center; text-decoration: none;
+}
+.btn-luxury:hover { border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main); }
+.btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
+
+html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+html.dark .modal-content { background: var(--panel-bg); border-color: var(--border-color); color: var(--text-main); }
+html.dark .modal-header, html.dark .modal-footer { border-color: var(--border-color); }
+html.dark .table { color: var(--text-main); }
+html.dark .table thead { background: var(--panel-bg); }
+
+.modifier-search { max-width: 420px; margin-bottom: 2rem; }
+.filtered-out { display: none; }
+
+.link-head { letter-spacing: 1px; }

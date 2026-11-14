@@ -21,7 +21,7 @@ from django.test import SimpleTestCase
 from core.tests.browser import BrowserTestCase
 from core.tests.test_tenant_walk import Restaurant
 
-SHARED = ("page.print", "page.reload", "page.back", "field.select", "form.submit", "range.pick", "post")
+SHARED = ("page.print", "page.reload", "page.back", "field.select", "form.submit", "range.pick", "field.upper", "post")
 COUNT_PRINTS = 'window.__prints = 0; window.print = () => { window.__prints += 1; }; return true;'
 
 
