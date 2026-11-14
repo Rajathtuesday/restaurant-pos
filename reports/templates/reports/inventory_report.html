@@ -1,136 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Inventory Reports | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* ── Report sub-nav ────────────────────────────── */
-    .report-subnav {
-      background: var(--panel-bg);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 0.75rem; flex-wrap: wrap;
-    }
-    .report-subnav-left  { display: flex; align-items: center; gap: 0; }
-    .report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
-    .report-tab {
-      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
-      color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
-      border-bottom: 2px solid transparent; white-space: nowrap;
-      transition: color 0.2s, border-color 0.2s; display: inline-block;
-    }
-    .report-tab:hover  { color: var(--text-main); }
-    .report-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
-    .subnav-select {
-      background: transparent; border: 1px solid var(--border-color);
-      color: var(--text-main); border-radius: 6px;
-      padding: 0.3rem 0.6rem; font-size: 0.8rem; font-family: inherit;
-    }
-    .subnav-select:focus { border-color: var(--accent-gold); outline: none; }
-    .subnav-btn {
-      background: none; border: 1px solid var(--border-color);
-      color: var(--text-muted); border-radius: 6px;
-      padding: 0.3rem 0.75rem; font-size: 0.8rem;
-      cursor: pointer; font-family: inherit;
-      transition: var(--transition-smooth);
-    }
-    .subnav-btn:hover, .subnav-btn.gold { border-color: var(--accent-gold); color: var(--accent-gold); }
-    .subnav-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 0.25rem; }
-
-    /* ── Panels ─────────────────────────────────────── */
-    .main-content { padding: 1.5rem; }
-    .panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .panel-header {
-      padding: 0.9rem 1.2rem;
-      border-bottom: 1px solid var(--border-color);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .panel-title {
-      font-size: 0.75rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.08em;
-      color: var(--text-muted);
-    }
-    .panel-body { padding: 1rem; }
-
-    /* ── Stat cards ─────────────────────────────────── */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .stat-card {
-      background: var(--panel-bg); border: 1px solid var(--border-color);
-      border-radius: 10px; padding: 1rem 1.2rem;
-    }
-    .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.25rem; }
-    .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
-    .stat-unit { font-size: 0.75rem; color: var(--text-muted); }
-
-    /* ── Table ──────────────────────────────────────── */
-    .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .data-table th {
-      padding: 0.6rem 0.8rem; text-align: left;
-      font-size: 0.7rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.06em;
-      color: var(--text-muted); border-bottom: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-    .data-table td {
-      padding: 0.65rem 0.8rem;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-    .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: rgba(197,160,89,0.04); }
-    .mono { font-family: 'Space Mono', monospace; }
-    .text-gold { color: var(--accent-gold); }
-    .badge-type {
-      display: inline-block; padding: 0.15rem 0.5rem;
-      border-radius: 4px; font-size: 0.7rem; font-weight: 600;
-      text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .badge-consume  { background: rgba(34,197,94,0.12);  color: #16a34a; }
-    .badge-restock  { background: rgba(59,130,246,0.12); color: #2563eb; }
-    .badge-wastage  { background: rgba(239,68,68,0.12);  color: #dc2626; }
-    .badge-adjustment { background: rgba(234,179,8,0.12); color: #ca8a04; }
-    .empty-state { text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem; }
-    .wastage-filter { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.9rem 0.8rem 0.6rem; }
-    .wf-chip {
-      min-height: 40px; padding: 0.4rem 0.85rem; border: 1px solid var(--border-color); background: transparent;
-      color: var(--text-muted); font: inherit; font-size: 0.78rem; cursor: pointer;
-    }
-    .wf-chip:hover { color: var(--text-main); border-color: var(--text-muted); }
-    .wf-chip[aria-pressed="true"] { color: var(--text-main); border-color: var(--accent-gold); box-shadow: inset 0 -2px 0 var(--accent-gold); }
-    .wf-chip:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 2px; }
-    .wastage-subhead { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; margin: 1.4rem 0.8rem 0.4rem; }
-
-    /* ── Section tabs ───────────────────────────────── */
-    .section-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-color); margin-bottom: 0; }
-    .section-tab {
-      padding: 0.7rem 1.1rem; font-size: 0.8rem; font-weight: 500;
-      cursor: pointer; border: none; background: none;
-      color: var(--text-muted); border-bottom: 2px solid transparent;
-      transition: var(--transition-smooth);
-    }
-    .section-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); }
-
-    @media print {
-      .pos-header, .report-subnav, .section-tabs, .subnav-btn { display: none !important; }
-      body { background: #fff !important; color: #000 !important; }
-      .panel { border: none !important; }
-      #tab-closing { display: block !important; }
-      .data-table th, .data-table td { color: #000 !important; border-color: #ccc !important; }
-      #tab-ledger, #tab-usage, #tab-wastage, #tab-cost, #tab-canmake { display: none !important; }
-      .stat-grid { display: none !important; }
-    }
-
-    @media (max-width: 768px) {
-      .main-content { padding: 1rem; }
-      .stat-grid { grid-template-columns: 1fr 1fr; }
-      .subnav-hide-sm { display: none !important; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/reports/inventory_report.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/reports/dashboard/">Reports</a> / Inventory{% endblock %}
@@ -150,7 +23,7 @@
     <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
 
       {% if outlets|length > 1 %}
-      <select name="outlet" class="subnav-select subnav-hide-sm" onchange="document.getElementById('filterForm').submit()">
+      <select name="outlet" class="subnav-select subnav-hide-sm" data-action="form.submit" aria-label="Outlet">
         {% for o in outlets %}
         <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
         {% endfor %}
@@ -158,11 +31,7 @@
       <div class="subnav-sep subnav-hide-sm"></div>
       {% endif %}
 
-      <select name="date_filter" class="subnav-select" onchange="
-        var val=this.value;
-        document.getElementById('customRange').style.display=(val==='custom'?'flex':'none');
-        if(val!=='custom') document.getElementById('filterForm').submit();
-      ">
+      <select name="date_filter" class="subnav-select" data-action="range.pick" data-range="customRange" aria-label="Period">
         <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
         <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
         <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
@@ -181,7 +50,7 @@
 
       <!-- Item filter -->
       <div class="subnav-sep"></div>
-      <select name="item" class="subnav-select subnav-hide-sm" onchange="document.getElementById('filterForm').submit()">
+      <select name="item" class="subnav-select subnav-hide-sm" data-action="form.submit" aria-label="Item">
         <option value="">All Items</option>
         {% for i in items %}
         <option value="{{ i.id }}" {% if selected_item == i.id|stringformat:"s" %}selected{% endif %}>{{ i.name }}</option>
@@ -221,17 +90,17 @@
 
   <!-- Section tabs + panels -->
   <div class="panel">
-    <div class="section-tabs" id="sectionTabs">
-      <button class="section-tab active" onclick="showTab('ledger',this)">Stock Ledger</button>
-      <button class="section-tab"        onclick="showTab('usage',this)">Consumption</button>
-      <button class="section-tab"        onclick="showTab('wastage',this)">Wastage</button>
-      <button class="section-tab"        onclick="showTab('cost',this)">Cost Analysis</button>
-      <button class="section-tab"        onclick="showTab('canmake',this)">Can Make</button>
-      <button class="section-tab"        onclick="showTab('closing',this)">Closing Stock</button>
+    <div class="section-tabs" id="sectionTabs" role="tablist">
+      <button type="button" role="tab" class="section-tab active" data-action="section.show" data-tab="ledger" aria-controls="tab-ledger">Stock Ledger</button>
+      <button type="button" role="tab" class="section-tab" data-action="section.show" data-tab="usage" aria-controls="tab-usage">Consumption</button>
+      <button type="button" role="tab" class="section-tab" data-action="section.show" data-tab="wastage" aria-controls="tab-wastage">Wastage</button>
+      <button type="button" role="tab" class="section-tab" data-action="section.show" data-tab="cost" aria-controls="tab-cost">Cost Analysis</button>
+      <button type="button" role="tab" class="section-tab" data-action="section.show" data-tab="canmake" aria-controls="tab-canmake">Can Make</button>
+      <button type="button" role="tab" class="section-tab" data-action="section.show" data-tab="closing" aria-controls="tab-closing">Closing Stock</button>
     </div>
 
     <!-- Stock Ledger -->
-    <div id="tab-ledger">
+    <div id="tab-ledger" role="tabpanel">
       {% if ledger %}
       <div style="overflow-x:auto;">
         <table class="data-table">
@@ -270,7 +139,7 @@
     </div>
 
     <!-- Consumption -->
-    <div id="tab-usage" style="display:none;">
+    <div id="tab-usage" role="tabpanel" hidden>
       {% if usage %}
       <div style="overflow-x:auto;">
         <table class="data-table">
@@ -298,11 +167,11 @@
     </div>
 
     <!-- Wastage -->
-    <div id="tab-wastage" style="display:none;">
+    <div id="tab-wastage" role="tabpanel" hidden>
       <div class="wastage-filter" role="group" aria-label="Which wastage">
-        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'all' %}true{% else %}false{% endif %}" onclick="setWastageSource('all')">All</button>
-        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'cancelled' %}true{% else %}false{% endif %}" onclick="setWastageSource('cancelled')">From cancelled dishes</button>
-        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'manual' %}true{% else %}false{% endif %}" onclick="setWastageSource('manual')">Logged by hand</button>
+        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'all' %}true{% else %}false{% endif %}" data-action="wastage.source" data-source="all">All</button>
+        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'cancelled' %}true{% else %}false{% endif %}" data-action="wastage.source" data-source="cancelled">From cancelled dishes</button>
+        <button type="button" class="wf-chip" aria-pressed="{% if wastage_source == 'manual' %}true{% else %}false{% endif %}" data-action="wastage.source" data-source="manual">Logged by hand</button>
       </div>
 
       {% if wastage %}
@@ -364,7 +233,7 @@
     </div>
 
     <!-- Cost Analysis -->
-    <div id="tab-cost" style="display:none;">
+    <div id="tab-cost" role="tabpanel" hidden>
       {% if costs %}
       <div style="overflow-x:auto;">
         <table class="data-table">
@@ -399,7 +268,7 @@
       {% endif %}
     </div>
     <!-- Can Make -->
-    <div id="tab-canmake" style="display:none;">
+    <div id="tab-canmake" role="tabpanel" hidden>
       {% if capacity %}
       <div style="overflow-x:auto;">
         <table class="data-table">
@@ -456,13 +325,13 @@
     </div>
 
     <!-- Closing Stock -->
-    <div id="tab-closing" style="display:none;">
+    <div id="tab-closing" role="tabpanel" hidden>
       {% if closing %}
       <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid var(--border-color);">
         <span style="font-size:0.75rem;color:var(--text-muted);">
           Snapshot as of <strong style="color:var(--text-main);">now</strong> &mdash; {{ closing|length }} items
         </span>
-        <button onclick="window.print()" class="subnav-btn gold" style="padding:0.3rem 0.8rem;">
+        <button type="button" data-action="page.print" class="subnav-btn gold" style="padding:0.3rem 0.8rem;">
           <i class="bi bi-printer"></i> Print
         </button>
       </div>
@@ -522,28 +391,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function showTab(name, btn) {
-  ['ledger','usage','wastage','cost','canmake','closing'].forEach(function(t) {
-    document.getElementById('tab-'+t).style.display = (t===name ? '' : 'none');
-  });
-  document.querySelectorAll('.section-tab').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  // Remembered so a filter change (which reloads the page) comes back here.
-  document.getElementById('currentTab').value = name;
-}
-
-function setWastageSource(value) {
-  document.getElementById('wastageSource').value = value;
-  document.getElementById('currentTab').value = 'wastage';
-  document.getElementById('filterForm').submit();
-}
-
-(function () {
-  var tab = document.getElementById('currentTab').value;
-  if (['ledger','usage','wastage','cost','canmake','closing'].indexOf(tab) === -1) return;
-  var btn = document.querySelector('.section-tab[onclick*="\'' + tab + '\'"]');
-  if (btn) showTab(tab, btn);
-})();
-</script>
+<script type="module" src="{% static 'js/reports/inventory_report.js' %}"></script>
 {% endblock %}

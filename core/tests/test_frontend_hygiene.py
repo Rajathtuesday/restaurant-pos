@@ -116,38 +116,26 @@ def measure_all():
 
 # The numbers on 11 November 2026, when the ratchet was set. Only ever lowered.
 BASELINE = {
-    'accounts/templates/accounts/feature_flags.html': {"script": 29, "style": 65, "onclick": 0, "third_party": 0, "globals": 0},
-    'accounts/templates/accounts/superuser_panel.html': {"script": 39, "style": 31, "onclick": 1, "third_party": 0, "globals": 0},
-    'crm/templates/crm/reservations.html': {"script": 33, "style": 16, "onclick": 6, "third_party": 0, "globals": 0},
-    'finance/templates/finance/expense_list.html': {"script": 29, "style": 30, "onclick": 2, "third_party": 0, "globals": 0},
-    'inventory/templates/inventory/consumption_report.html': {"script": 16, "style": 45, "onclick": 0, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/inventory_board.html': {"script": 186, "style": 74, "onclick": 11, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/purchase_orders.html': {"script": 246, "style": 77, "onclick": 14, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/recipe_import_review.html': {"script": 108, "style": 29, "onclick": 3, "third_party": 0, "globals": 0},
     'inventory/templates/inventory/suppliers.html': {"script": 55, "style": 45, "onclick": 2, "third_party": 0, "globals": 0},
-    'inventory/templates/inventory/variance_report.html': {"script": 16, "style": 51, "onclick": 0, "third_party": 0, "globals": 0},
     'menu/templates/menu/gst_management.html': {"script": 64, "style": 115, "onclick": 3, "third_party": 0, "globals": 0},
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 27, "third_party": 0, "globals": 0},
     'menu/templates/menu/modifiers_management.html': {"script": 139, "style": 46, "onclick": 10, "third_party": 0, "globals": 0},
     'menu/templates/menu/qsr_menu_management.html': {"script": 208, "style": 96, "onclick": 15, "third_party": 0, "globals": 0},
     'orders/templates/orders/live_orders.html': {"script": 195, "style": 93, "onclick": 0, "third_party": 0, "globals": 0},
     'orders/templates/orders/order_history.html': {"script": 223, "style": 172, "onclick": 8, "third_party": 0, "globals": 0},
-    'payments/templates/payments/pending_refunds.html': {"script": 35, "style": 15, "onclick": 2, "third_party": 0, "globals": 0},
     'reports/templates/reports/dashboard.html': {"script": 116, "style": 120, "onclick": 11, "third_party": 0, "globals": 0},
-    'reports/templates/reports/inventory_report.html': {"script": 22, "style": 127, "onclick": 10, "third_party": 0, "globals": 0},
     'setup/templates/setup/onboard.html': {"script": 108, "style": 145, "onclick": 3, "third_party": 0, "globals": 0},
     'setup/templates/setup/outlet_settings.html': {"script": 59, "style": 40, "onclick": 0, "third_party": 0, "globals": 0},
-    'setup/templates/setup/report_subscriptions.html': {"script": 34, "style": 27, "onclick": 3, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_kitchen_stations.html': {"script": 235, "style": 92, "onclick": 10, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_offers.html': {"script": 250, "style": 91, "onclick": 6, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_promos.html': {"script": 132, "style": 103, "onclick": 5, "third_party": 0, "globals": 0},
     'setup/templates/setup/setup_staff.html': {"script": 146, "style": 42, "onclick": 5, "third_party": 0, "globals": 0},
     'shifts/templates/shifts/schedule_builder.html': {"script": 59, "style": 37, "onclick": 4, "third_party": 0, "globals": 0},
-    'shifts/templates/shifts/shift_dashboard.html': {"script": 30, "style": 11, "onclick": 3, "third_party": 0, "globals": 0},
-    'shifts/templates/shifts/shift_templates.html': {"script": 32, "style": 19, "onclick": 2, "third_party": 0, "globals": 0},
     'tokens/templates/tokens/display_board.html': {"script": 50, "style": 56, "onclick": 0, "third_party": 0, "globals": 0},
     'tokens/templates/tokens/token_dashboard.html': {"script": 84, "style": 86, "onclick": 6, "third_party": 0, "globals": 0},
-    'waiter/templates/waiter/waiter_dashboard.html': {"script": 30, "style": 73, "onclick": 2, "third_party": 0, "globals": 0},
 }
 
 

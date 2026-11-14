@@ -1,40 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Rasova Control Panel{% endblock %}
 
 {% block extra_css %}
-<style>
-  .su-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
-  .su-header { margin-bottom: 2rem; }
-  .su-header h1 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 400; }
-  .su-header p  { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
-
-  .su-table { width: 100%; border-collapse: collapse; }
-  .su-table th { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
-  .su-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; vertical-align: middle; }
-  .su-table tr:hover td { background: var(--panel-bg); }
-
-  .type-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
-  .type-badge.franchise { border-color: #f97316; color: #f97316; }
-  .type-badge.fine_dining { border-color: var(--accent-gold); color: var(--accent-gold); }
-  .type-badge.pub { border-color: #c8794a; color: #c8794a; }
-  .type-badge.cafe { border-color: #a855f7; color: #a855f7; }
-
-  .btn-su { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.35rem 0.8rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; }
-  .btn-su:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-  .btn-su-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-  .btn-su-primary:hover { background: #b59250; color: #fff; }
-
-  .create-panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
-  .field-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
-  .field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.35rem; }
-  .field input, .field select { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 0.9rem; font-family: inherit; outline: none; }
-  .field input:focus, .field select:focus { border-color: var(--accent-gold); }
-  .field select option { background: var(--panel-bg); }
-
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .dot-active { background: #10b981; }
-  .dot-inactive { background: #ef4444; }
-</style>
+<link rel="stylesheet" href="{% static 'css/accounts/superuser_panel.css' %}">
 {% endblock %}
 
 {% block page_title %}Control Panel{% endblock %}
@@ -57,7 +26,7 @@
   <div class="create-panel">
     <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.5rem;">New Restaurant</p>
     <h2 style="font-family:'DM Serif Display',serif;font-size:1.3rem;font-weight:400;margin-bottom:1.5rem;">Add a Restaurant</h2>
-    <form id="createForm">
+    <form id="createForm" data-action="restaurant.create" data-url="{% url 'superuser_create' %}" data-tenant-url="{% url 'superuser_tenant' 0 %}">
       <div class="field-row" style="margin-bottom:1rem;">
         <div class="field">
           <label>Restaurant Name *</label>
@@ -97,7 +66,7 @@
       </div>
       <div style="display:flex;align-items:center;gap:1rem;">
         <button type="submit" class="btn-su btn-su-primary"><i class="bi bi-plus-lg"></i> Create Restaurant</button>
-        <span id="createStatus" style="font-size:0.8rem;color:var(--text-muted);"></span>
+        <span id="createStatus" class="create-status" role="status"></span>
       </div>
     </form>
   </div>
@@ -139,7 +108,7 @@
           <!-- Quick preset buttons -->
           <div style="display:flex;gap:0.5rem;margin-top:0.5rem;flex-wrap:wrap;">
             {% for key, preset in presets.items %}
-            <button onclick="applyPreset({{ row.tenant.id }}, '{{ key }}', '{{ preset.label }}')" class="btn-su" style="font-size:0.62rem;padding:2px 7px;">{{ preset.label }}</button>
+            <button type="button" data-action="preset.apply" data-url="{% url 'superuser_preset' row.tenant.id %}" data-preset="{{ key }}" data-label="{{ preset.label }}" data-tenant="{{ row.tenant.name }}" class="btn-su" style="font-size:0.62rem;padding:2px 7px;">{{ preset.label }}</button>
             {% endfor %}
           </div>
         </td>
@@ -154,45 +123,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.getElementById("createForm").addEventListener("submit", async function(e) {
-  e.preventDefault();
-  const status = document.getElementById("createStatus");
-  const btn    = this.querySelector("button[type=submit]");
-  btn.disabled = true;
-  status.textContent = "Creating…";
-
-  const data = {};
-  new FormData(this).forEach((v, k) => data[k] = v);
-
-  const r = await fetch("{% url 'superuser_create' %}", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": apiClient.getCsrf() },
-    body: new URLSearchParams(data)
-  });
-  const d = await r.json();
-
-  if (d.success) {
-    status.style.color = "#10b981";
-    status.textContent = "Created! Redirecting…";
-    setTimeout(() => location.href = `/superuser/tenant/${d.tenant_id}/`, 800);
-  } else {
-    status.style.color = "#ef4444";
-    status.textContent = d.error || "Failed";
-    btn.disabled = false;
-  }
-});
-
-async function applyPreset(tenantId, presetKey, label) {
-  if (!confirm(`Apply preset "${label}" to this restaurant? This will override feature flags.`)) return;
-  const r = await fetch(`/superuser/tenant/${tenantId}/preset/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", "X-CSRFToken": apiClient.getCsrf() },
-    body: `preset=${presetKey}`
-  });
-  const d = await r.json();
-  if (d.success) { alert(`Applied: ${d.label}`); location.reload(); }
-  else alert(d.error || "Failed");
-}
-</script>
+<script type="module" src="{% static 'js/accounts/superuser_panel.js' %}"></script>
 {% endblock %}

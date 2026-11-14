@@ -1,60 +1,9 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Variance Report | {{ request.user.outlet.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1.5rem; }
-.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
-.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
-.page-sub { color: var(--text-muted); font-size: .82rem; margin-bottom: 2rem; }
-.divider { height: 1px; background: var(--border-color); margin: 1.5rem 0; }
-
-.controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; }
-.date-input { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
-              padding: .6rem .9rem; font-size: .88rem; font-family: inherit; outline: none; }
-.date-input:focus { border-color: var(--accent-gold); }
-.btn-filter { background: var(--accent-gold); border: none; color: #fff; padding: .6rem 1.2rem;
-              font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;
-              cursor: pointer; font-family: inherit; }
-.btn-export { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
-              padding: .6rem 1.2rem; font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px;
-              font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none;
-              display: inline-flex; align-items: center; gap: .4rem; transition: all .15s; }
-.btn-export:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-
-.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-.summary-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; }
-.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent-gold); }
-.summary-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .2rem; }
-
-.table { width: 100%; border-collapse: collapse; }
-.table th { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);
-            font-weight: 700; padding: .75rem .5rem; border-bottom: 1px solid var(--border-color); text-align: right; }
-.table th:first-child { text-align: left; }
-.table td { padding: .75rem .5rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: .85rem; text-align: right; }
-.table td:first-child { text-align: left; font-weight: 500; }
-.table tr:last-child td { border-bottom: none; }
-.table tr:hover td { background: rgba(197,160,89,0.03); }
-
-.badge-ok   { color: #10b981; font-size:.75rem; font-weight:700; }
-.badge-warn { color: #f59e0b; font-size:.75rem; font-weight:700; }
-.badge-bad  { color: #ef4444; font-size:.75rem; font-weight:700; }
-.badge-zero { color: var(--text-muted); font-size:.75rem; }
-
-.empty { text-align: center; padding: 3rem; color: var(--text-muted); font-size: .85rem; }
-.empty i { font-size: 2rem; display: block; margin-bottom: .75rem; }
-
-.legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; font-size: .78rem; }
-.legend span { display: flex; align-items: center; gap: .4rem; color: var(--text-muted); }
-.dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
-
-.filter-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
-.search-input, .category-select { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
-              padding: .55rem .85rem; font-size: .85rem; font-family: inherit; outline: none; }
-.search-input { min-width: 220px; }
-.search-input:focus, .category-select:focus { border-color: var(--accent-gold); }
-.table tr.row-hidden { display: none; }
-</style>
+<link rel="stylesheet" href="{% static 'css/inventory/variance_report.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/inventory/board/">Inventory</a> / Variance{% endblock %}
@@ -114,8 +63,8 @@
   </div>
 
   <div class="filter-row">
-    <input type="text" id="itemSearch" class="search-input" placeholder="Search ingredients…" oninput="filterVarianceRows()">
-    <select id="categoryFilter" class="category-select" onchange="filterVarianceRows()">
+    <input type="text" id="itemSearch" class="search-input" placeholder="Search ingredients…" aria-label="Search ingredients">
+    <select id="categoryFilter" class="category-select" aria-label="Category">
       <option value="">All Categories</option>
       {% for c in categories %}
       <option value="{{ c }}">{{ c }}</option>
@@ -190,22 +139,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  function filterVarianceRows() {
-    const term = document.getElementById('itemSearch').value.trim().toLowerCase();
-    const category = document.getElementById('categoryFilter').value;
-    let visible = 0;
-    document.querySelectorAll('.table tbody tr').forEach(row => {
-      const name = row.dataset.name || '';
-      const rowCategory = row.dataset.category || '';
-      const matchesSearch = !term || name.includes(term);
-      const matchesCategory = !category || rowCategory === category;
-      const show = matchesSearch && matchesCategory;
-      row.classList.toggle('row-hidden', !show);
-      if (show) visible++;
-    });
-    const countEl = document.getElementById('filterCount');
-    if (countEl) countEl.textContent = (term || category) ? `${visible} matching` : '';
-  }
-</script>
+<script type="module" src="{% static 'js/inventory/row_filter.js' %}"></script>
 {% endblock %}

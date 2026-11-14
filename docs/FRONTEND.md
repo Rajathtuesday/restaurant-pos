@@ -29,7 +29,10 @@ static/js/core/      what base.html runs on every page
   checklist.js       the setup checklist in the corner
   request_id.js      a UUID per order request, so the server answers a replayed order with the first one (orders.OrderRequest)
   printing_status.js the printer chip's words, from the printing state in the 8-second notifications answer
-  page_actions.js    the shared buttons any page may have: page.print, page.reload, page.back, field.select
+  post_actions.js    a button or form that posts, then reloads or takes a row away: data-action="post",
+                     data-url, data-confirm, data-ask, data-done, data-remove, data-then (no page script needed)
+  page_actions.js    the shared buttons any page may have: page.print, page.reload, page.back, field.select;
+                     on change: form.submit (a filter), range.pick (a report's period)
                      (app.js handles them; no page module may handle these names again: one tap would run twice)
   standalone.js      for a page without base.html (a printout): the shared buttons and nothing else
   theme_boot.js      for a page without base.html: dark mode before the first paint (a plain script in the head)

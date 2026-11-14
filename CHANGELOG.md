@@ -7,6 +7,36 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Post buttons and forms written once (V1); twelve more pages on them
+
+Most of what a page does is "send this, then reload or take the row away". Every page wrote that itself, a little differently, and some got it wrong.
+
+### Fixed
+- **Deleting a shift template asked "are you sure?" and deleted even on Cancel.** `ui.confirm()` answers with an object, which is always true; the page tested the object.
+- **Pending refunds could not be approved or rejected in the Android app**: Approve used `confirm()`, Reject `prompt()` for its reason. Both are Rasova's own sheets now, the reason optional as before.
+- **A refused reservation change said so with `alert()`**, which the app never shows; the shared client's toast says it now.
+- **The control panel's preset buttons** on its list page used `confirm()` and `alert()`: Rasova's sheets now, the same as the restaurant page (`static/js/accounts/preset.js`).
+
+### Changed
+- **`static/js/core/post_actions.js`** (V1, the first shared part): a button with `data-action="post"` and `data-url` sends, then reloads (`data-then`) or takes a row away (`data-remove`); `data-confirm` asks first, `data-ask` asks for a line of text (`data-ask-optional`), `data-done` toasts. A `<form data-action="post">` sends its named fields as JSON when submitted, so the browser's own checks (`required`, `min`) run first. A 200 carrying `error` is a refusal; a second tap while the first is out is ignored. `core/app.js` handles it on every page, so these pages need no script of their own.
+- **Change actions** in `core/page_actions.js`: `form.submit` (a filter sends its form) and `range.pick` (a report's period: Custom shows the dates, anything else sends).
+- **`ui.ask(..., { required: false })`**: an optional answer, `""` when left empty.
+- Off the ratchet, on the shared parts with no script of their own: expenses, report subscriptions, shift templates, pending refunds, reservations (the date pickers are small GET forms). With a small module each: the shifts page (`shifts/clock.js`, the live clock), the waiter dashboard (`waiter/live.js`: reloads when the list changes, waits while the tab is hidden), the consumption and variance reports (one shared `inventory/row_filter.js`), the inventory report (`reports/inventory_report.js`: its tabs are a real tab list), the feature switches (`accounts/feature_toggle.js`), the control panel (`accounts/create_restaurant.js`). Their `oninput=`, `onchange=`, `onsubmit=` and `onmouseover=` went too, and their form fields gained labels tied to them.
+- The ratchet holds 20 templates (was 32).
+
+### Tests
+- `core/tests/test_shared_parts_browser.py` (8, Chromium): a template delete cancelled keeps it, confirmed removes it (fails on the old page: the row went on Cancel); a refund rejected with no reason in the sheet (fails on the old page: no sheet); a reservation confirmed; an expense recorded by its form and deleted; a waiter call resolved; the inventory report's tabs and custom period; a feature switch saving an override; New Restaurant opening its page.
+- `static/js/tests/post_actions.test.mjs` (20): post buttons and forms (asked, declined, refused, a 200 with an error, a double tap, an optional reason, the fields sent), the change actions, the row filter, the report tabs, the feature switch, the waiter list, the clock, New Restaurant.
+- `core.tests.test_page_actions`: no page module handles `post`, `form.submit` or `range.pick` either.
+
+## 2026-11-14: The CSRF cookie fallback reads Rasova's own cookie
+
+### Fixed
+- **`static/js/core/csrf.js` fell back to a cookie named `csrftoken`; Rasova's is `csrftoken2`** (`settings.CSRF_COOKIE_NAME`). Every page that posts today has the meta tag, so nothing failed yet, but the first page relying on the fallback would have sent an empty token and been refused. The name is `CSRF_COOKIE` in `csrf.js` now.
+
+### Tests
+- `core/tests/test_csrf_cookie_name.py`: `CSRF_COOKIE` equals `settings.CSRF_COOKIE_NAME` (fails on the old code); the node test reads the real cookie.
+
 ## 2026-11-14: Eight small pages on modules; tables renamed and presets applied in Rasova's own sheets
 
 ### Fixed

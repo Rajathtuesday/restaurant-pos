@@ -1,0 +1,20 @@
+/* shifts/templates/shifts/shift_templates.html */
+:root {
+    --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main);
+    --muted: var(--text-muted); --border: var(--border-color); --gold: var(--accent-gold);
+    --smooth: var(--transition-smooth); --red: #ef4444;
+}
+
+.section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
+.card-lux { background: var(--panel); border: 1px solid var(--border); padding: 2rem; }
+.template-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px dashed var(--border); }
+.template-row:last-child { border-bottom: none; }
+.template-name { font-size: 0.95rem; font-weight: 500; }
+.template-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.template-row .btn-icon:hover { color: var(--red); }
+.form-field { margin-bottom: 1.2rem; }
+.form-field label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); display: block; margin-bottom: 0.4rem; }
+.form-field input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: 0.4rem 0; font-size: 0.9rem; font-family: 'Outfit', sans-serif; outline: none; }
+.form-field input:focus { border-color: var(--gold); }
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+.badge-pay { background: rgba(197,160,89,0.12); color: var(--gold); font-size: 0.68rem; letter-spacing: 1px; padding: 2px 7px; border-radius: 2px; }

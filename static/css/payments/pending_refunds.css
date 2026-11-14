@@ -1,0 +1,16 @@
+/* payments/templates/payments/pending_refunds.html */
+.ref-wrap { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+.ref-table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+.ref-table th {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--text-muted); font-weight: 600;
+  padding: 0.7rem 0.75rem; border-bottom: 1px solid var(--border-color); text-align: left;
+}
+.ref-table td { padding: 0.85rem 0.75rem; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+.order-num { font-family: 'Space Mono', monospace; font-size: 0.78rem; color: var(--accent-gold); }
+.amount    { font-weight: 700; }
+.btn-approve { padding: 0.35rem 0.9rem; border: 1px solid #10b981; color: #10b981; background: transparent; cursor: pointer; font-family: inherit; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; transition: all .2s; }
+.btn-approve:hover { background: #10b981; color: #fff; }
+.btn-reject  { padding: 0.35rem 0.9rem; border: 1px solid var(--border-color); color: var(--text-muted); background: transparent; cursor: pointer; font-family: inherit; font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; margin-left: 6px; transition: all .2s; }
+.btn-reject:hover  { border-color: #ef4444; color: #ef4444; }
+.empty-state { text-align: center; padding: 4rem; color: var(--text-muted); }

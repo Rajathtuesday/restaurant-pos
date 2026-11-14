@@ -1,0 +1,17 @@
+/* crm/templates/crm/reservations.html */
+.dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); }
+.section-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
+.booking-table { width: 100%; border-collapse: collapse; }
+.booking-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+.booking-table td { padding: 0.9rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
+.booking-table tr:hover td { background: rgba(197,160,89,0.04); }
+.status-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border-radius: 2px; font-weight: 600; }
+.status-pending   { background: #fff3cd; color: #856404; }
+.status-confirmed { background: #d4edda; color: #155724; }
+.status-seated    { background: #d1ecf1; color: #0c5460; }
+.status-cancelled { background: #f8d7da; color: #721c24; }
+.status-no_show   { background: #e2e3e5; color: #383d41; }
+.modal-content { border-radius: 0; border: 1px solid var(--border-color); background: var(--panel-bg); color: var(--text-main); }
+.form-control { border-radius: 0; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); }
+.form-control:focus { border-color: var(--accent-gold); box-shadow: none; background: transparent; color: var(--text-main); }
+html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }

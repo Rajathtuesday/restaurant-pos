@@ -1,0 +1,28 @@
+/* setup/templates/setup/report_subscriptions.html */
+.page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 3rem; align-items: start; }
+@media(max-width: 720px) { .page-body { grid-template-columns: 1fr; } }
+
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+.divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+.page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+
+.form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+.setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+.setup-input:focus { border-bottom-color: var(--accent-gold); }
+.form-select { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.85rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+
+.btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+.btn-create:hover { background: var(--accent-hover); }
+
+.sub-table { width: 100%; border-collapse: collapse; }
+.sub-table th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
+.sub-table td { padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+.sub-table-scroll { overflow-x: auto; }
+
+.btn-reset-pw {
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.btn-reset-pw:hover { border-color: var(--accent-gold); color: var(--accent-gold); }

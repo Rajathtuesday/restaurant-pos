@@ -4,26 +4,14 @@
 {% block title %}Shift Management | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); }
-    .section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
-    .shift-table { width: 100%; border-collapse: collapse; }
-    .shift-table th { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.8rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
-    .shift-table td { padding: 0.9rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; vertical-align: middle; }
-    .badge-active { background: rgba(16,185,129,0.12); color: #10b981; font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
-    .badge-done { background: rgba(100,100,100,0.1); color: var(--text-muted); font-size: 0.65rem; letter-spacing: 1px; padding: 3px 8px; border-radius: 3px; text-transform: uppercase; }
-    .clock-card { background: var(--panel-bg); border: 1px solid var(--accent-gold); padding: 2rem; text-align: center; max-width: 400px; margin: 0 auto 2.5rem; }
-    .clock-time { font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--accent-gold); }
-    .form-control-shift { background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.4rem 0; font-size: 0.85rem; width: 100%; outline: none; }
-    .form-control-shift:focus { border-color: var(--accent-gold); }
-</style>
+<link rel="stylesheet" href="{% static 'css/shifts/shift_dashboard.css' %}">
 {% endblock %}
 
 {% block page_title %}Shifts{% endblock %}
 
 {% block header_links %}
 <form method="GET" class="d-flex align-items-center">
-    <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control-shift" style="max-width:160px;" onchange="this.form.submit()">
+    <input type="date" name="date" value="{{ view_date|date:'Y-m-d' }}" class="form-control-shift" style="max-width:160px;" data-action="form.submit" aria-label="Day">
 </form>
 <a href="/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Dashboard</a>
 {% endblock %}
@@ -37,15 +25,17 @@
 
         {% if active_shift %}
         <p style="font-size:0.8rem; color:var(--text-muted);">Clocked in at <strong>{{ active_shift.clocked_in_at|date:"H:i" }}</strong></p>
+        <form data-action="post" data-url="{% url 'clock-out' %}">
         <div class="mb-3">
-            <input type="number" id="tipsInput" placeholder="Tips earned (₹)" class="form-control-shift text-center" min="0" step="0.50">
+            <input type="number" id="tipsInput" name="tips" placeholder="Tips earned (₹)" aria-label="Tips earned" class="form-control-shift text-center" min="0" step="0.50">
         </div>
-        <button class="btn-luxury w-100" style="background:#ef4444; border-color:#ef4444; color:#fff;" onclick="clockOut()">
+        <button type="submit" class="btn-luxury w-100" style="background:#ef4444; border-color:#ef4444; color:#fff;">
             <i class="bi bi-stop-circle me-1"></i> Clock Out
         </button>
+        </form>
         {% else %}
         <p style="font-size:0.8rem; color:var(--text-muted);">You are currently <strong>off shift</strong></p>
-        <button class="btn-luxury w-100" onclick="clockIn()">
+        <button type="button" class="btn-luxury w-100" data-action="post" data-url="{% url 'clock-in' %}">
             <i class="bi bi-play-circle me-1"></i> Clock In
         </button>
         {% endif %}
@@ -81,10 +71,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            <div class="d-flex gap-1 align-items-center">
-                                <input type="number" id="tips-{{ s.id }}" value="{{ s.tips }}" style="width:70px;" class="form-control-shift" step="0.50" min="0">
-                                <button class="btn-icon" onclick="updateTips('{{ s.id }}', this)" title="Save tips"><i class="bi bi-check-lg"></i></button>
-                            </div>
+                            <form class="d-flex gap-1 align-items-center" data-action="post" data-url="{% url 'shift-tips' s.id %}" data-then="none" data-done="Tips saved.">
+                                <input type="number" id="tips-{{ s.id }}" name="tips" value="{{ s.tips }}" style="width:70px;" class="form-control-shift" step="0.50" min="0" aria-label="Tips">
+                                <button type="submit" class="btn-icon" title="Save tips" aria-label="Save tips"><i class="bi bi-check-lg" aria-hidden="true"></i></button>
+                            </form>
                         </td>
                     </tr>
                     {% empty %}
@@ -99,36 +89,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    function updateClock() {
-        document.getElementById('liveClock').textContent = new Date().toLocaleTimeString('en-IN');
-    }
-    updateClock(); setInterval(updateClock, 1000);
-
-    async function clockIn() {
-        try {
-            const data = await apiClient.post('/shifts/clock-in/', {});
-            if (data.success) location.reload();
-            else ui.toast(data.error || 'Clock in failed', 'error');
-        } catch (e) {}
-    }
-
-    async function clockOut() {
-        const tips = document.getElementById('tipsInput')?.value || 0;
-        try {
-            const data = await apiClient.post('/shifts/clock-out/', { tips });
-            if (data.success) location.reload();
-            else ui.toast(data.error || 'Clock out failed', 'error');
-        } catch (e) {}
-    }
-
-    async function updateTips(shiftId, btn) {
-        const tips = document.getElementById('tips-' + shiftId).value;
-        try {
-            const data = await apiClient.post(`/shifts/${shiftId}/tips/`, { tips });
-            if (data.success) btn.innerHTML = '<i class="bi bi-check2-all"></i>';
-            else ui.toast(data.error || 'Failed to save tips', 'error');
-        } catch (e) {}
-    }
-</script>
+<script type="module" src="{% static 'js/shifts/clock.js' %}"></script>
 {% endblock %}

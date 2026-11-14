@@ -63,8 +63,9 @@ export function createUi({
     /* One line of text, typed in Rasova's own sheet: the replacement for
        the browser's prompt(), which never shows in the Android app.
        Resolves to the trimmed text, or null when the person backs out or
-       leaves it as it was. The title is text, never read as HTML. */
-    async ask(title, { value = "", label = "", confirmText = "Save", maxLength = 100 } = {}) {
+       leaves it as it was. With required: false an empty answer is ""
+       (a reason that is optional). The title is text, never read as HTML. */
+    async ask(title, { value = "", label = "", confirmText = "Save", maxLength = 100, required = true } = {}) {
       const result = await swal().fire({
         titleText: title,
         input: "text",
@@ -82,10 +83,11 @@ export function createUi({
           confirmButton: "rounded-0 btn btn-accent",
           cancelButton: "rounded-0 btn btn-luxury",
         },
-        inputValidator: (typed) => ((typed || "").trim() ? null : "Type something, or tap Cancel."),
+        inputValidator: required ? (typed) => ((typed || "").trim() ? null : "Type something, or tap Cancel.") : undefined,
       });
       if (!result.isConfirmed) return null;
       const typed = String(result.value || "").trim();
+      if (!required) return typed;
       return typed && typed !== String(value).trim() ? typed : null;
     },
   };

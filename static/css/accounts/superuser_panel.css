@@ -1,0 +1,37 @@
+/* accounts/templates/accounts/superuser_panel.html */
+.su-wrap { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem 5rem; }
+.su-header { margin-bottom: 2rem; }
+.su-header h1 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 400; }
+.su-header p  { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+.su-table { width: 100%; border-collapse: collapse; }
+.su-table th { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
+.su-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; vertical-align: middle; }
+.su-table tr:hover td { background: var(--panel-bg); }
+
+.type-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
+.type-badge.franchise { border-color: #f97316; color: #f97316; }
+.type-badge.fine_dining { border-color: var(--accent-gold); color: var(--accent-gold); }
+.type-badge.pub { border-color: #c8794a; color: #c8794a; }
+.type-badge.cafe { border-color: #a855f7; color: #a855f7; }
+
+.btn-su { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.35rem 0.8rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; }
+.btn-su:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn-su-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-su-primary:hover { background: #b59250; color: #fff; }
+
+.create-panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
+.field-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.35rem; }
+.field input, .field select { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 0.9rem; font-family: inherit; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--accent-gold); }
+.field select option { background: var(--panel-bg); }
+
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-active { background: #10b981; }
+.dot-inactive { background: #ef4444; }
+
+/* The New Restaurant form's status line: waiting, done, refused. */
+.create-status { font-size: 0.8rem; color: var(--text-muted); }
+.create-status[data-tone="ok"] { color: #10b981; }
+.create-status[data-tone="bad"] { color: #ef4444; }

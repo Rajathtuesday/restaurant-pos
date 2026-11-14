@@ -21,8 +21,9 @@ import { createNotificationPoller } from "./notifications.js";
 import {
   ORDER_STORE, PAYMENT_STORE, createOfflineBanner, createOrderQueue, createPaymentQueue, indexedDbStore,
 } from "./offline.js";
-import { pageActions } from "./page_actions.js";
+import { pageActions, pageChangeActions } from "./page_actions.js";
 import { pageData } from "./page_data.js";
+import { createPostActions } from "./post_actions.js";
 import { detectPlatform, startAndroidPrinting } from "./platform.js";
 import { createPrinterChip } from "./printing_status.js";
 import { registerServiceWorker, setupInstallPrompt } from "./pwa.js";
@@ -63,9 +64,13 @@ window.addEventListener("offline", () => {
   offlineBanner.update();
 });
 
+// Buttons and forms that post and reload (core/post_actions.js).
+const posts = createPostActions({ api, ui, doc: document, reload: () => window.location.reload() });
+
 // The header, the banners and the shared page buttons: one listener, by data-action.
 delegate(document.body, {
   ...pageActions(window),
+  post: (el) => posts.click(el),
   "theme.toggle": () => theme.toggle(),
   "printer.explain": () => {
     const said = printerChip.current();
@@ -77,6 +82,9 @@ delegate(document.body, {
     if (el.dataset.remember) sessionStorage.setItem(el.dataset.remember, "1");
   },
 });
+
+delegate(document.body, { post: (form, event) => posts.submit(form, event) }, "submit");
+delegate(document.body, pageChangeActions(), "change");
 
 onReady(() => {
   // The demo banner, once dismissed, stays away for the session.

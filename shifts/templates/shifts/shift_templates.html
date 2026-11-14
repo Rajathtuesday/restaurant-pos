@@ -1,29 +1,10 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Shift Templates | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --bg: var(--bg-color); --panel: var(--panel-bg); --text: var(--text-main);
-        --muted: var(--text-muted); --border: var(--border-color); --gold: var(--accent-gold);
-        --smooth: var(--transition-smooth); --red: #ef4444;
-    }
-
-    .section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
-    .card-lux { background: var(--panel); border: 1px solid var(--border); padding: 2rem; }
-    .template-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px dashed var(--border); }
-    .template-row:last-child { border-bottom: none; }
-    .template-name { font-size: 0.95rem; font-weight: 500; }
-    .template-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
-    .template-row .btn-icon:hover { color: var(--red); }
-    .form-field { margin-bottom: 1.2rem; }
-    .form-field label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); display: block; margin-bottom: 0.4rem; }
-    .form-field input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); padding: 0.4rem 0; font-size: 0.9rem; font-family: 'Outfit', sans-serif; outline: none; }
-    .form-field input:focus { border-color: var(--gold); }
-    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
-    .badge-pay { background: rgba(197,160,89,0.12); color: var(--gold); font-size: 0.68rem; letter-spacing: 1px; padding: 2px 7px; border-radius: 2px; }
-</style>
+<link rel="stylesheet" href="{% static 'css/shifts/shift_templates.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="{% url 'shift-dashboard' %}">Shifts</a> / Templates{% endblock %}
@@ -53,7 +34,7 @@
                         {% if t.base_pay %}
                         <span class="badge-pay">₹{{ t.base_pay }}/shift</span>
                         {% endif %}
-                        <button class="btn-icon" title="Delete template" onclick="deleteTemplate({{ t.id }})">
+                        <button type="button" class="btn-icon" title="Delete template" aria-label="Delete template {{ t.name }}" data-action="post" data-url="{% url 'shift-template-delete' t.id %}" data-confirm="Delete this template?" data-confirm-text="Existing schedules using it keep their assigned times." data-confirm-button="Delete" data-done="Template deleted." data-remove="#tpl-{{ t.id }}">
                             <i class="bi bi-trash3"></i>
                         </button>
                     </div>
@@ -70,75 +51,40 @@
 
         <div class="col-md-5">
             <h5 class="section-title">New Template</h5>
-            <div class="card-lux">
+            <form class="card-lux" data-action="post" data-url="{% url 'shift-template-create' %}" data-done="Template created.">
                 <div class="form-field">
-                    <label>Template Name</label>
-                    <input type="text" id="tpl_name" placeholder="e.g. Morning Prep, Kitchen Close">
+                    <label for="tpl_name">Template Name</label>
+                    <input type="text" id="tpl_name" name="name" placeholder="e.g. Morning Prep, Kitchen Close" required>
                 </div>
                 <div class="row g-3">
                     <div class="col-6">
                         <div class="form-field">
-                            <label>Start Time</label>
-                            <input type="time" id="tpl_start">
+                            <label for="tpl_start">Start Time</label>
+                            <input type="time" id="tpl_start" name="start_time" required>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="form-field">
-                            <label>End Time</label>
-                            <input type="time" id="tpl_end">
+                            <label for="tpl_end">End Time</label>
+                            <input type="time" id="tpl_end" name="end_time" required>
                         </div>
                     </div>
                 </div>
                 <div class="form-field">
-                    <label>Base Pay / Shift (₹, optional)</label>
-                    <input type="number" id="tpl_pay" placeholder="0.00" min="0" step="50">
+                    <label for="tpl_pay">Base Pay / Shift (₹, optional)</label>
+                    <input type="number" id="tpl_pay" name="base_pay" placeholder="0.00" min="0" step="50">
                 </div>
                 <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">
                     <i class="bi bi-info-circle me-1"></i>
                     For overnight shifts (e.g. 22:00–06:00), end time can be before start time, and the duration is calculated correctly.
                 </div>
-                <button class="btn-luxury w-100" onclick="createTemplate()">
+                <button type="submit" class="btn-luxury w-100">
                     <i class="bi bi-plus-lg me-1"></i>Create Template
                 </button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    async function createTemplate() {
-        const name = document.getElementById('tpl_name').value.trim();
-        const start = document.getElementById('tpl_start').value;
-        const end = document.getElementById('tpl_end').value;
-        const pay = document.getElementById('tpl_pay').value || '0';
 
-        if (!name) { ui.toast('Template name is required.', 'error'); return; }
-        if (!start || !end) { ui.toast('Start and end times are required.', 'error'); return; }
-
-        try {
-            const data = await apiClient.post('/shifts/templates/create/', { name, start_time: start, end_time: end, base_pay: pay });
-            if (data.success) {
-                ui.toast('Template created.');
-                setTimeout(() => location.reload(), 600);
-            } else {
-                ui.toast(data.error, 'error');
-            }
-        } catch (e) {}
-    }
-
-    async function deleteTemplate(id) {
-        if (!await ui.confirm('Delete this template? Existing schedules using it will keep their assigned times.')) return;
-        try {
-            const data = await apiClient.post(`/shifts/templates/${id}/delete/`, {});
-            if (data.success) {
-                document.getElementById(`tpl-${id}`)?.remove();
-                ui.toast('Template deleted.');
-            } else {
-                ui.toast(data.error, 'error');
-            }
-        } catch (e) {}
-    }
-</script>
-{% endblock %}
