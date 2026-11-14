@@ -23,6 +23,13 @@ html.dark {
     --border-color: #262626;
     --accent-gold: #d4af37;
 }
+/* Bootstrap's own colours follow these tokens (.text-muted drew near-black
+   text on the dark page; core/tests/test_colour_walk.py). */
+:root {
+    --bs-body-color: var(--text-main);
+    --bs-emphasis-color: var(--text-main);
+    --bs-secondary-color: var(--text-muted);
+}
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
@@ -348,7 +355,9 @@ body {
 .special-instructions:focus { outline: none; border-color: var(--accent-gold); }
 
 .place-order-btn {
-    background: var(--text-main); color: #fff;
+    /* The page's text colour as its fill, so its words are the page's own
+       colour: white on near-white in dark mode before 14 Nov 2026. */
+    background: var(--text-main); color: var(--bg-color);
     border: none; padding: 1rem;
     border-radius: 12px; font-weight: 600;
     font-size: 1rem; letter-spacing: 1px;
@@ -539,7 +548,7 @@ body {
 .eta-banner i { color: #c5a059; }
 .clear-cart-btn { border-radius: 12px; font-weight: 600; }
 .clear-cart-btn.is-asking { background: #dc3545; color: #fff; }
-.place-order-btn.is-sent { background: #16a34a; }
+.place-order-btn.is-sent { background: #16a34a; color: #fff; }
 .item-photo.is-empty { color: var(--text-muted); font-size: 1.5rem; }
 .menu-empty { text-align: center; padding: 4rem 1.5rem; color: var(--text-muted); }
 .menu-empty i { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; color: var(--accent-gold, #c5a059); }

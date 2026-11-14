@@ -56,6 +56,31 @@ html.dark {
     --shadow-hover:0 10px 30px rgba(0,0,0,0.5);
 }
 
+/* ── Bootstrap follows the theme ─────────────────────────────
+   Dark mode is html.dark, not Bootstrap's data-bs-theme, so Bootstrap's own
+   colours stayed light-mode ones in dark: .text-muted, tables and anything
+   inheriting --bs-body-color drew near-black text on the black page (found
+   by the colour walk, core/tests/test_colour_walk.py, 14 Nov 2026). Its
+   variables are the theme's tokens now, in both modes: a var() here resolves
+   on <html>, where html.dark changes the tokens. */
+:root {
+    --bs-body-color:      var(--text-main);
+    --bs-emphasis-color:  var(--text-main);
+    --bs-secondary-color: var(--text-muted);
+    --bs-tertiary-color:  var(--text-muted);
+}
+html.dark {
+    /* Bootstrap's parts with a background of their own (a card, a modal,
+       a field) take the panel's, so the light text above stays readable. */
+    --bs-body-bg:         var(--panel-bg);
+    --bs-body-color-rgb:  255, 255, 255;
+    --bs-body-bg-rgb:     10, 10, 10;
+    --bs-secondary-bg:    #141414;
+    --bs-tertiary-bg:     #111111;
+    --bs-border-color:    var(--border-color);
+    --bs-heading-color:   var(--text-main);
+}
+
 /* ── Base Typography ─────────────────────────────────────── */
 html {
     /* The page itself, in both modes. <html> must carry the colour, not

@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-14: The colour walk: every page, light and dark
+
+The black page behind white cards (12 Nov) sat in the code for days because no test looked at a colour. The theme test checks one page at the root; this walks them all.
+
+### Fixed
+- **Bootstrap's own colours follow the theme.** Dark mode is `html.dark`, not Bootstrap's `data-bs-theme`, so in dark mode `.text-muted`, tables and anything inheriting Bootstrap's body colour drew near-black text on the black page: "No recipe defined" on the menu, the inventory board's units and values, "End of Report", the whole promotions and offers setup pages. `static/css/themes/luxury.css` now sets Bootstrap's colour variables from the theme's tokens in both modes, and in dark gives Bootstrap's cards, modals and fields the panel colour so light text stays readable on them. The guest QR menu's stylesheet does the same for its `.text-muted`.
+- **The QR menu's Place Order button in dark mode** was white words on a near-white button. Its words are the page's background colour now.
+- **The purchase order printout's timeline** drew a finished step's tick white on white (`background: currentColor` on a white-text dot).
+
+### Tests
+- `core/tests/test_colour_walk.py` (Playwright): every page the owner can open (the smoke walk's list), once in light and once in dark. An app page's colour must be the mode's, and no visible text may be below a 1.5 contrast against the solid colour behind it. On the code before these fixes it found 25 problems on 11 pages; now none.
+
 ## 2026-11-14: No long dashes left in any template
 
 ### Changed
