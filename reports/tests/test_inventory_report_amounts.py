@@ -93,4 +93,6 @@ class InventoryReportAmountsTest(TestCase):
         client.force_login(self.user)
         page = client.get(reverse("inventory_report")).content.decode()
         self.assertIn('class="report-subnav-left"', page)
-        self.assertIn('strip.querySelector(".report-tab.active")', page)
+        # The centring is static/js/reports/tabs.js (node test, and in Chromium
+        # core.tests.test_small_pages_browser at phone width).
+        self.assertIn("js/reports/tabs.js", page)

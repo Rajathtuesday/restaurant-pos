@@ -408,11 +408,8 @@ def thermal_receipt_view(request, order_id):
 
     # Paper dimensions from default station
     station       = get_default_station(request.user)
+    # The font sizes follow the roll in static/css/orders/thermal_receipt.css.
     paper_width   = station.paper_width_mm if station else 80
-    font_size     = 10 if paper_width == 58 else 11
-    big_font      = 12 if paper_width == 58 else 13
-    small_font    = 9  if paper_width == 58 else 10
-    token_font    = 20 if paper_width == 58 else 24
 
     items = order.items.exclude(status="voided").select_related("menu_item__category")
 
@@ -447,10 +444,6 @@ def thermal_receipt_view(request, order_id):
         "payment":         payment,
         "change_due":      change_due,
         "paper_width":     paper_width,
-        "font_size":       font_size,
-        "big_font":        big_font,
-        "small_font":      small_font,
-        "token_font":      token_font,
         "split_mode":      split_mode,
         "category_groups": category_groups,
     })

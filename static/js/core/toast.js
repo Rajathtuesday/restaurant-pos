@@ -59,5 +59,34 @@ export function createUi({
         },
       });
     },
+
+    /* One line of text, typed in Rasova's own sheet: the replacement for
+       the browser's prompt(), which never shows in the Android app.
+       Resolves to the trimmed text, or null when the person backs out or
+       leaves it as it was. The title is text, never read as HTML. */
+    async ask(title, { value = "", label = "", confirmText = "Save", maxLength = 100 } = {}) {
+      const result = await swal().fire({
+        titleText: title,
+        input: "text",
+        inputLabel: label,
+        inputValue: value,
+        inputAttributes: { maxlength: String(maxLength), autocapitalize: "sentences" },
+        showCancelButton: true,
+        confirmButtonText: confirmText,
+        confirmButtonColor: "var(--accent-gold)",
+        cancelButtonColor: "var(--text-muted)",
+        background: isDark() ? "var(--panel-bg)" : "#ffffff",
+        color: "var(--text-main)",
+        customClass: {
+          popup: "rounded-0",
+          confirmButton: "rounded-0 btn btn-accent",
+          cancelButton: "rounded-0 btn btn-luxury",
+        },
+        inputValidator: (typed) => ((typed || "").trim() ? null : "Type something, or tap Cancel."),
+      });
+      if (!result.isConfirmed) return null;
+      const typed = String(result.value || "").trim();
+      return typed && typed !== String(value).trim() ? typed : null;
+    },
   };
 }

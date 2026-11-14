@@ -7,6 +7,32 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Eight small pages on modules; tables renamed and presets applied in Rasova's own sheets
+
+### Fixed
+- **Renaming a table works in the Android app.** Setup, Tables asked for the new name with the browser's `prompt()`, which never shows there. It is Rasova's own sheet now: `ui.ask()` in `static/js/core/toast.js`, the text-input replacement for `prompt()` (the title is text, never read as HTML). The tables are buttons, so a keyboard reaches them.
+- **The control panel's preset buttons work for any restaurant name.** The page put the name straight into its script, so a name with a backtick broke the script ("missing ) after argument list") and no preset applied. The name is data on the button now, and the question is Rasova's own sheet, not `confirm()`.
+- **A double tap opens the cash register once.** Start Session and Finalize ignore a second tap while the first is out.
+
+### Changed
+- Off the ratchet, each with its script in a module and its CSS in a file: Setup Tables (`static/js/setup/tables.js`, `rename_table.js`), the cash register (`static/js/shifts/`), the browser receipt (`static/js/orders/thermal_receipt.js`), the control panel's restaurant page (`static/js/accounts/`), the login page (`static/js/accounts/login.js`, and `static/js/core/theme_boot.js` in its head for dark mode before the first paint), Printer Setup (the paper width cards and the Advanced switch are buttons; `static/js/setup/mac.js` formats the MAC address), the reports' tab row (`static/js/reports/tabs.js`).
+- **The order locked page is on `base.html`**: the one header and its theme switch, not a copy of the theme code with its own colours.
+- **The browser receipt's sizes follow the roll in CSS**: `html.paper-58` or `html.paper-80` sets them (`static/css/orders/thermal_receipt.css`), `receipt_page_58/80.css` its `@page`. The view no longer computes the four font sizes.
+- The ratchet holds 32 templates (was 40).
+
+### Tests
+- `core/tests/test_small_pages_browser.py` (6, Chromium): a table renamed in the sheet; a preset applied for a restaurant called "Bob`s ${bar}"; the printer page's width, Advanced and MAC; the login theme switch lasting past a reload; the register opened once from a double tap; the reports' tab row centred on a phone. The rename and preset tests fail on the old pages.
+- `static/js/tests/small_pages.test.mjs` (15): `ui.ask`, renaming, the register, presets, the MAC format, the tab row, the receipt's print on load.
+- `reports.tests.test_inventory_report_amounts`: reads that the page loads the tab module, not its old inline script.
+
+## 2026-11-14: A platform superuser's pages stop polling a 500
+
+### Fixed
+- **`/api/notifications/` answered 500 for a superuser with no outlet** (found by a browser test on the control panel). `printing_state` (the printer chip's facts, added 13 Nov) read `outlet.pk` of `None`, so every page a platform superuser opened failed its 8-second poll. It answers `None` with no outlet, which the chip already reads as "nothing to say".
+
+### Tests
+- `printing.test_printing_status`: a superuser with no outlet gets a 200 and no printing state (fails on the old code).
+
 ## 2026-11-14: 29 pages lose their inline stylesheets; the invoice and PO PDFs read their CSS from disk
 
 The 29 templates with a `<style>` block and no script of their own hold markup only now.

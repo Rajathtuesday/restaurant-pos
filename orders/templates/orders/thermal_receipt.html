@@ -1,77 +1,10 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load static %}<!DOCTYPE html>
+<html lang="en" class="paper-{% if paper_width == 58 %}58{% else %}80{% endif %}">
 <head>
 <meta charset="UTF-8">
 <title>Receipt</title>
-<style>
-/* ── Thermal paper formatting ─────────────────────────────────────────── */
-@page {
-  size: {{ paper_width }}mm auto;
-  margin: 2mm 3mm;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: {{ font_size }}px;
-  width: {{ paper_width }}mm;
-  max-width: {{ paper_width }}mm;
-  color: #000;
-  background: #fff;
-}
-
-.center  { text-align: center; }
-.right   { text-align: right; }
-.bold    { font-weight: bold; }
-.big     { font-size: {{ big_font }}px; font-weight: bold; }
-.small   { font-size: {{ small_font }}px; }
-
-.sep     { border-top: 1px dashed #000; margin: 2mm 0; }
-.sep-solid { border-top: 1px solid #000; margin: 2mm 0; }
-
-/* Two-column row */
-.row { display: flex; justify-content: space-between; }
-.row .label { flex: 1; }
-.row .value { white-space: nowrap; padding-left: 2mm; }
-
-/* Token number: large for QSR */
-.token-num {
-  font-size: {{ token_font }}px;
-  font-weight: bold;
-  text-align: center;
-  padding: 1mm 0;
-  letter-spacing: 1px;
-}
-
-/* KOT section */
-.kot-section {
-  margin-top: 3mm;
-  padding-top: 2mm;
-}
-.kot-header {
-  font-size: {{ big_font }}px;
-  font-weight: bold;
-  text-align: center;
-}
-.station-label {
-  text-align: center;
-  font-size: {{ small_font }}px;
-  border: 1px solid #000;
-  display: inline-block;
-  padding: 0 2mm;
-  margin: 1mm auto;
-  width: 100%;
-}
-.item-line { padding: 0.5mm 0; }
-.item-qty  { font-weight: bold; }
-.item-note { padding-left: 3mm; font-size: {{ small_font }}px; }
-
-@media print {
-  html, body { width: {{ paper_width }}mm; }
-  .no-print  { display: none !important; }
-}
-</style>
+{% if paper_width == 58 %}<link rel="stylesheet" href="{% static 'css/orders/receipt_page_58.css' %}">{% else %}<link rel="stylesheet" href="{% static 'css/orders/receipt_page_80.css' %}">{% endif %}
+<link rel="stylesheet" href="{% static 'css/orders/thermal_receipt.css' %}">
 </head>
 <body>
 
@@ -85,7 +18,7 @@ body {
 <!-- Page 1: Summary bill (customer keeps) -->
 <div style="page-break-after: always;">
 {% with is_comp=order.is_bill_of_supply %}
-<div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
+<div class="center bold title-line">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
 {% if order.outlet.gst_no %}<div class="center small">GSTIN: {{ order.outlet.gst_no }}</div>{% endif %}
 <div class="center bold small">{{ layout.title|upper }}</div>
@@ -109,7 +42,7 @@ body {
 <!-- Pages 2+: One slip per category -->
 {% for group in category_groups %}
 <div style="{% if not forloop.last %}page-break-after: always;{% endif %}">
-<div class="center bold" style="font-size:{{ big_font }}px;">{{ group.cat_name|upper }}</div>
+<div class="center bold title-line">{{ group.cat_name|upper }}</div>
 {% if token %}<div class="center small">Token {{ token }}</div>{% endif %}
 <div class="sep-solid"></div>
 {% for item in group.items %}
@@ -129,7 +62,7 @@ body {
 {% else %}
 <!-- ── Normal single receipt ──────────────────────────────────── -->
 {% with is_comp=order.is_bill_of_supply %}
-<div class="center bold" style="font-size:{{ big_font }}px;">{{ order.tenant.name }}</div>
+<div class="center bold title-line">{{ order.tenant.name }}</div>
 <div class="center small">{{ order.outlet.name }}</div>
 {% if order.outlet.address %}<div class="center small">{{ order.outlet.address }}</div>{% endif %}
 {% if order.outlet.phone %}<div class="center small">Ph: {{ order.outlet.phone }}</div>{% endif %}
@@ -189,19 +122,7 @@ body {
 
 <div style="margin-top:5mm;"></div>
 
-<!-- Auto-print on load ──────────────────────────────────────── -->
-<script>
-window.addEventListener('load', function() {
-  // Small delay so fonts/content render before print dialog opens
-  setTimeout(function() {
-    window.print();
-    // Close the window after printing (user can cancel print dialog to keep it open)
-    window.addEventListener('afterprint', function() {
-      window.close();
-    });
-  }, 400);
-});
-</script>
+<script type="module" src="{% static 'js/orders/thermal_receipt.js' %}"></script>
 
 </body>
 </html>

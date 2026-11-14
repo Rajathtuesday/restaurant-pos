@@ -1,0 +1,69 @@
+/* orders/templates/orders/thermal_receipt.html: the browser receipt.
+   Sizes follow the roll: the page sets html.paper-58 or html.paper-80
+   (the station's paper width), and receipt_page_58/80.css its @page. */
+html.paper-80 { --paper: 80mm; --font: 11px; --big: 13px; --small: 10px; --token: 24px; }
+html.paper-58 { --paper: 58mm; --font: 10px; --big: 12px; --small: 9px; --token: 20px; }
+.title-line { font-size: var(--big); }
+
+/* ── Thermal paper formatting ─────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--font);
+  width: var(--paper);
+  max-width: var(--paper);
+  color: #000;
+  background: #fff;
+}
+
+.center  { text-align: center; }
+.right   { text-align: right; }
+.bold    { font-weight: bold; }
+.big     { font-size: var(--big); font-weight: bold; }
+.small   { font-size: var(--small); }
+
+.sep     { border-top: 1px dashed #000; margin: 2mm 0; }
+.sep-solid { border-top: 1px solid #000; margin: 2mm 0; }
+
+/* Two-column row */
+.row { display: flex; justify-content: space-between; }
+.row .label { flex: 1; }
+.row .value { white-space: nowrap; padding-left: 2mm; }
+
+/* Token number: large for QSR */
+.token-num {
+  font-size: var(--token);
+  font-weight: bold;
+  text-align: center;
+  padding: 1mm 0;
+  letter-spacing: 1px;
+}
+
+/* KOT section */
+.kot-section {
+  margin-top: 3mm;
+  padding-top: 2mm;
+}
+.kot-header {
+  font-size: var(--big);
+  font-weight: bold;
+  text-align: center;
+}
+.station-label {
+  text-align: center;
+  font-size: var(--small);
+  border: 1px solid #000;
+  display: inline-block;
+  padding: 0 2mm;
+  margin: 1mm auto;
+  width: 100%;
+}
+.item-line { padding: 0.5mm 0; }
+.item-qty  { font-weight: bold; }
+.item-note { padding-left: 3mm; font-size: var(--small); }
+
+@media print {
+  html, body { width: var(--paper); }
+  .no-print  { display: none !important; }
+}

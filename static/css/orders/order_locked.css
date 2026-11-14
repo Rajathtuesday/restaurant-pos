@@ -1,0 +1,42 @@
+/* orders/templates/orders/order_locked.html: shown when someone else has
+   the order open. Colours are the theme tokens, so it follows the
+   header's light and dark switch. */
+.lock-page { display: flex; align-items: center; justify-content: center; min-height: 70vh; padding: 2rem 1rem; }
+
+.lock-container {
+    background: var(--panel-bg);
+    padding: 3rem;
+    border-radius: 16px;
+    box-shadow: var(--shadow-hover);
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    border: 1px solid var(--border-color);
+}
+.lock-container h2 { font-family: var(--font-display, 'DM Serif Display', serif); font-weight: 700; color: var(--text-main); }
+.lock-container p { color: var(--text-muted); font-size: 1rem; margin-top: 1rem; line-height: 1.6; }
+
+.lock-icon {
+    font-size: 4rem;
+    color: var(--accent-gold);
+    margin-bottom: 1.5rem;
+    display: inline-block;
+    animation: pulse-gold 2s infinite ease-in-out;
+}
+@keyframes pulse-gold {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .lock-icon { animation: none; } }
+
+.user-badge {
+    font-weight: 700;
+    color: var(--text-main);
+    background: rgba(197, 160, 89, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--accent-gold);
+    font-size: 0.9rem;
+}
+.lock-back { margin-top: 2rem; display: inline-flex; align-items: center; }

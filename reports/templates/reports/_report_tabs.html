@@ -1,16 +1,8 @@
-<a href="/reports/dashboard/" class="report-tab {% if request.path == '/reports/dashboard/' %}active{% endif %}">Sales</a>
+{% load static %}<a href="/reports/dashboard/" class="report-tab {% if request.path == '/reports/dashboard/' %}active{% endif %}">Sales</a>
 <a href="/reports/kitchen/" class="report-tab {% if 'kitchen' in request.path %}active{% endif %}">Kitchen KPIs</a>
 <a href="/reports/inventory/" class="report-tab {% if 'inventory' in request.path %}active{% endif %}">Inventory</a>
 <a href="/reports/menu-engineering/" class="report-tab {% if 'menu-engineering' in request.path %}active{% endif %}">Menu Engineering</a>
 <a href="/reports/labor/" class="report-tab {% if 'labor' in request.path %}active{% endif %}">Labor Cost</a>
 <a href="/reports/audit/" class="report-tab {% if 'audit' in request.path %}active{% endif %}">Discount/Void Audit</a>
 <a href="/reports/crm-analytics/" class="report-tab {% if 'crm-analytics' in request.path %}active{% endif %}">CRM Analytics</a>
-<script>
-  // On a narrow screen the tab row scrolls sideways (see luxury.css), so bring the current report's tab into view.
-  (function (strip) {
-    var active = strip && strip.querySelector(".report-tab.active");
-    if (!active || strip.scrollWidth <= strip.clientWidth) return;
-    var offset = active.getBoundingClientRect().left - strip.getBoundingClientRect().left + strip.scrollLeft;
-    strip.scrollLeft = offset - (strip.clientWidth - active.offsetWidth) / 2;
-  })(document.currentScript && document.currentScript.parentElement);
-</script>
+<script type="module" src="{% static 'js/reports/tabs.js' %}"></script>

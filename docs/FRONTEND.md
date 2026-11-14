@@ -21,7 +21,7 @@ static/js/core/      what base.html runs on every page
   app.js             builds everything below and wires the header; also the bridge (see below)
   http.js            createClient: JSON in and out, CSRF, the loading bar, errors as toasts, the manager-PIN retry
   offline.js         the order queue and the cash-payment queue (IndexedDB), replayed when the connection is back
-  toast.js           createUi: toast, confirm, showLoading, hideLoading (wraps SweetAlert2)
+  toast.js           createUi: toast, confirm, ask (one line of text: never prompt()), showLoading, hideLoading (wraps SweetAlert2)
   theme.js           dark and light
   notifications.js   the 8-second poll and the header badges
   platform.js        where Rasova runs; the Android print bridge
@@ -32,6 +32,7 @@ static/js/core/      what base.html runs on every page
   page_actions.js    the shared buttons any page may have: page.print, page.reload, page.back, field.select
                      (app.js handles them; no page module may handle these names again: one tap would run twice)
   standalone.js      for a page without base.html (a printout): the shared buttons and nothing else
+  theme_boot.js      for a page without base.html: dark mode before the first paint (a plain script in the head)
   money.js           rupees(): money written one way (core/money.py is the server's copy; one table of examples tests both)
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")

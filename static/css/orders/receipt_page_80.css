@@ -1,0 +1,5 @@
+/* The browser receipt on a 80 mm roll (orders/thermal_receipt.html). */
+@page {
+  size: 80mm auto;
+  margin: 2mm 3mm;
+}

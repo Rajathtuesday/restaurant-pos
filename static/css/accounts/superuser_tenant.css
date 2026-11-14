@@ -1,0 +1,19 @@
+/* accounts/templates/accounts/superuser_tenant.html */
+.cfg-wrap { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem 6rem; }
+.cfg-section { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.75rem; margin-bottom: 1.5rem; }
+.cfg-section h3 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; font-weight: 400; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 8px; }
+.field { margin-bottom: 1rem; }
+.field label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.3rem; }
+.field input, .field select { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 0.9rem; font-family: inherit; outline: none; }
+.field input:focus, .field select:focus { border-color: var(--accent-gold); }
+.field select option { background: var(--panel-bg); }
+.field-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.btn-cfg { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.5rem 1.2rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; transition: all 0.2s; }
+.btn-cfg:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn-cfg-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-cfg-primary:hover { background: #b59250; color: #fff; }
+.feat-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; margin: 3px; }
+.feat-on  { background: rgba(16,185,129,.1); color:#10b981; border:1px solid rgba(16,185,129,.3); }
+.feat-off { background: rgba(115,115,115,.1); color:var(--text-muted); border:1px solid var(--border-color); }
+.staff-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; }
+.role-chip { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }

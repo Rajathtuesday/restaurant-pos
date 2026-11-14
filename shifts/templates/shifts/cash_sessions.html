@@ -1,21 +1,10 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}EOD Reconciliation | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .dashboard-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
-    .section-title { font-family: 'DM Serif Display', serif; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.5rem; }
-    .stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 0.5rem; display: block; }
-    .stat-val { font-family: 'Space Mono', monospace; font-size: 1.4rem; color: var(--text-main); }
-    .table-luxury { width: 100%; }
-    .table-luxury th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 1rem; border-bottom: 1px solid var(--border-color); }
-    .table-luxury td { padding: 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.9rem; }
-    .discrepancy-neg { color: #dc3545; font-weight: 600; }
-    .discrepancy-pos { color: #198754; font-weight: 600; }
-    .modal-content { border-radius: 0; background: var(--panel-bg); color: var(--text-main); border: 1px solid var(--border-color); }
-    .form-control { border-radius: 0; background: transparent; color: var(--text-main); border: 1px solid var(--border-color); }
-</style>
+<link rel="stylesheet" href="{% static 'css/shifts/cash_sessions.css' %}">
 {% endblock %}
 
 {% block page_title %}Cash Register{% endblock %}
@@ -95,7 +84,7 @@
                 <input type="number" id="open-amt" class="form-control" value="0.00">
             </div>
             <div class="modal-footer border-0">
-                <button class="btn-luxury" onclick="handleSession('open')">Start Session</button>
+                <button type="button" class="btn-luxury" data-action="session.submit" data-url="{% url 'open-cash-session' %}" data-field="opening_balance" data-input="open-amt">Start Session</button>
             </div>
         </div>
     </div>
@@ -112,7 +101,7 @@
                 <input type="number" id="close-amt" class="form-control" placeholder="0.00">
             </div>
             <div class="modal-footer border-0">
-                <button class="btn-luxury" onclick="handleSession('close')">Finalize & Reconcile</button>
+                <button type="button" class="btn-luxury" data-action="session.submit" data-url="{% url 'close-cash-session' %}" data-field="actual_cash" data-input="close-amt">Finalize & Reconcile</button>
             </div>
         </div>
     </div>
@@ -120,16 +109,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    async function handleSession(type) {
-        const url = type === 'open' ? '/shifts/sessions/open/' : '/shifts/sessions/close/';
-        const val = type === 'open' ? document.getElementById('open-amt').value : document.getElementById('close-amt').value;
-        const body = type === 'open' ? { opening_balance: val } : { actual_cash: val };
-        try {
-            const data = await apiClient.post(url, body);
-            if (data.error) { ui.toast(data.error, 'error'); return; }
-            window.location.reload();
-        } catch (e) {}
-    }
-</script>
+<script type="module" src="{% static 'js/shifts/cash_sessions.js' %}"></script>
 {% endblock %}
