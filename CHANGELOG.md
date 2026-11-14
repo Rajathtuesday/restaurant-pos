@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-14: No long dashes left in any template
+
+### Changed
+- **The 176 em dashes in 45 templates are gone** (V14), some in text people read: page titles ("Setup · Restaurant"), onboarding buttons ("Continue: Add Menu"), role choices ("Cashier: takes payments"), report headings ("Staff cost vs. revenue · 1 Nov to 7 Nov"), select prompts ("Select supplier"), a week's dates ("Nov 9 to Nov 15"). A value that is missing shows "-". Each line was read and given a colon, a full stop, a comma, brackets or a middle dot, whichever the sentence needed.
+
+### Tests
+- `core/tests/test_frontend_hygiene.py` fails on any template with an em dash, the marketing site included (it failed on the 45 before this change). `core/tests/test_public_pages.py` wrote the character it checks for literally; it is escaped now.
+
 ## 2026-11-14: A runbook for the night it breaks
 
 ### Added

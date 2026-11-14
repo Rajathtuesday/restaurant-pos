@@ -62,7 +62,7 @@
 
   <div class="page-eyebrow">Inventory</div>
   <h1 class="page-title">Consumption Report</h1>
-  <p class="page-sub">What your kitchen used today — auto-calculated from orders and recipes.</p>
+  <p class="page-sub">What your kitchen used today, auto-calculated from orders and recipes.</p>
 
   <div class="divider"></div>
 
@@ -118,7 +118,7 @@
       {% with item=row.item consumed=row.consumed %}
       <tr data-name="{{ item.name|lower }}" data-category="{{ item.category }}">
         <td style="font-weight:600;">{{ item.name }}</td>
-        <td style="color:var(--text-muted);font-size:.8rem;">{{ item.category|default:"—" }}</td>
+        <td style="color:var(--text-muted);font-size:.8rem;">{{ item.category|default:"-" }}</td>
         <td style="font-family:'Space Mono',monospace;color:var(--accent-gold);">
           {{ consumed|floatformat:3 }}
         </td>

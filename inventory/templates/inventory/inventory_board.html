@@ -152,7 +152,7 @@
                     {% for item in items %}
                     <tr>
                         <td class="fw-semibold">{{ item.name }}</td>
-                        <td class="text-muted" style="font-size:0.85rem;">{{ item.category|default:"—" }}</td>
+                        <td class="text-muted" style="font-size:0.85rem;">{{ item.category|default:"-" }}</td>
                         <td class="stock-val text-muted">₹{{ item.cost_price }}</td>
                         <td id="stock{{ item.id }}" class="stock-val">{{ item.stock }}</td>
                         <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{ item.unit }}</td>
@@ -170,8 +170,8 @@
                             <div class="d-flex align-items-center gap-2">
                                 <input type="number" min="0" step="0.01" id="add{{ item.id }}" class="input-luxury" placeholder="Qty">
                                 <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')" title="Add received stock"><i class="bi bi-plus-lg me-1"></i>Add</button>
-                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage — reduces stock and records it as a loss"><i class="bi bi-droplet-half me-1"></i>Waste</button>
-                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="openAdjustModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}', '{{ item.stock }}')" title="Correct stock after a physical count — not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
+                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage: reduces stock and records it as a loss"><i class="bi bi-droplet-half me-1"></i>Waste</button>
+                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="openAdjustModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}', '{{ item.stock }}')" title="Correct stock after a physical count: not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
                             </div>
                         </td>
                         <td>
@@ -424,7 +424,7 @@ function generatePurchaseOrders() {
         if (!data.success) { alert('Could not generate purchase orders.'); btn.disabled = false; return; }
 
         if (!data.has_suppliers && data.processed_count === 0) {
-            text.innerHTML = `You haven't added any suppliers yet — add one to start generating purchase orders. ` +
+            text.innerHTML = `You haven't added any suppliers yet. Add one to start generating purchase orders. ` +
                 `<a href="{% url 'supplier_list' %}" style="color:var(--accent-gold);">Add a Supplier</a>`;
             btn.remove();
             return;

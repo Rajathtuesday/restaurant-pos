@@ -331,7 +331,7 @@
           {% if order.created_by %}
             {{ order.created_by.first_name|default:order.created_by.username }}
           {% else %}
-            <span style="color:var(--text-muted);">—</span>
+            <span style="color:var(--text-muted);">-</span>
           {% endif %}
         </td>
         <td style="font-size:0.82rem;">{{ order.items.count }}</td>
@@ -390,7 +390,7 @@
     <div id="refundMaxAmt" style="font-size:0.95rem;font-weight:700;color:var(--accent-gold);margin-bottom:0.75rem;"></div>
     <label>Amount (₹)</label>
     <input type="number" id="refundAmount" min="1" step="0.01" placeholder="Enter amount">
-    <label style="margin-top:0.75rem;">Customer Complaint <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(optional — what the customer said)</span></label>
+    <label style="margin-top:0.75rem;">Customer Complaint <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(optional: what the customer said)</span></label>
     <textarea id="refundCustomerComplaint" rows="2" placeholder="e.g. Food arrived cold, Wrong order delivered..."></textarea>
     <label style="margin-top:0.75rem;">Manager Note <span style="color:#e74c3c;">*</span> <span style="color:var(--text-muted);font-weight:400;font-size:0.75rem;">(internal reason for approval)</span></label>
     <textarea id="refundReason" rows="2" placeholder="e.g. Verified complaint, approving refund..."></textarea>
@@ -455,7 +455,7 @@ function renderDetail(o) {
     <div class="detail-row"><span class="name">Date</span><span class="amt">${o.created_at}</span></div>
     <div class="detail-row"><span class="name">Location</span><span class="amt">${o.location}</span></div>
     <div class="detail-row"><span class="name">Source</span><span class="amt">${o.source.replace("_"," ")}</span></div>
-    <div class="detail-row"><span class="name">Waiter / Staff</span><span class="amt">${o.waiter || "—"}</span></div>
+    <div class="detail-row"><span class="name">Waiter / Staff</span><span class="amt">${o.waiter || "-"}</span></div>
     ${o.customer_name  ? `<div class="detail-row"><span class="name">Customer</span><span class="amt">${o.customer_name}</span></div>` : ""}
     ${o.customer_phone ? `<div class="detail-row"><span class="name">Phone</span><span class="amt">${o.customer_phone}</span></div>` : ""}
     ${o.duration_mins !== null ? `<div class="detail-row"><span class="name">Duration</span><span class="amt">${o.duration_mins} min</span></div>` : ""}
@@ -535,7 +535,7 @@ function renderDetail(o) {
     html += `</div>`;
   }
 
-  // Audit trail (owner/manager only — empty array for others)
+  // Audit trail (owner/manager only: empty array for others)
   if (o.events && o.events.length) {
     html += `<div class="detail-section"><div class="detail-section-title">Audit Trail</div>`;
     o.events.forEach(ev => {

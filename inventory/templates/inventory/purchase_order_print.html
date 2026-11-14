@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchase Order {{ po.po_number|default:po.id }} — {{ po.tenant.name }}</title>
+    <title>Purchase Order {{ po.po_number|default:po.id }} · {{ po.tenant.name }}</title>
     <style>
         /* ── Reset & Base ─────────────────────────────────────────── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -423,7 +423,7 @@
                     {% if po.ordered_at %}
                         <div class="dc-value">{{ po.ordered_at|date:"d M Y" }}</div>
                     {% else %}
-                        <div class="dc-value muted">—</div>
+                        <div class="dc-value muted">-</div>
                     {% endif %}
                 </div>
                 <div class="date-cell">
@@ -431,7 +431,7 @@
                     {% if po.received_at %}
                         <div class="dc-value">{{ po.received_at|date:"d M Y" }}</div>
                     {% else %}
-                        <div class="dc-value muted">—</div>
+                        <div class="dc-value muted">-</div>
                     {% endif %}
                 </div>
             </div>
@@ -493,11 +493,11 @@
             <div class="signatures">
                 <div class="sig-block">
                     <div class="sig-line"></div>
-                    <div class="sig-label">Authorised Signatory — {{ po.tenant.name }}</div>
+                    <div class="sig-label">Authorised Signatory: {{ po.tenant.name }}</div>
                 </div>
                 <div class="sig-block">
                     <div class="sig-line"></div>
-                    <div class="sig-label">Received By — {{ po.supplier.name }}</div>
+                    <div class="sig-label">Received By: {{ po.supplier.name }}</div>
                 </div>
             </div>
 

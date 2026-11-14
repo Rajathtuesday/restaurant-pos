@@ -83,7 +83,7 @@
 
 <div class="page-wrap">
   <h1 class="section-title">CRM Analytics</h1>
-  <p class="section-sub">Repeat customers, loyalty activity, feedback — {{ start_date }} to {{ end_date }}</p>
+  <p class="section-sub">Repeat customers, loyalty activity, feedback · {{ start_date }} to {{ end_date }}</p>
 
   <div class="schema-note">
     <i class="bi bi-info-circle me-1"></i>
@@ -101,7 +101,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-label">Average Rating</div>
-      <div class="stat-value">{% if report.avg_rating %}{{ report.avg_rating }}★{% else %}—{% endif %}</div>
+      <div class="stat-value">{% if report.avg_rating %}{{ report.avg_rating }}★{% else %}-{% endif %}</div>
     </div>
   </div>
 

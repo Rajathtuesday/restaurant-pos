@@ -51,7 +51,7 @@
                     {% for res in reservations %}
                     <tr>
                         <td style="font-family:'Space Mono',monospace; font-size:0.85rem;">{{ res.reservation_time|date:"H:i" }}</td>
-                        <td><strong>{{ res.guest.name|default:"—" }}</strong></td>
+                        <td><strong>{{ res.guest.name|default:"-" }}</strong></td>
                         <td>{{ res.guest.phone }}</td>
                         <td>{{ res.table.name|default:"TBD" }}</td>
                         <td>{{ res.number_of_guests }} pax</td>

@@ -137,7 +137,7 @@
   <!-- RIGHT: EXISTING STATIONS -->
   <div>
 
-    <!-- Agent status — single row -->
+    <!-- Agent status: single row -->
     <div class="agent-row">
       <span class="agent-pill">
         <span class="dot" id="agentDot"></span>
@@ -233,13 +233,13 @@
           <div>
             <label class="field-label">Paper Width</label>
             <select class="field-select" id="paper-{{ station.id }}">
-              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm — standard</option>
-              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm — narrow</option>
+              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm (standard)</option>
+              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm (narrow)</option>
             </select>
           </div>
         </div>
 
-        <!-- Advanced fields — collapsed by default -->
+        <!-- Advanced fields: collapsed by default -->
         <button class="advanced-toggle" onclick="toggleAdvanced({{ station.id }})">
           <i class="bi bi-chevron-right" id="adv-icon-{{ station.id }}" style="font-size:0.6rem;"></i>
           Advanced
@@ -262,9 +262,9 @@
           </div>
           <label class="field-label">Encoding</label>
           <select class="field-select" id="enc-{{ station.id }}" style="max-width:320px;">
-            <option value="cp437" {% if station.printer_encoding == 'cp437' %}selected{% endif %}>CP437 — standard (most printers)</option>
-            <option value="cp850" {% if station.printer_encoding == 'cp850' %}selected{% endif %}>CP850 — western Europe</option>
-            <option value="utf-8" {% if station.printer_encoding == 'utf-8' %}selected{% endif %}>UTF-8 — modern printers only</option>
+            <option value="cp437" {% if station.printer_encoding == 'cp437' %}selected{% endif %}>CP437 (standard, most printers)</option>
+            <option value="cp850" {% if station.printer_encoding == 'cp850' %}selected{% endif %}>CP850 (western Europe)</option>
+            <option value="utf-8" {% if station.printer_encoding == 'utf-8' %}selected{% endif %}>UTF-8 (modern printers only)</option>
           </select>
           <p class="hint">Leave CP437 unless your printer explicitly supports UTF-8.</p>
         </div>
@@ -292,7 +292,7 @@
       </div>
     </div>
     {% empty %}
-    <p class="empty-state">No stations yet. Add one on the left — at least one is needed for KOT routing.</p>
+    <p class="empty-state">No stations yet. Add one on the left. At least one is needed for KOT routing.</p>
     {% endfor %}
 
   </div>
@@ -336,11 +336,11 @@
     </div>
     <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;row-gap:0.5rem;">
       <div class="strip-block strip-bill">BILL</div>
-      <div class="strip-cut strip-part">— partial</div>
+      <div class="strip-cut strip-part">partial cut</div>
       {% for station in stations %}
       <div class="strip-block strip-kot">KOT<br><span style="font-size:0.6rem;opacity:0.8;">{{ station.name }}</span></div>
       {% if not forloop.last %}
-      <div class="strip-cut strip-part">— partial</div>
+      <div class="strip-cut strip-part">partial cut</div>
       {% else %}
       <div class="strip-cut strip-full">✂ FULL CUT</div>
       {% endif %}
@@ -348,7 +348,7 @@
     </div>
     <p style="font-size:0.72rem;color:var(--text-muted);margin-top:1rem;margin-bottom:0;border-top:1px solid var(--border-color);padding-top:0.75rem;">
       Cashier tears off the full strip after payment. Staff deliver each section to the station.
-      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set</strong> — open the default station above and enter its IP.{% endif %}
+      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set</strong>: open the default station above and enter its IP.{% endif %}
     </p>
   </div>
   {% endif %}
@@ -387,7 +387,7 @@ async function checkAgentStatus() {
     text.style.color = '#10b981';
   } catch {
     dot.className  = 'dot red';
-    text.innerHTML = 'Agent not running — <a href="{% url 'agent_download' 'rasova_agent_installer.bat' %}" download style="color:var(--accent-gold);">Download installer</a>';
+    text.innerHTML = 'Agent not running. <a href="{% url 'agent_download' 'rasova_agent_installer.bat' %}" download style="color:var(--accent-gold);">Download installer</a>';
     text.style.color = 'var(--text-muted)';
   }
 }
@@ -398,7 +398,7 @@ async function setPrintMode(mode) {
     if (!confirm(
       'Switch to One Printer mode?\n\n' +
       'This will clear the printer IP from all stations except the default station.\n\n' +
-      'The default station keeps its IP — bill + KOTs print there as one strip.'
+      'The default station keeps its IP: bill + KOTs print there as one strip.'
     )) return;
     try {
       await apiClient.post('/setup/kitchen-stations/set-mode/cashier/', {});
@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
   {% if any_station_has_printer %}
   hint.textContent = 'Each station has its own printer. KOTs print at the station when the order is sent.';
   {% else %}
-  hint.innerHTML = '✓ One Printer mode — enter the IP on the <strong>{% if default_station %}{{ default_station.name }}{% else %}default{% endif %}</strong> station only.';
+  hint.innerHTML = '✓ One Printer mode: enter the IP on the <strong>{% if default_station %}{{ default_station.name }}{% else %}default{% endif %}</strong> station only.';
   hint.style.color = '#10b981';
   {% endif %}
 });

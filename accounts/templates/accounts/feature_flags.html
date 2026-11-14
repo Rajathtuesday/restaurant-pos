@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Feature Management{% if tenant %} — {{ tenant.name }}{% endif %} | Rasova{% endblock %}
+{% block title %}Feature Management{% if tenant %} · {{ tenant.name }}{% endif %} | Rasova{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -86,7 +86,7 @@
 
     <div class="staff-banner">
         <i class="bi bi-shield-lock-fill"></i>
-        Rasova Staff Only — changes here affect what restaurant owners can see and do.
+        Rasova Staff Only: changes here affect what restaurant owners can see and do.
     </div>
 
     {% if not tenant %}
@@ -95,7 +95,7 @@
         <p>Choose a tenant to view and manage their feature overrides.</p>
         <form method="get">
             <select name="tenant_id" id="tenant-select" required>
-                <option value="">— pick a restaurant —</option>
+                <option value="">Pick a restaurant</option>
                 {% for t in all_tenants %}
                 <option value="{{ t.id }}">{{ t.name }} · {{ t.get_tenant_type_display }}</option>
                 {% endfor %}

@@ -90,19 +90,19 @@
 
 <div class="page-wrap">
   <h1 class="section-title">Menu Engineering</h1>
-  <p class="section-sub">Popularity vs. profitability, split at the median of each — {{ start_date }} to {{ end_date }}</p>
+  <p class="section-sub">Popularity vs. profitability, split at the median of each · {{ start_date }} to {{ end_date }}</p>
 
   <div class="quadrant-legend">
-    <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Star — popular &amp; profitable</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Plowhorse — popular, low margin</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>Puzzle — profitable, low volume</div>
-    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Dog — neither</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span>Star: popular &amp; profitable</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Plowhorse: popular, low margin</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#f97316;"></span>Puzzle: profitable, low volume</div>
+    <div class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Dog: neither</div>
   </div>
 
   {% if report.items_with_unknown_cost %}
   <div style="font-size:0.78rem;color:var(--text-muted);padding:0.75rem 1rem;border-left:2px solid var(--border-color);margin-bottom:1.5rem;">
     <i class="bi bi-info-circle me-1"></i>
-    {{ report.items_with_unknown_cost }} item{{ report.items_with_unknown_cost|pluralize }} have no recipe linked, so their cost — and quadrant — can't be determined.
+    {{ report.items_with_unknown_cost }} item{{ report.items_with_unknown_cost|pluralize }} have no recipe linked, so their cost (and quadrant) can't be determined.
     Link a recipe in <a href="/menu/" style="color:var(--accent-gold);">Menu Management</a> to include them.
   </div>
   {% endif %}
@@ -121,7 +121,7 @@
         <td class="num">{{ item.qty }}</td>
         <td class="num">₹{{ item.revenue|floatformat:0 }}</td>
         <td class="num">{% if item.cogs_known %}₹{{ item.cogs|floatformat:0 }}{% else %}<span style="color:var(--text-muted);">unknown</span>{% endif %}</td>
-        <td class="num">{% if item.cogs_known %}{{ item.margin_pct }}%{% else %}—{% endif %}</td>
+        <td class="num">{% if item.cogs_known %}{{ item.margin_pct }}%{% else %}-{% endif %}</td>
         <td><span class="quadrant-badge quadrant-{{ item.quadrant }}">{{ item.quadrant }}</span></td>
       </tr>
       {% empty %}

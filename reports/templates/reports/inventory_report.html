@@ -258,7 +258,7 @@
                 {% if txn.quantity > 0 %}+{% endif %}{{ txn.quantity|floatformat:3 }}
                 <span style="font-size:0.75rem; color:var(--text-muted);">{{ txn.item.unit }}</span>
               </td>
-              <td style="color:var(--text-muted); font-size:0.8rem;">{{ txn.reference|default:"—" }}</td>
+              <td style="color:var(--text-muted); font-size:0.8rem;">{{ txn.reference|default:"-" }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -444,7 +444,7 @@
       </div>
       <div style="padding:0.75rem 1rem;border-top:1px solid var(--border-color);font-size:0.75rem;color:var(--text-muted);">
         <i class="bi bi-info-circle"></i>
-        Sorted by lowest portions first. Based on current live stock levels — not date-filtered.
+        Sorted by lowest portions first. Based on current live stock levels, not date-filtered.
         <span style="float:right;">{{ capacity|length }} items with recipes</span>
       </div>
       {% else %}
@@ -493,7 +493,7 @@
                 {% if item.stock == 0 %}
                   <span class="badge-type badge-wastage">OUT OF STOCK</span>
                 {% elif item.stock <= item.low_stock_threshold %}
-                  <span class="badge-type badge-adjustment">LOW — REORDER</span>
+                  <span class="badge-type badge-adjustment">LOW · REORDER</span>
                 {% else %}
                   <span class="badge-type badge-consume">OK</span>
                 {% endif %}

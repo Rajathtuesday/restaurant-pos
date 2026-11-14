@@ -123,7 +123,7 @@
           <div style="font-size:0.72rem;color:var(--text-muted);">#{{ row.tenant.id }}</div>
         </td>
         <td><span class="type-badge {{ row.tenant.tenant_type }}">{{ row.tenant.get_tenant_type_display }}</span></td>
-        <td style="font-size:0.85rem;color:var(--text-muted);">{{ row.outlet.name|default:"—" }}</td>
+        <td style="font-size:0.85rem;color:var(--text-muted);">{{ row.outlet.name|default:"-" }}</td>
         <td style="font-size:0.85rem;">{{ row.user_count }}</td>
         <td>
           <span class="status-dot {% if row.tenant.is_active %}dot-active{% else %}dot-inactive{% endif %}"></span>

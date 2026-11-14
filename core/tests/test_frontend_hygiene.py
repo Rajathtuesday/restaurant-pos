@@ -216,6 +216,14 @@ class FrontendHygieneTest(SimpleTestCase):
                 problems.append(f"{rel}: in BASELINE but the file is gone; delete the entry")
         self.assertEqual(problems, [], "\n" + "\n".join(problems))
 
+    def test_no_template_has_a_long_dash(self):
+        # V14 (14 Nov 2026): Rasova writes no em dash anywhere. All 45 templates
+        # that had one were cleared; this keeps it that way, the marketing site too.
+        found = [str(p.relative_to(BASE)) for p in sorted(BASE.rglob("*.html"))
+                 if not (set(p.relative_to(BASE).parts[:-1]) & (SKIP_PARTS - {"public"}))
+                 and "\u2014" in p.read_text(encoding="utf-8")]
+        self.assertEqual(found, [])
+
     def test_measure_counts_what_it_says(self):
         text = (
             '<script src="x.js"></script>\n'

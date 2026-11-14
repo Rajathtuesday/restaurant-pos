@@ -164,14 +164,14 @@
 {% if request.user.outlet.gst_inclusive %}
 <div class="container-fluid mx-auto px-4 mt-3" style="max-width:1400px;padding:0 2rem;">
   <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-left:3px solid #10b981;padding:0.6rem 1rem;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-    <span><i class="bi bi-check-circle-fill me-2" style="color:#10b981;"></i><strong>GST Inclusive Pricing</strong> — the prices you set here are what customers pay. GST is back-calculated inside those prices.</span>
+    <span><i class="bi bi-check-circle-fill me-2" style="color:#10b981;"></i><strong>GST Inclusive Pricing</strong>: the prices you set here are what customers pay. GST is back-calculated inside those prices.</span>
     <a href="/setup/outlet/" style="font-size:0.72rem;color:#10b981;text-decoration:none;white-space:nowrap;">Change in Settings →</a>
   </div>
 </div>
 {% else %}
 <div class="container-fluid mx-auto px-4 mt-3" style="max-width:1400px;padding:0 2rem;">
   <div style="background:rgba(197,160,89,.07);border:1px solid rgba(197,160,89,.2);border-left:3px solid var(--accent-gold);padding:0.6rem 1rem;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-    <span><i class="bi bi-info-circle me-2" style="color:var(--accent-gold);"></i><strong>GST Exclusive Pricing</strong> — prices shown here are base prices. GST is added on top when billing.</span>
+    <span><i class="bi bi-info-circle me-2" style="color:var(--accent-gold);"></i><strong>GST Exclusive Pricing</strong>: prices shown here are base prices. GST is added on top when billing.</span>
     <a href="/setup/outlet/" style="font-size:0.72rem;color:var(--accent-gold);text-decoration:none;white-space:nowrap;">Change in Settings →</a>
   </div>
 </div>
@@ -233,7 +233,7 @@
             </div>
             <div class="recipe-block">
               {% for r in item.recipes.all %}
-              <div class="recipe-item">• {{ r.inventory_item.name }} — {{ r.quantity_required }} {{ r.inventory_item.unit }}</div>
+              <div class="recipe-item">• {{ r.inventory_item.name }}: {{ r.quantity_required }} {{ r.inventory_item.unit }}</div>
               {% empty %}
               <div class="recipe-item text-muted" style="font-style:italic;font-size:0.7rem;">No recipe defined</div>
               {% endfor %}
@@ -358,7 +358,7 @@
           <input type="file" id="aiMenuFile" class="form-control"
                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain">
         </div>
-        <div class="text-center my-2 text-muted small">— OR PASTE TEXT —</div>
+        <div class="text-center my-2 text-muted small">OR PASTE TEXT</div>
         <textarea id="aiMenuText" class="form-control form-input-luxury" rows="8" placeholder="Example:&#10;APPETIZERS&#10;Spring Rolls 120&#10;Paneer Tikka 250"></textarea>
       </div>
       <div class="modal-footer pt-0 border-0">
@@ -403,7 +403,7 @@
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-stars me-2"></i>Import Recipe with AI — <span id="recipeImportItemName"></span></h5>
+        <h5 class="modal-title"><i class="bi bi-stars me-2"></i>Import Recipe with AI: <span id="recipeImportItemName"></span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
@@ -413,7 +413,7 @@
           <input type="file" id="recipeImportFile" class="form-control"
                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain">
         </div>
-        <div class="text-center my-2 text-muted small">— OR PASTE TEXT —</div>
+        <div class="text-center my-2 text-muted small">OR PASTE TEXT</div>
         <textarea id="recipeImportText" class="form-control form-input-luxury" rows="6" placeholder="Example:&#10;2 cups Basmati Rice&#10;500g Chicken&#10;1 tbsp Ginger Garlic Paste&#10;Salt to taste"></textarea>
       </div>
       <div class="modal-footer pt-0 border-0">
@@ -503,7 +503,7 @@
         return;
       }
       if (data.queued && data.task_id) {
-        // Async path — poll until done
+        // Async path: poll until done
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI is processing…';
         pollAiImport(data.task_id, btn);
       } else if (data.success) {
@@ -532,7 +532,7 @@
             alert("AI import failed: " + (data.error || "unknown error"));
             btn.disabled = false; btn.innerText = "Process with Smart AI";
           }
-          // still "processing" — keep polling
+          // still "processing": keep polling
         })
         .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Process with Smart AI"; });
     }, 2000);
@@ -596,7 +596,7 @@
             alert("Recipe import failed: " + (data.error || "unknown error"));
             btn.disabled = false; btn.innerText = "Extract Ingredients";
           }
-          // still "processing" — keep polling
+          // still "processing": keep polling
         })
         .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Extract Ingredients"; });
     }, 2000);

@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% block title %}Setup — {{ tenant.name }} | Rasova Control Panel{% endblock %}
+{% block title %}Setup · {{ tenant.name }} | Rasova Control Panel{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -87,7 +87,7 @@
         <input type="text" name="address" value="{{ outlet.address|default:'' }}" placeholder="Shop 4, MG Road, Pune 411001">
       </div>
       <div class="field" style="max-width:220px;">
-        <label>SAC Code <span style="color:var(--accent-gold);font-size:0.65rem;">— printed on every bill</span></label>
+        <label>SAC Code <span style="color:var(--accent-gold);font-size:0.65rem;">(printed on every bill)</span></label>
         <input type="text" name="sac_code" value="{{ outlet.sac_code|default:'996331' }}" maxlength="8" placeholder="996331" style="font-family:monospace;">
         <div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;">996331 = Restaurant/Café/QSR &nbsp;·&nbsp; 996332 = Delivery &nbsp;·&nbsp; 996334 = Catering</div>
       </div>
@@ -98,14 +98,14 @@
             <input type="radio" name="gst_inclusive" value="false" {% if not outlet.gst_inclusive %}checked{% endif %} style="accent-color:var(--accent-gold);">
             <div>
               <strong>Exclusive</strong>
-              <span style="color:var(--text-muted);font-size:0.72rem;"> — GST added on top (fine dining, hotels)</span>
+              <span style="color:var(--text-muted);font-size:0.72rem;"> · GST added on top (fine dining, hotels)</span>
             </div>
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;cursor:pointer;">
             <input type="radio" name="gst_inclusive" value="true" {% if outlet.gst_inclusive %}checked{% endif %} style="accent-color:var(--accent-gold);">
             <div>
               <strong>Inclusive</strong>
-              <span style="color:var(--text-muted);font-size:0.72rem;"> — GST inside price (QSR, café, Zomato)</span>
+              <span style="color:var(--text-muted);font-size:0.72rem;"> · GST inside price (QSR, café, Zomato)</span>
             </div>
           </label>
         </div>
@@ -134,7 +134,7 @@
         </div>
       </div>
       <div style="font-size:0.65rem;color:var(--text-muted);margin:4px 0 12px;">
-        Manual override — sits alongside the automated monthly invoicing and overdue-suspension jobs, not instead of them.
+        Manual override. It sits alongside the automated monthly invoicing and overdue-suspension jobs, not instead of them.
       </div>
       <button type="submit" class="btn-cfg btn-cfg-primary">Save Subscription</button>
     </form>
@@ -264,7 +264,7 @@
     <div class="staff-row">
       <div>
         <strong>{{ user.username }}</strong>
-        {% if user.first_name %}<span style="color:var(--text-muted);font-size:0.85rem;"> — {{ user.get_full_name }}</span>{% endif %}
+        {% if user.first_name %}<span style="color:var(--text-muted);font-size:0.85rem;"> · {{ user.get_full_name }}</span>{% endif %}
       </div>
       <span class="role-chip">{{ user.role }}</span>
     </div>

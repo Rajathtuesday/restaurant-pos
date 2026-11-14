@@ -63,7 +63,7 @@
                 <i class="bi bi-chevron-left"></i>
             </a>
             <span class="week-label">
-                {{ week_days.0|date:"N j" }} — {{ week_days.6|date:"N j, Y" }}
+                {{ week_days.0|date:"N j" }} to {{ week_days.6|date:"N j, Y" }}
             </span>
             <a href="?week={{ next_week|date:'Y-m-d' }}" class="btn-luxury text-decoration-none" style="padding:0.4rem 0.8rem;">
                 <i class="bi bi-chevron-right"></i>
@@ -154,16 +154,16 @@
                     <input type="hidden" id="f_date">
                     <div class="form-field">
                         <label>Staff</label>
-                        <div id="f_staff_name" style="font-size:0.9rem; font-weight:500; padding:0.4rem 0; border-bottom:1px solid var(--border-color);">—</div>
+                        <div id="f_staff_name" style="font-size:0.9rem; font-weight:500; padding:0.4rem 0; border-bottom:1px solid var(--border-color);">-</div>
                     </div>
                     <div class="form-field">
                         <label>Date</label>
-                        <div id="f_date_display" style="font-size:0.9rem; padding:0.4rem 0; border-bottom:1px solid var(--border-color);">—</div>
+                        <div id="f_date_display" style="font-size:0.9rem; padding:0.4rem 0; border-bottom:1px solid var(--border-color);">-</div>
                     </div>
                     <div class="form-field">
                         <label>Shift Template (optional)</label>
                         <select id="f_template">
-                            <option value="">— custom times —</option>
+                            <option value="">Custom times</option>
                             {% for t in templates %}
                             <option value="{{ t.id }}">{{ t.name }} ({{ t.start_time|time:"H:i" }}–{{ t.end_time|time:"H:i" }})</option>
                             {% endfor %}

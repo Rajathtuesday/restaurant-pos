@@ -129,7 +129,7 @@
     <div class="success-banner">
         <i class="bi bi-check-circle-fill"></i>
         <h4>Saved</h4>
-        <p>Printer IP stored. Tap <strong>Test Print</strong> below to confirm — make sure the Rasova app is open and logged in on the counter device.</p>
+        <p>Printer IP stored. Tap <strong>Test Print</strong> below to confirm. Make sure the Rasova app is open and logged in on the counter device.</p>
     </div>
     {% endif %}
 
@@ -167,7 +167,7 @@
                 <div class="ps-num" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#fff; font-size:0.6rem;">URL</div>
                 <div>
                     <div class="ps-step-title">Connect App to This Restaurant</div>
-                    <div class="ps-step-sub">After installing — open app → tap "Scan QR Code" → scan this</div>
+                    <div class="ps-step-sub">After installing: open app → tap "Scan QR Code" → scan this</div>
                 </div>
             </div>
             <div class="qr-draw qr-small" data-qr="https://{{ request.user.tenant.slug }}.rasova.net/login/" data-qr-size="90" data-qr-dark="#c5a059" data-qr-light="#161616" data-qr-label="Scan to connect the app to this restaurant"></div>
@@ -209,14 +209,14 @@
                        inputmode="decimal" autocomplete="off" spellcheck="false">
 
                 <div class="hint">
-                    <strong>How to find it:</strong> hold the printer's <strong>Feed</strong> button for ~3 seconds —
+                    <strong>How to find it:</strong> hold the printer's <strong>Feed</strong> button for ~3 seconds:
                     it prints a self-test page showing its current <strong>IP address</strong>.<br><br>
                     Or open your router's admin page (<strong>192.168.1.1</strong>) and look at the connected-devices list.
                 </div>
 
                 <!-- Advanced: port -->
                 <div class="adv-toggle" onclick="document.getElementById('advRow').classList.toggle('show')">
-                    <i class="bi bi-sliders"></i> Advanced — port
+                    <i class="bi bi-sliders"></i> Advanced: port
                 </div>
                 <div class="adv-row" id="advRow">
                     <label class="field-label">Printer port</label>
@@ -264,8 +264,8 @@
             <div class="ps-step-head">
                 <div class="ps-num">3</div>
                 <div>
-                    <div class="ps-step-title">Printer MAC <span style="color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0;">— optional</span></div>
-                    <div class="ps-step-sub">Permanent ID — used to lock the IP in your router</div>
+                    <div class="ps-step-title">Printer MAC <span style="color:var(--text-muted); font-weight:400; text-transform:none; letter-spacing:0;">(optional)</span></div>
+                    <div class="ps-step-sub">Permanent ID, used to lock the IP in your router</div>
                 </div>
             </div>
             <div class="ps-body">

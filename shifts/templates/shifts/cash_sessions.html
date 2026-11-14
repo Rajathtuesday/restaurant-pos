@@ -67,7 +67,7 @@
                 <tr>
                     <td><strong>{{ s.opened_at|date:"M d, Y" }}</strong></td>
                     <td>{{ s.opened_at|date:"H:i" }} ({{ s.opened_by.username }})</td>
-                    <td>{{ s.closed_at|date:"H:i"|default:"—" }}</td>
+                    <td>{{ s.closed_at|date:"H:i"|default:"-" }}</td>
                     <td>₹{{ s.cash_sales }}</td>
                     <td>
                         <span class="{% if s.discrepancy < 0 %}discrepancy-neg{% else %}discrepancy-pos{% endif %}">

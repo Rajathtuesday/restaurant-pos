@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 
-{% block title %}CRM — Guest Loyalty | {{ request.user.tenant.name }}{% endblock %}
+{% block title %}CRM · Guest Loyalty | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -59,7 +59,7 @@
                 <tbody>
                     {% for g in guests %}
                     <tr>
-                        <td><strong>{{ g.name|default:"—" }}</strong></td>
+                        <td><strong>{{ g.name|default:"-" }}</strong></td>
                         <td>{{ g.phone }}</td>
                         <td>{{ g.visit_count }}</td>
                         <td>₹{{ g.total_spent|floatformat:0 }}</td>

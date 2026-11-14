@@ -110,4 +110,4 @@ class PublicPageContentTest(TestCase):
 
     def test_no_em_dashes_in_the_outlet_pages(self):
         for path in OUTLET_PAGES:
-            self.assertNotIn("—", read(path), path)
+            self.assertNotIn("\u2014", read(path), path)

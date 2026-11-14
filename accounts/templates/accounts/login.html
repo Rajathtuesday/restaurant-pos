@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if tenant %}{{ tenant.name }} — Staff Login{% else %}Rasova POS — Login{% endif %}</title>
+  <title>{% if tenant %}{{ tenant.name }} · Staff Login{% else %}Rasova POS · Login{% endif %}</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="manifest" href="/manifest.json">
 
@@ -363,7 +363,7 @@
     <div class="auth-card">
 
       {% if tenant %}
-      <!-- Subdomain login — show restaurant branding -->
+      <!-- Subdomain login: show restaurant branding -->
       <div class="tenant-brand">
         {% if tenant.logo %}
         <img src="{{ tenant.logo.url }}" alt="{{ tenant.name }}" class="tenant-logo-img">
@@ -383,7 +383,7 @@
       </div>
 
       {% else %}
-      <!-- Main domain — Rasova branding -->
+      <!-- Main domain: Rasova branding -->
       <div class="rasova-brand">
         <div class="rasova-mark">
           <div class="rasova-diamond"></div>

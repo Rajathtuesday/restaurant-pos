@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Feedback — {{ tenant.name }}</title>
+<title>Feedback · {{ tenant.name }}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
@@ -69,7 +69,7 @@
 
   {% elif already_submitted %}
     <div class="thanks-icon">&#9733;</div>
-    <p class="thanks-msg">You already rated this visit {{ feedback.rating }}/5 — thank you!</p>
+    <p class="thanks-msg">You already rated this visit {{ feedback.rating }}/5. Thank you!</p>
 
   {% elif just_submitted %}
     <div class="thanks-icon">&#10003;</div>

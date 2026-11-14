@@ -69,7 +69,7 @@
 
   <div class="page-eyebrow">Inventory</div>
   <h1 class="page-title">Variance Report</h1>
-  <p class="page-sub">Expected closing stock vs actual. Negative variance = unexplained loss — spillage, theft, or unrecorded wastage.</p>
+  <p class="page-sub">Expected closing stock vs actual. Negative variance = unexplained loss: spillage, theft, or unrecorded wastage.</p>
 
   <div class="divider"></div>
 
@@ -107,9 +107,9 @@
   </div>
 
   <div class="legend">
-    <span><span class="dot" style="background:#10b981;"></span> Green — within ±3% (normal)</span>
-    <span><span class="dot" style="background:#f59e0b;"></span> Amber — ±3–8% gap (investigate)</span>
-    <span><span class="dot" style="background:#ef4444;"></span> Red — beyond ±8% (action needed)</span>
+    <span><span class="dot" style="background:#10b981;"></span> Green: within ±3% (normal)</span>
+    <span><span class="dot" style="background:#f59e0b;"></span> Amber: ±3–8% gap (investigate)</span>
+    <span><span class="dot" style="background:#ef4444;"></span> Red: beyond ±8% (action needed)</span>
     <span style="border-left:1px solid var(--border-color);padding-left:1rem;">Negative = deduction short vs orders &nbsp;·&nbsp; Positive = excess deduction (spillage / recipe drift)</span>
   </div>
 
@@ -144,7 +144,7 @@
       {% for r in rows %}
       <tr data-name="{{ r.item.name|lower }}" data-category="{{ r.item.category }}">
         <td>{{ r.item.name }}</td>
-        <td style="color:var(--text-muted);font-size:.8rem;">{{ r.item.category|default:"—" }}</td>
+        <td style="color:var(--text-muted);font-size:.8rem;">{{ r.item.category|default:"-" }}</td>
         <td style="color:var(--text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:1px;">{{ r.item.unit }}</td>
         <td style="color:var(--text-muted);">{{ r.recipe_expected|floatformat:2 }}</td>
         <td>{{ r.txn_consumed|floatformat:2 }}</td>
@@ -166,7 +166,7 @@
               <span class="badge-ok">{% if r.variance_pct > 0 %}+{% endif %}{{ r.variance_pct }}%</span>
             {% endif %}
           {% else %}
-            <span class="badge-zero">—</span>
+            <span class="badge-zero">-</span>
           {% endif %}
         </td>
         <td style="color:#ef4444;">{{ r.wastage|floatformat:2 }}</td>

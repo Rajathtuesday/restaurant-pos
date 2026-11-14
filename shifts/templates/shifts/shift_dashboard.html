@@ -54,7 +54,7 @@
     {% if request.user.role in "manager,owner" or request.user.is_superuser %}
     <div class="dashboard-card p-0 mb-5">
         <div class="p-3 pb-0">
-            <h5 class="section-title">Shifts — {{ view_date|date:"N j, Y" }}</h5>
+            <h5 class="section-title">Shifts · {{ view_date|date:"N j, Y" }}</h5>
         </div>
         <div class="table-responsive">
             <table class="shift-table">
@@ -70,7 +70,7 @@
                         <td><strong>{{ s.staff.get_full_name|default:s.staff.username }}</strong></td>
                         <td style="color:var(--text-muted); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px;">{{ s.staff.role }}</td>
                         <td>{{ s.clocked_in_at|date:"H:i" }}</td>
-                        <td>{{ s.clocked_out_at|date:"H:i"|default:"—" }}</td>
+                        <td>{{ s.clocked_out_at|date:"H:i"|default:"-" }}</td>
                         <td>{{ s.duration_hours|default:"Active" }}{% if s.duration_hours %} hrs{% endif %}</td>
                         <td>₹{{ s.tips }}</td>
                         <td>

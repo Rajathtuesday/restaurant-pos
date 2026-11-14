@@ -137,15 +137,15 @@
         </div>
         <div class="stat-card">
             <div class="stat-label">Active Now</div>
-            <div class="stat-val green"><span id="active-count">—</span></div>
+            <div class="stat-val green"><span id="active-count">-</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-label">All-Outlet Promos</div>
-            <div class="stat-val" id="alloutlet-count">—</div>
+            <div class="stat-val" id="alloutlet-count">-</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Uses</div>
-            <div class="stat-val" id="uses-count">—</div>
+            <div class="stat-val" id="uses-count">-</div>
         </div>
     </div>
 
@@ -155,7 +155,7 @@
         <div class="card">
             <div class="card-hdr">
                 <i class="bi bi-table"></i>
-                <span class="card-hdr-title">All Campaigns — {{ current_outlet.name }} &amp; Tenant-Wide</span>
+                <span class="card-hdr-title">All Campaigns · {{ current_outlet.name }} &amp; Tenant-Wide</span>
             </div>
             <div style="overflow-x:auto;">
                 {% if promos %}

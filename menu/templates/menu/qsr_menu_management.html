@@ -313,7 +313,7 @@
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title"><i class="bi bi-stars me-2"></i>Import Recipe — <span id="recipeImportItemName"></span></h5>
+                <h5 class="modal-title"><i class="bi bi-stars me-2"></i>Import Recipe: <span id="recipeImportItemName"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -323,7 +323,7 @@
                     <input type="file" id="recipeImportFile" class="form-control form-input-luxury"
                            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,text/plain">
                 </div>
-                <div class="text-center my-2 text-muted small">— OR PASTE TEXT —</div>
+                <div class="text-center my-2 text-muted small">OR PASTE TEXT</div>
                 <textarea id="recipeImportText" class="form-control form-input-luxury" rows="6" placeholder="Example:&#10;2 buns&#10;150g Chicken Patty&#10;1 tbsp Mayonnaise"></textarea>
             </div>
             <div class="modal-footer pt-0 border-0">
@@ -531,7 +531,7 @@
                         showToast("Recipe import failed: " + (data.error || "unknown error"), "error");
                         btn.disabled = false; btn.innerText = "Extract Ingredients";
                     }
-                    // still "processing" — keep polling
+                    // still "processing": keep polling
                 })
                 .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Extract Ingredients"; });
         }, 2000);

@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Inspection Report — {{ today }}</title>
+  <title>Inspection Report · {{ today }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
   <link href="{% static 'vendor/bootstrap/bootstrap.min.css' %}" rel="stylesheet">
@@ -154,7 +154,7 @@
 </head>
 <body>
 
-<!-- Top bar — hidden when printing -->
+<!-- Top bar: hidden when printing -->
 <div class="top-bar no-print">
   <a href="{% url 'reports_dashboard' %}" class="brand-title">← Back to Reports</a>
   <button onclick="window.print()" class="btn btn-sm" style="background:var(--accent-gold);color:#000;font-size:0.8rem;letter-spacing:1px;text-transform:uppercase;border-radius:0;">
@@ -174,7 +174,7 @@
   <div class="report-title">Daily Inspection Report</div>
   <div class="report-date">Date: {{ today|date:"l, d F Y" }}</div>
   {% if is_composition %}
-    <div class="mt-2"><span class="composition-badge">Composition Scheme — Bill of Supply</span></div>
+    <div class="mt-2"><span class="composition-badge">Composition Scheme · Bill of Supply</span></div>
   {% endif %}
 </div>
 
@@ -325,7 +325,7 @@
 
   <!-- ── Order List ──────────────────────────────────── -->
   <div class="panel">
-    <div class="section-label">All Orders — {{ today|date:"d M Y" }}</div>
+    <div class="section-label">All Orders · {{ today|date:"d M Y" }}</div>
     {% if orders %}
     <table class="table-clean">
       <thead>
@@ -345,7 +345,7 @@
           <td>
             {% if order.table %}{{ order.table.name }}
             {% elif order.token %}Token {{ order.token.number }}
-            {% else %}—{% endif %}
+            {% else %}-{% endif %}
           </td>
           <td class="text-end mono">₹{{ order.grand_total|floatformat:2 }}</td>
           <td class="text-end no-print"><span class="status-paid">{{ order.status }}</span></td>

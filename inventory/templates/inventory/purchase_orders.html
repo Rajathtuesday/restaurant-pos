@@ -140,7 +140,7 @@
                     <ul class="item-list">
                     {% for line in po.items.all %}
                         <li>
-                            {{ line.item.name }} — {{ line.quantity }} {{ line.item.unit }} @ ₹{{ line.unit_price }}
+                            {{ line.item.name }}: {{ line.quantity }} {{ line.item.unit }} @ ₹{{ line.unit_price }}
                             {% if line.quantity_received > 0 and line.quantity_received < line.quantity %}
                                 <span style="color:var(--amber);">({{ line.quantity_received }} received)</span>
                             {% endif %}
@@ -163,7 +163,7 @@
                         {% if po.emailed_at %}
                             <br><span style="color:var(--green);" title="Emailed to {{ po.supplier.email }} on {{ po.emailed_at|date:'d M Y, h:i A' }}"><i class="bi bi-envelope-check"></i> Emailed</span>
                         {% elif request.user.outlet.po_vendor_email_enabled and po.supplier.email %}
-                            <br><span style="color:var(--red);" title="Vendor email is on but this PO wasn't emailed — check server logs"><i class="bi bi-envelope-exclamation"></i> Not sent</span>
+                            <br><span style="color:var(--red);" title="Vendor email is on but this PO wasn't emailed. Check the server logs"><i class="bi bi-envelope-exclamation"></i> Not sent</span>
                         {% elif not request.user.outlet.po_vendor_email_enabled %}
                             <br><span style="color:var(--muted);" title="Turn on vendor emails in Outlet Settings to send POs automatically"><i class="bi bi-envelope"></i> Email off</span>
                         {% elif not po.supplier.email %}
@@ -191,7 +191,7 @@
                     {% elif po.status == "received" %}
                         <span style="font-size:0.75rem; color:var(--green);"><i class="bi bi-check-circle-fill me-1"></i>Stock Updated</span>
                     {% else %}
-                        <span style="font-size:0.75rem; color:var(--muted);">—</span>
+                        <span style="font-size:0.75rem; color:var(--muted);">-</span>
                     {% endif %}
                         <a href="{% url 'po_print' po.id %}" target="_blank" class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem; text-decoration:none;">
                             <i class="bi bi-printer"></i> Print
@@ -225,7 +225,7 @@
     <div class="form-field">
         <label>Supplier</label>
         <select id="po_supplier">
-            <option value="">— select supplier —</option>
+            <option value="">Select supplier</option>
             {% for s in suppliers %}
             <option value="{{ s.id }}">{{ s.name }}</option>
             {% endfor %}
@@ -275,7 +275,7 @@
 
     <div style="font-size:0.75rem; color:var(--muted); margin-bottom:1.25rem;">
         Enter what actually arrived in <em>this</em> delivery for each line. Defaults
-        to the full remaining quantity at the ordered price — leave as-is if
+        to the full remaining quantity at the ordered price; leave as-is if
         everything showed up as ordered.
     </div>
 
@@ -295,7 +295,7 @@ const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken2=')).
 const ITEMS = [{% for item in inventory_items %}{ id:{{ item.id }}, name:"{{ item.name|escapejs }}", unit:"{{ item.unit }}", cost:{{ item.cost_price }} }{% if not forloop.last %},{% endif %}{% endfor %}];
 let lineCount = 0;
 
-// Per-PO line item data for the receive modal — item id, name, unit,
+// Per-PO line item data for the receive modal: item id, name, unit,
 // remaining quantity (ordered minus already received), and the ordered
 // price as the default invoiced price.
 const PO_LINES = {
@@ -366,7 +366,7 @@ function addLineItem(prefill) {
     row.className = 'line-item-row';
     row.id = id;
     row.innerHTML = `
-        <select class="item-sel" onchange="autofillPrice(this)"><option value="">— item —</option>${options}</select>
+        <select class="item-sel" onchange="autofillPrice(this)"><option value="">Item</option>${options}</select>
         <input type="number" class="line-qty" placeholder="Qty" min="0.001" step="0.001" oninput="recalcTotal()">
         <input type="number" class="line-price" placeholder="₹" min="0" step="0.01" oninput="recalcTotal()">
         <button class="btn-icon" style="padding:0;" onclick="document.getElementById('${id}').remove(); recalcTotal();">

@@ -170,7 +170,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="border-radius:0;border:1px solid var(--border-color);background:var(--panel-bg);color:var(--text-main);">
             <div class="modal-header" style="border-color:var(--border-color);">
-                <h5 class="modal-title serif-text text-uppercase">Inventory Link — <span id="invModalName"></span></h5>
+                <h5 class="modal-title serif-text text-uppercase">Inventory Link: <span id="invModalName"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -183,7 +183,7 @@
                 <div class="border-top pt-3">
                     <p class="small text-uppercase fw-bold mb-2" style="letter-spacing:1px;">Add Ingredient</p>
                     <select id="invItemSelect" class="form-control form-input-luxury mb-2">
-                        <option value="">— Select ingredient —</option>
+                        <option value="">Select ingredient</option>
                         {% for item in inventory_items %}
                         <option value="{{ item.id }}" data-unit="{{ item.unit }}">{{ item.name }} ({{ item.unit }})</option>
                         {% endfor %}

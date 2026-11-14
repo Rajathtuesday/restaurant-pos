@@ -39,10 +39,10 @@
 <div class="review-wrap">
   <a href="{% url 'menu_management' %}" class="text-muted small" style="text-decoration:none;"><i class="bi bi-arrow-left me-1"></i>Back to Menu</a>
   <h3 class="review-title mt-2">Recipe Import Review</h3>
-  <p class="review-subtitle">{{ job.menu_item.name }} — nothing here is saved until you click "Save Recipe" below.</p>
+  <p class="review-subtitle">{{ job.menu_item.name }}: nothing here is saved until you click "Save Recipe" below.</p>
 
   {% if job.status == "processing" %}
-    <div class="banner banner-info">Still processing — this page was opened before the import finished. Refresh in a moment.</div>
+    <div class="banner banner-info">Still processing. This page was opened before the import finished. Refresh in a moment.</div>
   {% elif job.status == "failed" %}
     <div class="banner banner-warn">Import failed: {{ job.error_message }}</div>
   {% elif job.status == "discarded" %}
@@ -52,7 +52,7 @@
       <div class="banner banner-info">This import was already confirmed on {{ job.confirmed_at }}. Shown below read-only.</div>
     {% endif %}
     {% if existing_recipe_count > 0 %}
-      <div class="banner banner-info">"{{ job.menu_item.name }}" already has {{ existing_recipe_count }} recipe ingredient{{ existing_recipe_count|pluralize }} — confirming will add to or update them, not replace them wholesale.</div>
+      <div class="banner banner-info">"{{ job.menu_item.name }}" already has {{ existing_recipe_count }} recipe ingredient{{ existing_recipe_count|pluralize }}. Confirming will add to or update them, not replace them wholesale.</div>
     {% endif %}
     <div class="banner banner-info">Enter quantities for <strong>one serving</strong> of this dish.</div>
 
@@ -81,7 +81,7 @@
             {% else %}<span class="luxury-badge-sm badge-new">No Match</span>
             {% endif %}
             <select class="line-select match-select" {% if job.status != "ready_for_review" %}disabled{% endif %}>
-              <option value="">— none —</option>
+              <option value="">None</option>
               {% for item in inventory_items %}
               <option value="{{ item.id }}" data-unit="{{ item.unit }}" {% if line.resolved_inventory_item_id == item.id %}selected{% endif %}>{{ item.name }} ({{ item.unit }})</option>
               {% endfor %}
@@ -95,7 +95,7 @@
           </td>
           <td class="unit-cell">
             <select class="line-select unit-select" {% if job.status != "ready_for_review" %}disabled{% endif %}>
-              <option value="">—</option>
+              <option value="">-</option>
               {% for code, label in unit_choices %}
               <option value="{{ code }}" {% if line.final_unit == code %}selected{% endif %}>{{ code }}</option>
               {% endfor %}
@@ -169,7 +169,7 @@
     if (e.target.classList.contains("match-select") && e.target.value === "__new__") {
       const name = prompt("New ingredient name:");
       if (!name) { e.target.value = ""; return; }
-      const unit = (prompt("Unit — one of: pcs, g, kg, ml, l", "g") || "").trim().toLowerCase();
+      const unit = (prompt("Unit (one of: pcs, g, kg, ml, l)", "g") || "").trim().toLowerCase();
       if (!["pcs", "g", "kg", "ml", "l"].includes(unit)) { alert("Invalid unit."); e.target.value = ""; return; }
       fetch("{% url 'create_inventory_item' %}", {
         method: "POST",
