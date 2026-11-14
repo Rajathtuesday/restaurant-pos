@@ -1,0 +1,51 @@
+/* setup/templates/setup/setup_staff.html */
+.page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
+@media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
+
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
+.divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
+.page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
+
+.form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
+.setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+.setup-input:focus { border-bottom-color: var(--accent-gold); }
+.form-select { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.85rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
+
+.btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
+.btn-create:hover { background: var(--accent-hover); }
+
+.alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
+.alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
+
+.staff-table { width: 100%; border-collapse: collapse; }
+.staff-table th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
+.staff-table td { padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
+
+.role-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
+.role-badge.manager, .role-badge.owner { border-color: var(--accent-gold); color: var(--accent-gold); }
+.role-badge.chef { border-color: #f59e0b; color: #f59e0b; }
+.role-badge.waiter { border-color: #60a5fa; color: #60a5fa; }
+
+.btn-reset-pw {
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.btn-reset-pw:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+
+.staff-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+@media (max-width: 640px) {
+    .page-body { padding: 2rem 1.1rem; gap: 2.5rem; }
+    .btn-reset-pw { padding: 10px 12px; min-height: 44px; }
+    .staff-table { min-width: 480px; }
+}
+
+/* Former staff: shown, faded, only while "Show inactive" is ticked. */
+.inactive-row { opacity: 0.5; display: none; }
+body:has(#showInactiveToggle:checked) .inactive-row { display: table-row; }
+
+/* The pay rate sheet: its type list above its amount. */
+.pay-type { display: block; width: 100%; margin-bottom: 10px; }
+.pay-amount { margin: 0; }

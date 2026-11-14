@@ -4,50 +4,7 @@
 {% block title %}Staff Accounts | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
-    @media(max-width: 640px) { .page-body { grid-template-columns: 1fr; } }
-
-    .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
-    .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
-    .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
-
-    .form-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.5rem; }
-    .setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
-    .setup-input:focus { border-bottom-color: var(--accent-gold); }
-    .form-select { width: 100%; background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.85rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
-
-    .btn-create { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 0.5rem; transition: background 0.2s; }
-    .btn-create:hover { background: var(--accent-hover); }
-
-    .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
-    .alert-warning { border-left-color: #ef4444; background: rgba(239,68,68,0.08); }
-
-    .staff-table { width: 100%; border-collapse: collapse; }
-    .staff-table th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); text-align: left; }
-    .staff-table td { padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; vertical-align: middle; }
-
-    .role-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
-    .role-badge.manager, .role-badge.owner { border-color: var(--accent-gold); color: var(--accent-gold); }
-    .role-badge.chef { border-color: #f59e0b; color: #f59e0b; }
-    .role-badge.waiter { border-color: #60a5fa; color: #60a5fa; }
-
-    .btn-reset-pw {
-        background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
-        font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1px; padding: 4px 10px;
-        cursor: pointer; font-family: inherit; transition: all 0.2s;
-    }
-    .btn-reset-pw:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-
-    .staff-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-    @media (max-width: 640px) {
-        .page-body { padding: 2rem 1.1rem; gap: 2.5rem; }
-        .btn-reset-pw { padding: 10px 12px; min-height: 44px; }
-        .staff-table { min-width: 480px; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/setup/setup_staff.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/setup/">Setup</a> / Staff{% endblock %}
@@ -105,7 +62,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
             <p class="page-eyebrow" style="opacity:0;margin-bottom:0;">-</p>
             <label style="display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--text-muted);cursor:pointer;user-select:none;">
-                <input type="checkbox" id="showInactiveToggle" onchange="toggleInactiveVisibility()">
+                <input type="checkbox" id="showInactiveToggle">
                 Show inactive
             </label>
         </div>
@@ -124,16 +81,16 @@
             </thead>
             <tbody>
                 {% for member in staff %}
-                <tr id="staff-row-{{ member.id }}" class="{% if not member.is_active %}inactive-row{% endif %}" style="{% if not member.is_active %}display:none;opacity:0.5;{% endif %}">
+                <tr id="staff-row-{{ member.id }}" class="{% if not member.is_active %}inactive-row{% endif %}">
                     <td>{{ member.username }}{% if not member.is_active %} <span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1px;color:#ef4444;">Inactive</span>{% endif %}</td>
                     <td><span class="role-badge {{ member.role }}">{{ member.get_role_display }}</span></td>
                     <td style="color:var(--text-muted);font-size:0.75rem;">{{ member.outlet.name|default:"-" }}</td>
                     <td style="display:flex;gap:6px;">
-                        <button class="btn-reset-pw" onclick="editRole({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.role }}')">Edit Role</button>
-                        <button class="btn-reset-pw" onclick="editOutlet({{ member.id }}, '{{ member.username|escapejs }}', '{{ member.outlet_id|default_if_none:"" }}')">Edit Location</button>
-                        <button class="btn-reset-pw" onclick="editPayRate({{ member.id }}, '{{ member.username|escapejs }}')">Edit Pay Rate</button>
-                        <button class="btn-reset-pw" onclick="resetPassword({{ member.id }}, '{{ member.username|escapejs }}')">Reset Password</button>
-                        <button class="btn-reset-pw" id="toggle-btn-{{ member.id }}" onclick="toggleActive({{ member.id }}, '{{ member.username|escapejs }}', {{ member.is_active|yesno:"true,false" }})">{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+                        <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.role" data-current="{{ member.role }}" data-url="{% url 'edit_staff_role' member.id %}">Edit Role</button>
+                        <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.outlet" data-current="{{ member.outlet_id|default_if_none:'' }}" data-url="{% url 'edit_staff_outlet' member.id %}">Edit Location</button>
+                        <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.pay" data-url="{% url 'edit_pay_rate' member.id %}">Edit Pay Rate</button>
+                        <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.password" data-url="{% url 'reset_staff_password' member.id %}">Reset Password</button>
+                        <button type="button" class="btn-reset-pw" id="toggle-btn-{{ member.id }}" data-action="post" data-url="{% url 'toggle_staff_active' member.id %}" data-done="Updated." {% if member.is_active %}data-confirm="Deactivate {{ member.username }}?" data-confirm-text="{{ member.username }} will no longer be able to log in. Their orders, shifts, and history stay exactly as they are, and this can be undone any time." data-confirm-button="Yes, deactivate"{% else %}data-confirm="Reactivate {{ member.username }}?" data-confirm-text="{{ member.username }} will be able to log in again." data-confirm-button="Yes, reactivate"{% endif %}>{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
                     </td>
                 </tr>
                 {% empty %}
@@ -162,152 +119,5 @@
     {% endfor %}
 }
 </script>
-<script>
-const ROLE_CHOICES = JSON.parse(document.getElementById('role-choices-data').textContent);
-const OUTLET_CHOICES = JSON.parse(document.getElementById('outlet-choices-data').textContent);
-
-async function editOutlet(userId, username, currentOutletId) {
-    const { value: newOutletId } = await Swal.fire({
-        title: `Move ${username} to a different location`,
-        input: 'select',
-        inputOptions: OUTLET_CHOICES,
-        inputValue: currentOutletId,
-        showCancelButton: true,
-        confirmButtonText: 'Save Location',
-        confirmButtonColor: 'var(--accent-gold)',
-        cancelButtonColor: 'var(--text-muted)',
-        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
-        color: 'var(--text-main)',
-        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
-    });
-
-    if (!newOutletId || newOutletId === currentOutletId) return;
-
-    try {
-        const data = await apiClient.post(`/setup/staff/${userId}/edit-outlet/`, { outlet_id: newOutletId });
-        ui.toast(data.message || 'Location updated.', 'success');
-        setTimeout(() => location.reload(), 700);
-    } catch (err) {
-        // apiClient already shows a toast on failure
-    }
-}
-
-async function editPayRate(userId, username) {
-    const { value: formValues } = await Swal.fire({
-        title: `Set pay rate for ${username}`,
-        html:
-            `<select id="swal-pay-type" class="swal2-select" style="display:block;width:100%;margin-bottom:10px;">
-                <option value="monthly">Monthly Salary</option>
-                <option value="hourly">Hourly Rate</option>
-            </select>
-            <input id="swal-pay-amount" type="number" min="0.01" step="0.01" class="swal2-input" placeholder="Amount (₹)" style="margin:0;">`,
-        showCancelButton: true,
-        confirmButtonText: 'Save Pay Rate',
-        confirmButtonColor: 'var(--accent-gold)',
-        cancelButtonColor: 'var(--text-muted)',
-        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
-        color: 'var(--text-main)',
-        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
-        preConfirm: () => {
-            const payType = document.getElementById('swal-pay-type').value;
-            const amount = document.getElementById('swal-pay-amount').value;
-            if (!amount || parseFloat(amount) <= 0) {
-                Swal.showValidationMessage('Enter an amount greater than 0');
-                return false;
-            }
-            return { pay_type: payType, amount: amount };
-        },
-    });
-
-    if (!formValues) return;
-
-    try {
-        const data = await apiClient.post(`/setup/staff/${userId}/edit-pay-rate/`, formValues);
-        ui.toast(data.message || 'Pay rate updated.', 'success');
-    } catch (err) {
-        // apiClient already shows a toast on failure
-    }
-}
-
-async function editRole(userId, username, currentRole) {
-    const { value: newRole } = await Swal.fire({
-        title: `Change role for ${username}`,
-        input: 'select',
-        inputOptions: ROLE_CHOICES,
-        inputValue: currentRole,
-        showCancelButton: true,
-        confirmButtonText: 'Save Role',
-        confirmButtonColor: 'var(--accent-gold)',
-        cancelButtonColor: 'var(--text-muted)',
-        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
-        color: 'var(--text-main)',
-        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
-    });
-
-    if (!newRole || newRole === currentRole) return;
-
-    try {
-        const data = await apiClient.post(`/setup/staff/${userId}/edit-role/`, { role: newRole });
-        ui.toast(data.message || 'Role updated.', 'success');
-        setTimeout(() => location.reload(), 700);
-    } catch (err) {
-        // apiClient already shows a toast on failure
-    }
-}
-
-function toggleInactiveVisibility() {
-    const show = document.getElementById('showInactiveToggle').checked;
-    document.querySelectorAll('.inactive-row').forEach(row => {
-        row.style.display = show ? '' : 'none';
-    });
-}
-
-async function resetPassword(userId, username) {
-    const { value: password } = await Swal.fire({
-        title: `Reset password for ${username}`,
-        input: 'password',
-        inputLabel: 'New password (min 8 characters)',
-        inputPlaceholder: 'Enter a new password',
-        showCancelButton: true,
-        confirmButtonText: 'Reset Password',
-        confirmButtonColor: 'var(--accent-gold)',
-        cancelButtonColor: 'var(--text-muted)',
-        background: themeManager.isDark() ? 'var(--panel-bg)' : '#ffffff',
-        color: 'var(--text-main)',
-        customClass: { popup: 'rounded-0', confirmButton: 'rounded-0 btn btn-accent', cancelButton: 'rounded-0 btn btn-luxury' },
-        inputValidator: (value) => {
-            if (!value || value.length < 8) return 'Password must be at least 8 characters.';
-        }
-    });
-
-    if (!password) return;
-
-    try {
-        const data = await apiClient.post(`/setup/staff/${userId}/reset-password/`, { password });
-        ui.toast(data.message || 'Password reset.', 'success');
-    } catch (err) {
-        // apiClient already shows a toast on failure
-    }
-}
-
-async function toggleActive(userId, username, isCurrentlyActive) {
-    const action = isCurrentlyActive ? 'Deactivate' : 'Reactivate';
-    const result = await ui.confirm(
-        `${action} ${username}?`,
-        isCurrentlyActive
-            ? `${username} will no longer be able to log in. Their orders, shifts, and history stay exactly as they are, and this can be undone any time.`
-            : `${username} will be able to log in again.`,
-        `Yes, ${action.toLowerCase()}`
-    );
-    if (!result.isConfirmed) return;
-
-    try {
-        const data = await apiClient.post(`/setup/staff/${userId}/toggle-active/`, {});
-        ui.toast(data.message || 'Updated.', 'success');
-        setTimeout(() => location.reload(), 700);
-    } catch (err) {
-        // apiClient already shows a toast on failure
-    }
-}
-</script>
+<script type="module" src="{% static 'js/setup/staff.js' %}"></script>
 {% endblock %}

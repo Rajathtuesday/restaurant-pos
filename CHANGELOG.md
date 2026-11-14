@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Setup Staff and the inventory board on modules; purchase order names escaped
+
+### Fixed
+- **Generate Purchase Orders put supplier and ingredient names into the page as HTML** (the line that says what it did); every name is escaped now (`inventory/board_parts.js`).
+- **The inventory board said everything with `alert()`**, which never shows in the Android app: adding stock, a new ingredient, an edit, wastage and a stock count are shared post forms, so a refusal is a toast and the browser's own checks (a quantity above 0, a reason) run first.
+
+### Changed
+- Off the ratchet: Setup Staff (`setup/staff.js`, `staff_sheets.js`: the role, location, pay rate and password sheets have text titles; Deactivate is a post button; "Show inactive" is CSS `:has`), the inventory board (`inventory/board.js`: the Edit, Waste and Adjust sheets are filled for the ingredient tapped and point their form at it; Add Ingredient opens by Bootstrap's own data attributes).
+- The ratchet holds 7 templates (was 9).
+
+### Tests
+- `core.tests.test_large_pages_browser.StaffAndInventoryBrowserTest` (3, Chromium): a role changed from its sheet and a deactivated member hidden until "Show inactive"; a supplier called `<b id="injected">Fresh Farm</b>` shows as text after Generate Purchase Orders (fails on the old page); stock added and wastage logged by their forms.
+- `static/js/tests/large_pages_2.test.mjs` (6).
+
 ## 2026-11-14: Five large pages on modules; promo delete, ingredient names and the recipe sheet fixed
 
 ### Fixed

@@ -1,0 +1,79 @@
+/* inventory\templates\inventory\inventory_board.html */
+/* HEADER */
+.pos-header { position: sticky; top: 0; z-index: 1000; }
+
+/* BUTTONS */
+.btn-luxury {
+    border: 1px solid var(--border-color);
+    background: transparent; color: var(--text-main);
+    padding: 0.5rem 1.2rem; font-size: 0.85rem; text-transform: uppercase;
+    letter-spacing: 1px; font-weight: 600; border-radius: 4px;
+    transition: var(--transition-smooth); display: inline-flex; align-items: center;
+    text-decoration: none;
+}
+.btn-luxury:hover { border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main); }
+.btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
+
+/* TABLE */
+.inventory-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-soft);
+    overflow: hidden;
+    margin-top: 2rem;
+}
+.table { margin-bottom: 0; color: var(--text-main); }
+.table th {
+    background: rgba(0,0,0,0.02);
+    border-bottom: 1px solid var(--border-color);
+    text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;
+    color: var(--text-muted); padding: 1.2rem 1.5rem; font-weight: 600;
+}
+html.dark .table th { background: rgba(255,255,255,0.02); }
+.table td {
+    background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
+    padding: 1.2rem 1.5rem; vertical-align: middle; color: var(--text-main);
+}
+.table-hover tbody tr:hover td { background: rgba(197,160,89,0.05); }
+.stock-val { font-family: 'Space Mono', monospace; font-weight: 600; font-size: 1.1rem; }
+
+/* STATUS BADGES */
+.status-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 5px 10px; border-radius: 4px; display: inline-block; }
+.badge-ok  { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; }
+.badge-low { background: rgba(239,68,68,0.1);  color: #ef4444; border: 1px solid #ef4444; }
+
+/* INPUTS */
+.input-luxury {
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+    padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 4px; width: 100px;
+    font-family: 'Space Mono', monospace; transition: var(--transition-smooth);
+}
+.input-luxury:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); }
+.input-luxury::placeholder { font-family: 'Outfit', sans-serif; color: var(--text-muted); }
+
+/* MODALS */
+.modal-content { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
+.modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
+.modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
+.modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--text-main); }
+.modal-body { padding: 1.5rem; }
+.modal .form-control, .modal .form-select {
+    background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+    padding: 0.8rem; border-radius: 4px;
+}
+.modal .form-control:focus, .modal .form-select:focus {
+    border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); background: transparent; color: var(--text-main);
+}
+html.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
+html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+
+@media (max-width: 767px) {
+    .table th, .table td { padding: 0.75rem 1rem; }
+    .input-luxury { width: 70px; }
+}
+
+/* The line that says what Generate Purchase Orders did. */
+.po-link { color: var(--accent-gold); }
+.po-skipped { color: var(--text-muted); font-size: 0.78rem; }

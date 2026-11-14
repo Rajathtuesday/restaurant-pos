@@ -99,3 +99,76 @@ class LargePagesBrowserTest(BrowserTestCase):
         self.assertNoErrors(out)
         self.assertTrue(out["results"]["edit"])
         self.assertEqual(out["results"]["type"][0], "gammacafe")
+
+
+class StaffAndInventoryBrowserTest(BrowserTestCase):
+    """Setup Staff and the inventory board (14 Nov 2026).
+
+    The inventory board's Generate Purchase Orders line put supplier and
+    ingredient names, typed by staff, into the page as HTML; and the board
+    said everything with alert(), which never shows in the Android app."""
+
+    def setUp(self):
+        self.r = Restaurant("Alpha", "staff-inv")
+
+    def assertNoErrors(self, out):
+        self.assertEqual(out["errors"], [], "the browser reported errors:\n" + "\n".join(out["errors"]))
+
+    def test_a_role_is_changed_from_its_sheet_and_a_deactivated_member_hides(self):
+        out = self.run_page("/setup/staff/", [
+            ("ask", tap(f'#staff-row-{self.r.staff.id} [data-action="staff.role"]')
+                    + 'return await t.until(() => document.querySelector(".swal2-select"));'),
+            ("pick", 'const s = document.querySelector(".swal2-select"); s.value = "cashier"; t.click(".swal2-confirm");'
+                     'return await t.until(() => document.querySelector(".swal2-toast") && t.text(".swal2-toast"));'),
+        ], user=self.r.owner)
+        self.assertNoErrors(out)
+        self.r.staff.refresh_from_db()
+        self.assertEqual(self.r.staff.role, "cashier")
+
+        self.r.staff.is_active = False
+        self.r.staff.save(update_fields=["is_active"])
+        out = self.run_page("/setup/staff/", [
+            ("hidden", f'return getComputedStyle(document.getElementById("staff-row-{self.r.staff.id}")).display;'),
+            ("shown", 'document.getElementById("showInactiveToggle").click();'
+                      f'return getComputedStyle(document.getElementById("staff-row-{self.r.staff.id}")).display;'),
+        ], user=self.r.owner)
+        self.assertNoErrors(out)
+        self.assertEqual(out["results"]["hidden"], "none")
+        self.assertEqual(out["results"]["shown"], "table-row")
+
+    def test_generated_purchase_orders_show_supplier_names_as_text(self):
+        self.r.supplier.name = '<b id="injected">Fresh Farm</b>'
+        self.r.supplier.save(update_fields=["name"])
+        item = self.r.inventory_item
+        item.stock, item.low_stock_threshold, item.reorder_quantity = Decimal("1"), Decimal("10"), Decimal("5")
+        item.cost_price = Decimal("300")              # an item with no cost is skipped
+        item.save(update_fields=["stock", "low_stock_threshold", "reorder_quantity", "cost_price"])
+        out = self.run_page("/inventory/board/", [
+            ("generate", tap("#genPoBtn") + 'return await t.until(() => t.text("#lowStockBarText").includes("Fresh Farm")'
+                                             ' && [Boolean(document.getElementById("injected")), t.text("#lowStockBarText")]);'),
+        ], user=self.r.owner)
+        self.assertNoErrors(out)
+        injected, text = out["results"]["generate"]
+        self.assertFalse(injected)
+        self.assertIn('<b id="injected">Fresh Farm</b>', text)
+
+    def test_stock_is_added_and_wastage_logged_by_their_forms(self):
+        item = self.r.inventory_item
+        before = item.stock
+        out = self.run_page("/inventory/board/", [
+            ("restock", f'document.getElementById("add{item.id}").value = "5";'
+                        'document.body.dataset.before = "1";'
+                        f't.click("#add{item.id} ~ button[type=submit]"); return true;', {"selector": "body:not([data-before])"}),
+        ], user=self.r.owner)
+        self.assertNoErrors(out)
+        out = self.run_page("/inventory/board/", [
+            ("wait", f'return await t.until(() => document.getElementById("add{item.id}"));'),
+            ("open", tap(f'[data-action="inv.waste"][data-id="{item.id}"]')
+                     + 'return await t.until(() => document.getElementById("wastageModal").classList.contains("show"));'),
+            ("log", 'document.getElementById("wastageQty").value = "2";'
+                    'document.body.dataset.before = "1"; t.click("#wastageForm button[type=submit]"); return true;',
+             {"selector": "body:not([data-before])"}),
+        ], user=self.r.owner)
+        self.assertNoErrors(out)
+        item.refresh_from_db()
+        self.assertEqual(item.stock, before + Decimal("5") - Decimal("2"))

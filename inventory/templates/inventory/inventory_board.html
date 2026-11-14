@@ -1,90 +1,16 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Inventory | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    /* HEADER */
-    .pos-header { position: sticky; top: 0; z-index: 1000; }
-
-    /* BUTTONS */
-    .btn-luxury {
-        border: 1px solid var(--border-color);
-        background: transparent; color: var(--text-main);
-        padding: 0.5rem 1.2rem; font-size: 0.85rem; text-transform: uppercase;
-        letter-spacing: 1px; font-weight: 600; border-radius: 4px;
-        transition: var(--transition-smooth); display: inline-flex; align-items: center;
-        text-decoration: none;
-    }
-    .btn-luxury:hover { border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main); }
-    .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-    .btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
-
-    /* TABLE */
-    .inventory-card {
-        background: var(--panel-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        box-shadow: var(--shadow-soft);
-        overflow: hidden;
-        margin-top: 2rem;
-    }
-    .table { margin-bottom: 0; color: var(--text-main); }
-    .table th {
-        background: rgba(0,0,0,0.02);
-        border-bottom: 1px solid var(--border-color);
-        text-transform: uppercase; font-size: 0.75rem; letter-spacing: 1px;
-        color: var(--text-muted); padding: 1.2rem 1.5rem; font-weight: 600;
-    }
-    html.dark .table th { background: rgba(255,255,255,0.02); }
-    .table td {
-        background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
-        padding: 1.2rem 1.5rem; vertical-align: middle; color: var(--text-main);
-    }
-    .table-hover tbody tr:hover td { background: rgba(197,160,89,0.05); }
-    .stock-val { font-family: 'Space Mono', monospace; font-weight: 600; font-size: 1.1rem; }
-
-    /* STATUS BADGES */
-    .status-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; padding: 5px 10px; border-radius: 4px; display: inline-block; }
-    .badge-ok  { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; }
-    .badge-low { background: rgba(239,68,68,0.1);  color: #ef4444; border: 1px solid #ef4444; }
-
-    /* INPUTS */
-    .input-luxury {
-        background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
-        padding: 0.4rem 0.8rem; font-size: 0.9rem; border-radius: 4px; width: 100px;
-        font-family: 'Space Mono', monospace; transition: var(--transition-smooth);
-    }
-    .input-luxury:focus { outline: none; border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); }
-    .input-luxury::placeholder { font-family: 'Outfit', sans-serif; color: var(--text-muted); }
-
-    /* MODALS */
-    .modal-content { background: var(--panel-bg); border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
-    .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-    .modal-footer { border-top: 1px solid var(--border-color); padding: 1.5rem; }
-    .modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--text-main); }
-    .modal-body { padding: 1.5rem; }
-    .modal .form-control, .modal .form-select {
-        background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
-        padding: 0.8rem; border-radius: 4px;
-    }
-    .modal .form-control:focus, .modal .form-select:focus {
-        border-color: var(--accent-gold); box-shadow: 0 0 0 2px rgba(197,160,89,0.2); background: transparent; color: var(--text-main);
-    }
-    html.dark .modal .form-select option { background: var(--panel-bg); color: var(--text-main); }
-    html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-
-    @media (max-width: 767px) {
-        .table th, .table td { padding: 0.75rem 1rem; }
-        .input-luxury { width: 70px; }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/inventory/inventory_board.css' %}">
 {% endblock %}
 
 {% block page_title %}Inventory{% endblock %}
 
 {% block header_links %}
-<button class="btn-luxury btn-gold" onclick="openAddInventoryModal()"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
+<button type="button" class="btn-luxury btn-gold" data-bs-toggle="modal" data-bs-target="#inventoryModal"><i class="bi bi-plus-lg me-1"></i> Add Ingredient</button>
 <a href="{% url 'inventory_consumption' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-graph-up me-1"></i> Consumption</a>
 <a href="{% url 'inventory_variance' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex"><i class="bi bi-droplet-half me-1"></i> Variance</a>
 {% if 'liquor_vat' in tenant_features %}<a href="{% url 'bar_count' %}" class="btn-luxury text-decoration-none d-inline-flex"><i class="bi bi-cup-straw me-1"></i> Bar count</a>
@@ -100,7 +26,7 @@
 
     <!-- Mobile: Add button -->
     <div class="d-sm-none mb-3">
-        <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="openAddInventoryModal()">
+        <button type="button" class="btn-luxury btn-gold w-100 justify-content-center" data-bs-toggle="modal" data-bs-target="#inventoryModal">
             <i class="bi bi-plus-lg me-1"></i> Add Ingredient
         </button>
     </div>
@@ -109,8 +35,8 @@
     <div style="margin-bottom:1rem;">
         <input type="text" id="inventorySearch" class="input-luxury"
                style="width:100%;max-width:400px;"
-               placeholder="Search ingredients…"
-               oninput="filterInventory(this.value)">
+               placeholder="Search ingredients…" aria-label="Search ingredients"
+               data-action="inv.search">
     </div>
 
     <datalist id="categoryOptions">
@@ -126,7 +52,7 @@
             <i class="bi bi-exclamation-triangle-fill me-1" style="color:var(--accent-gold);"></i>
             {{ low_stock_count }} item{{ low_stock_count|pluralize }} low on stock
         </span>
-        <button class="btn-luxury btn-gold" onclick="generatePurchaseOrders()" id="genPoBtn">
+        <button type="button" class="btn-luxury btn-gold" id="genPoBtn" data-action="inv.generate" data-url="{% url 'generate_purchase_orders' %}" data-po-list="{% url 'purchase_order_list' %}" data-suppliers="{% url 'supplier_list' %}">
             <i class="bi bi-receipt me-1"></i> Generate Purchase Orders
         </button>
     </div>
@@ -168,14 +94,16 @@
                         </td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <input type="number" min="0" step="0.01" id="add{{ item.id }}" class="input-luxury" placeholder="Qty">
-                                <button class="btn-luxury px-3" onclick="restock('{{ item.id }}')" title="Add received stock"><i class="bi bi-plus-lg me-1"></i>Add</button>
-                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" onclick="openWastageModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}')" title="Log wastage / spillage: reduces stock and records it as a loss"><i class="bi bi-droplet-half me-1"></i>Waste</button>
-                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="openAdjustModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.unit }}', '{{ item.stock }}')" title="Correct stock after a physical count: not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
+                                <form class="d-flex align-items-center gap-2" data-action="post" data-url="{% url 'restock_item' item.id %}">
+                                <input type="number" min="0.01" step="0.01" id="add{{ item.id }}" name="quantity" class="input-luxury" placeholder="Qty" aria-label="Quantity received of {{ item.name }}" required>
+                                <button type="submit" class="btn-luxury px-3" title="Add received stock"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add</button>
+                                </form>
+                                <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" type="button" data-action="inv.waste" data-id="{{ item.id }}" data-name="{{ item.name }}" data-unit="{{ item.unit }}" data-url="{% url 'inventory_log_wastage' 0 %}" title="Log wastage / spillage: reduces stock and records it as a loss"><i class="bi bi-droplet-half me-1"></i>Waste</button>
+                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" type="button" data-action="inv.adjust" data-id="{{ item.id }}" data-name="{{ item.name }}" data-unit="{{ item.unit }}" data-stock="{{ item.stock }}" data-url="{% url 'inventory_adjust_stock' 0 %}" title="Correct stock after a physical count: not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
                             </div>
                         </td>
                         <td>
-                            <button class="btn-icon" onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.category|escapejs }}', '{{ item.cost_price }}', '{{ item.low_stock_threshold }}', '{{ item.reorder_quantity }}', '{{ item.preferred_supplier.id|default:"" }}', '{{ item.bottle_ml|default:"" }}')" title="Edit ingredient details" aria-label="Edit ingredient details">
+                            <button type="button" class="btn-icon" data-action="inv.edit" data-id="{{ item.id }}" data-name="{{ item.name }}" data-category="{{ item.category }}" data-cost="{{ item.cost_price }}" data-threshold="{{ item.low_stock_threshold }}" data-reorder="{{ item.reorder_quantity }}" data-supplier="{{ item.preferred_supplier.id|default:'' }}" data-bottle="{{ item.bottle_ml|default:'' }}" data-url="{% url 'update_inventory_item' 0 %}" title="Edit ingredient details" aria-label="Edit ingredient details">
                                 <i class="bi bi-pencil" style="font-size:1.1rem; color:var(--text-muted);"></i>
                             </button>
                         </td>
@@ -194,7 +122,7 @@
 <!-- Add Ingredient Modal -->
 <div class="modal fade" id="inventoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <form class="modal-content" data-action="post" data-url="{% url 'create_inventory_item' %}">
             <div class="modal-header">
                 <h5 class="modal-title m-0">Add Ingredient</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -202,16 +130,16 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
-                    <input id="invName" class="form-control" placeholder="e.g. Flour, Tomatoes, Olive Oil">
+                    <input id="invName" name="name" class="form-control" required placeholder="e.g. Flour, Tomatoes, Olive Oil">
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Category (optional)</label>
-                    <input id="invCategory" class="form-control" list="categoryOptions" placeholder="e.g. Vegetables, Dairy, Spices">
+                    <input id="invCategory" name="category" class="form-control" list="categoryOptions" placeholder="e.g. Vegetables, Dairy, Spices">
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Measurement Unit</label>
-                        <select id="invUnit" class="form-select">
+                        <select id="invUnit" name="unit" class="form-select">
                             <option value="pcs">Pieces (pcs)</option>
                             <option value="g">Grams (g)</option>
                             <option value="kg">Kilograms (kg)</option>
@@ -221,67 +149,66 @@
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
-                        <input id="invCostPrice" type="number" step="0.01" class="form-control" placeholder="0.00">
+                        <input id="invCostPrice" name="cost_price" type="number" min="0" step="0.01" class="form-control" placeholder="0.00">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Initial Stock</label>
-                        <input id="invStock" type="number" step="0.01" class="form-control" placeholder="0.00">
+                        <input id="invStock" name="stock" type="number" min="0" step="0.01" class="form-control" placeholder="0.00">
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
-                        <input id="invThreshold" type="number" step="0.01" class="form-control" placeholder="Alert below...">
+                        <input id="invThreshold" name="threshold" type="number" min="0" step="0.01" class="form-control" placeholder="Alert below...">
                     </div>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="createInventoryItem()">Create Ingredient</button>
+                <button type="submit" class="btn-luxury w-100 btn-gold justify-content-center">Create Ingredient</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
 <!-- Edit Inventory Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <form class="modal-content" id="editForm" data-action="post" data-url="">
             <div class="modal-header">
                 <h5 class="modal-title m-0">Edit Ingredient</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="editId">
-                <div class="mb-3">
+                                <div class="mb-3">
                     <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Ingredient Name</label>
-                    <input id="editName" class="form-control">
+                    <input id="editName" name="name" class="form-control" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Category (optional)</label>
-                    <input id="editCategory" class="form-control" list="categoryOptions" placeholder="e.g. Vegetables, Dairy, Spices">
+                    <input id="editCategory" name="category" class="form-control" list="categoryOptions" placeholder="e.g. Vegetables, Dairy, Spices">
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Cost Price / Unit</label>
-                        <input id="editCostPrice" type="number" step="0.01" class="form-control">
+                        <input id="editCostPrice" name="cost_price" type="number" min="0" step="0.01" class="form-control">
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Low Threshold</label>
-                        <input id="editThreshold" type="number" step="0.01" class="form-control">
+                        <input id="editThreshold" name="threshold" type="number" min="0" step="0.01" class="form-control">
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Auto-Reorder Qty</label>
-                        <input id="editReorderQty" type="number" step="0.01" class="form-control" placeholder="Qty to order">
+                        <input id="editReorderQty" name="reorder_quantity" type="number" min="0" step="0.01" class="form-control" placeholder="Qty to order">
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" for="editBottleMl" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Bottle size (ml)</label>
-                        <input id="editBottleMl" type="number" step="1" min="0" class="form-control" placeholder="750, for the bar count">
+                        <input id="editBottleMl" name="bottle_ml" type="number" step="1" min="0" class="form-control" placeholder="750, for the bar count">
                     </div>
                     <div class="col-6 mb-3">
                         <label class="form-label text-muted text-uppercase" style="font-size:0.75rem; font-weight:600; letter-spacing:1px;">Preferred Supplier</label>
-                        <select id="editSupplier" class="form-select">
+                        <select id="editSupplier" name="supplier_id" class="form-select">
                             <option value="">-- None --</option>
                             {% for s in suppliers %}
                             <option value="{{ s.id }}">{{ s.name }}</option>
@@ -291,30 +218,29 @@
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button class="btn-luxury w-100 btn-gold justify-content-center" onclick="updateInventoryItem()">Save Changes</button>
+                <button type="submit" class="btn-luxury w-100 btn-gold justify-content-center">Save Changes</button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
 <!-- WASTAGE MODAL -->
 <div class="modal fade" id="wastageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border-col);border-radius:8px;">
+        <form class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border-col);border-radius:8px;" id="wastageForm" data-action="post" data-url="">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title" style="color:var(--text-main);">Log Wastage / Spillage</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="wastageItemId">
-                <p class="text-muted mb-3" id="wastageItemName" style="font-size:0.9rem;"></p>
+                                <p class="text-muted mb-3" id="wastageItemName" style="font-size:0.9rem;"></p>
                 <div class="mb-3">
                     <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Quantity (<span id="wastageUnit"></span>)</label>
-                    <input type="number" id="wastageQty" min="0.001" step="0.001" class="input-luxury w-100" placeholder="e.g. 30">
+                    <input type="number" id="wastageQty" name="quantity" required min="0.001" step="0.001" class="input-luxury w-100" placeholder="e.g. 30">
                 </div>
                 <div class="mb-3">
                     <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Reason</label>
-                    <select id="wastageReason" class="input-luxury w-100">
+                    <select id="wastageReason" name="reason" class="input-luxury w-100">
                         <option value="Spillage">Spillage</option>
                         <option value="Breakage">Breakage</option>
                         <option value="Over-pour">Over-pour</option>
@@ -324,238 +250,50 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Notes (optional)</label>
-                    <input type="text" id="wastageNotes" class="input-luxury w-100" placeholder="e.g. Bottle dropped by staff">
+                    <input type="text" id="wastageNotes" name="notes" class="input-luxury w-100" placeholder="e.g. Bottle dropped by staff">
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button class="btn-luxury w-100 justify-content-center" style="border-color:#c9503a;color:#c9503a;" onclick="submitWastage()">
+                <button type="submit" class="btn-luxury w-100 justify-content-center" style="border-color:#c9503a;color:#c9503a;">
                     <i class="bi bi-droplet-half me-2"></i>Log Wastage
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 
 <!-- Manual Stock Adjustment Modal -->
 <div class="modal fade" id="adjustModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border-col);border-radius:8px;">
+        <form class="modal-content" style="background:var(--panel-bg);border:1px solid var(--border-col);border-radius:8px;" id="adjustForm" data-action="post" data-url="">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title" style="color:var(--text-main);">Adjust Stock</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="adjustItemId">
-                <p class="text-muted mb-3" id="adjustItemName" style="font-size:0.9rem;"></p>
+                                <p class="text-muted mb-3" id="adjustItemName" style="font-size:0.9rem;"></p>
                 <div class="mb-3">
                     <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">
                         What you actually counted (<span id="adjustUnit"></span>)
                     </label>
-                    <input type="number" id="adjustNewCount" min="0" step="0.001" class="input-luxury w-100" placeholder="e.g. 12.5">
+                    <input type="number" id="adjustNewCount" name="new_count" required min="0" step="0.001" class="input-luxury w-100" placeholder="e.g. 12.5">
                     <div class="form-text" style="font-size:0.75rem;" id="adjustCurrentStock"></div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label" style="color:var(--text-main);font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;">Reason (required)</label>
-                    <input type="text" id="adjustReason" class="input-luxury w-100" placeholder="e.g. Monthly physical count, miscounted last delivery">
+                    <input type="text" id="adjustReason" name="reason" required class="input-luxury w-100" placeholder="e.g. Monthly physical count, miscounted last delivery">
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button class="btn-luxury w-100 justify-content-center" style="border-color:var(--accent-gold);color:var(--accent-gold);" onclick="submitAdjust()">
+                <button type="submit" class="btn-luxury w-100 justify-content-center" style="border-color:var(--accent-gold);color:var(--accent-gold);">
                     <i class="bi bi-sliders me-2"></i>Apply Adjustment
                 </button>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie) {
-        for (let c of document.cookie.split(';')) {
-            c = c.trim();
-            if (c.startsWith(name + '=')) {
-                cookieValue = decodeURIComponent(c.substring(name.length + 1));
-            }
-        }
-    }
-    return cookieValue;
-}
-
-function filterInventory(q) {
-    const term = q.toLowerCase();
-    document.querySelectorAll('tbody tr').forEach(row => {
-        const name = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
-        row.style.display = name.includes(term) ? '' : 'none';
-    });
-}
-
-function restock(id) {
-    const qty = document.getElementById('add' + id).value;
-    if (!qty || qty <= 0) { alert('Please enter a valid quantity.'); return; }
-    fetch(`/inventory/restock/${id}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ quantity: qty })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('stock' + id).innerText = data.new_stock;
-            document.getElementById('add' + id).value = '';
-            location.reload();
-        } else { alert('Restock failed'); }
-    });
-}
-
-function generatePurchaseOrders() {
-    const btn = document.getElementById('genPoBtn');
-    const text = document.getElementById('lowStockBarText');
-    const poListUrl = "{% url 'purchase_order_list' %}";
-    btn.disabled = true;
-    fetch('/inventory/generate-purchase-orders/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken2') },
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (!data.success) { alert('Could not generate purchase orders.'); btn.disabled = false; return; }
-
-        if (!data.has_suppliers && data.processed_count === 0) {
-            text.innerHTML = `You haven't added any suppliers yet. Add one to start generating purchase orders. ` +
-                `<a href="{% url 'supplier_list' %}" style="color:var(--accent-gold);">Add a Supplier</a>`;
-            btn.remove();
-            return;
-        }
-
-        let html = `${data.processed_count} item${data.processed_count === 1 ? '' : 's'} added to ${data.purchase_orders.length} draft PO${data.purchase_orders.length === 1 ? '' : 's'}`;
-        if (data.purchase_orders.length) {
-            html += ': ' + data.purchase_orders.map(po =>
-                `<a href="${poListUrl}#po-row-${po.id}" style="color:var(--accent-gold);">${po.supplier}</a>`
-            ).join(', ');
-        }
-        if (data.skipped.length) {
-            html += `<br><span style="color:var(--text-muted); font-size:0.78rem;">Skipped: ` +
-                data.skipped.map(s => `${s.name} (${s.reason})`).join(', ') + `</span>`;
-        }
-        text.innerHTML = html;
-        btn.remove();
-    })
-    .catch(() => { alert('Could not generate purchase orders.'); btn.disabled = false; });
-}
-
-function openAddInventoryModal() {
-    new bootstrap.Modal(document.getElementById('inventoryModal')).show();
-}
-
-function createInventoryItem() {
-    const name = document.getElementById('invName').value;
-    const category = document.getElementById('invCategory').value;
-    const unit = document.getElementById('invUnit').value;
-    const stock = document.getElementById('invStock').value;
-    const threshold = document.getElementById('invThreshold').value;
-    const costPrice = document.getElementById('invCostPrice').value;
-    if (!name) { alert('Please enter an ingredient name.'); return; }
-    fetch('/inventory/create/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ name, category, unit, stock: parseFloat(stock) || 0, threshold: parseFloat(threshold) || 0, cost_price: parseFloat(costPrice) || 0 })
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to create ingredient.'); } });
-}
-
-function openEditModal(id, name, category, costPrice, threshold, reorderQty, supplierId, bottleMl) {
-    document.getElementById('editId').value = id;
-    document.getElementById('editName').value = name;
-    document.getElementById('editCategory').value = category;
-    document.getElementById('editCostPrice').value = costPrice;
-    document.getElementById('editThreshold').value = threshold;
-    document.getElementById('editReorderQty').value = reorderQty;
-    document.getElementById('editSupplier').value = supplierId || '';
-    document.getElementById('editBottleMl').value = bottleMl || '';
-    new bootstrap.Modal(document.getElementById('editModal')).show();
-}
-
-function updateInventoryItem() {
-    const id = document.getElementById('editId').value;
-    const name = document.getElementById('editName').value;
-    const category = document.getElementById('editCategory').value;
-    const costPrice = document.getElementById('editCostPrice').value;
-    const threshold = document.getElementById('editThreshold').value;
-    const reorderQty = document.getElementById('editReorderQty').value;
-    const supplierId = document.getElementById('editSupplier').value;
-    if (!name) { alert('Please enter an ingredient name.'); return; }
-    fetch(`/inventory/update/${id}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ name, category, cost_price: parseFloat(costPrice) || 0, threshold: parseFloat(threshold) || 0, reorder_quantity: parseFloat(reorderQty) || 0, supplier_id: supplierId || null, bottle_ml: document.getElementById('editBottleMl').value })
-    })
-    .then(r => r.json())
-    .then(data => { if (data.success) { location.reload(); } else { alert(data.error || 'Failed to update ingredient.'); } });
-}
-
-function openWastageModal(id, name, unit) {
-    document.getElementById('wastageItemId').value = id;
-    document.getElementById('wastageItemName').textContent = name;
-    document.getElementById('wastageUnit').textContent = unit;
-    document.getElementById('wastageQty').value = '';
-    document.getElementById('wastageNotes').value = '';
-    document.getElementById('wastageReason').value = 'Spillage';
-    new bootstrap.Modal(document.getElementById('wastageModal')).show();
-}
-
-function submitWastage() {
-    const id     = document.getElementById('wastageItemId').value;
-    const qty    = document.getElementById('wastageQty').value;
-    const reason = document.getElementById('wastageReason').value;
-    const notes  = document.getElementById('wastageNotes').value;
-    if (!qty || parseFloat(qty) <= 0) { alert('Enter a valid quantity.'); return; }
-    fetch(`/inventory/wastage/${id}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ quantity: qty, reason, notes })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('wastageModal')).hide();
-            document.getElementById('stock' + id).innerText = parseFloat(data.new_stock).toFixed(3);
-            location.reload();
-        } else { alert(data.error || 'Failed to log wastage'); }
-    });
-}
-
-function openAdjustModal(id, name, unit, currentStock) {
-    document.getElementById('adjustItemId').value = id;
-    document.getElementById('adjustItemName').textContent = name;
-    document.getElementById('adjustUnit').textContent = unit;
-    document.getElementById('adjustNewCount').value = '';
-    document.getElementById('adjustReason').value = '';
-    document.getElementById('adjustCurrentStock').textContent = `System currently shows ${currentStock} ${unit}`;
-    new bootstrap.Modal(document.getElementById('adjustModal')).show();
-}
-
-function submitAdjust() {
-    const id = document.getElementById('adjustItemId').value;
-    const newCount = document.getElementById('adjustNewCount').value;
-    const reason = document.getElementById('adjustReason').value.trim();
-    if (newCount === '' || parseFloat(newCount) < 0) { alert('Enter what you actually counted.'); return; }
-    if (!reason) { alert('A reason is required for a manual adjustment.'); return; }
-    fetch(`/inventory/adjust/${id}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-        body: JSON.stringify({ new_count: newCount, reason })
-    })
-    .then(r => r.json())
-    .then(data => {
-        if (data.success) {
-            bootstrap.Modal.getInstance(document.getElementById('adjustModal')).hide();
-            location.reload();
-        } else { alert(data.error || 'Failed to apply the adjustment'); }
-    });
-}
-</script>
+<script type="module" src="{% static 'js/inventory/board.js' %}"></script>
 {% endblock %}
