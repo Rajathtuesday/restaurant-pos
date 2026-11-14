@@ -37,6 +37,22 @@ def _feature_denied(request):
     return JsonResponse({"error": "This feature is not available for your account type."}, status=403)
 
 
+def live_orders_page_data():
+    """What static/js/live_orders/index.js needs, rendered once by
+    live_orders.html as {{ page_data|json_script:"page-data" }}: how often
+    the board is asked for and every address it calls (0 stands in for an
+    id the script fills in)."""
+    return {
+        "poll_ms": 8000,
+        "urls": {
+            "data": reverse("live-orders-data"),
+            "reduce": reverse("reduce-item", args=[0]),
+            "cancel": reverse("cancel-item", args=[0]),
+            "cancel_order": reverse("cancel-order", args=[0]),
+        },
+    }
+
+
 @login_required
 @tenant_required
 @role_required(*VIEW_ROLES)
@@ -44,7 +60,7 @@ def live_orders_view(request):
     denied = _feature_denied(request)
     if denied:
         return denied
-    return render(request, "orders/live_orders.html")
+    return render(request, "orders/live_orders.html", {"page_data": live_orders_page_data()})
 
 
 def _order_label(order, token):

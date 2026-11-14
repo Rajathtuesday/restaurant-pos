@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-14: The live orders board on modules
+
+### Changed
+- `/live-orders/` runs on `static/js/live_orders/` (`board.js` draws the tickets, `loader.js` asks for them, `index.js` wires filters, search and the remove/cancel sheets from `order_edit.js`). Its addresses and poll interval come from `orders.views.live_orders.live_orders_page_data()`; its style is `static/css/orders/live_orders.css`.
+- The board redraws only when its markup changed, waits while a sheet is open, a change is saving or the tab is hidden, and drops a late answer to an older question, so nothing moves under the person's finger.
+- The ratchet holds 6 templates (was 7).
+
+### Tests
+- `orders/tests/test_live_orders_browser.py` (2 more, Chromium): a failed refresh says so and keeps the tickets drawn; the counter filter and the search say "Nothing matches" when nothing does.
+- `static/js/tests/live_orders.test.mjs` (7): attention rules, filters and search, escaping, empty and no-match boards, the loader's failures and late answers.
+- `test_live_orders_board` checks the page loads `js/live_orders/index.js`.
+
 ## 2026-11-14: Setup Staff and the inventory board on modules; purchase order names escaped
 
 ### Fixed

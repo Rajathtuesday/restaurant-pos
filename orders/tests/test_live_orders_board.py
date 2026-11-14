@@ -75,7 +75,7 @@ class LiveOrdersScopeTests(_Board):
                 resp = self._get(role, "live-orders")
                 self.assertEqual(resp.status_code, 200)
                 self.assertContains(resp, "Live Orders")
-                self.assertContains(resp, "js/order_edit.js")
+                self.assertContains(resp, "js/live_orders/index.js")  # it imports order_edit.js
 
     def test_kitchen_roles_are_turned_away(self):
         for role in ("chef", "kitchen"):
