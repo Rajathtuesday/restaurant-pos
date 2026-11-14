@@ -147,7 +147,7 @@
             <div class="payments-title">Payments</div>
             {% for p in order.payments.all %}
             <div class="total-row">
-                <span>{{ p.method|title }} <small class="payment-time">({{ p.created_at|date:"H:i" }})</small></span>
+                <span>{{ p.method|title }} <small class="payment-time">({{ p.paid_at|date:"H:i" }})</small></span>
                 <span>−₹{{ p.amount }}</span>
             </div>
             {% endfor %}

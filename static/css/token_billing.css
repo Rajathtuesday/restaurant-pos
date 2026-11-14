@@ -72,7 +72,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
 @media (max-width: 991px) { .panel-handle { display: none !important; } }
 
 .category-title {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 3px;
     color: var(--text-muted);
@@ -163,7 +163,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
 ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
 
 .menu-section-title {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 3px;
     margin-bottom: 0.5rem;
@@ -202,7 +202,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
     top: -8px; right: -8px;
     background: var(--accent-gold);
     color: #000;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 900;
     width: 22px; height: 22px;
     border-radius: 50%;
@@ -298,7 +298,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
     color: var(--text-main);
     margin-bottom: 0.2rem;
 }
-.cart-item-note { font-size: 0.7rem; color: var(--accent-gold); font-style: italic; }
+.cart-item-note { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
 .cart-controls { display: flex; align-items: center; gap: 8px; }
 .qty-controls {
     display: flex;
@@ -389,7 +389,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
     font-size: 0.85rem;
 }
 .status-badge {
-    font-size: 0.6rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 1px;
     padding: 0.25rem 0.5rem;
@@ -499,7 +499,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
 .aoi-details { flex: 1; min-width: 0; }
 .aoi-customer { font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .aoi-amount { font-size: 0.82rem; font-weight: 600; white-space: nowrap; }
-.aoi-badge { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; }
+.aoi-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; }
 .aoi-badge.online { background: #fc8019; color: #fff; }
 .aoi-badge.billing { background: #f59e0b; color: #fff; }
 .aoi-badge.open { background: var(--border-color); color: var(--text-muted); }
@@ -521,10 +521,10 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
 .veg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; flex-shrink: 0; }
 .veg-dot.veg { background: #22c55e; }
 .veg-dot.nonveg { background: #ef4444; }
-.tab-count { font-size: 0.6rem; background: var(--accent-gold); color: #fff; border-radius: 9px; padding: 1px 6px; margin-left: 4px; }
+.tab-count { font-size: 0.75rem; background: var(--accent-gold); color: #fff; border-radius: 9px; padding: 1px 6px; margin-left: 4px; }
 .order-token { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--accent-gold); line-height: 1; }
 .order-token--mobile { font-size: 1.5rem; line-height: inherit; }
-.order-status { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.order-status { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 .btn-checkout--pay, .btn-checkout--pay:hover { background: #10b981; min-height: 52px; }
 .btn-tall { min-height: 52px; }
 .cart-items { min-height: 160px; }
@@ -535,19 +535,19 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
 .aoi-right { text-align: right; }
 .aoi-badge.pay { background: #10b981; color: #fff; }
 .aoi-badge.print { background: #6366f1; color: #fff; }
-.aoi-heading { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.75rem 1rem 0.25rem; }
+.aoi-heading { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 0.75rem 1rem 0.25rem; }
 .aoi-empty-icon { font-size: 1.5rem; }
 .loyalty-field { margin-bottom: 0.9rem; }
-.loyalty-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.3rem; }
+.loyalty-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.3rem; }
 .loyalty-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.4rem 0; font-size: 1rem; outline: none; font-family: inherit; }
 .parcel-row { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.3rem; }
 .parcel-btn {
   width: 100%; padding: 0.55rem; margin-bottom: 0.5rem; border: 1.5px dashed var(--border-color);
-  background: transparent; color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;
+  background: transparent; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;
   letter-spacing: 1.5px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center;
   justify-content: center; gap: 0.5rem; font-family: inherit;
 }
-.fab-badge { display: none; background: #fff; color: var(--accent-gold); font-size: 0.7rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; flex-shrink: 0; }
+.fab-badge { display: none; background: #fff; color: var(--accent-gold); font-size: 0.75rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; flex-shrink: 0; }
 .fab-label { flex: 1; text-align: center; }
 .offcanvas.offcanvas-cart { width: min(380px, 100vw); }
 .cart-row-main { padding-right: 8px; }

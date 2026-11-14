@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-14: Text a cashier can read at arm's length
+
+The luxury style leaned on very small capitals: labels at 0.6rem (about 10px), some at 0.55rem. Elegant on a laptop, hard on a tablet a metre away in a dim room.
+
+### Changed
+- **No text below 12px on the screens used during service**: billing, the token counter and its bill, the floor plan, the kitchen display and the bill page. 67 sizes under 0.75rem in their stylesheets (`rasova.css`, `bill.css`, `billing.css`, `billing_parts.css`, `tables.css`, `kitchen.css`, `token_billing.css`, the token counter's own style block) are 0.75rem now; printed receipts (`@media print`) keep their sizes.
+
+### Fixed
+- **Fields on a touch screen are 16px** (`rasova.css`). The V13 rule meant to stop an iPhone zooming the page on a tapped field applied to iPhones only, and lost to any page's own field class, so the bill page's discount, guest and points fields (13 to 14px) still zoomed it.
+- **The bill page shows when each payment was taken.** It read a field Payment does not have (`created_at`, not `paid_at`), so every payment said "Cash ()".
+
+### Tests
+- `core/tests/test_text_floor.py` (Playwright): the five service screens on a laptop and on a phone, no visible text under 12px and, on the phone, no field under 16px. It found 81 problems before this change.
+- `orders/tests/test_bill_payment_time.py`: a payment's time on the bill page (failed on the old template).
+
 ## 2026-11-14: The colour walk: every page, light and dark
 
 The black page behind white cards (12 Nov) sat in the code for days because no test looked at a colour. The theme test checks one page at the root; this walks them all.

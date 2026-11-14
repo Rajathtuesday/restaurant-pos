@@ -27,8 +27,8 @@
 
     /* ── Aggregator bar (header) ── */
     .aggregator-bar { background: var(--panel); border: 1px solid var(--border); padding: 0.25rem; border-radius: 4px; display: flex; align-items: center; }
-    .aggregator-bar span { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0.5rem; }
-    .btn-agg { padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: 3px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: var(--transition); }
+    .aggregator-bar span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin: 0 0.5rem; }
+    .btn-agg { padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 3px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: var(--transition); }
 
     /* ── Gold primary button (New Order) ── */
     .btn-lux-primary { background: var(--gold); border-color: var(--gold); color: #fff; font-size: 0.8rem; padding: 0.65rem 1.4rem; }
@@ -40,7 +40,7 @@
     @media (max-width: 768px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 480px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
     .stat-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem; text-align: center; }
-    .stat-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
+    .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
     .stat-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--gold); line-height: 1; }
     .stat-value.neutral { color: var(--text); }
     .stat-value.online-color { color: var(--online); }
@@ -48,7 +48,7 @@
     /* ── Section header ── */
     .section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
     .section-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
-    .section-tag { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; font-family: 'Outfit', sans-serif; font-weight: 600; }
+    .section-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; font-family: 'Outfit', sans-serif; font-weight: 600; }
     .section-tag.counter { background: rgba(197,160,89,0.12); color: var(--gold); }
     .section-tag.online-tag { background: rgba(252,128,25,0.12); color: var(--online); }
 
@@ -66,14 +66,14 @@
 
     .token-number { font-family: 'DM Serif Display', serif; font-size: 2.2rem; line-height: 1; margin-bottom: 0.4rem; }
     .token-amount { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
-    .token-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.15rem 0.5rem; border: 1px solid var(--border); display: inline-block; color: var(--muted); }
+    .token-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.15rem 0.5rem; border: 1px solid var(--border); display: inline-block; color: var(--muted); }
     .token-badge.billing { border-color: var(--warning); color: var(--warning); }
     .token-badge.paid { border-color: var(--success); color: var(--success); }
     .token-badge.platform { border: none; padding: 0.2rem 0.5rem; border-radius: 2px; font-weight: 600; }
     .token-badge.zomato { background: var(--zomato); color: #fff; }
     .token-badge.swiggy { background: var(--online); color: #fff; }
     .token-badge.web { background: #6366f1; color: #fff; }
-    .token-time { font-size: 0.68rem; color: var(--muted); margin-top: 0.35rem; }
+    .token-time { font-size: 0.75rem; color: var(--muted); margin-top: 0.35rem; }
 
     /* ── Cancel button (hover reveal) ── */
     .btn-cancel-token { position: absolute; top: 4px; right: 4px; background: transparent; border: none; color: var(--muted); opacity: 0; font-size: 1rem; line-height: 1; padding: 2px 4px; cursor: pointer; transition: var(--transition); z-index: 10; }
@@ -208,7 +208,7 @@
                      order is ready), not here, so a second manual button
                      with no clear ownership would just invite double-taps
                      or staff not knowing which screen is authoritative. -->
-                <div style="margin-top:0.75rem;text-align:center;font-size:0.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:0.6rem 0;">
+                <div style="margin-top:0.75rem;text-align:center;font-size: 0.75rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);padding:0.6rem 0;">
                     <i class="bi bi-hourglass-split me-1"></i>Preparing in kitchen
                 </div>
                 {% else %}
@@ -225,7 +225,7 @@
     <div class="online-section">
         <div class="section-header">
             <h2>Online Orders <span class="section-tag online-tag">Aggregator</span></h2>
-            <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">
+            <div style="font-size: 0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">
                 Next: O-{{ next_online_token }}
             </div>
         </div>

@@ -72,7 +72,7 @@
 
 /* Bill/Clear are used far less often than Dispatch -- visually demoted
    so Dispatch reads as the one obvious action, not one of three equals. */
-.secondary-actions .btn-luxury { font-size: 0.72rem; padding: 0.5rem 1rem; color: var(--text-muted); }
+.secondary-actions .btn-luxury { font-size: 0.75rem; padding: 0.5rem 1rem; color: var(--text-muted); }
 
 .cart-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 1rem 0; border-bottom: 1px dashed var(--border-color); }
 .cart-item-name { font-family: 'DM Serif Display', serif; font-size: 0.95rem; color: var(--text-main); margin-bottom: 0.25rem; }
@@ -106,7 +106,7 @@
 .form-select-luxury:focus, .form-control-minimal:focus { box-shadow: none; border-color: var(--accent-gold); }
 
 .running-row { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; color: var(--text-main); }
-.status-badge { font-size: 0.6rem; text-transform: uppercase; padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); }
+.status-badge { font-size: 0.75rem; text-transform: uppercase; padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); }
 
 .modal-content { background: var(--bg-color); border-radius: 0; border: 1px solid var(--border-color); }
 .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
@@ -185,7 +185,7 @@
 /* ---- the counter's payment sheet ---- */
 .qsr-dialog { max-width: 380px; }
 .qsr-sheet { border-radius: 0; background: var(--panel-bg); border: 1px solid var(--border-color); }
-.qsr-eyebrow { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-gold); margin: 0; }
+.qsr-eyebrow { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; color: var(--accent-gold); margin: 0; }
 .qsr-title { font-family: 'DM Serif Display', serif; font-size: 1.4rem; }
 .qsr-total { font-size: 2.2rem; font-family: 'DM Serif Display', serif; text-align: center; padding: 0.5rem 0 1rem; }
 .qsr-methods { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.2rem; }
@@ -195,7 +195,7 @@
 }
 .qsr-method-btn.is-selected { background: var(--accent-gold); color: #fff; border-color: var(--accent-gold); }
 .qsr-amount-row { margin-bottom: 0.75rem; }
-.qsr-amount-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); display: block; margin-bottom: 0.3rem; }
+.qsr-amount-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); display: block; margin-bottom: 0.3rem; }
 .qsr-amount { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 1.2rem; padding: 0.4rem 0; outline: none; }
 .qsr-change { display: none; text-align: right; font-size: 0.9rem; color: #10b981; font-weight: 600; }
 .btn-luxury-primary.qsr-pay { font-size: 0.78rem; letter-spacing: 2px; background: #10b981; border-color: #10b981; }

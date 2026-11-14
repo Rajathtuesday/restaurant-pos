@@ -11,18 +11,18 @@
 .retry-btn { width: auto; border-radius: 6px; padding: 4px 14px; margin-top: 8px; }
 
 .cart-row-main { flex-grow: 1; padding-right: 10px; }
-.takeaway-badge { font-size: 0.5rem; vertical-align: middle; }
-.tkw-badge { font-size: 0.55rem; background: var(--accent-gold); color: #fff; padding: 1px 5px; vertical-align: middle; }
+.takeaway-badge { font-size: 0.75rem; vertical-align: middle; }
+.tkw-badge { font-size: 0.75rem; background: var(--accent-gold); color: #fff; padding: 1px 5px; vertical-align: middle; }
 
 .running-line { gap: 10px; }
 .running-name { font-family: 'DM Serif Display', serif; flex: 1; }
 .running-total { color: var(--text-muted); font-size: 0.85rem; flex-shrink: 0; }
-.running-mods { font-size: 0.7rem; color: var(--accent-gold); font-style: italic; }
+.running-mods { font-size: 0.75rem; color: var(--accent-gold); font-style: italic; }
 .btn-checkout--short { min-height: 48px; }
 .btn-luxury.btn-danger-outline { border-color: #ef4444; color: #ef4444; }
 
 .modifier-group-label { font-size: 0.8rem; letter-spacing: 1px; }
-.modifier-hint { font-size: 0.7rem; color: var(--text-muted); font-weight: 400; margin-left: 6px; }
+.modifier-hint { font-size: 0.75rem; color: var(--text-muted); font-weight: 400; margin-left: 6px; }
 .sheet-label { font-size: 0.75rem; letter-spacing: 1px; }
 .btn-luxury.btn-quiet { border-color: transparent; }
 

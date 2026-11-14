@@ -96,7 +96,7 @@ body { overflow-x: hidden; }
     white-space: nowrap;
 }
 .kot-num {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     letter-spacing: 2px;
     text-transform: uppercase;

@@ -37,7 +37,7 @@ html.dark {
 .table-status-line { position: absolute; top: 0; left: 0; right: 0; height: 4px; border-top-left-radius: 8px; border-top-right-radius: 8px; }
 .table-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .table-name { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--text-main); margin: 0; line-height: 1; }
-.table-status { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-top: 0.4rem; }
+.table-status { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-top: 0.4rem; }
 .table-timer { font-weight: 600; font-size: 0.9rem; background: rgba(115,115,115,0.1); padding: 0.2rem 0.6rem; border-radius: 12px; }
 
 .status-free     { color: var(--c-free); }   .bg-free    { background: var(--c-free); }
@@ -55,7 +55,7 @@ html.dark {
 .btn-card-action {
   flex: 1; min-width: 30%; padding: 0.6rem 0.2rem;
   border: 1px solid var(--border-color); background: rgba(255,255,255,0.05);
-  color: var(--text-main); font-size: 0.70rem; text-transform: uppercase;
+  color: var(--text-main); font-size: 0.75rem; text-transform: uppercase;
   font-weight: 700; letter-spacing: 0.5px; border-radius: 4px;
   transition: var(--transition-smooth); text-align: center;
 }
@@ -87,7 +87,7 @@ html.dark .btn-close { filter: invert(1); }
 
 .waiter-badge {
   width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #fff;
-  display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;
   border: 2px solid var(--panel-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   position: absolute; top: -10px; right: -10px; z-index: 5; cursor: help;
 }
@@ -97,13 +97,13 @@ html.dark .btn-close { filter: invert(1); }
   body { overflow-x: hidden; }
   .pos-header { padding: 0.85rem 1rem; justify-content: space-between; }
   .action-group { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 0.4rem; margin-top: 10px; }
-  .btn-luxury { padding: 0.45rem 0.6rem; font-size: 0.68rem; }
+  .btn-luxury { padding: 0.45rem 0.6rem; font-size: 0.75rem; }
   .table-name { font-size: 1.3rem; }
   .table-card { padding: 1rem 0.75rem; }
   .metric-val { font-size: 1.8rem; }
 }
 @media (max-width: 400px) {
-  .btn-luxury { padding: 0.4rem 0.5rem; font-size: 0.65rem; letter-spacing: 0; }
+  .btn-luxury { padding: 0.4rem 0.5rem; font-size: 0.75rem; letter-spacing: 0; }
 }
 
 /* Urgency overlays */
@@ -113,14 +113,14 @@ html.dark .btn-close { filter: invert(1); }
 /* Cooking badge */
 .cooking-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 0.7rem; font-weight: 700; color: #f97316;
+  font-size: 0.75rem; font-weight: 700; color: #f97316;
   background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.3);
   border-radius: 12px; padding: 2px 8px; margin-top: 6px;
 }
 
 /* Section dividers */
 .section-header {
-  font-size: 0.65rem; text-transform: uppercase; letter-spacing: 3px;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px;
   font-weight: 700; color: var(--text-muted); padding: 0.4rem 0.2rem 0.2rem;
   border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
 }
@@ -136,7 +136,7 @@ html.dark .btn-close { filter: invert(1); }
 .alert-strip.clean { border-left-color: #10b981; }
 .alert-chip {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; border-radius: 20px; font-size: 0.72rem;
+  padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;
 }
 .chip-danger { background: rgba(239,68,68,.1); color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
 .chip-warn   { background: rgba(249,115,22,.1); color: #f97316; border: 1px solid rgba(249,115,22,.3); }
@@ -156,7 +156,7 @@ html.dark .btn-close { filter: invert(1); }
 .metric-card--billing { --accent-gold: #06b6d4; }
 .floor-legend { font-size: 0.75rem; letter-spacing: 1px; font-weight: 600; }
 .legend-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; }
-.alert-strip-label { color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-size: 0.65rem; }
+.alert-strip-label { color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; }
 
 /* Card buttons with a colour of their own, at rest and under the pointer */
 .btn-card-danger, .btn-card-danger:hover { color: #ef4444; }
@@ -166,7 +166,7 @@ html.dark .btn-close { filter: invert(1); }
 
 /* The sheets */
 .sheet-note { font-size: 0.75rem; letter-spacing: 1px; }
-.sheet-label { font-size: 0.7rem; letter-spacing: 1px; }
+.sheet-label { font-size: 0.75rem; letter-spacing: 1px; }
 .sheet-rule { border-color: var(--border-color); }
 .sheet-heading { font-family: 'DM Serif Display', serif; }
 .btn-luxury.btn-gold, .btn-luxury.btn-gold:hover { background: var(--accent-gold); border-color: var(--accent-gold); color: #111; }
