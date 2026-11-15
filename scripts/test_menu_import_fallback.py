@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """
 Real-data smoke test for the AI menu import fallback pipeline (no mocks,
-no Gemini API call). Runs the exact local-extraction + regex-parse path
-that fires when Gemini is unavailable: real pypdf/python-docx/openpyxl
+no AI call). Runs the exact local-extraction + regex-parse path
+that fires when the AI is unavailable: real pypdf/python-docx/openpyxl
 extraction -> real _manual_text_parse -> real _guess_veg classification.
 
 This is deliberately separate from the unit tests in core/tests/test_ai_service.py
@@ -50,7 +50,7 @@ def main():
 
     svc = AIService()
 
-    print("\n[2] Extracting text locally (real pypdf/python-docx/openpyxl, no Gemini)...")
+    print("\n[2] Extracting text locally (real pypdf/python-docx/openpyxl, no AI)...")
     extracted = svc._extract_fallback_text(file_bytes, mime_type)
     if not extracted:
         sys.exit("    FAILED: no text extracted -- either an unsupported file type, "
@@ -59,7 +59,7 @@ def main():
     print("    --- first 200 chars ---")
     print("    " + extracted[:200].replace("\n", "\n    "))
 
-    print("\n[3] Running the real regex parser + veg/non-veg guesser (no Gemini)...")
+    print("\n[3] Running the real regex parser + veg/non-veg guesser (no AI)...")
     structured = svc._manual_text_parse(extracted)
     if not structured:
         sys.exit("    FAILED: parser found zero items.")

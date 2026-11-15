@@ -1,111 +1,147 @@
+"""
+Rasova's AI: reading a menu or a recipe from a photo, PDF, Word or Excel
+file or pasted text, matching recipe ingredients to the inventory, and a
+price suggestion. Every call goes to Claude through the Anthropic SDK
+(15 Nov 2026; it was Google's Gemini before).
+
+Models (Rajath's choice, 12 Nov 2026), each overridable from .env:
+  menus                         claude-sonnet-5-5   AI_MENU_MODEL
+  recipes, matching, pricing    claude-haiku-5-5    AI_RECIPE_MODEL
+
+The client is built only from an explicit ANTHROPIC_API_KEY. The SDK would
+otherwise fall back to an `ant auth login` profile on disk, so a laptop or
+a test run without the key could still reach the real API; without the key
+the AI is simply off (core/tests/test_no_real_services.py). Tests hand the
+service a fake client: AIService(client=...).
+
+Answers come back as JSON through structured outputs (output_config
+format json_schema), so there is no "strip the backticks and hope" parsing.
+"""
 try:
-    from google import genai
-    from google.genai import types
-    HAS_GENAI = True
+    import anthropic
+    HAS_ANTHROPIC = True
 except ImportError:
-    HAS_GENAI = False
+    HAS_ANTHROPIC = False
 
 from PIL import Image
+import base64
 import io
+import json
 
 import logging
 import os
 
 logger = logging.getLogger("pos.ai")
 
-# One place to change which Gemini model every AI feature uses -- was
-# hardcoded as a literal string in four separate call sites, meaning
-# switching models (e.g. pinning a specific version instead of "-latest",
-# or trying a cheaper/newer one later) needed a code change in each. Now
-# it's an env var, defaulting to the same "-latest" alias as before, so
-# nothing changes unless GEMINI_MODEL_NAME is actually set.
-GEMINI_MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-flash-latest")
+MENU_MODEL = os.getenv("AI_MENU_MODEL", "claude-sonnet-5-5")
+RECIPE_MODEL = os.getenv("AI_RECIPE_MODEL", "claude-haiku-5-5")
+# A menu with a few hundred dishes fits well inside this; non-streaming
+# requests stay under the SDK's timeouts at this size.
+MAX_TOKENS = 16000
+
+
+class AIRefused(Exception):
+    """Claude declined, or its answer was cut off before the JSON ended."""
+
+
+def _schema(properties, required=None):
+    return {"type": "object", "properties": properties,
+            "required": list(required or properties), "additionalProperties": False}
+
+
+MENU_SCHEMA = _schema({"categories": {"type": "array", "items": _schema({
+    "category": {"type": "string"},
+    "items": {"type": "array", "items": _schema({
+        "name": {"type": "string"}, "price": {"type": "number"}, "is_veg": {"type": "boolean"},
+    })},
+})}})
+
+RECIPE_SCHEMA = _schema({"ingredients": {"type": "array", "items": _schema({
+    "ingredient": {"type": "string"}, "quantity_text": {"type": "string"},
+})}})
+
+MATCH_SCHEMA = _schema({"matches": {"type": "array", "items": _schema({
+    "ingredient": {"type": "string"}, "inventory_item": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+})}})
 
 
 class AIService:
-    def __init__(self):
-        import os
-        self.api_key = os.getenv("GOOGLE_API_KEY")
-        self.client = None
-
-        # ══════════════════════════════════════════════════════════════════
-        # TEMPORARY DEV-STAGE WORKAROUND — NOT A PERMANENT DESIGN.
-        #
-        # A second Google account's key, tried only when the primary key's
-        # call actually fails at runtime (free-tier quota exhausted, rate
-        # limited, etc). This exists purely because Rasova has no paying
-        # customers yet, so every request today is our own testing burning
-        # through a 20/day free-tier cap — not because "two free accounts"
-        # is the right long-term architecture. Relying on multiple free-tier
-        # accounts to route around a rate limit is exactly what Google's
-        # terms discourage; keep this short-lived.
-        #
-        # >>> REMINDER: the day Rasova gets its first real paying customer,
-        # >>> retire this. Upgrade GOOGLE_API_KEY's account to a paid Gemini
-        # >>> tier (removes the cap entirely, costs pennies at real volume),
-        # >>> then delete GOOGLE_API_KEY_FALLBACK from .env. Don't let this
-        # >>> quietly become permanent just because it works.
-        #
-        # Full writeup: md_files/ai_cost_plan_eli5_2026-09-04.html (step 5).
-        # ══════════════════════════════════════════════════════════════════
-        self.fallback_api_key = os.getenv("GOOGLE_API_KEY_FALLBACK")
-        self.fallback_client = None
+    def __init__(self, client=None):
+        self.client = client
+        if client is not None:
+            return
 
         # Log the SPECIFIC reason the client can't be built, so the server logs
         # say exactly what to fix instead of a generic "no AI key". The #1 cause
         # in practice is a stale process: .env was updated but the worker that
         # runs the import (celery for image import, gunicorn for the sync
         # fallback) was never restarted, so it still has the old environment.
-        if not HAS_GENAI:
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not HAS_ANTHROPIC:
             logger.warning(
-                "AI disabled: the 'google-genai' package is not installed in this "
+                "AI disabled: the 'anthropic' package is not installed in this "
                 "environment. Run: pip install -r requirements.txt"
             )
             return
-        if not self.api_key:
+        if not api_key:
             logger.warning(
-                "AI disabled: GOOGLE_API_KEY is not set in THIS process's environment. "
+                "AI disabled: ANTHROPIC_API_KEY is not set in THIS process's environment. "
                 "Set it in .env, then RESTART the service that runs the import "
                 "(celery for image import, gunicorn for the sync fallback)."
             )
             return
         try:
-            self.client = genai.Client(api_key=self.api_key)
+            # The SDK retries rate limits, 5xx and dropped connections itself (2 retries).
+            self.client = anthropic.Anthropic(api_key=api_key)
             logger.info("AI client initialized.")
         except Exception as e:
-            logger.error("Failed to initialize AI client — check the key is valid: %s", e)
+            logger.error("Failed to initialize AI client, check the key is valid: %s", e)
 
-        if self.fallback_api_key:
-            try:
-                self.fallback_client = genai.Client(api_key=self.fallback_api_key)
-                logger.info("AI fallback client initialized -- dev-stage only, see __init__.")
-            except Exception as e:
-                logger.error("Failed to initialize AI fallback client: %s", e)
+    def _ask(self, model, content, schema, effort, fallback=False):
+        """One request, its JSON answer as a dict. Raises on any failure
+        (API error, refusal, an answer cut off), so each caller keeps its
+        own fallback: the regex parser for menus, a clear message for
+        recipes, "unmatched" for ingredient matching.
 
-    def _generate_content(self, model, contents):
-        """Every Gemini call in this file goes through here instead of hitting
-        self.client directly, so the fallback-account retry lives in exactly
-        one place rather than duplicated at each call site. Tries the primary
-        key; only if that call itself fails (quota, rate limit, transient
-        error) AND a second key is configured does it retry once on the
-        second key. If neither fallback_client exists nor the retry helps,
-        the original exception propagates exactly as it always did, so every
-        existing except-block (regex-parser fallback, error messages) keeps
-        working unchanged."""
-        try:
-            return self.client.models.generate_content(model=model, contents=contents)
-        except Exception as e:
-            if not self.fallback_client:
-                raise
-            logger.warning("Primary Gemini key failed (%s) -- retrying on fallback key.", e)
-            return self.fallback_client.models.generate_content(model=model, contents=contents)
+        fallback=True (the Sonnet menu call): if a safety check declines,
+        the API runs the same request on another model in the same call
+        ("default" picks it by the reason). Haiku has no such fallback."""
+        request = dict(
+            model=model,
+            max_tokens=MAX_TOKENS,
+            messages=[{"role": "user", "content": content}],
+            output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema}},
+        )
+        if fallback:
+            response = self.client.beta.messages.create(
+                betas=["server-side-fallback-2026-07-01"], fallbacks="default", **request)
+        else:
+            response = self.client.messages.create(**request)
+        if response.stop_reason == "refusal":
+            raise AIRefused("The AI declined to read this.")
+        if response.stop_reason == "max_tokens":
+            raise AIRefused("The answer was too long and got cut off.")
+        text = next((b.text for b in response.content if b.type == "text"), "")
+        return json.loads(text)
+
+    @staticmethod
+    def _content(prompt, text=None, file_block=None, text_label="Here is the text"):
+        """The user turn: the file first (documents and images work best
+        before the question), then any pasted text, then the instructions."""
+        blocks = []
+        if file_block is not None:
+            blocks.append(file_block if isinstance(file_block, dict) else {"type": "text", "text": file_block})
+        if text and text.strip():
+            blocks.append({"type": "text", "text": f"{text_label}:\n{text}"})
+        blocks.append({"type": "text", "text": prompt})
+        return blocks
 
     def _resize_image(self, image_bytes, max_size=(1024, 1024)):
         """Re-encode any image to a clean, right-sized RGB JPEG.
 
         Raises if the bytes aren't a readable image (e.g. an iPhone HEIC, or a
         corrupt upload). The old version swallowed that and returned the ORIGINAL
-        bytes while still labelling them image/jpeg — so Gemini received
+        bytes while still labelling them image/jpeg, so the AI received
         non-JPEG data claiming to be JPEG and replied with the opaque
         "Unable to process input image" 400. Better to fail here and let the
         caller show a "use a JPG/PNG" message.
@@ -121,14 +157,14 @@ class AIService:
         return output.getvalue()
 
     # -------------------------------------------------------
-    # FILE ROUTING — turn any uploaded file into something Gemini can read
+    # FILE ROUTING: turn any uploaded file into something the AI can read
     # -------------------------------------------------------
 
     def _file_to_content(self, file_bytes, mime_type):
-        """Return a Gemini content item for an uploaded menu file.
+        """Return a content block (or text) for an uploaded menu file.
 
-        - Images  -> re-encoded JPEG Part
-        - PDFs    -> PDF Part (Gemini reads text AND scanned/image PDFs natively)
+        - Images  -> re-encoded JPEG image block
+        - PDFs    -> PDF document block (Claude reads text AND scanned PDFs)
         - Word    -> extracted text
         - Excel   -> extracted text
         - text/csv-> decoded text
@@ -138,7 +174,9 @@ class AIService:
 
         # PDF — sniff the magic bytes too, in case the browser sent no mime type
         if mt == "application/pdf" or file_bytes[:5] == b"%PDF-":
-            return types.Part.from_bytes(data=file_bytes, mime_type="application/pdf")
+            return {"type": "document", "source": {
+                "type": "base64", "media_type": "application/pdf",
+                "data": base64.standard_b64encode(file_bytes).decode("ascii")}}
 
         # Word (.docx / .doc)
         if "wordprocessingml" in mt or mt == "application/msword":
@@ -154,9 +192,10 @@ class AIService:
 
         # Otherwise assume it's a photo (explicit image/* or unknown type).
         try:
-            return types.Part.from_bytes(
-                data=self._resize_image(file_bytes), mime_type="image/jpeg"
-            )
+            jpeg = self._resize_image(file_bytes)
+            return {"type": "image", "source": {
+                "type": "base64", "media_type": "image/jpeg",
+                "data": base64.standard_b64encode(jpeg).decode("ascii")}}
         except Exception as e:
             logger.warning("Unreadable upload (mime=%s): %s", mime_type, e)
             raise Exception(
@@ -188,8 +227,8 @@ class AIService:
         genuine digital PDF (text layer present) -- a scanned/photographed
         menu saved as PDF has no text layer, and this correctly comes back
         empty rather than guessing. Used only as the fallback source when
-        Gemini itself (which reads scanned PDFs too, via OCR) is unavailable;
-        the normal working path still sends the raw PDF straight to Gemini,
+        the AI itself (which reads scanned PDFs too) is unavailable;
+        the normal working path still sends the raw PDF straight to the AI,
         since that's strictly more capable than this when it's up."""
         try:
             from pypdf import PdfReader
@@ -258,7 +297,7 @@ class AIService:
         Parses menu from text or image. 
         Falls back to manual regex parsing if AI is not configured and only text is provided.
         """
-        # Whatever plain text we can get our hands on without needing Gemini at
+        # Whatever plain text we can get our hands on without needing the AI at
         # all -- either what was pasted directly, or (for Word/Excel/CSV/PDF
         # uploads) text extracted locally from the file. This is the one thing
         # the regex fallback parser can work with; a bare photo has no local
@@ -269,7 +308,7 @@ class AIService:
 
         if not self.client:
             if fallback_text:
-                logger.info("Google API Key not found. Falling back to manual text parser.")
+                logger.info("No AI key. Falling back to manual text parser.")
                 return self._manual_text_parse(fallback_text)
 
             # A real photo genuinely needs AI/OCR -- no local text to fall back to.
@@ -281,8 +320,8 @@ class AIService:
 
         prompt = """
         Analyze this restaurant menu and extract all items.
-        Format your response as a valid JSON list of objects. Each object represents a category.
-        Each category object must have:
+        Answer with "categories": a list with one entry per menu category.
+        Each category entry has:
         1. "category": String (name of the category, e.g., "Starters")
         2. "items": List of objects, each with:
            - "name" (String)
@@ -296,33 +335,21 @@ class AIService:
 
         If you find a description, ignore it. Only extract name, price, and is_veg.
         If no price is found, use 0.
-        Output ONLY the raw JSON list. No markdown, no backticks.
         """
 
-        contents = [prompt]
-        if text and text.strip():
-            contents.append(f"Here is the menu text:\n{text}")
-        
-        if image_bytes:
-            # `image_bytes` is really "the uploaded file" — could be an image, a
-            # PDF, a Word doc, an Excel sheet or plain text. _file_to_content
-            # routes each to the right thing (a Gemini Part for images/PDFs, or
-            # extracted text for Office docs).
-            contents.append(self._file_to_content(image_bytes, mime_type))
+        # `image_bytes` is really "the uploaded file": an image, a PDF, a Word
+        # doc, an Excel sheet or plain text. _file_to_content routes each to
+        # the right thing (an image or document block, or extracted text).
+        file_block = self._file_to_content(image_bytes, mime_type) if image_bytes else None
 
         try:
-            response = self._generate_content(GEMINI_MODEL_NAME, contents)
-            import json
-
-            # The new SDK response structure: response.text or response.candidates[0].content.parts[0].text
-            res_text = response.text or ""
-            # Strip potential markdown backticks
-            raw_json = res_text.strip().replace("```json", "").replace("```", "")
-            return json.loads(raw_json)
+            answer = self._ask(MENU_MODEL, self._content(prompt, text, file_block, "Here is the menu text"),
+                               MENU_SCHEMA, effort="medium", fallback=True)
+            return answer["categories"]
         except Exception as e:
-            logger.error("In-build AI API Error: %s", e)
+            logger.error("AI menu reading failed: %s", e)
             if fallback_text:
-                logger.info("Falling back to manual parser after Gemini API error.")
+                logger.info("Falling back to manual parser after an AI error.")
                 return self._manual_text_parse(fallback_text)
             raise e
 
@@ -515,33 +542,21 @@ class AIService:
         Ignore preparation steps, cooking instructions, serving suggestions, and
         anything that isn't an ingredient with a quantity.
 
-        Format your response as a valid JSON list of objects, one per ingredient:
-        1. "ingredient": String — the ingredient name only (e.g. "Onion", not "2 medium onions")
-        2. "quantity_text": String — the quantity EXACTLY as written in the source,
+        Answer with "ingredients": a list with one entry per ingredient:
+        1. "ingredient": the ingredient name only (e.g. "Onion", not "2 medium onions")
+        2. "quantity_text": the quantity EXACTLY as written in the source,
            unmodified (e.g. "1 cup", "2 medium", "a pinch", "200g", "1/2 tsp").
            Do not convert, round, or normalize it — copy it verbatim.
 
         If the same ingredient appears more than once (e.g. once in a marinade and
         once as a garnish), output it as two separate entries rather than combining them.
-
-        Output ONLY the raw JSON list. No markdown, no backticks, no commentary.
         """
 
-        contents = [prompt]
-        if text and text.strip():
-            contents.append(f"Here is the recipe text:\n{text}")
-        if image_bytes:
-            contents.append(self._file_to_content(image_bytes, mime_type))
-
-        import json
+        file_block = self._file_to_content(image_bytes, mime_type) if image_bytes else None
         try:
-            response = self._generate_content(GEMINI_MODEL_NAME, contents)
-            res_text = response.text or ""
-            raw_json = res_text.strip().replace("```json", "").replace("```", "")
-            parsed = json.loads(raw_json)
-            if not isinstance(parsed, list):
-                raise ValueError("Expected a JSON list of ingredients")
-            return parsed
+            answer = self._ask(RECIPE_MODEL, self._content(prompt, text, file_block, "Here is the recipe text"),
+                               RECIPE_SCHEMA, effort="medium")
+            return answer["ingredients"]
         except Exception as e:
             logger.error("AI recipe extraction error: %s", e)
             raise Exception("Couldn't read that recipe. Try a clearer photo or a text/PDF export.")
@@ -554,11 +569,9 @@ class AIService:
         one call per ingredient) to keep cost/latency bounded.
 
         Returns {ingredient_name: matched_inventory_name_or_None}. Any name
-        missing from the response (bad JSON, Gemini omitted it, etc.) is
+        missing from the response (an error, the AI left it out, etc.) is
         treated as unmatched by the caller — never assumed matched.
         """
-        import json
-
         if not unmatched_names:
             return {}
         if not self.client or not inventory_names:
@@ -577,18 +590,14 @@ class AIService:
 
         Inventory item names to match against: {json.dumps(inventory_names)}
 
-        Respond with ONLY a raw JSON object mapping each ingredient name (exactly
-        as given above) to either a matching inventory item name (exactly as
-        given above) or null. No markdown, no backticks, no commentary.
+        Answer with "matches": one entry per ingredient, its name exactly as
+        given above, and "inventory_item": a matching inventory item name
+        exactly as given above, or null.
         """
 
         try:
-            response = self._generate_content(GEMINI_MODEL_NAME, [prompt])
-            res_text = response.text or ""
-            raw_json = res_text.strip().replace("```json", "").replace("```", "")
-            parsed = json.loads(raw_json)
-            if not isinstance(parsed, dict):
-                raise ValueError("Expected a JSON object")
+            answer = self._ask(RECIPE_MODEL, self._content(prompt), MATCH_SCHEMA, effort="low")
+            parsed = {m["ingredient"]: m["inventory_item"] for m in answer["matches"]}
             # Only trust names that were actually offered, matched to names
             # that actually exist in inventory — anything else falls back to
             # unmatched rather than trusting an AI-invented name.
@@ -610,8 +619,13 @@ class AIService:
         
         prompt = f"Calculate the suggested menu price for '{dish_name}'. Ingredients and their total cost in this dish: {ingredients_with_costs}. Aim for a 30% food cost percentage. Add a summary of why."
         try:
-            response = self._generate_content(GEMINI_MODEL_NAME, prompt)
-            return response.text
+            response = self.client.messages.create(
+                model=RECIPE_MODEL, max_tokens=MAX_TOKENS, output_config={"effort": "low"},
+                messages=[{"role": "user", "content": prompt}],
+            )
+            if response.stop_reason == "refusal":
+                return None
+            return next((b.text for b in response.content if b.type == "text"), None)
         except Exception as e:
             logger.error("AI pricing suggestion error: %s", e)
             return None

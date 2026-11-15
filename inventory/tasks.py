@@ -6,7 +6,7 @@ from django.db import transaction
 
 logger = logging.getLogger("pos.inventory")
 
-# rapidfuzz score (0-100) below which a name is sent to the batched Gemini
+# rapidfuzz score (0-100) below which a name is sent to the batched Claude
 # match step instead of being trusted as a deterministic fuzzy match.
 FUZZY_THRESHOLD = 72
 
@@ -17,13 +17,13 @@ FUZZY_HIGH_CONFIDENCE = 0.90
 
 
 # Own soft/hard limit, same reasoning as menu.tasks.ai_import_menu: the
-# global 30s/60s Celery limit is right for fast tasks, wrong for a Gemini
+# global 30s/60s Celery limit is right for fast tasks, wrong for a Claude
 # document read.
 @shared_task(bind=True, max_retries=0, soft_time_limit=180, time_limit=200)
 def ai_import_recipe(self, job_id, text, image_b64, mime_type):
     """
-    Extracts a recipe's ingredients via Gemini, resolves each to an existing
-    InventoryItem (rapidfuzz first, one batched Gemini call for the rest),
+    Extracts a recipe's ingredients via Claude, resolves each to an existing
+    InventoryItem (rapidfuzz first, one batched Claude call for the rest),
     and stages the result as RecipeImportLine rows for human review.
 
     Unlike menu.tasks.ai_import_menu, progress is written to the
@@ -86,7 +86,7 @@ def ai_import_recipe(self, job_id, text, image_b64, mime_type):
             else:
                 unmatched_names.append(name)
 
-        # Layer 2 — one batched Gemini call for everything Layer 1 couldn't place.
+        # Layer 2: one batched Claude call for everything Layer 1 couldn't place.
         ai_matches = AIService().match_ingredients(unmatched_names, inventory_names)
 
         with transaction.atomic():

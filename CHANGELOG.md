@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-15: The AI runs on Claude (Gemini is gone)
+
+### Changed
+- `core/ai_service.py` calls Claude through the Anthropic SDK (`anthropic==2.8.0` replaces `google-genai` in `requirements.txt`). Menus are read by `claude-sonnet-5-5`; recipes, ingredient matching and price suggestions by `claude-haiku-5-5` (`AI_MENU_MODEL` / `AI_RECIPE_MODEL` in `.env` override them). Callers see the same lists and dicts as before.
+- Answers come back through structured outputs (a JSON schema per task) instead of stripping backticks off free text. A refusal or an answer cut off counts as a failure, so each task keeps its own fallback: the plain parser for menus, one clear message for recipes, "unmatched" for ingredients.
+- The menu call has the API's refusal fallback on (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`): if a safety check declines, another model answers in the same call.
+- The client is built only from `ANTHROPIC_API_KEY`. Without it the AI is off, even on a machine with an `ant auth login` profile, so a test or a laptop without the key never reaches the real API.
+- The Gemini second-account fallback key (`GOOGLE_API_KEY_FALLBACK`, a free-tier workaround) is gone with Gemini. `.env.example` lists `ANTHROPIC_API_KEY`.
+- **On the server:** add `ANTHROPIC_API_KEY=` to `.env`, then restart gunicorn and celery. The deploy installs `anthropic` from `requirements.txt`.
+
+### Tests
+- `core/tests/fake_claude.py`: a fake Anthropic client; tests hand it to `AIService(client=...)`. No test calls the real AI.
+- `core/tests/test_ai_claude.py` (14): no key means no client even with a login profile; a key builds the client with that key; a PDF goes as a document and a photo as a JPEG image to Sonnet with the menu schema and the fallback; pasted text; a refusal or a cut-off answer falls back to the plain parser; recipes on Haiku and every failure one message; matching drops an invented name; pricing.
+- `core/tests/test_ai_service.py`: the fallback-parser tests run on the fake; the Gemini-only tests (second key, `_generate_content` retries) went with that code. `test_no_real_services` also checks `ANTHROPIC_API_KEY` is blank under the test runner.
+
 ## 2026-11-15: A cash payment sent twice is recorded once
 
 ### Fixed

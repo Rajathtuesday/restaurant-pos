@@ -11,13 +11,13 @@ CACHE_TTL = 600  # 10 minutes — enough for any reasonable import
 
 
 # The global Celery limit is 30s soft / 60s hard — right for fast tasks like
-# printing, but a Gemini PDF/photo call routinely takes longer, especially on a
+# printing, but a Claude PDF/photo call routinely takes longer, especially on a
 # small server. Give THIS task its own generous limit (not the global one) so a
 # menu import isn't killed mid-call, while other tasks keep the short leash.
 @shared_task(bind=True, max_retries=0, soft_time_limit=180, time_limit=200)
 def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
     """
-    Runs Gemini menu parsing in a Celery worker so gunicorn workers are free.
+    Runs Claude menu parsing in a Celery worker so gunicorn workers are free.
     Result stored in cache under key ai_import:<task_id>.
     """
     task_id = self.request.id

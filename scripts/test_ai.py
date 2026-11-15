@@ -15,16 +15,16 @@ django.setup()
 from core.ai_service import AIService
 
 def test_api():
-    print("🚀 Initializing Gemini AI Test...")
+    print("🚀 Initializing Claude AI Test...")
     ai = AIService()
     
-    if not ai.api_key:
-        print("❌ Error: GOOGLE_API_KEY not found in .env")
+    if not ai.client:
+        print("❌ Error: ANTHROPIC_API_KEY not found in .env")
         return
 
     # No part of the key is printed: a pasted terminal log or screenshot
     # should never carry any of it.
-    print("📡 Connecting to Gemini (key loaded from .env)")
+    print("📡 Connecting to Claude (key loaded from .env)")
     
     try:
         # Test basic generation
@@ -43,8 +43,8 @@ def test_api():
         print(f"❌ API Error: {str(e)}")
         print("\nPossible issues:")
         print("1. Your API key might be invalid.")
-        print("2. You might have exceeded your free quota.")
-        print("3. Check if 'google-genai' is installed correctly.")
+        print("2. The account may be out of credit or rate limited.")
+        print("3. Check if 'anthropic' is installed correctly.")
 
 if __name__ == "__main__":
     test_api()

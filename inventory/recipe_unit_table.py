@@ -1,6 +1,6 @@
 # inventory/recipe_unit_table.py
 """
-Parses the free-text quantity phrases Gemini extracts from a recipe
+Parses the free-text quantity phrases the AI (Claude) extracts from a recipe
 ("2 cups", "a pinch", "1/2 tsp", "200g") into Rasova's native unit set
 (g/kg/ml/l/pcs) — or explicitly refuses to guess when the phrase is genuinely
 ambiguous.

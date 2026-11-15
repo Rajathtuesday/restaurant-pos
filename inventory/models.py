@@ -1007,7 +1007,7 @@ class RecipeImportJob(TenantScopedModel):
     )
     status = models.CharField(max_length=20, choices=RECIPE_IMPORT_STATUS, default="processing")
     source_filename = models.CharField(max_length=255, blank=True)
-    # Gemini's raw structured output, kept for debugging a bad extraction —
+    # The AI's raw structured output, kept for debugging a bad extraction:
     # never read by anything that writes to Recipe.
     raw_extraction = models.JSONField(null=True, blank=True)
     error_message = models.TextField(blank=True)
@@ -1030,7 +1030,7 @@ class RecipeImportLine(models.Model):
     # order values appended after every extracted line.
     order = models.PositiveIntegerField(default=0)
 
-    # --- as extracted — immutable audit trail of what Gemini/the reviewer said.
+    # --- as extracted: immutable audit trail of what the AI/the reviewer said.
     # Blank for a manually-added row (match_method="manual").
     raw_ingredient_name = models.CharField(max_length=255, blank=True)
     raw_quantity_text = models.CharField(max_length=100, blank=True)  # e.g. "1 cup", "a pinch"

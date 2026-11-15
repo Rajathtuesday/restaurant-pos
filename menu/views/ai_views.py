@@ -25,8 +25,8 @@ SYNC_PARSE_TIMEOUT_SECONDS = 100
 @feature_required("ai_menu_import")
 def ai_menu_importer(request):
     """
-    Gemini-powered menu parser.
-    Queues a Celery task so the Gemini API call never blocks gunicorn.
+    Claude-powered menu parser.
+    Queues a Celery task so the Claude API call never blocks gunicorn.
     Returns {task_id} immediately; frontend polls /menu/ai-import-status/<id>/.
     Falls back to synchronous parsing if Celery is unavailable.
     """
