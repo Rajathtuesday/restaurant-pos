@@ -49,8 +49,12 @@ def notification_api(request):
     # 3. Unread System Notifications — capped at 50.
     # Without a limit, low-stock alerts accumulate and this query returns
     # thousands of rows on every 8-second poll across all open browser tabs.
+    # Only the kinds the header's "Low stock & system alerts" badge is for:
+    # it counted every unread notification, so a busy demo's "Order ready
+    # for Table 2" messages showed as 50 alerts over a board with 2 low
+    # items (15 Nov 2026).
     unread_system = Notification.objects.filter(
-        tenant=tenant, outlet=outlet, is_read=False
+        tenant=tenant, outlet=outlet, is_read=False, type__in=("low_stock", "system"),
     ).order_by('-created_at')[:50]
 
     # 4. QR orders awaiting staff approval (guest-placed items land as

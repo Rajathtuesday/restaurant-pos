@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-15: The low-stock badge counts low stock
+
+### Fixed
+- **The header's "Low stock & system alerts" badge showed 50 over an inventory board with 2 low items.** `/api/notifications/` counted every unread notification, so the kitchen's "Order ready for Table 2" messages (75 in the demo) filled it, capped at 50. It now counts only `low_stock` and `system` notifications (`orders/api.py`).
+
+### Tests
+- `orders/tests/test_notification_api.py`: order-ready messages do not reach the badge (fails on the old code).
+
 ## 2026-11-15: A page never runs a new module beside an old one
 
 ### Fixed

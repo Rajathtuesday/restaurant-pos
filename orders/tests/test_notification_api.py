@@ -38,6 +38,17 @@ class NotificationApiSystemAlertsTest(TestCase):
         self.assertEqual(len(data["notifications"]), 1)
         self.assertEqual(data["notifications"][0]["message"], "Flour low stock (2 kg)")
 
+    def test_only_low_stock_and_system_alerts_reach_the_badge(self):
+        # 15 Nov 2026: "Order ready" messages were counted too, and a busy
+        # demo showed 50 alerts over an inventory board with 2 low items.
+        for i in range(3):
+            Notification.objects.create(tenant=self.tenant, outlet=self.outlet,
+                                        type="order_ready", message=f"Order ready for Table {i}")
+        Notification.objects.create(tenant=self.tenant, outlet=self.outlet, type="system", message="Backup failed")
+        Notification.objects.create(tenant=self.tenant, outlet=self.outlet, type="low_stock", message="Rice low")
+        messages = {n["message"] for n in self.client.get("/api/notifications/").json()["notifications"]}
+        self.assertEqual(messages, {"Backup failed", "Rice low"})
+
     def test_already_read_notifications_are_excluded(self):
         Notification.objects.create(
             tenant=self.tenant, outlet=self.outlet,
