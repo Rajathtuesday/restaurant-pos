@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-11-15: The page address guard after the last page moved
+
+### Changed
+- `core.tests.test_page_addresses` asked for more than 50 hand-written addresses as proof that its scan works. With every page on modules there are none (each address comes from page data built with `reverse()`), so it failed on its own success. A sample now proves the scan instead, and the scan also reads the modules' `api.get/post` calls and skips comment lines, so an address written by hand that comes back is still checked.
+
 ## 2026-11-15: Menu management on modules (both pages); the last inline page script is gone
 
 ### Fixed
