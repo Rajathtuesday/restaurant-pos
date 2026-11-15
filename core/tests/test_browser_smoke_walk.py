@@ -18,6 +18,10 @@ page when it answers the owner's GET with 200 and HTML. Each page fails on:
   - stylesheet text among the words on the page
   - a header that is not the one header (base.html): exactly one brand
     link, one theme switch, one logout, none by onclick (V2, 13 Nov 2026)
+  - a page block that does not use the width it is given (15 Nov 2026: the
+    dashboard sat in a 565 px column on a 1400 px laptop, because a block
+    centred with margin: 0 auto inside base.html's flex <main> shrinks to
+    its content instead of growing to its max-width)
 
 A new page is walked the day its URL is added, with no change here.
 """
@@ -69,6 +73,31 @@ if (icons !== 1) wrong.push(`${icons} #themeIcon on the page, expected 1`);
 // using onclick are counted by the ratchet (test_frontend_hygiene) instead.
 const inline = header.querySelectorAll('[data-header][onclick], [onclick*="themeManager"]').length;
 if (inline) wrong.push(`${inline} shared header part(s) by onclick`);
+return wrong;
+"""
+
+
+# Each block directly inside <main> that is centred (equal side margins) or
+# has a max-width in px must be as wide as it may be: the room <main> gives
+# it, or its max-width, whichever is less.
+WIDTH = r"""
+const main = document.querySelector("main");
+if (!main) return [];
+const room = main.clientWidth;
+const wrong = [];
+for (const el of main.children) {
+  const cs = getComputedStyle(el);
+  if (cs.display === "none" || cs.position === "fixed" || cs.position === "absolute") continue;
+  const max = cs.maxWidth.endsWith("px") ? parseFloat(cs.maxWidth) : Infinity;
+  const centred = cs.marginLeft === cs.marginRight && parseFloat(cs.marginLeft) > 0;
+  if (max === Infinity && !centred) continue;
+  const want = Math.min(max, room);
+  const width = el.getBoundingClientRect().width;
+  if (width < want - 2) {
+    const name = el.tagName.toLowerCase() + (el.className ? "." + String(el.className).trim().split(/\s+/).join(".") : "");
+    wrong.push(`${name} is ${Math.round(width)} px wide with room for ${Math.round(want)} px`);
+  }
+}
 return wrong;
 """
 
@@ -131,6 +160,7 @@ class BrowserSmokeWalkTest(BrowserTestCase):
             if css:
                 problems.append(f"stylesheet shown as text: {css!r}")
             problems.extend(page.evaluate("async () => {" + HEADER + "}"))
+            problems.extend(page.evaluate("async () => {" + WIDTH + "}"))
         except Exception as e:  # noqa: BLE001 -- reported as this page's problem
             problems.append(f"could not open: {str(e).splitlines()[0]}")
         finally:

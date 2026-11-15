@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-15: Pages use the laptop's width
+
+### Fixed
+- **The dashboard sat in a 565 px column on a 1400 px laptop**, and 14 other pages were squeezed the same way (running order, token dashboard, four reports, inventory consumption and bar counts, recipe import review, setup, QR codes, kitchen stations, promos, offers). `<main>` in `base.html` is a flex column, and in a flex column a block centred with `margin: 0 auto` shrinks to its content instead of growing to its `max-width`. One rule in `static/css/rasova.css` (`main > * { width: 100%; }`) lets each page's block take its width; `max-width` and the auto margins still centre it.
+
+### Tests
+- `core/tests/test_browser_smoke_walk.py` now also fails on any block inside `<main>` narrower than the room it has (or its max-width): on the old code it listed all 15 pages.
+
 ## 2026-11-15: docs/RASOVA.md, the whole system in one file
 
 ### Added

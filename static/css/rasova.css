@@ -13,6 +13,14 @@
     --font-scale: 1;
 }
 
+/* A page's own block inside <main> uses the width it is given. <main> is a
+   flex column (base.html), and in a flex column a block centred with
+   margin: 0 auto shrinks to its content instead of growing to its
+   max-width: the dashboard sat in a 565 px strip on a laptop (15 Nov 2026).
+   With width: 100%, max-width and the auto margins centre it as meant.
+   core/tests/test_browser_smoke_walk.py checks every page. */
+main > * { width: 100%; }
+
 /* No background on <html> or <body> here. This file loads after the theme,
    so a colour set here would beat the theme's own in both modes. The theme
    paints both; before it arrives the browser paints by the color-scheme
