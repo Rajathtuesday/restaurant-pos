@@ -43,7 +43,8 @@ export function createUi({
 
     confirm(title, text, confirmText = "Yes, do it") {
       return swal().fire({
-        title,
+        // Text, never HTML: titles carry names people typed (a dish, a station).
+        titleText: title,
         text,
         icon: "warning",
         showCancelButton: true,

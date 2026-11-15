@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-15: Rasova's confirm sheet shows its title as text
+
+### Fixed
+- **`ui.confirm` gave its title to SweetAlert as HTML.** Titles carry names people typed ("Remove \"Bar\"?", a dish's name on Delete), so a name written as markup would have run in the owner's browser. The title is text now (`titleText`), as `ui.ask` already was.
+
+### Tests
+- `static/js/tests/small_pages.test.mjs`: the confirm title is text (fails on the old code).
+
 ## 2026-11-15: Purchase orders on modules; a second draft for a supplier is refused in words
 
 ### Fixed

@@ -24,6 +24,13 @@ function askWith(answer) {
   return { ui, fired };
 }
 
+test("confirm: the title is text, never HTML (it carries typed names)", async () => {
+  const { ui, fired } = askWith({ isConfirmed: true });
+  await ui.confirm('Delete "<img src=x onerror=boom()>"?', "Gone for good.", "Delete");
+  assert.equal(fired[0].titleText, 'Delete "<img src=x onerror=boom()>"?');
+  assert.equal(fired[0].title, undefined);
+});
+
 test("ask: the typed text, trimmed; the title is text, never HTML", async () => {
   const { ui, fired } = askWith({ isConfirmed: true, value: "  Patio 2 " });
   assert.equal(await ui.ask("<b>Rename</b>", { value: "T1" }), "Patio 2");
