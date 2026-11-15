@@ -402,7 +402,9 @@ test("payment: paid, the slip printed, the cart cleared for the next customer", 
   await rig.counter.pay();
   const paid = rig.fetchFn.calls[2];
   assert.equal(paid.url, "/pay/5/");
-  assert.deepEqual(JSON.parse(paid.options.body), { method: "cash", amount: "200.00" });
+  const { request_id: sentId, ...body } = JSON.parse(paid.options.body);
+  assert.deepEqual(body, { method: "cash", amount: "200.00" });
+  assert.match(sentId, /^[0-9a-f-]{36}$/);
   assert.deepEqual(rig.printed, [5]);
   assert.equal(rig.el("qsrConfirm").style.display, "flex");
   assert.equal(rig.el("qsrConfirmNum").textContent, "Order T-12");
@@ -467,7 +469,8 @@ test("offline at payment time: UPI is refused, cash goes to the queue", async ()
   await opened(cash, "cash", "105");
   online = false;
   await cash.counter.pay();
-  assert.deepEqual(cash.queue.added, [[5, "105.00"]]);
+  assert.deepEqual(cash.queue.added.map((q) => q.slice(0, 2)), [[5, "105.00"]]);
+  assert.match(cash.queue.added[0][2], /^[0-9a-f-]{36}$/);
   assert.equal(cash.modal.hidden, 1);
   assert.ok(cash.cart.isEmpty());
   assert.equal(cash.counter.pendingOrderId, null);
@@ -477,7 +480,9 @@ test("the connection dropping mid-payment queues cash, and only cash", async () 
   const cash = counterRig([...ORDER_MADE(), networkDown()]);
   await opened(cash, "cash", "105");
   await cash.counter.pay();
-  assert.deepEqual(cash.queue.added, [[5, "105.00"]]);
+  assert.deepEqual(cash.queue.added.map((q) => q.slice(0, 2)), [[5, "105.00"]]);
+  // The same id as the request that dropped: never recorded twice.
+  assert.equal(cash.queue.added[0][2], JSON.parse(cash.fetchFn.calls[2].options.body).request_id);
   assert.ok(cash.cart.isEmpty());
 
   const upi = counterRig([...ORDER_MADE(), networkDown()]);

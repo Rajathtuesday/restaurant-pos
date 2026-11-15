@@ -28,6 +28,23 @@ logger = logging.getLogger("pos.orders")
 # PAYMENT
 # -------------------------------------------------
 
+def _repeat_payment(order, payment):
+    """The answer to a payment id this order has already taken."""
+    from django.db.models import Sum
+    paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    logger.info("Payment request %s for order #%s arrived again; answered with payment #%s",
+                payment.request_key, order.id, payment.id)
+    return JsonResponse({
+        "success": True,
+        "repeat": True,
+        "message": "This payment was already recorded",
+        "remaining": float(max(order.grand_total - paid, Decimal("0"))),
+        "change_due": 0.0,
+        "order_number": order.order_number or str(order.id),
+        "bill_number": order.bill_number,
+    })
+
+
 @login_required
 @tenant_required
 @require_POST
@@ -85,6 +102,11 @@ def pay_order(request, order_id):
             amount = read_number(amount, "The amount", field=Payment._meta.get_field("amount"))
         except NumberInputError as e:
             return error_response(e, 400)
+        from orders.views.billing_views import _read_request_id
+        try:
+            request_key = _read_request_id(data)
+        except ValueError:
+            return JsonResponse({"error": "Invalid request id"}, status=400)
 
         try:
             with transaction.atomic():
@@ -92,6 +114,14 @@ def pay_order(request, order_id):
                     Order.objects.select_for_update()
                     .get(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
                 )
+
+                # The same payment again (sent offline, or its answer was
+                # lost): checked under the order's lock, before "already
+                # completed", so the copy is answered, never recorded twice.
+                if request_key:
+                    first = order.payments.filter(request_key=request_key).first()
+                    if first is not None:
+                        return _repeat_payment(order, first)
 
                 if order.status in ["paid", "closed", "cancelled"]:
                     return JsonResponse({"error": "Order already completed"}, status=400)
@@ -174,7 +204,7 @@ def pay_order(request, order_id):
                             "error": "No open cash session. Please open a session in Shifts → Sessions."
                         }, status=400)
 
-                payment_result = process_payment(order, method, amount, request.user)
+                payment_result = process_payment(order, method, amount, request.user, request_key=request_key)
                 change_due = payment_result.get("change_due", Decimal("0.00"))
 
                 logger.info(

@@ -11,16 +11,24 @@
  * A fine-dining payment needs an open cash register. When the server
  * refuses for that reason, the cashier is offered to open it here, and the
  * same payment is tried again once.
+ *
+ * Each payment has an id (request_id). The online attempt and, if the
+ * connection drops, its queued copy carry the same one, so a payment the
+ * server took before the answer was lost is never recorded twice
+ * (Payment.request_key).
  */
+import { newRequestId } from "../core/request_id.js";
+
 export function createPayment({
   api, urls, ui, paymentQueue, printer, orderId, askOpenRegister,
   isOnline = () => globalThis.navigator.onLine, go, wait = (ms) => new Promise((r) => setTimeout(r, ms)),
+  newId = newRequestId,
 }) {
   let busy = false;
 
-  async function queueCash(amount, message) {
+  async function queueCash(amount, message, paymentId) {
     try {
-      await paymentQueue.add(orderId, amount);
+      await paymentQueue.add(orderId, amount, paymentId);
       ui.toast(message, "success");
       return { queued: true };
     } catch (noStorage) {
@@ -42,29 +50,29 @@ export function createPayment({
     return retry();
   }
 
-  async function send(method, amount, { mayOpenRegister }) {
+  async function send(method, amount, { mayOpenRegister, paymentId = newId() }) {
     if (!isOnline()) {
       if (method !== "cash") {
         ui.toast("You are offline. Only cash payments can be taken right now.", "error");
         return { refused: "offline" };
       }
-      return queueCash(amount, "Offline: cash payment saved, it will sync when back online. Print the receipt manually for now.");
+      return queueCash(amount, "Offline: cash payment saved, it will sync when back online. Print the receipt manually for now.", paymentId);
     }
 
     let data;
     try {
-      data = await api.post(urls.pay_order, { method, amount });
+      data = await api.post(urls.pay_order, { method, amount, request_id: paymentId });
     } catch (e) {
       // The connection dropped between the check above and the request
       // landing. A TypeError is the network failing (the test core/http.js
       // uses). Only cash is safe to queue after the fact.
       if (e instanceof TypeError && method === "cash") {
-        return queueCash(amount, "Connection dropped: cash payment saved, it will sync once back online.");
+        return queueCash(amount, "Connection dropped: cash payment saved, it will sync once back online.", paymentId);
       }
       // api already showed the server's own message. One of them has a way
       // forward: no cash register is open.
       if (mayOpenRegister && /cash session/i.test((e && e.message) || "")) {
-        return openRegisterThen(() => send(method, amount, { mayOpenRegister: false }));
+        return openRegisterThen(() => send(method, amount, { mayOpenRegister: false, paymentId }));
       }
       return { refused: "server" };
     }

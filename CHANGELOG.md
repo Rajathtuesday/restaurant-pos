@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-11-15: A cash payment sent twice is recorded once
+
+### Fixed
+- **A part payment whose answer was lost was counted twice.** A cash payment taken offline, or whose connection dropped mid-request, is kept on the device and sent again later. If the server had taken the first one, a part payment was simply recorded a second time.
+- **A payment that had closed the order came back "could not be synced"** ("Order already completed") although it went through.
+- Each payment now carries an id (`request_id`). The counter and the bill page give the online attempt and its queued copy the same id; the server keeps it on the payment (`Payment.request_key`, unique per order) and answers a repeat with the first payment (`"repeat": true`), checked under the order's lock before any refusal. Payments queued before this change have no id and are sent as they were.
+
+### Migrations
+- `orders 0073_payment_request_key`: one nullable column on `orders_payment` and a partial unique index. Additive: the previous release keeps running against it.
+
+### Tests
+- `orders/tests/test_payment_request_id.py` (6): a replay of a closing payment is answered, not refused; a part payment sent twice is counted once (both fail on the old code); two ids are two payments; no id changes nothing; a bad id is refused; the same id on another order is its own payment.
+- `static/js/tests/bill.test.mjs`, `billing.test.mjs`, `offline.test.mjs`: every payment carries an id; the queued copy has the id of the request that dropped; an offline payment gets its own id and sends it; a repeat answer counts as synced.
+
 ## 2026-11-15: The window.* bridges are gone
 
 ### Changed

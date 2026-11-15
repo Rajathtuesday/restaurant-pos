@@ -132,7 +132,9 @@ function payRig(script, { online = true, printed = true, register = "0", queueFa
 test("a payment is recorded, the bill printed, and the page reloads", async () => {
   const rig = payRig([{ success: true, message: "Paid in full" }]);
   const result = await rig.payment.pay("cash", "357.00");
-  assert.deepEqual(rig.api.calls, [{ url: "/pay/7/", body: { method: "cash", amount: "357.00" } }]);
+  const { request_id: sentId, ...body } = rig.api.calls[0].body;
+  assert.deepEqual([rig.api.calls.length, rig.api.calls[0].url, body], [1, "/pay/7/", { method: "cash", amount: "357.00" }]);
+  assert.match(sentId, /^[0-9a-f-]{36}$/, "each payment carries an id");
   assert.deepEqual(rig.printedFor, [7]);
   assert.deepEqual(rig.went, [""]);
   assert.deepEqual(result, { paid: true, printed: true });
@@ -148,7 +150,8 @@ test("when no printer took the bill the page reloads asking for the receipt page
 test("offline: cash is queued and nothing else is taken", async () => {
   const cash = payRig([], { online: false });
   assert.deepEqual(await cash.payment.pay("cash", "357.00"), { queued: true });
-  assert.deepEqual(cash.queued, [[7, "357.00"]]);
+  assert.deepEqual(cash.queued.map((q) => q.slice(0, 2)), [[7, "357.00"]]);
+  assert.match(cash.queued[0][2], /^[0-9a-f-]{36}$/);
   assert.deepEqual(cash.api.calls, []);
   assert.deepEqual(cash.went, [], "the page stays: the payment is not on the server yet");
 
@@ -161,7 +164,10 @@ test("offline: cash is queued and nothing else is taken", async () => {
 test("the connection dropping mid-payment queues cash, and only cash", async () => {
   const cash = payRig([networkDown()]);
   assert.deepEqual(await cash.payment.pay("cash", "357.00"), { queued: true });
-  assert.deepEqual(cash.queued, [[7, "357.00"]]);
+  assert.deepEqual(cash.queued.map((q) => q.slice(0, 2)), [[7, "357.00"]]);
+  // The queued copy has the id the dropped request had: if the server took
+  // that one, the copy is answered, never recorded twice.
+  assert.equal(cash.queued[0][2], cash.api.calls[0].body.request_id);
 
   const card = payRig([networkDown()]);
   assert.deepEqual(await card.payment.pay("card", "357.00"), { refused: "server" });

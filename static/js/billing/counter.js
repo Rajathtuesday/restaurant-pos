@@ -10,7 +10,7 @@
  */
 import { send as approvalSend } from "../approval.js";
 import { rupees } from "../core/money.js";
-import { createRequestIds } from "../core/request_id.js";
+import { createRequestIds, newRequestId } from "../core/request_id.js";
 import { withId } from "./urls.js";
 
 export function createCounter({
@@ -123,6 +123,10 @@ export function createCounter({
         return;
       }
       const orderId = pendingOrderId;
+      // One id for this payment: the online attempt and, if the connection
+      // drops, its queued copy carry the same one, so the server never
+      // records it twice (Payment.request_key).
+      const paymentId = newRequestId();
 
       if (!isOnline()) {
         if (method !== "cash") {
@@ -130,7 +134,7 @@ export function createCounter({
           return;
         }
         try {
-          await offlinePaymentQueue.add(orderId, amount.toFixed(2));
+          await offlinePaymentQueue.add(orderId, amount.toFixed(2), paymentId);
           ui.toast("Offline: cash payment saved, it will sync when back online. Print the slip manually for now.", "success");
           modal().hide();
           reset();
@@ -142,7 +146,7 @@ export function createCounter({
 
       payButton(true, '<i class="bi bi-hourglass-split me-2"></i>Processing…');
       try {
-        const d = await (await jsonPost(withId(urls.pay_order, orderId), { method, amount: amount.toFixed(2) })).json();
+        const d = await (await jsonPost(withId(urls.pay_order, orderId), { method, amount: amount.toFixed(2), request_id: paymentId })).json();
         if (!d.success) {
           screen.flash(d.error || "Payment failed");
           payButton(false, payIdle);
@@ -173,7 +177,7 @@ export function createCounter({
         // after the fact.
         if (e instanceof TypeError && method === "cash") {
           try {
-            await offlinePaymentQueue.add(orderId, amount.toFixed(2));
+            await offlinePaymentQueue.add(orderId, amount.toFixed(2), paymentId);
             ui.toast("Connection dropped: cash payment saved, it will sync once back online.", "success");
             modal().hide();
             reset();

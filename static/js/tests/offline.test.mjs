@@ -128,10 +128,27 @@ function paymentQueue(script) {
 
 test("a cash payment queued offline is replayed against its own order", async () => {
   const { queue, ui, fetchFn } = paymentQueue([reply(200, { success: true })]);
-  await queue.add(42, "250.00");
+  await queue.add(42, "250.00", "pay-1234-abcd");
   await queue.flush();
   assert.equal(fetchFn.calls[0].url, "/pay/42/");
-  assert.deepEqual(JSON.parse(fetchFn.calls[0].options.body), { method: "cash", amount: "250.00" });
+  assert.deepEqual(JSON.parse(fetchFn.calls[0].options.body), { method: "cash", amount: "250.00", request_id: "pay-1234-abcd" });
+  assert.equal((await queue.all()).length, 0);
+  assert.deepEqual(ui.calls.toast, [["Cash payment for order #42 synced", "success"]]);
+});
+
+test("a payment queued offline from the start gets its own id, and sends it", async () => {
+  const { queue, fetchFn } = paymentQueue([reply(200, { success: true }), reply(200, { success: true })]);
+  await queue.add(42, "250.00");
+  const [record] = await queue.all();
+  assert.match(record.request_id, /^[0-9a-f-]{36}$/);
+  await queue.flush();
+  assert.equal(JSON.parse(fetchFn.calls[0].options.body).request_id, record.request_id);
+});
+
+test("a payment the server already took is answered as synced", async () => {
+  const { queue, ui } = paymentQueue([reply(200, { success: true, repeat: true })]);
+  await queue.add(42, "250.00", "pay-1234-abcd");
+  await queue.flush();
   assert.equal((await queue.all()).length, 0);
   assert.deepEqual(ui.calls.toast, [["Cash payment for order #42 synced", "success"]]);
 });

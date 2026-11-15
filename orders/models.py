@@ -794,6 +794,13 @@ class Payment(models.Model):
         on_delete=models.SET_NULL
     )
 
+    # The id the screen gave this payment (request_id). A cash payment taken
+    # with no internet, or whose answer was lost, is sent again later; the
+    # same id a second time is answered with this payment and records
+    # nothing (orders.views.payment_views.pay_order). Null for payments
+    # made before 15 Nov 2026 and those with no id.
+    request_key = models.CharField(max_length=64, null=True, blank=True)
+
     class Meta:
         indexes = [
             models.Index(fields=["order"]),
@@ -816,6 +823,13 @@ class Payment(models.Model):
                 fields=["reference"],
                 condition=~models.Q(reference=None) & ~models.Q(reference=""),
                 name="unique_nonblank_payment_reference",
+            ),
+            # Two copies of one payment arriving at the same moment: the
+            # database, not the view, lets only one through.
+            models.UniqueConstraint(
+                fields=["order", "request_key"],
+                condition=~models.Q(request_key=None),
+                name="one_payment_per_request_key",
             ),
         ]
 

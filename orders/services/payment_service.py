@@ -48,7 +48,7 @@ def mark_ready_items_served(order):
 
 
 @transaction.atomic
-def process_payment(order, method, amount, user=None, reference=None):
+def process_payment(order, method, amount, user=None, reference=None, request_key=None):
     """
     Records a payment against an order.
 
@@ -59,6 +59,7 @@ def process_payment(order, method, amount, user=None, reference=None):
     amount    : Decimal — the amount TENDERED (may exceed remaining for cash)
     user      : User instance or None
     reference : str or None — external transaction ID (e.g. Razorpay payment id)
+    request_key : str or None, the screen's id for this payment (see Payment.request_key)
 
     Returns
     -------
@@ -113,6 +114,7 @@ def process_payment(order, method, amount, user=None, reference=None):
         amount=amount_to_record,
         created_by=user,
         reference=reference,
+        request_key=request_key,
     )
 
     logger.info(

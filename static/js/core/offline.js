@@ -22,7 +22,9 @@
  * A queued order carries a request id (core/request_id.js). The server
  * answers an id it has already taken with the first order, so an order
  * whose answer was lost, or that two tabs replay at once, is still one
- * order.
+ * order. A queued payment carries one too (Payment.request_key): the same
+ * id as the online attempt it stands in for, so a payment the server took
+ * before the connection dropped is answered, never counted twice.
  *
  * Storage is behind a tiny interface (add, all, remove) so the queues are
  * tested in node with memoryStore(); the browser uses indexedDbStore().
@@ -197,11 +199,13 @@ export function createOrderQueue({ store, fetchFn, csrf, ui, isOnline, onChange 
   };
 }
 
-export function createPaymentQueue({ store, fetchFn, csrf, ui, isOnline, onChange = () => {} }) {
+export function createPaymentQueue({ store, fetchFn, csrf, ui, isOnline, onChange = () => {}, newId = newRequestId }) {
   let flushing = false;
   return {
-    async add(orderId, amount) {
-      const id = await store.add({ order_id: orderId, amount, queued_at: Date.now() });
+    /* requestId: the id the online attempt was sent with, when there was
+       one; a payment taken offline from the start gets a new one. */
+    async add(orderId, amount, requestId) {
+      const id = await store.add({ order_id: orderId, amount, request_id: requestId || newId(), queued_at: Date.now() });
       await onChange();
       return id;
     },
@@ -224,7 +228,10 @@ export function createPaymentQueue({ store, fetchFn, csrf, ui, isOnline, onChang
             paid = await fetchFn("/pay/" + record.order_id + "/", {
               method: "POST",
               headers: jsonHeaders(csrf),
-              body: JSON.stringify({ method: "cash", amount: record.amount }),
+              // Payments queued before ids existed have none and go as they were.
+              body: JSON.stringify(record.request_id
+                ? { method: "cash", amount: record.amount, request_id: record.request_id }
+                : { method: "cash", amount: record.amount }),
             });
           } catch (connectionDropped) {
             break; // never guess whether a payment we could not confirm went through
