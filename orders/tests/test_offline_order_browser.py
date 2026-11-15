@@ -31,7 +31,11 @@ const toast = (word) => t.until(() => {
   const el = document.querySelector(".swal2-toast .swal2-title");
   return el && el.textContent.includes(word) && el.textContent;
 });
-const queued = async () => (await window.offlineQueue.all()).length;
+// The page's own queue: importing core/app.js by the address the page
+// loaded it from gives the same module, so the same queue (nothing is on
+// window any more).
+const shared = () => import(document.querySelector('script[src*="core/app.js"]').src);
+const queued = async () => (await (await shared()).orderQueue.all()).length;
 """
 
 
@@ -123,7 +127,7 @@ class OfflineOrderTest(BillingBrowserBase):
         self.assertEqual(self.orders().count(), 1, "the server should already have the order")
 
         self.run_js(page, TOAST + """
-            await window.offlineQueue.flush();
+            await (await shared()).orderQueue.flush();
             await t.until(async () => (await queued()) === 0);
         """)
         self.assertEqual(self.orders().count(), 1, "the saved copy was sent again and made a second order")

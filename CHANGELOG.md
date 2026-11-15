@@ -16,6 +16,7 @@ the source of truth.
 
 ### Tests
 - `core/tests/test_static_modules.py`: no script publishes on `window` (and the check sees an assignment).
+- `orders/tests/test_offline_order_browser.py` read `window.offlineQueue`; it imports the page's own queue from `core/app.js` now. The comment above `core/app.js` in `base.html` says nothing is published on window.
 
 ## 2026-11-15: The page address guard after the last page moved
 
