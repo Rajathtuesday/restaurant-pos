@@ -7,6 +7,12 @@ the source of truth.
 
 ---
 
+## 2026-11-15: docs/RASOVA.md, the whole system in one file
+
+### Added
+- `docs/RASOVA.md`: what Rasova is and where the business stands, the architecture, a request's path, the apps, tenant isolation and the 33 features, money, kitchen, printing, offline and the Box, the screens' rules, the AI, background jobs, deploy, health, backups, security, tests, the working rules, a code map, open items and a glossary. Written for any AI assistant or new developer; built from tracked files only (nothing git-ignored, no keys).
+- `README.md` points at it, and no longer says Gemini or lists the removed central kitchen.
+
 ## 2026-11-15: The AI runs on Claude (Gemini is gone)
 
 ### Changed

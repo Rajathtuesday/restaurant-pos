@@ -3,6 +3,7 @@
 > POS and restaurant management for Indian restaurants: in the cloud, or on one small computer inside the restaurant with no internet (the Rasova box).  
 > Django 6.0 · PostgreSQL · Celery + Redis · Multi-tenant SaaS · ESC/POS thermal printing.
 
+**New here, or an AI assistant?** Read [`docs/RASOVA.md`](docs/RASOVA.md): the whole system in one file.
 See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
 
 ---
@@ -13,7 +14,7 @@ Rasova is a full-stack restaurant management platform built for Indian restauran
 
 Two things that make it different from existing Indian POS software:
 
-1. **AI menu import** - photograph any printed or handwritten menu → Gemini AI imports all items, categories, and prices in under 60 seconds. No manual data entry.
+1. **AI menu import** - photograph any printed or handwritten menu → Claude imports all items, categories, and prices in under 60 seconds. No manual data entry.
 2. **Design** - built to look good. The billing screen, kitchen display, and QR menu are all significantly cleaner than Petpooja or POSist.
 
 ---
@@ -23,7 +24,7 @@ Two things that make it different from existing Indian POS software:
 | Type | Key features |
 |---|---|
 | **Fine Dining** | Floor plan, table merge/transfer, waiter calls, kitchen display, split bill, reservations and CRM |
-| **QSR / Franchise** | Token counter, Order Ready board, single-printer strip (bill + KOTs on one slip), pay-first flow, central kitchen and barcode transfers |
+| **QSR / Franchise** | Token counter, Order Ready board, single-printer strip (bill + KOTs on one slip), pay-first flow |
 | **Café** | Counter billing with daily tokens, QR menu, composition-scheme bills, parcel charge |
 | **Pub / Bar** | The fine-dining set plus liquor billed under the state's VAT (never GST) on the same bill as food, and the offers engine (happy hour, buy N get M free) |
 
@@ -117,7 +118,7 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 ### Ordering
 - QR self-ordering - customer scans → views menu → places order → appears for staff approval
 - Live order status for guests - a floating status button on the QR menu opens a slide-up sheet with a Received → Preparing → Ready → Served timeline, polling automatically until the order is done
-- AI menu importer - photograph any menu format → imported via Gemini AI
+- AI menu importer - photograph any menu format → imported by Claude (Anthropic)
 - Aggregator webhooks - Zomato/Swiggy order ingestion with HMAC signature verification and idempotency
 
 ### Reports
@@ -167,7 +168,7 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 | Deployment | GitHub Actions CI/CD |
 | Media and backups | Cloudflare R2 (S3-compatible) through django-storages and boto3 |
 | PDF invoices | WeasyPrint |
-| AI menu import | Google Gemini (google-genai) |
+| AI menu and recipe import | Claude (Anthropic SDK): Sonnet 5.5 for menus, Haiku 5.5 for recipes |
 | WhatsApp | Twilio or Meta Cloud API (bill receipts, subscription invoices) |
 | Payments | Razorpay (dynamic UPI QR, subscription payment links) |
 
@@ -318,10 +319,10 @@ RASOVA_OUTLET_ID=1    # only process jobs for this outlet
 # Error tracking
 SENTRY_DSN=https://your-key@sentry.io/project-id
 
-# AI menu import
-GOOGLE_API_KEY=your-gemini-api-key
-# GOOGLE_API_KEY_FALLBACK=second-key-used-if-the-first-hits-its-quota
-# GEMINI_MODEL_NAME=gemini-flash-latest
+# AI menu and recipe import (Claude). Without it the AI is off.
+ANTHROPIC_API_KEY=your-anthropic-api-key
+# AI_MENU_MODEL=claude-sonnet-5-5
+# AI_RECIPE_MODEL=claude-haiku-5-5
 
 # WhatsApp bills (optional)
 # META_WHATSAPP_TOKEN=your-token
@@ -541,7 +542,7 @@ Business logic lives in `orders/services/` - 9 service modules, none of which kn
 - [x] Superuser control panel for restaurant setup
 - [x] Order history with audit trail and CSV export
 - [x] SAC code (GST compliance) on all bills
-- [x] AI menu import (Gemini)
+- [x] AI menu and recipe import (Claude)
 - [x] 2,000+ passing tests (financial, tax, security, concurrency, business-date accuracy), run in parallel
 - [x] GitHub Actions CI/CD
 - [x] Razorpay UPI QR - dynamic QR on the bill screen, auto-confirms via webhook, configured per outlet in Payment Methods setup
