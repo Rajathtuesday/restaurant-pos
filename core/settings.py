@@ -137,6 +137,11 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    # Before staticfiles: under runserver, WhiteNoise serves /static/ too.
+    # Django's own runserver handler sends no Cache-Control, so the browser
+    # guessed how long a module stayed fresh and ran a new app.js with an
+    # old page_actions.js (15 Nov 2026: every button on the page dead).
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'django_extensions',
     # Third-party

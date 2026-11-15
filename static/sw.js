@@ -7,7 +7,7 @@
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
-const CACHE_VERSION = 'rasova-v6';
+const CACHE_VERSION = 'rasova-v7';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
 
@@ -160,10 +160,13 @@ self.addEventListener('fetch', event => {
     // the server first, the kept copy only when there is no network. Kept
     // first, a stylesheet that was fixed went on being served as it was
     // before the fix, on every normal page load, for as long as the cache
-    // lived: only a hard refresh showed the new one.
+    // lived: only a hard refresh showed the new one. cache: 'no-cache' asks
+    // the server every time (a 304 when nothing changed): the browser's own
+    // cache once handed back an old page_actions.js beside a new app.js, and
+    // the page's modules failed to load (15 Nov 2026).
     if (url.hostname === location.hostname && url.pathname.startsWith('/static/') && !HASHED_NAME.test(url.pathname)) {
         event.respondWith(
-            fetch(request).then(response => {
+            fetch(request, { cache: 'no-cache' }).then(response => {
                 if (response.ok) {
                     const clone = response.clone();
                     caches.open(STATIC_CACHE).then(c => c.put(request, clone));

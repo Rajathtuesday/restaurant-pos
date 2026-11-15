@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-15: A page never runs a new module beside an old one
+
+### Fixed
+- **After a change, a page's buttons could all stop working until a hard refresh** ("The requested module './page_actions.js' does not provide an export named 'pageSubmitActions'"; a menu item would not delete). Under `runserver`, Django's own static handler sent no `Cache-Control`, so the browser guessed how long each module stayed fresh and ran the new `core/app.js` with an old `core/page_actions.js`; the page's module graph failed to load. `whitenoise.runserver_nostatic` (before `django.contrib.staticfiles` in `core/settings.py`) makes runserver serve `/static/` through WhiteNoise, which sends `max-age=0` under DEBUG. The service worker now fetches a static file without a hash in its name with `cache: 'no-cache'` (it asks the server each time, a 304 when nothing changed), and its cache is `rasova-v7`, so old kept copies go. Production was not affected: its module imports carry hashed names.
+
+### Tests
+- `core/tests/test_dev_static_cache.py` (2): runserver comes from WhiteNoise, ahead of staticfiles; the service worker revalidates unhashed static files. Both fail on the old code.
+
 ## 2026-11-15: Promos on Restaurant Setup
 
 ### Changed
