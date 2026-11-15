@@ -9,6 +9,12 @@
  *       a report's period: "custom" shows the From/To fields (the element
  *       data-range names), anything else sends the form at once
  *   <input name="code" data-action="field.upper">   (as typed: capital letters)
+ *   <input type="checkbox" data-action="field.reveal" data-target="secretBox">
+ *       shows the element data-target names while the box is ticked
+ *   <form method="post" data-action="confirm.submit" data-confirm="Delete this client?"
+ *         data-confirm-text="..." data-confirm-button="Delete">
+ *       an ordinary form that asks first in Rasova's own sheet (never the
+ *       browser's confirm(), which the Android app never shows)
  *
  * core/app.js handles them on every base.html page; a page without
  * base.html loads core/standalone.js, which handles them alone. A page's
@@ -38,6 +44,23 @@ export function pageChangeActions() {
       // !important: the range's own classes say display:flex !important.
       if (range) range.style.setProperty("display", custom ? "flex" : "none", "important");
       if (!custom && el.form) el.form.submit();
+    },
+    "field.reveal": (el) => {
+      const target = el.ownerDocument.getElementById(el.dataset.target);
+      if (target) target.hidden = !el.checked;
+    },
+  };
+}
+
+/* What sending a form does: an ordinary form that asks first. form.submit()
+   sends it without a second submit event, so it is asked once. */
+export function pageSubmitActions(ui) {
+  return {
+    "confirm.submit": async (form, event) => {
+      event.preventDefault();
+      const d = form.dataset;
+      const answer = await ui.confirm(d.confirm || "Are you sure?", d.confirmText || "", d.confirmButton || "Yes, do it");
+      if (answer && answer.isConfirmed) form.submit();
     },
   };
 }

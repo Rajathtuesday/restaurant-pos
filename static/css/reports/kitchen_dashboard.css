@@ -27,24 +27,8 @@
 .context-info { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 3rem; text-align: center; }
 .context-info strong { color: var(--text-main); }
 
-.report-subnav {
-    background: var(--panel-bg);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 0 1rem;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem;
-}
-.report-subnav-left  { display: flex; align-items: center; gap: 0; }
-.report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
-.report-tab {
-    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
-    color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
-    border-bottom: 2px solid transparent; white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s; display: inline-block;
-}
-.report-tab:hover  { color: var(--text-main); }
-.report-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
-
 @media print {
     .no-print { display: none !important; }
 }
+
+.kitchen-wrap { max-width: 1400px; padding: 1.5rem 2rem; }

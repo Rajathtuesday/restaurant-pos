@@ -772,12 +772,13 @@ class KitchenDashboardPosLinkTest(TestCase):
         self.client = Client()
         self.client.login(username="cafe_owner", password="pw")
 
-    def test_pos_dashboard_link_points_to_token_not_tables(self):
+    def test_a_tableless_cafe_is_never_sent_to_the_floor_plan(self):
+        # The page's own "Back to POS" arrow pointed here; since 15 Nov 2026
+        # every report page has the one report bar and no back arrow (the
+        # header's brand goes to the dashboard), so nothing links to /tables/.
         response = self.client.get("/reports/kitchen/")
         self.assertEqual(response.status_code, 200)
-        content = response.content.decode()
-        self.assertIn('href="/token/"', content)
-        self.assertNotIn('href="/tables/"', content)
+        self.assertNotIn('href="/tables/"', response.content.decode())
 
     def test_header_qr_approval_icon_absent_for_tenant_without_floor_plan(self):
         # Same base.html header renders on this page too. The icon is gated

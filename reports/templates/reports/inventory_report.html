@@ -12,54 +12,7 @@
 
 {% block content %}
 
-<!-- Sub-nav with report tabs and filters -->
-<nav class="report-subnav">
-  <div class="report-subnav-left">
-    {% include "reports/_report_tabs.html" %}
-  </div>
-
-  <div class="report-subnav-right">
-    <a href="/setup/report-subscriptions/" class="report-tab" title="Daily digest email settings" style="padding:0.5rem 0.6rem;"><i class="bi bi-envelope"></i></a>
-    <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
-
-      {% if outlets|length > 1 %}
-      <select name="outlet" class="subnav-select subnav-hide-sm" data-action="form.submit" aria-label="Outlet">
-        {% for o in outlets %}
-        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
-        {% endfor %}
-      </select>
-      <div class="subnav-sep subnav-hide-sm"></div>
-      {% endif %}
-
-      <select name="date_filter" class="subnav-select" data-action="range.pick" data-range="customRange" aria-label="Period">
-        <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
-        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-        <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
-        <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
-        <option value="custom"    {% if date_filter == 'custom'    %}selected{% endif %}>Custom</option>
-      </select>
-
-      <div id="customRange" class="d-flex gap-1 align-items-center" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %} !important;">
-        <input type="date" name="start_date" class="subnav-select" value="{{ start_date|date:'Y-m-d' }}" style="width:130px;">
-        <input type="date" name="end_date"   class="subnav-select" value="{{ end_date|date:'Y-m-d' }}"   style="width:130px;">
-        <button type="submit" class="subnav-btn gold"><i class="bi bi-check2"></i></button>
-      </div>
-
-      <input type="hidden" name="wastage_source" id="wastageSource" value="{{ wastage_source }}">
-      <input type="hidden" name="tab" id="currentTab" value="{{ request.GET.tab }}">
-
-      <!-- Item filter -->
-      <div class="subnav-sep"></div>
-      <select name="item" class="subnav-select subnav-hide-sm" data-action="form.submit" aria-label="Item">
-        <option value="">All Items</option>
-        {% for i in items %}
-        <option value="{{ i.id }}" {% if selected_item == i.id|stringformat:"s" %}selected{% endif %}>{{ i.name }}</option>
-        {% endfor %}
-      </select>
-
-    </form>
-  </div>
-</nav>
+{% include "reports/_report_subnav.html" with filters="reports/_inventory_filters.html" no_all_branches=True %}
 
 <!-- Main content -->
 <div class="main-content">

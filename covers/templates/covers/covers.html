@@ -49,7 +49,7 @@
     <div>
         <p class="page-eyebrow">{% if day == today %}Tonight{% else %}{{ day|date:"D d M" }}{% endif %}</p>
         <h1 class="page-title">Covers</h1>
-        <form method="get" style="margin-bottom:1rem;"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" class="field" style="max-width:200px;margin:0;" onchange="this.form.submit()"></form>
+        <form method="get" style="margin-bottom:1rem;"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" class="field" style="max-width:200px;margin:0;" data-action="form.submit" aria-label="Day"></form>
         <div class="totals">
             <div class="total"><div class="total-num" id="coversSold">&#8377;{{ sold }}</div><div class="total-lbl">Sold ({{ guests }} guests)</div></div>
             <div class="total"><div class="total-num">&#8377;{{ used }}</div><div class="total-lbl">Spent on bills</div></div>

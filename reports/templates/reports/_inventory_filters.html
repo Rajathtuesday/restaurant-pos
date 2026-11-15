@@ -1,0 +1,12 @@
+{% comment %}Inventory's own filters in the report bar (_report_subnav.html).{% endcomment %}
+      <input type="hidden" name="wastage_source" id="wastageSource" value="{{ wastage_source }}">
+      <input type="hidden" name="tab" id="currentTab" value="{{ request.GET.tab }}">
+
+      <!-- Item filter -->
+      <div class="subnav-sep"></div>
+      <select name="item" class="subnav-select subnav-hide-sm" data-action="form.submit" aria-label="Item">
+        <option value="">All Items</option>
+        {% for i in items %}
+        <option value="{{ i.id }}" {% if selected_item == i.id|stringformat:"s" %}selected{% endif %}>{{ i.name }}</option>
+        {% endfor %}
+      </select>

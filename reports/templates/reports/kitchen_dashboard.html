@@ -9,50 +9,9 @@
 
 {% block page_title %}<a href="/reports/dashboard/">Reports</a> / Kitchen{% endblock %}
 
-{% block header_links %}
-<a href="{% if 'floor_plan' in tenant_features %}/tables/{% else %}/token/{% endif %}" class="btn-icon" title="Back to POS"><i class="bi bi-arrow-left"></i></a>
-<button type="button" data-action="page.print" class="btn-icon no-print" title="Print"><i class="bi bi-printer"></i></button>
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid mx-auto" style="max-width:1400px; padding:1.5rem 2rem;">
-
-    <!-- Report Subnav -->
-    <nav class="report-subnav no-print">
-      <div class="report-subnav-left">
-        {% include "reports/_report_tabs.html" %}
-      </div>
-
-        <form id="filterForm" method="GET" class="d-flex gap-2 align-items-center flex-wrap m-0">
-            {% if request.user.role == "owner" %}
-            <select name="outlet" class="form-select-luxury" onchange="document.getElementById('filterForm').submit()">
-                <option value="">All Branches</option>
-                {% for o in outlets %}
-                <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
-                {% endfor %}
-            </select>
-            {% endif %}
-
-            <select name="date_filter" class="form-select-luxury" style="max-width:180px;" onchange="
-                if(this.value === 'custom') {
-                    document.getElementById('customDates').style.display='flex';
-                } else {
-                    document.getElementById('filterForm').submit();
-                }">
-                <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
-                <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-                <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
-                <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
-                <option value="custom"    {% if date_filter == 'custom'    %}selected{% endif %}>Custom Range</option>
-            </select>
-
-            <div id="customDates" style="display:{% if date_filter == 'custom' %}flex{% else %}none{% endif %}; gap:0.5rem; align-items:center;">
-                <input type="date" name="start_date" class="form-select-luxury" value="{{ start_date|date:'Y-m-d' }}">
-                <input type="date" name="end_date"   class="form-select-luxury" value="{{ end_date|date:'Y-m-d' }}">
-                <button type="submit" class="btn-icon"><i class="bi bi-chevron-right"></i></button>
-            </div>
-        </form>
-    </nav>
+{% include "reports/_report_subnav.html" %}
+<div class="container-fluid mx-auto kitchen-wrap">
 
     <!-- Context -->
     <div class="context-info">

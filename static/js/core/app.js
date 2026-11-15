@@ -14,7 +14,7 @@ import { createNotificationPoller } from "./notifications.js";
 import {
   ORDER_STORE, PAYMENT_STORE, createOfflineBanner, createOrderQueue, createPaymentQueue, indexedDbStore,
 } from "./offline.js";
-import { pageActions, pageChangeActions, pageInputActions } from "./page_actions.js";
+import { pageActions, pageChangeActions, pageInputActions, pageSubmitActions } from "./page_actions.js";
 import { pageData } from "./page_data.js";
 import { createPostActions } from "./post_actions.js";
 import { detectPlatform, startAndroidPrinting } from "./platform.js";
@@ -78,7 +78,7 @@ delegate(document.body, {
   },
 });
 
-delegate(document.body, { post: (form, event) => posts.submit(form, event) }, "submit");
+delegate(document.body, { post: (form, event) => posts.submit(form, event), ...pageSubmitActions(ui) }, "submit");
 delegate(document.body, pageChangeActions(), "change");
 delegate(document.body, pageInputActions(), "input");
 

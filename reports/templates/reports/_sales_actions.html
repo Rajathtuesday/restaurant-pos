@@ -1,0 +1,32 @@
+{% comment %}Sales's own actions in the report bar (_report_subnav.html).{% endcomment %}
+    <!-- Export dropdown -->
+    <div class="dropdown">
+      <button class="subnav-btn dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-download"></i> Export
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" style="border-radius:0;border-color:var(--border-color);min-width:200px;">
+        <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">CSV</h6></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=orders" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="orders">Orders Details</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=items" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="items">Items Sales</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=categories" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="categories">Category Breakdown</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=waiters" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="waiters">Staff Performance</a></li>
+        {% if net_pl %}
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=pl" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="pl">Net Profit</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=menu_engineering" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="menu_engineering">Menu Engineering</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=labor" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="labor">Labor Cost</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=audit" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="audit">Discount/Void Audit</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=crm_analytics" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="crm_analytics">CRM Analytics</a></li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li><h6 class="dropdown-header" style="font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;">Compliance</h6></li>
+        <li><a class="dropdown-item" href="{% url 'export_reports' %}?type=gstr1" data-action="report.export" data-url="{% url 'export_reports' %}" data-type="gstr1"><i class="bi bi-file-earmark-excel me-2" style="color:#107c41;"></i>GSTR-1 B2CS</a></li>
+      </ul>
+    </div>
+
+    <!-- Z-Report (prominent, for end-of-day) -->
+    {% if not is_limited_view %}
+    <a href="{% url 'export-z-report' %}" class="subnav-btn gold">
+      <i class="bi bi-file-earmark-spreadsheet"></i>
+      <span class="subnav-hide-mobile">Z-Report</span>
+    </a>
+    {% endif %}

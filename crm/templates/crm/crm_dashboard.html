@@ -11,7 +11,7 @@
 
 {% block header_links %}
 <form method="GET" class="m-0">
-    <input type="search" name="q" value="{{ query }}" placeholder="Search guests…" class="search-bar" onchange="this.form.submit()">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search guests…" class="search-bar" data-action="form.submit" aria-label="Search guests">
 </form>
 <a href="/dashboard/" class="btn-luxury d-none d-sm-inline-flex">Dashboard</a>
 {% endblock %}

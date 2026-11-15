@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-15: One report bar on every report page; no inline handlers left anywhere
+
+### Fixed
+- **Kitchen KPIs looked unlike the other reports**: its tab bar sat boxed inside the page with other dropdowns, and Print and a back arrow were in the header. Every report page (Sales, Kitchen KPIs, Inventory, Menu Engineering, Labor Cost, Discount/Void Audit, CRM Analytics) now includes one bar, `reports/templates/reports/_report_subnav.html`, straight under the header at full width: the tabs, the digest link, branch and period (Custom Range on every page), the page's own actions (Sales: Export, Z-Report; Inventory: the item filter), Print. Its style is `static/css/reports/subnav.css`; the seven copies of those rules left the pages' stylesheets.
+- **The template check counted `onclick` only**, so `onchange` and `onsubmit` handlers sat unseen in 9 templates, two of them the browser's `confirm()` (Delete client on the sales dashboard, Change keg), which never shows in the Android app. It now counts every inline `on...=` handler, and none is left: the report filters, Covers' day and CRM's search use `data-action="form.submit"`, the Zomato and Swiggy switches `field.reveal`, and the two confirms a new shared `confirm.submit` (an ordinary form that asks first in Rasova's own sheet, `static/js/core/page_actions.js`).
+
+### Tests
+- `reports/tests/test_report_bar_browser.py` (2, Chromium): every report page has the same bar (fails on the old Kitchen KPIs page); Custom Range opens the dates and another period sends the form.
+- `core/tests/test_frontend_hygiene.py` counts `handlers` (any inline `on...=`); on the old code it failed on 9 templates.
+- `static/js/tests/page_actions.test.mjs`: `field.reveal`, and `confirm.submit` sends only on yes.
+- `reports/tests/test_reports.py`: the Kitchen KPIs back-arrow test now checks only that a tableless cafe is never sent to the floor plan (no report page has a back arrow).
+
 ## 2026-11-15: Pages use the laptop's width
 
 ### Fixed

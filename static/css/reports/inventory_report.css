@@ -1,37 +1,4 @@
-/* reports/templates/reports/inventory_report.html */
-/* ── Report sub-nav ────────────────────────────── */
-.report-subnav {
-  background: var(--panel-bg);
-  border-bottom: 1px solid var(--border-color);
-  padding: 0 1.5rem;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 0.75rem; flex-wrap: wrap;
-}
-.report-subnav-left  { display: flex; align-items: center; gap: 0; }
-.report-subnav-right { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
-.report-tab {
-  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1.5px;
-  color: var(--text-muted); text-decoration: none; padding: 0.9rem 1rem;
-  border-bottom: 2px solid transparent; white-space: nowrap;
-  transition: color 0.2s, border-color 0.2s; display: inline-block;
-}
-.report-tab:hover  { color: var(--text-main); }
-.report-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
-.subnav-select {
-  background: transparent; border: 1px solid var(--border-color);
-  color: var(--text-main); border-radius: 6px;
-  padding: 0.3rem 0.6rem; font-size: 0.8rem; font-family: inherit;
-}
-.subnav-select:focus { border-color: var(--accent-gold); outline: none; }
-.subnav-btn {
-  background: none; border: 1px solid var(--border-color);
-  color: var(--text-muted); border-radius: 6px;
-  padding: 0.3rem 0.75rem; font-size: 0.8rem;
-  cursor: pointer; font-family: inherit;
-  transition: var(--transition-smooth);
-}
-.subnav-btn:hover, .subnav-btn.gold { border-color: var(--accent-gold); color: var(--accent-gold); }
-.subnav-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 0.25rem; }
+
 
 /* ── Panels ─────────────────────────────────────── */
 .main-content { padding: 1.5rem; }

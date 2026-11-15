@@ -6,7 +6,9 @@ For every template this counts
                base.html, marked data-rasova-boot, and json_script blocks
                do not count: they are the two inline forms Rasova allows)
   style        lines inside inline <style> blocks
-  onclick      onclick= attributes
+  handlers     inline event handlers: onclick=, onchange=, onsubmit=, any on...=
+               (15 Nov 2026: it counted onclick only, and onchange and onsubmit
+               handlers, a confirm() among them, sat unseen in templates)
   third_party  references to a CDN or Google Fonts host
   globals      lines at the top level of a page script that read one of
                the shared objects (apiClient, ui, offlineQueue, ...). Those
@@ -55,10 +57,14 @@ def app_templates():
         yield path
 
 
+# An inline event handler: an on...= attribute inside a tag.
+INLINE_HANDLER = re.compile(r"<[a-zA-Z][^>]*?\son[a-z]+\s*=", re.I)
+
+
 def measure(text):
     """The five counts for one template's text."""
     script = style = globals_ = 0
-    onclick = len(re.findall(r"\bonclick\s*=", text, re.I))
+    handlers = len(INLINE_HANDLER.findall(text))
     third_party = len(THIRD_PARTY.findall(text))
 
     in_script = in_style = False
@@ -102,7 +108,7 @@ def measure(text):
             script += 1      # a one-line inline script
         if STYLE_OPEN.search(line) and not STYLE_CLOSE.search(line):
             in_style = True
-    return {"script": script, "style": style, "onclick": onclick, "third_party": third_party, "globals": globals_}
+    return {"script": script, "style": style, "handlers": handlers, "third_party": third_party, "globals": globals_}
 
 
 def measure_all():
@@ -160,11 +166,13 @@ class FrontendHygieneTest(SimpleTestCase):
             "<script>\nconst CSRF = apiClient.getCsrf();\nfunction f() {\n  ui.toast('x');\n}\n</script>\n"
             "<style>\na {}\nb {}\n</style>\n"
             '<button onclick="f()">x</button>\n'
+            '<form onsubmit="return confirm(1)"><select ONCHANGE="g()"></select></form>\n'
+            '<a data-action="go" content="x">not a handler</a>\n'
             '<link href="https://fonts.googleapis.com/css2?family=Outfit">\n'
         )
         self.assertEqual(
             measure(text),
-            {"script": 4, "style": 2, "onclick": 1, "third_party": 1, "globals": 1},
+            {"script": 4, "style": 2, "handlers": 3, "third_party": 1, "globals": 1},
         )
 
 

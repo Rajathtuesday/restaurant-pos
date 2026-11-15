@@ -11,30 +11,7 @@
 
 
 {% block content %}
-<nav class="report-subnav">
-  <div class="report-subnav-left">
-    {% include "reports/_report_tabs.html" %}
-  </div>
-  <div class="report-subnav-right">
-    <a href="/setup/report-subscriptions/" class="report-tab" title="Daily digest email settings" style="padding:0.5rem 0.6rem;"><i class="bi bi-envelope"></i></a>
-    <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
-      {% if request.user.role == "owner" and outlets|length > 1 %}
-      <select name="outlet" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
-        <option value="">All Branches</option>
-        {% for o in outlets %}
-        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
-        {% endfor %}
-      </select>
-      {% endif %}
-      <select name="date_filter" class="subnav-select" onchange="document.getElementById('filterForm').submit()">
-        <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
-        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
-        <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
-        <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
-      </select>
-    </form>
-  </div>
-</nav>
+{% include "reports/_report_subnav.html" %}
 
 <div class="page-wrap">
   <h1 class="section-title">CRM Analytics</h1>

@@ -26,8 +26,8 @@
             </div>
             {% if keg.share is not None %}<div class="bar"><span style="width:{% if keg.share > 100 %}100{% else %}{{ keg.share }}{% endif %}%;"></span></div>{% endif %}
         </div>
-        <form method="post" action="{% url 'keg_change' keg.item.id %}"
-              onsubmit="return confirm('Is the {{ keg.item.name|escapejs }} keg empty? This starts a new one.');">
+        <form method="post" action="{% url 'keg_change' keg.item.id %}" data-action="confirm.submit"
+              data-confirm="Is the {{ keg.item.name }} keg empty?" data-confirm-text="This starts a new one." data-confirm-button="Change keg">
             {% csrf_token %}
             <button class="btn-change" type="submit">Change keg</button>
         </form>

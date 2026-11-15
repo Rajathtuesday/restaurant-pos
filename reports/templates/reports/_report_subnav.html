@@ -1,0 +1,56 @@
+{% load static %}{% comment %}
+The one report bar, under the header on every report page (15 Nov 2026):
+the tabs, then the daily digest link, the branch and period filters, the
+page's own actions, and Print. Each report page included its own copy,
+and Kitchen KPIs had drifted (boxed, other dropdowns, Print and a back
+arrow in the header).
+
+  {% include "reports/_report_subnav.html" %}
+  {% include "reports/_report_subnav.html" with actions="reports/_sales_actions.html" %}
+  {% include "reports/_report_subnav.html" with filters="reports/_inventory_filters.html" no_all_branches=True %}
+
+The branch picker shows when the view gives more than one outlet (a
+manager only ever gets their own). The period has Custom Range on every
+page (every report view reads start_date and end_date).
+{% endcomment %}<link rel="stylesheet" href="{% static 'css/reports/subnav.css' %}">
+<nav class="report-subnav no-print">
+  <div class="report-subnav-left">
+    {% include "reports/_report_tabs.html" %}
+  </div>
+
+  <div class="report-subnav-right">
+    <a href="/setup/report-subscriptions/" class="report-tab report-digest" title="Daily digest email settings" aria-label="Daily digest email settings"><i class="bi bi-envelope" aria-hidden="true"></i></a>
+    <form id="filterForm" method="GET" class="d-flex align-items-center gap-2 flex-wrap m-0">
+      {% if outlets|length > 1 %}
+      <select name="outlet" class="subnav-select subnav-hide-mobile" data-action="form.submit" aria-label="Branch">
+        {% if not no_all_branches %}<option value="">All Branches</option>{% endif %}
+        {% for o in outlets %}
+        <option value="{{ o.id }}" {% if current_outlet and current_outlet.id == o.id %}selected{% endif %}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      <div class="subnav-sep subnav-hide-mobile"></div>
+      {% endif %}
+
+      <select name="date_filter" class="subnav-select" data-action="range.pick" data-range="customDates" aria-label="Period">
+        <option value="today"     {% if date_filter == 'today'     %}selected{% endif %}>Today</option>
+        <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+        <option value="weekly"    {% if date_filter == 'weekly'    %}selected{% endif %}>Last 7 Days</option>
+        <option value="monthly"   {% if date_filter == 'monthly'   %}selected{% endif %}>Last 30 Days</option>
+        <option value="custom"    {% if date_filter == 'custom'    %}selected{% endif %}>Custom Range</option>
+      </select>
+
+      <div id="customDates" class="subnav-dates"{% if date_filter != 'custom' %} hidden{% endif %}>
+        <input type="date" name="start_date" class="subnav-select subnav-date" value="{{ start_date|date:'Y-m-d' }}" aria-label="From">
+        <span class="subnav-to">to</span>
+        <input type="date" name="end_date" class="subnav-select subnav-date" value="{{ end_date|date:'Y-m-d' }}" aria-label="To">
+        <button type="submit" class="subnav-btn" aria-label="Show this range"><i class="bi bi-check2" aria-hidden="true"></i></button>
+      </div>
+
+      {% if filters %}{% include filters %}{% endif %}
+    </form>
+
+    {% if actions %}<div class="subnav-sep"></div>{% include actions %}{% endif %}
+
+    <button type="button" class="btn-icon" data-action="page.print" title="Print" aria-label="Print"><i class="bi bi-printer" aria-hidden="true"></i></button>
+  </div>
+</nav>
