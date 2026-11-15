@@ -8,7 +8,7 @@
  * shown as text. Data and addresses come from
  * setup.views.core_views.stations_page_data.
  */
-import { api, ui } from "../core/app.js";
+import { api, platform, ui } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
 import { withId } from "../billing/urls.js";
@@ -23,7 +23,7 @@ const COLOURS = { ok: GREEN, err: RED, busy: MUTED };
 
 const agent = createAgent({
   WebSocketCtor: window.WebSocket,
-  url: agentUrl(Boolean(window.rasovaPlatform && window.rasovaPlatform.android), data.agentHost),
+  url: agentUrl(Boolean(platform && platform.android), data.agentHost),
 });
 
 function setStatus(id, type, message) {

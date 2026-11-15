@@ -18,7 +18,7 @@ adding a page or touching the billing screen.
 
 ```
 static/js/core/      what base.html runs on every page
-  app.js             builds everything below and wires the header; also the bridge (see below)
+  app.js             builds everything below, wires the header, exports the shared objects
   http.js            createClient: JSON in and out, CSRF, the loading bar, errors as toasts, the manager-PIN retry
   offline.js         the order queue and the cash-payment queue (IndexedDB), replayed when the connection is back
   toast.js           createUi: toast, confirm, ask (one line of text: never prompt()), showLoading, hideLoading (wraps SweetAlert2)
@@ -125,14 +125,14 @@ restaurant and checks that no owner page is blank.
 Modules run after the document is parsed and before `DOMContentLoaded`
 handlers, so a module can touch the DOM at its top level.
 
-## The bridge, and when it goes
+## No globals
 
-`core/app.js` ends by publishing the shared objects on `window`
-(`window.ui`, `window.apiClient`, `window.themeManager`, `window.offlineQueue`,
-`window.offlinePaymentQueue`, `window.rasovaPlatform`, `window.updateOfflineBanner`,
-`window.refreshNotifications`). The pages that still have inline scripts use
-them. A page module imports from `core/` instead. When the hygiene baseline is
-empty, the bridge is deleted.
+Nothing is published on `window`. A page module imports the shared objects
+(`api`, `ui`, `theme`, `platform`, `orderQueue`, `paymentQueue`) from
+`core/app.js`; `order_edit.js` gets the shared `ui` through its `configure()`.
+The old bridge (`window.ui`, `window.apiClient`, `window.OrderEdit`,
+`window.RasovaOffers`...) went on 15 Nov 2026, when the last inline page
+script did; `core/tests/test_static_modules.py` fails on a new one.
 
 ## Testing
 

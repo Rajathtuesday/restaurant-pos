@@ -13,8 +13,6 @@
  * core/http.js and order_edit.js send through this, so every screen asks
  * the same way. Needs SweetAlert2 (window.Swal).
  *
- * An ES module. Pages that have not been turned into modules yet still
- * reach it as window.RasovaApproval; that bridge goes with the last of them.
  */
 
 var ID_HEADER = "X-Approver-Id";
@@ -105,4 +103,3 @@ function send(doRequest) {
 }
 
 export { send, ID_HEADER, PIN_HEADER };
-if (typeof window !== "undefined") window.RasovaApproval = { send: send, ID_HEADER: ID_HEADER, PIN_HEADER: PIN_HEADER };

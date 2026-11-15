@@ -30,8 +30,6 @@
  * outletNow(utcOffsetMinutes) is the outlet's local time now, in
  * that same "YYYY-MM-DDTHH:MM:SS" form, whatever the device's own time zone.
  *
- * An ES module. Pages that have not been turned into modules yet still
- * reach it as window.RasovaOffers; that bridge goes with the last of them.
  */
 
 const toPaise = (rupees) => Math.round((Number(rupees) || 0) * 100);
@@ -225,4 +223,3 @@ const api = {
 };
 export { evaluate, liveAt, outletNow, readPage, forCart, onCart, note };
 export default api;
-if (typeof window !== "undefined") window.RasovaOffers = api;

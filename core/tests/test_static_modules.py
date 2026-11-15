@@ -144,3 +144,27 @@ class TemplateStaticReferencesTest(SimpleTestCase):
             if hits > allowed:
                 offenders.append(f"{rel}: {hits} (allowed {allowed})")
         self.assertEqual(offenders, [], "third-party hosts in templates:\n" + "\n".join(offenders))
+
+
+class NoWindowGlobalsTest(SimpleTestCase):
+    """Since 15 Nov 2026 every page is a module that imports what it needs
+    (core/app.js exports the shared objects). The old window.* bridges
+    (window.ui, window.apiClient, window.OrderEdit, window.RasovaOffers...)
+    are gone; a new one would let a page lean on load order again."""
+
+    ASSIGN = re.compile(r"\b(?:window|globalThis)\.([A-Za-z_$][\w$]*)\s*=(?!=)")
+
+    def test_no_script_publishes_on_window(self):
+        found = []
+        for path in Path(settings.BASE_DIR, "static", "js").rglob("*.js"):
+            if "vendor" in path.parts:
+                continue
+            text = path.read_text(encoding="utf-8")
+            for match in self.ASSIGN.finditer(text):
+                line = text[:match.start()].count(chr(10)) + 1
+                found.append(f"{path.relative_to(settings.BASE_DIR)}:{line} window.{match.group(1)}")
+        self.assertEqual(found, [], "import from core/app.js instead of publishing on window")
+
+    def test_the_check_sees_an_assignment(self):
+        self.assertTrue(self.ASSIGN.search("window.ui = ui;"))
+        self.assertFalse(self.ASSIGN.search("if (window.ui === x) {}"))

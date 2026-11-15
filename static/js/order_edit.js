@@ -14,8 +14,7 @@
  * null if the user backed out. Errors are shown as a toast and also resolve
  * to null.
  *
- * An ES module. Pages that have not been turned into modules yet still
- * reach it as window.OrderEdit; that bridge goes with the last of them.
+ * An ES module. core/app.js gives it the shared toasts (configure({ui})).
  */
 import { send as approvalSend } from "./approval.js";
 import { csrfToken } from "./core/csrf.js";
@@ -43,8 +42,10 @@ function isDark() {
   return document.documentElement.classList.contains("dark") || document.body.classList.contains("dark");
 }
 
+let sharedUi = null;
+
 function toast(message, icon) {
-  if (window.ui && typeof window.ui.toast === "function") return window.ui.toast(message, icon);
+  if (sharedUi && typeof sharedUi.toast === "function") return sharedUi.toast(message, icon);
   window.Swal.fire({
     toast: true, position: "bottom-end", showConfirmButton: false, timer: 3000,
     icon: icon, title: message,
@@ -419,7 +420,12 @@ function sheetOpen() {
   return !!(popup && !popup.classList.contains("swal2-toast"));
 }
 
-function configure(urls) { Object.assign(URLS, urls || {}); }
+/* Addresses ({cancelOrder: ...}) and, from core/app.js, the shared ui. */
+function configure(options) {
+  const { ui, ...urls } = options || {};
+  if (ui) sharedUi = ui;
+  Object.assign(URLS, urls);
+}
 
 const OrderEdit = {
   configure: configure,
@@ -434,4 +440,3 @@ const OrderEdit = {
 };
 export { configure, sheetOpen, reduce, remove, cancelOrder, complimentary, esc, toast, post };
 export default OrderEdit;
-if (typeof window !== "undefined") window.OrderEdit = OrderEdit;

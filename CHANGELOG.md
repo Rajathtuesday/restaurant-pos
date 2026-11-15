@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-11-15: The window.* bridges are gone
+
+### Changed
+- `core/app.js` no longer publishes `window.ui`, `apiClient`, `themeManager`, `offlineQueue`, `offlinePaymentQueue`, `rasovaPlatform`, `updateOfflineBanner`, `refreshNotifications`; `order_edit.js`, `offers.js`, `cart_tax.js` and `approval.js` no longer publish `OrderEdit`, `RasovaOffers`, `RasovaCartTax`, `RasovaApproval`. They were kept for inline page scripts, and the last of those went today. `order_edit.js` takes the shared `ui` through `configure({ui})`; Kitchen Stations imports `platform`.
+- `core/storage.py` notes a trap found on the way: a comment saying "export ..." above an import makes collectstatic rewrite that import twice (`MissingFileError`). `test_static_modules` caught it.
+- The junk file `hich imports order_edit.js#` (a mistyped command's output) is deleted from the repo root (it was never tracked).
+
+### Tests
+- `core/tests/test_static_modules.py`: no script publishes on `window` (and the check sees an assignment).
+
 ## 2026-11-15: The page address guard after the last page moved
 
 ### Changed

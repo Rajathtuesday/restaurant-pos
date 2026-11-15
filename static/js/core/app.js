@@ -3,16 +3,9 @@
  *
  * Builds the shared pieces (theme, toasts, the server client, the offline
  * queues, the notification poll, the installed-app bits) from what the
- * server put in the rasova-data block, wires the header buttons, and
- * publishes the shared objects on window for the pages that have not been
- * turned into modules yet.
- *
- * Bridge, to be removed: window.ui, window.apiClient, window.themeManager,
- * window.offlineQueue, window.offlinePaymentQueue, window.rasovaPlatform,
- * window.updateOfflineBanner, window.refreshNotifications. A page module
- * imports these from core/ instead; when the last template stops using the
- * globals, this block goes (core/tests/test_frontend_hygiene.py counts the
- * templates that still do).
+ * server put in the rasova-data block and wires the header buttons. A page
+ * module imports the shared objects from here (the last line lists them);
+ * nothing is published on window (core/tests/test_static_modules.py).
  */
 import { setupChecklist } from "./checklist.js";
 import { delegate, onReady } from "./dom.js";
@@ -28,6 +21,7 @@ import { detectPlatform, startAndroidPrinting } from "./platform.js";
 import { createPrinterChip } from "./printing_status.js";
 import { registerServiceWorker, setupInstallPrompt } from "./pwa.js";
 import { createThemeManager } from "./theme.js";
+import { configure as configureOrderEdit } from "../order_edit.js";
 import { createUi } from "./toast.js";
 import { csrfToken } from "./csrf.js";
 
@@ -51,6 +45,7 @@ queues.push(orderQueue, paymentQueue);
 // The printer chip, on the pages that show one (billing, tables, tokens).
 const printerChip = createPrinterChip({ el: document.getElementById("printer-chip"), platform });
 const poller = createNotificationPoller({ ui, onData: (answer) => printerChip.update(answer.printing) });
+configureOrderEdit({ ui });
 
 theme.init();
 
@@ -108,15 +103,5 @@ if (data.authenticated) {
     platform, serverUrl: data.server_url, agentKey: data.agent_key, demoSession: Boolean(data.demo_session),
   });
 }
-
-// The bridge (see the note at the top).
-window.ui = ui;
-window.apiClient = api;
-window.themeManager = theme;
-window.offlineQueue = orderQueue;
-window.offlinePaymentQueue = paymentQueue;
-window.rasovaPlatform = platform;
-window.updateOfflineBanner = () => offlineBanner.update();
-window.refreshNotifications = () => poller.poll();
 
 export { api, ui, theme, platform, orderQueue, paymentQueue };

@@ -14,6 +14,12 @@ The rewriting is regex based. It handles static relative imports
 modules use. core/tests/test_static_modules.py collects the files with
 this storage and checks that every import in every collected module
 resolves, so a form the regex misses fails in CI, not in a browser.
+
+A trap the regex sets (15 Nov 2026): in a comment, the word "export" or
+"import" followed by a space, with an import statement below it, reads as
+the start of a statement running to that import's `from "./x.js";`. The
+address is then rewritten twice and collectstatic fails with
+MissingFileError on "x.<hash>.js". Reword the comment.
 """
 from whitenoise.storage import CompressedManifestStaticFilesStorage
 

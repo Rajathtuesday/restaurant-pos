@@ -35,8 +35,6 @@
  *
  * orders/tests/test_cart_tax_js.py runs this in Node against the real engine.
  *
- * An ES module. Pages that have not been turned into modules yet still
- * reach it as window.RasovaCartTax; that bridge goes with the last of them.
  */
 
 const toPaise = (rupees) => Math.round((Number(rupees) || 0) * 100);
@@ -136,4 +134,3 @@ function line(amount, table, dishId, fallbackGstRate) {
 const api = { totals: totals, readTable: readTable, line: line };
 export { totals, readTable, line };
 export default api;
-if (typeof window !== "undefined") window.RasovaCartTax = api;
