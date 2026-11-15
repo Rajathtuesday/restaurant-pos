@@ -1,93 +1,16 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Purchase Orders | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    :root {
-        --bg:     var(--bg-color);
-        --panel:  var(--panel-bg);
-        --text:   var(--text-main);
-        --muted:  var(--text-muted);
-        --border: var(--border-color);
-        --gold:   var(--accent-gold);
-        --green:  #10b981;
-        --red:    #ef4444;
-        --amber:  #f59e0b;
-        --smooth: var(--transition-smooth);
-    }
-
-    .btn-lux {
-        border:1px solid var(--border); background:transparent; color:var(--text);
-        border-radius:0; text-transform:uppercase; font-size:0.72rem; letter-spacing:2px;
-        padding:0.6rem 1.3rem; transition:var(--smooth); cursor:pointer;
-        text-decoration:none; display:inline-block;
-    }
-    .btn-lux:hover, .btn-lux.active { border-color:var(--gold); background:var(--gold); color:#fff; }
-    .btn-lux.danger { border-color:var(--red); color:var(--red); }
-    .btn-lux.danger:hover { background:var(--red); color:#fff; }
-    .section-title { font-family:'DM Serif Display',serif; font-size:1rem; text-transform:uppercase; letter-spacing:3px; margin-bottom:1.25rem; }
-    .card-lux { background:var(--panel); border:1px solid var(--border); }
-
-    /* Status pills */
-    .pill { font-size:0.65rem; letter-spacing:1px; padding:3px 9px; border-radius:2px; text-transform:uppercase; font-weight:500; }
-    .pill-draft     { background:rgba(100,100,100,0.1); color:var(--muted); }
-    .pill-ordered   { background:rgba(59,130,246,0.12); color:#3b82f6; }
-    .pill-partially_received { background:rgba(245,158,11,0.12); color:var(--amber); }
-    .pill-received  { background:rgba(16,185,129,0.12); color:var(--green); }
-    .pill-cancelled { background:rgba(239,68,68,0.1); color:var(--red); }
-
-    /* PO table */
-    .po-table { width:100%; border-collapse:collapse; }
-    .po-table th { font-size:0.67rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); padding:0.8rem 1rem; border-bottom:1px solid var(--border); text-align:left; }
-    .po-table td { padding:0.9rem 1rem; border-bottom:1px dashed var(--border); font-size:0.88rem; vertical-align:middle; }
-    .po-table tr:hover td { background:rgba(197,160,89,0.04); }
-
-    .item-list { list-style:none; margin:0; padding:0; }
-    .item-list li { font-size:0.78rem; color:var(--muted); padding:1px 0; }
-
-    /* Filter tabs */
-    .filter-tabs { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.5rem; }
-    .filter-tab { font-size:0.7rem; text-transform:uppercase; letter-spacing:1.5px; padding:0.4rem 0.9rem; border:1px solid var(--border); cursor:pointer; text-decoration:none; color:var(--text); transition:var(--smooth); }
-    .filter-tab:hover, .filter-tab.active { border-color:var(--gold); color:var(--gold); }
-
-    /* Toast */
-    .toast-container { position:fixed; bottom:1.5rem; right:1.5rem; z-index:9999; }
-    .toast-msg { background:#111; color:#fff; padding:0.75rem 1.25rem; margin-top:0.5rem; font-size:0.82rem; border-left:3px solid var(--gold); }
-    .toast-msg.err { border-left-color:var(--red); }
-
-    /* New PO drawer */
-    .drawer-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:400; }
-    .drawer {
-        position:fixed; top:0; right:0; bottom:0; width:460px; max-width:100%;
-        background:var(--panel); border-left:1px solid var(--border); z-index:500;
-        overflow-y:auto; transform:translateX(100%); transition:transform 0.3s ease; padding:2rem;
-    }
-    .drawer.open { transform:translateX(0); }
-    .drawer-title { font-family:'DM Serif Display',serif; font-size:1.3rem; margin-bottom:1.5rem; }
-    .form-field { margin-bottom:1.2rem; }
-    .form-field label { font-size:0.68rem; text-transform:uppercase; letter-spacing:2px; color:var(--muted); display:block; margin-bottom:0.4rem; }
-    .form-field select, .form-field input {
-        width:100%; background:transparent; border:none; border-bottom:1px solid var(--border);
-        color:var(--text); padding:0.4rem 0; font-size:0.88rem; font-family:'Outfit',sans-serif; outline:none; appearance:none;
-    }
-    .form-field select:focus, .form-field input:focus { border-color:var(--gold); }
-    .form-field select option { background:var(--panel); color:var(--text); }
-
-    /* Line items */
-    .line-item-row { display:grid; grid-template-columns:1fr 90px 90px 28px; gap:0.5rem; align-items:end; margin-bottom:0.75rem; }
-    .line-label { font-size:0.65rem; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
-    .line-item-row input, .line-item-row select { border:none; border-bottom:1px solid var(--border); background:transparent; color:var(--text); font-family:'Outfit',sans-serif; font-size:0.85rem; padding:0.3rem 0; outline:none; width:100%; }
-    .line-total { font-size:0.75rem; color:var(--muted); text-align:right; padding:0.3rem 0; border-bottom:1px dashed var(--border); }
-
-    .empty-state { text-align:center; padding:4rem; color:var(--muted); }
-</style>
+<link rel="stylesheet" href="{% static 'css/inventory/purchase_orders.css' %}">
 {% endblock %}
 
 {% block page_title %}<a href="/inventory/board/">Inventory</a> / Purchase Orders{% endblock %}
 
 {% block header_links %}
-<button class="btn-lux" onclick="openDrawer()"><i class="bi bi-plus-lg me-1"></i>New PO</button>
+<button type="button" class="btn-lux" data-action="po.new"><i class="bi bi-plus-lg me-1"></i>New PO</button>
 <a href="{% url 'supplier_list' %}" class="btn-lux d-none d-sm-inline-block">Suppliers</a>
 <a href="{% url 'inventory_board' %}" class="btn-lux d-none d-sm-inline-block">Inventory</a>
 {% endblock %}
@@ -174,19 +97,19 @@
                 <td>
                     <div class="d-flex gap-1 flex-wrap">
                     {% if po.status == "draft" %}
-                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="openEditDrawer({{ po.id }}, '{{ po.po_number|default:po.id|escapejs }}', {{ po.supplier.id }}, '{{ po.notes|escapejs }}')">
+                        <button type="button" class="btn-lux btn-po-edit" style="font-size:0.65rem; padding:0.3rem 0.7rem;" data-action="po.edit" data-po="{{ po.id }}" data-number="{{ po.po_number|default:po.id }}" data-supplier="{{ po.supplier.id }}" data-notes="{{ po.notes }}">
                             <i class="bi bi-pencil me-1"></i>Edit
                         </button>
-                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="markOrdered({{ po.id }})">
+                        <button type="button" class="btn-lux btn-po-order" style="font-size:0.65rem; padding:0.3rem 0.7rem;" data-action="post" data-url="{% url 'po_mark_ordered' po.id %}" data-confirm="Mark this PO as sent to supplier?" data-confirm-button="Mark ordered" data-done="PO marked as ordered.">
                             <i class="bi bi-send me-1"></i>Order
                         </button>
-                        <button class="btn-lux danger" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="cancelPO({{ po.id }})">Cancel</button>
+                        <button type="button" class="btn-lux danger btn-po-cancel" style="font-size:0.65rem; padding:0.3rem 0.7rem;" data-action="post" data-url="{% url 'po_cancel' po.id %}" data-confirm="Cancel this purchase order?" data-confirm-button="Cancel it" data-done="PO cancelled.">Cancel</button>
                     {% elif po.status == "ordered" or po.status == "partially_received" %}
-                        <button class="btn-lux" style="font-size:0.65rem; padding:0.3rem 0.7rem; border-color:var(--green); color:var(--green);" onclick="openReceiveModal({{ po.id }})">
+                        <button type="button" class="btn-lux btn-po-receive" style="font-size:0.65rem; padding:0.3rem 0.7rem; border-color:var(--green); color:var(--green);" data-action="po.receive" data-po="{{ po.id }}">
                             <i class="bi bi-box-arrow-in-down me-1"></i>{% if po.status == "partially_received" %}Continue Receiving{% else %}Receive{% endif %}
                         </button>
                         {% if po.status == "ordered" %}
-                        <button class="btn-lux danger" style="font-size:0.65rem; padding:0.3rem 0.7rem;" onclick="cancelPO({{ po.id }})">Cancel</button>
+                        <button type="button" class="btn-lux danger btn-po-cancel" style="font-size:0.65rem; padding:0.3rem 0.7rem;" data-action="post" data-url="{% url 'po_cancel' po.id %}" data-confirm="Cancel this purchase order?" data-confirm-button="Cancel it" data-done="PO cancelled.">Cancel</button>
                         {% endif %}
                     {% elif po.status == "received" %}
                         <span style="font-size:0.75rem; color:var(--green);"><i class="bi bi-check-circle-fill me-1"></i>Stock Updated</span>
@@ -215,11 +138,11 @@
 </div>
 
 <!-- Create PO Drawer -->
-<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer-overlay" id="drawerOverlay" data-action="po.close" hidden></div>
 <div class="drawer" id="poDrawer">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="drawer-title" id="drawerTitleText">New Purchase Order</div>
-        <button class="btn-icon" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
+        <button type="button" class="btn-icon" data-action="po.close" aria-label="Close"><i class="bi bi-x-lg"></i></button>
     </div>
 
     <div class="form-field">
@@ -247,7 +170,7 @@
         <div id="lineItems"></div>
     </div>
 
-    <button class="btn-lux mb-3" style="font-size:0.68rem;" onclick="addLineItem()">
+    <button type="button" class="btn-lux mb-3" style="font-size:0.68rem;" data-action="po.addLine">
         <i class="bi bi-plus-lg me-1"></i>Add Item
     </button>
 
@@ -255,7 +178,7 @@
         Total: ₹<span id="poTotal">0.00</span>
     </div>
 
-    <button class="btn-lux w-100" id="submitPoBtn" onclick="submitPO()">
+    <button type="button" class="btn-lux w-100" id="submitPoBtn" data-action="po.submit">
         <i class="bi bi-check-lg me-1"></i>Create Draft PO
     </button>
 
@@ -266,11 +189,11 @@
 </div>
 
 <!-- Receive Delivery Drawer -->
-<div class="drawer-overlay" id="receiveOverlay" onclick="closeReceiveModal()"></div>
+<div class="drawer-overlay" id="receiveOverlay" data-action="po.closeReceive" hidden></div>
 <div class="drawer" id="receiveDrawer">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="drawer-title">Receive Delivery</div>
-        <button class="btn-icon" onclick="closeReceiveModal()"><i class="bi bi-x-lg"></i></button>
+        <button type="button" class="btn-icon" data-action="po.closeReceive" aria-label="Close"><i class="bi bi-x-lg"></i></button>
     </div>
 
     <div style="font-size:0.75rem; color:var(--muted); margin-bottom:1.25rem;">
@@ -281,261 +204,14 @@
 
     <div id="receiveLines"></div>
 
-    <button class="btn-lux w-100 mt-2" onclick="submitReceive()">
+    <button type="button" class="btn-lux w-100 mt-2" id="submitReceiveBtn" data-action="po.submitReceive">
         <i class="bi bi-box-arrow-in-down me-1"></i>Confirm Receipt
     </button>
 </div>
 
-<div class="toast-container" id="toastContainer"></div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-const CSRF = document.cookie.split('; ').find(r => r.startsWith('csrftoken2=')).split('=')[1];
-const ITEMS = [{% for item in inventory_items %}{ id:{{ item.id }}, name:"{{ item.name|escapejs }}", unit:"{{ item.unit }}", cost:{{ item.cost_price }} }{% if not forloop.last %},{% endif %}{% endfor %}];
-let lineCount = 0;
-
-// Per-PO line item data for the receive modal: item id, name, unit,
-// remaining quantity (ordered minus already received), and the ordered
-// price as the default invoiced price.
-const PO_LINES = {
-    {% for po in purchase_orders %}
-    {{ po.id }}: [
-        {% for line in po.items.all %}
-        {
-            item_id: {{ line.item.id }},
-            name: "{{ line.item.name|escapejs }}",
-            unit: "{{ line.item.unit }}",
-            quantity: {{ line.quantity }},
-            quantity_received: {{ line.quantity_received }},
-            ordered_price: {{ line.unit_price }},
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ]{% if not forloop.last %},{% endif %}
-    {% endfor %}
-};
-
-let editingPoId = null;
-
-function openDrawer() {
-    editingPoId = null;
-    document.getElementById('drawerTitleText').textContent = 'New Purchase Order';
-    document.getElementById('po_supplier').disabled = false;
-    document.getElementById('po_supplier').value = '';
-    document.getElementById('po_notes').value = '';
-    document.getElementById('submitPoBtn').innerHTML = '<i class="bi bi-check-lg me-1"></i>Create Draft PO';
-    document.getElementById('lineItems').innerHTML = '';
-    lineCount = 0;
-    addLineItem();
-    recalcTotal();
-    document.getElementById('poDrawer').classList.add('open');
-    document.getElementById('drawerOverlay').style.display = 'block';
-}
-
-function openEditDrawer(poId, poNumber, supplierId, notes) {
-    editingPoId = poId;
-    document.getElementById('drawerTitleText').textContent = `Edit ${poNumber}`;
-    document.getElementById('po_supplier').value = supplierId;
-    document.getElementById('po_supplier').disabled = true;
-    document.getElementById('po_notes').value = notes || '';
-    document.getElementById('submitPoBtn').innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Changes';
-    document.getElementById('lineItems').innerHTML = '';
-    lineCount = 0;
-
-    const lines = PO_LINES[poId] || [];
-    lines.forEach(line => addLineItem({ item_id: line.item_id, quantity: line.quantity, unit_price: line.ordered_price }));
-    if (!lines.length) addLineItem();
-    recalcTotal();
-
-    document.getElementById('poDrawer').classList.add('open');
-    document.getElementById('drawerOverlay').style.display = 'block';
-}
-
-function closeDrawer() {
-    document.getElementById('poDrawer').classList.remove('open');
-    document.getElementById('drawerOverlay').style.display = 'none';
-    document.getElementById('po_supplier').disabled = false;
-    editingPoId = null;
-}
-
-function addLineItem(prefill) {
-    lineCount++;
-    const id = `line-${lineCount}`;
-    const options = ITEMS.map(i => `<option value="${i.id}" data-cost="${i.cost}" data-unit="${i.unit}">${i.name} (${i.unit})</option>`).join('');
-    const row = document.createElement('div');
-    row.className = 'line-item-row';
-    row.id = id;
-    row.innerHTML = `
-        <select class="item-sel" onchange="autofillPrice(this)"><option value="">Item</option>${options}</select>
-        <input type="number" class="line-qty" placeholder="Qty" min="0.001" step="0.001" oninput="recalcTotal()">
-        <input type="number" class="line-price" placeholder="₹" min="0" step="0.01" oninput="recalcTotal()">
-        <button class="btn-icon" style="padding:0;" onclick="document.getElementById('${id}').remove(); recalcTotal();">
-            <i class="bi bi-x" style="font-size:1rem;"></i>
-        </button>`;
-    document.getElementById('lineItems').appendChild(row);
-    if (prefill) {
-        row.querySelector('.item-sel').value = prefill.item_id;
-        row.querySelector('.line-qty').value = prefill.quantity;
-        row.querySelector('.line-price').value = prefill.unit_price;
-    }
-}
-
-function autofillPrice(sel) {
-    const opt = sel.options[sel.selectedIndex];
-    const priceInput = sel.closest('.line-item-row').querySelector('.line-price');
-    if (opt && opt.dataset.cost) priceInput.value = parseFloat(opt.dataset.cost).toFixed(2);
-    recalcTotal();
-}
-
-function recalcTotal() {
-    let total = 0;
-    document.querySelectorAll('.line-item-row').forEach(row => {
-        const qty   = parseFloat(row.querySelector('.line-qty')?.value) || 0;
-        const price = parseFloat(row.querySelector('.line-price')?.value) || 0;
-        total += qty * price;
-    });
-    document.getElementById('poTotal').textContent = total.toFixed(2);
-}
-
-async function submitPO() {
-    const notes = document.getElementById('po_notes').value;
-    const items = [];
-    let valid = true;
-    document.querySelectorAll('.line-item-row').forEach(row => {
-        const item_id    = row.querySelector('.item-sel')?.value;
-        const quantity   = row.querySelector('.line-qty')?.value;
-        const unit_price = row.querySelector('.line-price')?.value;
-        if (item_id && quantity && unit_price) {
-            items.push({ item_id: parseInt(item_id), quantity: parseFloat(quantity), unit_price: parseFloat(unit_price) });
-        } else if (item_id || quantity || unit_price) {
-            toast('Please fill all fields for each item row.', true);
-            valid = false;
-        }
-    });
-    if (!valid) return;
-    if (!items.length) { toast('Add at least one item.', true); return; }
-
-    if (editingPoId) {
-        const res = await fetch(`/inventory/purchase-orders/${editingPoId}/edit/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ notes, items })
-        });
-        const data = await res.json();
-        if (data.success) { toast('Purchase order updated.'); setTimeout(() => location.reload(), 700); }
-        else toast(data.error, true);
-        return;
-    }
-
-    const supplier_id = document.getElementById('po_supplier').value;
-    if (!supplier_id) { toast('Please select a supplier.', true); return; }
-    const res = await fetch('/inventory/purchase-orders/create/', {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ supplier_id, notes, items })
-    });
-    const data = await res.json();
-    if (data.success) { toast(`PO ${data.po_number} created.`); setTimeout(() => location.reload(), 700); }
-    else toast(data.error, true);
-}
-
-async function markOrdered(poId) {
-    if (!confirm('Mark this PO as sent to supplier?')) return;
-    const res = await fetch(`/inventory/purchase-orders/${poId}/order/`, { method:'POST', headers:{'X-CSRFToken':CSRF} });
-    const data = await res.json();
-    if (data.success) { toast('PO marked as ordered.'); setTimeout(() => location.reload(), 600); }
-    else toast(data.error, true);
-}
-
-let receivingPoId = null;
-
-function openReceiveModal(poId) {
-    receivingPoId = poId;
-    const lines = PO_LINES[poId] || [];
-    const container = document.getElementById('receiveLines');
-    container.innerHTML = '';
-
-    lines.forEach((line, i) => {
-        const remaining = (line.quantity - line.quantity_received);
-        if (remaining <= 0) return; // this line's already fully received, nothing to ask about
-
-        const row = document.createElement('div');
-        row.className = 'receive-line';
-        row.dataset.itemId = line.item_id;
-        row.style.cssText = 'border-bottom:1px dashed var(--border); padding-bottom:0.9rem; margin-bottom:0.9rem;';
-        row.innerHTML = `
-            <div style="font-size:0.85rem; font-weight:500; margin-bottom:0.5rem;">${line.name}</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;">
-                <div>
-                    <div class="line-label">Qty received now (of ${remaining.toFixed(3)} remaining)</div>
-                    <input type="number" class="recv-qty" min="0" step="0.001" value="${remaining.toFixed(3)}">
-                </div>
-                <div>
-                    <div class="line-label">Price invoiced (₹)</div>
-                    <input type="number" class="recv-price" min="0" step="0.01" value="${line.ordered_price.toFixed(2)}">
-                </div>
-            </div>`;
-        container.appendChild(row);
-    });
-
-    if (!lines.some(l => (l.quantity - l.quantity_received) > 0)) {
-        toast('Nothing left to receive on this PO.', true);
-        return;
-    }
-
-    document.getElementById('receiveDrawer').classList.add('open');
-    document.getElementById('receiveOverlay').style.display = 'block';
-}
-
-function closeReceiveModal() {
-    document.getElementById('receiveDrawer').classList.remove('open');
-    document.getElementById('receiveOverlay').style.display = 'none';
-    receivingPoId = null;
-}
-
-async function submitReceive() {
-    if (!receivingPoId) return;
-    const items = {};
-    document.querySelectorAll('#receiveLines .receive-line').forEach(row => {
-        const itemId = row.dataset.itemId;
-        const qty = row.querySelector('.recv-qty').value;
-        const price = row.querySelector('.recv-price').value;
-        items[itemId] = {
-            quantity_received: qty === '' ? '0' : qty,
-            invoiced_price: price === '' ? null : price,
-        };
-    });
-
-    const res = await fetch(`/inventory/purchase-orders/${receivingPoId}/receive/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
-    });
-    const data = await res.json();
-    if (data.success) {
-        const label = data.status === 'partially_received' ? 'Partially received, stock updated.' : 'PO fully received, stock updated.';
-        toast(label);
-        closeReceiveModal();
-        setTimeout(() => location.reload(), 700);
-    } else {
-        toast(data.error, true);
-    }
-}
-
-async function cancelPO(poId) {
-    if (!confirm('Cancel this purchase order?')) return;
-    const res = await fetch(`/inventory/purchase-orders/${poId}/cancel/`, { method:'POST', headers:{'X-CSRFToken':CSRF} });
-    const data = await res.json();
-    if (data.success) { toast('PO cancelled.'); setTimeout(() => location.reload(), 600); }
-    else toast(data.error, true);
-}
-
-function toast(msg, isErr = false) {
-    const div = document.createElement('div');
-    div.className = 'toast-msg' + (isErr ? ' err' : '');
-    div.textContent = msg;
-    document.getElementById('toastContainer').appendChild(div);
-    setTimeout(() => div.remove(), 4000);
-}
-</script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/inventory/purchase_orders.js' %}"></script>
 {% endblock %}

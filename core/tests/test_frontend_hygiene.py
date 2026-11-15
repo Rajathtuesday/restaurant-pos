@@ -116,7 +116,6 @@ def measure_all():
 
 # The numbers on 11 November 2026, when the ratchet was set. Only ever lowered.
 BASELINE = {
-    'inventory/templates/inventory/purchase_orders.html': {"script": 246, "style": 77, "onclick": 14, "third_party": 0, "globals": 0},
     'menu/templates/menu/menu_management.html': {"script": 279, "style": 104, "onclick": 27, "third_party": 0, "globals": 0},
     'menu/templates/menu/qsr_menu_management.html': {"script": 208, "style": 96, "onclick": 15, "third_party": 0, "globals": 0},
 }

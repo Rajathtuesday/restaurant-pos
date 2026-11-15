@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-11-15: Purchase orders on modules; a second draft for a supplier is refused in words
+
+### Fixed
+- **A New PO for a supplier who already had a draft gave a 500.** The database allows one draft per supplier (`unique_draft_po_per_supplier`) and the view never asked first. It now refuses with the draft's number ("Edit that one, or mark it ordered first"), also when two taps race.
+- **Order and Cancel asked with the browser's `confirm()`**, which never shows in the Android app, so a PO could not be sent or cancelled there. Both are shared post buttons asked in Rasova's own sheet.
+- The Receive drawer wrote ingredient names into the page as HTML (the New PO drawer's list too); they are text now.
+
+### Changed
+- `/inventory/purchase-orders/` runs on `static/js/inventory/purchase_orders.js` and `po_parts.js`; data and addresses from `inventory.views.purchase_orders_page_data()`; style in `static/css/inventory/purchase_orders.css`. Requests go through the shared client (refusals and dropped connections are toasts) instead of `fetch()` by hand; a second tap on Save or Confirm Receipt is ignored.
+- The ratchet holds 2 templates (was 3).
+
+### Tests
+- `inventory/tests/test_po_one_draft.py` (2): the second draft is refused in words (500 on the old code); once ordered, a new draft is made.
+- `inventory/tests/test_purchase_orders_browser.py` (5, Chromium): Order and Cancel ask in a sheet, an ingredient name shows as text in Receive (these three fail on the old page), receiving part of an order, a new PO from the drawer.
+- `static/js/tests/purchase_orders.test.mjs` (4): the total, line checks, what is still owed, the receive body.
+
 ## 2026-11-14: Kitchen Stations on modules; One Printer mode and Remove work in the Android app
 
 ### Fixed

@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render
 from django.utils import timezone
@@ -389,6 +389,37 @@ def delete_supplier(request, supplier_id):
 # PURCHASE ORDERS
 # ============================================================
 
+def _draft_exists(supplier, draft):
+    return JsonResponse({
+        "error": f"{supplier.name} already has a draft PO ({draft.po_number or draft.id}). "
+                 "Edit that one, or mark it ordered first.",
+        "po_id": draft.id,
+    }, status=400)
+
+
+def purchase_orders_page_data(purchase_orders, items):
+    """Everything static/js/inventory/purchase_orders.js reads: the
+    ingredients for a new line, each order's lines (for Edit and Receive),
+    and the addresses (0 stands in for an order's id)."""
+    from django.urls import reverse
+    return {
+        "items": [{"id": i.id, "name": i.name, "unit": i.unit, "cost": str(i.cost_price)} for i in items],
+        "lines": {
+            str(po.id): [{
+                "item_id": line.item_id, "name": line.item.name, "unit": line.item.unit,
+                "quantity": str(line.quantity), "quantity_received": str(line.quantity_received),
+                "ordered_price": str(line.unit_price),
+            } for line in po.items.all()]
+            for po in purchase_orders
+        },
+        "urls": {
+            "create": reverse("purchase_order_create"),
+            "edit": reverse("po_edit", args=[0]),
+            "receive": reverse("po_receive", args=[0]),
+        },
+    }
+
+
 @login_required
 @tenant_required
 @feature_required("purchase_orders")
@@ -425,6 +456,7 @@ def purchase_order_list(request):
         "suppliers": suppliers,
         "inventory_items": items,
         "status_filter": status_filter,
+        "page_data": purchase_orders_page_data(qs, items),
     })
 
 
@@ -502,26 +534,43 @@ def create_purchase_order(request):
 
         validated_items.append((inv_item, qty, unit_price))
 
-    with transaction.atomic():
-        total = sum(qty * price for _, qty, price in validated_items)
-        po = PurchaseOrder.objects.create(
-            tenant=request.user.tenant,
-            outlet=request.user.outlet,
-            supplier=supplier,
-            status="draft",
-            total_amount=total,
-            notes=notes,
-        )
-        po.po_number = generate_po_number(request.user.tenant, request.user.outlet)
-        po.save(update_fields=["po_number"])
+    # One draft per supplier (unique_draft_po_per_supplier): say which one
+    # to add to, rather than letting the database refuse with a 500.
+    existing = PurchaseOrder.objects.filter(
+        tenant=request.user.tenant, outlet=request.user.outlet, supplier=supplier, status="draft",
+    ).first()
+    if existing is not None:
+        return _draft_exists(supplier, existing)
 
-        for inv_item, qty, unit_price in validated_items:
-            PurchaseOrderItem.objects.create(
-                purchase_order=po,
-                item=inv_item,
-                quantity=qty,
-                unit_price=unit_price,
+    try:
+        with transaction.atomic():
+            total = sum(qty * price for _, qty, price in validated_items)
+            po = PurchaseOrder.objects.create(
+                tenant=request.user.tenant,
+                outlet=request.user.outlet,
+                supplier=supplier,
+                status="draft",
+                total_amount=total,
+                notes=notes,
             )
+            po.po_number = generate_po_number(request.user.tenant, request.user.outlet)
+            po.save(update_fields=["po_number"])
+
+            for inv_item, qty, unit_price in validated_items:
+                PurchaseOrderItem.objects.create(
+                    purchase_order=po,
+                    item=inv_item,
+                    quantity=qty,
+                    unit_price=unit_price,
+                )
+    except IntegrityError:
+        # Two taps at once: the other one made the draft.
+        existing = PurchaseOrder.objects.filter(
+            tenant=request.user.tenant, outlet=request.user.outlet, supplier=supplier, status="draft",
+        ).first()
+        if existing is None:
+            raise
+        return _draft_exists(supplier, existing)
 
     logger.info("%s created PO %s from %s", request.user.username, po.po_number, supplier.name)
     return JsonResponse({
