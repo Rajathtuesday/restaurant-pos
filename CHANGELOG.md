@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-15: Promos on Restaurant Setup
+
+### Changed
+- `/setup/` has a Promos card beside Offers (whole-bill discounts: % or Rs off, a code, a minimum, dates, a usage cap), linking to the existing `/setup/promos/`. Before, Promos was reached only from the Offers page's header. Not a new page: a card on the existing hub.
+
+### Tests
+- `setup/tests/test_offer_setup.py`: the setup hub links to Promos (fails without the card).
+
 ## 2026-11-15: One name, one dish, per outlet
 
 ### Fixed

@@ -201,6 +201,13 @@ class ThePageTest(OfferSetupBase):
         client.force_login(self.owner)
         self.assertIn(reverse("setup_offers"), client.get("/setup/").content.decode())
 
+    def test_the_setup_hub_links_to_promos_too(self):
+        # 15 Nov 2026: Promos had no card on Restaurant Setup; it was reached
+        # only from the Offers page's header.
+        client = Client()
+        client.force_login(self.owner)
+        self.assertIn(f'href="{reverse("setup_promos")}"', client.get("/setup/").content.decode())
+
     def test_the_list_says_what_each_offer_does(self):
         self.create(template="happy_hour", name="Happy hour 25%", percent="25", category_ids=[self.bar.id],
                     days=[4], start_time="20:00", end_time="02:00")
