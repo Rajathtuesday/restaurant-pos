@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-15: The menu's dish buttons, on one quiet row
+
+### Fixed
+- **A dish's Edit, Available, Recipe, AI recipe and Delete buttons were grey native buttons that wrapped onto two rows**: `.btn-action-icon` had never had a style. They are quiet 36 px icon buttons on one row beside the dish's name (a border on hover, red for Delete), and the name takes the room left. "No recipe defined" and the recipe lines use the page's font, not monospace. `static/css/menu/menu_management.css`.
+
+### Tests
+- `menu/tests/test_menu_management_browser.py`: a dish's actions sit on one row and are not drawn as native buttons (fails on the old CSS: two rows).
+
 ## 2026-11-15: One report bar on every report page; no inline handlers left anywhere
 
 ### Fixed

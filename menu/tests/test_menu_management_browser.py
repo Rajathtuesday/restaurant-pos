@@ -91,6 +91,21 @@ class FullMenuBrowserTest(MenuBrowserBase):
         self.spare.refresh_from_db()
         self.assertEqual(self.spare.price, Decimal("135.00"))
 
+    def test_a_dishs_actions_sit_on_one_row_and_are_styled(self):
+        # 15 Nov 2026: .btn-action-icon had no style at all, so the browser
+        # drew grey native buttons and Delete wrapped onto a second row.
+        results = self._run([
+            ("row", f'const row = document.querySelector(".btn-edit-dish[data-item=\'{self.spare.id}\']").closest(".btn-group-luxury");'
+                    'const buttons = Array.from(row.querySelectorAll("button"));'
+                    'return {tops: new Set(buttons.map((b) => Math.round(b.getBoundingClientRect().top))).size,'
+                    ' backgrounds: buttons.map((b) => getComputedStyle(b).backgroundColor),'
+                    ' count: buttons.length};'),
+        ])
+        row = results["row"]
+        self.assertGreaterEqual(row["count"], 4)
+        self.assertEqual(row["tops"], 1, "the actions wrapped onto more than one row")
+        self.assertEqual(set(row["backgrounds"]), {"rgba(0, 0, 0, 0)"}, "drawn as native grey buttons")
+
     def test_search_hides_other_dishes(self):
         results = self._run([
             ("search", 'const box = document.getElementById("menuManagementSearch"); box.value = "spare";'

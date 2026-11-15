@@ -31,7 +31,7 @@ html.dark {
 
 .menu-item-row { padding: 1.25rem 0; border-bottom: 1px solid var(--border-color); transition: var(--transition-smooth); }
 .menu-item-row:last-child { border-bottom: none; }
-.item-identity { display: flex; flex-direction: column; }
+.item-identity { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .item-name { font-size: 0.95rem; font-weight: 500; color: var(--text-main); margin-bottom: 2px; }
 .item-price { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--accent-gold); font-size: 1.1rem; font-style: italic; }
 
@@ -42,7 +42,7 @@ html.dark {
 .badge-platform.off { background: transparent; color: var(--text-muted); border-color: var(--border-color); }
 
 .recipe-block { padding-left: 1rem; margin-top: 8px; border-left: 1px solid var(--accent-gold); font-size: 0.8rem; color: var(--text-muted); }
-.recipe-item { margin-bottom: 4px; font-family: 'Space Mono', monospace; }
+.recipe-item { margin-bottom: 4px; }
 
 .modal-content { background: var(--panel-bg); border-radius: 0; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
 .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
@@ -105,3 +105,20 @@ html.dark .station-select option { background: var(--panel-bg); color: var(--tex
 }
 .search-hidden { display: none !important; }
 button.badge-platform { font-family: inherit; line-height: inherit; }
+
+/* A dish's actions: quiet icon buttons on one row beside its name (they had
+   no style at all, so the browser drew grey native buttons that wrapped,
+   15 Nov 2026). Each still has a title and a 36 px target. */
+.btn-group-luxury { display: flex; flex-wrap: nowrap; gap: 0.15rem; flex-shrink: 0; margin-left: 0.5rem; }
+.btn-action-icon {
+    width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;
+    background: transparent; border: 1px solid transparent; border-radius: 6px;
+    color: var(--text-muted); font-size: 1rem; cursor: pointer; padding: 0;
+}
+.btn-action-icon:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: 1px; }
+.btn-action-icon:active { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn-action-icon.btn-delete:active { border-color: #ef4444; color: #ef4444; }
+@media (hover: hover) {
+    .btn-action-icon:hover { border-color: var(--border-color); color: var(--text-main); }
+    .btn-action-icon.btn-delete:hover { border-color: #ef4444; color: #ef4444; }
+}
