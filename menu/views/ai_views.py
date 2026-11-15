@@ -152,15 +152,12 @@ def _run_sync(request, text, image_b64, mime_type):
                 name  = (item_data.get("name") or "").strip()
                 price = item_data.get("price", 0)
                 if name:
-                    MenuItem.objects.get_or_create(
-                        tenant=tenant, outlet=outlet,
-                        category=category, name=name,
-                        defaults={
-                            "price": Decimal(str(price)),
-                            "is_veg": bool(item_data.get("is_veg", True)),
-                        },
-                    )
-                    imported_count += 1
+                    from menu.dish_names import add_unless_named
+                    _, created = add_unless_named(tenant, outlet, category, name, {
+                        "price": Decimal(str(price)),
+                        "is_veg": bool(item_data.get("is_veg", True)),
+                    })
+                    imported_count += 1 if created else 0
 
     return JsonResponse({
         "success": True,

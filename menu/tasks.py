@@ -27,7 +27,8 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
 
     try:
         from tenants.models import Tenant, Outlet
-        from menu.models import MenuCategory, MenuItem
+        from menu.dish_names import add_unless_named
+        from menu.models import MenuCategory
         from core.ai_service import AIService
         import base64
 
@@ -66,15 +67,11 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
                     name = (item_data.get("name") or "").strip()
                     price = item_data.get("price", 0)
                     if name:
-                        MenuItem.objects.get_or_create(
-                            tenant=tenant, outlet=outlet,
-                            category=category, name=name,
-                            defaults={
-                                "price": Decimal(str(price)),
-                                "is_veg": bool(item_data.get("is_veg", True)),
-                            },
-                        )
-                        imported_count += 1
+                        _, created = add_unless_named(tenant, outlet, category, name, {
+                            "price": Decimal(str(price)),
+                            "is_veg": bool(item_data.get("is_veg", True)),
+                        })
+                        imported_count += 1 if created else 0
 
         cache.set(cache_key, {
             "status": "done",

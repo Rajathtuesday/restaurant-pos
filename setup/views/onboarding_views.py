@@ -101,11 +101,8 @@ def onboarding_wizard(request):
                             messages.warning(request, f"{e} {iname} was not added; add it from the menu screen.")
                             continue
                         try:
-                            MenuItem.objects.get_or_create(
-                                tenant=tenant, outlet=outlet,
-                                name=iname, category=cat,
-                                defaults={"price": price, "is_available": True}
-                            )
+                            from menu.dish_names import add_unless_named
+                            add_unless_named(tenant, outlet, cat, iname, {"price": price, "is_available": True})
                         except Exception:
                             # Wizard still redirects to the next step on
                             # failure (a bad price shouldn't block onboarding),
@@ -242,10 +239,8 @@ def sample_menu(request):
             defaults={"is_active": True}
         )
         for item_name, price in items:
-            MenuItem.objects.get_or_create(
-                tenant=tenant, outlet=outlet, name=item_name, category=cat,
-                defaults={"price": price, "is_available": True}
-            )
+            from menu.dish_names import add_unless_named
+            add_unless_named(tenant, outlet, cat, item_name, {"price": price, "is_available": True})
 
     return redirect("/setup/onboard/?step=3")
 

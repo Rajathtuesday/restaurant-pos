@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-15: One name, one dish, per outlet
+
+### Fixed
+- **The Add Item form accepted a second dish with the same name** (two "uta", Rs 200 and Rs 170, in one category), though the KOT, the bill and the QR menu show a dish by its name alone. A dish name is now unique per outlet, comparing without case and with runs of spaces as one: Add Item and Edit refuse a taken name (409) and say which dish has it; a dish may keep its own name in another case. The AI menu import and the onboarding steps leave a dish already on the menu as it is (they checked only an exact name in the same category). Names are saved trimmed. One rule: `menu/dish_names.py`.
+- Existing duplicates are not touched; rename one of them from the menu screen.
+
+### Tests
+- `menu/tests/test_dish_names.py` (7): the same name refused in any case and spacing, and under another category; a new name saved trimmed; renaming to a taken name refused, a dish's own name kept; another outlet may use it; the import keeps the dish already there. Five fail on the old code.
+
 ## 2026-11-15: The menu's dish buttons, on one quiet row
 
 ### Fixed

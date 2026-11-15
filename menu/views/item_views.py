@@ -78,6 +78,11 @@ def create_menu_item(request):
             MenuCategory, id=category_id,
             tenant=request.user.tenant, outlet=request.user.outlet
         )
+        from menu.dish_names import clean, same_name, taken_message
+        name = clean(name)
+        taken = same_name(request.user.tenant, request.user.outlet, name)
+        if taken is not None:
+            return JsonResponse({"error": taken_message(taken)}, status=409)
         station = None
         if station_id:
             station = KitchenStation.objects.get(
@@ -124,6 +129,11 @@ def update_menu_item(request, item_id):
 
         if not name or price in (None, "") or not category_id:
             return JsonResponse({"error": "Missing required fields"}, status=400)
+        from menu.dish_names import clean, same_name, taken_message
+        name = clean(name)
+        taken = same_name(request.user.tenant, request.user.outlet, name, exclude_id=item.id)
+        if taken is not None:
+            return JsonResponse({"error": taken_message(taken)}, status=409)
         try:
             price = _read_price(price)
             parcel_charge = request.POST.get("parcel_charge")
