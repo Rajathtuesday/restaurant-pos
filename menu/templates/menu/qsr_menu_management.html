@@ -1,115 +1,19 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Menu Management | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-    ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-    ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-
-    :root { --shadow-hover: 0 10px 30px rgba(0,0,0,0.12); }
-    html.dark { --shadow-hover: 0 10px 30px rgba(0,0,0,0.5); }
-
-    .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-    .btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
-    .btn-gold-solid { background: var(--accent-gold); border-color: var(--accent-gold); color: #000; font-weight: 700; }
-    .btn-gold-solid:hover { background: #b59250; border-color: #b59250; color: #000; }
-
-    .category-card {
-        background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0;
-        padding: 2.5rem 2rem; height: 100%; transition: var(--transition-smooth);
-        margin-bottom: 2rem; box-shadow: var(--shadow-soft);
-    }
-    .category-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
-
-    .category-title {
-        font-size: 1.4rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 3px; color: var(--text-main); text-align: left; margin-bottom: 0;
-    }
-    .category-title::after {
-        content: ''; display: block; width: 40px; height: 1px;
-        background: var(--accent-gold); margin: 15px 0 0;
-    }
-
-    .menu-item-row {
-        padding: 1.25rem 0; border-bottom: 1px solid var(--border-color);
-        transition: var(--transition-smooth); display: flex;
-        justify-content: space-between; align-items: center;
-    }
-    .menu-item-row:last-child { border-bottom: none; }
-
-    .item-identity { display: flex; flex-direction: column; }
-    .item-name { font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 2px; cursor: pointer; border-bottom: 1px dashed var(--border-color); display: inline-block; width: max-content; }
-    .item-name:hover { color: var(--accent-gold); }
-    .item-price { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--accent-gold); font-size: 1.2rem; font-style: italic; cursor: pointer; }
-    .item-price:hover { opacity: 0.8; }
-
-    .luxury-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; padding: 2px 8px; border-radius: 0; margin-left: 8px; }
-    .badge-disabled { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid #ef4444; }
-
-    .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
-    .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-    input:checked + .slider { background-color: #22c55e; }
-    input:checked + .slider:before { transform: translateX(22px); }
-
-    .modal-content { background: var(--panel-bg); border-radius: 0; border: 1px solid var(--border-color); }
-    .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-    .modal-footer { border-top: 1px solid var(--border-color); padding: 1.2rem; }
-    .modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-    html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
-
-    .form-select-luxury, .form-input-luxury {
-        background-color: transparent !important; border: none;
-        border-bottom: 1px solid var(--border-color); color: var(--text-main) !important;
-        border-radius: 0; padding: 0.5rem 0; font-family: inherit; font-size: 0.9rem; font-weight: 500;
-    }
-    .form-select-luxury:focus, .form-input-luxury:focus { box-shadow: none; border-bottom-color: var(--accent-gold); }
-
-    .btn-delete:hover { color: #ef4444; }
-
-    .cat-nav-bar {
-        background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
-        padding: 0.75rem 2rem; display: flex; gap: 1.5rem; overflow-x: auto;
-        white-space: nowrap; position: sticky; top: 62px; z-index: 99;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-        -ms-overflow-style: none; scrollbar-width: none;
-    }
-    .cat-nav-bar::-webkit-scrollbar { display: none; }
-    .cat-nav-link {
-        color: var(--text-muted); text-decoration: none; font-size: 0.7rem;
-        text-transform: uppercase; letter-spacing: 2px; font-weight: 700; transition: var(--transition-smooth);
-    }
-    .cat-nav-link:hover { color: var(--accent-gold); }
-
-    .category-section { scroll-margin-top: 150px; }
-
-    .dropdown-item { color: var(--text-main); transition: var(--transition-smooth); }
-    .dropdown-item:hover { background-color: rgba(197, 160, 89, 0.1); color: var(--accent-gold); }
-    .dropdown-item.text-danger:hover { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
-
-    #qsr-toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--text-main); color: var(--bg-color); padding: 0.75rem 1.5rem; font-size: 0.85rem; letter-spacing: 0.5px; z-index: 9999; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-    #qsr-toast.error { background: #ef4444; color: #fff; }
-    #qsr-toast.success { background: #22c55e; color: #fff; }
-
-    .qsr-station-select {
-        background: transparent; border: none; border-bottom: 1px dashed var(--border-color);
-        color: var(--text-muted); font-size: 0.7rem; font-family: inherit;
-        padding: 0 0.2rem; cursor: pointer; outline: none; max-width: 160px;
-    }
-    .qsr-station-select:focus, .qsr-station-select:hover { border-bottom-color: var(--accent-gold); color: var(--accent-gold); }
-    .qsr-station-select option { background: var(--panel-bg); color: var(--text-main); }
-</style>
+<link rel="stylesheet" href="{% static 'css/menu/qsr_menu_management.css' %}">
 {% endblock %}
 
 {% block page_title %}Menu{% endblock %}
 
 {% block header_links %}
-<button class="btn-luxury" onclick="openCategoryModal()"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
-<button class="btn-luxury btn-gold-solid" onclick="openItemModal()"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
+<button type="button" class="btn-luxury" data-action="menu.newCategory"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
+<button type="button" class="btn-luxury btn-gold-solid" data-action="menu.newDish"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
 {% if request.user.role == 'owner' %}
-<button class="btn-luxury d-none d-sm-inline-flex" onclick="syncMenu()"><i class="bi bi-cloud-arrow-up me-1"></i> Sync to Branches</button>
+<button type="button" class="btn-luxury d-none d-sm-inline-flex" data-action="menu.sync"><i class="bi bi-cloud-arrow-up me-1"></i> Sync to Branches</button>
 {% endif %}
 <a href="/dashboard/" class="btn-luxury d-none d-sm-inline-flex"><i class="bi bi-house me-1"></i> Dashboard</a>
 {% endblock %}
@@ -135,7 +39,7 @@
             <div class="category-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h5 class="category-title mb-0">{{category.name}}</h5>
-                    <button class="btn-icon btn-delete" style="font-size:1rem; padding:0;" title="Delete Category" onclick="deleteCategory('{{category.id}}', '{{category.name|escapejs}}')">
+                    <button type="button" class="btn-icon btn-delete btn-delete-category" style="font-size:1rem; padding:0;" title="Delete Category" data-action="post" data-url="{% url 'delete_category' category.id %}" data-confirm="Delete the category &quot;{{ category.name }}&quot;?" data-confirm-text="It deletes ALL its menu items, permanently." data-confirm-button="Delete">
                         <i class="bi bi-trash3"></i>
                     </button>
                 </div>
@@ -145,7 +49,7 @@
                     <div class="d-flex flex-column border-bottom" style="border-color:var(--border-color) !important;">
                         <div class="menu-item-row" style="border-bottom:none;">
                             <div class="item-identity">
-                                <span class="item-name" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', category:'{{item.category.id}}', isVeg:'{{item.is_veg|lower}}'})">
+                                <span class="item-name" data-action="menu.editDish" data-item="{{item.id}}">
                                     {% if item.is_veg %}
                                     <i class="bi bi-circle-fill text-success" style="font-size:0.6rem; vertical-align:middle;"></i>
                                     {% else %}
@@ -155,12 +59,12 @@
                                     {% if not item.is_available %}
                                     <span class="luxury-badge badge-disabled ms-2" id="badge-{{item.id}}">Offline</span>
                                     {% else %}
-                                    <span class="luxury-badge badge-disabled ms-2" id="badge-{{item.id}}" style="display:none;">Offline</span>
+                                    <span class="luxury-badge badge-disabled ms-2" id="badge-{{item.id}}" hidden>Offline</span>
                                     {% endif %}
                                 </span>
-                                <span class="item-price mt-1" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', category:'{{item.category.id}}', isVeg:'{{item.is_veg|lower}}'})">₹{{item.price}}</span>
+                                <span class="item-price mt-1" data-action="menu.editDish" data-item="{{item.id}}">₹{{item.price}}</span>
                                 {% if stations|length > 1 %}
-                                <select class="qsr-station-select mt-1" onchange="updateStation('{{item.id}}', this.value)" title="Kitchen station">
+                                <select class="qsr-station-select mt-1" data-action="menu.station" data-item="{{item.id}}" title="Kitchen station">
                                     <option value="">🔥 Default Station</option>
                                     {% for s in stations %}
                                     <option value="{{ s.id }}" {% if item.station and item.station.id == s.id %}selected{% endif %}>🍳 {{ s.name }}</option>
@@ -171,7 +75,7 @@
 
                             <div class="d-flex align-items-center gap-2">
                                 <label class="switch mb-0" title="Toggle Availability">
-                                    <input type="checkbox" id="toggle-{{item.id}}" {% if item.is_available %}checked{% endif %} onchange="toggleItem('{{item.id}}')">
+                                    <input type="checkbox" id="toggle-{{item.id}}" {% if item.is_available %}checked{% endif %} data-action="menu.available" data-item="{{item.id}}">
                                     <span class="slider"></span>
                                 </label>
                                 <div class="dropdown ms-2">
@@ -179,23 +83,23 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="background:var(--panel-bg); font-size:0.85rem; min-width:180px;">
-                                        <li><a class="dropdown-item py-2" href="javascript:void(0);" onclick="openItemModal({id:'{{item.id}}', name:'{{item.name|escapejs}}', price:'{{item.price}}', category:'{{item.category.id}}', isVeg:'{{item.is_veg|lower}}'})"><i class="bi bi-pencil me-2 text-muted"></i>Edit Details</a></li>
-                                        <li><a class="dropdown-item py-2" href="javascript:void(0);" onclick="toggleRecipeBlock('{{item.id}}')"><i class="bi bi-journal-text me-2 text-muted"></i>Recipe / Ingredients</a></li>
+                                        <li><button type="button" class="dropdown-item py-2" data-action="menu.editDish" data-item="{{item.id}}"><i class="bi bi-pencil me-2 text-muted"></i>Edit Details</button></li>
+                                        <li><button type="button" class="dropdown-item py-2" data-action="menu.recipeBlock" data-item="{{item.id}}"><i class="bi bi-journal-text me-2 text-muted"></i>Recipe / Ingredients</button></li>
                                         {% if 'ai_recipe_import' in tenant_features %}
-                                        <li><a class="dropdown-item py-2" href="javascript:void(0);" onclick="openRecipeImportModal('{{item.id}}', '{{item.name|escapejs}}')"><i class="bi bi-stars me-2 text-muted"></i>Import Recipe with AI</a></li>
+                                        <li><button type="button" class="dropdown-item py-2" data-action="menu.recipeImport" data-item="{{item.id}}" data-name="{{ item.name }}"><i class="bi bi-stars me-2 text-muted"></i>Import Recipe with AI</button></li>
                                         {% endif %}
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item py-2 text-danger" href="javascript:void(0);" onclick="deleteItem('{{item.id}}')"><i class="bi bi-trash me-2"></i>Delete Item</a></li>
+                                        <li><button type="button" class="dropdown-item py-2 text-danger btn-delete-dish" data-action="post" data-url="{% url 'delete_menu_item' item.id %}" data-confirm="Delete &quot;{{ item.name }}&quot;?" data-confirm-text="The dish is erased permanently." data-confirm-button="Delete"><i class="bi bi-trash me-2"></i>Delete Item</button></li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Recipe Block -->
-                        <div class="recipe-block p-3 mb-3 mx-2" id="recipe-block-{{item.id}}" style="display:none; background:rgba(197,160,89,0.05); border-left:2px solid var(--accent-gold);">
+                        <div class="recipe-block p-3 mb-3 mx-2" id="recipe-block-{{item.id}}" hidden style="background:rgba(197,160,89,0.05); border-left:2px solid var(--accent-gold);">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span style="font-size:0.75rem; text-transform:uppercase; font-weight:bold; color:var(--accent-gold);">Linked Inventory Recipe</span>
-                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.7rem; border-color:var(--border-color); color:var(--text-main);" onclick="openRecipeModal('{{item.id}}')">+ Add Ingredient</button>
+                                <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:0.7rem; border-color:var(--border-color); color:var(--text-main);" type="button" data-action="menu.recipe" data-item="{{item.id}}">+ Add Ingredient</button>
                             </div>
                             <div class="mt-2">
                                 {% for r in item.recipes.all %}
@@ -231,7 +135,7 @@
                 <input id="categoryName" class="form-control form-input-luxury" placeholder="e.g. Burgers, Beverages"/>
             </div>
             <div class="modal-footer pt-0 border-0">
-                <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createCategory()">Save</button>
+                <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" data-action="menu.saveCategory">Save</button>
             </div>
         </div>
     </div>
@@ -272,7 +176,7 @@
                 </div>
             </div>
             <div class="modal-footer pt-0 border-0">
-                <button class="btn-luxury btn-gold w-100 justify-content-center" id="saveItemBtn" onclick="saveItem()">Save Item</button>
+                <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" id="saveItemBtn" data-action="menu.saveDish">Save Item</button>
             </div>
         </div>
     </div>
@@ -301,7 +205,7 @@
                 </div>
             </div>
             <div class="modal-footer pt-0 border-0">
-                <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createRecipe()">Save Recipe</button>
+                <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" data-action="menu.saveRecipe">Save Recipe</button>
             </div>
         </div>
     </div>
@@ -327,225 +231,16 @@
                 <textarea id="recipeImportText" class="form-control form-input-luxury" rows="6" placeholder="Example:&#10;2 buns&#10;150g Chicken Patty&#10;1 tbsp Mayonnaise"></textarea>
             </div>
             <div class="modal-footer pt-0 border-0">
-                <button class="btn-luxury btn-gold w-100 justify-content-center" id="recipeImportBtn" onclick="runRecipeImport()">Extract Ingredients</button>
+                <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" id="recipeImportBtn" data-action="menu.runRecipeImport">Extract Ingredients</button>
             </div>
         </div>
     </div>
 </div>
 {% endif %}
 
-<div id="qsr-toast"></div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    function getCookie(name) {
-        let val = null;
-        if (document.cookie) {
-            for (let c of document.cookie.split(';')) {
-                c = c.trim();
-                if (c.startsWith(name + '=')) val = decodeURIComponent(c.substring(name.length + 1));
-            }
-        }
-        return val;
-    }
-
-    function showToast(msg, type = '', duration = 2500) {
-        const el = document.getElementById('qsr-toast');
-        el.textContent = msg; el.className = type; el.style.display = 'block';
-        clearTimeout(el._timer);
-        el._timer = setTimeout(() => { el.style.display = 'none'; }, duration);
-    }
-
-    function updateStation(itemId, stationId) {
-        fetch("{% url 'update_station' 0 %}".replace('/0/', '/' + itemId + '/'), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken2') },
-            body: JSON.stringify({ station: stationId })
-        }).then(r => r.json()).then(d => {
-            showToast(d.success ? (stationId ? 'KOT routed to ' + (d.station_name || 'station') : 'Routed to default station') : (d.error || 'Failed'), d.success ? 'success' : 'error');
-        }).catch(() => showToast('Network error', 'error'));
-    }
-
-    document.getElementById("menuManagementSearch")?.addEventListener("input", function () {
-        const t = this.value.toLowerCase().trim();
-        document.querySelectorAll(".menu-item-row").forEach(c => {
-            const match = c.querySelector(".item-name").textContent.toLowerCase().includes(t);
-            c.style.setProperty("display", match ? "flex" : "none", "important");
-        });
-        document.querySelectorAll(".category-card").forEach(card => {
-            const hasVisible = Array.from(card.querySelectorAll(".menu-item-row")).some(r => r.style.display !== "none");
-            card.parentElement.style.display = (!t || hasVisible) ? "block" : "none";
-        });
-    });
-
-    let currentMenuItem = null;
-    function openCategoryModal() { new bootstrap.Modal(document.getElementById("categoryModal")).show(); }
-
-    function openItemModal(item = null) {
-        document.getElementById("itemName").value = "";
-        document.getElementById("itemPrice").value = "";
-        document.getElementById("editItemId").value = "";
-        if (item) {
-            document.getElementById("itemModalTitle").innerText = "Edit Item";
-            document.getElementById("editItemId").value = item.id;
-            document.getElementById("itemName").value = item.name;
-            document.getElementById("itemPrice").value = item.price;
-            document.getElementById("itemCategory").value = item.category;
-            document.getElementById("itemIsVeg").value = item.isVeg !== undefined ? item.isVeg : "true";
-        } else {
-            document.getElementById("itemModalTitle").innerText = "New Item";
-            document.getElementById("itemIsVeg").value = "true";
-        }
-        new bootstrap.Modal(document.getElementById("itemModal")).show();
-    }
-
-    function toggleRecipeBlock(itemId) {
-        const block = document.getElementById(`recipe-block-${itemId}`);
-        block.style.display = block.style.display === "none" ? "block" : "none";
-    }
-
-    function openRecipeModal(itemId) {
-        currentMenuItem = itemId;
-        new bootstrap.Modal(document.getElementById("recipeModal")).show();
-    }
-
-    function createCategory() {
-        fetch("{% url 'create_category' %}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
-            body: JSON.stringify({ name: document.getElementById("categoryName").value })
-        }).then(() => location.reload());
-    }
-
-    function saveItem() {
-        const id = document.getElementById("editItemId").value;
-        const fd = new FormData();
-        fd.append("name", document.getElementById("itemName").value);
-        fd.append("price", document.getElementById("itemPrice").value);
-        fd.append("category", document.getElementById("itemCategory").value);
-        fd.append("is_veg", document.getElementById("itemIsVeg").value);
-        fd.append("estimated_prep_time", 10);
-        const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";
-        fetch(url, { method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }, body: fd })
-            .then(r => r.json())
-            .then(d => { if (d.success) location.reload(); else showToast(d.error || "Failed to save item.", 'error'); })
-            .catch(() => location.reload());
-    }
-
-    function deleteItem(id) {
-        if (!confirm("Erase this menu item permanently?")) return;
-        fetch("{% url 'delete_menu_item' 0 %}".replace('0', id), {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
-        }).then(() => location.reload());
-    }
-
-    function deleteCategory(id, name) {
-        if (!confirm(`DANGER: This will permanently delete the category "${name}" and ALL its menu items. Continue?`)) return;
-        fetch("{% url 'delete_category' 0 %}".replace('0', id), {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
-        }).then(() => location.reload());
-    }
-
-    function toggleItem(id) {
-        const checkbox = document.getElementById(`toggle-${id}`);
-        const badge = document.getElementById(`badge-${id}`);
-        const isAvailable = checkbox.checked;
-        fetch("{% url 'toggle_item' 0 %}".replace('0', id), {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
-        }).then(res => res.json()).then(data => {
-            if (data.success) {
-                badge.style.display = isAvailable ? 'none' : 'inline-block';
-                showToast(isAvailable ? 'Item set to Available' : 'Item set to Offline', isAvailable ? 'success' : 'error');
-            } else {
-                checkbox.checked = !isAvailable;
-                showToast('Failed to toggle', 'error');
-            }
-        }).catch(() => { checkbox.checked = !isAvailable; showToast('Network error', 'error'); });
-    }
-
-    function createRecipe() {
-        const inventory = document.getElementById("inventorySelect").value;
-        const qty = document.getElementById("recipeQty").value;
-        if (!inventory || !qty) { showToast("Please select an ingredient and enter a quantity.", "error"); return; }
-        fetch("{% url 'add_recipe' %}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": getCookie("csrftoken2") },
-            body: JSON.stringify({ menu_item: currentMenuItem, inventory_item: inventory, quantity: qty })
-        }).then(r => r.json()).then(data => {
-            if (data.success) { showToast("Ingredient added to recipe.", "success"); location.reload(); }
-            else showToast(data.error || "Failed to add ingredient.", "error");
-        }).catch(() => showToast("Network error", "error"));
-    }
-
-    let recipeImportItemId = null;
-
-    function openRecipeImportModal(itemId, itemName) {
-        recipeImportItemId = itemId;
-        document.getElementById("recipeImportItemName").textContent = itemName;
-        document.getElementById("recipeImportFile").value = "";
-        document.getElementById("recipeImportText").value = "";
-        new bootstrap.Modal(document.getElementById("recipeImportModal")).show();
-    }
-
-    function runRecipeImport() {
-        const text = document.getElementById("recipeImportText").value;
-        const fileInput = document.getElementById("recipeImportFile");
-        const btn = document.getElementById("recipeImportBtn");
-        if (!text.trim() && !fileInput.files[0]) { showToast("Please provide text or upload a file.", "error"); return; }
-
-        btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading…';
-
-        const fd = new FormData();
-        fd.append("menu_item", recipeImportItemId);
-        if (fileInput.files[0]) fd.append("file", fileInput.files[0]);
-        fd.append("text", text);
-
-        fetch("/inventory/recipe-import/start/", {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }, body: fd
-        }).then(r => r.json()).then(data => {
-            if (data.error) {
-                showToast(data.error, "error");
-                btn.disabled = false; btn.innerText = "Extract Ingredients";
-                return;
-            }
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI is reading the recipe…';
-            pollRecipeImport(data.job_id, btn);
-        }).catch(() => {
-            showToast("Error connecting to AI service", "error");
-            btn.disabled = false; btn.innerText = "Extract Ingredients";
-        });
-    }
-
-    function pollRecipeImport(jobId, btn) {
-        const interval = setInterval(() => {
-            fetch(`/inventory/recipe-import/${jobId}/status/`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === "ready_for_review") {
-                        clearInterval(interval);
-                        window.location.href = `/inventory/recipe-import/${jobId}/review/`;
-                    } else if (data.status === "failed") {
-                        clearInterval(interval);
-                        showToast("Recipe import failed: " + (data.error || "unknown error"), "error");
-                        btn.disabled = false; btn.innerText = "Extract Ingredients";
-                    }
-                    // still "processing": keep polling
-                })
-                .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Extract Ingredients"; });
-        }, 2000);
-    }
-
-    function syncMenu() {
-        if (!confirm("Push this menu to all branches? This will instantly sync all categories, items, prices, and recipe ingredients.")) return;
-        showToast("Syncing across branches...", "");
-        fetch("{% url 'sync_menu_to_outlets' %}", {
-            method: "POST", headers: { "X-CSRFToken": getCookie("csrftoken2") }
-        }).then(res => res.json()).then(data => {
-            if (data.success) alert(`Sync Complete!\nCreated: ${data.stats.categories_created} categories, ${data.stats.items_created} items, ${data.stats.recipes_created} recipes across ${data.stats.outlets_updated} branches.`);
-            else showToast(data.error || "Sync failed", "error");
-        }).catch(() => showToast("Network error", "error"));
-    }
-</script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/menu/management.js' %}"></script>
 {% endblock %}

@@ -1,122 +1,18 @@
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}Menu Management | {{ request.user.tenant.name }}{% endblock %}
 
 {% block extra_css %}
-<style>
-  ::placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-  ::-webkit-input-placeholder { color: var(--text-muted) !important; opacity: 0.7 !important; }
-
-  :root {
-    --shadow-soft:  0 4px 15px rgba(0,0,0,0.06);
-    --shadow-hover: 0 10px 30px rgba(0,0,0,0.12);
-  }
-  html.dark {
-    --shadow-soft:  0 4px 15px rgba(0,0,0,0.3);
-    --shadow-hover: 0 10px 30px rgba(0,0,0,0.5);
-  }
-
-  .pos-header { padding: 1.5rem 2rem; position: sticky; top: 0; z-index: 1000; }
-  .brand-title { font-size: 1.5rem; margin: 0; color: var(--text-main); font-weight: 700; letter-spacing: 0.5px; }
-  .brand-title i { color: var(--accent-gold); font-size: 1.2rem; }
-
-  .btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
-  .btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
-  .btn-gold-solid { background: var(--accent-gold); border-color: var(--accent-gold); color: #000; font-weight: 700; }
-  .btn-gold-solid:hover { background: #b59250; border-color: #b59250; color: #000; }
-
-  .category-card {
-    background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 0;
-    padding: 2.5rem 2rem; height: 100%; transition: var(--transition-smooth);
-    margin-bottom: 2rem; box-shadow: var(--shadow-soft);
-  }
-  .category-card:hover { border-color: var(--accent-gold); box-shadow: var(--shadow-hover); }
-  .category-title { font-size: 1.4rem; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; color: var(--text-main); text-align: left; margin-bottom: 0; }
-  .category-title::after { content: ''; display: block; width: 40px; height: 1px; background: var(--accent-gold); margin: 15px 0 0; }
-
-  .menu-item-row { padding: 1.25rem 0; border-bottom: 1px solid var(--border-color); transition: var(--transition-smooth); }
-  .menu-item-row:last-child { border-bottom: none; }
-  .item-identity { display: flex; flex-direction: column; }
-  .item-name { font-size: 0.95rem; font-weight: 500; color: var(--text-main); margin-bottom: 2px; }
-  .item-price { font-family: 'DM Serif Display', serif; font-weight: 700; color: var(--accent-gold); font-size: 1.1rem; font-style: italic; }
-
-  .luxury-badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; padding: 2px 8px; border-radius: 0; margin-left: 8px; }
-  .badge-station  { background: rgba(31,41,55,0.1); color: var(--text-main); border: 1px solid var(--border-color); }
-  .badge-disabled { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; }
-  .badge-platform { background: rgba(197,160,89,0.1); color: var(--accent-gold); border: 1px solid var(--accent-gold); font-size: 0.55rem; cursor: pointer; }
-  .badge-platform.off { background: transparent; color: var(--text-muted); border-color: var(--border-color); }
-
-  .recipe-block { padding-left: 1rem; margin-top: 8px; border-left: 1px solid var(--accent-gold); font-size: 0.8rem; color: var(--text-muted); }
-  .recipe-item { margin-bottom: 4px; font-family: 'Space Mono', monospace; }
-
-  .modal-content { background: var(--panel-bg); border-radius: 0; border: 1px solid var(--border-color); box-shadow: var(--shadow-hover); }
-  .modal-header { border-bottom: 1px solid var(--border-color); padding: 1.5rem; }
-  .modal-footer { border-top: 1px solid var(--border-color); padding: 1.2rem; }
-  .modal-title { font-family: 'DM Serif Display', serif; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-
-  .form-select-luxury, .form-input-luxury {
-    background-color: transparent !important; border: none;
-    border-bottom: 1px solid var(--border-color); color: var(--text-main) !important;
-    border-radius: 0; padding: 0.5rem 0; font-family: inherit; font-size: 0.9rem; font-weight: 500;
-  }
-  .form-select-luxury:focus, .form-input-luxury:focus { box-shadow: none; border-bottom-color: var(--accent-gold); }
-
-  .station-select {
-    background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
-    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
-    padding: 2px 5px; border-radius: 0; cursor: pointer; transition: var(--transition-smooth);
-  }
-  .station-select:hover { border-color: var(--accent-gold); color: var(--text-main); }
-  html.dark .station-select option { background: var(--panel-bg); color: var(--text-main); }
-  .btn-delete:hover { color: #ef4444; }
-
-  .cat-nav-bar {
-    background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
-    padding: 0.75rem 2rem; display: flex; gap: 1.5rem;
-    overflow-x: auto; white-space: nowrap;
-    position: sticky; top: 0; z-index: 999;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-    -ms-overflow-style: none; scrollbar-width: none;
-  }
-  .cat-nav-bar::-webkit-scrollbar { display: none; }
-  .cat-nav-link { color: var(--text-muted); text-decoration: none; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; transition: var(--transition-smooth); }
-  .cat-nav-link:hover { color: var(--accent-gold); }
-  .category-section { scroll-margin-top: 150px; }
-
-  /* Mobile burger drawer */
-  .mobile-nav-drawer { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 1050; }
-  .mobile-nav-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
-  .mobile-nav-panel {
-    position: absolute; top: 0; right: 0; width: min(300px,85vw); height: 100%;
-    background: var(--panel-bg); border-left: 1px solid var(--border-color);
-    display: flex; flex-direction: column; padding: 1.5rem; gap: 0.75rem;
-    overflow-y: auto; transform: translateX(100%);
-    transition: transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94);
-  }
-  .mobile-nav-drawer.open .mobile-nav-panel { transform: translateX(0); }
-  .mobile-nav-drawer.open { display: block; }
-  .mobile-nav-panel .drawer-title { font-family: 'DM Serif Display',serif; font-size: 1.15rem; color: var(--text-main); margin-bottom: 0.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); }
-  .mobile-nav-panel a, .mobile-nav-panel button.drawer-btn { display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); text-decoration: none; font-size: 0.85rem; font-weight: 500; letter-spacing: 0.5px; background: transparent; border-top: none; border-left: none; border-right: none; width: 100%; text-align: left; cursor: pointer; font-family: 'Outfit',sans-serif; }
-  .mobile-nav-panel a:last-child, .mobile-nav-panel button.drawer-btn:last-child { border-bottom: none; }
-  .mobile-nav-panel a i, .mobile-nav-panel button.drawer-btn i { color: var(--accent-gold); font-size: 1rem; width: 20px; }
-  .mobile-nav-panel a:hover, .mobile-nav-panel button.drawer-btn:hover { color: var(--accent-gold); }
-
-  @media (max-width: 991px) {
-    .pos-header { padding: 0.85rem 1rem; }
-    .desktop-nav-links { display: none !important; }
-    .burger-btn { display: flex !important; }
-    body { overflow-x: hidden; }
-    .container-fluid { padding-left: 1rem !important; padding-right: 1rem !important; }
-  }
-</style>
+<link rel="stylesheet" href="{% static 'css/menu/menu_management.css' %}">
 {% endblock %}
 
 {% block page_title %}Menu{% endblock %}
 
 {% block header_links %}
 <div class="d-flex align-items-center gap-2">
-  <button class="btn-luxury btn-gold desktop-nav-links" onclick="openAiImportModal()"><i class="bi bi-magic me-1"></i> AI Import</button>
-  <button class="btn-luxury" onclick="openCategoryModal()"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
-  <button class="btn-luxury btn-gold-solid" onclick="openItemModal()"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
+  <button type="button" class="btn-luxury btn-gold desktop-nav-links" data-action="menu.aiImport"><i class="bi bi-magic me-1"></i> AI Import</button>
+  <button type="button" class="btn-luxury" data-action="menu.newCategory"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
+  <button type="button" class="btn-luxury btn-gold-solid" data-action="menu.newDish"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
 
   <div class="desktop-nav-links d-flex align-items-center gap-2">
     <a href="/inventory/board/" class="btn-luxury"><i class="bi bi-box-seam me-1"></i> Inventory</a>
@@ -125,7 +21,7 @@
     <a href="/dashboard/" class="btn-luxury">Reports</a>
   </div>
 
-  <button class="btn-icon burger-btn" style="display:none;" onclick="openMobileNav()" title="More options">
+  <button type="button" class="btn-icon burger-btn" style="display:none;" data-action="menu.openNav" title="More options">
     <i class="bi bi-list"></i>
   </button>
 </div>
@@ -135,20 +31,20 @@
 
 <!-- MOBILE NAV DRAWER -->
 <div class="mobile-nav-drawer" id="mobileNavDrawer">
-  <div class="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+  <div class="mobile-nav-overlay" data-action="menu.closeNav"></div>
   <div class="mobile-nav-panel">
     <div class="drawer-title"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--accent-gold);"></i>More Options</div>
-    <button class="drawer-btn" onclick="closeMobileNav(); openAiImportModal()"><i class="bi bi-magic"></i> AI Smart Import</button>
-    <a href="/inventory/board/" onclick="closeMobileNav()"><i class="bi bi-box-seam"></i> Inventory</a>
-    <a href="{% url 'modifier_management' %}" onclick="closeMobileNav()"><i class="bi bi-ui-checks"></i> Modifiers</a>
-    <a href="{% url 'gst_management' %}" onclick="closeMobileNav()"><i class="bi bi-percent"></i> GST Rates</a>
-    <a href="/dashboard/" onclick="closeMobileNav()"><i class="bi bi-bar-chart"></i> Reports</a>
-    <a href="/setup/" onclick="closeMobileNav()"><i class="bi bi-gear"></i> Setup</a>
+    <button type="button" class="drawer-btn" data-action="menu.aiImport"><i class="bi bi-magic"></i> AI Smart Import</button>
+    <a href="/inventory/board/"><i class="bi bi-box-seam"></i> Inventory</a>
+    <a href="{% url 'modifier_management' %}"><i class="bi bi-ui-checks"></i> Modifiers</a>
+    <a href="{% url 'gst_management' %}"><i class="bi bi-percent"></i> GST Rates</a>
+    <a href="/dashboard/"><i class="bi bi-bar-chart"></i> Reports</a>
+    <a href="/setup/"><i class="bi bi-gear"></i> Setup</a>
     {% if 'floor_plan' in tenant_features %}
-    <a href="/tables/" onclick="closeMobileNav()"><i class="bi bi-grid-3x3"></i> Floor Plan</a>
+    <a href="/tables/"><i class="bi bi-grid-3x3"></i> Floor Plan</a>
     {% endif %}
     {% if 'token_system' in tenant_features %}
-    <a href="/token/" onclick="closeMobileNav()"><i class="bi bi-123"></i> Token Counter</a>
+    <a href="/token/"><i class="bi bi-123"></i> Token Counter</a>
     {% endif %}
   </div>
 </div>
@@ -193,7 +89,7 @@
       <div class="category-card">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h5 class="category-title mb-0">{{ category.name }}</h5>
-          <button class="btn-action-icon btn-delete" title="Delete Category" onclick="deleteCategory('{{ category.id }}', '{{ category.name|escapejs }}')">
+          <button type="button" class="btn-action-icon btn-delete btn-delete-category" title="Delete Category" data-action="post" data-url="{% url 'delete_category' category.id %}" data-confirm="Delete the category &quot;{{ category.name }}&quot;?" data-confirm-text="It deletes ALL its menu items, permanently." data-confirm-button="Delete">
             <i class="bi bi-trash3"></i>
           </button>
         </div>
@@ -207,13 +103,13 @@
                   {% if not item.is_available %}<span class="luxury-badge badge-disabled">Offline</span>{% endif %}
                 </span>
                 <div class="d-flex gap-1 mt-1">
-                  <span class="luxury-badge badge-platform {% if not item.available_takeaway %}off{% endif %}" onclick="togglePlatform('{{ item.id }}', 'takeaway')">Takeaway</span>
-                  <span class="luxury-badge badge-platform {% if not item.available_zomato %}off{% endif %}" onclick="togglePlatform('{{ item.id }}', 'zomato')">Zomato</span>
-                  <span class="luxury-badge badge-platform {% if not item.available_swiggy %}off{% endif %}" onclick="togglePlatform('{{ item.id }}', 'swiggy')">Swiggy</span>
+                  <button type="button" class="luxury-badge badge-platform {% if not item.available_takeaway %}off{% endif %}" data-action="post" data-url="{% url 'toggle_platform' item.id %}" data-body='{"platform": "takeaway"}'>Takeaway</button>
+                  <button type="button" class="luxury-badge badge-platform {% if not item.available_zomato %}off{% endif %}" data-action="post" data-url="{% url 'toggle_platform' item.id %}" data-body='{"platform": "zomato"}'>Zomato</button>
+                  <button type="button" class="luxury-badge badge-platform {% if not item.available_swiggy %}off{% endif %}" data-action="post" data-url="{% url 'toggle_platform' item.id %}" data-body='{"platform": "swiggy"}'>Swiggy</button>
                 </div>
                 <div class="d-flex align-items-center gap-2 mt-1">
                   <span class="item-price">₹{{ item.price }}</span>
-                  <select class="station-select" onchange="updateStation('{{ item.id }}', this.value)">
+                  <select class="station-select" data-action="menu.station" data-item="{{ item.id }}">
                     <option value="">Default Station</option>
                     {% for s in stations %}
                     <option value="{{ s.id }}" {% if item.station and item.station.id == s.id %}selected{% endif %}>{{ s.name }}</option>
@@ -222,13 +118,13 @@
                 </div>
               </div>
               <div class="btn-group-luxury">
-                <button class="btn-action-icon" title="Edit Item" onclick="openItemModal({id:'{{ item.id }}', name:'{{ item.name|escapejs }}', price:'{{ item.price }}', description:'{{ item.description|escapejs }}', category:'{{ item.category.id }}', station:'{% if item.station %}{{ item.station.id }}{% endif %}', prepTime:{{ item.estimated_prep_time }}, isVeg:{{ item.is_veg|lower }}, parcelCharge:'{{ item.parcel_charge }}'})"><i class="bi bi-pencil-square"></i></button>
-                <button class="btn-action-icon" title="Toggle Available" onclick="toggleItem('{{ item.id }}')"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
-                <button class="btn-action-icon" title="View Recipe" onclick="openRecipeModal('{{ item.id }}')"><i class="bi bi-journal-text"></i></button>
+                <button type="button" class="btn-action-icon btn-edit-dish" title="Edit Item" data-action="menu.editDish" data-item="{{ item.id }}"><i class="bi bi-pencil-square"></i></button>
+                <button type="button" class="btn-action-icon btn-toggle-dish" title="Toggle Available" data-action="post" data-url="{% url 'toggle_item' item.id %}"><i class="bi {% if item.is_available %}bi-toggle-on{% else %}bi-toggle-off{% endif %}"></i></button>
+                <button type="button" class="btn-action-icon" title="View Recipe" data-action="menu.recipe" data-item="{{ item.id }}"><i class="bi bi-journal-text"></i></button>
                 {% if 'ai_recipe_import' in tenant_features %}
-                <button class="btn-action-icon" title="Import Recipe with AI" onclick="openRecipeImportModal('{{ item.id }}', '{{ item.name|escapejs }}')"><i class="bi bi-stars"></i></button>
+                <button type="button" class="btn-action-icon" title="Import Recipe with AI" data-action="menu.recipeImport" data-item="{{ item.id }}" data-name="{{ item.name }}"><i class="bi bi-stars"></i></button>
                 {% endif %}
-                <button class="btn-action-icon btn-delete" title="Remove Item" onclick="deleteItem('{{ item.id }}')"><i class="bi bi-trash"></i></button>
+                <button type="button" class="btn-action-icon btn-delete btn-delete-dish" title="Remove Item" data-action="post" data-url="{% url 'delete_menu_item' item.id %}" data-confirm="Delete &quot;{{ item.name }}&quot;?" data-confirm-text="The dish is erased permanently." data-confirm-button="Delete"><i class="bi bi-trash"></i></button>
               </div>
             </div>
             <div class="recipe-block">
@@ -262,7 +158,7 @@
         <input id="categoryName" class="form-control form-input-luxury" placeholder="e.g. Appetizers, Beverage, Mains"/>
       </div>
       <div class="modal-footer pt-0 border-0">
-        <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createCategory()">Establish Category</button>
+        <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" data-action="menu.saveCategory">Establish Category</button>
       </div>
     </div>
   </div>
@@ -337,7 +233,7 @@
         </div>
       </div>
       <div class="modal-footer pt-0 border-0">
-        <button class="btn-luxury btn-gold w-100 justify-content-center" id="saveItemBtn" onclick="saveItem()">Add to Collection</button>
+        <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" id="saveItemBtn" data-action="menu.saveDish">Add to Collection</button>
       </div>
     </div>
   </div>
@@ -362,7 +258,7 @@
         <textarea id="aiMenuText" class="form-control form-input-luxury" rows="8" placeholder="Example:&#10;APPETIZERS&#10;Spring Rolls 120&#10;Paneer Tikka 250"></textarea>
       </div>
       <div class="modal-footer pt-0 border-0">
-        <button class="btn-luxury btn-gold w-100 justify-content-center" id="aiProcessBtn" onclick="runAiImport()">Process with Smart AI</button>
+        <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" id="aiProcessBtn" data-action="menu.runAiImport">Process with Smart AI</button>
       </div>
     </div>
   </div>
@@ -391,7 +287,7 @@
         </div>
       </div>
       <div class="modal-footer pt-0 border-0">
-        <button class="btn-luxury btn-gold w-100 justify-content-center" onclick="createRecipe()">Integrate Ingredient</button>
+        <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" data-action="menu.saveRecipe">Integrate Ingredient</button>
       </div>
     </div>
   </div>
@@ -417,7 +313,7 @@
         <textarea id="recipeImportText" class="form-control form-input-luxury" rows="6" placeholder="Example:&#10;2 cups Basmati Rice&#10;500g Chicken&#10;1 tbsp Ginger Garlic Paste&#10;Salt to taste"></textarea>
       </div>
       <div class="modal-footer pt-0 border-0">
-        <button class="btn-luxury btn-gold w-100 justify-content-center" id="recipeImportBtn" onclick="runRecipeImport()">Extract Ingredients</button>
+        <button class="btn-luxury btn-gold w-100 justify-content-center" type="button" id="recipeImportBtn" data-action="menu.runRecipeImport">Extract Ingredients</button>
       </div>
     </div>
   </div>
@@ -426,285 +322,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  let currentMenuItem = null;
-
-  document.getElementById("menuManagementSearch")?.addEventListener("input", function () {
-    const t = this.value.toLowerCase().trim();
-    document.querySelectorAll(".menu-item-row").forEach(c => {
-      const name = c.querySelector(".item-name").textContent.toLowerCase();
-      c.style.setProperty("display", name.includes(t) ? "block" : "none", "important");
-    });
-    document.querySelectorAll(".category-card").forEach(card => {
-      const hasVisible = Array.from(card.querySelectorAll(".menu-item-row")).some(r => r.style.display !== "none");
-      card.parentElement.style.display = (!t || hasVisible) ? "block" : "none";
-    });
-  });
-
-  function openAiImportModal() { new bootstrap.Modal(document.getElementById("aiImportModal")).show(); }
-  function openCategoryModal() { new bootstrap.Modal(document.getElementById("categoryModal")).show(); }
-  function openRecipeModal(itemId) { currentMenuItem = itemId; new bootstrap.Modal(document.getElementById("recipeModal")).show(); }
-
-  function openItemModal(item = null) {
-    const title   = document.getElementById("itemModalTitle");
-    const btn     = document.getElementById("saveItemBtn");
-    const idInput = document.getElementById("editItemId");
-    document.getElementById("itemName").value = "";
-    document.getElementById("itemPrice").value = "";
-    document.getElementById("itemDescription").value = "";
-    document.getElementById("itemImage").value = "";
-    document.getElementById("itemPrepTime").value = "15";
-    document.getElementById("itemIsVeg").checked = true;
-    const parcelField = document.getElementById("itemParcelCharge");
-    if (parcelField) parcelField.value = "0";
-    idInput.value = "";
-    if (item) {
-      title.innerText = "Edit Menu Selection";
-      btn.innerText = "Refine Selection";
-      idInput.value = item.id;
-      document.getElementById("itemName").value = item.name;
-      document.getElementById("itemPrice").value = item.price;
-      document.getElementById("itemDescription").value = item.description;
-      document.getElementById("itemCategory").value = item.category;
-      document.getElementById("itemStation").value = item.station || "";
-      document.getElementById("itemPrepTime").value = item.prepTime || 15;
-      document.getElementById(item.isVeg === false ? "itemIsNonVeg" : "itemIsVeg").checked = true;
-      if (parcelField) parcelField.value = parseFloat(item.parcelCharge || 0);
-    } else {
-      title.innerText = "New Menu Selection";
-      btn.innerText = "Add to Collection";
-    }
-    new bootstrap.Modal(document.getElementById("itemModal")).show();
-  }
-
-  function runAiImport() {
-    const text      = document.getElementById("aiMenuText").value;
-    const fileInput = document.getElementById("aiMenuFile");
-    const btn       = document.getElementById("aiProcessBtn");
-    if (!text.trim() && !fileInput.files[0]) { alert("Please provide text or an image."); return; }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading…';
-
-    const formData = new FormData();
-    if (fileInput.files[0]) formData.append("file", fileInput.files[0]);
-    formData.append("text", text);
-
-    fetch("{% url 'ai_menu_importer' %}", {
-      method: "POST",
-      headers: { "X-CSRFToken": apiClient.getCsrf() },
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.error) {
-        alert(data.error);
-        btn.disabled = false; btn.innerText = "Process with Smart AI";
-        return;
-      }
-      if (data.queued && data.task_id) {
-        // Async path: poll until done
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI is processing…';
-        pollAiImport(data.task_id, btn);
-      } else if (data.success) {
-        // Sync fallback (Celery down)
-        alert(data.message);
-        location.reload();
-      }
-    })
-    .catch(() => {
-      alert("Error connecting to AI service");
-      btn.disabled = false; btn.innerText = "Process with Smart AI";
-    });
-  }
-
-  function pollAiImport(taskId, btn) {
-    const interval = setInterval(() => {
-      fetch(`/menu/ai-import-status/${taskId}/`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === "done") {
-            clearInterval(interval);
-            alert(data.message);
-            location.reload();
-          } else if (data.status === "error") {
-            clearInterval(interval);
-            alert("AI import failed: " + (data.error || "unknown error"));
-            btn.disabled = false; btn.innerText = "Process with Smart AI";
-          }
-          // still "processing": keep polling
-        })
-        .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Process with Smart AI"; });
-    }, 2000);
-  }
-
-  let recipeImportItemId = null;
-
-  function openRecipeImportModal(itemId, itemName) {
-    recipeImportItemId = itemId;
-    document.getElementById("recipeImportItemName").textContent = itemName;
-    document.getElementById("recipeImportFile").value = "";
-    document.getElementById("recipeImportText").value = "";
-    new bootstrap.Modal(document.getElementById("recipeImportModal")).show();
-  }
-
-  function runRecipeImport() {
-    const text      = document.getElementById("recipeImportText").value;
-    const fileInput = document.getElementById("recipeImportFile");
-    const btn       = document.getElementById("recipeImportBtn");
-    if (!text.trim() && !fileInput.files[0]) { alert("Please provide text or upload a file."); return; }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Uploading…';
-
-    const formData = new FormData();
-    formData.append("menu_item", recipeImportItemId);
-    if (fileInput.files[0]) formData.append("file", fileInput.files[0]);
-    formData.append("text", text);
-
-    fetch("/inventory/recipe-import/start/", {
-      method: "POST",
-      headers: { "X-CSRFToken": apiClient.getCsrf() },
-      body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.error) {
-        alert(data.error);
-        btn.disabled = false; btn.innerText = "Extract Ingredients";
-        return;
-      }
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>AI is reading the recipe…';
-      pollRecipeImport(data.job_id, btn);
-    })
-    .catch(() => {
-      alert("Error connecting to AI service");
-      btn.disabled = false; btn.innerText = "Extract Ingredients";
-    });
-  }
-
-  function pollRecipeImport(jobId, btn) {
-    const interval = setInterval(() => {
-      fetch(`/inventory/recipe-import/${jobId}/status/`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === "ready_for_review") {
-            clearInterval(interval);
-            window.location.href = `/inventory/recipe-import/${jobId}/review/`;
-          } else if (data.status === "failed") {
-            clearInterval(interval);
-            alert("Recipe import failed: " + (data.error || "unknown error"));
-            btn.disabled = false; btn.innerText = "Extract Ingredients";
-          }
-          // still "processing": keep polling
-        })
-        .catch(() => { clearInterval(interval); btn.disabled = false; btn.innerText = "Extract Ingredients"; });
-    }, 2000);
-  }
-
-  function togglePlatform(itemId, platform) {
-    fetch("{% url 'toggle_platform' 0 %}".replace('0', itemId), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify({ platform })
-    }).then(() => location.reload());
-  }
-
-  function createCategory() {
-    const name = document.getElementById("categoryName").value;
-    fetch("{% url 'create_category' %}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify({ name })
-    }).then(() => location.reload());
-  }
-
-  function saveItem() {
-    const id = document.getElementById("editItemId").value;
-    const formData = new FormData();
-    formData.append("name",               document.getElementById("itemName").value);
-    formData.append("price",              document.getElementById("itemPrice").value);
-    formData.append("category",           document.getElementById("itemCategory").value);
-    formData.append("station",            document.getElementById("itemStation").value);
-    formData.append("description",        document.getElementById("itemDescription").value);
-    formData.append("estimated_prep_time",document.getElementById("itemPrepTime").value || 15);
-    formData.append("is_veg", document.getElementById("itemIsVeg").checked ? "true" : "false");
-    const pf = document.getElementById("itemParcelCharge");
-    if (pf) formData.append("parcel_charge", pf.value || 0);
-    const imgInput = document.getElementById("itemImage");
-    if (imgInput.files[0]) formData.append("image", imgInput.files[0]);
-    const url = id ? `/menu/update-item/${id}/` : "{% url 'create_menu_item' %}";
-    fetch(url, {
-      method: "POST",
-      headers: { "X-CSRFToken": apiClient.getCsrf() },
-      body: formData
-    }).then(r => r.json()).then(d => {
-      if (d.success) location.reload();
-      else alert(d.error || "Failed to save item.");
-    }).catch(() => location.reload());
-  }
-
-  function updateStation(itemId, stationId) {
-    fetch("{% url 'update_station' 0 %}".replace('/0/', '/' + itemId + '/'), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify({ station: stationId })
-    }).then(() => location.reload());
-  }
-
-  function createRecipe() {
-    const inventory = document.getElementById("inventorySelect").value;
-    const qty       = document.getElementById("recipeQty").value;
-    fetch("{% url 'add_recipe' %}", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRFToken": apiClient.getCsrf() },
-      body: JSON.stringify({ menu_item: currentMenuItem, inventory_item: inventory, quantity: qty })
-    }).then(() => { alert("Ingredient integrated into recipe."); location.reload(); });
-  }
-
-  function deleteItem(id) {
-    if (!confirm("Erase this menu item permanently?")) return;
-    fetch("{% url 'delete_menu_item' 0 %}".replace('0', id), {
-      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-    }).then(() => location.reload());
-  }
-
-  function deleteCategory(id, name) {
-    if (!confirm(`DANGER: This will permanently delete "${name}" and ALL its menu items. Continue?`)) return;
-    fetch("{% url 'delete_category' 0 %}".replace('0', id), {
-      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-    }).then(() => location.reload());
-  }
-
-  function toggleItem(id) {
-    fetch("{% url 'toggle_item' 0 %}".replace('0', id), {
-      method: "POST", headers: { "X-CSRFToken": apiClient.getCsrf() }
-    }).then(() => location.reload());
-  }
-
-  function openMobileNav() {
-    document.getElementById("mobileNavDrawer").classList.add("open");
-    document.body.style.overflow = "hidden";
-  }
-  function closeMobileNav() {
-    document.getElementById("mobileNavDrawer").classList.remove("open");
-    document.body.style.overflow = "";
-  }
-  document.addEventListener("keydown", e => { if (e.key === "Escape") closeMobileNav(); });
-
-  function fixStickyNav() {
-    const header    = document.querySelector('.pos-header');
-    const stickyNav = document.querySelector('.cat-nav-bar');
-    if (header && stickyNav) {
-      const headerHeight = header.getBoundingClientRect().height;
-      const navHeight    = stickyNav.getBoundingClientRect().height;
-      stickyNav.style.top = headerHeight + 'px';
-      document.querySelectorAll('.category-section').forEach(s => {
-        s.style.scrollMarginTop = (headerHeight + navHeight + 16) + 'px';
-      });
-    }
-  }
-  fixStickyNav();
-  window.addEventListener('resize', fixStickyNav);
-</script>
+{{ page_data|json_script:"page-data" }}
+<script type="module" src="{% static 'js/menu/management.js' %}"></script>
 {% endblock %}

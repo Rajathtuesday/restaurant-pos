@@ -53,6 +53,7 @@ static/js/order_history/ order history's detail panel: detail.js (the panel as m
 static/js/setup/offers.js, offer_example.js  Setup, Offers: the form, Edit, and the example bill (offer_example.js, pure, the cart's own offer engine and tax sums)
 static/js/setup/stations.js, station_agent.js  Setup, Kitchen Stations: the station cards, print mode, remove in Rasova's sheet; station_agent.js is the print agent's WebSocket (status, Test Print, network scan)
 static/js/inventory/purchase_orders.js, po_parts.js  Purchase orders: the New / Edit and Receive drawers; po_parts.js holds the sums and checks
+static/js/menu/management.js, manage_parts.js  Menu management, both pages (full and cafe/franchise): dish form, availability, station, recipe lines, AI imports, branch sync, search; manage_parts.js holds the form fields, polling and the file post
 static/js/<page>/    phase 2: one folder per remaining page, as above
 static/css/rasova.css  the page frame (header, banners, loader, badges, checklist, install prompt)
 static/css/billing.css, token_billing.css  the two billing pages; billing_parts.css is what their script draws

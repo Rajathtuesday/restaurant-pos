@@ -136,18 +136,20 @@ def update_menu_item(request, item_id):
             MenuCategory, id=category_id,
             tenant=request.user.tenant, outlet=request.user.outlet
         )
-        station = None
-        if station_id:
-            station = KitchenStation.objects.get(
-                id=station_id, tenant=request.user.tenant, outlet=request.user.outlet
-            )
-
         item.name        = name
         item.price       = price
         item.category    = category
-        item.station     = station
-        item.description = description
         item.is_veg      = is_veg
+        # A form without a station or description field (the QSR menu page)
+        # leaves them as they are; an empty one ("Default Station") clears.
+        if "station" in request.POST:
+            item.station = None
+            if station_id:
+                item.station = KitchenStation.objects.get(
+                    id=station_id, tenant=request.user.tenant, outlet=request.user.outlet
+                )
+        if "description" in request.POST:
+            item.description = description
 
         prep_time = request.POST.get("estimated_prep_time")
         if prep_time:
@@ -309,6 +311,15 @@ def add_recipe(request):
 
         if not quantity:
             return JsonResponse({"error": "Quantity required"}, status=400)
+        # "lots" or "-1" used to reach the recipe save and come back as a
+        # 500 with no word on what to fix.
+        from inventory.models import Recipe
+        try:
+            quantity = read_number(quantity, "The quantity", field=Recipe._meta.get_field("quantity_required"))
+        except NumberInputError as e:
+            return error_response(e, 400)
+        if quantity <= 0:
+            return JsonResponse({"error": "The quantity must be more than 0."}, status=400)
 
         menu_item = get_object_or_404(
             MenuItem, id=item_id,

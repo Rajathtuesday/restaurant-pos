@@ -7,10 +7,28 @@ the source of truth.
 
 ---
 
+## 2026-11-15: Menu management on modules (both pages); the last inline page script is gone
+
+### Fixed
+- **Editing a dish on the cafe and franchise menu page cleared its kitchen station and description** (and reset its prep time to 10 minutes): that form has no such fields and the server read "not sent" as "blank". `update_menu_item` now changes a station or description only when the form sends one; the page sends prep time only for a new dish.
+- **Delete dish, Delete category and Sync to Branches asked with `confirm()`**, which never shows in the Android app, so none could be done there. They ask in Rasova's own sheet.
+- **A delete the server refused (a dish on past bills) reloaded the page with no word**; the reason is a toast now. Create category, the station switch, the Takeaway / Zomato / Swiggy switches and Add Ingredient show a refusal too, where they reloaded or (Add Ingredient) said "integrated" whatever happened.
+- **A recipe quantity that is not a number ("lots", "-1") gave a 500**; it is refused in words (`core.validators.read_number`).
+- The AI menu and recipe imports reported through `alert()`; they are toasts, and a dropped status answer is asked again instead of leaving the button stuck.
+
+### Changed
+- `/menu/` (both templates) runs on `static/js/menu/management.js` and `manage_parts.js`; each dish's edit values and the addresses come from `menu.views.management_views.menu_page_data()`; style in `static/css/menu/menu_management.css` and `qsr_menu_management.css`. Delete dish, Delete category, Toggle and the platform switches are shared post buttons.
+- **The ratchet is empty**: no template holds an inline script, a style block or an `onclick` any more.
+
+### Tests
+- `menu/tests/test_menu.py`: an edit without station or description keeps them; an empty station sends the dish to the default; a recipe quantity that is not a number is refused in words (the first and third fail on the old code).
+- `menu/tests/test_menu_management_browser.py` (8, Chromium): delete dish and category ask in a sheet, a dish on past bills says why it stays, a refused ingredient says why, edit a dish, search, the cafe page keeps a dish's station on edit, the availability switch.
+- `static/js/tests/menu_management.test.mjs` (8): the form's fields per page, checks, search, the imports' poll answers, polling through a dropped answer, posting a form, the sync's words.
+
 ## 2026-11-15: Rasova's confirm sheet shows its title as text
 
 ### Fixed
-- **`ui.confirm` gave its title to SweetAlert as HTML.** Titles carry names people typed ("Remove \"Bar\"?", a dish's name on Delete), so a name written as markup would have run in the owner's browser. The title is text now (`titleText`), as `ui.ask` already was.
+- **`ui.confirm` gave its title to SweetAlert as HTML.** Titles carry names people typed (Remove "Bar"?, a dish's name on Delete), so a name written as markup would have run in the owner's browser. The title is text now (`titleText`), as `ui.ask` already was.
 
 ### Tests
 - `static/js/tests/small_pages.test.mjs`: the confirm title is text (fails on the old code).

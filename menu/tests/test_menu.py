@@ -284,6 +284,43 @@ class MenuItemMutationTests(TestCase):
 
         self.assertEqual(self.item.price, Decimal("299.00"))
 
+    def test_a_recipe_quantity_that_is_not_a_number_is_refused_in_words(self):
+        # 15 Nov 2026: "lots" reached the recipe save and came back as a 500.
+        from inventory.models import InventoryItem
+        rice = InventoryItem.objects.create(tenant=self.tenant, outlet=self.outlet, name="Rice", unit="kg")
+        for bad in ("lots", "-1", "0"):
+            response = self.client.post(reverse("add_recipe"), content_type="application/json",
+                                        data={"menu_item": self.item.id, "inventory_item": rice.id, "quantity": bad})
+            self.assertEqual(response.status_code, 400, (bad, response.content))
+            self.assertIn("quantity", response.json()["error"].lower())
+        self.assertFalse(self.item.recipes.exists())
+
+    def test_an_edit_without_station_or_description_keeps_them(self):
+        # 15 Nov 2026: the QSR menu page's edit form has no station or
+        # description field, and saving it cleared both (the dish's KOTs
+        # went to the default station). Fields not sent now stay as they are.
+        from setup.models import KitchenStation
+        bar = KitchenStation.objects.create(tenant=self.tenant, outlet=self.outlet, name="Bar")
+        MenuItem.objects.filter(pk=self.item.pk).update(station=bar, description="House special")
+        response = self.client.post(
+            reverse("update_menu_item", args=[self.item.id]),
+            data={"name": "Test Dish", "price": "160.00", "category": self.category.id, "is_veg": "true"},
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.item.refresh_from_db()
+        self.assertEqual((self.item.station_id, self.item.description, self.item.price),
+                         (bar.id, "House special", Decimal("160.00")))
+
+    def test_an_empty_station_sends_the_dish_to_the_default(self):
+        from setup.models import KitchenStation
+        bar = KitchenStation.objects.create(tenant=self.tenant, outlet=self.outlet, name="Bar")
+        MenuItem.objects.filter(pk=self.item.pk).update(station=bar)
+        self.client.post(reverse("update_menu_item", args=[self.item.id]),
+                         data={"name": "Test Dish", "price": "150.00", "category": self.category.id,
+                               "station": "", "description": ""})
+        self.item.refresh_from_db()
+        self.assertIsNone(self.item.station_id)
+
     def test_update_menu_item_with_unparseable_parcel_charge_is_refused(self):
         # Until 3 Oct 2026 a bad parcel charge was dropped with only a log
         # warning while the rest of the edit saved. Now the edit is refused
