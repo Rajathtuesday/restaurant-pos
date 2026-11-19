@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-11-19: Two people settling one bill at once: held by tests
+
+### Tests
+- `orders/tests/test_checkout_race.py` (2, real threads): two cashiers paying the whole bill at the same moment take it once (one 200, one refused, the order closed); three split shares paid at once never take more than the bill. Checked because a review listed concurrent checkout as open: `pay_order` and `process_payment` lock the order row and `recalculate_totals` locks it again, so these pass on the current code. They stay as guards.
+
 ## 2026-11-19: Merging and transferring tables keep the floor and the bills straight
 
 ### Fixed
