@@ -74,6 +74,13 @@ def create_kot(user, order, print_on_create=True):
         .get_or_create(date=business_date, tenant=tenant, outlet=outlet)
     )
 
+    # Numbers this order already holds. The counter starts again each
+    # business day, so an order still open when the day turns over would be
+    # handed a number it holds from yesterday, which unique(order,
+    # kot_number) refuses (19 Nov 2026: Send to Kitchen failed for the rest
+    # of the order). Such a number is skipped, under the counter's lock.
+    held = set(KOTBatch.objects.filter(order=order).values_list("kot_number", flat=True))
+
     created_kots = []
 
     # -----------------------------------------
@@ -94,6 +101,9 @@ def create_kot(user, order, print_on_create=True):
 
         # increment safely
         counter.value += 1
+        while counter.value in held:
+            counter.value += 1
+        held.add(counter.value)
         counter.save(update_fields=["value"])
 
         kot_number = counter.value

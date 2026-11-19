@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-19: An order open across the business day can still go to the kitchen
+
+### Fixed
+- **An order still open when the business day turned over could no longer be sent to the kitchen.** KOT numbers start again from 1 each business day, and an order may not hold two KOTs with one number; a pub order opened before the day's start hour and sent again after it was handed a number it already held, the database refused, and every later Send to Kitchen failed with "Could not send to kitchen". `create_kot` now skips any number the order already holds, under the day counter's lock, so numbers stay unique within the order and still rise through the day. No schema change.
+
+### Tests
+- `kitchen/test_kot_day_rollover.py` (2): a send after the day turns over gets a number the order does not hold; the skipped number is used up, so the next send's number is higher. Both fail on the old code.
+
 ## 2026-11-19: Two people settling one bill at once: held by tests
 
 ### Tests
@@ -33,8 +41,6 @@ the source of truth.
 - `kitchen/test_send_twice.py` (2, real threads): four sends at once make one KOT and all four answer 200; a second send with nothing new says so. Both fail on the old code (one 200, three 400).
 - `static/js/tests/billing.test.mjs`: nothing new to send still shows "Order Sent".
 
-### Noticed, not changed
-- KOT numbers restart each business day while a KOT's number must be unique per order, so an order still open when the business day turns over could hit a duplicate number on its next send. Rare; worth a fix of its own.
 
 ## 2026-11-15: The low-stock badge counts low stock
 
