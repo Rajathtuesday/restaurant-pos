@@ -220,7 +220,7 @@ class CloseUnpaidTest(BillPageBase):
         ])
         self.assertEqual(seen["landed"]["path"], "/tables/")
         self.assertEqual(seen["no_reason"]["message"], "Closing without payment needs a reason.")
-        self.assertIn("₹400.00 stays unpaid", seen["no_reason"]["said"])
+        self.assertIn("₹400 stays unpaid", seen["no_reason"]["said"])
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, "closed")
         self.assertFalse(Payment.objects.filter(order=self.order).exists())

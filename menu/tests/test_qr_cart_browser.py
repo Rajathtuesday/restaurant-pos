@@ -99,7 +99,7 @@ class QrCartOffersTest(QrCartRunsTest):
         self.assertEqual((cart["subtotal"], cart["offers"], cart["gst"], cart["total"]),
                          ("₹230", "₹50", "₹7.50", "₹187.50"))
         self.assertTrue(cart["offersShown"])
-        self.assertEqual(cart["notes"], ["Paneer 25% off −₹50.00"])
+        self.assertEqual(cart["notes"], ["Paneer 25% off −₹50"])   # one way, as the totals above (V12)
 
     def test_no_offers_no_row(self):
         cart = self.tap_through(self.paneer)

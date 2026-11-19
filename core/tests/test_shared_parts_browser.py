@@ -125,7 +125,7 @@ class SharedPartsBrowserTest(BrowserTestCase):
                       ' document.getElementById("currentTab").value];'),
             ("custom", 'const s = document.querySelector("[data-action=\\"range.pick\\"]"); s.value = "custom";'
                        's.dispatchEvent(new Event("change", { bubbles: true }));'
-                       'return getComputedStyle(document.getElementById("customRange")).display;'),
+                       'return getComputedStyle(document.getElementById("customDates")).display;'),
         ], user=self.r.owner)
         self.assertNoErrors(out)
         self.assertEqual(out["results"]["tab"], [False, True, "cost"])
