@@ -7,10 +7,11 @@
  * audit line) is escaped: it reaches the page as text, never as HTML.
  */
 import { esc } from "../order_edit.js";
+import { rupees } from "../core/money.js";
 
 const STATUSES = new Set(["open", "billing", "closed", "paid", "cancelled"]);
 
-const rs = (n) => "Rs." + Number(n || 0).toFixed(0);
+const rs = (n) => rupees(n || 0);
 const row = (name, amount, cls = "") =>
   `<div class="detail-row${cls ? " " + cls : ""}"><span class="name">${name}</span><span class="amt">${amount}</span></div>`;
 
@@ -46,7 +47,7 @@ function items(o) {
     const cls = voided ? "voided" : item.is_complimentary ? "comp" : "";
     const tag = voided ? '<span class="tag-void">VOID</span>' : item.is_complimentary ? '<span class="tag-comp">COMP</span>' : "";
     const note = item.void_reason ? `<span class="void-reason">Reason: ${esc(item.void_reason)}</span>` : "";
-    html += row(`${esc(item.quantity)}× ${esc(item.name)}${tag}${note}`, item.is_complimentary ? "Rs.0" : rs(item.total), cls);
+    html += row(`${esc(item.quantity)}× ${esc(item.name)}${tag}${note}`, item.is_complimentary ? rs(0) : rs(item.total), cls);
   }
   return html + `</div>`;
 }
@@ -81,7 +82,7 @@ function payments(o) {
           `<button type="button" class="btn-reject" data-action="oh.reject" data-refund="${esc(r.id)}">Reject</button>`
         : "";
       html += `<div class="refund-entry">` +
-        `<span>₹${Number(r.amount).toFixed(0)} · ${esc(r.reason || "No reason")} <span class="detail-at">by ${esc(r.by)}</span></span>` +
+        `<span>${rs(r.amount)} · ${esc(r.reason || "No reason")} <span class="detail-at">by ${esc(r.by)}</span></span>` +
         `<span class="refund-side"><span class="refund-status status-${esc(r.status)}">${esc(r.status)}</span>${decide}</span>` +
         `</div>`;
     }

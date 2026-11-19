@@ -12,6 +12,7 @@
  */
 import { readItemDiscount } from "./discounts.js";
 import { splitShare } from "./amount.js";
+import { rupees } from "../core/money.js";
 
 export function createDialogs({ Swal = globalThis.Swal, isDark = () => false, doc = document }) {
   const field = (id) => doc.getElementById(id);
@@ -112,7 +113,7 @@ export function createDialogs({ Swal = globalThis.Swal, isDark = () => false, do
     closeUnpaid(remaining) {
       return form({
         title: "Close this bill without payment?",
-        html: `<div class="bill-form-hint bill-form-hint--lead">₹${remaining} stays unpaid. It goes on the audit report with your name and reason.</div>`
+        html: `<div class="bill-form-hint bill-form-hint--lead">${rupees(remaining)} stays unpaid. It goes on the audit report with your name and reason.</div>`
           + label("close-reason", "Why? (for example: guest walked out)")
           + '<input id="close-reason" type="text" maxlength="200" class="swal2-input bill-form-input">',
         confirmText: "Close Bill",

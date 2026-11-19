@@ -9,6 +9,7 @@
 import { theme } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
+import { rupees } from "../core/money.js";
 import { chartColours, exportUrl } from "./dashboard_parts.js";
 
 function drawCharts(Chart, dark) {
@@ -59,7 +60,7 @@ function drawCharts(Chart, dark) {
             backgroundColor: c.tip[0], titleColor: c.tip[1], bodyColor: c.tip[1],
             titleFont: { family: "'DM Serif Display', serif", size: 14 }, bodyFont: { family: "'Outfit', sans-serif", size: 13 },
             padding: 12, displayColors: false, cornerRadius: 0,
-            callbacks: { label: (ctx) => "₹" + ctx.parsed.y },
+            callbacks: { label: (ctx) => rupees(ctx.parsed.y) },
           },
         },
         scales: {

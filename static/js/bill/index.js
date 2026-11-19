@@ -12,6 +12,7 @@ import { csrfToken } from "../core/csrf.js";
 import { delegate, onReady } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
 import { changeDue, payable, upiString } from "./amount.js";
+import { rupees } from "../core/money.js";
 import { createBillPrinter } from "./bill_print.js";
 import { createDialogs } from "./dialogs.js";
 import { billDiscountProblem, promoLabel, promoProblem } from "./discounts.js";
@@ -68,7 +69,7 @@ function amountChanged(text) {
   const display = el("change-display");
   if (!display) return;
   const change = changeDue(text, data.remaining);
-  if (change > 0) el("change-amount").textContent = "₹" + change;
+  if (change > 0) el("change-amount").textContent = rupees(change);
   display.classList.toggle("is-shown", change > 0);
 }
 

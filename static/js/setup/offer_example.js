@@ -8,7 +8,7 @@ import { line, totals } from "../cart_tax.js";
 
 export const EXAMPLE_NAMES = {
   buy_get_free: "Buy 2 pitchers, get 1 free", happy_hour: "Happy hour 25% off",
-  percent_off: "10% off desserts", amount_off: "Rs 100 off every whisky",
+  percent_off: "10% off desserts", amount_off: "₹100 off every whisky",
 };
 
 /* The draft offer, as offers.js reads one. The example shows the offer while

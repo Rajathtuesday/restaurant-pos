@@ -66,6 +66,20 @@ test("no inline handlers or styles; the receipt link and status come through", (
   assert.ok(!html.includes("style="));
   assert.ok(html.includes('href="/thermal-receipt/7/"'));
   assert.ok(html.includes("detail-status st-closed"));
-  assert.ok(html.includes("-Rs.30"));
+  assert.ok(html.includes("-₹30"));
   assert.ok(!detailHtml(order({ status: "weird" }), RECEIPT).includes("st-weird"));
+});
+
+test("money keeps its paise and its grouping, one way (V12)", () => {
+  const html = detailHtml(order({ subtotal: 1200.5, grand_total: 125000,
+    items: [{ name: "Dal", quantity: 1, total: 20.5, status: "served", is_complimentary: false, void_reason: "" },
+            { name: "Water", quantity: 1, total: 20, status: "served", is_complimentary: true, void_reason: "" }],
+    payments: [{ id: 3, method: "cash", amount: 420, reference: "", paid_at: "", is_refund: false,
+      refunds: [{ id: 9, amount: 12.5, reason: "Cold", status: "pending", by: "Ravi" }] }] }), RECEIPT);
+  assert.ok(html.includes("₹20.50"), "paise rounded away");
+  assert.ok(html.includes("₹1,200.50"));
+  assert.ok(html.includes("₹1,25,000"));
+  assert.ok(html.includes("₹12.50 · Cold"));
+  assert.ok(html.includes(">₹0<"), "a complimentary dish shows ₹0");
+  assert.ok(!html.includes("Rs."));
 });

@@ -8,13 +8,14 @@
 import { api } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
+import { rupees } from "../core/money.js";
 import { withId } from "../billing/urls.js";
 import { EXAMPLE_NAMES, draftRule, exampleBill } from "./offer_example.js";
 
 const data = pageData("page-data");
 const $ = (id) => document.getElementById(id);
 const all = (selector) => Array.from(document.querySelectorAll(selector));
-const money = (n) => "₹" + Number(n).toFixed(2);
+const money = rupees;
 const MINUS = "−";
 const SAVE_EDIT = '<i class="bi bi-check-lg"></i> Save changes';
 
@@ -91,7 +92,7 @@ function renderExample() {
   if (t.offers > 0) box.append(row("ex-row ex-offers", "Offers", MINUS + money(t.offers)));
   if (t.gst > 0) box.append(row("ex-row", "GST" + (outlet.inclusive ? " (incl.)" : ""), money(t.gst)));
   if (t.vat > 0) box.append(row("ex-row", "VAT" + (outlet.vatInclusive ? " (incl.)" : ""), money(t.vat)));
-  box.append(row("ex-row total", "Guest pays", "₹" + t.roundedTotal));
+  box.append(row("ex-row total", "Guest pays", money(t.roundedTotal)));
   if (t.offers > 0) box.append(node("div", "ex-save", "The guest saves " + money(t.offers) + "."));
   else box.append(node("div", "sub ex-none", "No offer on this example yet" +
     (bill.groupSize ? ": a group needs " + bill.groupSize + " covered dishes" : "") + "."));

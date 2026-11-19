@@ -32,7 +32,9 @@
  *
  */
 
-const toPaise = (rupees) => Math.round((Number(rupees) || 0) * 100);
+import { rupees } from "./core/money.js";
+
+const toPaise = (amount) => Math.round((Number(amount) || 0) * 100);
 const toBasisPoints = (percent) => Math.round((Number(percent) || 0) * 100);
 const pad = (n) => String(n).padStart(2, "0");
 
@@ -209,12 +211,12 @@ function onCart(page, taxLines, items, opts) {
   return applied;
 }
 
-// "Buy 2 get 1  -Rs 2300.00" as safe HTML for a cart row, or "".
+// "Buy 2 get 1  -₹2,300" as safe HTML for a cart row, or "".
 function note(applied) {
   if (!applied) return "";
   const name = String(applied.offerName).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-  return `<div class="cart-offer" style="font-size:0.72rem;color:#10b981;">${name} &minus;&#8377;${applied.discount.toFixed(2)}</div>`;
+  return `<div class="cart-offer" style="font-size:0.72rem;color:#10b981;">${name} &minus;${rupees(applied.discount)}</div>`;
 }
 
 const api = {

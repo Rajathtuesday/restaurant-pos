@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-19: Money written one way on every screen (V12)
+
+### Fixed
+- **Eight scripts still wrote amounts by hand** after the billing screens moved to `rupees()` (core/money.js) on 13 Nov. Order history showed "Rs.21" for Rs 20.50 (paise rounded away by `toFixed(0)`) and refunds as "₹50"; the promo picker said "₹50.00 Flat"; the sales chart tooltip "₹1234.5"; the bill page's change, close-without-payment and promo minimum, the refund maximum, the cart's offer line and the offer setup example each had their own format. All now go through `rupees()`: whole rupees with no paise, two decimals with paise, Indian grouping. The setup example's offer name reads "₹100 off every whisky".
+
+### Tests
+- `core/tests/test_money_one_way.py` (2): no script outside core/money.js glues a rupee sign or "Rs." to a number (13 places on the old code); the scan is proved on samples, and a "₹" in a label or placeholder stays allowed.
+- Node: order history keeps paise and grouping ("₹20.50", "₹1,25,000", a refund "₹12.50"), and the promo picker writes a server "50.00" as "₹50". Both fail on the old code. `setup/tests/test_offer_setup_browser.py` expectations follow ("2,300", not "2300.00").
+
 ## 2026-11-19: An order open across the business day can still go to the kitchen
 
 ### Fixed

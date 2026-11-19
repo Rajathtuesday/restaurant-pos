@@ -4,6 +4,8 @@
  * save a round trip and say what is missing. Each returns the message to
  * show, or null when the form is fine.
  */
+import { rupees } from "../core/money.js";
+
 const REASON_NEEDED = "Give a reason for the discount (for example: regular guest, food complaint).";
 
 /* A discount on the whole bill. A promo needs no reason; one typed by hand
@@ -31,13 +33,13 @@ export function readItemDiscount(rawPercent, rawReason) {
 export function promoLabel(promo) {
   return promo.discount_type === "percentage"
     ? `${promo.name}: ${promo.discount_value}% Off`
-    : `${promo.name}: ₹${promo.discount_value} Flat`;
+    : `${promo.name}: ${rupees(promo.discount_value)} Flat`;
 }
 
 /* A promo with a minimum cannot go on a smaller bill. */
 export function promoProblem(promo, subtotal) {
   if (promo.min_order && Number(subtotal) < Number(promo.min_order)) {
-    return `Minimum order ₹${promo.min_order} required`;
+    return `Minimum order ${rupees(promo.min_order)} required`;
   }
   return null;
 }

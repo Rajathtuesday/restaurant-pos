@@ -86,6 +86,9 @@ test("a promo is named plainly and refused below its minimum", () => {
   assert.equal(promoProblem({ min_order: "500" }, "357.00"), "Minimum order ₹500 required");
   assert.equal(promoProblem({ min_order: "300" }, "357.00"), null);
   assert.equal(promoProblem({ min_order: null }, "10"), null);
+  // The server sends decimals as "50.00": written the one way, not "₹50.00" (V12).
+  assert.equal(promoLabel({ name: "Welcome", discount_type: "amount", discount_value: "50.00" }), "Welcome: ₹50 Flat");
+  assert.equal(promoProblem({ min_order: "1500.00" }, "357.00"), "Minimum order ₹1,500 required");
 });
 
 /* ---- taking a payment ------------------------------------------------------ */

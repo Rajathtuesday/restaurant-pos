@@ -35,12 +35,13 @@ class OfferPageBrowserTest(BrowserTestCase):
         return out["results"]
 
     def test_the_example_bill_prices_buy_two_get_one(self):
+        # Money is written one way (core/money.js): "2,300", no ".00".
         # Whole menu, buy 2 get 1: two Craft (2,500) and one Lager (2,300); the
         # Lager is free. Beer VAT is 0% here.
         example = plain(self._run([("example", EXAMPLE)])["example"])
-        self.assertIn("Buy 2 pitchers, get 1 free 2300.00", example)
-        self.assertIn("Offers2300.00", example.replace(" ", ""))
-        self.assertIn("The guest saves 2300.00.", example)
+        self.assertIn("Buy 2 pitchers, get 1 free 2,300", example)
+        self.assertIn("Offers2,300", example.replace(" ", ""))
+        self.assertIn("The guest saves 2,300.", example)
 
     def test_the_example_follows_the_kind_of_offer(self):
         example = plain(self._run([
@@ -49,8 +50,8 @@ class OfferPageBrowserTest(BrowserTestCase):
             ("example", EXAMPLE),
         ])["example"]).replace(" ", "")
         # 25% off one of each: 4,800 less 1,200.
-        self.assertIn("Offers1200.00", example)
-        self.assertIn("Guestpays3600", example)
+        self.assertIn("Offers1,200", example)
+        self.assertIn("Guestpays3,600", example)
 
     def test_a_dish_name_shows_as_text(self):
         MenuItem.objects.filter(pk=self.craft.pk).update(name='<b id="injected">Craft</b>')

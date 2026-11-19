@@ -13,6 +13,7 @@
 import { api, ui } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
+import { rupees } from "../core/money.js";
 import { withId } from "../billing/urls.js";
 import { detailHtml, loadingHtml, messageHtml } from "./detail.js";
 
@@ -58,7 +59,7 @@ function openRefund(button) {
   refundPayment = button.dataset.payment;
   refundForm.reset();
   refundForm.elements.amount.max = button.dataset.max;
-  refundMax.textContent = "₹" + Number(button.dataset.max).toFixed(2);
+  refundMax.textContent = rupees(button.dataset.max);
   refundBox.classList.add("open");
   refundForm.elements.amount.focus();
 }
