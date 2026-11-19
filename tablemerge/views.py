@@ -16,7 +16,7 @@ logger = logging.getLogger("pos.orders")
 @feature_required("merge_tables")
 @require_POST
 def merge_tables_view(request):
-    from tablemerge.services import MergeError, merge_tables
+    from tablemerge.services import MergeError, MergeRefused, merge_tables
     try:
         data = json.loads(request.body or b"{}")
     except ValueError:
@@ -30,6 +30,8 @@ def merge_tables_view(request):
         return JsonResponse({"error": "Pick at least one table to merge"}, status=400)
     try:
         merge = merge_tables(request.user, primary_id, table_ids)
+    except MergeRefused as e:
+        return JsonResponse({"error": str(e)}, status=400)
     except MergeError as e:
         return JsonResponse({"error": str(e)}, status=404)
     logger.info("User %s merged tables", request.user.username)

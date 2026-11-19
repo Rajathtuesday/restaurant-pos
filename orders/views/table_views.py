@@ -260,11 +260,22 @@ def transfer_table_view(request):
             if order.status in ["billing", "paid", "closed"]:
                 return JsonResponse({"error": "Cannot transfer at this stage"}, status=400)
 
-            new_table = Table.objects.filter(id=table_id, tenant=tenant, outlet=outlet, is_active=True).first()
-            if not new_table:
-                return JsonResponse({"error": "Invalid table"}, status=400)
-            if new_table.id == order.table_id:
+            if table_id == order.table_id:
                 return JsonResponse({"error": "Same table"}, status=400)
+            # Both tables locked, in id order (as merges lock them): two
+            # orders moved to the same free table at once queue here, and
+            # the second sees the first in the "occupied" check below.
+            locked = {t.id: t for t in Table.objects.select_for_update().filter(
+                id__in=sorted({table_id, order.table_id} - {None}), tenant=tenant, outlet=outlet).order_by("id")}
+            new_table = locked.get(table_id)
+            if not new_table or not new_table.is_active:
+                return JsonResponse({"error": "Invalid table"}, status=400)
+            # A merge's main table carries the party's order; moving it away
+            # left the merged tables occupied with no order (19 Nov 2026).
+            if order.table_id and TableMerge.objects.filter(
+                    tenant=tenant, outlet=outlet, is_active=True, primary_table_id=order.table_id).exists():
+                return JsonResponse({"error": f"{order.table.name} is merged with other tables. Unmerge them first."},
+                                    status=400)
 
             if TableMerge.objects.filter(tenant=tenant, outlet=outlet, is_active=True, tables=new_table).exists():
                 return JsonResponse({"error": "Cannot transfer to merged table"}, status=400)
@@ -272,7 +283,7 @@ def transfer_table_view(request):
             if Order.objects.filter(tenant=tenant, outlet=outlet, table=new_table, status__in=["open", "billing"]).exists():
                 return JsonResponse({"error": "Table already occupied"}, status=400)
 
-            old_table = order.table
+            old_table = locked.get(order.table_id)
             order.table = new_table
             order.save(update_fields=["table"])
 

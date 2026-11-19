@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-19: Merging and transferring tables keep the floor and the bills straight
+
+### Fixed
+- **A table could be in two merges at once**: merging checked nothing about merges already active. A table already merged (as the main table or a member) is refused: "Alpha Table 2 is already merged. Unmerge it first."
+- **A table merged in with its own open order kept it**, off the main table's bill, so the party could be billed twice over or not at all. Such a merge is refused: "Table 3 has its own order. Transfer it or bill it first, then merge." (Moving its dishes onto the main bill is a money change of its own and was not done here.)
+- **Moving the order off a merge's main table set that table free and left the merged tables showing occupied with no order.** That transfer is refused until the tables are unmerged.
+- **A transfer locked the order but not the tables**, so the "is the new table occupied" check was check-then-act. Both tables are now locked in id order (as merges lock them) before the check.
+- Refusals answer 400 with the reason (`tablemerge.services.MergeRefused`), not 404.
+
+### Tests
+- `tablemerge/test_merge_transfer_guards.py` (7): a table in a merge cannot join another, nor a merge's main table; a table with its own order is not merged in; free tables still merge; a merge's main order is not moved away; a plain transfer still works (these four refusals fail on the old code); two orders moved to the same free table at once leave one there (real threads; this one did not reproduce on the old code, as the window is narrow, and stays as a guard).
+
 ## 2026-11-19: Send to Kitchen tapped twice: one KOT, and no false error
 
 ### Fixed

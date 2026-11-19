@@ -35,6 +35,11 @@ class MergeError(Exception):
     """A merge that cannot be made: a table that isn't this outlet's."""
 
 
+class MergeRefused(MergeError):
+    """A merge the floor cannot take as it stands: a table already in a
+    merge, or one with its own open order (19 Nov 2026)."""
+
+
 @transaction.atomic
 def merge_tables(user, primary_table_id, table_ids):
 
@@ -55,6 +60,23 @@ def merge_tables(user, primary_table_id, table_ids):
         raise MergeError("Primary table not found")
 
     tables = [t for t in locked.values() if t.id != primary_table_id]
+
+    # Under the tables' locks, so two merges over the same tables queue.
+    from django.db.models import Q
+    already = (TableMerge.objects
+               .filter(tenant=user.tenant, outlet=user.outlet, is_active=True)
+               .filter(Q(primary_table_id__in=all_ids) | Q(tables__id__in=all_ids))
+               .distinct().first())
+    if already is not None:
+        names = sorted({t.name for t in locked.values()
+                        if t.id == already.primary_table_id or already.tables.filter(id=t.id).exists()})
+        raise MergeRefused(f"{', '.join(names)} is already merged. Unmerge it first.")
+    # A table merged in keeps any order of its own, off the main table's
+    # bill: the party would be billed twice over, or not at all.
+    own = (Order.objects.filter(table_id__in=[t.id for t in tables], status__in=["open", "billing"])
+           .select_related("table").first())
+    if own is not None:
+        raise MergeRefused(f"{own.table.name} has its own order. Transfer it or bill it first, then merge.")
 
     merge = TableMerge.objects.create(
         tenant=user.tenant,
