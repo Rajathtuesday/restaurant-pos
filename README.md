@@ -40,7 +40,7 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 - Multi-item orders with modifiers, notes, and item-level discounts
 - KOT (Kitchen Order Ticket) system with concurrency-safe numbering (`select_for_update`)
 - Live kitchen display - item status tracking (Preparing → Ready → Served → Bumped)
-- Table merge, unmerge, and order transfer between tables
+- Table merge, unmerge, and order transfer between tables: a table already merged, or one with its own open order, is refused; Unmerge works from any linked table and ends every merge connected to it
 - Waiter call via QR - rate-limited to one call per 60 seconds per table
 - Kitchen messages to waiter - "Delayed 15 mins", custom messages, scoped per waiter
 
@@ -466,10 +466,12 @@ Full guide to what each load-test phase checks and how to read its output: [`LOA
 
 ## Tests
 
-**2,260 tests across the codebase (21 October 2026), plus the Android app's unit tests. All passing; the Playwright browser tests skip where Playwright isn't installed. The same suite also runs against the compiled box code (see [`docs/BOX_GUIDE.md`](docs/BOX_GUIDE.md)).**
+**2,627 Python tests and 335 Node tests for the page scripts (19 November 2026), plus the Android app's unit tests. All passing. CI runs everything, the Playwright browser tests included; locally they skip where Playwright isn't installed. The same suite also runs against the compiled box code (see [`docs/BOX_GUIDE.md`](docs/BOX_GUIDE.md)).**
 
 ```bash
-python manage.py test --noinput --parallel 8             # all tests, about 25 minutes
+python manage.py test --noinput --parallel 8             # all tests, about 14 minutes
+python -m core.fast_tests --keepdb                       # money, isolation, frontend guards, about 90 s
+node --test --test-reporter=tap "static/js/tests/*.test.mjs"   # the page scripts, a few seconds
 python manage.py test --keepdb                           # all tests, one process
 python manage.py test orders.tests.test_critical         # critical paths
 python manage.py test orders.tests.test_financial_flows  # payment flows
@@ -498,7 +500,7 @@ Test coverage includes:
 Every DB query is scoped by `tenant + outlet`. `TenantMiddleware` resolves the tenant from the subdomain for routing and branding; query scoping comes from the logged-in user (`ContextLoggingMiddleware`). `@tenant_required` enforces isolation on every view. A bug cannot accidentally expose one restaurant's data to another.
 
 ### Financial Integrity
-All payment operations use `select_for_update()` to prevent race conditions. `Decimal` arithmetic throughout - no float math on money. Refund rows excluded from payment validation. KOT numbers use `select_for_update()` on `DailyKOTCounter` to guarantee uniqueness under concurrent load.
+All payment operations use `select_for_update()` to prevent race conditions. `Decimal` arithmetic throughout - no float math on money. Refund rows excluded from payment validation. KOT numbers use `select_for_update()` on `DailyKOTCounter` to guarantee uniqueness under concurrent load; they start from 1 each business day but never repeat within one order (an order open across the day's start skips the numbers it holds). Send to Kitchen tapped twice makes one KOT. Every order request and every payment carries an id, so a retry is answered, never recorded twice. Merges and transfers lock their tables in id order.
 
 ### Printing Isolation
 Each local Celery worker reads `RASOVA_TENANT_ID` and `RASOVA_OUTLET_ID` from environment. Tasks for other restaurants are silently skipped. Task idempotency keys in Redis prevent double-printing on retry. Tasks expire after 30 minutes - old print jobs are never processed.

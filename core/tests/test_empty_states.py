@@ -22,7 +22,7 @@ from django.urls import get_resolver, reverse
 
 from accounts.models import User
 from core.features import get_all_known_features
-from core.tests.browser import BrowserTestCase, _wait_until_the_server_is_idle
+from core.tests.browser import BrowserTestCase
 from core.tests.test_tenant_walk import _routes
 from setup.models import PaymentConfig
 from tenants.models import Outlet, Tenant, TenantFeatureOverride
@@ -117,7 +117,7 @@ class FirstDayTest(BrowserTestCase):
                     page.close()
         finally:
             context.close()
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()
         self.assertGreater(len(pages), 40)
         self.assertEqual(blank, [], "these pages show a new restaurant nothing at all")
 

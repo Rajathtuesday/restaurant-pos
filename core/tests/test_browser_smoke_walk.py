@@ -33,7 +33,7 @@ from django.test import Client
 from django.urls import get_resolver, reverse
 
 from core.testing import freeze_ratelimit_clock
-from core.tests.browser import BrowserTestCase, _console_error, _wait_until_the_server_is_idle
+from core.tests.browser import BrowserTestCase, _console_error
 from core.tests.test_tenant_walk import REGISTRY, Restaurant, _routes
 
 # Routes that are not opened, each with its reason.
@@ -183,7 +183,7 @@ class BrowserSmokeWalkTest(BrowserTestCase):
                     findings.append(f"{url} ({name}): {problem}")
         finally:
             context.close()
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()
         self.assertEqual(findings, [], "\n\nThe browser smoke walk found problems:\n  " + "\n  ".join(findings))
         # 67 on 13 Nov 2026. Far fewer means the URL map or the fixture moved.
         self.assertGreater(len(pages), 60, f"the walk opened too few pages: {[name for name, _ in pages]}")

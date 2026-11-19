@@ -29,7 +29,7 @@ from unittest import SkipTest
 from django.conf import settings
 from django.test import Client, SimpleTestCase
 
-from core.tests.browser import BrowserTestCase, _wait_until_the_server_is_idle
+from core.tests.browser import BrowserTestCase
 from core.tests.test_tenant_walk import Restaurant
 
 SIZES = {"desktop": {"width": 1400, "height": 900}, "phone": {"width": 390, "height": 844}}
@@ -165,5 +165,5 @@ class ScreenshotSheet(BrowserTestCase):
             problems.append(f"could not take it: {str(e).splitlines()[0]}")
         finally:
             context.close()
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()
         return problems

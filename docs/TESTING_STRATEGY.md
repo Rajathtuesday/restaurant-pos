@@ -1117,7 +1117,7 @@ Unit and view tests can't see JavaScript. Two promo-era bugs lived only there: t
 | Promos in a browser | `promos/tests/test_promo_browser.py` | Owner creates a promo with the real form, cashier applies it on the bill, the print view and WhatsApp link name it, a void pauses it, the owner edits it, a manager can't change the owner's promo, no JavaScript error |
 | Dish discount in a browser | `orders/tests/test_item_discount_browser.py` | The one-form dish discount applies, a missing reason is stopped in the form, a refusal is shown, no browser prompt |
 
-The browser tests use Playwright (Chromium) against Django's live server. They **skip themselves when Playwright or Chromium isn't installed**, which is the case in CI, so run them locally before a release that touches a page:
+The browser tests use Playwright (Chromium) against Django's live server. They **skip themselves when Playwright or Chromium isn't installed**; CI installs both and runs them. Locally:
 
 ```bash
 pip install playwright && playwright install chromium     # once
@@ -1126,6 +1126,8 @@ PROMO_E2E_SHOTS=md_files/promo_e2e python manage.py test promos.tests.test_promo
 ```
 
 They log in by copying a Django session cookie into the browser, and override the secure-cookie settings for `http://localhost` (tests run with `DEBUG` off). Playwright's sync API needs `DJANGO_ALLOW_ASYNC_UNSAFE`, which the tests set themselves.
+
+**Build every browser test on `core.tests.browser.BrowserTestCase`**, never on `StaticLiveServerTestCase` directly (`core/tests/test_browser_server_gate.py` refuses it). The reason is the cleanup: a browser test empties every table when it ends (Django's flush, one TRUNCATE), and a request the page had sent could still be running in the live server's thread. Postgres deadlocked the two once in a few full parallel runs ("deadlock detected" in flush, then "duplicate key ... tenant name" in the next test of the class). Asking Postgres whether a connection is busy does not help: a request still in Python looks idle there. So `BrowserTestCase` counts the server's requests at the door (`_ServerGate`): `run_page` waits for the last one after closing the page (`wait_for_the_server()`; call it yourself after closing a context you opened), and the cleanup shuts the door, waits, then flushes. A request arriving after that gets a 503 without reaching Django; one still running after 30 s fails the test by its address.
 
 **Proving a test catches the bug:** each one was run against the old code first (a clean `git worktree` of the previous commit) and failed there. For the promo fixes, each fix was also undone one at a time (15 mutations) and a test failed every time.
 
@@ -1249,7 +1251,7 @@ Blank the R2 variables first when running locally, because `.env` holds the prod
 
 ```bash
 # Run all tests in parallel: 8 processes, each with its own test database
-# (2,260 tests in about 30 minutes on the development laptop, 21 Oct 2026)
+# (2,627 tests in about 14 minutes on the development laptop, 19 Nov 2026)
 python manage.py test --noinput --parallel 8
 
 # Run all tests in one process (uses Django's test runner)
@@ -1300,7 +1302,7 @@ The box edition ships Rasova compiled to machine code, so the suite also runs ag
 | `accounts/views/` | 60% | Login, dashboard |
 | `menu/views/` | 50% | CRUD, lower risk |
 
-**State (19 Oct 2026):** 2,126 tests, all passing (one known timing flake under heavy parallel load: `IssuedBillRaceTest` waits at most 15 s for a lock; it passes on its own). Coverage isn't measured in CI yet; the money paths are guarded by the golden bills in Part 6b instead.
+**State (19 Nov 2026):** 2,627 Python tests and 335 Node tests, all passing. The browser tests' cleanup deadlock (once in a few full runs until 19 Nov) is fixed at the root by the server gate above. Coverage isn't measured in CI yet; the money paths are guarded by the golden bills in Part 6b instead.
 
 ---
 

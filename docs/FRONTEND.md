@@ -36,7 +36,8 @@ static/js/core/      what base.html runs on every page
                      (app.js handles them; no page module may handle these names again: one tap would run twice)
   standalone.js      for a page without base.html (a printout): the shared buttons and nothing else
   theme_boot.js      for a page without base.html: dark mode before the first paint (a plain script in the head)
-  money.js           rupees(): money written one way (core/money.py is the server's copy; one table of examples tests both)
+  money.js           rupees(): money written one way (core/money.py is the server's copy; one table of examples tests both).
+                     Never build an amount by hand ("₹" + n, `Rs.${n}`): core/tests/test_money_one_way.py refuses it
   csrf.js, page_data.js, dom.js
 static/js/tests/     node tests for the above (node --test "static/js/tests/*.test.mjs")
 static/js/billing/   the billing screen: one module for the dine-in screen, the QSR counter and the token counter

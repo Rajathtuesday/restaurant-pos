@@ -9,13 +9,18 @@ its modules, Bootstrap and the server work together when a cashier taps a
 button. BrowserTestCase.run_page loads a page as a user, runs steps in it
 and returns what they returned along with every error the browser saw.
 
-Skipped when Playwright or its Chromium isn't installed (CI has neither).
+Skipped when Playwright or its Chromium isn't installed (CI installs both).
+Every browser test is built on BrowserTestCase: its live server counts the
+requests it is working on (_ServerGate), and a test's cleanup waits for the
+last one before it empties the tables.
 """
 import os
+from functools import partial
 from unittest import SkipTest
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.contrib.staticfiles.handlers import StaticFilesHandler
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client, override_settings
 
@@ -54,35 +59,99 @@ window.t = {
 """
 
 
-def _wait_until_the_server_is_idle(timeout=15):
-    """Return once no request of the live server is still working in this
-    test's database.
+class _ServerGate:
+    """Every request the live test server is working on, counted at the
+    door, so a test's cleanup can wait for the last one to finish.
 
-    Closing the browser does not stop a request it already sent: a page
-    that polls (the token counter asks for its order every 5 seconds) can
-    leave one running in the server's thread. The test's cleanup then
-    empties every table while that request reads them, and Postgres
-    deadlocks the two (12 November 2026, the token counter test in a full
-    parallel run). Waiting here puts the cleanup after the last request.
+    Why (19 Nov 2026): a TransactionTestCase cleans up by emptying every
+    table (flush, one TRUNCATE), and a request still running in the
+    server's thread could hold one table while the TRUNCATE held another:
+    Postgres called it a deadlock, the test errored, and the next test of
+    the class met the rows left behind ("duplicate key ... tenant name").
+    Closing the browser does not stop a request it already sent. The
+    earlier guard asked Postgres whether any connection was busy, but a
+    request still in Python (middleware, between two queries) looks idle
+    there, so the cleanup started under it once in a few full runs.
 
-    pg_stat_activity is frozen for the length of a transaction, at the
-    first look, so the snapshot is dropped before every look."""
-    import time
+    The gate sees the request from its first byte to its last: close()
+    turns every later request away with a 503 before it reaches Django,
+    and drain() waits until none is left. An answer still running after
+    the wait fails the test by its address instead of deadlocking."""
 
-    from django.db import connection
-    if connection.vendor != "postgresql":
-        return
-    deadline = time.monotonic() + timeout
-    with connection.cursor() as cursor:
-        while time.monotonic() < deadline:
-            cursor.execute("SELECT pg_stat_clear_snapshot()")
-            cursor.execute(
-                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() "
-                "AND pid <> pg_backend_pid() AND state <> 'idle'"
-            )
-            if cursor.fetchone()[0] == 0:
-                return
-            time.sleep(0.05)
+    def __init__(self):
+        import threading
+        self._cond = threading.Condition()
+        self._running = {}      # id -> address, for the error message
+        self._next = 0
+        self._open = True
+
+    def enter(self, path):
+        with self._cond:
+            if not self._open:
+                return None
+            self._next += 1
+            self._running[self._next] = path
+            return self._next
+
+    def leave(self, ticket):
+        with self._cond:
+            self._running.pop(ticket, None)
+            self._cond.notify_all()
+
+    def open(self):
+        with self._cond:
+            self._open = True
+
+    def close(self):
+        with self._cond:
+            self._open = False
+
+    def drain(self, timeout=30):
+        with self._cond:
+            if not self._cond.wait_for(lambda: not self._running, timeout):
+                raise AssertionError(
+                    f"the test server was still answering after {timeout} s: "
+                    + ", ".join(sorted(self._running.values())))
+
+
+class _Body:
+    """The answer's body, passed through. The request leaves the gate when
+    the body has been sent or when the server closes it, whichever comes
+    first (leaving twice is harmless): Django's server reads what is left
+    of the request before it closes the body, and that read can fail when
+    the browser has already gone, so close() alone could be missed."""
+
+    def __init__(self, body, done):
+        self._body, self._done = body, done
+
+    def __iter__(self):
+        try:
+            yield from self._body
+        finally:
+            self._done()
+
+    def close(self):
+        try:
+            close = getattr(self._body, "close", None)
+            if close:
+                close()
+        finally:
+            self._done()
+
+
+def _gated(gate, app):
+    def application(environ, start_response):
+        ticket = gate.enter(environ.get("PATH_INFO", ""))
+        if ticket is None:
+            start_response("503 Service Unavailable", [("Content-Type", "text/plain")])
+            return [b"the test is cleaning up"]
+        try:
+            body = app(environ, start_response)
+        except BaseException:
+            gate.leave(ticket)
+            raise
+        return _Body(body, lambda: gate.leave(ticket))
+    return application
 
 
 def _console_error(message):
@@ -105,6 +174,9 @@ class BrowserTestCase(StaticLiveServerTestCase):
         except ImportError:
             raise SkipTest("Playwright is not installed")
         os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+        # The server answers through this class's own gate (_ServerGate).
+        cls.server_gate = _ServerGate()
+        cls.static_handler = partial(lambda gate, app: _gated(gate, StaticFilesHandler(app)), cls.server_gate)
         super().setUpClass()
         cls.playwright = sync_playwright().start()
         try:
@@ -119,6 +191,22 @@ class BrowserTestCase(StaticLiveServerTestCase):
         cls.browser.close()
         cls.playwright.stop()
         super().tearDownClass()
+
+    def wait_for_the_server(self):
+        """Return once the server has finished every request it was sent.
+        Call it after closing a browser context, before reading what the
+        page's requests wrote."""
+        self.server_gate.drain()
+
+    def _fixture_teardown(self):
+        # The cleanup empties every table: no request may be running under
+        # it, and none may start (see _ServerGate).
+        self.server_gate.close()
+        try:
+            self.server_gate.drain()
+            super()._fixture_teardown()
+        finally:
+            self.server_gate.open()
 
     def run_page(self, url, steps, user=None, viewport=None):
         """Load `url` (on the live server) as `user` and run `steps` in the
@@ -167,4 +255,4 @@ class BrowserTestCase(StaticLiveServerTestCase):
             return {"errors": errors, "results": results}
         finally:
             context.close()
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()

@@ -23,7 +23,7 @@ from django.conf import settings
 from django.test import Client
 
 from core.testing import freeze_ratelimit_clock
-from core.tests.browser import BrowserTestCase, _wait_until_the_server_is_idle
+from core.tests.browser import BrowserTestCase
 from core.tests.test_browser_smoke_walk import owner_pages
 from core.tests.test_tenant_walk import Restaurant
 
@@ -151,6 +151,6 @@ class ColourWalkTest(BrowserTestCase):
         try:
             findings = self.walk(pages, dark=False) + self.walk(pages, dark=True)
         finally:
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()
         self.assertEqual(findings, [], "\n\nThe colour walk found problems:\n  " + "\n  ".join(findings))
         self.assertGreater(len(pages), 60, "the walk opened too few pages")

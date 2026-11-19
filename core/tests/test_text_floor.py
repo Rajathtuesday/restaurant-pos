@@ -19,7 +19,7 @@ from django.test import Client
 from django.urls import reverse
 
 from core.testing import freeze_ratelimit_clock
-from core.tests.browser import BrowserTestCase, _wait_until_the_server_is_idle
+from core.tests.browser import BrowserTestCase
 from core.tests.test_tenant_walk import Restaurant
 
 FLOOR_PX = 12
@@ -110,5 +110,5 @@ class TextFloorTest(BrowserTestCase):
             findings = (self.measure({"width": 1400, "height": 900}, phone=False)
                         + self.measure({"width": 390, "height": 844}, phone=True))
         finally:
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()
         self.assertEqual(findings, [], "\n\nText below the floor:\n  " + "\n  ".join(findings))

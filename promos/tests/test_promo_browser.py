@@ -22,13 +22,12 @@ Run: python manage.py test promos.tests.test_promo_browser
 import os
 from decimal import Decimal as D
 from pathlib import Path
-from unittest import SkipTest
 
 from django.conf import settings
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from django.test import Client, override_settings
+from django.test import Client
 
 from accounts.models import User
+from core.tests.browser import BrowserTestCase
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderItem
 from orders.services.void_service import void_order_item
@@ -37,38 +36,15 @@ from promos.models import Promo
 from tenants.models import Outlet, Tenant
 
 
-# A browser on http://localhost: cookies that aren't secure-only or tied to rasova.net.
-@override_settings(SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False,
-                   SESSION_COOKIE_DOMAIN=None, CSRF_COOKIE_DOMAIN=None)
-class PromoInTheBrowserTest(StaticLiveServerTestCase):
+class PromoInTheBrowserTest(BrowserTestCase):
 
     @classmethod
     def setUpClass(cls):
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            raise SkipTest("Playwright is not installed")
-        # Playwright's sync API runs an event loop in this thread; the test's
-        # own database calls are still plain synchronous ones.
-        os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
         super().setUpClass()
-        cls.playwright = sync_playwright().start()
-        try:
-            cls.browser = cls.playwright.chromium.launch()
-        except Exception as e:
-            cls.playwright.stop()
-            super().tearDownClass()
-            raise SkipTest(f"Chromium is not available: {e}")
         shots = os.environ.get("PROMO_E2E_SHOTS")
         cls.shots = Path(shots) if shots else None
         if cls.shots:
             cls.shots.mkdir(parents=True, exist_ok=True)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.browser.close()
-        cls.playwright.stop()
-        super().tearDownClass()
 
     def setUp(self):
         self.tenant = Tenant.objects.create(name="Browser Bistro")

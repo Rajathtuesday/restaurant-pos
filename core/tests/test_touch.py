@@ -95,7 +95,6 @@ class TapTargetTest(_floor.TextFloorTest):
     def test_controls_on_a_phone_are_big_enough_to_tap(self):
         from django.conf import settings as s
         from django.test import Client
-        from core.tests.browser import _wait_until_the_server_is_idle
         client = Client()
         client.force_login(self.restaurant.owner)
         context = self.browser.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
@@ -116,5 +115,5 @@ class TapTargetTest(_floor.TextFloorTest):
                     page.close()
         finally:
             context.close()
-            _wait_until_the_server_is_idle()
+            self.wait_for_the_server()
         self.assertEqual(findings, [], "\n\nControls too small to tap:\n  " + "\n  ".join(findings))

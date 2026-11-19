@@ -19,7 +19,7 @@ Run: python manage.py test orders.tests.test_offline_order_browser
 from django.conf import settings
 from django.test import Client
 
-from core.tests.browser import HELPERS, _console_error, _wait_until_the_server_is_idle
+from core.tests.browser import HELPERS, _console_error
 from orders.models import Order, OrderRequest
 from orders.tests.test_billing_browser import ADD_DISH, BillingBrowserBase
 
@@ -47,7 +47,7 @@ class OfflineOrderTest(BillingBrowserBase):
         client = Client()
         client.force_login(self.owner)
         context = self.browser.new_context(viewport={"width": 1400, "height": 900}, **context_options)
-        self.addCleanup(_wait_until_the_server_is_idle)
+        self.addCleanup(self.wait_for_the_server)
         self.addCleanup(context.close)
         context.add_cookies([{"name": settings.SESSION_COOKIE_NAME,
                               "value": client.cookies[settings.SESSION_COOKIE_NAME].value,

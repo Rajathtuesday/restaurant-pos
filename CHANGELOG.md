@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-19: A browser test's cleanup never runs under a request
+
+### Fixed
+- **Browser tests deadlocked in their cleanup once in a few full parallel runs** ("deadlock detected" in flush, then "duplicate key ... tenant name" in the next test of the class, which met the rows left behind). A browser test empties every table when it ends (flush, one TRUNCATE), and a request the page had sent could still be running in the live server's thread; the two locked tables in opposite order. The old guard asked Postgres whether any connection was busy, but a request still in Python (middleware, between two queries) looks idle there, and after 15 s the guard gave up silently. Now `BrowserTestCase` counts the server's requests at the door (`_ServerGate` in `core/tests/browser.py`, wrapping the live server's handler): `run_page` waits for the last one after closing the page, and the cleanup (`_fixture_teardown`) shuts the door, waits, then flushes. A request arriving after that gets a 503 without reaching Django; one still running after 30 s fails the test by its address instead of deadlocking. A request leaves the gate when its body is sent or closed, so a browser that hung up cannot keep it counted.
+- Three browser test files (approval PIN, item discount, promo) built their own live server on `StaticLiveServerTestCase` with a copied setup; they now use `BrowserTestCase` and its gate. The seven places that called the old Postgres wait call `self.wait_for_the_server()`.
+
+### Tests
+- `core/tests/test_browser_server_gate.py` (7): a request still running when the page closes is waited for (fails on the old code: `run_page` returned while the server was still answering); no test file starts a live server of its own (fails on the old code: three files); the gate waits for a request in flight, turns a late one away with 503 without reaching the app, names an answer that never ends, lets a request go when its body is sent but never closed, and when the app raises.
+
+### Docs
+- README, `docs/RASOVA.md`, `docs/TESTING_STRATEGY.md` and `docs/FRONTEND.md` brought up to date: test counts and run times, CI runs the browser tests, the gate and the `BrowserTestCase` rule, KOT numbers across the business day, merge and unmerge rules, money written one way.
+
 ## 2026-11-19: Any merged table can be unmerged from the floor
 
 ### Fixed

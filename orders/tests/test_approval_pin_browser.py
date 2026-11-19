@@ -10,47 +10,21 @@ PIN says so and asks again; backing out changes nothing.
 Skipped when Playwright or its Chromium isn't installed (CI has neither).
 Run: python manage.py test orders.tests.test_approval_pin_browser
 """
-import os
 from decimal import Decimal as D
-from unittest import SkipTest
 
 from django.conf import settings
-from django.contrib.staticfiles.testing import StaticLiveServerTestCase
 from django.test import Client, override_settings
 
 from accounts.models import User
+from core.tests.browser import BrowserTestCase
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, OrderEvent, OrderItem
 from orders.services.approvals import set_pin
 from tenants.models import Outlet, Tenant
 
 
-@override_settings(SESSION_COOKIE_SECURE=False, CSRF_COOKIE_SECURE=False,
-                   SESSION_COOKIE_DOMAIN=None, CSRF_COOKIE_DOMAIN=None,
-                   PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
-class ApprovalPinInTheBrowserTest(StaticLiveServerTestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            raise SkipTest("Playwright is not installed")
-        os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-        super().setUpClass()
-        cls.playwright = sync_playwright().start()
-        try:
-            cls.browser = cls.playwright.chromium.launch()
-        except Exception as e:
-            cls.playwright.stop()
-            super().tearDownClass()
-            raise SkipTest(f"Chromium is not available: {e}")
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.browser.close()
-        cls.playwright.stop()
-        super().tearDownClass()
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class ApprovalPinInTheBrowserTest(BrowserTestCase):
 
     def setUp(self):
         self.tenant = Tenant.objects.create(name="PIN Pub")

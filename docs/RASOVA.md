@@ -73,7 +73,7 @@ lockout, WeasyPrint for PDFs, python-escpos for thermal printing, the Anthropic 
 AI, Playwright for browser tests. The screens are server-rendered templates with plain
 ES modules and no build step.
 
-**Counts (15 Nov 2026):** 24 Rasova apps, 75 models, 33 feature flags, 467 URL routes (Django admin included), 206 migrations, about 2,600 Python tests and 330 Node tests.
+**Counts (15 Nov 2026):** 24 Rasova apps, 75 models, 33 feature flags, 467 URL routes (Django admin included), 206 migrations, 2,627 Python tests and 335 Node tests (tests counted 19 Nov).
 
 ---
 
@@ -231,7 +231,9 @@ order (paid, closed) --> reports, Z-report, daily digest email
   too (`Payment.request_key`, unique per order): an offline or dropped cash payment sent
   again is answered, never recorded twice. A gateway payment's reference is unique in the
   database.
-- **Money on screen** is written one way (`static/js/core/money.js`, `core/money.py`).
+- **Money on screen** is written one way (`static/js/core/money.js`, `core/money.py`):
+  "₹430", "₹20.50", "₹1,25,000". `core/tests/test_money_one_way.py` refuses a rupee sign
+  (or "Rs.") glued to a number in any script; call `rupees()`.
 
 ---
 
@@ -244,6 +246,15 @@ or Bump for a whole ticket. A guest's QR order waits for staff approval before i
 the kitchen. At a counter (cafe, QSR) the KOT fires at payment. A station marked "made as
 soon as sent" (a bar) treats a cancelled sent drink as poured: wastage, with a manager's
 PIN.
+
+KOT numbers count from 1 each business day (`DailyKOTCounter`, locked) and never repeat
+within one order: an order open across the day's start skips the numbers it holds. Send
+to Kitchen tapped twice makes one KOT; the second tap answers "Nothing new to send".
+
+On the floor (`tablemerge/services.py`, `orders/views/table_views.py`): a merge refuses a
+table already in a merge or one with its own open order; a transfer locks both tables in
+id order and does not move the order off a merge's main table; Unmerge works from any
+table of a merge (`unmerge_around`) and ends every merge connected to it.
 
 ---
 
@@ -427,19 +438,20 @@ once CPU credits run out: right for zero customers, to be resized before the fir
 
 | Kind | What it proves | Run |
 |---|---|---|
-| Django suite | Views, models, money, permissions; every fix has a test that failed on the old code | `python manage.py test --parallel 8` (about 9 minutes) |
+| Django suite | Views, models, money, permissions; every fix has a test that failed on the old code | `python manage.py test --parallel 8` (about 14 minutes) |
 | Fast set (about 430 tests) | Money, isolation, the frontend guards; run before every commit | `python -m core.fast_tests --keepdb` (about 90 s) |
 | Golden bills, parity tests | The tax engine to the paisa; the browser's copies equal to the server's | part of the suite |
 | The tenant walk | No URL shows one restaurant another's rows | `core.tests.test_tenant_walk` |
 | Node module tests | The screens' logic with fakes: refused, offline, late answer, double tap, escaping | `node --test --test-reporter=tap "static/js/tests/*.test.mjs"` |
-| Browser tests (Playwright, Chromium) | Real pages, real taps (`core/tests/browser.py`, `BrowserTestCase.run_page`) | part of the suite |
+| Browser tests (Playwright, Chromium) | Real pages, real taps (`core/tests/browser.py`, `BrowserTestCase.run_page`). The live server counts its requests at the door; a test's cleanup shuts the door and waits for the last one, so it never runs under a request | part of the suite |
 | The smoke walk | Every owner page loads with no error, no missing file, one header | `core.tests.test_browser_smoke_walk` |
 | Colour walk, text floor, empty states | Light and dark readable, 12 px minimum, no blank first-day page | part of the suite |
 | Screenshot sheet | Forty pictures for a person to look at before a push | `SCREENSHOTS=1 python manage.py test core.tests.test_screenshot_sheet` |
 
 Notes: one `manage.py test` at a time (they share `test_pos_db`); after adding a
-migration, drop `--keepdb` once; tests hash passwords with MD5 for speed. Strategy:
-`docs/TESTING_STRATEGY.md`.
+migration, drop `--keepdb` once; tests hash passwords with MD5 for speed; a browser test
+is built on `BrowserTestCase`, never on `StaticLiveServerTestCase` directly (a test refuses
+it). Strategy: `docs/TESTING_STRATEGY.md`.
 
 ---
 
