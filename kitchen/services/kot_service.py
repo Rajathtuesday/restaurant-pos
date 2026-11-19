@@ -14,6 +14,11 @@ from orders.services.order_service import update_table_state
 from setup.services.station_service import get_default_station_for
 
 
+class NothingToSend(Exception):
+    """No pending dish on the order: everything was already sent (often a
+    second tap of Send to Kitchen that waited on the first one's lock)."""
+
+
 @transaction.atomic
 def create_kot(user, order, print_on_create=True):
     """
@@ -40,7 +45,7 @@ def create_kot(user, order, print_on_create=True):
     )
 
     if not items:
-        raise Exception("No items to send to kitchen")
+        raise NothingToSend("No items to send to kitchen")
 
     # -----------------------------------------
     # GROUP ITEMS BY STATION

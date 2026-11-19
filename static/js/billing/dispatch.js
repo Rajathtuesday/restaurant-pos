@@ -115,7 +115,7 @@ export function createDispatch({
       let kitchenNote = "Order Sent";
       try {
         const k = await (await fetchFn(withId(urls.send_to_kitchen, d.order_id), { method: "POST", headers: { "X-CSRFToken": csrf() } })).json();
-        if (k.error && k.error !== "No items to send to kitchen") kitchenNote = k.error;
+        if (k.error) kitchenNote = k.error;
       } catch (kitchenLater) {
         // The order exists, so the cart still clears (sending it again
         // would add every dish twice), but the kitchen has not heard.

@@ -246,11 +246,12 @@ test("the kitchen call failing after the order exists is never queued, and is no
   assert.match(rig.screen.seen.flashes[0], /kitchen was not reached/);
 });
 
-test("the kitchen's own message is shown, except that there was nothing to send", async () => {
+test("the kitchen's own error is shown; nothing new to send is still Order Sent", async () => {
   const told = dispatchRig([reply(200, { success: true, order_id: 8 }), reply(200, { error: "Printer offline" })]);
   await told.dispatch.dispatch({ tableId: "4", source: "dine_in", aggregatorId: "", orderId: null });
   assert.deepEqual(told.screen.seen.flashes, ["Printer offline"]);
-  const nothing = dispatchRig([reply(200, { success: true, order_id: 8 }), reply(200, { error: "No items to send to kitchen" })]);
+  // Nothing new to send is a success with no KOT (kitchen/views.py), not an error.
+  const nothing = dispatchRig([reply(200, { success: true, order_id: 8 }), reply(200, { success: true, kots: [], message: "Nothing new to send to the kitchen." })]);
   await nothing.dispatch.dispatch({ tableId: "4", source: "dine_in", aggregatorId: "", orderId: null });
   assert.deepEqual(nothing.screen.seen.flashes, ["Order Sent"]);
 });

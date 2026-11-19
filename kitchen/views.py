@@ -1,4 +1,5 @@
 # kitchen/views.py
+from kitchen.services.kot_service import NothingToSend
 from core.errors import error_response
 import logging
 import json
@@ -65,6 +66,11 @@ def send_to_kitchen(request, order_id):
 
     except Order.DoesNotExist:
         return JsonResponse({"error": "Order not found"}, status=404)
+    except NothingToSend:
+        # Two taps at once: the order's lock made the second wait, and by
+        # then the first had sent every dish. Not a failure (19 Nov 2026: it
+        # said "Could not send to kitchen. Please try again.").
+        return JsonResponse({"success": True, "kots": [], "message": "Nothing new to send to the kitchen."})
     except Exception:
         logger.exception("Error sending order to kitchen")
         return JsonResponse({"error": "Could not send to kitchen. Please try again."}, status=400)

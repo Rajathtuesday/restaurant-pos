@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-19: Send to Kitchen tapped twice: one KOT, and no false error
+
+### Fixed
+- **A second Send to Kitchen at the same moment answered "Could not send to kitchen. Please try again."** The order row was already locked, so only one KOT was ever made, but the second request found nothing pending and `create_kot` raised a bare `Exception`, which the view turned into a 400. That message told a waiter in a rush to tap again. `create_kot` now raises `NothingToSend` for that case and the view answers success with no KOT ("Nothing new to send to the kitchen."). The Dispatch screen no longer has to recognise the old error text.
+
+### Tests
+- `kitchen/test_send_twice.py` (2, real threads): four sends at once make one KOT and all four answer 200; a second send with nothing new says so. Both fail on the old code (one 200, three 400).
+- `static/js/tests/billing.test.mjs`: nothing new to send still shows "Order Sent".
+
+### Noticed, not changed
+- KOT numbers restart each business day while a KOT's number must be unique per order, so an order still open when the business day turns over could hit a duplicate number on its next send. Rare; worth a fix of its own.
+
 ## 2026-11-15: The low-stock badge counts low stock
 
 ### Fixed
