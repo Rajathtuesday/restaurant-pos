@@ -95,6 +95,14 @@ test("a primary table can be unmerged from its card when free and from its sheet
   assert.ok(!moreSheet(table(2, "preparing", { order_id: 20 }), URLS).buttons.includes("table.unmerge"));
 });
 
+test("a joined table's card can undo the merge too (19 Nov 2026)", () => {
+  // A floor tangled before the merge guards showed every card as joined: with
+  // Unmerge on the main table's card only, nothing on the floor could undo it.
+  const html = floorHtml([table(6, "merged", { primary_table: 2, primary_table_name: "T2" })], URLS);
+  assert.match(html, /Go to Primary \(T2\)/);
+  assert.match(html, /data-action="table\.unmerge" data-id="6"/);
+});
+
 test("names typed by people are escaped wherever they are drawn", () => {
   const evil = '<img src=x onerror="alert(1)">';
   const nasty = [table(1, "preparing", { name: evil, section: evil, order_id: 10, waiter_name: evil, waiter_initials: "<b" }),

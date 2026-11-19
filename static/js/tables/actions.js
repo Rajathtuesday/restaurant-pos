@@ -59,11 +59,11 @@ export function createTableActions({ api, ui, urls, refresh, go, closeSheets = (
       });
     },
 
-    unmerge(primaryId) {
-      return once("unmerge:" + primaryId, async () => {
+    unmerge(tableId) {
+      return once("unmerge:" + tableId, async () => {
         const answer = await ui.confirm("Unmerge these tables?", "Every table linked to this one becomes its own table again.", "Unmerge");
         if (!answer || !answer.isConfirmed) return;
-        await api.post(withId(urls.unmerge_tables, primaryId), {});
+        await api.post(withId(urls.unmerge_tables, tableId), {});
         await done("Tables Unmerged");
       });
     },

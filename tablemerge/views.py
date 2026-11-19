@@ -6,7 +6,6 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required
-from tablemerge.models import TableMerge
 
 logger = logging.getLogger("pos.orders")
 
@@ -42,14 +41,11 @@ def merge_tables_view(request):
 @tenant_required
 @feature_required("merge_tables")
 @require_POST
-def unmerge_tables_view(request, primary_id):
-    from tablemerge.services import unmerge_tables
-    merge = TableMerge.objects.filter(
-        primary_table_id=primary_id, tenant=request.user.tenant,
-        outlet=request.user.outlet, is_active=True
-    ).first()
-    if not merge:
+def unmerge_tables_view(request, table_id):
+    # Any table of the merge, main or joined: every merge connected to it
+    # ends (tablemerge.services.unmerge_around).
+    from tablemerge.services import unmerge_around
+    if not unmerge_around(request.user, table_id):
         return JsonResponse({"error": "Merge not found"}, status=404)
-    unmerge_tables(request.user, merge.id)
-    logger.info("User %s unmerged table group %s", request.user.username, primary_id)
+    logger.info("User %s unmerged the tables around %s", request.user.username, table_id)
     return JsonResponse({"success": True})

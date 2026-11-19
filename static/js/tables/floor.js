@@ -88,7 +88,10 @@ function cardParts(t, to) {
   if (status === "merged") {
     return {
       timer: '<div class="table-timer status-merged"><i class="bi bi-link"></i> Linked</div>',
-      actions: go(to.billing(t.primary_table), `Go to Primary (${esc(t.primary_table_name || t.primary_table)})`, "btn-card-action w-100"),
+      // Unmerge here too: a joined table's card must be able to undo the
+      // merge, or a tangled floor has no button that can (19 Nov 2026).
+      actions: go(to.billing(t.primary_table), `Go to Primary (${esc(t.primary_table_name || t.primary_table)})`, "btn-card-action w-100")
+        + button({ action: "table.unmerge", attrs: { id: t.id }, label: '<i class="bi bi-scissors"></i> Unmerge', cls: "btn-card-action btn-card-danger w-100" }),
     };
   }
   if (status === "cleaning") {

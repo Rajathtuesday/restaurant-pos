@@ -13,7 +13,7 @@ def resolve_primary_table(table, tenant, outlet):
     unchanged.
 
     Every order-creation entry point must call this before attaching an
-    order to a table — the waiter-side flows (billing_core.py, order_views.py)
+    order to a table: the waiter-side flows (billing_core.py, order_views.py)
     each independently reimplement this same lookup inline, but the QR
     guest-ordering path (billing_views.py::create_order) never did, so a
     guest scanning the QR code physically stuck to a merged secondary table
@@ -149,6 +149,12 @@ def unmerge_tables(user, merge_id):
         # overwritten by unmerge.
         if table.state in ("billing", "cleaning"):
             continue
+        # A table with an order of its own keeps the state that order gave
+        # it. Only a tangled floor (merges made before the 19 Nov guards)
+        # has one: Table 1 "joined" to a Table 2 with no order would be
+        # set free with its party still eating.
+        if Order.objects.filter(table=table, status__in=["open", "billing"]).exists():
+            continue
 
         if order:
             table.state = "ordering"
@@ -159,3 +165,32 @@ def unmerge_tables(user, merge_id):
 
     merge.is_active = False
     merge.save(update_fields=["is_active"])
+
+
+@transaction.atomic
+def unmerge_around(user, table_id):
+    """End every active merge connected to this table, whether it is the
+    main table or a joined one, and return how many ended (19 Nov 2026).
+
+    Connected means sharing a table, followed as far as it goes: a floor
+    tangled before the guards (Table 2 the main table of four merges, then
+    merged into Table 1) comes apart in one tap from any of its cards.
+    """
+    from django.db.models import Q
+    scope = TableMerge.objects.filter(tenant=user.tenant, outlet=user.outlet, is_active=True)
+    found, seen, frontier = set(), set(), {int(table_id)}
+    while frontier:
+        seen |= frontier
+        reached = (scope.filter(Q(primary_table_id__in=frontier) | Q(tables__id__in=frontier))
+                   .exclude(id__in=found).distinct().prefetch_related("tables"))
+        frontier = set()
+        for m in reached:
+            found.add(m.id)
+            frontier |= ({m.primary_table_id} | {t.id for t in m.tables.all()}) - seen
+    # Lock them all, in id order, before ending any: a second tap waits,
+    # then finds nothing still active and ends nothing.
+    ids = list(TableMerge.objects.select_for_update().filter(id__in=found, is_active=True)
+               .order_by("id").values_list("id", flat=True))
+    for merge_id in ids:
+        unmerge_tables(user, merge_id)
+    return len(ids)

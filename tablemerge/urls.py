@@ -8,5 +8,5 @@ urlpatterns = [
     # (the only template referencing them) uses {% url %} names, never
     # hardcoded paths, so this move is transparent to the front end.
     path("merge-tables/", views.merge_tables_view, name="merge-tables"),
-    path("unmerge-tables/<int:primary_id>/", views.unmerge_tables_view, name="unmerge-tables"),
+    path("unmerge-tables/<int:table_id>/", views.unmerge_tables_view, name="unmerge-tables"),
 ]

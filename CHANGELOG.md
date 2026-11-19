@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-19: Any merged table can be unmerged from the floor
+
+### Fixed
+- **A tangled merge could not be undone from any button.** Merges made before the 19 Nov guards could pile up (Table 2 the main table of four merges, then Table 2 merged into Table 1). Every card then showed "Linked", Unmerge showed only on a main table's card, and the server ended one merge per tap, found by its main table alone. Now a joined table's card has Unmerge beside "Go to Primary", and `/unmerge-tables/<table_id>/` takes any table of the merge: `unmerge_around` ends every active merge connected to it (through shared tables), locked in id order, so one tap clears the tangle. A merge not connected to that table, or another restaurant's, is not touched. On unmerge, a table with an open order of its own keeps its state instead of being set free.
+
+### Tests
+- `tablemerge/test_unmerge_any_table.py` (6): the demo floor's tangle comes apart in one tap from a joined table and Table 1 keeps its order's state; a joined table ends its merge; a main table of several merges ends them all; an unconnected merge, a table in no merge (404) and another restaurant's merge are left alone. Three fail on the old code (404, one merge of three ended).
+- Node: a joined table's card carries Unmerge with its own id (fails on the old floor.js).
+
 ## 2026-11-19: Money written one way on every screen (V12)
 
 ### Fixed
