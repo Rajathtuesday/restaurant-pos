@@ -7,6 +7,14 @@ the source of truth.
 
 ---
 
+## 2026-11-21: Celery can reach Redis on a fresh install
+
+### Fixed
+- **kombu was not pinned**, and celery 5.6.3 asks only for `kombu>=5.6.0`. A fresh install on 21 Nov (a clean Linux container running CI's steps) got kombu 5.7.0, which no longer lists `packaging` among its requirements while its Redis transport still imports it: every task sent to Redis (printing, digests, the nightly jobs) failed with `No module named 'packaging'`. A machine that already had `packaging` from another library never saw it. `requirements.txt` now pins `kombu==5.6.2` (what the test suite runs on) and `packaging==26.1`. A clean Linux install of the new file imports the transport.
+
+### Tests
+- `core/tests/test_dependencies.py` (3): the Redis transport imports (fails in the clean container with the old requirements); kombu and packaging are pinned; the installed kombu is the pinned one.
+
 ## 2026-11-21: Module imports are rewritten once, in any file order
 
 ### Fixed

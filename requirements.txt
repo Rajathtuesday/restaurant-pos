@@ -11,6 +11,12 @@ whitenoise==6.12.0
 
 # Task queue + caching
 celery==5.6.3
+# Pinned with celery (21 Nov 2026): celery only asks for kombu>=5.6.0, and
+# kombu 5.7.0 dropped packaging from its requirements while its Redis
+# transport still imports it, so a fresh install could not send a task to
+# Redis. core/tests/test_dependencies.py checks both.
+kombu==5.6.2
+packaging==26.1
 redis==7.4.1
 django-celery-results==2.6.0
 python-dateutil==2.9.0.post0
@@ -37,9 +43,9 @@ pypdf==6.21.4
 weasyprint==70.0
 rapidfuzz==3.14.6
 
-# WhatsApp receipts (optional — set TWILIO_* env vars to enable)
+# WhatsApp receipts (optional: set TWILIO_* env vars to enable)
 twilio==9.3.6
 
-# Rasova Print Agent — WebSocket server for USB printing
+# Rasova Print Agent: WebSocket server for USB printing
 websockets==13.1
 pywin32==308; sys_platform == 'win32'
