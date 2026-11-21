@@ -7,6 +7,22 @@ the source of truth.
 
 ---
 
+## 2026-11-21: QR Orders badge, the service worker, and 13 CodeQL alerts
+
+### Fixed
+- **The QR Orders badge counted closed and cancelled bills.** A guest's dish never approved before its bill was closed or cancelled kept the badge at 1 over an empty floor. It now counts open bills only (`orders/api.py`).
+- **On the floor page the QR Orders button linked to the floor page itself.** It is no longer shown there (the floor shows those tables as REVIEW, and the new-order pop-up still comes); it stays on every other screen.
+- **The service worker answered some requests with nothing** ("Uncaught (in promise) TypeError: Failed to convert value to 'Response'", 40 times on the live floor page). A file from another host (Cloudflare's analytics beacon, which Brave blocks), or one of our hashed files with no network and no kept copy, got `undefined`. Now another host's files are left to the browser except images, and with no copy and no network the answer is a network error (`Response.error()`).
+- **CodeQL js/xss-through-dom (7):** addresses read back out of the page (its data block) were used to navigate or as a link without a check. `static/js/core/site_path.js` (`sitePath`, `goTo`) lets through only a path on this site; the floor, Kitchen Stations, menu recipe import, token counter, dispatch, bill close and receipt use it, and the token screen's buttons escape the order id.
+- **CodeQL py/stack-trace-exposure (3):** the Box print queue stored Python's exception text ("ConnectionRefusedError: [WinError 10061]...") as the job's error, which Setup's Test Print shows the owner; now a sentence, the exception in the log. A table merge's refusal went out as `str(e)`; `MergeError` is a `UserError` and the view answers through `error_response`.
+- **CodeQL, dismissed with reasons (3):** two test-only regexes reading tags from rendered pages (#123, #127, as #87 and #111 before) and the token screen's panel widths in localStorage (#115, as #75 before).
+
+### Tests
+- `orders/tests/test_notification_api.py` (3): an open bill with a dish waiting counts, closed and cancelled do not; the QR Orders button is on billing, not on the floor. Two fail on the old code.
+- `static/js/tests/sw.test.mjs` (5): `static/sw.js` run in a sandbox with a fake network and caches: another host's script is left to the browser, an image or a hashed file with no copy offline is a network error, kept copies and the network still serve. Three fail on the old file.
+- `static/js/tests/site_path.test.mjs` (3): only site paths pass; the token screen never carries a hostile address or id (fails on the old file).
+- `box/tests/test_box.py`: a printer that does not answer fails the job with a sentence, never exception text (fails on the old code).
+
 ## 2026-11-21: A bill never asks for less than has been paid on it
 
 Reported from the pub: a cover paid part of a bill; then the guest took fewer items and a promo went on, and the bill came to less than the cover had paid. The screen said "FULLY PAID" with nothing to give back, the cover counted the whole payment as spent, and the bill could not be closed.

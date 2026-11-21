@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core.decorators import tenant_required, feature_required
+from core.errors import error_response
 
 logger = logging.getLogger("pos.orders")
 
@@ -30,9 +31,9 @@ def merge_tables_view(request):
     try:
         merge = merge_tables(request.user, primary_id, table_ids)
     except MergeRefused as e:
-        return JsonResponse({"error": str(e)}, status=400)
+        return error_response(e, 400)
     except MergeError as e:
-        return JsonResponse({"error": str(e)}, status=404)
+        return error_response(e, 404)
     logger.info("User %s merged tables", request.user.username)
     return JsonResponse({"success": True, "merge_id": merge.id})
 

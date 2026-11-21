@@ -15,6 +15,7 @@ import { api, ui } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
 import { withId } from "../billing/urls.js";
+import { goTo } from "../core/site_path.js";
 import {
   dishFields, dishProblem, hiddenBySearch, menuImportStep, pollUntil, postForm, recipeImportStep, syncWords,
 } from "./manage_parts.js";
@@ -252,7 +253,7 @@ async function runRecipeImport(btn) {
   const jobId = sent.data.job_id;
   const end = await pollUntil({ get: () => getJson(withId(data.urls.recipeStatus, jobId)), step: recipeImportStep });
   if (end.state === "done") {
-    window.location.href = withId(data.urls.recipeReview, jobId);
+    goTo(withId(data.urls.recipeReview, jobId));
   } else {
     ui.toast(end.words, "error");
     freeButton(btn, label);

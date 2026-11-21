@@ -13,6 +13,7 @@ import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
 import { withId } from "../billing/urls.js";
 import { agentProblem, agentUrl, createAgent } from "./station_agent.js";
+import { sitePath } from "../core/site_path.js";
 
 const data = pageData("page-data");
 const $ = (id) => document.getElementById(id);
@@ -50,7 +51,7 @@ async function checkAgent() {
   } catch (notRunning) {
     dot.className = "dot red";
     const link = document.createElement("a");
-    link.href = data.urls.installer;
+    link.href = sitePath(data.urls.installer) || "#";
     link.setAttribute("download", "");
     link.className = "agent-download";
     link.textContent = "Download installer";

@@ -61,8 +61,11 @@ def notification_api(request):
     # status="review" — see orders/services/order_service.py). Distinct order
     # count, not item count, so one order with 5 review items shows as "1".
     qr_orders_qs = (
+        # Open bills only: a guest's dish left unapproved on a bill that was
+        # closed or cancelled kept the badge at 1 for good, over an empty
+        # floor (21 Nov 2026).
         Order.objects.filter(
-            tenant=tenant, outlet=outlet, items__status="review"
+            tenant=tenant, outlet=outlet, items__status="review", status__in=("open", "billing")
         )
         .distinct()
         .select_related("table")

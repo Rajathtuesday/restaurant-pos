@@ -6,6 +6,7 @@
 import { rupees } from "../core/money.js";
 import { esc } from "../order_edit.js";
 import { withId } from "./urls.js";
+import { sitePath } from "../core/site_path.js";
 
 /* The header of the Current Order panel and its Pay or Print button. */
 export function renderOrderHeader(d, orderId, { doc = document, billUrl }) {
@@ -21,10 +22,10 @@ export function renderOrderHeader(d, orderId, { doc = document, billUrl }) {
 
   let html = "";
   if (d.order_status === "billing") {
-    html = `<a href="${withId(billUrl, orderId)}" class="btn-checkout btn-checkout--pay d-flex align-items-center justify-content-center text-decoration-none mb-2">
+    html = `<a href="${esc(sitePath(withId(billUrl, orderId)) || "#")}" class="btn-checkout btn-checkout--pay d-flex align-items-center justify-content-center text-decoration-none mb-2">
       <i class="bi bi-credit-card me-2"></i>Pay Now · ${esc(rupees(Math.round(d.remaining || 0)))}</a>`;
   } else if (d.order_status === "paid" || d.order_status === "closed") {
-    html = `<button type="button" class="btn-luxury w-100 mb-2 btn-tall" data-action="receipt.print" data-id="${orderId}">
+    html = `<button type="button" class="btn-luxury w-100 mb-2 btn-tall" data-action="receipt.print" data-id="${esc(orderId)}">
       <i class="bi bi-printer me-2"></i>Print Receipt</button>`;
   }
   ["orderActionButtonDesktop", "orderActionButtonMobile"].forEach((id) => {

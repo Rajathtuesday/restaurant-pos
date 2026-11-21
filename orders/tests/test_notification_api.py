@@ -83,3 +83,40 @@ class NotificationApiSystemAlertsTest(TestCase):
         # this same path too) -- shaped like the main endpoint, not a 404
         # and not the old view's response shape.
         self.assertIn("waiter_calls", data)
+
+
+class QrOrdersBadgeTest(TestCase):
+    """The QR Orders badge and button (21 Nov 2026). The badge counted any
+    order with a guest's dish still waiting for approval, closed and
+    cancelled bills too, so it read 1 over an empty floor; and on the floor
+    page the button linked to the floor page itself."""
+
+    def setUp(self):
+        from core.tests.test_tenant_walk import Restaurant
+        from tenants.models import TenantFeatureOverride
+        self.r = Restaurant("Alpha", "qr-badge")
+        for feature in ("qr_menu", "floor_plan"):
+            TenantFeatureOverride.objects.update_or_create(tenant=self.r.tenant, feature=feature, defaults={"enabled": True})
+        self.client = Client()
+        self.client.force_login(self.r.owner)
+        self.r.order.items.update(status="review")       # a guest's dish, waiting for staff
+
+    def count(self):
+        return self.client.get("/api/notifications/").json()["qr_orders"]["count"]
+
+    def test_an_open_bill_with_a_dish_waiting_counts(self):
+        self.r.order.status = "open"
+        self.r.order.save(update_fields=["status"])
+        self.assertEqual(self.count(), 1)
+
+    def test_a_closed_or_cancelled_bill_does_not(self):
+        for status in ("closed", "cancelled"):
+            self.r.order.status = status
+            self.r.order.save(update_fields=["status"])
+            self.assertEqual(self.count(), 0, status)
+
+    def test_the_button_is_on_other_screens_but_not_on_the_floor_it_links_to(self):
+        self.assertIn('id="notif-badge-qr"', self.client.get("/billing/").content.decode())
+        floor = self.client.get("/tables/").content.decode()
+        self.assertNotIn('id="notif-badge-qr"', floor)
+        self.assertNotIn('id="notif-badge-qr-mobile"', floor)

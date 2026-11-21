@@ -2,6 +2,7 @@
 # Moved from orders/services/table_merge_service.py (Phase 5 of the orders
 # app split).
 from django.db import transaction
+from core.errors import UserError
 from orders.models import Order, Table
 from tablemerge.models import TableMerge
 
@@ -31,8 +32,9 @@ def resolve_primary_table(table, tenant, outlet):
     return merge.primary_table if merge else table
 
 
-class MergeError(Exception):
-    """A merge that cannot be made: a table that isn't this outlet's."""
+class MergeError(UserError):
+    """A merge that cannot be made: a table that isn't this outlet's. Its
+    message is written for the person at the screen (core/errors.py)."""
 
 
 class MergeRefused(MergeError):

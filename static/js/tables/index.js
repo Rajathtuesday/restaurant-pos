@@ -12,6 +12,7 @@ import { pageData } from "../core/page_data.js";
 import { createTableActions } from "./actions.js";
 import { failedHtml, floorHtml, manageRows, menuLink, moreSheet, pickerOptions, sheetsKey, statusOf, summarise, addresses } from "./floor.js";
 import { createFloorLoader } from "./loader.js";
+import { goTo } from "../core/site_path.js";
 
 const data = pageData("page-data");
 const urls = data.urls;
@@ -77,7 +78,7 @@ function openMore(tableId) {
   const table = floor.find(tableId);
   if (!table) return;
   if (statusOf(table) === "free") {
-    window.location.href = addresses(urls).billing(table.id);
+    goTo(addresses(urls).billing(table.id));
     return;
   }
   const { note, buttons } = moreSheet(table, urls);

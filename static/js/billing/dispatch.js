@@ -20,6 +20,7 @@
  */
 import { createRequestIds } from "../core/request_id.js";
 import { withId } from "./urls.js";
+import { goTo } from "../core/site_path.js";
 
 export function createDispatch({
   cart, parcel, urls, csrf, ui, screen, offlineQueue, win = globalThis,
@@ -159,7 +160,7 @@ export function createDispatch({
         const r = await fetchFn(withId(urls.generate_bill, orderId), { method: "POST", headers: { "X-CSRFToken": csrf() } });
         const data = await r.json();
         if (data.success) {
-          win.location.href = withId(urls.bill_view, data.order_id);
+          goTo(withId(urls.bill_view, data.order_id), win);
         } else {
           ui.toast(data.error || "Failed to generate bill.", "error");
         }

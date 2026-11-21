@@ -15,6 +15,7 @@
  * print elsewhere.
  */
 import { withId } from "../billing/urls.js";
+import { goTo, sitePath } from "../core/site_path.js";
 
 const AGENT_PORT = 8765;
 
@@ -122,9 +123,10 @@ export function createBillPrinter({
 
     /* The receipt page in a small window, or in this one if popups are blocked. */
     openReceipt(orderId) {
-      const url = withId(urls.thermal_receipt, orderId);
+      const url = sitePath(withId(urls.thermal_receipt, orderId));
+      if (!url) return;
       const popup = win.open(url, "_blank", "width=440,height=700,menubar=no,toolbar=no,location=no,status=no");
-      if (!popup || popup.closed) win.location.href = url;
+      if (!popup || popup.closed) goTo(url, win);
     },
   };
 }

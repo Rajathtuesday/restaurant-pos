@@ -736,6 +736,9 @@ class BoxPrintQueueTest(BoxBase):
         job.refresh_from_db()
         self.assertEqual(job.status, PrintJob.FAILED)
         self.assertIn("didn't answer", job.error_msg)
+        # Shown to the owner: a sentence, never Python's exception text.
+        self.assertNotIn("Error", job.error_msg)
+        self.assertNotIn("Errno", job.error_msg)
 
     def test_in_the_cloud_a_job_waits_for_a_device(self):
         tenant, outlet, owner = self.restaurant()

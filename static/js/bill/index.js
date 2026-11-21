@@ -18,6 +18,7 @@ import { createDialogs } from "./dialogs.js";
 import { billDiscountProblem, promoLabel, promoProblem } from "./discounts.js";
 import { createPayment } from "./payment.js";
 import { createRazorpayQr } from "./razorpay_qr.js";
+import { goTo } from "../core/site_path.js";
 
 const data = pageData("page-data");
 const urls = data.urls;
@@ -212,7 +213,7 @@ delegate(document.body, {
     if (reason === null) return;
     try {
       const d = await api.post(urls.log_bypass, { reason });
-      if (d.success) window.location.href = data.after_close;
+      if (d.success) goTo(data.after_close);
     } catch (shown) { /* api has shown the error; the bill stays open */ }
   },
   "bill.stay": (link, event) => {

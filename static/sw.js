@@ -1,8 +1,8 @@
 /* ============================================================
-   Rasova POS — Service Worker
+   Rasova POS: Service Worker
    Handles: offline caching, install prompt.
-   (Offline order queuing lives in page JS — see offlineQueue in
-   templates/core/base.html — not here. Background Sync API support is
+   (Offline order queuing lives in page JS (see offlineQueue in
+   templates/core/base.html), not here. Background Sync API support is
    unreliable inside the Android app's WebView, so the queue is flushed
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
@@ -142,7 +142,7 @@ self.addEventListener('fetch', event => {
 
     // Skip: non-GET, cross-origin API calls, admin, landing page
     if (request.method !== 'GET') return;
-    if (url.pathname === '/') return;           // landing page — let nginx/browser handle it
+    if (url.pathname === '/') return;           // landing page: let nginx/browser handle it
     if (url.pathname.startsWith('/admin/')) return;
     if (url.pathname.startsWith('/api/')) return;
     // /live-demo/ redirects to the tenant's own subdomain (see
@@ -154,6 +154,13 @@ self.addEventListener('fetch', event => {
     // navigating. Let the browser handle this redirect natively, same
     // reasoning as the landing page skip just above.
     if (url.pathname === '/live-demo/') return;
+
+    // Another host's files are the browser's own business, except images
+    // (dish photos and logos on the media host), kept for offline. A script
+    // such as Cloudflare's analytics beacon, which a blocker refuses, used to
+    // come through here and be answered with nothing: "Failed to convert
+    // value to 'Response'" in every console (21 Nov 2026).
+    if (url.hostname !== location.hostname && request.destination !== 'image') return;
 
     // Our own static files whose name does not carry a hash of their content
     // (every one of them on a development machine, where nothing is hashed):
@@ -180,8 +187,9 @@ self.addEventListener('fetch', event => {
     }
 
     // Static files that can never change under the same name (production's
-    // hashed names, app.3f2a9c1b7d4e.js) and files from other hosts: the kept
-    // copy first.
+    // hashed names, app.3f2a9c1b7d4e.js) and images from other hosts: the
+    // kept copy first. With no copy and no network the answer is a network
+    // error (Response.error()), never nothing: respondWith(undefined) throws.
     if (
         url.hostname !== location.hostname ||
         url.pathname.startsWith('/static/')
@@ -194,13 +202,13 @@ self.addEventListener('fetch', event => {
                         caches.open(STATIC_CACHE).then(c => c.put(request, clone));
                     }
                     return response;
-                }).catch(() => cached)
+                }).catch(() => Response.error())
             )
         );
         return;
     }
 
-    // App pages — network first, cache on success, serve cache when offline
+    // App pages: network first, cache on success, serve cache when offline
     const isBillingOrKitchen = url.pathname.startsWith('/billing') || url.pathname.startsWith('/kitchen');
     event.respondWith(
         fetch(request, { credentials: 'include' })

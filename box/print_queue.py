@@ -42,7 +42,11 @@ def print_job(job_id, tries=2, wait=2.0):
         host = str(payload["network_host"])
         port = int(payload.get("network_port") or 9100)
     except (KeyError, TypeError, ValueError) as e:
-        _finish(job_id, error=f"The print job is incomplete ({e}).")
+        # The owner sees error_msg (Setup's Test Print, the printer chip): a
+        # sentence for them, the exception only in the log (CodeQL
+        # py/stack-trace-exposure, 21 Nov 2026).
+        logger.warning("Box print job %s is incomplete: %s: %s", job_id, type(e).__name__, e)
+        _finish(job_id, error="The print job is incomplete. Print it again.")
         return False
     last = ""
     for attempt in range(tries):
@@ -56,7 +60,8 @@ def print_job(job_id, tries=2, wait=2.0):
             if attempt + 1 < tries:
                 time.sleep(wait)
     logger.warning("Box print job %s: printer %s:%s didn't answer (%s)", job_id, host, port, last)
-    _finish(job_id, error=f"The printer at {host}:{port} didn't answer ({last})."[:512])
+    _finish(job_id, error=(f"The printer at {host}:{port} didn't answer. Check it is on, has paper "
+                           "and is on the same network.")[:512])
     return False
 
 
