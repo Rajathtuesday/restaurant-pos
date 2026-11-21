@@ -10,12 +10,13 @@
 {% block page_title %}Waiter Calls{% endblock %}
 
 {% block header_links %}
+{# One control each; the header fits them into one row (static/js/core/header_fit.js). #}
 {% if 'floor_plan' in tenant_features %}
-<a href="/tables/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Floor Plan</a>
-<a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
+<a href="/tables/" class="btn-luxury text-decoration-none" title="Floor Plan" aria-label="Floor Plan" data-fit="Floor Plan" data-fit-rank="1"><i class="bi bi-grid-3x3"></i><span class="fit-word">Floor Plan</span></a>
+<a href="/billing/" class="btn-luxury text-decoration-none" title="Billing" aria-label="Billing" data-fit="Billing" data-fit-rank="2"><i class="bi bi-receipt"></i><span class="fit-word">Billing</span></a>
 {% endif %}
 {% if 'kitchen_display' in tenant_features %}
-<a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
+<a href="/kitchen/" class="btn-luxury text-decoration-none" title="Kitchen" aria-label="Kitchen" data-fit="Kitchen" data-fit-rank="3"><i class="bi bi-fire"></i><span class="fit-word">Kitchen</span></a>
 {% endif %}
 {% endblock %}
 

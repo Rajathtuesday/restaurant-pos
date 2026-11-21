@@ -117,6 +117,10 @@ class BusyScreensFitTest(BrowserTestCase):
             "running order": f"/order/{self.r.order.id}/",
             "live orders": "/live-orders/",
             "token counter": f"/token/{self.token_order.id}/bill/",
+            # Group 2
+            "kitchen": "/kitchen/",
+            "waiter calls": "/waiter-dashboard/",
+            "dashboard": "/dashboard/",
         }
         for label, url in pages.items():
             for width in (390, 768, 1366):

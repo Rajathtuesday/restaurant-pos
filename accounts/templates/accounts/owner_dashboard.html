@@ -18,7 +18,7 @@
 </div>
 {% endif %}
 {% if 'reports' in tenant_features %}
-<a href="{% url 'reports_dashboard' %}" class="btn-luxury text-decoration-none d-none d-md-inline-flex">Reports</a>
+<a href="{% url 'reports_dashboard' %}" class="btn-luxury text-decoration-none" title="Reports" aria-label="Reports" data-fit="Reports" data-fit-rank="2"><i class="bi bi-bar-chart-line"></i><span class="fit-word">Reports</span></a>
 {% endif %}
 {% endblock %}
 
