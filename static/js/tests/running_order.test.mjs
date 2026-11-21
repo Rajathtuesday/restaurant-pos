@@ -9,17 +9,18 @@ import { test } from "node:test";
 
 import { createRunningOrderActions } from "../running_order/actions.js";
 import { createOrderLoader } from "../running_order/loader.js";
-import { actionsHtml, badgeClass, itemHtml, listHtml, sortItems } from "../running_order/view.js";
+import { actionsHtml, approveAllHtml, badgeClass, itemHtml, listHtml, sortItems } from "../running_order/view.js";
 import { networkDown, reply, scriptedFetch } from "./helpers.mjs";
 
 const URLS = {
   data: "/order-data/7/",
   serve: "/serve-item/0/",
+  approve: "/approve-items/7/",
   bill: "/bill/7/",
   tables: "/tables/",
 };
-const ALL = { edit: true, serve: true, comp: true, edit_served: true, cancel_order: true };
-const NONE = { edit: false, serve: false, comp: false, edit_served: false, cancel_order: false };
+const ALL = { edit: true, serve: true, comp: true, edit_served: true, cancel_order: true, approve: true };
+const NONE = { edit: false, serve: false, comp: false, edit_served: false, cancel_order: false, approve: false };
 const dish = (id, status, extra = {}) => ({
   id, name: "Dish " + id, quantity: 1, status, void_reason: "", is_complimentary: false, modifiers: [], ...extra,
 });
@@ -82,6 +83,28 @@ test("what people typed is escaped: dish, add-on and reason", () => {
   assert.ok(!html.includes("<script>"));
   assert.ok(!html.includes('<img src=x'));
   assert.match(html, /&lt;b&gt;Naan&lt;\/b&gt;/);
+});
+
+test("a guest's QR dish waiting has a tick and a cross, and nothing else", () => {
+  assert.deepEqual(actionsOf(actionsHtml(dish(9, "review"), ALL)), ["item.approve", "item.refuse"]);
+  assert.deepEqual(actionsOf(actionsHtml(dish(9, "review"), { ...ALL, approve: false })), []);
+  const html = itemHtml(dish(9, "review", { name: "Brownie" }), ALL);
+  assert.match(html, /needs approval/);
+  assert.match(html, /aria-label="Not accepted: Brownie"/);
+});
+
+test("Approve all shows once two or more guest dishes wait", () => {
+  assert.equal(approveAllHtml([dish(1, "review"), dish(2, "sent")], ALL), "");
+  assert.match(approveAllHtml([dish(1, "review"), dish(2, "review")], ALL), /2 guest dishes waiting/);
+  assert.equal(approveAllHtml([dish(1, "review"), dish(2, "review")], NONE), "");
+  assert.deepEqual(actionsOf(listHtml([dish(1, "review"), dish(2, "review")], ALL))[0], "order.approveAll");
+});
+
+test("a dish not accepted says so, with the reason", () => {
+  const html = itemHtml(dish(4, "voided", { not_accepted: true, void_reason: "Not available" }), ALL);
+  assert.match(html, /Not accepted: Not available/);
+  assert.match(html, /not accepted</);
+  assert.match(itemHtml(dish(4, "voided", { void_reason: "Wrong order" }), ALL), /Cancelled: Wrong order/);
 });
 
 test("an order with no dishes shows the shared empty state, not a blank", () => {
@@ -170,6 +193,7 @@ function fakeEdit(answers = {}) {
     reduce: (item) => answer("reduce", item.id),
     remove: (item) => answer("remove", item.id),
     complimentary: (item) => answer("complimentary", item.id),
+    notAccepted: (item) => answer("notAccepted", item.id),
     cancelOrder: (id, opts) => answer("cancelOrder", [id, opts]),
     post: (url, body) => answer("post", [url, body]),
   };
@@ -199,6 +223,37 @@ test("a refused serve shows the server's words and still refreshes", async () =>
   const { actions, seen } = actionsWith(edit);
   assert.equal(await actions.serve(12), null);
   assert.deepEqual(seen.toasts, [["Feature 'kitchen_display' is not available", "error"]]);
+  assert.equal(seen.refreshes, 1);
+});
+
+test("a tick approves that one dish; Approve all sends no list", async () => {
+  const edit = fakeEdit({ post: { success: true, count: 1, sent_to_kitchen: true } });
+  const { actions, seen } = actionsWith(edit);
+  await actions.approve("9");
+  assert.deepEqual(edit.calls, [["post", ["/approve-items/7/", { item_ids: [9] }]]]);
+  assert.deepEqual(seen.toasts, [["Dish sent to the kitchen", "success"]]);
+  assert.equal(seen.refreshes, 1);
+
+  const all = fakeEdit({ post: { success: true, count: 3, sent_to_kitchen: false } });
+  const second = actionsWith(all);
+  await second.actions.approveAll();
+  assert.deepEqual(all.calls, [["post", ["/approve-items/7/", {}]]]);
+  assert.deepEqual(second.seen.toasts, [["3 dishes approved", "success"]]);
+});
+
+test("a refused approve shows the server's words and still refreshes", async () => {
+  const edit = fakeEdit({ post: () => Promise.reject(new Error("Nothing here is waiting for approval any more.")) });
+  const { actions, seen } = actionsWith(edit);
+  assert.equal(await actions.approve(9), null);
+  assert.deepEqual(seen.toasts, [["Nothing here is waiting for approval any more.", "error"]]);
+  assert.equal(seen.refreshes, 1);
+});
+
+test("a cross opens the Not accepted sheet for that dish", async () => {
+  const edit = fakeEdit();
+  const { actions, seen } = actionsWith(edit);
+  await actions.refuse(dish(9, "review"));
+  assert.deepEqual(edit.calls, [["notAccepted", 9]]);
   assert.equal(seen.refreshes, 1);
 });
 

@@ -175,6 +175,19 @@ html.dark .btn-close { filter: invert(1); }
 .btn-luxury.btn-sheet-billing, .btn-luxury.btn-sheet-billing:hover { color: #06b6d4; border-color: #06b6d4; }
 .btn-luxury.btn-sheet-bill, .btn-luxury.btn-sheet-bill:hover { color: #10b981; border-color: #10b981; }
 .btn-luxury.btn-sheet-approval, .btn-luxury.btn-sheet-approval:hover { color: #f43f5e; border-color: #f43f5e; background: rgba(244,63,94,0.1); }
+/* A guest's QR dishes on the More sheet: a tick and a cross on each */
+.guest-dishes { list-style: none; margin: 0 0 0.25rem; padding: 0; text-align: left; }
+.guest-dish { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border-color); }
+.guest-dish:last-child { border-bottom: none; }
+.guest-dish-name { flex: 1; min-width: 0; color: var(--text-main); font-size: 0.9rem; overflow-wrap: anywhere; }
+.guest-dish-btn {
+    flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    border-radius: var(--border-radius, 0); border: 1px solid var(--border-color); background: transparent; font-size: 1.1rem;
+}
+.guest-dish-btn.is-yes { color: #10b981; border-color: #10b981; }
+.guest-dish-btn.is-yes:hover { background: rgba(16,185,129,0.12); }
+.guest-dish-btn.is-no { color: #ef4444; border-color: #ef4444; }
+.guest-dish-btn.is-no:hover { background: rgba(239,68,68,0.12); }
 .manage-table { color: var(--text-main); }
 .manage-table thead { border-bottom: 2px solid var(--border-color); }
 

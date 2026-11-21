@@ -14,7 +14,7 @@
  */
 import { readTable } from "../cart_tax.js";
 import { readPage } from "../offers.js";
-import { configure as configureOrderEdit, cancelOrder as orderEditCancel } from "../order_edit.js";
+import { configure as configureOrderEdit, cancelOrder as orderEditCancel, notAccepted } from "../order_edit.js";
 import { api, ui, platform, orderQueue, paymentQueue } from "../core/app.js";
 import { csrfToken } from "../core/csrf.js";
 import { delegate, onReady } from "../core/dom.js";
@@ -113,7 +113,7 @@ const tokens = mode === "token"
   })
   : null;
 
-configureOrderEdit({ cancelOrder: urls.cancel_order });
+configureOrderEdit({ cancelOrder: urls.cancel_order, refuse: urls.refuse_item });
 
 /* ---- dine-in: table and source ----------------------------------------- */
 
@@ -218,7 +218,11 @@ delegate(document.body, {
   "order.bill": (el) => dispatch.bill(el.dataset.id ? Number(el.dataset.id) : currentOrderId),
   "order.cancel": (el) => cancelOrder(Number(el.dataset.id)),
   "item.approve": (el) => itemAction(urls.approve_item, el.dataset.id, "Item approved", "Could not approve item"),
-  "item.reject": (el) => itemAction(urls.cancel_item, el.dataset.id, "Item rejected", "Could not reject item"),
+  // Not accepting a guest's dish asks why; the guest's phone shows it.
+  "item.reject": async (el) => {
+    const done = await notAccepted({ id: el.dataset.id, name: el.dataset.name || "this dish", quantity: Number(el.dataset.quantity) || 1, status: "review" });
+    if (done) running.refresh();
+  },
   "receipt.print": (el) => printReceipt(Number(el.dataset.id)),
   "token.select": (el, event) => {
     event.preventDefault();

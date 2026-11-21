@@ -69,6 +69,16 @@ export function cartHtml({ lines, lineTotal, notes = [], already = [] }) {
   return html;
 }
 
-export function statusItemsHtml(items) {
-  return orderedRows(items) || '<div class="status-sheet-item-row"><span>No items yet</span></div>';
+/* A dish the restaurant did not accept, so the guest is not left waiting
+   for it: "Not accepted: 1x Brownie (Not available)". */
+function refusedRows(items) {
+  return items.map((i) => `<div class="status-sheet-item-row is-refused">
+      <span class="name">Not accepted: ${esc(i.quantity)}x ${esc(i.name)}</span>
+      <span>${i.reason ? esc(i.reason) : ""}</span>
+    </div>`).join("");
+}
+
+export function statusItemsHtml(items, notAccepted = []) {
+  const rows = orderedRows(items) + refusedRows(notAccepted);
+  return rows || '<div class="status-sheet-item-row"><span>No items yet</span></div>';
 }

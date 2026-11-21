@@ -32,6 +32,7 @@ def tables_page_data():
             "unmerge_tables": reverse("unmerge-tables", args=[0]),
             "generate_bill": reverse("generate-bill", args=[0]),
             "approve_items": reverse("approve-items", args=[0]),
+            "refuse_item": reverse("refuse-item", args=[0]),
             "billing": reverse("billing-view"),
             "bill": reverse("bill-view", args=[0]),
             "running_order": reverse("running-order", args=[0]),
@@ -81,7 +82,7 @@ def tables_data(request):
             Order.objects
             .filter(tenant=tenant, outlet=outlet, status__in=["open", "billing"])
             .select_related("table", "created_by")
-            .prefetch_related("items")
+            .prefetch_related("items__menu_item")
         )
         orders_map = {o.table_id: o for o in orders}
 
@@ -101,7 +102,14 @@ def tables_data(request):
 
                 cooking_items = 0
                 elapsed_minutes = 0
+                guest_items = []
                 if order:
+                    # A guest's QR dishes waiting for a yes: the floor sheet
+                    # shows each with a tick and a cross (tables/floor.js).
+                    guest_items = [
+                        {"id": i.id, "name": i.menu_item.name if i.menu_item else "Item", "quantity": i.quantity}
+                        for i in order.items.all() if i.status == "review"
+                    ]
                     cooking_items = sum(1 for i in order.items.all() if i.status in ["sent", "preparing"])
                     elapsed_minutes = int((now - order.created_at).total_seconds() / 60)
 
@@ -163,6 +171,7 @@ def tables_data(request):
                     "qr_token": str(table.qr_token),
                     "status": status,
                     "order_id": order.id if order else None,
+                    "guest_items": guest_items,
                     "cooking_items": cooking_items,
                     "elapsed": elapsed_minutes,
                     "merged": is_secondary or is_primary,

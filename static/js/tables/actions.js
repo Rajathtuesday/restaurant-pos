@@ -1,7 +1,7 @@
 /*
  * What a tap on the floor plan asks the server to do: make the bill, mark
- * a table clean, combine and split tables, move an order, approve what a
- * guest ordered by QR, add or rename a table.
+ * a table clean, combine and split tables, move an order, approve (or not
+ * accept) what a guest ordered by QR, dish by dish, add or rename a table.
  *
  * `api` (core/http.js) shows the server's refusal, or "you are offline",
  * as a toast and throws; an action then simply stops and the floor stays
@@ -105,6 +105,31 @@ export function createTableActions({ api, ui, urls, refresh, go, closeSheets = (
         if (!answer || !answer.isConfirmed) return;
         await api.post(withId(urls.approve_items, orderId), {});
         await done("Items Approved & Sent to Kitchen");
+      });
+    },
+
+    /* Accept one guest dish. Resolves true when the server took it; the
+       sheet stays open for the rest (index.js drops the row). */
+    approveOne(orderId, itemId, name) {
+      const id = whole(itemId);
+      if (!id) return Promise.resolve(false);
+      return once("approve-one:" + id, async () => {
+        const d = await api.post(withId(urls.approve_items, orderId), { item_ids: [id] });
+        ui.toast(d.sent_to_kitchen ? `${name} sent to the kitchen` : `${name} approved`, "success");
+        await refresh();
+      });
+    },
+
+    /* Not accept one guest dish. `ask` is the reason sheet
+       (order_edit.js notAccepted): it sends the reason and says so, and
+       resolves null when the waiter backs out. */
+    refuse(item, ask) {
+      const id = whole(item.id);
+      if (!id) return Promise.resolve(false);
+      return once("refuse:" + id, async () => {
+        const answered = await ask({ id, name: item.name, quantity: whole(item.quantity) || 1, status: "review" });
+        if (!answered) throw new Error("backed out");
+        await refresh();
       });
     },
 

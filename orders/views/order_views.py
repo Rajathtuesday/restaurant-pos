@@ -5,12 +5,12 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from django.db import transaction
 from core.decorators import may, tenant_required, feature_required
 from django.urls import reverse
+from core.errors import error_response
+from orders.exceptions import OrderError
 from orders.models import Order, OrderItem
 from tablemerge.models import TableMerge
-from orders.services.event_service import log_event
 
 logger = logging.getLogger("pos.orders")
 
@@ -36,6 +36,8 @@ def running_order_page_data(order, user):
             "comp": may(user, make_item_complimentary),
             # A served dish needs a manager (void_service): locked for the rest.
             "edit_served": approvals.approves_own(user),
+            # A guest's QR dish: a tick and a cross (approve_items, refuse_item).
+            "approve": may(user, approve_items) and may(user, refuse_item),
         },
         "urls": {
             "data": reverse("running-order-data", args=[order.id]),
@@ -44,6 +46,8 @@ def running_order_page_data(order, user):
             "cancel_order": reverse("cancel-order", args=[0]),
             "serve": reverse("serve-item", args=[0]),
             "comp": reverse("make-complimentary", args=[0]),
+            "approve": reverse("approve-items", args=[order.id]),
+            "refuse": reverse("refuse-item", args=[0]),
             "bill": reverse("bill-view", args=[order.id]),
             "tables": reverse("table-dashboard"),
         },
@@ -238,6 +242,7 @@ def running_order_data(request, order_id):
             "quantity": i.quantity,
             "status": i.status,
             "void_reason": i.void_reason or "",
+            "not_accepted": i.not_accepted,
             "is_complimentary": i.is_complimentary,
             "modifiers": [m.name for m in i.modifiers.all()],
             **kitchen_stock_hint(i, is_manager, now),
@@ -251,45 +256,59 @@ def running_order_data(request, order_id):
     })
 
 
+def _item_ids(request):
+    """The dish ids in a request's body, {"item_ids": [3, 4]}: a list of
+    whole numbers, or None when the body names none (meaning all of them).
+    A body that is not JSON names none, as before 21 Nov 2026."""
+    import json
+    if request.content_type != "application/json":
+        return None
+    try:
+        data = json.loads(request.body or b"{}")
+    except (ValueError, UnicodeDecodeError):
+        raise OrderError("The request could not be read.")
+    ids = data.get("item_ids") if isinstance(data, dict) else None
+    if ids is None:
+        return None
+    if not isinstance(ids, list) or not ids or not all(type(i) is int for i in ids):
+        raise OrderError("item_ids must be a list of dish ids.")
+    return ids
+
+
+def _approved(result):
+    sent = bool(result["kots"])
+    return JsonResponse({
+        "success": True,
+        "count": len(result["approved"]),
+        "approved": result["approved"],
+        "sent_to_kitchen": sent,
+        "kots": result["kots"],
+        "waiting": result["waiting"],
+    })
+
+
 @login_required
 @tenant_required
 @feature_required("qr_menu")
 @require_POST
 def approve_items(request, order_id):
-    """Waiters approve items added via QR code."""
+    """
+    Accept a guest's QR dishes on one order: every one still waiting, or
+    only those in {"item_ids": [...]}. A dine-in order's accepted dishes go
+    to the kitchen now; a token order's at payment
+    (orders/services/guest_items.py, the one rule for every screen).
+    """
+    from orders.services.guest_items import approve_guest_items
+
+    # The order is found (or a 404) before the body is read.
+    if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Order not found"}, status=404)
     try:
-        tenant = request.user.tenant
-        outlet = request.user.outlet
-        
-        with transaction.atomic():
-            items = OrderItem.objects.filter(
-                order_id=order_id,
-                order__tenant=tenant,
-                order__outlet=outlet,
-                status="review"
-            ).select_for_update()
-            
-            if not items.exists():
-                return JsonResponse({"error": "No items found for approval"}, status=404)
-            
-            count = items.count()
-            items.update(status="pending")
-            
-            order = Order.objects.get(id=order_id)
-            
-            # Trigger KOT creation for the newly approved items
-            try:
-                from kitchen.services.kot_service import create_kot
-                create_kot(request.user, order)
-            except Exception as kot_err:
-                logger.error("KOT Creation failed during approval: %s", kot_err)
-                # We don't fail the whole request, but we log it
-            
-            log_event(order, "status_changed", request.user, {"action": "items_approved", "count": count})
-            
-            logger.info("User %s approved %s items for order #%s", request.user.username, count, order_id)
-            
-        return JsonResponse({"success": True, "count": count})
+        return _approved(approve_guest_items(request.user, order_id, _item_ids(request)))
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except OrderError as e:
+        return error_response(e, 400)
     except Exception:
         logger.exception("approve_items error")
         return JsonResponse({"error": "Could not approve the items. Please try again."}, status=400)
@@ -301,46 +320,62 @@ def approve_items(request, order_id):
 @require_POST
 def approve_item(request, item_id):
     """
-    Singular sibling of approve_items: lets staff approve one QR-guest
-    item at a time instead of all-or-nothing, with cancel_item (existing,
-    already "review"-safe, see void_service.void_order_item) as the
-    per-item counterpart for rejecting instead of approving.
-
-    Deliberately does NOT create a KOT (unlike approve_items, which does).
-    approve_items is fine-dining's "waiter approves a QR add-on" action --
-    dine-in customers eat before they pay, so kitchen prep starting the
-    moment an item is approved is correct there. This one is used on
-    Token Billing (QSR/cafe counter orders), which is the opposite model:
-    pay first, then the kitchen fires -- see pay_order's _auto_kot, which
-    now fires for every token order regardless of whether the outlet also
-    runs a kitchen display. Approving here just accepts the item onto the
-    bill; the KOT gets created once at payment, not once per approval.
+    Accept one guest dish. The same rule as approve_items: on a dine-in
+    order it goes to the kitchen now, on a token order at payment. (Before
+    21 Nov 2026 this one never sent a ticket, so a dine-in dish approved on
+    its own never reached the kitchen.)
     """
-    try:
-        with transaction.atomic():
-            item = (
-                OrderItem.objects
-                .select_for_update()
-                .select_related("order")
-                .get(
-                    id=item_id,
-                    order__tenant=request.user.tenant,
-                    order__outlet=request.user.outlet,
-                )
-            )
-            if item.status != "review":
-                return JsonResponse({"error": "Item is not awaiting approval"}, status=400)
+    from orders.services.guest_items import approve_guest_items
 
-            item.status = "pending"
-            item.save(update_fields=["status"])
-
-            order = item.order
-            log_event(order, "status_changed", request.user, {"action": "item_approved", "item_id": item.id})
-            logger.info("User %s approved item #%s", request.user.username, item_id)
-
-        return JsonResponse({"success": True})
-    except OrderItem.DoesNotExist:
+    order_id = (
+        OrderItem.objects
+        .filter(id=item_id, order__tenant=request.user.tenant, order__outlet=request.user.outlet)
+        .values_list("order_id", flat=True)
+        .first()
+    )
+    if order_id is None:
         return JsonResponse({"error": "Item not found"}, status=404)
+    try:
+        return _approved(approve_guest_items(request.user, order_id, [item_id]))
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    except OrderError as e:
+        return error_response(e, 400)
     except Exception:
         logger.exception("approve_item error")
         return JsonResponse({"error": "Could not approve the item. Please try again."}, status=400)
+
+
+@login_required
+@tenant_required
+@feature_required("qr_menu")
+@require_POST
+def refuse_item(request, item_id):
+    """
+    Not accept one guest dish still waiting for approval. Body:
+    {"reason": "Not available"}. The dish is cancelled, the kitchen never
+    saw it, and the guest's phone says "Not accepted". No manager PIN,
+    unless the bill is already printed (then the usual PIN prompt).
+    """
+    from orders.services import approvals
+    from orders.services.guest_items import refuse_guest_item
+    from orders.views.order_actions import _json_body, _needs_approval, _reason
+
+    if not OrderItem.objects.filter(id=item_id, order__tenant=request.user.tenant,
+                                    order__outlet=request.user.outlet).exists():
+        return JsonResponse({"error": "Item not found"}, status=404)
+    try:
+        approver = approvals.read_approval(request, request.user.outlet)
+        item = refuse_guest_item(request.user, item_id, _reason(_json_body(request), "Not accepted"),
+                                 approver=approver)
+        new_total = Order.objects.get(id=item.order_id).grand_total
+        return JsonResponse({"success": True, "new_total": float(new_total)})
+    except OrderItem.DoesNotExist:
+        return JsonResponse({"error": "Item not found"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return _needs_approval(request, e)
+    except OrderError as e:
+        return error_response(e, 400)
+    except Exception:
+        logger.exception("refuse_item error")
+        return JsonResponse({"error": "Could not take the dish off. Please try again."}, status=400)

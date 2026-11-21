@@ -245,14 +245,22 @@ def order_status(request, signed_token):
 
     order = get_object_or_404(Order, id=order_id)
 
-    items = list(order.items.exclude(status="voided").select_related("menu_item"))
+    from orders.services.guest_items import guest_reason
+
+    lines = list(order.items.select_related("menu_item"))
+    items = [i for i in lines if i.status != "voided"]
+    # A dish staff did not accept is listed apart, so it does not just
+    # vanish: "Not accepted: Brownie (Not available)".
+    refused = [i for i in lines if i.status == "voided" and i.not_accepted]
 
     # Collapse per-item statuses into one plain-English stage for the customer.
     # Mirrors the staff-facing priority order in orders/views/table_views.py
     # (needs_approval > ordering > preparing > ready > served) but worded for
     # a guest rather than staff.
     statuses = {i.status for i in items}
-    if not items:
+    if not items and refused:
+        stage, label = "not_accepted", "The restaurant could not accept your order"
+    elif not items:
         stage, label = "placed", "Order received"
     elif "review" in statuses:
         stage, label = "waiting_confirmation", "Waiting for the restaurant to confirm your order"
@@ -293,6 +301,14 @@ def order_status(request, signed_token):
                 "status": i.status,
             }
             for i in items
+        ],
+        "not_accepted": [
+            {
+                "name": i.menu_item.name if i.menu_item else "Item",
+                "quantity": i.quantity,
+                "reason": guest_reason(i),
+            }
+            for i in refused
         ],
     })
 

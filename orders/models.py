@@ -456,6 +456,14 @@ class Order(TenantScopedModel):
         from django.db.models import Sum
         return self.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
+    @property
+    def pays_first(self):
+        """True for an order paid before it is cooked: a token (counter)
+        order. Its kitchen ticket goes at payment (pay_order). A dine-in
+        order eats first and pays after, so its dishes go to the kitchen the
+        moment they are accepted. The one place this rule lives."""
+        return hasattr(self, "token")
+
     def amount_due(self):
         """What is still to pay: nothing once the bill is settled (a refund
         approved after that is its own matter, not a balance), otherwise the
@@ -713,6 +721,12 @@ class OrderItem(models.Model):
     )
 
     voided_at = models.DateTimeField(null=True, blank=True)
+
+    # A guest's QR dish that staff did not accept: it was cancelled while it
+    # still waited for approval, so the kitchen never saw it. The guest's
+    # phone lists it as "Not accepted" (menu/views/customer_views.py) instead
+    # of letting it silently vanish. Set by void_order_item.
+    not_accepted = models.BooleanField(default=False, db_default=False)
 
     kot = models.ForeignKey(
         "kitchen.KOTBatch",

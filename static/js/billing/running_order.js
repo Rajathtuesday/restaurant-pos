@@ -59,7 +59,7 @@ export function renderTokenOrder(d) {
     const statusCell = i.status === "review"
       ? `<div class="review-item-actions">
           <button type="button" class="review-action-btn approve" title="Approve" data-action="item.approve" data-id="${i.id}"><i class="bi bi-check-lg"></i></button>
-          <button type="button" class="review-action-btn reject" title="Reject" data-action="item.reject" data-id="${i.id}"><i class="bi bi-x-lg"></i></button>
+          <button type="button" class="review-action-btn reject" title="Not accepted" aria-label="Not accepted: ${esc(i.name)}" data-action="item.reject" data-id="${i.id}" data-name="${esc(i.name)}" data-quantity="${esc(i.quantity)}"><i class="bi bi-x-lg"></i></button>
         </div>`
       : `<span class="status-badge ${statusClass(i.status)}">${esc(STATUS_LABELS[i.status] || i.status)}</span>`;
     return `<div class="running-row d-flex flex-column">

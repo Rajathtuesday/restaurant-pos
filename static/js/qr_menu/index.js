@@ -163,7 +163,7 @@ const poller = createStatusPoller({
       stage.classList.toggle("active", at === s.stage);
     });
     alreadyOrdered = s.items;
-    el("statusSheetItems").innerHTML = statusItemsHtml(s.items);
+    el("statusSheetItems").innerHTML = statusItemsHtml(s.items, s.notAccepted);
     if (cartOpen()) drawCart();
   },
 });

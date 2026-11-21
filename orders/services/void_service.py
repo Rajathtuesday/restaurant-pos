@@ -176,12 +176,15 @@ def void_order_item(user, item_id, reason, made=None, approver=None, record_afte
     in_kitchen, made = _decide_made(item, user, made, approver)
     bill_before = item.order.grand_total
 
+    # A guest's dish still waiting for approval was never accepted: the
+    # guest is told so (OrderItem.not_accepted), whichever screen did it.
+    item.not_accepted = item.status == "review"
     item.status = "voided"
     item.void_reason = reason
     item.voided_by = user
     item.voided_at = timezone.now()
 
-    item.save(update_fields=["status", "void_reason", "voided_by", "voided_at"])
+    item.save(update_fields=["status", "void_reason", "voided_by", "voided_at", "not_accepted"])
 
     # Stock was taken when the ticket went to the kitchen. Nothing to undo for
     # a dish that never got there; otherwise it goes back or becomes wastage.

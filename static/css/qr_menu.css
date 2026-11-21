@@ -483,6 +483,8 @@ body {
 }
 .status-sheet-item-row:last-child { border-bottom: none; }
 .status-sheet-item-row .name { color: var(--text-main); font-weight: 500; }
+.status-sheet-item-row.is-refused .name { color: var(--text-muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.status-sheet-item-row.is-refused span:last-child { font-style: italic; }
 
 /* CALL WAITER BUTTON */
 .call-waiter-btn {

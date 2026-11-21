@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { createTableActions } from "../tables/actions.js";
 import {
-  bySection, canTransfer, failedHtml, floorHtml, manageRows, menuLink, moreSheet, pickerOptions, sheetsKey, summarise,
+  bySection, canTransfer, failedHtml, floorHtml, guestDishes, manageRows, menuLink, moreSheet, pickerOptions, sheetsKey, summarise,
 } from "../tables/floor.js";
 import { createFloorLoader } from "../tables/loader.js";
 import { fakeUi, networkDown, reply, scriptedFetch } from "./helpers.mjs";
@@ -23,6 +23,7 @@ const URLS = {
   unmerge_tables: "/unmerge-tables/0/",
   generate_bill: "/generate-bill/0/",
   approve_items: "/approve-items/0/",
+  refuse_item: "/refuse-item/0/",
   billing: "/billing/",
   bill: "/bill/0/",
   running_order: "/order/0/",
@@ -40,7 +41,8 @@ const FLOOR = [
   table(2, "preparing", { order_id: 20, elapsed: 12, cooking_items: 2, waiter_name: "Asha Rao", waiter_initials: "AR" }),
   table(3, "billing", { order_id: 30, elapsed: 50 }),
   table(4, "cleaning"),
-  table(5, "needs_approval", { order_id: 50, waiter_name: "Guest (QR)", waiter_initials: "QR" }),
+  table(5, "needs_approval", { order_id: 50, waiter_name: "Guest (QR)", waiter_initials: "QR",
+    guest_items: [{ id: 501, name: "Paneer Tikka", quantity: 1 }, { id: 502, name: "Brownie", quantity: 2 }] }),
   table(6, "merged", { primary_table: 2, primary_table_name: "T2" }),
   table(7, "served", { order_id: 70, elapsed: 31 }),
 ];
@@ -120,8 +122,23 @@ test("the More sheet offers what fits the table", () => {
   assert.deepEqual(actionsIn(FLOOR[1]), [["table.go", "/billing/?table=2"], ["table.go", "/order/20/"], ["table.transfer", "2"], ["table.bill", "20"]]);
   assert.deepEqual(actionsIn(FLOOR[2]), [["table.go", "/bill/30/"], ["table.go", "/billing/?table=3"]]);
   assert.deepEqual(actionsIn(FLOOR[3]), [["table.clean", "4"]]);
-  assert.deepEqual(actionsIn(FLOOR[4]), [["table.approve", "50"], ["table.go", "/order/50/"]]);
+  assert.deepEqual(actionsIn(FLOOR[4]), [
+    ["table.approveOne", "50"], ["table.refuse", undefined], ["table.approveOne", "50"], ["table.refuse", undefined],
+    ["table.approve", "50"], ["table.go", "/order/50/"]]);
   assert.equal(moreSheet(FLOOR[4], URLS).note, "Customer added items via QR");
+});
+
+test("each guest dish waiting on the sheet has a tick and a cross of its own", () => {
+  const html = guestDishes(FLOOR[4]);
+  assert.match(html, /data-guest-item="501"/);
+  assert.match(html, /1 x Paneer Tikka/);
+  assert.match(html, /2 x Brownie/);
+  assert.match(html, /data-action="table\.approveOne" data-order="50" data-item="502" data-name="Brownie"/);
+  assert.match(html, /data-action="table\.refuse" data-item="502" data-name="Brownie" data-quantity="2"/);
+  assert.match(html, /title="Not accepted: 2 x Brownie"/);
+  assert.equal(guestDishes(table(9, "needs_approval", { order_id: 90 })), "", "older data: no list, Approve all still there");
+  const evil = guestDishes(table(9, "needs_approval", { order_id: 90, guest_items: [{ id: 1, name: '<img src=x onerror="alert(1)">', quantity: 1 }] }));
+  assert.ok(!evil.includes("<img"), evil);
 });
 
 test("an order moves only to a free table, and only an open order can move", () => {
@@ -325,6 +342,30 @@ test("Approve asks first, then sends the QR order to the kitchen", async () => {
   await yes.actions.approve("50");
   assert.deepEqual(yes.api.calls, [{ url: "/approve-items/50/", body: {} }]);
   assert.deepEqual([yes.seen.closed, yes.seen.refreshed], [1, 1]);
+});
+
+test("a tick accepts one guest dish and keeps the sheet open for the rest", async () => {
+  const r = rig([{ success: true, count: 1, sent_to_kitchen: true }, { success: true, count: 1, sent_to_kitchen: false }]);
+  assert.equal(await r.actions.approveOne("50", "502", "Brownie"), true);
+  assert.deepEqual(r.api.calls, [{ url: "/approve-items/50/", body: { item_ids: [502] } }]);
+  assert.deepEqual(r.asked, [], "one visible dish: no are-you-sure");
+  assert.deepEqual(r.ui.calls.toast, [["Brownie sent to the kitchen", "success"]]);
+  assert.deepEqual([r.seen.closed, r.seen.refreshed], [0, 1]);
+  await r.actions.approveOne("60", "601", "Beer");
+  assert.deepEqual(r.ui.calls.toast[1], ["Beer approved", "success"], "a token order waits for payment");
+  assert.equal(await r.actions.approveOne("50", "x", "Bad"), false);
+  assert.equal(r.api.calls.length, 2);
+});
+
+test("a cross asks why, and nothing changes when the waiter backs out", async () => {
+  const r = rig([]);
+  const asked = [];
+  const sheet = (answer) => async (dish) => { asked.push(dish); return answer; };
+  assert.equal(await r.actions.refuse({ id: "502", name: "Brownie", quantity: "2" }, sheet(null)), false);
+  assert.equal(r.seen.refreshed, 0);
+  assert.equal(await r.actions.refuse({ id: "502", name: "Brownie", quantity: "2" }, sheet({ success: true })), true);
+  assert.deepEqual(asked[1], { id: 502, name: "Brownie", quantity: 2, status: "review" });
+  assert.equal(r.seen.refreshed, 1);
 });
 
 test("Combine sends the two tables as numbers, and refuses a table with itself", async () => {

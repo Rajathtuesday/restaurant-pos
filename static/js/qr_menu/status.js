@@ -8,11 +8,11 @@
    has a place on the four-step timeline. */
 export const STAGE_INDEX = {
   placed: 0, confirmed: 0, waiting_confirmation: 0,
-  preparing: 1, ready: 2, served: 3,
+  preparing: 1, ready: 2, served: 3, not_accepted: 0,
 };
 const PILL = {
   placed: "Received", confirmed: "Received", waiting_confirmation: "Received",
-  preparing: "Preparing", ready: "Ready!", served: "Served",
+  preparing: "Preparing", ready: "Ready!", served: "Served", not_accepted: "Not accepted",
 };
 
 /* What the pill and the sheet show for one answer. */
@@ -26,6 +26,8 @@ export function describeStatus(data) {
     token: data.token_display || null,
     table: data.table || "",
     items: Array.isArray(data.items) ? data.items : [],
+    // Dishes staff did not accept, each with the reason when there is one.
+    notAccepted: Array.isArray(data.not_accepted) ? data.not_accepted : [],
   };
 }
 

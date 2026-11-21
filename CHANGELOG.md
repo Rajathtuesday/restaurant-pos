@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-11-21: A guest's QR dishes, approved or not accepted one by one
+
+A waiter could approve all of a guest's QR dishes on the floor, or leave the floor to remove some, but not approve them one by one; and the one per-dish approve (built for the token counter) never sent a ticket, so a dine-in dish approved on its own never reached the kitchen. Plan: `md_files/eli5_qr_approve_each_dish_2026-11-21.html`.
+
+### Fixed
+- **One approve rule** (`orders/services/guest_items.py`): accept one dish, some, or all in one step (`POST /approve-items/<order>/` with an optional `{"item_ids": [...]}`; `/approve-item/<item>/` is the one-dish case). A dine-in order's accepted dishes go to the kitchen at once; a token (counter) order's at payment. The rule lives on the order (`Order.pays_first`), and `pay_order` and the serve-on-close step read it from there. Behaviour change: approving all of a token order no longer sends a ticket before payment (the kitchen used to cook an unpaid counter order).
+- **Tick and cross on the floor:** tapping a REVIEW table lists each guest dish with a tick and a cross (44 px, at phone and tablet widths), plus Approve all; the sheet stays open until every dish is answered.
+- **The same on the running order page**, with Approve all when two or more wait. "Review Items Individually" now really can approve.
+- **Not accepted, with a reason:** "Not available", "Guest changed mind", "Ordered twice" or typed (`POST /refuse-item/<item>/`, any staff who can approve). No manager PIN for a dish the kitchen never saw; a printed bill keeps the usual PIN. The token counter's cross asks the same way. A dish already in the kitchen is refused here (Remove has its own rules).
+- The reason sheet now opens inside the floor's own sheet, so its "Other reason" box can take typing (the sheet's focus trap took it before).
+
+### Added (agreed by the owner with the plan)
+- **The guest is told:** the guest's phone lists "Not accepted: 1x Brownie" with the reason, instead of the dish silently vanishing; every dish refused says the order was not accepted. Only the three chip reasons are shown to the guest; a typed reason stays with staff. Marked by `OrderItem.not_accepted` (migration `orders.0074`, additive), set wherever a waiting dish is cancelled.
+
+### Tests
+- `orders/tests/test_guest_dish_approval.py` (21): one dish of a dine-in order goes to the kitchen and the others wait; some in one step; a dish already answered or another order's dish is refused; bad `item_ids` are refused; a token order sends no ticket before payment; not accepted with a reason by a waiter, no PIN; any screen's cancel of a waiting dish marks it, a cooked dish's does not; the guest sees the dish and the chip reason, never a typed one; the floor and the running order get what they draw; another restaurant's order or dish is a 404. 20 of them fail on the old code (the 21st guards Approve all).
+- `orders/tests/test_guest_dish_browser.py` (4, Chromium): the floor sheet's tick and cross at 390 and 768 px (on screen, 44 px, uncovered; the reason sheet inside the floor sheet takes typing, which fails without the fix); the running order page at both widths; the guest's phone lists the dish not accepted.
+- Node: `tables.test.mjs`, `running_order.test.mjs`, `qr_menu.test.mjs` cover the lists, the taps and the guest's rows. `test_counter_qr.py` follows the token rule.
+
 ## 2026-11-21: The header is one row that fits the screen
 
 The floor plan's header was 13 controls and wrapped to three rows on a tablet (768 px). Agreed from a live preview (`md_files/header_icons_preview_2026-11-21.html`).

@@ -190,6 +190,22 @@ export function failedHtml(message) {
   return `<div class="col-12 text-center text-danger py-5"><i class="bi bi-exclamation-triangle fs-1 d-block mb-3"></i>Failed to load floor plan. ${esc(message || "")}</div>`;
 }
 
+/* Each dish a guest ordered by QR that waits for a yes, with a tick to
+   accept it and a cross to not accept it, one tap each, right at the table. */
+export function guestDishes(t) {
+  const dishes = Array.isArray(t.guest_items) ? t.guest_items : [];
+  if (!dishes.length) return "";
+  const rows = dishes.map((d) => {
+    const label = `${d.quantity} x ${d.name}`;
+    return `<li class="guest-dish" data-guest-item="${esc(d.id)}">
+      <span class="guest-dish-name">${esc(label)}</span>
+      ${button({ action: "table.approveOne", attrs: { order: t.order_id, item: d.id, name: d.name }, label: '<i class="bi bi-check-lg" aria-hidden="true"></i>', cls: "guest-dish-btn is-yes", title: "Approve " + label })}
+      ${button({ action: "table.refuse", attrs: { item: d.id, name: d.name, quantity: d.quantity }, label: '<i class="bi bi-x-lg" aria-hidden="true"></i>', cls: "guest-dish-btn is-no", title: "Not accepted: " + label })}
+    </li>`;
+  }).join("");
+  return `<ul class="guest-dishes" aria-label="Guest dishes waiting for approval">${rows}</ul>`;
+}
+
 /* The buttons of the "More" sheet for one table. */
 export function moreSheet(t, urls) {
   const to = addresses(urls);
@@ -214,8 +230,9 @@ export function moreSheet(t, urls) {
   if (status === "needs_approval") {
     return {
       note: "Customer added items via QR",
-      buttons: button({ action: "table.approve", attrs: { order: t.order_id }, label: '<i class="bi bi-check-circle me-2"></i>Approve All Items', cls: "btn-luxury w-100 btn-sheet-approval" })
-        + go(to.order(t.order_id), "Review Items Individually"),
+      buttons: guestDishes(t)
+        + button({ action: "table.approve", attrs: { order: t.order_id }, label: '<i class="bi bi-check-circle me-2"></i>Approve all', cls: "btn-luxury w-100 btn-sheet-approval" })
+        + go(to.order(t.order_id), "Show Running Order"),
     };
   }
   return {

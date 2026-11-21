@@ -25,11 +25,27 @@ export function createRunningOrderActions({ edit, toast, urls, orderId, refresh,
     }
   }
 
+  async function approveSome(ids) {
+    try {
+      const d = await edit.post(urls.approve, ids ? { item_ids: ids } : {});
+      const what = d.count === 1 ? "Dish" : `${d.count} dishes`;
+      toast(d.sent_to_kitchen ? `${what} sent to the kitchen` : `${what} approved`, "success");
+      return d;
+    } catch (err) {
+      toast(err.message || "Could not approve.", "error");
+      return null;
+    }
+  }
+
   return {
     busy: () => busy,
     reduce: (item) => once(() => edit.reduce(item)),
     remove: (item) => once(() => edit.remove(item)),
     comp: (item) => once(() => edit.complimentary(item)),
+    /* A guest's QR dish: accept one, all of them, or not accept one. */
+    approve: (id) => once(() => approveSome([Number(id)])),
+    approveAll: () => once(() => approveSome(null)),
+    refuse: (item) => once(() => edit.notAccepted(item)),
     serve: (id) => once(() => edit.post(withId(urls.serve, id), {}).catch((err) => {
       toast(err.message || "Could not serve this dish.", "error");
       return null;

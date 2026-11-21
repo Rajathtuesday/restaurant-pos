@@ -41,7 +41,7 @@ def mark_ready_items_served(order):
     "picked up" tap) already owns that transition for them, so this is a
     deliberate no-op for token orders -- do not remove this check.
     """
-    if hasattr(order, "token"):
+    if order.pays_first:
         return
     OrderItem.objects.filter(order=order, status="ready").update(status="served")
 

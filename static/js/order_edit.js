@@ -7,6 +7,7 @@
  *   OrderEdit.remove(item)            cancel the whole line
  *   OrderEdit.cancelOrder(id, opts)   cancel a whole order
  *   OrderEdit.complimentary(item)     make a line free, with a reason
+ *   OrderEdit.notAccepted(item)       not accept a guest's QR dish, with a reason
  *
  * item = {id, name, quantity, status} plus the kitchen hints from the
  * server (in_kitchen, made_locked, suggest_made, restock_needs_manager).
@@ -21,10 +22,13 @@ import { csrfToken } from "./core/csrf.js";
 
 var URLS = {
   reduce: "/reduce-item/0/", cancel: "/cancel-item/0/", cancelOrder: "/cancel-order/0/",
-  complimentary: "/complimentary-item/0/",
+  complimentary: "/complimentary-item/0/", refuse: "/refuse-item/0/",
 };
 var REASONS = ["Customer changed mind", "Wrong order", "Out of stock", "Kitchen issue"];
 var COMP_REASONS = ["Birthday", "Food complaint", "Long wait", "Regular guest"];
+// Not accepting a guest's QR dish. The guest's phone shows the reason only
+// when it is one of these (orders/services/guest_items.py GUEST_REASONS).
+var GUEST_REASONS = ["Not available", "Guest changed mind", "Ordered twice"];
 // The server's shortest reason (orders.services.discount_policy.REASON_MIN_LENGTH).
 var COMP_REASON_MIN = 3;
 
@@ -203,6 +207,9 @@ function doneText(name, data, made) {
 function ask(opts) {
   injectStyles();
   return window.Swal.fire({
+    // Inside an open Bootstrap sheet, the popup goes in it: the sheet keeps
+    // focus to itself, and would take it from the reason box otherwise.
+    target: opts.target || "body",
     title: esc(opts.title),
     html: opts.html,
     showConfirmButton: !!opts.confirmText,
@@ -323,6 +330,31 @@ function remove(item) {
   });
 }
 
+// ── a guest's QR dish not accepted ──────────────────────────────────
+
+// The kitchen never saw it, so no stock question and no manager PIN (unless
+// the bill is printed: post() then asks for one). The guest's phone says
+// "Not accepted" with the reason picked here.
+function notAccepted(item, where) {
+  return ask({
+    target: where && where.target,
+    title: "Not accept " + item.name + "?",
+    html: '<p class="oe-hint">The guest sees it was not accepted, with the reason.</p>' +
+      reasonBlock(false, GUEST_REASONS),
+    confirmText: "Not accepted",
+    cancelText: "Back",
+    danger: true,
+    needReason: true,
+    reasonNote: "Pick a reason or type one.",
+    item: item,
+  }).then(function (answer) {
+    if (!answer) return null;
+    return post(urlFor(URLS.refuse, item.id), { reason: answer.reason })
+      .then(function (data) { toast(item.name + " not accepted", "success"); return data; })
+      .catch(function (err) { toast(err.message, "error"); return null; });
+  });
+}
+
 // ── a free dish ─────────────────────────────────────────────────────
 
 // Asks why (it goes on the discount audit report with the reason), then
@@ -434,9 +466,10 @@ const OrderEdit = {
   remove: remove,
   cancelOrder: cancelOrder,
   complimentary: complimentary,
+  notAccepted: notAccepted,
   esc: esc,
   toast: toast,
   post: post,
 };
-export { configure, sheetOpen, reduce, remove, cancelOrder, complimentary, esc, toast, post };
+export { configure, sheetOpen, reduce, remove, cancelOrder, complimentary, notAccepted, esc, toast, post, GUEST_REASONS };
 export default OrderEdit;

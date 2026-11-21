@@ -42,6 +42,7 @@ BILLING_URLS = {
     "qz_receipt_data": ("qz-receipt-data", True),
     "thermal_receipt": ("thermal-receipt", True),
     "approve_item": ("approve-item", True),
+    "refuse_item": ("refuse-item", True),
     "cancel_item": ("cancel-item", True),
     "item_modifiers": ("menu_item_modifiers", True),
 }

@@ -81,6 +81,7 @@ class PageDataTests(TestCase):
     def test_the_owner_may_do_everything(self):
         self.assertEqual(self.can(self.r.owner), {
             "edit": True, "cancel_order": True, "serve": True, "comp": True, "edit_served": True,
+            "approve": True,
         })
 
     def test_a_captain_may_make_a_dish_free_but_not_change_a_served_one(self):
@@ -94,6 +95,9 @@ class PageDataTests(TestCase):
     def test_a_waiter_may_serve_and_nothing_else(self):
         self.assertEqual(self.can(self.r.staff), {
             "edit": False, "cancel_order": False, "serve": True, "comp": False, "edit_served": False,
+            # A guest's QR dish: anyone who may approve it (approve_items has
+            # no role list) gets the tick and the cross.
+            "approve": True,
         })
 
     def test_serve_follows_the_kitchen_display_feature(self):

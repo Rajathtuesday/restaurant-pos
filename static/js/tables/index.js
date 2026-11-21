@@ -13,6 +13,7 @@ import { createTableActions } from "./actions.js";
 import { failedHtml, floorHtml, manageRows, menuLink, moreSheet, pickerOptions, sheetsKey, statusOf, summarise, addresses } from "./floor.js";
 import { createFloorLoader } from "./loader.js";
 import { goTo } from "../core/site_path.js";
+import { configure as configureOrderEdit, notAccepted } from "../order_edit.js";
 
 const data = pageData("page-data");
 const urls = data.urls;
@@ -139,6 +140,16 @@ async function openQrLarge() {
 
 const row = (button) => button.closest("[data-row]");
 
+configureOrderEdit({ refuse: urls.refuse_item });
+
+/* A guest dish answered: its row goes; with none left the sheet closes. */
+function dropGuestDish(button) {
+  const dish = button.closest("[data-guest-item]");
+  const list = dish && dish.parentElement;
+  if (dish) dish.remove();
+  if (list && !list.children.length) sheet("actionModal").hide();
+}
+
 delegate(document.body, {
   "table.go": (button) => { window.location.href = button.dataset.url; },
   "table.more": (button) => openMore(button.dataset.id),
@@ -146,6 +157,14 @@ delegate(document.body, {
   "table.clean": (button) => actions.clean(button.dataset.id),
   "table.unmerge": (button) => actions.unmerge(button.dataset.id),
   "table.approve": (button) => actions.approve(button.dataset.order),
+  "table.approveOne": async (button) => {
+    if (await actions.approveOne(button.dataset.order, button.dataset.item, button.dataset.name)) dropGuestDish(button);
+  },
+  "table.refuse": async (button) => {
+    const item = { id: button.dataset.item, name: button.dataset.name, quantity: button.dataset.quantity };
+    const ask = (dish) => notAccepted(dish, { target: el("actionModal") });
+    if (await actions.refuse(item, ask)) dropGuestDish(button);
+  },
   "table.transfer": (button) => openTransfer(button.dataset.id),
   "merge.run": () => actions.merge(el("mergePrimary").value, el("mergeSecondary").value),
   "transfer.run": () => actions.transfer(el("transferFrom").value, el("transferTo").value, floor.tables()),

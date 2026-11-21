@@ -142,12 +142,25 @@ test("a phone that blocks storage still orders", async () => {
 /* ---- the order's status --------------------------------------------------- */
 
 test("every stage the server sends has a place on the timeline", () => {
-  for (const stage of ["placed", "confirmed", "waiting_confirmation", "preparing", "ready", "served"]) {
+  for (const stage of ["placed", "confirmed", "waiting_confirmation", "preparing", "ready", "served", "not_accepted"]) {
     assert.ok(stage in STAGE_INDEX, stage);
   }
   assert.deepEqual(describeStatus({ stage: "preparing", label: "Cooking", table: "T1", items: [] }),
-    { pill: "Preparing", sheet: "Cooking", stage: 1, done: false, token: null, table: "T1", items: [] });
+    { pill: "Preparing", sheet: "Cooking", stage: 1, done: false, token: null, table: "T1", items: [], notAccepted: [] });
   assert.equal(describeStatus({ stage: "placed", token_ready: true, token_display: "A7" }).pill, "Ready for pickup!");
+});
+
+test("a dish the restaurant did not accept is listed with its reason, not dropped", () => {
+  const s = describeStatus({ stage: "preparing", items: [{ name: "Paneer Tikka", quantity: 1, status: "sent" }],
+    not_accepted: [{ name: "Brownie", quantity: 1, reason: "Not available" }, { name: "Naan <b>", quantity: 2, reason: "" }] });
+  assert.equal(s.notAccepted.length, 2);
+  const html = statusItemsHtml(s.items, s.notAccepted);
+  assert.match(html, /Paneer Tikka/);
+  assert.match(html, /Not accepted: 1x Brownie/);
+  assert.match(html, /Not available/);
+  assert.match(html, /Not accepted: 2x Naan &lt;b&gt;/, "a dish name is escaped");
+  assert.equal(describeStatus({ stage: "not_accepted", label: "x" }).pill, "Not accepted");
+  assert.match(statusItemsHtml([], s.notAccepted), /Brownie/, "every dish refused still shows them");
 });
 
 test("when a status is finished", () => {

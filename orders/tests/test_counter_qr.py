@@ -144,23 +144,25 @@ class ApproveGuestOrderItemsTest(_Base):
         order = Order.objects.get(id=resp.json()["order_id"])
         self.assertEqual(list(order.items.values_list("status", flat=True)), ["review"])
 
-    def test_staff_can_bulk_approve_and_it_sends_to_kitchen(self):
-        # approve-items (bulk) is still used by the fine-dining floor plan --
-        # unchanged, still needs to keep working.
+    def test_staff_can_bulk_approve_and_a_counter_order_waits_for_payment(self):
+        # One rule since 21 Nov 2026 (orders/services/guest_items.py): a
+        # counter order has a token and is paid first, so approving all of
+        # it accepts the dishes and the ticket goes at payment, the same as
+        # approving one. (Before, bulk approve sent a ticket here, so the
+        # kitchen cooked an unpaid counter order.) A dine-in table's
+        # approved dishes still go to the kitchen at once:
+        # orders/tests/test_guest_dish_approval.py.
         resp = self._place(self.item, qty=1)
         order_id = resp.json()["order_id"]
 
         approve_resp = self._client().post(reverse("approve-items", args=[order_id]))
         self.assertEqual(approve_resp.status_code, 200)
         self.assertEqual(approve_resp.json()["count"], 1)
+        self.assertFalse(approve_resp.json()["sent_to_kitchen"])
 
         order = Order.objects.get(id=order_id)
-        item = order.items.first()
-        # approve_items flips review -> pending, then immediately creates a
-        # KOT for it, which itself advances pending -> sent -- so by the
-        # time this returns, the item isn't just "approved", it's already
-        # in the kitchen's queue.
-        self.assertEqual(item.status, "sent")
+        self.assertTrue(order.pays_first)
+        self.assertEqual(order.items.first().status, "pending")
 
     def test_bulk_approving_with_no_review_items_404s(self):
         resp = self._client().post(reverse("approve-items", args=[999999]))

@@ -145,7 +145,7 @@ def pay_order(request, order_id):
                     tenant=order.tenant, outlet=order.outlet,
                     is_active=True, is_default=False,
                 ).exclude(printer_ip__isnull=True).exclude(printer_ip="").exists()
-                _is_token_order = hasattr(order, "token")
+                _is_token_order = order.pays_first
                 _auto_kot = _is_token_order or (not _has_kds and not _has_kt)
 
                 if _auto_kot:

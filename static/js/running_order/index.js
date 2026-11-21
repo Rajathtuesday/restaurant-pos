@@ -1,7 +1,7 @@
 /*
  * The running order page: one order's dishes as the kitchen works on them,
- * refreshed every few seconds, with serve, remove one, cancel, comp and
- * cancel the whole order.
+ * refreshed every few seconds, with serve, remove one, cancel, comp,
+ * approve or not accept a guest's QR dish, and cancel the whole order.
  *
  * The page gives this module its addresses and what this person may do in
  * one json_script block, page-data
@@ -31,6 +31,7 @@ OrderEdit.configure({
   cancel: data.urls.cancel,
   cancelOrder: data.urls.cancel_order,
   complimentary: data.urls.comp,
+  refuse: data.urls.refuse,
 });
 
 /* The dishes as last drawn, by id, for the sheets; and the markup, so the
@@ -75,6 +76,9 @@ delegate(document.body, {
   "item.reduce": (button) => item(button) && actions.reduce(item(button)),
   "item.remove": (button) => item(button) && actions.remove(item(button)),
   "item.comp": (button) => item(button) && actions.comp(item(button)),
+  "item.approve": (button) => actions.approve(button.dataset.id),
+  "item.refuse": (button) => item(button) && actions.refuse(item(button)),
+  "order.approveAll": () => actions.approveAll(),
   "order.cancel": () => actions.cancelOrder(),
 });
 
