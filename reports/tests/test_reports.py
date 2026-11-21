@@ -803,7 +803,9 @@ class KitchenDashboardPosLinkTest(TestCase):
         client.login(username="floor_owner", password="pw")
         response = client.get("/reports/kitchen/")
         content = response.content.decode()
-        self.assertIn('<a href="/tables/" class="btn-icon" title="QR Orders awaiting approval">', content)
+        # The header's fitting script adds its own attributes (aria-label,
+        # the fitted name), so the link is found by what it is.
+        self.assertRegex(content, r'<a href="/tables/" class="btn-icon" title="QR Orders awaiting approval"[^>]*>')
 
 
 class ReportTabsConsistencyTest(TestCase):
