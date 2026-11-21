@@ -9,20 +9,51 @@ a year; without the flag below, the import inside the module would still
 say "./http.js", which no longer exists under that name once the manifest
 is in charge. Django rewrites those imports when the flag is on.
 
-The rewriting is regex based. It handles static relative imports
-(import x from "./y.js", export ... from "./y.js"), which is all Rasova's
-modules use. core/tests/test_static_modules.py collects the files with
-this storage and checks that every import in every collected module
-resolves, so a form the regex misses fails in CI, not in a browser.
+The rewriting is regex based, and Django's own patterns (HashedFilesMixin.
+_js_module_import_aggregation_patterns) are too loose for prose: they are
+compiled case-insensitively, match anywhere in the text, and let a
+statement run across lines and past semicolons. So the words "the Export
+menu," in a comment read as the start of `export ... from "..."`, running
+on to the next import, which the import pattern had already rewritten; the
+address was rewritten twice (21 Nov 2026, reports/dashboard.js). Which way
+that failed depended on the order the files were processed in: on CI
+(Linux) collectstatic stopped with MissingFileError on "app.<hash>.js"; on
+Windows it finished and wrote "app.<hash>.<hash>.js" into the built module,
+a file that does not exist, so the page's scripts would not have loaded.
 
-A trap the regex sets (15 Nov 2026): in a comment, the word "export" or
-"import" followed by a space, with an import statement below it, reads as
-the start of a statement running to that import's `from "./x.js";`. The
-address is then rewritten twice and collectstatic fails with
-MissingFileError on "x.<hash>.js". Reword the comment.
+Rasova's patterns below take statements only: in lower case, at the start
+of a line (where every import and export of ours is), and never past a
+semicolon. The templates are Django's. core/tests/test_static_modules.py
+collects every module with this storage and checks every import resolves
+to a file that exists, and checks these patterns against prose.
 """
 from whitenoise.storage import CompressedManifestStaticFilesStorage
+
+# (?m)^ : a statement starts a line. (?-i:...) : the keyword in lower case
+# (Django compiles every pattern with re.IGNORECASE). [^;] : a statement
+# never runs past its own semicolon.
+_IMPORT_FROM = (
+    r"""(?m)^(?P<matched>(?-i:import)"""
+    r"""(?P<import>[\s\{][^;]*?|\*\s*as\s*\w+)"""
+    r"""\s*(?-i:from)\s*['"](?P<url>[./][^'"]*?)["']\s*;)"""
+)
+_EXPORT_FROM = (
+    r"""(?m)^(?P<matched>(?-i:export)(?P<exports>[\s\{][^;]*?)"""
+    r"""\s*(?-i:from)\s*["'](?P<url>[./][^'"]*?)["']\s*;)"""
+)
+_IMPORT_FILE = r"""(?m)^(?P<matched>(?-i:import)\s*['"](?P<url>[./][^'"]*?)["']\s*;)"""
+# A dynamic import can sit anywhere in a line.
+_IMPORT_CALL = r"""(?P<matched>(?-i:import)\(["'](?P<url>[^'"]*?)["']\))"""
 
 
 class RasovaStaticStorage(CompressedManifestStaticFilesStorage):
     support_js_module_import_aggregation = True
+    _js_module_import_aggregation_patterns = (
+        "*.js",
+        (
+            (_IMPORT_FROM, """import%(import)s from "%(url)s";"""),
+            (_EXPORT_FROM, """export%(exports)s from "%(url)s";"""),
+            (_IMPORT_FILE, """import"%(url)s";"""),
+            (_IMPORT_CALL, """import("%(url)s")"""),
+        ),
+    )

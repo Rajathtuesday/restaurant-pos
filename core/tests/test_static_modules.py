@@ -36,10 +36,10 @@ from core.testing import not_in_compiled_build
 from orders.tests.test_cart_tax_js import NODE
 
 BASE = Path(settings.BASE_DIR)
-MODULE_DIRS = [BASE / "static" / "js" / "core", BASE / "static" / "js" / "billing", BASE / "static" / "js" / "pages"]
-# The engines and the shared order controls live at the top of static/js.
-TOP_LEVEL_MODULES = ["cart_tax.js", "offers.js", "order_edit.js", "approval.js"]
-IMPORT_RE = re.compile(r"""(?:^|\n)\s*(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']""")
+# An import or export-from statement in a built module: it starts a line,
+# "from" follows a space or a brace, and the address is relative. (A looser
+# finder read the field id "f-from" in setup/promo_form.js as an import.)
+IMPORT_RE = re.compile(r"""(?m)^(?:import|export)\b[^;]*?[\s}]from\s*["']([./][^"']*)["']""")
 # A known CDN anywhere, or anything a page LOADS from another host: a script,
 # an image, a stylesheet, a CSS url(). (Two setup pages fetched their QR codes
 # from api.qrserver.com, handing it every table's private menu address; the
@@ -65,11 +65,15 @@ def app_templates():
 
 
 def own_modules():
-    for name in TOP_LEVEL_MODULES:
-        yield BASE / "static" / "js" / name
-    for folder in MODULE_DIRS:
-        if folder.exists():
-            yield from sorted(folder.glob("*.js"))
+    """Every module Rasova ships: all of static/js but the vendored copies
+    and the node tests. (Until 21 Nov this was core/, billing/, pages/ and
+    four top-level files; the page modules moved into a folder each in
+    November, none of them was checked, and reports/dashboard.js shipped an
+    import of app.<hash>.<hash>.js unseen.)"""
+    js = BASE / "static" / "js"
+    for path in sorted(js.rglob("*.js")):
+        if path.relative_to(js).parts[0] not in ("vendor", "tests"):
+            yield path
 
 
 class StaticModulesTest(SimpleTestCase):
@@ -111,7 +115,11 @@ class StaticModulesTest(SimpleTestCase):
                     f"{rel}: import of {target!r} was not rewritten to a hashed name; "
                     "is RasovaStaticStorage.support_js_module_import_aggregation still on?",
                 )
-        self.assertGreater(checked, 5, "no imports were checked; did the modules move?")
+                self.assertNotRegex(
+                    target, r"\.[0-9a-f]{12}\.[0-9a-f]{12}\.js$",
+                    f"{rel}: import of {target!r} was rewritten twice (see core/storage.py)",
+                )
+        self.assertGreater(checked, 100, "too few imports were checked; did the modules move?")
 
     def test_the_modules_parse(self):
         if not NODE:
@@ -168,3 +176,77 @@ class NoWindowGlobalsTest(SimpleTestCase):
     def test_the_check_sees_an_assignment(self):
         self.assertTrue(self.ASSIGN.search("window.ui = ui;"))
         self.assertFalse(self.ASSIGN.search("if (window.ui === x) {}"))
+
+
+class ImportRewritePatternsTest(SimpleTestCase):
+    """RasovaStaticStorage's own import patterns (core/storage.py), run in
+    order the way Django runs them: every address in a statement is
+    rewritten exactly once, and prose in a comment is never a statement.
+    Django's patterns rewrote reports/dashboard.js's import of core/app.js
+    twice because its header said "the Export menu," (21 Nov 2026)."""
+
+    SOURCE = (
+        "/*\n"
+        " * The sales report: the hourly line, and the Export menu,\n"
+        " * whose links carry the filters. We import the theme, and\n"
+        " * export nothing from here.\n"
+        " */\n"
+        'import { theme } from "../core/app.js";\n'
+        "import {\n"
+        "  delegate,\n"
+        "  onReady,\n"
+        '} from "../core/dom.js";\n'
+        'import * as money from "../core/money.js";\n'
+        'import pageData from "../core/page_data.js";\n'
+        'import "./side_effect.js";\n'
+        'export { chartColours } from "./dashboard_parts.js";\n'
+        'export * from "./more_parts.js";\n'
+        "const later = () => import(\"./lazy.js\");\n"
+        'const label = "Import from \\"../core/nothing.js\\";";\n'
+        "export { theme, later };\n"
+    )
+    ADDRESSES = ["../core/app.js", "../core/dom.js", "../core/money.js", "../core/page_data.js",
+                 "./side_effect.js", "./dashboard_parts.js", "./more_parts.js", "./lazy.js"]
+
+    def rewrite(self, text):
+        from core.storage import RasovaStaticStorage
+        seen = []
+
+        def converter(template):
+            def convert(match):
+                found = match.groupdict()
+                seen.append(found["url"])
+                found["url"] = found["url"].replace(".js", ".0123456789ab.js")
+                return template % found
+            return convert
+
+        for pattern, template in RasovaStaticStorage()._patterns["*.js"]:
+            if "import" in pattern.pattern or "export" in pattern.pattern:
+                text = pattern.sub(converter(template), text)
+        return text, seen
+
+    def test_each_address_is_rewritten_once_and_prose_never(self):
+        text, seen = self.rewrite(self.SOURCE)
+        self.assertEqual(sorted(seen), sorted(self.ADDRESSES))
+        for address in self.ADDRESSES:
+            self.assertIn(address.replace(".js", ".0123456789ab.js"), text)
+        self.assertNotIn(".0123456789ab.0123456789ab.js", text)
+        self.assertIn("the Export menu,", text)
+        self.assertIn('"Import from \\"../core/nothing.js\\";"', text)
+
+    def test_django_own_patterns_fall_into_the_trap(self):
+        """Why core/storage.py has its own: the same source through Django's
+        patterns rewrites core/app.js twice."""
+        from django.contrib.staticfiles.storage import HashedFilesMixin
+        seen = []
+        text = self.SOURCE
+        for raw, template in HashedFilesMixin._js_module_import_aggregation_patterns[1]:
+            pattern = re.compile(raw, re.IGNORECASE)
+
+            def convert(match, template=template):
+                found = match.groupdict()
+                seen.append(found["url"])
+                found["url"] = found["url"].replace(".js", ".0123456789ab.js")
+                return template % found
+            text = pattern.sub(convert, text)
+        self.assertGreater(seen.count("../core/app.0123456789ab.js"), 0)

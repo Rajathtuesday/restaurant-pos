@@ -7,6 +7,15 @@ the source of truth.
 
 ---
 
+## 2026-11-21: Module imports are rewritten once, in any file order
+
+### Fixed
+- **collectstatic broke `reports/dashboard.js`, in one of two ways depending on the machine.** Django's import-rewriting patterns are case-insensitive, match anywhere and run across lines and semicolons, so the words "the Export menu," in the file's header comment read as the start of `export ... from "..."` and ran on to the next import, which the import pattern had already rewritten; the address was rewritten twice. On CI (Linux file order) collectstatic stopped with `MissingFileError: js/core/app.<hash>.js`, so the 21 Nov push did not deploy. On Windows it finished and wrote `import ... from "../core/app.<hash>.<hash>.js"`, a file that does not exist: the sales report's scripts would not have loaded in production. Reproduced on Windows by shuffling the file order (3 of 6 orders failed). `core/storage.py` now gives `RasovaStaticStorage` its own patterns: the keyword in lower case, a static import or export at the start of a line, never past a semicolon (Django's templates kept). With them, 8 of 8 shuffled orders build and no module imports a double-hashed name. This replaces the 15 Nov advice to reword such comments.
+- **The guard that should have caught it checked three folders.** `core/tests/test_static_modules.py` looked only at `js/core`, `js/billing`, `js/pages` and four top-level files; the page modules moved into a folder each in November and none was checked. It now checks every module under `static/js` (vendor and node tests aside), refuses a double-hashed import, and its own import finder no longer reads the field id `"f-from"` as an import.
+
+### Tests
+- `core/tests/test_static_modules.py`: every module's imports resolve after collectstatic (fails on the old storage: `js/reports/dashboard.js` imports `app.<hash>.<hash>.js`); `ImportRewritePatternsTest` (2): the storage rewrites each address once (multi-line import, `import * as`, default import, side-effect import, `export {..} from`, `export * from`, dynamic `import()`) and leaves prose alone (fails on the old storage), and Django's own patterns fall into the trap on the same source.
+
 ## 2026-11-21: CI lint passes again
 
 ### Fixed
