@@ -1,5 +1,5 @@
 [Unit]
-Description=Rasova POS — Celery Beat (the scheduler)
+Description=Rasova POS: Celery Beat (the scheduler)
 After=network.target redis.service
 
 # Beat puts the scheduled jobs (CELERY_BEAT_SCHEDULE in core/settings.py) on

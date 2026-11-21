@@ -1,5 +1,5 @@
 [Unit]
-Description=Rasova POS — Celery Worker
+Description=Rasova POS: Celery Worker
 After=network.target redis.service
 
 # The worker only runs tasks. Beat (the scheduler) is its own service,

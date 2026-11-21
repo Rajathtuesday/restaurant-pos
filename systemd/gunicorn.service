@@ -1,5 +1,5 @@
 [Unit]
-Description=Rasova POS — Gunicorn
+Description=Rasova POS: Gunicorn
 After=network.target postgresql.service
 Wants=postgresql.service
 
@@ -25,7 +25,7 @@ Restart=always
 RestartSec=5
 # NOTE: gunicorn already writes access/error to the two files above via its own
 # --access-logfile/--error-logfile flags (as user ubuntu). Do NOT also add
-# StandardOutput=append:/StandardError=append: for the SAME files — systemd
+# StandardOutput=append:/StandardError=append: for the SAME files: systemd
 # (root) opens those first and creates them root-owned, after which gunicorn
 # (ubuntu) can't write and crash-loops. gunicorn's own console output goes to
 # journald (journalctl -u gunicorn), which is fine.
