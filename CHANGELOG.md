@@ -7,6 +7,24 @@ the source of truth.
 
 ---
 
+## 2026-11-21: The header is one row that fits the screen
+
+The floor plan's header was 13 controls and wrapped to three rows on a tablet (768 px). Agreed from a live preview (`md_files/header_icons_preview_2026-11-21.html`).
+
+### Changed
+- **One row, always.** `static/js/core/header_fit.js` measures the header and fits every control marked `data-fit` (name, importance, icon) into one row, again whenever the screen changes size: names on the most important buttons as width allows, icons for the rest, and what still does not fit under a `...` More menu. The core floor buttons (Tables, Billing, Combine, Transfer, Calls, Alerts) keep their names from tablet size up; less used ones (Live Orders, Kitchen, Reports, Clock In/Out, Theme, Logout) fold first. A less important button never has its name while a more important one does not. Folded controls stay on the page (their badges and handlers keep working); the More menu repeats them, with their badges and a total on the More button.
+- **Icons** (Bootstrap Icons v1.11.3, all in Rasova's own copy): Combine `bi-link-45deg`, Transfer `bi-arrow-left-right`, Live Orders `bi-broadcast`, Billing `bi-receipt`, Kitchen `bi-fire`, Reports `bi-bar-chart-line`; Clock In/Out is now `bi-person-badge` (it was a clock, almost the same as Order History's).
+- The floor page's separate phone and desktop copies of its links, and the billing screen's separate phone row of badges, are one control each now.
+- In Rasova's theme (luxury buttons, theme colours, light and dark); without the script the header keeps its old wrapping and phone scroll.
+
+### Added (freeze lifted by the owner for this one setting, see CLAUDE.md)
+- **Each person's style**, in the More menu: Fit the screen (default), Icons and words, Icons only, Words only. Saved on their account (`User.header_style`, migration `accounts.0012`, additive; `POST /account/header-style/`), so it follows them to any device.
+
+### Tests
+- `static/js/tests/header_fit.test.mjs` (7): every style fits every width; wide, everything named; on a tablet the core buttons keep names first; names strictly by importance; on a phone the least used go under More; icons and words never fold a name; icons only and words only hold.
+- `core/tests/test_header_fit_browser.py` (5, Chromium, the real floor page): one row and no sideways scroll at 390, 768, 1024, 1366 and 1920 px; names from tablet size; a phone folds the least used; More lists what folded and saves a style (every button an icon after Icons only); a saved style is used on the next page.
+- `accounts/tests/test_header_style.py` (5): Fit the screen by default; a person saves only their own style; an unknown style is refused; no login, no saving; the header carries the person's style. `core/tests/test_one_header.py` follows the billing badge's new markup.
+
 ## 2026-11-21: QR Orders badge, the service worker, and 13 CodeQL alerts
 
 ### Fixed

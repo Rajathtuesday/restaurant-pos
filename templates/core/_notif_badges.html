@@ -11,14 +11,14 @@ had the low-stock/system badge since it didn't exist until it was
 added here. One include now, not N hand-copies to keep in sync.
 {% endcomment %}
 {% if 'waiter_call' in tenant_features %}
-<span class="notif-wrapper {{ extra_class }}">
-    <a href="/waiter-dashboard/" class="btn-icon" title="Calls"><i class="bi bi-bell"></i></a>
+<span class="notif-wrapper {{ extra_class }}" data-fit="Calls" data-fit-rank="5" data-fit-round>
+    <a href="/waiter-dashboard/" class="btn-icon" title="Calls" aria-label="Calls"><i class="bi bi-bell"></i><span class="fit-word">Calls</span></a>
     <span class="notif-badge hidden" id="notif-badge-waiter{{ notif_id_suffix }}">0</span>
 </span>
 {% endif %}
 {# Not on the floor itself: it links there, and the floor shows these tables as REVIEW. #}
 {% if 'qr_menu' in tenant_features and 'floor_plan' in tenant_features and request.user.role != "chef" and request.resolver_match.url_name != "table-dashboard" %}
-<span class="notif-wrapper {{ extra_class }}">
+<span class="notif-wrapper {{ extra_class }}" data-fit="QR Orders" data-fit-rank="7" data-fit-round>
     {% comment %}
     Floor-plan-only: a tenant without floor_plan (QSR/cafe counter, no
     waiter-run floor) has no use for a "go approve this on the floor"
@@ -29,13 +29,13 @@ added here. One include now, not N hand-copies to keep in sync.
     so the count itself would still be real for those tenants -- it's
     just the wrong affordance.
     {% endcomment %}
-    <a href="/tables/" class="btn-icon" title="QR Orders awaiting approval"><i class="bi bi-basket"></i></a>
+    <a href="/tables/" class="btn-icon" title="QR Orders awaiting approval" aria-label="QR Orders"><i class="bi bi-basket"></i><span class="fit-word">QR Orders</span></a>
     <span class="notif-badge hidden" id="notif-badge-qr{{ notif_id_suffix }}">0</span>
 </span>
 {% endif %}
 {% if request.user.role in "owner,manager" %}
-<span class="notif-wrapper {{ extra_class }}">
-    <a href="/inventory/board/" class="btn-icon" title="Low stock &amp; system alerts"><i class="bi bi-exclamation-diamond"></i></a>
+<span class="notif-wrapper {{ extra_class }}" data-fit="Alerts" data-fit-rank="6" data-fit-round>
+    <a href="/inventory/board/" class="btn-icon" title="Low stock &amp; system alerts" aria-label="Alerts"><i class="bi bi-exclamation-diamond"></i><span class="fit-word">Alerts</span></a>
     <span class="notif-badge hidden" id="notif-badge-system{{ notif_id_suffix }}">0</span>
 </span>
 {% endif %}

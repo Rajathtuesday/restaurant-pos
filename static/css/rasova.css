@@ -475,3 +475,101 @@ body {
 
 /* An icon-only control a finger must hit (V15). */
 .btn-tap { min-width: 44px; min-height: 44px; }
+
+/* ---- The header as one row that fits the screen (static/js/core/header_fit.js) ----
+   Only once the script runs ([data-fit-ready]); without it the header keeps
+   the old wrapping and the phone's sideways scroll. Rasova's own theme: the
+   luxury buttons, the theme's colours, light and dark. */
+.header-right[data-fit-ready] {
+    flex: 1 1 0;
+    min-width: min(100%, 22rem);
+    flex-wrap: nowrap !important;
+    justify-content: flex-end;
+    overflow: visible !important;
+}
+[data-fit-ready] .action-group { flex-wrap: nowrap !important; }
+[data-fit-ready] .header-clock, [data-fit-ready] .header-history { display: inline-flex !important; }
+[data-fit-ready] .fit-folded { display: none !important; }
+[data-fit] { flex-shrink: 0; }
+[data-fit] .bi { margin: 0 !important; }
+[data-fit] .fit-word { white-space: nowrap; }
+[data-fit][data-look="both"] .fit-word { margin-left: 0.45rem; }
+[data-fit][data-look="icon"] .fit-word { display: none; }
+[data-fit][data-look="word"] .bi { display: none; }
+/* A worded button folded to its icon: a square the size of a fingertip (V15). */
+[data-fit][data-look="icon"].btn-luxury, [data-fit][data-look="icon"] > .btn-luxury {
+    padding: 0; width: 44px; min-width: 44px; height: 44px;
+}
+/* A round icon (clock in, history, theme, logout) given its name looks like
+   the luxury buttons beside it. */
+[data-fit][data-fit-round][data-look="both"], [data-fit][data-fit-round][data-look="word"] {
+    border: 1px solid var(--border-color);
+    font-size: var(--text-xs, 12.5px);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    padding: 0.6rem 1rem;
+    min-height: 44px;
+}
+[data-fit].printer-chip[data-look="icon"] .printer-chip-text { display: none; }
+
+.fit-more { position: relative; flex-shrink: 0; }
+.fit-more-btn { min-width: 44px; min-height: 44px; position: relative; }
+.fit-more-btn .notif-badge { position: absolute; top: 2px; right: 0; }
+.fit-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 230px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+    padding: 0.35rem;
+    z-index: 1100;
+}
+.fit-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 0.85rem;
+    border: 0;
+    background: transparent;
+    color: var(--text-main);
+    font: 500 0.95rem var(--font-main, 'Outfit', sans-serif);
+    text-align: left;
+    cursor: pointer;
+}
+.fit-menu-item .bi { font-size: 1.1rem; color: var(--accent-gold); width: 1.2rem; text-align: center; }
+@media (hover: hover) { .fit-menu-item:hover { background: rgba(197, 160, 89, 0.12); } }
+.fit-menu-item:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: -2px; }
+.fit-menu-badge {
+    margin-left: auto;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.fit-menu-title {
+    margin: 0.4rem 0.85rem 0.2rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.fit-style[aria-checked="true"] { font-weight: 700; }
+/* Icons in the worded buttons were the size of their 12.5px letters: too
+   small to read once the word folds away. */
+.btn-luxury[data-fit] .bi, [data-fit] > .btn-luxury .bi, .printer-chip[data-fit] .bi { font-size: 1rem; }

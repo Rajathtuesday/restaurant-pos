@@ -11,20 +11,16 @@
 {% block header_status %}{% include "core/_printer_chip.html" %}{% endblock %}
 
 {% block header_links %}
+{# One control each; the header fits them into one row (static/js/core/header_fit.js). #}
 <div class="action-group d-flex align-items-center flex-wrap gap-2">
-  <button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#manageTablesModal"><i class="bi bi-gear me-1"></i> Tables</button>
-  <button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#mergeModal">Combine</button>
-  <button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#transferModal">Transfer</button>
-  <a href="{% url 'live-orders' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Live Orders</a>
-  <a href="/billing/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Billing</a>
-  <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
-  <a href="/reports/dashboard/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Reports</a>
-
-  <a href="{% url 'live-orders' %}" class="btn-icon d-sm-none" title="Live Orders" aria-label="Live Orders"><i class="bi bi-card-checklist"></i></a>
-  <a href="/billing/" class="btn-icon d-sm-none" title="Billing"><i class="bi bi-receipt"></i></a>
-  <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen"><i class="bi bi-fire"></i></a>
-  <a href="/reports/dashboard/" class="btn-icon d-sm-none" title="Reports"><i class="bi bi-bar-chart"></i></a>
-  </div>
+  <button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#manageTablesModal" title="Tables" aria-label="Tables" data-fit="Tables" data-fit-rank="1"><i class="bi bi-gear"></i><span class="fit-word">Tables</span></button>
+  <button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#mergeModal" title="Combine" aria-label="Combine" data-fit="Combine" data-fit-rank="3"><i class="bi bi-link-45deg"></i><span class="fit-word">Combine</span></button>
+  <button type="button" class="btn-luxury" data-bs-toggle="modal" data-bs-target="#transferModal" title="Transfer" aria-label="Transfer" data-fit="Transfer" data-fit-rank="4"><i class="bi bi-arrow-left-right"></i><span class="fit-word">Transfer</span></button>
+  <a href="{% url 'live-orders' %}" class="btn-luxury text-decoration-none" title="Live Orders" aria-label="Live Orders" data-fit="Live Orders" data-fit-rank="8"><i class="bi bi-broadcast"></i><span class="fit-word">Live Orders</span></a>
+  <a href="/billing/" class="btn-luxury text-decoration-none" title="Billing" aria-label="Billing" data-fit="Billing" data-fit-rank="2"><i class="bi bi-receipt"></i><span class="fit-word">Billing</span></a>
+  <a href="/kitchen/" class="btn-luxury text-decoration-none" title="Kitchen" aria-label="Kitchen" data-fit="Kitchen" data-fit-rank="10"><i class="bi bi-fire"></i><span class="fit-word">Kitchen</span></a>
+  <a href="/reports/dashboard/" class="btn-luxury text-decoration-none" title="Reports" aria-label="Reports" data-fit="Reports" data-fit-rank="11"><i class="bi bi-bar-chart-line"></i><span class="fit-word">Reports</span></a>
+</div>
 {% endblock %}
 
 {% block header_badges %}{% include "core/_notif_badges_luxury.html" %}{% endblock %}

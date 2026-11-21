@@ -57,25 +57,25 @@
             <p class="brand-subtitle"><span class="page-name">{% block page_title %}{% endblock %}</span><span class="outlet-name">{% block page_outlet %}{{ request.user.outlet.name|default:"" }}{% endblock %}</span></p>
         </div>
 
-        <div class="header-right d-flex align-items-center gap-2">
+        <div class="header-right d-flex align-items-center gap-2"{% if request.user.is_authenticated %} data-header-fit data-header-style="{{ request.user.header_style }}" data-header-style-url="{% url 'header-style' %}"{% endif %}>
             {% if request.user.is_authenticated %}
-            <a href="/shifts/" class="btn-icon header-clock" title="Clock In / Out"><i class="bi bi-clock"></i></a>
+            <a href="/shifts/" class="btn-icon header-clock" title="Clock In / Out" aria-label="Clock In / Out" data-fit="Clock In / Out" data-fit-rank="12" data-fit-round><i class="bi bi-person-badge"></i><span class="fit-word">Clock In/Out</span></a>
             {% endif %}
             {% block header_status %}{% endblock %}
             {% block header_links %}{% endblock %}
             {% if request.user.is_authenticated %}
             {% block header_badges %}{% include "core/_notif_badges.html" %}{% endblock %}
             {% if request.user.role != "chef" %}
-            <a href="{% url 'order-history' %}" class="btn-icon header-history" title="Order History"><i class="bi bi-clock-history"></i></a>
+            <a href="{% url 'order-history' %}" class="btn-icon header-history" title="Order History" aria-label="Order History" data-fit="Order History" data-fit-rank="9" data-fit-round><i class="bi bi-clock-history"></i><span class="fit-word">History</span></a>
             {% endif %}
             {% endif %}
             {% block header_theme %}
-            <button type="button" class="btn-icon" data-action="theme.toggle" data-header="theme" title="Toggle Theme">
-                <i class="bi bi-moon" id="themeIcon"></i>
+            <button type="button" class="btn-icon" data-action="theme.toggle" data-header="theme" title="Toggle Theme" aria-label="Toggle Theme" data-fit="Theme" data-fit-rank="13" data-fit-round>
+                <i class="bi bi-moon" id="themeIcon"></i><span class="fit-word">Theme</span>
             </button>
             {% endblock %}
             {% if request.user.is_authenticated %}
-            <a href="/logout/" class="btn-icon" data-header="logout" title="Logout"><i class="bi bi-box-arrow-right"></i></a>
+            <a href="/logout/" class="btn-icon" data-header="logout" title="Logout" aria-label="Logout" data-fit="Logout" data-fit-rank="14" data-fit-round><i class="bi bi-box-arrow-right"></i><span class="fit-word">Logout</span></a>
             {% endif %}
         </div>
     </header>

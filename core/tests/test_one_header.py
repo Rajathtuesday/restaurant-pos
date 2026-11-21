@@ -107,5 +107,9 @@ class HeaderRenderedTest(TestCase):
         self.assertNotIn('data-action="theme.toggle"', header)
 
     def test_billing_keeps_its_wide_alert_badges(self):
+        # A worded control the header fits (static/js/core/header_fit.js): its
+        # word in its own span, so it can fold to the icon on a narrow screen.
         header = self.page("/billing/")
-        self.assertIn('btn-luxury text-decoration-none"><i class="bi bi-bell me-1"></i> Calls', header)
+        self.assertIn('data-fit="Calls"', header)
+        self.assertIn('class="btn-luxury text-decoration-none" title="Calls" aria-label="Calls">'
+                      '<i class="bi bi-bell"></i><span class="fit-word">Calls</span>', header)

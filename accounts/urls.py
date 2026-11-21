@@ -6,6 +6,7 @@ from .views import (
     toggle_feature_flag, dashboard_metrics_json,
     superuser_panel, create_restaurant, tenant_config, apply_preset,
 )
+from .views.preference_views import header_style_view
 
 urlpatterns = [
     path("login/", login_view, name="login"),
@@ -15,6 +16,8 @@ urlpatterns = [
     # this one is meant to work in production and requires no auth at all.
     path("live-demo/", demo_login, name="live-demo"),
     path("dashboard/", owner_dashboard, name="dashboard"),
+    # How this person likes the header buttons (static/js/core/header_fit.js)
+    path("account/header-style/", header_style_view, name="header-style"),
     path("dashboard/metrics.json", dashboard_metrics_json, name="dashboard-metrics-json"),
     path("sales/", sales_dashboard, name="sales_dashboard"),
     path("settings/features/", feature_flags_view, name="feature_flags"),

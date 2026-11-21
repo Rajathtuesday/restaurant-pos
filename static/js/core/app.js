@@ -24,6 +24,7 @@ import { createThemeManager } from "./theme.js";
 import { configure as configureOrderEdit } from "../order_edit.js";
 import { createUi } from "./toast.js";
 import { csrfToken } from "./csrf.js";
+import { startHeaderFit } from "./header_fit.js";
 
 const data = pageData();
 const isOnline = () => navigator.onLine;
@@ -94,6 +95,8 @@ onReady(() => {
   }
   if (data.authenticated) poller.start();
   setupChecklist();
+  // The header: one row that fits the screen, buttons as each person likes.
+  startHeaderFit({ csrf: () => csrfToken() });
 });
 
 registerServiceWorker();

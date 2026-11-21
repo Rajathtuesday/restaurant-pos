@@ -45,6 +45,18 @@ class User(AbstractUser):
     approval_pin_failures = models.PositiveSmallIntegerField(default=0)
     approval_pin_locked_until = models.DateTimeField(null=True, blank=True)
 
+    # How this person likes the header's buttons (static/js/core/header_fit.js):
+    # it always fits on one row; "auto" gives names to the most important
+    # buttons as width allows. Theirs on any device they log in on.
+    HEADER_AUTO = "auto"
+    HEADER_STYLES = (
+        ("auto", "Fit the screen"),
+        ("both", "Icons and words"),
+        ("icons", "Icons only"),
+        ("words", "Words only"),
+    )
+    header_style = models.CharField(max_length=8, choices=HEADER_STYLES, default=HEADER_AUTO)
+
     class Meta:
         indexes = [
             models.Index(fields=["tenant", "role"]),
