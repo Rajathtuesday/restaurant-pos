@@ -23,7 +23,8 @@ No answer at all: read "The site is down".
 **Two rules for the night:**
 
 1. **Did a deploy go out in the last hour?** Then undo it before anything else:
-   `bash deploy.sh --undo` (about 30 seconds). Fix it tomorrow.
+   `bash deploy.sh --undo` (about 30 seconds; a few minutes when the deploy
+   changed the libraries; rehearsed on production 21 Nov 2026). Fix it tomorrow.
 2. **Never restore the database to fix a slow or broken site.** A restore loses
    every bill since the backup. Restore only when the data itself is gone or
    wrong (section 6).

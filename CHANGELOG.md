@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-11-21: The undo puts back exactly the old libraries
+
+The undo (`bash deploy.sh --undo`) was rehearsed on production for the first time: 55b58ca back to d50fabb, the site up (200), one celery beat, the old code running on the new schema; then `bash deploy.sh` brought 55b58ca back. Recorded in `docs/DEPLOY.md` and `docs/RUNBOOK.md`.
+
+### Fixed
+- **The undo left behind the libraries the undone version added.** It reinstalled the saved `pip freeze`, but `pip install` only puts versions back; it removes nothing. On the server the new version's `httpx2` stayed and pip reported a clash with the old `idna`. The undo now also uninstalls every library the saved list does not name.
+
+### Tests
+- `core/tests/test_deploy_script.py`: the pip stand-in behaves like pip (install leaves other libraries, uninstall removes them), version B adds a library, and a new case checks the libraries after an undo are exactly A's (fails on the old script: `extra==1` left). The case where B does not come up checks the same.
+
 ## 2026-11-21: Browser and PDF tests give the same answer on Linux and Windows
 
 First run of CI's steps in a Linux container (Docker, the way GitHub runs them): 2,629 tests, 9 failures, none on Windows.

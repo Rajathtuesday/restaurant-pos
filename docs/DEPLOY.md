@@ -631,7 +631,14 @@ overwritten each deploy).
   version back by itself and exits 1, so the GitHub Actions deploy job is red.
 - **The new version is up but wrong**: on the server,
   `cd /home/ubuntu/rasova && bash deploy.sh --undo`. About 30 seconds; minutes if
-  the libraries changed.
+  the libraries changed. It reinstalls the saved libraries and, since 21 Nov
+  2026, also removes any library the undone version added (pip install alone
+  left them, and one clashed with the old versions).
+- **Rehearsed on production, 21 Nov 2026**: `--undo` took 55b58ca back to
+  d50fabb (the 4 Nov version) in a few minutes; `/health/` 200, one celery beat,
+  the old code ran on the new schema. Then `bash deploy.sh` on the server brought
+  55b58ca back. After an undo the server's own `deploy.sh` is the old version's,
+  so that forward deploy runs the old script once.
 - **The database is never rolled back.** The old code runs against the new
   schema, which is safe because every migration only adds
   (`core/tests/test_migrations_additive.py`). Removing a column or a table takes

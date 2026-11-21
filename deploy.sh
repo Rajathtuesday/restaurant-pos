@@ -140,6 +140,18 @@ undo() {
     if [ -f "$STATE/requirements.freeze" ] && ! pip freeze | cmp -s - "$STATE/requirements.freeze"; then
         echo "=== The libraries differ: reinstalling the saved ones ==="
         pip install -r "$STATE/requirements.freeze" --quiet
+        # pip install puts the saved versions back but leaves what the undone
+        # version added; those can clash with the saved ones (the first
+        # rehearsal, 21 Nov 2026: httpx2 stayed and wanted a newer idna). Take
+        # out every library the saved list does not name.
+        local added
+        added=$(comm -23 \
+            <(pip freeze | grep -v '^[-#]' | sed -E 's/[ =@].*//' | tr 'A-Z_' 'a-z-' | sort -u) \
+            <(grep -v '^[-#]' "$STATE/requirements.freeze" | sed -E 's/[ =@].*//' | tr 'A-Z_' 'a-z-' | sort -u))
+        if [ -n "$added" ]; then
+            echo "=== Removing libraries the undone version added: $(echo $added) ==="
+            pip uninstall -y --quiet $added
+        fi
     fi
     if [ -f "$STATE/staticfiles.json" ]; then
         cp "$STATE/staticfiles.json" "$APP_DIR/staticfiles/staticfiles.json"

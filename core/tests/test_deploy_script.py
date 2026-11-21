@@ -46,11 +46,25 @@ case "$*" in
 esac
 exit 0
 ''',
+    # Like the real pip: `install -r` puts in the versions the file names and
+    # leaves every other library where it was; `uninstall` takes them out.
     "pip": r'''#!/bin/bash
 echo "pip $*" >> "$STUB_LOG"
+F="$STUB_DIR/freeze"
 case "$1" in
-  freeze) cat "$STUB_DIR/freeze" ;;
-  install) [ "$2" = "-r" ] && [ "$3" = "requirements.txt" ] && cp requirements.txt "$STUB_DIR/freeze" ;;
+  freeze) cat "$F" ;;
+  install)
+    if [ "$2" = "-r" ]; then
+      for line in $(grep -v '^[-#]' "$3"); do
+        name=${line%%==*}
+        { grep -v "^$name==" "$F"; echo "$line"; } | sort > "$F.new"; mv "$F.new" "$F"
+      done
+    fi ;;
+  uninstall)
+    shift
+    for name in "$@"; do
+      case "$name" in -*) ;; *) grep -v "^$name==" "$F" > "$F.new"; mv "$F.new" "$F" ;; esac
+    done ;;
 esac
 exit 0
 ''',
@@ -150,7 +164,7 @@ class DeployUndoTest(SimpleTestCase):
         (self.app / "logs").mkdir()
 
         self.write(work / "app.txt", "B\n")
-        self.write(work / "requirements.txt", "lib==2\n")
+        self.write(work / "requirements.txt", "lib==2\nextra==1\n")    # B adds a library
         self.write(work / "static" / "app.css", "b {}\n")
         self.commit(work, "B")
         self.git(work, "push", "-q", "origin", "qsr")
@@ -214,8 +228,10 @@ class DeployUndoTest(SimpleTestCase):
         self.assertEqual(code, 1, out)
         self.assertEqual(self.head(), self.a)
         self.assertEqual(self.static_names(), "OLD", "the old static file names must be back")
-        self.assertIn("pip install -r", self.log.read_text().split("pip freeze")[-1],
-                      "the libraries the new version installed must be put back")
+        self.assertIn("pip install -r " + self.state("requirements.freeze").as_posix(), self.log.read_text(),
+                      "the saved libraries must be reinstalled")
+        self.assertEqual((self.stub_dir / "freeze").read_text(), "lib==1\n",
+                         "the libraries must be exactly the old version's")
         self.assertIn("did not answer", out)
         self.assertIn(f"Undo done: {self.a} is running again", out)
         self.assertIn("The database was NOT rolled back", out)
@@ -235,6 +251,18 @@ class DeployUndoTest(SimpleTestCase):
         self.assertEqual(self.head(), self.a)
         self.assertEqual(self.static_names(), "OLD")
         self.assertIn(f"from {self.b} back to {self.a}", out)
+
+    def test_undo_leaves_exactly_the_old_libraries(self):
+        """pip install -r of the saved list puts A's versions back but leaves
+        what B added. On the server (21 Nov 2026, the first undo rehearsal)
+        B's httpx2 stayed and clashed with A's idna. The undo also takes out
+        what is not in A's list."""
+        self.assertEqual(self.deploy()[0], 0)
+        self.assertIn("extra==1", (self.stub_dir / "freeze").read_text())
+        code, out = self.deploy("--undo")
+        self.assertEqual(code, 0, out)
+        self.assertEqual((self.stub_dir / "freeze").read_text(), "lib==1\n")
+        self.assertIn("Removing libraries the undone version added: extra", out)
 
     def test_undo_with_nothing_saved_changes_nothing(self):
         code, out = self.deploy("--undo")
