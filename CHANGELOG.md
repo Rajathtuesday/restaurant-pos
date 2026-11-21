@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-11-21: CI lint passes again
+
+### Fixed
+- `ruff check .` (CI's first step) failed on three test lines from 14 Nov, so the 21 Nov push stopped before the tests and nothing deployed: two unused imports in `core/tests/test_shared_parts_browser.py` and an f-string with no placeholder in `core/tests/test_large_pages_browser.py`. Removed with `ruff --fix`; lint, `manage.py check` and `collectstatic` pass as CI runs them, and both test modules pass (16).
+
 ## 2026-11-19: A browser test's cleanup never runs under a request
 
 ### Fixed

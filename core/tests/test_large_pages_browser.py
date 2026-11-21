@@ -55,7 +55,7 @@ class LargePagesBrowserTest(BrowserTestCase):
                                             name='<b id="injected">Salt</b>', unit="g")
         ModifierRecipe.objects.create(modifier=self.r.modifier, inventory_item=salt, quantity_required=Decimal("2"), unit="g")
         out = self.run_page("/menu/modifiers/", [
-            ("open", tap(f'button[title="Link inventory"]')
+            ("open", tap('button[title="Link inventory"]')
                      + 'return await t.until(() => document.getElementById("existingLinks").textContent.includes("Salt"));'),
             ("text", 'return [Boolean(document.getElementById("injected")),'
                      ' document.getElementById("existingLinks").textContent.includes("<b id=")];'),

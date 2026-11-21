@@ -22,9 +22,7 @@ from django.contrib.auth import get_user_model
 
 from core.tests.browser import BrowserTestCase
 from core.tests.test_tenant_walk import Restaurant
-from crm.models import Reservation
 from finance.models import Expense
-from payments.models import Refund
 from shifts.models import ShiftTemplate
 from tenants.models import Tenant, TenantFeatureOverride
 from waiter.models import WaiterCall
