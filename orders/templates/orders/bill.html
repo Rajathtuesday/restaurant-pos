@@ -11,11 +11,9 @@
 {% block page_title %}Invoice{% endblock %}
 
 {% block header_links %}
-<button type="button" class="btn-icon" data-action="page.print" title="Print this page (full)"><i class="bi bi-printer"></i></button>
-<a href="{% url 'thermal-receipt' order.id %}" target="_blank"
-   class="btn-luxury ms-2 no-print" title="Open thermal receipt (80mm printer)">
-  <i class="bi bi-receipt me-1"></i>Thermal Print
-</a>
+{# One control each; the header fits them into one row (static/js/core/header_fit.js). #}
+<button type="button" data-action="page.print" class="btn-icon" title="Print" aria-label="Print" data-fit="Print" data-fit-rank="3" data-fit-round><i class="bi bi-printer"></i><span class="fit-word">Print</span></button>
+<a href="{% url 'thermal-receipt' order.id %}" target="_blank" class="btn-luxury no-print" title="Thermal Print" aria-label="Thermal Print" data-fit="Thermal Print" data-fit-rank="2"><i class="bi bi-receipt"></i><span class="fit-word">Thermal Print</span></a>
 {% endblock %}
 
 {% block content %}

@@ -10,20 +10,18 @@
 {% block page_title %}Live Orders{% endblock %}
 
 {% block header_links %}
+{# One control each; the header fits them into one row (static/js/core/header_fit.js). #}
 <div class="action-group d-flex align-items-center flex-wrap gap-2">
   {% if 'floor_plan' in tenant_features %}
-  <a href="{% url 'table-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tables</a>
-  <a href="{% url 'table-dashboard' %}" class="btn-icon d-sm-none" title="Tables" aria-label="Tables"><i class="bi bi-grid-3x3"></i></a>
+  <a href="{% url 'table-dashboard' %}" class="btn-luxury text-decoration-none" title="Tables" aria-label="Tables" data-fit="Tables" data-fit-rank="1"><i class="bi bi-grid-3x3"></i><span class="fit-word">Tables</span></a>
   {% endif %}
   {% if 'token_system' in tenant_features %}
-  <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Tokens</a>
-  <a href="{% url 'token-dashboard' %}" class="btn-icon d-sm-none" title="Tokens" aria-label="Tokens"><i class="bi bi-ticket-perforated"></i></a>
+  <a href="{% url 'token-dashboard' %}" class="btn-luxury text-decoration-none" title="Tokens" aria-label="Tokens" data-fit="Tokens" data-fit-rank="2"><i class="bi bi-ticket-perforated"></i><span class="fit-word">Tokens</span></a>
   {% endif %}
   {% if 'kitchen_display' in tenant_features %}
-  <a href="/kitchen/" class="btn-luxury text-decoration-none d-none d-sm-inline-flex">Kitchen</a>
-  <a href="/kitchen/" class="btn-icon d-sm-none" title="Kitchen" aria-label="Kitchen"><i class="bi bi-fire"></i></a>
+  <a href="/kitchen/" class="btn-luxury text-decoration-none" title="Kitchen" aria-label="Kitchen" data-fit="Kitchen" data-fit-rank="3"><i class="bi bi-fire"></i><span class="fit-word">Kitchen</span></a>
   {% endif %}
-  </div>
+</div>
 {% endblock %}
 
 {% block header_badges %}{% include "core/_notif_badges_luxury.html" %}{% endblock %}

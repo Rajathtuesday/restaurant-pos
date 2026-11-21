@@ -89,3 +89,40 @@ class HeaderFitBrowserTest(BrowserTestCase):
                                                    '.filter((i) => i.offsetParent).length;')],
                             user=self.r.owner, viewport={"width": 1920, "height": 900})
         self.assertEqual(out["results"]["icons"], 0, "words only: no icon shows")
+
+
+class BusyScreensFitTest(BrowserTestCase):
+    """The busy screens' own buttons fit too: billing, the bill, the running
+    order, live orders and the token counter (21 Nov 2026)."""
+
+    def setUp(self):
+        from django.utils import timezone
+
+        from core.utils import get_business_date
+        from tokens.models import TokenOrder
+        self.r = Restaurant("Alpha", "hdr-busy")
+        for feature in ("floor_plan", "merge_tables", "waiter_call", "qr_menu", "kitchen_display", "reports",
+                        "token_system"):
+            TenantFeatureOverride.objects.update_or_create(tenant=self.r.tenant, feature=feature, defaults={"enabled": True})
+        from orders.models import Order
+        self.token_order = Order.objects.create(tenant=self.r.tenant, outlet=self.r.outlet, created_by=self.r.owner,
+                                                source="counter", status="open")
+        TokenOrder.objects.create(tenant=self.r.tenant, outlet=self.r.outlet, order=self.token_order, token_number=1,
+                                  date=get_business_date(timezone.now(), self.r.outlet))
+
+    def test_each_busy_screen_is_one_row_at_phone_tablet_and_laptop(self):
+        pages = {
+            "billing": "/billing/",
+            "bill": f"/bill/{self.r.order.id}/",
+            "running order": f"/order/{self.r.order.id}/",
+            "live orders": "/live-orders/",
+            "token counter": f"/token/{self.token_order.id}/bill/",
+        }
+        for label, url in pages.items():
+            for width in (390, 768, 1366):
+                with self.subTest(page=label, width=width):
+                    out = self.run_page(url, [("row", ROW)], user=self.r.owner, viewport={"width": width, "height": 900})
+                    self.assertEqual(out["errors"], [], "\n".join(out["errors"]))
+                    row = out["results"]["row"]
+                    self.assertEqual(row["rows"], 1, (label, width, row))
+                    self.assertFalse(row["overflow"], (label, width, row))
