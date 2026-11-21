@@ -58,6 +58,64 @@ window.t = {
 };
 """
 
+# The Rasova print agent listens on port 8765 on the restaurant's own
+# machine, and several pages ask it whether it is there (Kitchen Stations on
+# load, the counter when it prints). No agent runs beside a test, and how the
+# refusal shows depends on the operating system: Linux refuses at once and
+# Chromium logs "WebSocket connection ... failed: ERR_CONNECTION_REFUSED" as a
+# console error; Windows retries for about 2 s, past the page's own 2 s
+# timeout, and nothing is logged. So the same test passed on Windows and
+# failed on Linux (21 Nov 2026). In every test page a socket to that port is
+# this stand-in: it says "not running" at once, without the network.
+NO_LOCAL_AGENT = """
+(() => {
+  const Real = window.WebSocket;
+  if (!Real) return;
+  class NoAgent extends EventTarget {
+    constructor(url) {
+      super();
+      this.url = String(url);
+      this.readyState = Real.CONNECTING;
+      this.onopen = this.onmessage = this.onerror = this.onclose = null;
+      setTimeout(() => {
+        this.readyState = Real.CLOSED;
+        for (const kind of ["error", "close"]) {
+          const event = new Event(kind);
+          this.dispatchEvent(event);
+          if (typeof this["on" + kind] === "function") this["on" + kind](event);
+        }
+      }, 0);
+    }
+    send() { throw new DOMException("the print agent is not running", "InvalidStateError"); }
+    close() { this.readyState = Real.CLOSED; }
+  }
+  window.WebSocket = new Proxy(Real, {
+    construct(target, args) {
+      return /:8765(\\/|$)/.test(String(args[0])) ? new NoAgent(args[0]) : new target(...args);
+    },
+  });
+})();
+"""
+
+
+class _NoLocalAgentBrowser:
+    """The test class's browser: every context it opens gets NO_LOCAL_AGENT,
+    whether a test goes through run_page or opens its own context."""
+
+    def __init__(self, browser):
+        self._browser = browser
+
+    def new_context(self, **options):
+        context = self._browser.new_context(**options)
+        context.add_init_script(NO_LOCAL_AGENT)
+        return context
+
+    def new_page(self, **options):
+        return self.new_context(**options).new_page()
+
+    def __getattr__(self, name):
+        return getattr(self._browser, name)
+
 
 class _ServerGate:
     """Every request the live test server is working on, counted at the
@@ -180,7 +238,7 @@ class BrowserTestCase(StaticLiveServerTestCase):
         super().setUpClass()
         cls.playwright = sync_playwright().start()
         try:
-            cls.browser = cls.playwright.chromium.launch()
+            cls.browser = _NoLocalAgentBrowser(cls.playwright.chromium.launch())
         except Exception as e:
             cls.playwright.stop()
             super().tearDownClass()

@@ -7,6 +7,20 @@ the source of truth.
 
 ---
 
+## 2026-11-21: Browser and PDF tests give the same answer on Linux and Windows
+
+First run of CI's steps in a Linux container (Docker, the way GitHub runs them): 2,629 tests, 9 failures, none on Windows.
+
+### Fixed
+- **Five browser tests failed on Linux only** (Kitchen Stations, the smoke walk). The page asks the local print agent (`ws://localhost:8765`) on load; no agent runs beside a test; Linux refuses at once and Chromium logs `ERR_CONNECTION_REFUSED` as a console error, while Windows retries past the page's own 2 s timeout and logs nothing. `core/tests/browser.py` now gives every test page (through `run_page` or a context a test opens itself) a stand-in for that socket that says "not running" at once, without the network.
+- **Four PDF tests had never run on Linux** (WeasyPrint needs libraries Windows lacks). One expected the app folder's copy of a static file, but CI collects static files before its tests, so the resolver rightly read the collected copy; the test now sets an empty `STATIC_ROOT`. The other looked for "164.4" in the PDF's bytes (pydyf compresses the page box) and measured `paper_58.css`; it now links a stylesheet of its own and reads the page size with pypdf.
+
+### Found, not changed (your decision)
+- `static/css/print/paper_58.css` and `paper_80.css` say `size: 58mm auto` / `80mm auto`, which is not valid CSS: Chrome and WeasyPrint both ignore it (checked: Chrome prints US Letter with it, 58 mm wide with `58mm 297mm`). So these rules have never set the receipt size; printers have used their own paper setting, and the bill PDF is the default page size. A valid size would change how live receipts print (a fixed height feeds that much paper), so it is left for a decision.
+
+### Tests
+- `core/tests/test_browser_local_agent.py` (3): a page asking for the agent gets "not running" with nothing logged, through `run_page` and through a context a test opens; other sockets are untouched. Two fail on the old code on Windows too.
+
 ## 2026-11-21: Celery can reach Redis on a fresh install
 
 ### Fixed

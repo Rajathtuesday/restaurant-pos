@@ -43,13 +43,18 @@ STATIC = Path(settings.BASE_DIR) / "static"
 class WhatAPdfMayReadTest(SimpleTestCase):
 
     def test_static_files_come_from_disk_whatever_host_the_link_names(self):
-        for url in ("https://rasova.net/static/css/bill.css",
-                    "http://localhost:8000/static/css/bill.css",
-                    "/static/css/bill.css"):
-            with self.subTest(url=url):
-                kind, path = resolve(url)
-                self.assertEqual(kind, "file")
-                self.assertEqual(Path(path), (STATIC / "css" / "bill.css").resolve())
+        # Before collectstatic (an empty STATIC_ROOT), so the app folders
+        # answer. CI collects before its tests, so a test that left
+        # STATIC_ROOT as it was read the collected copy there instead
+        # (21 Nov 2026); the collected case is the test below.
+        with tempfile.TemporaryDirectory() as empty, override_settings(STATIC_ROOT=empty):
+            for url in ("https://rasova.net/static/css/bill.css",
+                        "http://localhost:8000/static/css/bill.css",
+                        "/static/css/bill.css"):
+                with self.subTest(url=url):
+                    kind, path = resolve(url)
+                    self.assertEqual(kind, "file")
+                    self.assertEqual(Path(path), (STATIC / "css" / "bill.css").resolve())
 
     def test_the_paper_width_sheets_and_the_vendor_files_are_found(self):
         for name in ("css/print/paper_58.css", "css/print/paper_80.css",
@@ -116,14 +121,30 @@ class RenderPdfTest(SimpleTestCase):
             self.skipTest("WeasyPrint's system libraries are not installed here")
 
     def test_a_linked_stylesheet_is_applied_without_any_network(self):
+        """A stylesheet of the test's own, linked from a host that does not
+        exist, sets the page 58 mm by 100 mm; the PDF comes out that size.
+        (This used paper_58.css and looked for "164.4" in the PDF's bytes.
+        It first ran on Linux on 21 Nov and failed twice over: pydyf packs
+        the page box into a compressed object, and paper_58.css's
+        `size: 58mm auto` is not valid CSS, so WeasyPrint, like Chrome,
+        ignores it and the page is the default size.)"""
+        import io
         from unittest.mock import patch
 
+        from pypdf import PdfReader
+
         from core.pdf import render_pdf
-        page = ('<html><head><link rel="stylesheet" href="https://unreachable.invalid/static/css/print/paper_58.css">'
+        page = ('<html><head><link rel="stylesheet" href="https://unreachable.invalid/static/css/roll.css">'
                 '</head><body><p>Bill</p></body></html>')
-        # the network is not there at all: any HTTP fetch would fail the render
-        with patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("went to the network")):
-            pdf = render_pdf(page, base_url="https://unreachable.invalid/")
+        with tempfile.TemporaryDirectory() as root:
+            (Path(root) / "css").mkdir()
+            (Path(root) / "css" / "roll.css").write_text("@page { size: 58mm 100mm; margin: 2mm; }", encoding="utf-8")
+            # the network is not there at all: any HTTP fetch would fail the render
+            with (override_settings(STATIC_ROOT=root),
+                  patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("went to the network"))):
+                pdf = render_pdf(page, base_url="https://unreachable.invalid/")
         self.assertTrue(pdf.startswith(b"%PDF"))
-        # paper_58.css sets the page 58 mm wide: 58 mm is about 164.4 points
-        self.assertIn(b"164.4", pdf.replace(b" ", b" "))
+        box = PdfReader(io.BytesIO(pdf)).pages[0].mediabox
+        points_per_mm = 72 / 25.4
+        self.assertAlmostEqual(float(box.width) / points_per_mm, 58, places=1)
+        self.assertAlmostEqual(float(box.height) / points_per_mm, 100, places=1)
