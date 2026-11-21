@@ -11,7 +11,7 @@
  * Each resolves to what was typed, or null if the cashier backed out.
  */
 import { readItemDiscount } from "./discounts.js";
-import { splitShare } from "./amount.js";
+import { giveBackAmount, splitShare } from "./amount.js";
 import { rupees } from "../core/money.js";
 
 export function createDialogs({ Swal = globalThis.Swal, isDark = () => false, doc = document }) {
@@ -77,6 +77,27 @@ export function createDialogs({ Swal = globalThis.Swal, isDark = () => false, do
         read: () => {
           const code = field("cover-code").value.trim();
           return code ? { code } : { message: "Type the code from the slip." };
+        },
+      });
+    },
+
+    /* {amount, reason} to hand back to the guest: at most `max`, what was
+       paid on the bill in money. A manager does it, or approves it. */
+    giveBack(suggested, max) {
+      const start = Number(suggested) > 0 ? Number(suggested).toFixed(2) : "";
+      return form({
+        title: "Give money back",
+        html: `<div class="bill-form-hint bill-form-hint--lead">Paid in money on this bill: ${rupees(max)}. A manager gives it back, or approves it with their PIN.</div>`
+          + label("give-back-amount", "Amount to give back", true)
+          + `<input id="give-back-amount" type="number" min="0.01" step="0.01" inputmode="decimal" class="swal2-input bill-form-input" value="${start}">`
+          + label("give-back-reason", "Why?")
+          + '<input id="give-back-reason" type="text" maxlength="200" class="swal2-input bill-form-input" placeholder="For example: the guest took fewer drinks">',
+        confirmText: "Give back",
+        focus: "give-back-amount",
+        read: () => {
+          const amount = giveBackAmount(field("give-back-amount").value, max);
+          if (!amount) return { message: `Enter an amount more than 0 and no more than ${rupees(max)}.` };
+          return { amount, reason: field("give-back-reason").value.trim() };
         },
       });
     },

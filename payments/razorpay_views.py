@@ -2,13 +2,11 @@
 from core.errors import error_response
 import json
 import logging
-from decimal import Decimal
 
 import requests
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction, IntegrityError
-from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -69,10 +67,7 @@ def create_razorpay_qr(request, order_id):
             status=400,
         )
 
-    paid_total = order.payments.exclude(method="refund").aggregate(
-        total=Sum("amount")
-    )["total"] or Decimal("0.00")
-    remaining = order.grand_total - paid_total
+    remaining = order.grand_total - order.amount_paid()
 
     requested_amount = None
     try:
@@ -248,10 +243,7 @@ def razorpay_webhook(request):
     # and we treat it exactly like the idempotency check catching a duplicate.
     try:
         with transaction.atomic():
-            paid_total = order.payments.exclude(method="refund").aggregate(
-                total=Sum("amount")
-            )["total"] or Decimal("0.00")
-            current_remaining = order.grand_total - paid_total
+            current_remaining = order.grand_total - order.amount_paid()
 
             # Validate against current state, not the QR's stale original quote —
             # the order may have changed (discount, added item) since the QR was shown.

@@ -231,6 +231,13 @@ order (paid, closed) --> reports, Z-report, daily digest email
   too (`Payment.request_key`, unique per order): an offline or dropped cash payment sent
   again is answered, never recorded twice. A gateway payment's reference is unique in the
   database.
+- **Never less to pay than paid.** `Order.amount_paid()` (payments less refunds) and
+  `Order.amount_due()` (zero once settled) are the one count of paid and due. Every change
+  to a bill ends in `recalculate_totals`, which calls `orders/services/paid_guard.py`: if the
+  total drops below what is paid, cover payments come down first (the rest is back on the
+  cover), then money is given back (an approved refund), on the spot with a manager's PIN
+  or first, as the outlet chooses (`Outlet.bill_below_paid`, Setup). Give Back Money is on
+  the bill; `manage.py bills_below_paid` lists bills left overpaid before 21 Nov 2026.
 - **Money on screen** is written one way (`static/js/core/money.js`, `core/money.py`):
   "₹430", "₹20.50", "₹1,25,000". `core/tests/test_money_one_way.py` refuses a rupee sign
   (or "Rs.") glued to a number in any script; call `rupees()`.

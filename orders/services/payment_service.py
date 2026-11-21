@@ -23,7 +23,6 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 
 from orders.models import Payment, OrderItem
@@ -86,11 +85,7 @@ def process_payment(order, method, amount, user=None, reference=None, request_ke
     if amount <= 0:
         raise ValidationError("Payment amount must be greater than zero.")
 
-    paid_total = (
-        order.payments
-        .exclude(method="refund")
-        .aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-    )
+    paid_total = order.amount_paid()        # net of anything given back
     remaining = order.grand_total - paid_total
 
     if remaining <= 0:

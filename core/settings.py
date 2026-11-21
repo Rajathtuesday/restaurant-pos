@@ -195,6 +195,8 @@ MIDDLEWARE = [
     'axes.middleware.AxesMiddleware',
     # Needs request.user (auth) + request.tenant (TenantMiddleware, above)
     'core.middleware.SubscriptionStatusMiddleware',
+    # The request, for a bill that drops below what was paid (orders/services/paid_guard.py)
+    'core.middleware.CurrentRequestMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'core.middleware.ContextLoggingMiddleware',

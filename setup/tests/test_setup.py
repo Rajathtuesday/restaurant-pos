@@ -107,6 +107,36 @@ class OutletSettingsParcelChargeTest(TestCase):
                       [str(m) for m in response.context["messages"]])
 
 
+class OutletSettingsBillBelowPaidTest(TestCase):
+    """The owner chooses what happens when a bill drops below what was paid
+    on it (orders/services/paid_guard.py, 21 Nov 2026)."""
+
+    def setUp(self):
+        self.tenant, self.outlet = _make_tenant("Below Paid Pub")
+        self.owner = _make_user(self.tenant, self.outlet, role="owner", username="below_paid_owner")
+        self.client.force_login(self.owner)
+
+    def save(self, value):
+        self.client.post(reverse("outlet_settings"), {"outlet_name": self.outlet.name, "bill_below_paid": value})
+        self.outlet.refresh_from_db()
+        return self.outlet.bill_below_paid
+
+    def test_on_the_spot_by_default_and_the_owner_can_choose_refund_first(self):
+        self.assertEqual(self.outlet.bill_below_paid, "give_back")
+        self.assertEqual(self.save("refund_first"), "refund_first")
+        self.assertEqual(self.save("give_back"), "give_back")
+
+    def test_an_unknown_choice_leaves_it_as_it_was(self):
+        self.save("refund_first")
+        self.assertEqual(self.save("anything"), "refund_first")
+
+    def test_the_page_offers_both(self):
+        page = self.client.get(reverse("outlet_settings")).content.decode()
+        self.assertIn('name="bill_below_paid"', page)
+        self.assertIn("A manager gives the difference back on the spot", page)
+        self.assertIn("Give the difference back first, then change the bill", page)
+
+
 class OnboardingWizardSilentFailureTest(TestCase):
     """
     Steps 2 and 3 of the onboarding wizard always redirect to the next

@@ -64,6 +64,46 @@ def process_refund(order, payment_id, amount, user, reason="", customer_complain
 
     return refund
 
+def give_back(order, amount, by, reason):
+    """Hand `amount` back to the guest on an open bill, now, approved by `by`
+    (a manager or the owner; the caller checks). For a bill that dropped
+    below the money already paid on it (orders/services/paid_guard.py).
+
+    Taken from the money payments (not covers), latest first. Each part is
+    recorded as approve_refund records a refund: an approved Refund against
+    the payment it came from, and a negative Payment "REFUND-<id>", so the
+    bill's amount_paid() falls by it and shift close takes a cash part out
+    of the drawer count (shifts/views.py). Returns the Refunds."""
+    if amount <= 0:
+        return []
+    left = amount
+    made = []
+    payments = (order.payments.exclude(method__in=("refund", "cover"))
+                .order_by("-paid_at", "-id"))
+    for payment in payments:
+        refunded = payment.refunds.exclude(status="rejected").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        part = min(left, payment.amount - refunded)
+        if part <= 0:
+            continue
+        refund = Refund.objects.create(payment=payment, order=order, amount=part, reason=reason[:255],
+                                       status="approved", refunded_by=by)
+        Payment.objects.create(order=order, method="refund", amount=-part, reference=f"REFUND-{refund.id}",
+                               created_by=by)
+        OrderEvent.objects.create(
+            tenant=order.tenant, outlet=order.outlet, order=order, event_type="payment_refunded", amount=part,
+            metadata={"payment_id": payment.id, "method": payment.method, "refund_id": refund.id,
+                      "given_back": True, "approved_by": by.username, "reason": reason[:255]},
+            created_by=by,
+        )
+        made.append(refund)
+        left -= part
+        if left <= 0:
+            break
+    if left > 0:
+        raise ValidationError(f"Only {amount - left} of {amount} could be given back: not enough was paid in money.")
+    return made
+
+
 @transaction.atomic
 def approve_refund(refund_id, approver, tenant, outlet):
     """

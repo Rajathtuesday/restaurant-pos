@@ -30,8 +30,7 @@ logger = logging.getLogger("pos.orders")
 
 def _repeat_payment(order, payment):
     """The answer to a payment id this order has already taken."""
-    from django.db.models import Sum
-    paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    paid = order.amount_paid()
     logger.info("Payment request %s for order #%s arrived again; answered with payment #%s",
                 payment.request_key, order.id, payment.id)
     return JsonResponse({
@@ -159,8 +158,15 @@ def pay_order(request, order_id):
                         except Exception as _ke:
                             logger.warning("Auto-KOT creation failed in pay_order: %s", _ke)
 
-                if order.grand_total == 0:
-                    # Fully complimentary order!
+                due = order.amount_due()
+                if due < 0:
+                    return JsonResponse({"error": (
+                        f"₹{-due:.2f} more than the bill has been paid. Give it back first "
+                        "(Give back, on the bill), then close it.")}, status=400)
+                if order.grand_total == 0 or due == 0:
+                    # Nothing left to pay: fully complimentary, or already
+                    # paid in full by what is on it (a cover that came down
+                    # to the bill, orders/services/paid_guard.py). Close it.
                     order.status = "closed"
                     order.closed_at = timezone.now()
                     order.save(update_fields=["status", "closed_at"])
@@ -168,8 +174,10 @@ def pay_order(request, order_id):
                     if order.table:
                         order.table.state = "free"
                         order.table.save(update_fields=["state"])
-                    logger.info("Order #%s fully complimentary and closed", order.id)
-                    return JsonResponse({"success": True, "message": "Complimentary order closed"})
+                    free = order.grand_total == 0
+                    logger.info("Order #%s %s and closed", order.id, "fully complimentary" if free else "paid in full")
+                    return JsonResponse({"success": True,
+                                         "message": "Complimentary order closed" if free else "Bill paid in full and closed"})
 
                 if amount == 0:
                     return JsonResponse({"error": "Amount must be greater than 0 for non-complimentary orders"}, status=400)
@@ -360,6 +368,51 @@ def refund_payment(request, payment_id):
     except Exception:
         logger.exception("Error refunding payment #%s", payment_id)
         return JsonResponse({"error": "Refund could not be processed. Please try again."}, status=500)
+
+
+# -------------------------------------------------
+# GIVE BACK  - POST /give-back/<order_id>/
+# -------------------------------------------------
+
+@login_required
+@require_POST
+@tenant_required
+@role_required("manager", "cashier", "captain", "owner")
+def give_back_view(request, order_id):
+    """Hand money back to the guest on an open bill: what was paid over the
+    bill, or, where the outlet gives back first (Outlet.bill_below_paid),
+    the difference before a change that lowers it. A manager does it, or
+    approves it with their PIN. payments/refund_service.give_back records
+    it the way an approved refund is recorded, so shift close counts cash
+    that left the drawer."""
+    from orders.services import approvals
+    from payments.refund_service import give_back
+    try:
+        # The bill first: another restaurant's id is "not found" before
+        # anything the request says is read (core/tests/test_tenant_walk.py).
+        if not Order.objects.filter(id=order_id, tenant=request.user.tenant, outlet=request.user.outlet).exists():
+            raise Order.DoesNotExist
+        data = json.loads(request.body or b"{}")
+        approver = approvals.read_approval(request, request.user.outlet)
+        who = approvals.require(request.user, approver, "A manager gives money back to a guest.")
+        amount = read_number(data.get("amount"), "The amount to give back",
+                             minimum=Decimal("0.01"), maximum=Decimal("100000"), places=2)
+        reason = (str(data.get("reason") or "").strip() or "Given back on the bill")[:200]
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(
+                id=order_id, tenant=request.user.tenant, outlet=request.user.outlet)
+            if order.status not in ("open", "billing"):
+                return JsonResponse({"error": "This bill is settled. Refund it from Order History."}, status=400)
+            give_back(order, amount, who, reason)
+        logger.info("User %s gave back %s on order #%s (approved by %s)",
+                    request.user.username, amount, order.id, who.username)
+        return JsonResponse({"success": True, "remaining": str(order.amount_due())})
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except (approvals.ApprovalNeeded, approvals.ApprovalRefused) as e:
+        return approvals.approval_response(e, request.user.tenant, request.user.outlet)
+    except (NumberInputError, ValidationError) as e:
+        return error_response(e, 400)
 
 
 # -------------------------------------------------

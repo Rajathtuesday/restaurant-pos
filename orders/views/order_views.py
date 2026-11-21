@@ -176,13 +176,8 @@ def running_order_items(request):
                 "modifiers": [m.name for m in i.modifiers.all()]
             })
 
-        from django.db.models import Sum
         token = getattr(order, "token", None)
-        total_paid = (
-            order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"]
-            or 0
-        )
-        remaining = max(0, float(order.grand_total or 0) - float(total_paid))
+        remaining = max(0, float(order.amount_due()))
 
         return JsonResponse({
             "items": items,

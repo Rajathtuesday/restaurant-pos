@@ -18,6 +18,16 @@ export function splitShare(balance, people) {
   return (Number(balance) / n).toFixed(2);
 }
 
+/* An amount to give back to the guest as "12.50", or null: more than 0,
+   and no more than `max`, what was paid on the bill in money. */
+export function giveBackAmount(text, max) {
+  const raw = String(text ?? "").trim();
+  const amount = Number(raw);
+  if (raw === "" || !Number.isFinite(amount) || amount <= 0) return null;
+  if (Math.round(amount * 100) > Math.round(Number(max) * 100)) return null;
+  return amount.toFixed(2);
+}
+
 /* What a UPI app reads from the QR: who is paid, how much, for which bill.
    The payee's name is encoded: "Salt & Pepper" used to cut the link at the
    ampersand, so the app saw a payee called "Salt " and lost the amount's

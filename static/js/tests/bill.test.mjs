@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { changeDue, payable, splitShare, upiString } from "../bill/amount.js";
+import { changeDue, giveBackAmount, payable, splitShare, upiString } from "../bill/amount.js";
 import { createBillPrinter } from "../bill/bill_print.js";
 import { billDiscountProblem, promoLabel, promoProblem, readItemDiscount } from "../bill/discounts.js";
 import { createPayment } from "../bill/payment.js";
@@ -412,4 +412,13 @@ test("a QR that cannot be made says so; closing the sheet stops the asking", asy
   assert.deepEqual(rig.stopped, [1]);
   await rig.qr.open();          // Regenerate: the old asking is not left running
   assert.equal(rig.ticks.length, 2);
+});
+
+test("an amount to give back is more than 0 and no more than was paid in money (21 Nov 2026)", () => {
+  assert.equal(giveBackAmount("950", "2000.00"), "950.00");
+  assert.equal(giveBackAmount(" 99.8 ", "100"), "99.80");
+  assert.equal(giveBackAmount("2000", "2000.00"), "2000.00");
+  for (const bad of ["", "0", "-5", "abc", "2000.01"]) {
+    assert.equal(giveBackAmount(bad, "2000.00"), null, bad);
+  }
 });

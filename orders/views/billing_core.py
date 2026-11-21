@@ -3,7 +3,7 @@ import logging
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch, Sum, Q
+from django.db.models import Prefetch, Q
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -169,6 +169,14 @@ def billing_view(request):
 # BILL VIEW
 # -------------------------------------------------
 
+def money_paid(order):
+    """What was paid on the bill in money (cash, UPI, card...), net of what
+    was given back: covers are vouchers and never handed back as money."""
+    from django.db.models import Sum
+    covers = order.payments.filter(method="cover").aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    return order.amount_paid() - covers
+
+
 def bill_page_data(order, remaining, config, station, user, is_qsr, auto_print):
     """What static/js/bill/index.js needs from the server, rendered once
     by bill.html as {{ page_data|json_script:"page-data" }}. Money travels
@@ -180,6 +188,10 @@ def bill_page_data(order, remaining, config, station, user, is_qsr, auto_print):
         "bill_number": str(order.display_number),
         "payee": order.tenant.name,
         "remaining": str(remaining),
+        # More paid than the bill, and the money that can be given back
+        # (orders/services/paid_guard.py, the Give back button).
+        "overpaid": str(max(-remaining, Decimal("0"))),
+        "money_paid": str(money_paid(order)),
         "subtotal": str(order.subtotal or 0),
         # The UPI QR is drawn only while something is left to pay.
         "upi_id": (config.upi_id or "") if remaining > 0 else "",
@@ -198,6 +210,7 @@ def bill_page_data(order, remaining, config, station, user, is_qsr, auto_print):
             "apply_discount": reverse("apply-discount", args=[order.id]),
             "log_bypass": reverse("log-bypass", args=[order.id]),
             "cover_redeem": reverse("cover-redeem", args=[order.id]),
+            "give_back": reverse("give-back", args=[order.id]),
             "link_guest": reverse("link-guest", args=[order.id]),
             "guest_lookup": reverse("guest-lookup"),
             "list_promos": reverse("list-promos"),
@@ -240,8 +253,8 @@ def bill_view(request, order_id):
         config, _ = PaymentConfig.for_outlet(request.user.outlet, request.user.tenant)
 
         # Calculate remaining balance
-        total_paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
-        remaining = order.grand_total - total_paid
+        total_paid = order.amount_paid()
+        remaining = order.amount_due()
 
         # Available promos
         from promos.models import Promo
@@ -284,6 +297,8 @@ def bill_view(request, order_id):
             "layout": bill_layout(order),
             "config": config,
             "remaining": remaining,
+            "overpaid": max(-remaining, Decimal("0")),
+            "money_paid": money_paid(order),
             "total_paid": total_paid,
             "promos": valid_promos,
             "promo_paused_note": promo_paused_note,

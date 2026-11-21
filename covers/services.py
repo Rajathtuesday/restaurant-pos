@@ -92,8 +92,7 @@ def redeem_cover(user, order, code):
         order = Order.objects.select_for_update().get(id=order.id)
         if order.status not in ("open", "billing"):
             raise CoverError("This bill is already settled.")
-        paid = order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"] or Decimal("0")
-        due = order.grand_total - paid
+        due = order.amount_due()
         if due <= 0:
             raise CoverError("Nothing is left to pay on this bill.")
         amount = min(balance, due)

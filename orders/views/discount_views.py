@@ -352,10 +352,8 @@ def log_bypass(request, order_id):
                         "manager can. Ask the owner to close this one."
                     )}, status=403)
 
-            from django.db.models import Sum
-            paid = (order.payments.exclude(method="refund").aggregate(total=Sum("amount"))["total"]
-                    or Decimal("0"))
-            unpaid = max(order.grand_total - paid, Decimal("0"))
+            paid = order.amount_paid()
+            unpaid = max(order.amount_due(), Decimal("0"))
 
             logger.warning(
                 "User %s closed order #%s without payment (unpaid %s)",

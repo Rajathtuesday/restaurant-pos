@@ -5,6 +5,7 @@ from .views.order_actions import cancel_order, cancel_item, reduce_item, toggle_
 from .views.live_orders import live_orders_view, live_orders_data
 from .views.billing_views import refund_payment, apply_item_discount, log_bypass, split_pay, download_pdf_bill
 from .views.public_views import public_bill, submit_feedback
+from .views.payment_views import give_back_view
 from .api import api_tables, api_active_orders, api_ingest_order, notification_api
 # approve_refund_view/reject_refund_view/pending_refunds_view and
 # create_razorpay_qr/razorpay_qr_status/razorpay_webhook moved to
@@ -114,6 +115,8 @@ urlpatterns = [
     path("item-discount/<int:item_id>/", apply_item_discount, name="item-discount"),
     path("log-bypass/<int:order_id>/", log_bypass, name="log-bypass"),
     path("split-pay/<int:order_id>/", split_pay, name="split-pay"),
+    # Money back to the guest on an open bill (orders/services/paid_guard.py)
+    path("give-back/<int:order_id>/", give_back_view, name="give-back"),
 
     # API Routes for Headless/Mobile Clients
     path("api/tables/", api_tables, name="api-tables"),

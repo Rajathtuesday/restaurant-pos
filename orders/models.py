@@ -446,6 +446,25 @@ class Order(TenantScopedModel):
     # TOTAL RECALCULATION
     # -------------------------------------------------
 
+    def amount_paid(self):
+        """What the guest has paid on this bill, net: every payment, less
+        what was given back (a refund is a payment with a negative amount,
+        payments/refund_service.py). The one count of "paid" for deciding
+        what is still due; reports that show refunds apart keep their own
+        sums. (Before 21 Nov 2026 each screen skipped the refund rows, so a
+        refunded rupee still counted as paid.)"""
+        from django.db.models import Sum
+        return self.payments.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+
+    def amount_due(self):
+        """What is still to pay: nothing once the bill is settled (a refund
+        approved after that is its own matter, not a balance), otherwise the
+        total less amount_paid(). Below zero means more was paid than the
+        bill (orders/services/paid_guard.py keeps that from happening)."""
+        if self.status in ("paid", "closed", "cancelled"):
+            return Decimal("0.00")
+        return self.grand_total - self.amount_paid()
+
     def recalculate_totals(self):
         """
         Total the bill with the tax engine and save the result: the money
@@ -490,6 +509,12 @@ class Order(TenantScopedModel):
         self.save(update_fields=["subtotal", "gst_total", "vat_total", "discount_total",
                                  "order_discount_total", "offer_total", "grand_total", "round_off",
                                  "parcel_surcharge", "tax_summary", "gst_breakdown_cache"])
+        # Never less to pay than already paid: covers shrink, money is given
+        # back or the change refused (orders/services/paid_guard.py). It may
+        # raise; the caller's transaction then undoes the change.
+        if self.pk:
+            from orders.services.paid_guard import keep_bill_above_paid
+            keep_bill_above_paid(self)
 
     def _refuse_if_issued(self):
         """Raise IssuedBillError if this bill is issued, by this copy or by

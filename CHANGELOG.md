@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-11-21: A bill never asks for less than has been paid on it
+
+Reported from the pub: a cover paid part of a bill; then the guest took fewer items and a promo went on, and the bill came to less than the cover had paid. The screen said "FULLY PAID" with nothing to give back, the cover counted the whole payment as spent, and the bill could not be closed.
+
+### Fixed
+- **Nothing stopped a bill dropping below what was paid on it.** Voids, fewer of a dish, dish discounts, bill discounts, promos, comps and the parcel charge checked only whether the bill was settled. Now `Order.recalculate_totals`, where every change to a bill ends, calls `orders/services/paid_guard.py`: when the new total is below what is paid, **covers come down first** (a cover pays only what is due; the difference is back on the cover for its night, no money moves, recorded as `payment_refunded` with `"to": "cover"`), then **money paid (cash, UPI, card) is given back**: by default on the spot, with a manager doing the change or approving it with their PIN (the same PIN prompt as a printed-bill change), recorded as an approved refund against the payment and a negative `REFUND-<id>` payment, so shift close takes cash out of the drawer count. A refund already asked for is not given back twice. Without a manager the change is refused and nothing of it stays (the caller's transaction).
+- **"Paid" was counted in about a dozen places, each skipping refund rows**, so a refunded rupee still counted as paid. `Order.amount_paid()` (payments less refunds) and `Order.amount_due()` (nothing once settled) are the one count, used by the bill screen, payments, covers, Razorpay, the token counter, the guest bill page, close without payment and the receipt. Reports keep showing refunds apart.
+- **The bill screen hid an overpaid bill as "FULLY PAID".** It now shows "Overpaid ₹X" in red with a Give Back button; refunds show as "Given back"; a bill paid in full exactly shows "Close Bill (Paid In Full)", and paying ₹0 closes it (it used to be refused unless the total was 0). An overpaid bill cannot be closed until the difference is given back.
+- **Give Back Money** on the bill (`/give-back/<order_id>/`): a manager, or anyone with a manager's PIN, gives money back on an open bill, up to what was paid in money.
+- **`python manage.py bills_below_paid`** lists open bills left overpaid before this fix; `--apply` brings their cover payments down to the bill. Money paid is never moved by it: those bills are listed for a manager to give back on the screen.
+
+### Added (freeze lifted by the owner for this one setting, see CLAUDE.md)
+- Setup, Outlet Settings: **When a bill drops below what's paid**: a manager gives the difference back on the spot (default), or the difference is given back first and the change refused until then (`Outlet.bill_below_paid`, migration `tenants.0043`, additive).
+
+### Tests
+- `covers/tests/test_bill_drops_below_paid.py` (19): a void, fewer of a dish and a discount after a cover bring the cover down and leave the rest on it; after cash, a cashier alone is asked for a manager, with a PIN the difference is given back, a manager gives it back themselves, a pending refund is not given back twice; refund first refuses, then allows after a give-back; the void screen answers with the PIN prompt and then gives back; an already overpaid bill shows "Overpaid", cannot close, needs a PIN to give back, then shows paid in full and closes; no more than was paid goes back; another restaurant's bill is not found; the repair command lists, then applies. All fail without the guard.
+- `orders/tests/test_running_order_browser.py`: a captain makes a dish free on a bill with 100 paid in cash; the real page asks for a manager's PIN saying "gives back ₹100.00", and with it the dish is free and 100 is given back. The comp-sheet test now uses a bill with nothing paid.
+- `setup/tests/test_setup.py` (3): the choice saves, an unknown value is ignored, the page offers both. Node: the amount to give back is checked on the screen.
+
 ## 2026-11-21: The undo puts back exactly the old libraries
 
 The undo (`bash deploy.sh --undo`) was rehearsed on production for the first time: 55b58ca back to d50fabb, the site up (200), one celery beat, the old code running on the new schema; then `bash deploy.sh` brought 55b58ca back. Recorded in `docs/DEPLOY.md` and `docs/RUNBOOK.md`.

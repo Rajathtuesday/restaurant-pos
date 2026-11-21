@@ -455,6 +455,20 @@ class Outlet(models.Model):
         ),
     )
 
+    # When a bill drops below what the guest has already paid in money (a
+    # dish taken off, a promo put on after a payment): orders/services/
+    # paid_guard.py. A cover payment simply shrinks either way.
+    BELOW_PAID_GIVE_BACK = "give_back"
+    BELOW_PAID_REFUND_FIRST = "refund_first"
+    BELOW_PAID_CHOICES = (
+        (BELOW_PAID_GIVE_BACK, "A manager gives the difference back on the spot"),
+        (BELOW_PAID_REFUND_FIRST, "Give the difference back first, then change the bill"),
+    )
+    bill_below_paid = models.CharField(
+        max_length=20, choices=BELOW_PAID_CHOICES, default=BELOW_PAID_GIVE_BACK,
+        help_text="What happens when a change would make a bill less than the money already paid on it.",
+    )
+
     # Liquor may be sold only in the licence's hours (a Karnataka CL-9 bar:
     # 10 am to 1 am). A liquor line added outside them is refused
     # (orders/services/order_service.add_items_to_order); food still sells,

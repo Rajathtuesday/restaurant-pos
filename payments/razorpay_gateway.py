@@ -53,13 +53,9 @@ def create_qr_payment(order, payment_config, requested_amount=None):
     Raises requests.RequestException on network/API failure — callers should
     catch and surface a clean error to the cashier.
     """
-    from django.db.models import Sum
     from payments.models import RazorpayQRCode
 
-    paid_total = order.payments.exclude(method="refund").aggregate(
-        total=Sum("amount")
-    )["total"] or Decimal("0.00")
-    remaining = order.grand_total - paid_total
+    remaining = order.grand_total - order.amount_paid()
     amount = requested_amount if requested_amount is not None else remaining
     expires_at = timezone.now() + timedelta(minutes=QR_EXPIRY_MINUTES)
 

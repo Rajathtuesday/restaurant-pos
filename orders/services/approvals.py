@@ -115,10 +115,15 @@ def read_approval(request, outlet):
     raw_id = (request.headers.get(APPROVER_ID_HEADER) or "").strip()
     pin = (request.headers.get(APPROVER_PIN_HEADER) or "").strip()
     if not raw_id and not pin:
-        return None
-    if not raw_id.isdigit() or not pin:
+        approver = None
+    elif not raw_id.isdigit() or not pin:
         raise ApprovalRefused("Pick the manager and type their PIN.")
-    return check_pin(int(raw_id), pin, request.user.tenant, outlet)
+    else:
+        approver = check_pin(int(raw_id), pin, request.user.tenant, outlet)
+    # Kept on the request for orders/services/paid_guard.py, which may need
+    # the same approval deeper in the change without checking the PIN twice.
+    request._rasova_approver = approver
+    return approver
 
 
 def check_pin(approver_id, pin, tenant, outlet, now=None):

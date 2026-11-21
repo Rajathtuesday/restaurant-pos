@@ -4,10 +4,8 @@ Public, login-free views — reachable by customers via a signed link (e.g. the
 WhatsApp bill receipt). Never key anything in here off request.user.
 """
 import logging
-from decimal import Decimal
 
 from django.core.signing import TimestampSigner, BadSignature, SignatureExpired
-from django.db.models import Sum
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_http_methods
 
@@ -46,10 +44,7 @@ def public_bill(request, signed_token):
         return render(request, "orders/public_bill_expired.html", status=400)
 
     order = get_object_or_404(Order, id=order_id)
-    paid_total = order.payments.exclude(method="refund").aggregate(
-        total=Sum("amount")
-    )["total"] or Decimal("0.00")
-    remaining = order.grand_total - paid_total
+    remaining = order.amount_due()
 
     from core.features import has_feature
     show_feedback_link = (

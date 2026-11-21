@@ -515,12 +515,8 @@ def token_billing(request, order_id):
 
     config, _ = PaymentConfig.for_outlet(outlet, request.user.tenant)
 
-    total_paid = (
-        order.payments
-        .exclude(method="refund")
-        .aggregate(total=Sum("amount"))["total"] or Decimal("0")
-    )
-    remaining = max(Decimal("0"), order.grand_total - total_paid)
+    total_paid = order.amount_paid()
+    remaining = max(Decimal("0"), order.amount_due())
 
     # ── Active orders sidebar ─────────────────────────────────────────
     # All today's open/billing tokens for this outlet so the cashier

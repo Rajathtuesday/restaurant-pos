@@ -197,6 +197,22 @@
                         </div>
                     </div>
 
+                    <!-- ── When a bill drops below what's paid (orders/services/paid_guard.py) ── -->
+                    <div class="field-row" style="margin-top:1.25rem;">
+                        <label class="field-label" for="bill_below_paid">When A Bill Drops Below What's Paid</label>
+                        <select id="bill_below_paid" name="bill_below_paid" class="field-input" style="margin-top:0.4rem;">
+                            {% for value, text in outlet.BELOW_PAID_CHOICES %}
+                            <option value="{{ value }}" {% if outlet.bill_below_paid == value %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="field-hint">
+                            A guest paid in cash, UPI or card, then a dish came off or a promo went on and the bill is now
+                            less than they paid. On the spot: the change goes through with a manager's PIN and the
+                            difference is recorded as given back. First: the change is refused until someone uses
+                            Give Back Money on the bill. A cover always comes down to the bill on its own.
+                        </div>
+                    </div>
+
                     <!-- ── Liquor hours (gated: liquor_vat feature) ── -->
                     {% if 'liquor_vat' in tenant_features %}
                     <div class="field-row" style="margin-top:1.25rem;">

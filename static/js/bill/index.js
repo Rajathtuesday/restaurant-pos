@@ -193,6 +193,17 @@ delegate(document.body, {
       if (d.success) reload();
     } catch (shown) { /* api has shown the error */ }
   },
+  // Money back to the guest on an open bill (orders/services/paid_guard.py):
+  // what was paid over the bill, or, where the outlet gives back first, the
+  // difference before a change. A manager's PIN is asked for by api.post.
+  "pay.give_back": async (button) => {
+    const answer = await dialogs.giveBack(button.dataset.amount || data.overpaid, data.money_paid);
+    if (!answer) return;
+    try {
+      const d = await api.post(urls.give_back, answer);
+      if (d.success) reload();
+    } catch (shown) { /* api has shown the error */ }
+  },
   "pay.razorpay": () => razorpay.open(),
   "razorpay.close": () => razorpay.close(),
   "bill.print": () => printer.manual(data.order_id),

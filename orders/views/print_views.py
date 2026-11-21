@@ -342,9 +342,7 @@ def download_pdf_bill(request, order_id):
 
     from core.pdf import render_pdf
 
-    # Exclude refund rows (negative amounts) - including them inflates 'remaining'.
-    # This mirrors the correct calculation already used in bill_view and pay_order.
-    remaining = order.grand_total - sum(p.amount for p in order.payments.exclude(method="refund"))
+    remaining = order.amount_due()
 
     from orders.services.bill_layout import bill_layout
     html_string = render_to_string("orders/bill.html", {

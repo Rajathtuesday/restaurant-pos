@@ -1173,6 +1173,10 @@ def outlet_settings(request):
             except InvalidOperation:
                 messages.error(request, "The staff discount limit must be a percent from 0 to 100, or blank for no limit.")
 
+        # When a change takes a bill below what was paid (orders/services/paid_guard.py).
+        if request.POST.get("bill_below_paid") in dict(outlet.BELOW_PAID_CHOICES):
+            outlet.bill_below_paid = request.POST["bill_below_paid"]
+
         # Liquor hours (only on the form when the outlet sells liquor).
         if "liquor_from" in request.POST:
             from datetime import time as _time

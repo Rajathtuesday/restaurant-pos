@@ -162,6 +162,24 @@ class SubscriptionStatusMiddleware:
         return self.get_response(request)
 
 
+class CurrentRequestMiddleware:
+    """The request being answered, for orders/services/paid_guard.py: when a
+    change takes a bill below what was paid, it needs who is making it and
+    the manager's PIN that came with it, deep inside Order.recalculate_totals
+    where no view hands them over. Set for the request, then cleared."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from orders.services.paid_guard import current_request
+        token = current_request.set(request)
+        try:
+            return self.get_response(request)
+        finally:
+            current_request.reset(token)
+
+
 class ContextLoggingMiddleware:
     """
     The single setter and clearer of core.tenant_context, which

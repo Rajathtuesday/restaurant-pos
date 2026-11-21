@@ -146,10 +146,17 @@
         <div class="payments no-print">
             <div class="payments-title">Payments</div>
             {% for p in order.payments.all %}
+            {% if p.method == "refund" %}
+            <div class="total-row total-row--given-back">
+                <span>Given back <small class="payment-time">({{ p.paid_at|date:"H:i" }})</small></span>
+                <span>+₹{{ p.amount|stringformat:".2f"|cut:"-" }}</span>
+            </div>
+            {% else %}
             <div class="total-row">
-                <span>{{ p.method|title }} <small class="payment-time">({{ p.paid_at|date:"H:i" }})</small></span>
+                <span>{{ p.get_method_display }} <small class="payment-time">({{ p.paid_at|date:"H:i" }})</small></span>
                 <span>−₹{{ p.amount }}</span>
             </div>
+            {% endif %}
             {% endfor %}
             <div class="total-row total-row--balance">
                 <span>Balance Due</span><span>₹{{ remaining }}</span>
@@ -177,9 +184,10 @@
         {% endif %}
 
         <!-- Balance status -->
-        <div class="balance-card {% if remaining <= 0 %}fully-paid{% endif %} no-print">
-            <div class="balance-label">{% if remaining <= 0 %}Status{% else %}Balance Due{% endif %}</div>
-            <div class="balance-val">{% if remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
+        <div class="balance-card {% if overpaid > 0 %}overpaid{% elif remaining <= 0 %}fully-paid{% endif %} no-print"
+             data-testid="balance-card">
+            <div class="balance-label">{% if overpaid > 0 %}Paid More Than The Bill{% elif remaining <= 0 %}Status{% else %}Balance Due{% endif %}</div>
+            <div class="balance-val">{% if overpaid > 0 %}Overpaid ₹{{ overpaid }}{% elif remaining <= 0 %}FULLY PAID{% else %}₹{{ remaining }}{% endif %}</div>
         </div>
 
         <!-- Discount section (managers/cashiers, unpaid only) -->
@@ -240,6 +248,11 @@
                     {% if 'cover_charge' in tenant_features %}<button type="button" class="btn-pay" id="pay-cover" data-action="pay.cover"><i class="bi bi-ticket-perforated"></i>Cover</button>{% endif %}
                 </div>
                 <button type="button" class="btn-action" data-action="bill.print"><i class="bi bi-printer me-2"></i>Print Bill</button>
+                {% if money_paid > 0 %}
+                <button type="button" class="btn-action btn-action--quiet" id="give-back" data-action="pay.give_back">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i>Give Back Money
+                </button>
+                {% endif %}
                 {% if request.user.role == 'owner' or request.user.role == 'manager' %}
                 <button type="button" class="btn-action btn-action--quiet" id="close-unpaid" data-action="bill.close_unpaid">
                     <i class="bi bi-x-octagon me-2"></i>Close Without Payment
@@ -247,9 +260,19 @@
                 {% endif %}
             {% else %}
                 {% if order.status != 'closed' and order.status != 'paid' %}
-                <button type="button" class="btn-pay btn-pay--wide" data-action="pay.method" data-method="cash" data-amount="0">
-                    <i class="bi bi-check-circle"></i>Close Zero-Total Order
+                {% if overpaid > 0 %}
+                <div class="overpaid-note" data-testid="overpaid-note">
+                    ₹{{ overpaid }} more than the bill has been paid. Give it back to the guest, then close the bill.
+                </div>
+                <button type="button" class="btn-pay btn-pay--wide" id="give-back" data-action="pay.give_back"
+                        data-amount="{{ overpaid }}">
+                    <i class="bi bi-arrow-counterclockwise"></i>Give Back ₹{{ overpaid }}
                 </button>
+                {% else %}
+                <button type="button" class="btn-pay btn-pay--wide" data-action="pay.method" data-method="cash" data-amount="0">
+                    <i class="bi bi-check-circle"></i>{% if order.grand_total > 0 %}Close Bill (Paid In Full){% else %}Close Zero-Total Order{% endif %}
+                </button>
+                {% endif %}
                 {% else %}
                 <div class="paid-note">
                     <i class="bi bi-patch-check-fill me-2"></i>PAYMENT COMPLETE
