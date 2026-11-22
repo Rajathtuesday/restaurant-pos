@@ -31,6 +31,9 @@ The box image under compose was updated for real: by hand with `rasova-box updat
 - **An older bundle on the pen drive was offered for install.** Going back is a restore (the database has moved on), so the page offers only newer versions (1.4.10 after 1.4.9, as people mean it) and the helper refuses an older one too (`sort -V`).
 - **Two presses at once could leave the page waiting for an answer that came for the other press**, then saying "the box didn't answer": any answer written after the last press now counts.
 - In developer mode on Windows, the stand-in pen drives were split on `:`, which every Windows path has after its drive letter: `;` now.
+- With only older versions on the drive, the page said "the pen drive only has the version already running": it says nothing on it is newer.
+- The AI import window's markup was still on a box's menu page (only its buttons were hidden): it is drawn only where AI import is on.
+- Then the final image (1.4.4-edge) was installed on the box by the button (104 s), offered nothing newer afterwards, and `scripts/box_e2e.py` passed 32 of 32 on it from a fresh first run.
 
 ## 2026-11-22: Every printer on one page, and phones on a Rasova box
 

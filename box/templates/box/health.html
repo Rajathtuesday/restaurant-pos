@@ -68,7 +68,7 @@
       <div class="big">Rasova {{ version }}</div>
       {% if usb.state %}
         <p class="muted {% if usb.state == 'failed' %}bad{% elif usb.state == 'done' %}ok{% endif %}" id="updateMessage" role="status">
-          {% if usb.state == 'found' %}{% if usb.newer %}Found on the pen drive, signed by Rasova:{% else %}The pen drive only has the version already running.{% endif %}{% else %}{{ usb.message }}{% endif %}
+          {% if usb.state == 'found' %}{% if usb.newer %}Found on the pen drive, signed by Rasova:{% else %}Nothing on the pen drive is newer than Rasova {{ version }}.{% endif %}{% else %}{{ usb.message }}{% endif %}
         </p>
       {% else %}
         <p class="muted" id="updateMessage">Plug the pen drive from Rasova into the box, then look for the update. The box

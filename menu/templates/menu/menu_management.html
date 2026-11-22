@@ -242,7 +242,8 @@
   </div>
 </div>
 
-<!-- AI IMPORT MODAL -->
+<!-- AI IMPORT MODAL: only where AI import is on (never on a box, which has no internet) -->
+{% if 'ai_menu_import' in tenant_features %}
 <div class="modal fade" id="aiImportModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
@@ -266,6 +267,7 @@
     </div>
   </div>
 </div>
+{% endif %}
 
 <!-- RECIPE MODAL -->
 <div class="modal fade" id="recipeModal" tabindex="-1">

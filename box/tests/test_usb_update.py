@@ -161,6 +161,14 @@ class UpdatePanelTest(BoxBase):
         request = next(usb_update.requests_dir().iterdir()).read_text()
         self.assertIn("action=install\nversion=1.4.2\n", request)
 
+    def test_only_older_versions_on_the_drive_offer_nothing(self):
+        _, _, owner = self.restaurant()
+        usb_update.status_file().write_text("id=x9\nstate=found\nrunning=1.4.4\nfound=1.4.2\nfound=1.4.4\n")
+        (usb_update.data_dir() / "update-asked").write_text(f"x9\n{timezone.now().isoformat()}\n")
+        page = self.client_on(owner).get("/box/health/").content.decode()
+        self.assertNotIn('id="install-', page)
+        self.assertIn("Nothing on the pen drive is newer than Rasova", page)
+
     def test_what_the_helper_says_is_shown_as_text(self):
         _, _, owner = self.restaurant()
         usb_update.status_file().write_text("id=x2\nstate=failed\nmessage=<img src=x onerror=alert(1)>\n")

@@ -219,5 +219,6 @@ class MenuPageLinksTest(MenuFileWorld):
         c = self.as_owner()
         menu = c.get("/menu/").content.decode()
         self.assertNotIn('data-action="menu.aiImport"', menu)
+        self.assertNotIn('id="aiImportModal"', menu, "nor its window")
         self.assertIn('id="menuFileLink"', menu)
         self.assertContains(c.get("/menu/file/"), "A box has no AI menu import")

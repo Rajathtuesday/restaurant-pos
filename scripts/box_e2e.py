@@ -152,9 +152,9 @@ menu_file = {
     "vat_classes": [{"name": "IMFL", "rate": "35.00"}],
     "modifier_groups": [{"name": "Spice", "modifiers": [{"name": "Extra Hot", "price": "0"}]}],
     "categories": [
-        {"name": "Starters", "items": [{"name": "Paneer Tikka", "price": "280", "gst_percentage": "5.00",
+        {"name": "Starters", "items": [{"name": "Copper Tap Wings", "price": "280", "gst_percentage": "5.00",
                                         "station": "Kitchen", "modifier_groups": ["Spice"]}]},
-        {"name": "Drinks", "items": [{"name": "Single Malt 30ml", "price": "450", "gst_percentage": "0.00",
+        {"name": "Drinks", "items": [{"name": "Copper Tap Single Malt", "price": "450", "gst_percentage": "0.00",
                                       "vat_class": "IMFL", "station": "Bar"}]},
     ],
 }
@@ -162,14 +162,14 @@ page = s.get(BASE + "/menu/file/")
 token = re.search(r'<meta name="csrf-token" content="([^"]+)"', page.text).group(1)
 r = s.post(BASE + "/menu/file/check/", files={"menu_file": ("menu.json", json.dumps(menu_file), "application/json")},
            data={"csrfmiddlewaretoken": token}, headers={"Referer": BASE + "/menu/file/"})
-check("a menu file is checked first, nothing changed yet", 'id="newItems">2<' in r.text and "Paneer Tikka" not in s.get(BASE + "/menu/").text,
+check("a menu file is checked first, nothing changed yet", 'id="newItems">2<' in r.text and "Copper Tap Wings" not in s.get(BASE + "/menu/").text,
       r.status_code)
 load_token = re.search(r'name="token" value="([^"]+)"', r.text)
 if load_token:
     s.post(BASE + "/menu/file/load/", data={"csrfmiddlewaretoken": token, "token": load_token.group(1)},
            headers={"Referer": BASE + "/menu/file/"})
 menu = s.get(BASE + "/menu/").text
-check("then loaded: the dishes are on the box's menu", "Paneer Tikka" in menu and "Single Malt 30ml" in menu)
+check("then loaded: the dishes are on the box's menu", "Copper Tap Wings" in menu and "Copper Tap Single Malt" in menu)
 
 # 8. Updates from a pen drive: the panel is there for the owner.
 health = s.get(BASE + "/box/health/").text
