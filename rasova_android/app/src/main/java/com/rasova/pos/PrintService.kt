@@ -39,6 +39,13 @@ class PrintService : Service() {
 
     // OkHttp: an HTTP client library. Does GET/POST to EC2 efficiently.
     private val http = OkHttpClient.Builder()
+        // Android allows cleartext app-wide since 1.3.0 (a box is plain http);
+        // this keeps the print service's plain http to the local network.
+        .addInterceptor { chain ->
+            val url = chain.request().url.toString()
+            if (!ServerUrl.cleartextAllowed(url)) throw java.io.IOException("Refused plain http to an internet address: $url")
+            chain.proceed(chain.request())
+        }
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(5, TimeUnit.SECONDS)
         .writeTimeout(5, TimeUnit.SECONDS)

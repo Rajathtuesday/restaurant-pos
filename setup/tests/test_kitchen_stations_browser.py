@@ -49,17 +49,18 @@ class KitchenStationsBrowserTest(BrowserTestCase):
         ])
         self.assertFalse(KitchenStation.objects.filter(pk=self.bar.pk).exists())
 
-    def test_a_station_opens_and_saves_its_printer(self):
-        self._run([
+    def test_a_station_shows_its_printer_and_links_to_printers(self):
+        # Since 22 Nov 2026 a station's printer is set on Setup > Printers:
+        # here it is one line with a link to that printer's own row.
+        results = self._run([
             ("open", f't.click("#card-{self.bar.id} .station-header");'
                      f'return document.getElementById("panel-{self.bar.id}").classList.contains("open");'),
-            ("saved", f'document.getElementById("ip-{self.bar.id}").value = "192.168.1.61";'
-                      f't.click("#card-{self.bar.id} .btn-save");'
-                      f'return await t.until(() => t.text("#status-{self.bar.id}").includes("Saved")'
-                      f' || t.text("#status-{self.bar.id}").includes("saved"));'),
+            ("line", f'return t.text("#printer-line-{self.bar.id}");'),
+            ("link", f'return document.querySelector("#printer-line-{self.bar.id} a").getAttribute("href");'),
         ])
-        self.bar.refresh_from_db()
-        self.assertEqual(self.bar.printer_ip, "192.168.1.61")
+        self.assertTrue(results["open"])
+        self.assertIn("192.168.1.60:9100", results["line"])
+        self.assertEqual(results["link"], f"/setup/printers/#printer-{self.bar.id}")
 
     def test_set_default_does_not_open_the_station(self):
         results = self._run([

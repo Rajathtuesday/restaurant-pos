@@ -86,7 +86,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
-            android:hint="your-restaurant.rasova.net"
+            android:hint="your-restaurant.rasova.net or 192.168.1.50"
             android:inputType="textUri"
             android:textColor="#ffffff"
             android:textColorHint="#555555"
@@ -119,7 +119,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:layout_marginBottom="28dp"
-            android:text="— or —"
+            android:text="or"
             android:textColor="#444444"
             android:textSize="12sp" />
 
@@ -138,7 +138,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Scan the QR code from Setup → Printer in your Rasova dashboard"
+            android:text="Scan the QR code on Setup › Printers in your Rasova dashboard. A Rasova box: scan the code on Box health › Connect a device."
             android:textColor="#444444"
             android:textSize="11sp"
             android:gravity="center"

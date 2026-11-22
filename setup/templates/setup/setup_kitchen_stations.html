@@ -23,8 +23,9 @@
     <h1 class="page-title">Kitchen Stations</h1>
     <div class="divider"></div>
     <p class="page-sub">
-      Each station (Hot Kitchen, Bar, Bakery…) routes KOTs to its own printer.
-      Enter the printer IP per station, then send a test print to confirm.
+      Each station (Hot Kitchen, Bar, Bakery…) gets the KOTs for its own dishes.
+      Its printer's address, paper and test print are on
+      <a href="{% url 'setup_printers' %}" class="link-gold">Setup › Printers</a>.
     </p>
 
     {% if messages %}
@@ -44,15 +45,9 @@
   <!-- RIGHT: EXISTING STATIONS -->
   <div>
 
-    <!-- Agent status: single row -->
     <div class="agent-row">
-      <span class="agent-pill">
-        <span class="dot" id="agentDot"></span>
-        <span id="agentStatusText" style="color:var(--text-muted);">Checking Rasova Agent…</span>
-      </span>
-      <a href="{% url 'printer_setup' %}" style="font-size:0.7rem;color:var(--accent-gold);text-decoration:none;letter-spacing:1px;text-transform:uppercase;">
-        Printer Settings <i class="bi bi-arrow-right ms-1"></i>
-      </a>
+      <span class="agent-pill" id="printersSummary">Printers, their addresses and a test print for each</span>
+      <a href="{% url 'setup_printers' %}" class="link-gold">Printers <i class="bi bi-arrow-right ms-1"></i></a>
     </div>
 
     <!-- Print mode selector -->
@@ -89,11 +84,7 @@
           {% endif %}
         </div>
         <div style="display:flex;align-items:center;gap:0.6rem;">
-          {% if station.printer_ip %}
-            <span class="printer-status"><span class="dot orange"></span>{{ station.printer_ip }}</span>
-          {% else %}
-            <span class="printer-status"><span class="dot"></span>No printer</span>
-          {% endif %}
+          <span class="printer-status"><span class="dot is-{{ station.printer_state.level }}"></span>{{ station.printer_ip|default:"No printer" }}</span>
           {% if not station.is_default %}
             <form method="post" action="{% url 'set-default-station' station.id %}" style="display:inline;">
               {% csrf_token %}
@@ -120,71 +111,13 @@
         </div>
         {% endif %}
 
-        <div class="printer-grid">
-          <div>
-            <label class="field-label">Printer IP Address</label>
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <input type="text" class="field-input" id="ip-{{ station.id }}"
-                value="{{ station.printer_ip|default:'' }}"
-                placeholder="e.g. 192.168.1.100"
-                style="margin-bottom:0;flex:1;">
-              <button type="button" class="btn-ghost" id="discover-btn-{{ station.id }}"
-                data-action="station.discover" data-station="{{ station.id }}"
-                title="Auto-scan network for printers"
-                style="white-space:nowrap;padding:4px 10px;height:2.1rem;">
-                <i class="bi bi-search"></i>
-              </button>
-            </div>
-            <div id="discover-result-{{ station.id }}" style="font-size:0.68rem;color:var(--text-muted);margin-top:0.3rem;margin-bottom:1.4rem;min-height:1rem;"></div>
-          </div>
-          <div>
-            <label class="field-label">Paper Width</label>
-            <select class="field-select" id="paper-{{ station.id }}">
-              <option value="80" {% if station.paper_width_mm == 80 %}selected{% endif %}>80mm (standard)</option>
-              <option value="58" {% if station.paper_width_mm == 58 %}selected{% endif %}>58mm (narrow)</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Advanced fields: collapsed by default -->
-        <button type="button" class="advanced-toggle" data-action="station.advanced" data-station="{{ station.id }}">
-          <i class="bi bi-chevron-right adv-icon" id="adv-icon-{{ station.id }}"></i>
-          Advanced
-        </button>
-        <div class="advanced-panel" id="adv-{{ station.id }}">
-          <div class="printer-grid">
-            <div>
-              <label class="field-label">Port</label>
-              <input type="number" class="field-input" id="port-{{ station.id }}"
-                value="{{ station.printer_port }}" min="1" max="65535">
-            </div>
-            <div>
-              <label class="field-label">Cut Type</label>
-              <select class="field-select" id="cut-{{ station.id }}">
-                <option value="full"    {% if station.cut_type == 'full'    %}selected{% endif %}>Full cut</option>
-                <option value="partial" {% if station.cut_type == 'partial' %}selected{% endif %}>Partial cut</option>
-                <option value="none"    {% if station.cut_type == 'none'    %}selected{% endif %}>No cut (tear)</option>
-              </select>
-            </div>
-          </div>
-          <label class="field-label">Encoding</label>
-          <select class="field-select" id="enc-{{ station.id }}" style="max-width:320px;">
-            <option value="cp437" {% if station.printer_encoding == 'cp437' %}selected{% endif %}>CP437 (standard, most printers)</option>
-            <option value="cp850" {% if station.printer_encoding == 'cp850' %}selected{% endif %}>CP850 (western Europe)</option>
-            <option value="utf-8" {% if station.printer_encoding == 'utf-8' %}selected{% endif %}>UTF-8 (modern printers only)</option>
-          </select>
-          <p class="hint">Leave CP437 unless your printer explicitly supports UTF-8.</p>
-        </div>
-
-        <div class="btn-row">
-          <button type="button" class="btn-save" data-action="station.save" data-station="{{ station.id }}">
-            <i class="bi bi-floppy me-1"></i> Save
-          </button>
-          <button type="button" class="btn-test" id="test-btn-{{ station.id }}" data-action="station.test" data-station="{{ station.id }}"
-            {% if not station.printer_ip %}disabled title="Save a printer IP first"{% endif %}>
-            <i class="bi bi-printer me-1"></i> Test Print
-          </button>
-          <span class="printer-status" id="status-{{ station.id }}"></span>
+        <div class="printer-line" id="printer-line-{{ station.id }}">
+          <span>
+            <strong>Printer:</strong>
+            {% if station.printer_ip %}{{ station.printer_ip }}:{{ station.printer_port }} · {{ station.paper_width_mm }} mm{% else %}none set{% endif %}
+            <span class="printer-state is-{{ station.printer_state.level }}">{{ station.printer_state.words }}</span>
+          </span>
+          <a href="{% url 'setup_printers' %}#printer-{{ station.id }}" class="link-gold">Change <i class="bi bi-arrow-right ms-1"></i></a>
         </div>
 
         {% if stations|length > 1 %}
@@ -254,7 +187,7 @@
     </div>
     <p style="font-size:0.72rem;color:var(--text-muted);margin-top:1rem;margin-bottom:0;border-top:1px solid var(--border-color);padding-top:0.75rem;">
       Cashier tears off the full strip after payment. Staff deliver each section to the station.
-      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set</strong>: open the default station above and enter its IP.{% endif %}
+      {% if not cashier_ip %}<br><strong style="color:#f59e0b;">No printer IP set</strong>: give the default station a printer on <a href="{% url 'setup_printers' %}" class="link-gold">Setup › Printers</a>.{% endif %}
     </p>
   </div>
   {% endif %}

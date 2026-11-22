@@ -22,6 +22,13 @@ class BoxState(models.Model):
     # it keeps working for license.GRACE_DAYS from then (box/license.py).
     licence_moved_at = models.DateTimeField(null=True, blank=True)
 
+    # The box's number address on the restaurant's network ("192.168.1.50",
+    # with ":port" when not 80), learned the last time someone opened
+    # Connect a device or Box health by that number. Phones are paired by
+    # it: many Android phones can't find the name rasova.local, and from
+    # inside its container the box can't see its own address (box/views.py).
+    lan_address = models.CharField(max_length=100, blank=True, default="")
+
     class Meta:
         constraints = [models.CheckConstraint(condition=models.Q(id=1), name="box_state_is_one_row")]
 

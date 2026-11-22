@@ -43,7 +43,10 @@ export function startAndroidPrinting({
   ui,
   storage = globalThis.sessionStorage,
 }) {
-  if (!platform.nativeAndroid || !bridge) return false;
+  // No key, no print service: a Rasova box prints by itself, so its pages
+  // send none. Handed on anyway, the bridge would get the word "undefined"
+  // as the key and the phone would poll with it for ever.
+  if (!platform.nativeAndroid || !bridge || !agentKey || !serverUrl) return false;
   try {
     if (typeof bridge.startPrintingWithKey === "function") {
       bridge.startPrintingWithKey(serverUrl, agentKey);

@@ -61,20 +61,16 @@ class SmallPagesBrowserTest(BrowserTestCase):
         self.assertIn("Bob`s ${bar}", out["results"]["ask"])
         self.assertIn("Applied", out["results"]["apply"])
 
-    def test_the_printer_page_picks_a_width_opens_advanced_and_formats_the_mac(self):
-        out = self.run_page("/setup/printer/", [
-            ("width", 't.click("[data-action=\\"printer.width\\"][data-width=\\"58\\"]");'
-                      'return [document.getElementById("h_width").value,'
-                      ' t.all(".width-card.selected").map((c) => c.dataset.width)];'),
-            ("advanced", 't.click("[data-action=\\"printer.advanced\\"]");'
-                         'return [document.getElementById("advRow").classList.contains("show"),'
-                         ' document.querySelector("[data-action=\\"printer.advanced\\"]").getAttribute("aria-expanded")];'),
-            ("mac", 'const mac = document.getElementById("macInput"); mac.value = "0057271";'
+    def test_the_printers_page_opens_more_and_formats_the_mac(self):
+        row = f"#printer-{self.r.station.id}"            # the counter printer: the only one with a MAC
+        out = self.run_page("/setup/printers/", [
+            ("more", f'const more = document.querySelector("{row} details"); more.querySelector("summary").click();'
+                     'return more.open;'),
+            ("mac", f'const mac = document.querySelector("{row} [name=printer_mac]"); mac.value = "0057271";'
                     'mac.dispatchEvent(new Event("input", { bubbles: true })); return mac.value;'),
         ], user=self.r.owner)
         self.assertNoErrors(out)
-        self.assertEqual(out["results"]["width"], ["58", ["58"]])
-        self.assertEqual(out["results"]["advanced"], [True, "true"])
+        self.assertTrue(out["results"]["more"])
         self.assertEqual(out["results"]["mac"], "00:57:27:1")
 
     def test_the_login_theme_switch_lasts_past_a_reload(self):

@@ -57,8 +57,16 @@
   </div>
   {% endif %}
 
-  <div class="panel" style="margin-top:1rem;"><h3>Printers</h3>
-    <table>{% for s in stations %}<tr><td>{{ s.name }}</td><td style="text-align:right;">{{ s.printer_ip|default:"no printer" }}</td></tr>{% endfor %}</table>
+  <div class="grid" style="margin-top:1rem;">
+    <div class="panel" id="printersPanel"><h3>Printers</h3>
+      <div class="big {% if printers.level == 'ok' %}ok{% elif printers.level == 'bad' %}bad{% else %}warn{% endif %}">{{ printers.words }}</div>
+      <p class="muted">The box prints every bill and KOT itself.</p>
+      <a class="btn-box btn-link" href="{% url 'setup_printers' %}">Printers</a>
+    </div>
+    <div class="panel" id="connectPanel"><h3>Phones, tablets and the counter PC</h3>
+      <p class="muted">Open Rasova on a new device like an app, by scanning a QR code: no address to type.</p>
+      <a class="btn-box btn-link" href="{% url 'box_connect' %}">Connect a device</a>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -1,4 +1,5 @@
 """The box's own pages: the first switch-on, and its health."""
+import ipaddress
 import os
 import shutil
 
@@ -8,7 +9,8 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db import connection, transaction
-from django.http import Http404
+from django.http import Http404, HttpResponse
+from django.http.request import split_domain_port
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -70,7 +72,7 @@ def health(request):
     _box_only()
     from box import backup, clock, license
     from box.models import BoxState
-    from setup.models import KitchenStation
+    from setup.services.printers import printers_summary
 
     is_owner = request.user.role == "owner"
     if request.method == "POST":
@@ -94,6 +96,7 @@ def health(request):
         cache.delete("box_warnings")
         return redirect("box_health")
 
+    learn_address(request)
     state = BoxState.get()
     folder = backup.backup_dir()
     try:
@@ -111,9 +114,85 @@ def health(request):
         "now": timezone.localtime(),
         "backups": backup.list_backups()[:14],
         "disk": disk,
-        "stations": KitchenStation.objects.filter(tenant=request.user.tenant, outlet=request.user.outlet),
+        "printers": printers_summary(request.user.outlet),
         "is_owner": is_owner,
     })
+
+
+def learn_address(request):
+    """Note the address this page was opened at, when it is the box's number
+    address on the restaurant's network (not a name, not the box itself).
+    The box can't see its own address from inside its container, and many
+    Android phones can't find rasova.local, so phones are paired by the
+    number the owner really uses. Returns the address to pair phones with:
+    this one, the last one learned, or the name as a last resort."""
+    from box.models import BoxState
+    host = request.get_host()
+    name, port = split_domain_port(host)
+    try:
+        ip = ipaddress.ip_address(name.strip("[]"))
+    except ValueError:
+        ip = None
+    state = BoxState.get()
+    if ip is not None and ip.is_private and not ip.is_loopback:
+        if state.lan_address != host:
+            BoxState.objects.filter(pk=1).update(lan_address=host[:100])
+        return host
+    return state.lan_address or host
+
+
+@login_required
+@tenant_required
+@role_required("owner", "manager")
+def connect(request):
+    """Connect a device: open Rasova on a phone, a tablet or the counter PC
+    like an app, from day one, without typing an address."""
+    _box_only()
+    address = learn_address(request)
+    name, _ = split_domain_port(request.get_host())
+    return render(request, "box/connect.html", {
+        "address": f"http://{address}",
+        "login_url": f"http://{address}/login/",
+        "by_name": not _is_number(name),
+        "on_the_box": name in ("localhost", "127.0.0.1", "::1", "[::1]"),
+        "version": getattr(settings, "RASOVA_VERSION", "dev"),
+    })
+
+
+def _is_number(name):
+    try:
+        ipaddress.ip_address(name.strip("[]"))
+        return True
+    except ValueError:
+        return False
+
+
+# The counter PC's shortcut: Rasova in its own window (no address bar, its
+# own taskbar icon) through Edge, which every Windows 10 and 11 PC has, or
+# Chrome; a plain browser tab if neither is found. CRLF: it is a Windows file.
+SHORTCUT = r"""@echo off
+rem Rasova on this PC, in its own window like an app.
+rem To open it every time the PC starts: press Windows+R, type shell:startup,
+rem press Enter and copy this file into the folder that opens.
+set "RASOVA={url}"
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" >nul 2>&1 && (start "" msedge --app="%RASOVA%" & exit /b)
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe" >nul 2>&1 && (start "" chrome --app="%RASOVA%" & exit /b)
+reg query "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe" >nul 2>&1 && (start "" chrome --app="%RASOVA%" & exit /b)
+start "" "%RASOVA%"
+"""
+
+
+@login_required
+@tenant_required
+@role_required("owner", "manager")
+def shortcut(request):
+    """Rasova.cmd for the counter PC, pointing at this box."""
+    _box_only()
+    url = f"http://{learn_address(request)}/login/"
+    body = SHORTCUT.format(url=url).replace("\n", "\r\n")
+    response = HttpResponse(body.encode("ascii", errors="replace"), content_type="application/octet-stream")
+    response["Content-Disposition"] = 'attachment; filename="Rasova.cmd"'
+    return response
 
 
 def _same_drive(backups, data):

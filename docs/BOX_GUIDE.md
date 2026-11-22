@@ -25,8 +25,9 @@ This guide is for whoever at Rasova builds releases, sets up boxes and supports 
 13. [Troubleshooting](#13-troubleshooting)
 14. [What is off on a box](#14-what-is-off-on-a-box)
 15. [Trying a box on your own PC](#15-trying-a-box-on-your-own-pc)
-16. [For developers](#16-for-developers)
-17. [Not done yet](#17-not-done-yet)
+16. [A spare PC of theirs instead of our box](#16-a-spare-pc-of-theirs-instead-of-our-box)
+17. [For developers](#17-for-developers)
+18. [Not done yet](#18-not-done-yet)
 
 ---
 
@@ -195,11 +196,16 @@ Look for `"box_id"` (16 characters: digits and the letters a to f). You need it 
 
 **4. Menu, tables and stations,** through the wizard.
 
-**5. Printers.** In **Setup, Kitchen Stations**, give each station its printer's IP. Then **Setup, Printer, Test print**: the box prints the test page itself (it says "Test sent: the box prints it in a few seconds").
+**5. Printers.** In **Setup, Kitchen Stations**, make the stations (Kitchen, Bar...). Then **Setup, Printers**: give each one its printer's IP and press its **Test print**. The box prints the test page itself and the row says "Printed" once the printer took it; if not, it says why (the printer didn't answer, out of paper).
 
 **6. Approval PINs.** Each manager sets their own in **Setup, Approval PIN**.
 
-**7. Devices.** Staff use **Chrome** on their tablets and phones, at the box's address. The Rasova Android app is for the cloud: it only talks to rasova.net over https, and a box is plain http on the local network.
+**7. Devices.** Open **Box health, Connect a device** on the owner's phone, at the box's number address (the one on the sticker). It shows the address big, and for each kind of device the three steps:
+- **Android:** download the Rasova app from the box itself (the link on that page; no internet needed), open it, tap **Scan QR code** and scan the page's code. App 1.3.0 or newer: older apps can't open a box.
+- **iPhone or iPad:** Safari at the address, **Share, Add to Home Screen**. Rasova gets its icon and opens full screen.
+- **The counter PC:** **Download the shortcut** and double-click it: Rasova opens in its own Edge window, like an app. Copied into `shell:startup`, it opens whenever the PC starts.
+
+When a phone says *"Wi-Fi has no internet access"*, tap **Stay connected**. The app keeps itself on the Wi-Fi even when mobile data is on.
 
 **8. Licence.** Add it on **Box health** (section 6).
 
@@ -367,6 +373,8 @@ A box is on the restaurant's network, so it prints straight to each printer's IP
 
 The queue is claimed the way the agents claim it, so a job prints once even if someone also points an agent at the box. A job whose printer doesn't answer is marked failed, with the reason. Give every printer a fixed IP on the router (section 5).
 
+**Setup, Printers** is the one page for all of it: each printer's address, paper, cut and code page, its own **Test print**, and a line saying when it last printed or when and why it last failed (from the print queue). The settings for every printer (big letters on KOTs, the total on KOTs, the bill's side margin) are there too. On a box the page hides what only the cloud has (the phone app pairing, QZ Tray, the PC agent). A phone on a box never runs a print service: the box's pages hand it no agent key.
+
 ---
 
 ## 12. Command reference
@@ -409,7 +417,9 @@ sudo docker compose exec web python manage.py changepassword <username>    # a f
 | A phone can't open `rasova.local` | Is it Android? | Use the IP on the sticker (section 5) |
 | Nothing opens at all | Is the box on? Is the router on? | `sudo rasova-box status`; `sudo rasova-box restart` |
 | A page says "not found" | Is it a QR menu, WhatsApp, Zomato, Razorpay or demo page? | Those are off on a box (section 14) |
-| KOTs don't print | The station's printer IP, the printer on and on the same router | **Setup, Printer, Test print**; `sudo rasova-box logs worker` |
+| KOTs don't print | **Setup, Printers**: the printer's line says when and why it last failed | The printer's own **Test print**; `sudo rasova-box logs worker` |
+| The Android app says "Can't reach the Rasova box" | Is the phone on the restaurant's Wi-Fi? Is the box on? | Tap **Retry**; if the box got a new address, **Change address** and scan the code on Connect a device again |
+| An old Android app shows a blank page or an error | Its version (Settings, Apps, Rasova) | Install 1.3.0 or newer from Connect a device |
 | The clock warning shows | The box's time | `sudo timedatectl set-time "2026-10-21 19:30:00"`, then **I've set the right time** on Box health |
 | Backup failed | Is the backup drive plugged in? `df -h /srv/rasova/backups` | Plug it in, then **Back up now** |
 | "No new order can start" mid-service | The licence state on Box health | Open bills still finish. Sign a licence for this box's id and add it on Box health |
@@ -453,7 +463,36 @@ Then open `http://localhost:8089`. All the other commands work the same way.
 
 ---
 
-## 16. For developers
+## 16. A spare PC of theirs instead of our box
+
+A restaurant with an old desktop or laptop doesn't have to buy our mini PC: wiped to Ubuntu, it becomes a box. Nothing new to build: it is the same install as section 4, and from then on everything in this guide applies to it.
+
+**The minimum:**
+
+| Part | At least | Better |
+|---|---|---|
+| Processor | 64-bit Intel or AMD, about 2015 or newer | anything newer |
+| Memory | 4 GB | 8 GB |
+| Disk | 128 GB | an SSD (an old spinning disk is slow and the likeliest part to die) |
+| Network | an Ethernet port, a cable to the router | |
+| Backups | a USB stick of 32 GB or more, left plugged in | a second disk |
+| Power | a UPS for the PC and the router | a laptop's battery counts as one for the PC |
+
+**Steps:**
+1. Copy off anything they want to keep: Ubuntu erases the whole disk.
+2. Check the disk's health before trusting it with bills: boot an Ubuntu USB stick, `sudo apt install smartmontools`, then `sudo smartctl -H /dev/sda` must say **PASSED**. If not, replace the disk first.
+3. BIOS: **Restore on AC power loss: Power On** (most desktops have it; a laptop just stays plugged in). Set a BIOS password.
+4. Then section 4 from step 2: Ubuntu Server 24.04 LTS with disk encryption, the backup drive, the installer, the box id.
+5. A laptop: it can stay shut. The installer stops the box from ever sleeping, a closed lid included.
+6. Before the first service: a week of trial, including one pull-the-plug test (pull the power mid-order, plug it back, check the order and the KOT).
+
+The licence ties to that PC's machine id the same way it does to our box.
+
+**Their everyday Windows PC** (the cashier's PC, with Docker Desktop) is a different thing: it gets switched off at night, restarts for Windows updates, sleeps, and Docker only starts after someone signs in to Windows. It is not built. The plan, with a fix for each of those, is in `md_files/rasova_printers_and_app_plan_eli5_2026-10-21.html` (part 3, option B): build it only when a customer insists.
+
+---
+
+## 17. For developers
 
 - **The switch.** `RASOVA_EDITION=box` sets `settings.BOX`; code asks `box.edition.is_box()`. Box tests switch it on with `override_settings(BOX=True)`.
 - **A new feature that needs the internet** or a guest's phone: add its flag to `BOX_OFF_FEATURES` and its URLs to `OFF_PATHS` in `box/edition.py`.
@@ -463,12 +502,16 @@ Then open `http://localhost:8089`. All the other commands work the same way.
 - **Compiling.** Migrations stay as source (their names start with a digit, which a compiled module can't have); so do `manage.py` and `__init__.py`. Templates, CSS and JavaScript are served as they are.
 - **Tests.** `box/tests/test_box.py`; CI runs the `box` app. In the compiled test image, `RASOVA_COMPILED_TESTS=1` makes tests that read files a box doesn't carry skip there, and only there (`core.testing.not_in_compiled_build`). A file missing from the repository still fails CI.
 - **Line endings.** `box/host/rasova-box` and every `.sh` are kept LF by `.gitattributes`. A CRLF script fails inside Linux.
+- **Devices.** `box/views.py` `connect` and `shortcut` (Connect a device); the box learns its number address from the owner's own visit (`BoxState.lan_address`), because it can't see it from inside its container. The box's pages hand the Android app `http://` and no agent key (`core/context_processors.py`). The box image carries `public/android/rasova.apk` (the Dockerfile copies it; `Dockerfile.dockerignore` lets that one file in), so copy each new release APK there.
+- **The Android app** (`rasova_android/`, 1.3.0): a local address is a box (`ServerUrl.isBox`), on plain http (`network_security_config.xml` allows it app-wide, because a WebView can't allow it per address; `ServerUrl.cleartextAllowed` keeps it to the local network in the WebView and the print service). On a box the app binds itself to the Wi-Fi (`LocalNetwork.kt`). Unit tests: `gradlew testDebugUnitTest` with JDK 17.
 
 ---
 
-## 17. Not done yet
+## 18. Not done yet
 
 - `install.sh` hasn't yet run on a real mini PC: everything so far ran under Docker Desktop.
 - No pull-the-plug test during service yet, and no test with real thermal printers on a box.
+- The Android app's box mode (1.3.0), the iPhone home screen and the counter PC shortcut haven't been tried on real devices against a box: one Android phone, one iPhone and one Windows PC, in the same session as the real-hardware run of `install.sh`.
+- Their everyday Windows PC as the box (section 16): not built.
 - Bundles don't update the `rasova-box` script itself (section 8).
 - A box doesn't sync with the cloud: the owner sees reports at the restaurant, not from home.

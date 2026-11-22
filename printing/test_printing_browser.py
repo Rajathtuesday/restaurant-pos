@@ -80,6 +80,7 @@ class TestPrintTest(BrowserTestCase):
         station = get_default_station(self.manager)
         station.printer_ip = "192.168.1.50"
         station.save(update_fields=["printer_ip"])
+        self.station = station
 
     def agent(self, finish):
         """Stand in for a print agent: wait for the test job, then finish it."""
@@ -99,11 +100,13 @@ class TestPrintTest(BrowserTestCase):
         return thread
 
     def press(self):
-        return self.run_page("/setup/printer/", [
-            ("result", """
-                t.click('[data-action="printer.test"]');
-                await t.until(() => /is-(ok|bad)/.test(document.getElementById("testResult").className));
-                return { words: t.text("#testResult"), level: document.getElementById("testResult").className };
+        # Setup > Printers: the counter printer's own Test print and result line.
+        row, result = f"#printer-{self.station.id}", f"result-{self.station.id}"
+        return self.run_page("/setup/printers/", [
+            ("result", f"""
+                t.click('{row} [data-action="printer.test"]');
+                await t.until(() => /is-(ok|bad)/.test(document.getElementById("{result}").className));
+                return {{ words: t.text("#{result}"), level: document.getElementById("{result}").className }};
             """),
         ], user=self.manager)
 

@@ -11,13 +11,16 @@
  *   api      core/http.js's client (posts, shows a refusal as a toast)
  *   fetchFn  for the status, which must not flash the loading bar each time
  *   show     (level, words) => the result line; level "wait", "ok" or "bad"
+ *   box      true on a Rasova box: the box prints its own queue, so a page
+ *            nobody took means the box's printing has stopped, not that a
+ *            phone app is closed
  */
 import { withId } from "../billing/urls.js";
 
 export const WAIT_FOR_SECONDS = 20;
 
 export function createTestPrint({
-  api, fetchFn, urls, show,
+  api, fetchFn, urls, show, box = false,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = () => Date.now(),
   every = 1500,
@@ -72,9 +75,15 @@ export function createTestPrint({
             return "bad";
           }
         }
-        show("bad", last === "processing"
-          ? "The print app took the page but the printer has not answered. Check it is on and has paper."
-          : `Nothing picked it up in ${WAIT_FOR_SECONDS} seconds. Open the Rasova app on the counter phone and keep it logged in.`);
+        if (box) {
+          show("bad", last === "processing"
+            ? "The box sent the page but the printer has not answered. Check it is on, has paper and is on the same network as the box."
+            : `The box did not print it in ${WAIT_FOR_SECONDS} seconds. Restart the box; if it happens again, call Rasova support.`);
+        } else {
+          show("bad", last === "processing"
+            ? "The print app took the page but the printer has not answered. Check it is on and has paper."
+            : `Nothing picked it up in ${WAIT_FOR_SECONDS} seconds. Open the Rasova app on the counter phone and keep it logged in.`);
+        }
         return "bad";
       } finally {
         running = false;

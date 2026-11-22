@@ -67,6 +67,17 @@
 .dot.green  { background: #10b981; }
 .dot.red    { background: #ef4444; }
 .dot.orange { background: #f59e0b; }
+.dot.is-ok   { background: #10b981; }
+.dot.is-bad  { background: #ef4444; }
+.dot.is-idle { background: #f59e0b; }
+
+/* A station's printer, one line: set on Setup > Printers */
+.printer-line { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; font-size: 0.78rem; line-height: 1.6; margin-bottom: 1rem; }
+.printer-state { display: block; font-size: 0.72rem; color: var(--text-muted); }
+.printer-state.is-ok  { color: #10b981; }
+.printer-state.is-bad { color: #ef4444; }
+.link-gold { color: var(--accent-gold); text-decoration: none; font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; display: inline-flex; align-items: center; min-height: 44px; }
+.page-sub .link-gold { text-transform: none; letter-spacing: 0; font-size: inherit; min-height: 0; }
 
 .printer-status { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: var(--text-muted); }
 

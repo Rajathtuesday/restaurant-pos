@@ -18,8 +18,6 @@ from .views import (
     rename_table,
     aggregator_setup,
     outlet_settings,
-    printer_setup,
-    printer_test_print,
     setup_promos,
     promo_create,
     promo_toggle,
@@ -32,8 +30,6 @@ from .views import (
     offer_delete,
     offers_pause_all,
     toggle_aggregator,
-    update_printer_config,
-    test_print_station,
     sample_menu,
     checklist_status,
     check_slug_available,
@@ -45,6 +41,7 @@ from .views import (
 )
 from .views.pin_views import clear_staff_pin, my_approval_pin
 from .views.core_views import set_station_made_on_send
+from .views.printer_views import printer_save, printer_setup, printer_test, printer_test_print, printers
 
 urlpatterns = [
     path('', setup_wizard, name='setup_wizard'),
@@ -66,6 +63,11 @@ urlpatterns = [
     path('tables/<int:table_id>/rename/', rename_table, name='rename_table'),
     path("aggregators/", aggregator_setup, name="setup_aggregators"),
     path("outlet/", outlet_settings, name="outlet_settings"),
+    # Every printer on one page (setup/views/printer_views.py). The old
+    # Setup > Printer page redirects here; its test address still works.
+    path("printers/", printers, name="setup_printers"),
+    path("printers/<int:station_id>/save/", printer_save, name="printer_save"),
+    path("printers/<int:station_id>/test/", printer_test, name="printer_test"),
     path("printer/", printer_setup, name="printer_setup"),
     path("printer/test/", printer_test_print, name="printer_test_print"),
 
@@ -86,8 +88,6 @@ urlpatterns = [
     path("aggregators/toggle/", toggle_aggregator, name="toggle_aggregator"),
 
     # Printer config per station
-    path("kitchen-stations/<int:station_id>/printer/", update_printer_config, name="update_printer_config"),
-    path("kitchen-stations/<int:station_id>/test-print/", test_print_station, name="test_print_station"),
     path("kitchen-stations/<int:station_id>/delete/", delete_station, name="delete_station"),
     path("kitchen-stations/<int:station_id>/made-on-send/", set_station_made_on_send, name="set_station_made_on_send"),
     path("kitchen-stations/set-mode/<str:mode>/", set_print_mode, name="set_print_mode"),

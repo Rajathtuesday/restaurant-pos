@@ -6,8 +6,6 @@ from .core_views import (
     setup_tables,
     setup_menu,
     setup_kitchen_stations,
-    update_printer_config,
-    test_print_station,
     setup_payment_methods,
     setup_staff,
     reset_staff_password,
@@ -20,8 +18,6 @@ from .core_views import (
     set_print_mode,
     rename_table,
     outlet_settings,
-    printer_setup,
-    printer_test_print,
     setup_qr_codes,
 )
 
@@ -67,8 +63,6 @@ __all__ = [
     "setup_tables",
     "setup_menu",
     "setup_kitchen_stations",
-    "update_printer_config",
-    "test_print_station",
     "setup_payment_methods",
     "setup_staff",
     "reset_staff_password",
@@ -81,8 +75,6 @@ __all__ = [
     "set_print_mode",
     "rename_table",
     "outlet_settings",
-    "printer_setup",
-    "printer_test_print",
     "setup_qr_codes",
     # promos
     "setup_promos",

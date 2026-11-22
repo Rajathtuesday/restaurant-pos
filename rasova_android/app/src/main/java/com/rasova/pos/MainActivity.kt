@@ -1,6 +1,7 @@
 package com.rasova.pos
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -29,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var splashView: View
     private lateinit var setupView: View
     private lateinit var urlInput:  EditText
+    private lateinit var localNetwork: LocalNetwork
 
     private var serverUrl = ""          // live URL the WebView is pointed at
     private var showingOfflinePage = false
@@ -41,27 +43,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME   = "rasova_prefs"
         private const val KEY_SERVER_URL = "server_url"
-
-        private val OFFLINE_HTML = """
-            <!DOCTYPE html><html>
-            <head><meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>
-              body{margin:0;background:#0a0a0a;color:#fff;font-family:sans-serif;
-                   display:flex;flex-direction:column;align-items:center;
-                   justify-content:center;height:100vh;text-align:center;padding:2rem}
-              .diamond{width:48px;height:48px;background:#C9A84C;transform:rotate(45deg);margin-bottom:24px}
-              h2{color:#C9A84C;font-size:1.1rem;letter-spacing:3px;margin:0 0 8px}
-              p{color:rgba(255,255,255,0.5);font-size:0.9rem;margin:0 0 32px}
-              button{background:#C9A84C;border:none;color:#0a0a0a;padding:0.8rem 2rem;
-                     font-size:0.9rem;font-weight:700;letter-spacing:1px;cursor:pointer}
-            </style></head>
-            <body>
-              <div class="diamond"></div>
-              <h2>RASOVA</h2>
-              <p>Check your internet connection</p>
-              <button onclick="location.reload()">RETRY</button>
-            </body></html>
-        """.trimIndent()
 
         private val SSL_ERROR_HTML = """
             <!DOCTYPE html><html>
@@ -101,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         splashView = findViewById(R.id.splashView)
         setupView = findViewById(R.id.setupView)
         urlInput  = findViewById(R.id.urlInput)
+        localNetwork = LocalNetwork(this)
 
         configureWebView()
 
@@ -109,6 +91,7 @@ class MainActivity : AppCompatActivity() {
             // Returning user: URL already saved — go straight to the app
             saved != null -> {
                 serverUrl = saved
+                followNetwork()
                 if (savedInstanceState != null) {
                     webView.restoreState(savedInstanceState)
                 } else {
@@ -131,7 +114,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (showingOfflinePage && isNetworkAvailable() && serverUrl.isNotBlank()) {
+        if (showingOfflinePage && canReachNetwork() && serverUrl.isNotBlank()) {
             loadOrShowOffline()
         }
     }
@@ -140,9 +123,9 @@ class MainActivity : AppCompatActivity() {
 
     fun onConnectClicked(view: View) {
         val input = urlInput.text.toString().trim()
-        val url   = normaliseUrl(input)
+        val url   = ServerUrl.normalise(input)
         if (url == null) {
-            urlInput.error = "Enter a URL like spice-garden.rasova.net"
+            urlInput.error = "Enter an address like spice-garden.rasova.net or 192.168.1.50"
             return
         }
         hideKeyboard()
@@ -154,7 +137,7 @@ class MainActivity : AppCompatActivity() {
     fun onScanQrClicked(view: View) {
         qrScanLauncher.launch(
             ScanOptions().apply {
-                setPrompt("Scan the QR code from Setup → Printer in your Rasova dashboard")
+                setPrompt("Scan the QR code on Setup › Printers, or on a box's Connect a device page")
                 setBeepEnabled(true)
                 setOrientationLocked(true)
                 setDesiredBarcodeFormats(ScanOptions.QR_CODE)
@@ -163,7 +146,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleScannedUrl(raw: String) {
-        val url = normaliseUrl(raw)
+        val url = ServerUrl.normalise(raw)
         if (url == null) {
             Toast.makeText(this, "QR code doesn't contain a valid URL", Toast.LENGTH_LONG).show()
             return
@@ -174,22 +157,47 @@ class MainActivity : AppCompatActivity() {
     // ── Shared: save URL and start loading ────────────────────────────────────
 
     private fun connectTo(url: String) {
+        // Pointed somewhere new (another restaurant, or a box): the print
+        // service must stop collecting the old one's jobs, and must not come
+        // back after a reboot. A box prints by itself, so it never starts
+        // again there; in the cloud the new restaurant's page starts it.
+        val previous = getSavedUrl()
+        if (previous != null && Uri.parse(previous).host != Uri.parse(url).host) {
+            stopService(Intent(this, PrintService::class.java))
+            AgentConfig.clear(this)
+        }
         serverUrl = url
         saveUrl(url)
+        followNetwork()
         setupView.visibility  = View.GONE
         splashView.visibility = View.VISIBLE
         loadOrShowOffline()
     }
 
     private fun loadOrShowOffline() {
-        if (isNetworkAvailable()) {
+        if (canReachNetwork()) {
             showingOfflinePage = false
             webView.loadUrl(serverUrl)
         } else {
             showingOfflinePage = true
             splashView.visibility = View.GONE
-            webView.loadDataWithBaseURL(null, OFFLINE_HTML, "text/html", "UTF-8", null)
+            webView.loadDataWithBaseURL(null, OfflinePage.html(serverUrl), "text/html", "UTF-8", null)
         }
+    }
+
+    /** A box: stay on the Wi-Fi even when it has no internet (LocalNetwork). */
+    private fun followNetwork() {
+        if (ServerUrl.isBox(serverUrl)) localNetwork.bind() else localNetwork.unbind()
+    }
+
+    private fun canReachNetwork(): Boolean =
+        if (ServerUrl.isBox(serverUrl)) localNetwork.connected() else isNetworkAvailable()
+
+    /** The setup screen again, from the offline page's Change address. */
+    private fun showSetup() {
+        urlInput.setText(serverUrl)
+        splashView.visibility = View.GONE
+        setupView.visibility  = View.VISIBLE
     }
 
     // ── WebView setup ─────────────────────────────────────────────────────────
@@ -208,7 +216,9 @@ class MainActivity : AppCompatActivity() {
         settings.javaScriptEnabled        = true
         settings.domStorageEnabled        = true
         settings.loadsImagesAutomatically = true
-        settings.mixedContentMode         = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+        // An https page never loads anything over plain http. A box's pages
+        // are http themselves, so they are not affected.
+        settings.mixedContentMode         = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
         // The real version, so the server can ask an old app to update (AppUserAgent.kt).
@@ -229,7 +239,7 @@ class MainActivity : AppCompatActivity() {
             ) {
                 if (request.isForMainFrame) {
                     showingOfflinePage = true
-                    view.loadData(OFFLINE_HTML, "text/html", "UTF-8")
+                    view.loadDataWithBaseURL(null, OfflinePage.html(serverUrl), "text/html", "UTF-8", null)
                 }
             }
 
@@ -243,6 +253,17 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(
                 view: WebView, request: WebResourceRequest
             ): Boolean {
+                val link = request.url.toString()
+                if (link == OfflinePage.SETUP_LINK) {
+                    showSetup()
+                    return true
+                }
+                // Plain http only on the local network (a box); an internet
+                // address goes to https instead, never in the clear.
+                if (!ServerUrl.cleartextAllowed(link)) {
+                    view.loadUrl(ServerUrl.secure(link))
+                    return true
+                }
                 val host = request.url.host ?: ""
                 val serverHost = Uri.parse(serverUrl).host ?: ""
                 // Keep rasova pages inside the app; open external links in the browser
@@ -260,20 +281,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
-    /** Add https:// if missing, upgrade http:// for internet hosts; null if the input looks invalid. */
-    private fun normaliseUrl(input: String): String? {
-        val t = input.trim().lowercase()
-        val url = when {
-            t.startsWith("https://") -> t
-            t.startsWith("http://")  -> ServerUrl.secure(t)   // internet addresses always on https
-            t.contains(".")          -> "https://$t"
-            else                     -> return null
-        }
-        // Must have a host with at least one dot (e.g. rasova.net)
-        val host = Uri.parse(url).host ?: return null
-        return if (host.contains(".")) url else null
-    }
 
     private fun getSavedUrl(): String? =
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -304,6 +311,11 @@ class MainActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
+    }
+
+    override fun onDestroy() {
+        localNetwork.unbind()
+        super.onDestroy()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

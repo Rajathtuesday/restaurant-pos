@@ -7,6 +7,30 @@ the source of truth.
 
 ---
 
+## 2026-11-22: Every printer on one page, and phones on a Rasova box
+
+The owner lifted the feature freeze for 22 Nov 2026. This builds the recommended set of `md_files/rasova_printers_and_app_plan_eli5_2026-10-21.html`: one Printers page, Connect a device on the box, the Android app's box mode, and a spare PC as a box (option A). Option B (their everyday Windows PC) and real https on a box stay unbuilt, as the plan says.
+
+### Fixed
+- **Outlet Settings wiped the printer on every save** (`setup/views/core_views.py`): the form has no printer fields, but its save wrote them anyway, so each press cleared the printer's MAC, reset the PC agent to localhost, a 58 mm printer to 80 mm, and switched QZ Tray off. It writes none of them now.
+- **A Rasova box handed the Android app an https address and the print agent key** (`core/context_processors.py`): a box has no https, and it prints its own queue. A box's pages now say `http://` and hand no key, and `platform.js` starts no print service without a key (handed on anyway, the bridge got the word "undefined" as a key).
+- **A printer address typo was a 500** (the database's inet column refused "192.168.1."), and a port of 0 was saved and could never print: each printer's settings are checked first and refused with a sentence (`setup/services/printers.py`).
+- **The Kitchen Stations Test Print only worked with a PC agent on the same device**, so never on a box or a phone. Every printer's Test print now goes through the print queue, like a real bill.
+- iPhones ignored the SVG touch icon: Add to Home Screen now gets the Rasova diamond (PNG) and opens full screen.
+
+### Added (owner lifted the freeze for the day)
+- **Setup › Printers** (`/setup/printers/`): one row per printer (address, paper, cut, code page; the counter printer's MAC; in the cloud the USB name for QZ Tray), its own Test print, and a line from the print queue saying when it last printed or when and why it last failed (two queries however many printers). "For every printer": big letters on KOTs, the total on KOTs and the bill's side margin, before only in the Django admin; a profile shared with another outlet is copied, never changed under it. In the cloud: the PC agent's address, QZ Tray, Find printers and the counter phone's two QR codes. A Printers card on Setup says how they are. `/setup/printer/` redirects here; Kitchen Stations shows each printer as one line with a link; Outlet Settings links here.
+- **Connect a device** on the box (`/box/connect/`, from Box health): the address big, a QR code that pairs the Android app, the iPhone steps, and a Windows shortcut (`Rasova.cmd`) that opens Rasova in its own Edge window. The box learns its number address from the owner's visit (`BoxState.lan_address`, migration `box.0003`, additive), because many Android phones can't find rasova.local and the box can't see its own address from inside its container.
+- **The box serves the Android app** at `/android/rasova.apk` (the image carries it), so a phone installs it over the Wi-Fi with no internet.
+- **Rasova Android app 1.3.0** (`rasova_android/`, served at `/android/rasova.apk`, same release key): opens a box on plain http (allowed app-wide because a WebView can't allow it per address; `ServerUrl.cleartextAllowed` keeps it to the local network in the WebView and the print service, and an https page never loads http); stays on the Wi-Fi when it has no internet (`LocalNetwork.kt`); a bare local address typed or scanned is http, anything else https; pointed somewhere new, the print service stops and forgets the old target; the offline page names the box and has Change address.
+- `docs/BOX_GUIDE.md`: Connect a device, Setup › Printers, and section 16, a spare PC of theirs as a box (option A). `PRINTER_SETUP.md` and `USER_MANUAL.md` follow the Printers page.
+
+### Tests
+- `setup/tests/test_printers.py` (28): Outlet Settings keeps every printer setting; the page, roles, the redirect, Kitchen Stations' line and the Setup card; bad addresses, ports, paper, cut and code page refused; the counter printer's MAC and paper are the outlet's and a kitchen printer's never; a field a form lacks is kept; another restaurant's printer is a 404; a test page per printer through the queue; ok, failing, idle and none states, a print after a failure, an old job with no port, another outlet's jobs ignored, the same query count for one printer or ten; every-printer settings, a shared profile copied, the PC agent and QZ Tray in the cloud and never on a box.
+- `box/tests/test_box_devices.py` (15): a box's page data says http with no agent key, the cloud's https with it; Connect a device's address, QR, learning (a number, never a name, localhost or a public address), roles, cloud 404; the shortcut; the home screen icon and tags; the box serves the APK and its image carries it.
+- Node: `printers.test.mjs` (what a printer's row sends, the box's test print wording); `core.test.mjs` (no key, no print service). Browser tests for Test print, the station line and the Printers page moved with the page.
+- Android unit tests (23, 8 new): `ServerUrlTest` (normalise, cleartext only to the local network, what a box is) and `OfflinePageTest`.
+
 ## 2026-11-22: The print job status test allows a slow second
 
 ### Tests

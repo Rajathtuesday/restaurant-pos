@@ -14,3 +14,4 @@
 table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 td { padding: .4rem 0; border-bottom: 1px solid var(--border-color); }
 code { overflow-wrap: anywhere; }
+.btn-link { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }

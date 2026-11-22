@@ -43,6 +43,9 @@ ARG RASOVA_VERSION=dev
 ENV RASOVA_VERSION=${RASOVA_VERSION} LOG_DIR=/data/logs
 COPY --from=build /app /app
 COPY box/docker/entrypoint.sh /usr/local/bin/rasova-entrypoint
+# The Rasova Android app, served by the box at /android/rasova.apk (WhiteNoise,
+# public/): a phone installs it over the restaurant's Wi-Fi, no internet needed.
+COPY public/android/rasova.apk /app/public/android/rasova.apk
 # collectstatic only loads the settings, which insist on these being set;
 # the real ones are made on the box at install (rasova-box), never baked in.
 RUN chmod 755 /usr/local/bin/rasova-entrypoint \

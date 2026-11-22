@@ -1,0 +1,85 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Connect a Device | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/box/health.css' %}">
+<link rel="stylesheet" href="{% static 'css/box/connect.css' %}">
+{% endblock %}
+
+{% block page_title %}<a href="{% url 'box_health' %}">Box health</a> / Connect a device{% endblock %}
+
+{% block content %}
+<div class="page-body">
+  <p class="page-eyebrow">Rasova box {{ version }}</p>
+  <h1 class="page-title">Connect a device</h1>
+
+  <div class="cn-address">
+    <p class="muted">This box's address</p>
+    <p class="cn-big" id="boxAddress">{{ address }}</p>
+    {% if on_the_box %}
+      <p class="muted warn" id="onTheBox">This page was opened on the box itself, so it can't see the address phones
+        use. Open it from a phone or laptop on the restaurant's Wi-Fi.</p>
+    {% elif by_name %}
+      <p class="muted" id="byName">Opened by name. Laptops and iPhones can use the name; many Android phones can't, so
+        the QR code below carries the number the box was last opened at.</p>
+    {% endif %}
+    <p class="muted">Every device must be on the restaurant's Wi-Fi (or cable). The box needs no internet.</p>
+  </div>
+
+  <div class="cn-grid">
+    <section class="panel cn-device" id="androidSteps">
+      <h3>Android phone or tablet</h3>
+      <div class="qr-draw cn-qr" data-qr="{{ login_url }}" data-qr-size="170" data-qr-label="Scan to connect a device to this box"></div>
+      <ol>
+        <li>Install the Rasova app (version 1.3.0 or newer) from this box:
+          <a href="/android/rasova.apk" download id="apkLink">download it here</a> on the phone. Android may ask to allow
+          installs from Chrome: allow it once.</li>
+        <li>Open it and tap <strong>Scan QR code</strong>, then scan this code.</li>
+        <li>Sign in. The app opens straight to this box from then on.</li>
+      </ol>
+      <p class="muted">If the phone says <em>"Wi-Fi has no internet access"</em>, tap <strong>Stay connected</strong>:
+        the box is on the Wi-Fi, not the internet.</p>
+      <p class="muted">No app? Scan the code with the phone's camera: Rasova opens in Chrome.</p>
+    </section>
+
+    <section class="panel cn-device" id="iphoneSteps">
+      <h3>iPhone or iPad</h3>
+      <ol>
+        <li>Open <strong>Safari</strong> (not Chrome) at <code>{{ address }}</code>, or scan the code with the camera.</li>
+        <li>Tap the <strong>Share</strong> button (the square with an arrow).</li>
+        <li>Tap <strong>Add to Home Screen</strong>, then <strong>Add</strong>.</li>
+      </ol>
+      <p class="muted">Rasova gets its own icon and opens full screen, without Safari's address bar.</p>
+    </section>
+
+    <section class="panel cn-device" id="pcSteps">
+      <h3>Windows PC at the counter</h3>
+      <a class="btn-box cn-download" href="{% url 'box_shortcut' %}" download>Download the shortcut</a>
+      <ol>
+        <li>Download it on the counter PC and move it to the desktop.</li>
+        <li>Double-click it. If Windows asks whether to run it, choose <strong>Run</strong>.</li>
+        <li>Rasova opens in its own window, like an app.</li>
+      </ol>
+      <p class="muted">To open it whenever the PC starts: press <kbd>Windows</kbd>+<kbd>R</kbd>, type
+        <code>shell:startup</code>, press Enter and copy the shortcut into that folder.</p>
+      <p class="muted">A Mac: open the address in Safari, then <strong>File, Add to Dock</strong>.</p>
+    </section>
+  </div>
+
+  <div class="panel cn-tips">
+    <h3>So nobody types an address again</h3>
+    <ul>
+      <li>Give the box a fixed address on the router (a DHCP reservation), and the printers too. If the box's address ever
+        changes, open this page at the new one and pair the phones again.</li>
+      <li>A sign-in lasts a day on each device. The box and the router on a UPS keep everyone connected through a power
+        cut.</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/vendor/qrcode.min.js' %}"></script>
+<script type="module" src="{% static 'js/box/connect.js' %}"></script>
+{% endblock %}

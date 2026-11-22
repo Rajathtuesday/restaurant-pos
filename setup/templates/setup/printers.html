@@ -1,0 +1,177 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Printers | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/setup/printers.css' %}">
+{% endblock %}
+
+{% block page_title %}<a href="{% url 'setup_wizard' %}">Setup</a> / Printers{% endblock %}
+
+{% block content %}
+<div class="pr-page">
+  <p class="pr-eyebrow">Configuration</p>
+  <h1 class="pr-title">Printers</h1>
+  <p class="pr-sub">
+    {% if is_box %}
+      This box sends every bill and KOT to the printers itself. Keep each printer switched on and wired to the same
+      router as the box.
+    {% else %}
+      Every bill and KOT waits in Rasova's print queue until the Rasova app on the counter phone (or the PC agent)
+      collects it and sends it to the printer. Keep that phone on the same Wi-Fi as the printers.
+    {% endif %}
+    Which dishes go to which printer is set on <a href="{% url 'setup_kitchen_stations' %}">Kitchen Stations</a>.
+  </p>
+
+  {% for m in messages %}<div class="pr-msg {{ m.tags }}" role="status">{{ m }}</div>{% endfor %}
+
+  {% for row in rows %}{% with s=row.station %}
+  <form class="pr-card{% if s.is_default %} is-counter{% endif %}" id="printer-{{ s.id }}" data-station="{{ s.id }}"
+        data-action="printer.save" novalidate>
+    <div class="pr-head">
+      <div>
+        <h2 class="pr-name">{{ s.name }}</h2>
+        <p class="pr-role">{% if s.is_default %}The counter printer: bills, and every KOT in One Printer mode{% else %}KOTs for {{ s.name }}'s dishes{% endif %}</p>
+      </div>
+      <p class="pr-state is-{{ row.state.level }}" id="state-{{ s.id }}" role="status">{{ row.state.words }}</p>
+    </div>
+
+    <div class="pr-fields">
+      <label class="pr-field pr-field-ip">
+        <span class="pr-label">Printer address</span>
+        <input type="text" name="printer_ip" value="{{ s.printer_ip|default:'' }}" placeholder="192.168.1.60"
+               inputmode="decimal" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="pr-field">
+        <span class="pr-label">Paper</span>
+        <select name="paper_width_mm">
+          <option value="80"{% if s.paper_width_mm == 80 %} selected{% endif %}>80 mm (most printers)</option>
+          <option value="58"{% if s.paper_width_mm == 58 %} selected{% endif %}>58 mm (narrow)</option>
+        </select>
+      </label>
+    </div>
+    <p class="pr-hint">Don't know the address? Hold the printer's Feed button while you switch it on: it prints a page
+      with its IP address.</p>
+
+    <details class="pr-more">
+      <summary>More: port, cut, code page{% if s.is_default %}, MAC{% endif %}{% if not is_box %}, USB name{% endif %}</summary>
+      <div class="pr-fields">
+        <label class="pr-field">
+          <span class="pr-label">Port</span>
+          <input type="text" name="printer_port" value="{{ s.printer_port }}" inputmode="numeric" autocomplete="off">
+        </label>
+        <label class="pr-field">
+          <span class="pr-label">Cut</span>
+          <select name="cut_type">
+            <option value="full"{% if s.cut_type == 'full' %} selected{% endif %}>Full cut</option>
+            <option value="partial"{% if s.cut_type == 'partial' %} selected{% endif %}>Partial cut</option>
+            <option value="none"{% if s.cut_type == 'none' %} selected{% endif %}>No cut (tear)</option>
+          </select>
+        </label>
+        <label class="pr-field">
+          <span class="pr-label">Code page</span>
+          <select name="printer_encoding">
+            <option value="cp437"{% if s.printer_encoding == 'cp437' %} selected{% endif %}>CP437 (most printers)</option>
+            <option value="cp850"{% if s.printer_encoding == 'cp850' %} selected{% endif %}>CP850 (western Europe)</option>
+            <option value="utf-8"{% if s.printer_encoding == 'utf-8' %} selected{% endif %}>UTF-8 (modern printers only)</option>
+          </select>
+        </label>
+        {% if s.is_default %}
+        <label class="pr-field">
+          <span class="pr-label">MAC address (optional)</span>
+          <input type="text" name="printer_mac" value="{{ outlet.printer_mac|default:'' }}" maxlength="17"
+                 placeholder="00:57:27:10:ED:46" data-action="mac.format" autocomplete="off" spellcheck="false">
+        </label>
+        {% endif %}
+        {% if not is_box %}
+        <label class="pr-field">
+          <span class="pr-label">USB printer name (QZ Tray)</span>
+          <input type="text" name="printer_name" value="{{ s.printer_name }}" placeholder="BillTouch ZY306" autocomplete="off">
+        </label>
+        {% endif %}
+      </div>
+      <p class="pr-hint">Leave these as they are unless the printer's manual says otherwise: almost every thermal printer
+        uses port 9100 and CP437.{% if s.is_default %} The MAC is on the printer's self-test page: give it to whoever
+        looks after the router, so the printer's address never changes.{% endif %}</p>
+    </details>
+
+    <div class="pr-actions">
+      <button type="submit" class="pr-btn pr-btn-main">Save</button>
+      <button type="button" class="pr-btn" data-action="printer.test" {% if not s.printer_ip %}disabled{% endif %}>Test print</button>
+      {% if not is_box %}<button type="button" class="pr-btn pr-btn-quiet" data-action="printer.find">Find printers</button>{% endif %}
+    </div>
+    <p class="pr-result" id="result-{{ s.id }}" aria-live="polite"></p>
+  </form>
+  {% endwith %}{% empty %}
+  <p class="pr-empty">No printers yet: add a station on <a href="{% url 'setup_kitchen_stations' %}">Kitchen Stations</a>
+    first, then give it a printer here.</p>
+  {% endfor %}
+
+  <form method="post" class="pr-card pr-every" id="everyPrinter">
+    {% csrf_token %}
+    <h2 class="pr-name">For every printer</h2>
+    <label class="pr-check">
+      <input type="checkbox" name="kot_large_font"{% if kot_large_font %} checked{% endif %}>
+      <span><strong>Big letters on KOTs.</strong> Dishes print twice as tall, easy to read from across a kitchen.</span>
+    </label>
+    <label class="pr-check">
+      <input type="checkbox" name="kot_show_total"{% if kot_show_total %} checked{% endif %}>
+      <span><strong>The total on KOTs.</strong> The sum of the dishes' prices at the foot of each KOT.</span>
+    </label>
+    <label class="pr-field pr-field-short">
+      <span class="pr-label">Space at the bill's sides</span>
+      <select name="bill_inner_margin">
+        {% for m in margins %}<option value="{{ m }}"{% if m == bill_inner_margin %} selected{% endif %}>{% if m == 0 %}None, full width{% else %}{{ m }} characters{% endif %}{% if m == 4 %} (usual){% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    {% if not is_box %}
+    <details class="pr-more">
+      <summary>Printing from a Windows PC</summary>
+      <label class="pr-field pr-field-short">
+        <span class="pr-label">The PC agent's address</span>
+        <input type="text" name="agent_host" value="{{ outlet.agent_host|default:'localhost' }}" autocomplete="off" spellcheck="false">
+      </label>
+      <label class="pr-check">
+        <input type="checkbox" name="use_qz_tray"{% if outlet.use_qz_tray %} checked{% endif %}>
+        <span><strong>Print bills through QZ Tray</strong> (a USB printer on a Windows PC).</span>
+      </label>
+    </details>
+    {% endif %}
+    <div class="pr-actions"><button type="submit" class="pr-btn pr-btn-main">Save for every printer</button></div>
+  </form>
+
+  {% if is_box %}
+  <section class="pr-card">
+    <h2 class="pr-name">Phones, tablets and the counter PC</h2>
+    <p class="pr-hint">Nothing to install for printing: the box prints by itself. To open Rasova on a new device, use
+      <a href="{% url 'box_connect' %}">Connect a device</a>.</p>
+  </section>
+  {% else %}
+  <section class="pr-card pr-app">
+    <h2 class="pr-name">The counter phone</h2>
+    <div class="pr-app-grid">
+      <div class="pr-app-step">
+        <div class="qr-draw" data-qr="https://rasova.net/android/rasova.apk" data-qr-size="110"
+             data-qr-label="Scan to download the Rasova Android app"></div>
+        <p><strong>1. Install the Rasova app.</strong> Scan with the phone's camera, or
+          <a href="/android/rasova.apk" download>download it here</a>. No Play Store needed.</p>
+      </div>
+      <div class="pr-app-step">
+        <div class="qr-draw" data-qr="{{ login_url }}" data-qr-size="110"
+             data-qr-label="Scan to connect the app to this restaurant"></div>
+        <p><strong>2. Connect it.</strong> Open the app, tap Scan QR code and scan this. Then sign in: printing starts by
+          itself and keeps going while the phone is on.</p>
+      </div>
+    </div>
+    <p class="pr-hint">Installed the app before 19 Oct 2026? Uninstall it first: the new one is signed with Rasova's own
+      key, so Android won't install it over the old one.</p>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ page_data|json_script:"page-data" }}
+{% if not is_box %}<script src="{% static 'js/vendor/qrcode.min.js' %}"></script>{% endif %}
+<script type="module" src="{% static 'js/setup/printers.js' %}"></script>
+{% endblock %}

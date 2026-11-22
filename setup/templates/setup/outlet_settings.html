@@ -395,29 +395,18 @@
             </div>
         </div>
 
-        <!-- Printer -->
+        <!-- Printers: all of it is on Setup > Printers -->
         <div class="settings-section">
             <div class="section-header">
                 <i class="bi bi-printer section-icon"></i>
-                <span class="section-title">Thermal Printer</span>
+                <span class="section-title">Printers</span>
             </div>
             <div class="section-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
-                <div>
-                    {% if outlet.printer_mac %}
-                    <div style="font-size:0.88rem;font-weight:600;color:var(--text-main);">
-                        <i class="bi bi-check-circle-fill me-2" style="color:#22c55e;"></i>Printer configured
-                    </div>
-                    <div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace;">
-                        {{ outlet.printer_mac }} &nbsp;·&nbsp; {{ outlet.paper_width_mm }}mm &nbsp;·&nbsp; {{ outlet.agent_host }}
-                    </div>
-                    {% else %}
-                    <div style="font-size:0.88rem;color:var(--text-muted);">
-                        <i class="bi bi-exclamation-circle me-2" style="color:var(--accent-gold);"></i>No printer configured yet
-                    </div>
-                    {% endif %}
+                <div style="font-size:0.85rem;color:var(--text-muted);" id="printersLine">
+                    Kitchen, bar and bill printers, their addresses and a test print for each, are on one page.
                 </div>
-                <a href="{% url 'printer_setup' %}" class="btn-luxury text-decoration-none" style="white-space:nowrap;">
-                    <i class="bi bi-printer me-2"></i>{% if outlet.printer_mac %}Edit Printer Setup{% else %}Set Up Printer{% endif %}
+                <a href="{% url 'setup_printers' %}" class="btn-luxury text-decoration-none" style="white-space:nowrap;">
+                    <i class="bi bi-printer me-2"></i>Printers
                 </a>
             </div>
         </div>

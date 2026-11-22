@@ -56,6 +56,15 @@ test("an old app without the keyed bridge is told to update, once per session", 
   assert.match(toasts[0], /Update the Rasova app/);
 });
 
+test("a page with no agent key (a Rasova box prints by itself) starts no print service", () => {
+  const given = [];
+  const bridge = { startPrintingWithKey: (url, key) => given.push([url, key]) };
+  const platform = detectPlatform({ userAgent: "x RasovaPOS-Android/1.3.0", standalone: false });
+  assert.equal(startAndroidPrinting({ platform, serverUrl: "http://192.168.1.50", agentKey: undefined, bridge }), false);
+  assert.equal(startAndroidPrinting({ platform, serverUrl: "http://192.168.1.50", agentKey: "", bridge }), false);
+  assert.deepEqual(given, [], "the bridge would have been handed the word undefined as a key");
+});
+
 test("in a browser nothing is started", () => {
   const platform = detectPlatform({ userAgent: CHROME_WIN, standalone: false });
   assert.equal(startAndroidPrinting({ platform, serverUrl: "u", agentKey: "k", bridge: undefined }), false);

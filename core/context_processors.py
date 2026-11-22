@@ -35,18 +35,24 @@ def frontend(request):
     authenticated = bool(user is not None and user.is_authenticated)
     outlet = getattr(user, "outlet", None) if authenticated else None
     session = getattr(request, "session", {})
+    from box.edition import is_box
+    box = is_box()
     page = {
         "authenticated": authenticated,
         # The shared /live-demo/ account: no "Install Rasova POS" prompt.
         "demo_session": "demo_trailer_mode" in session,
-        # Always https: behind Cloudflare request.scheme can say http, and the
-        # Android print service refuses a cleartext address.
-        "server_url": "https://" + request.get_host(),
+        # The cloud: always https, because behind Cloudflare request.scheme
+        # can say http and the Android print service refuses a cleartext
+        # internet address. A box has no https at all (it lives on the
+        # restaurant's own network), so it says what it really is.
+        "server_url": (request.scheme if box else "https") + "://" + request.get_host(),
         "agent_host": (getattr(outlet, "agent_host", None) or "localhost") if outlet is not None else "localhost",
     }
-    if outlet is not None:
+    if outlet is not None and not box:
         # The outlet's agent key, for the Android app's print service. It
         # travels to the server in a header, never in a URL (printing/views.py).
+        # Not on a box: the box prints its own queue (box/print_queue.py), so
+        # a phone there has nothing to collect.
         page["agent_key"] = getattr(outlet, "print_agent_key", "") or ""
     # An Android app older than the server needs: base.html shows the
     # "update the app" banner (core/app_version.py).

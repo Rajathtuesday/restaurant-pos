@@ -61,9 +61,11 @@ def setup_wizard(request):
         outlet=outlet
     ).exists()
 
+    from setup.services.printers import printers_summary
     context = {
         "tables_done": tables_exist,
-        "menu_done": categories_exist and items_exist
+        "menu_done": categories_exist and items_exist,
+        "printers": printers_summary(outlet),
     }
 
     return render(request, "setup/setup.html", context)
@@ -225,13 +227,10 @@ def stations_page_data(outlet, default_station, any_station_has_printer):
     station's id in the addresses."""
     from django.urls import reverse
     return {
-        "agentHost": (outlet.agent_host if outlet else "") or "localhost",
         "anyStationHasPrinter": any_station_has_printer,
         "defaultStationName": default_station.name if default_station else "",
         "urls": {
-            "installer": reverse("agent_download", args=["rasova_agent_installer.bat"]),
             "cashierMode": reverse("set_print_mode", args=["cashier"]),
-            "printer": reverse("update_printer_config", args=[0]),
             "remove": reverse("delete_station", args=[0]),
             "madeOnSend": reverse("set_station_made_on_send", args=[0]),
         },
@@ -294,6 +293,11 @@ def setup_kitchen_stations(request):
         if not s.is_default
     )
     cashier_ip = default_station.printer_ip if default_station else None
+    # Each station's printer is one line here, set on Setup > Printers.
+    from setup.services.printers import printer_states
+    states = printer_states(request.user.outlet, stations_list)
+    for s in stations_list:
+        s.printer_state = states[s.id]
 
     return render(
         request,
@@ -307,77 +311,6 @@ def setup_kitchen_stations(request):
             "page_data": stations_page_data(request.user.outlet, default_station, any_station_has_printer),
         }
     )
-
-# -------------------------------------------------
-# PRINTER CONFIG — update IP/port/paper/cut/encoding for a station
-# -------------------------------------------------
-
-@login_required
-@role_required("owner", "manager")
-@require_POST
-def update_printer_config(request, station_id):
-    station = get_object_or_404(
-        KitchenStation,
-        id=station_id,
-        tenant=request.user.tenant,
-        outlet=request.user.outlet,
-    )
-    # apiClient sends JSON body — request.POST is empty for JSON requests
-    import json as _json
-    try:
-        body = _json.loads(request.body)
-    except Http404:
-        raise
-    except Exception:
-        body = request.POST
-
-    ip   = (body.get("printer_ip") or "").strip() or None
-    port = str(body.get("printer_port") or "9100").strip()
-    paper = str(body.get("paper_width_mm") or "80").strip()
-    cut  = (body.get("cut_type") or "full").strip()
-    enc  = (body.get("printer_encoding") or "cp437").strip()
-
-    station.printer_ip = ip
-    station.printer_port = int(port) if port.isdigit() else 9100
-    station.paper_width_mm = int(paper) if paper in ("58", "80") else 80
-    station.cut_type = cut if cut in ("full", "partial", "none") else "full"
-    station.printer_encoding = enc if enc in ("cp437", "cp850", "utf-8") else "cp437"
-    # QZ Tray printer name (Windows printer name for USB printing)
-    pname = (body.get("printer_name") or "").strip()
-    if pname is not None:
-        station.printer_name = pname
-    station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm", "cut_type", "printer_encoding", "printer_name"])
-
-    return JsonResponse({"success": True, "message": f"Printer settings saved for {station.name}"})
-
-
-@login_required
-@role_required("owner", "manager")
-@require_POST
-def test_print_station(request, station_id):
-    station = get_object_or_404(
-        KitchenStation,
-        id=station_id,
-        tenant=request.user.tenant,
-        outlet=request.user.outlet,
-    )
-    if not station.printer_ip:
-        return JsonResponse({"error": "No printer IP set for this station."}, status=400)
-
-    from printing.services.printing_service import PrintingService
-    svc = PrintingService(
-        printer_type="network",
-        host=station.printer_ip,
-        port=station.printer_port,
-        chars_per_line=station.chars_per_line,
-        cut_type=station.cut_type,
-        encoding=station.printer_encoding,
-    )
-    success = svc.test_print(station_name=station.name)
-    if success:
-        return JsonResponse({"success": True, "message": "Test page sent to printer"})
-    return JsonResponse({"error": "Could not connect to printer. Check the IP and port, and make sure the printer is on."}, status=500)
-
 
 # -------------------------------------------------
 # PAYMENT METHODS
@@ -936,141 +869,6 @@ def rename_table(request, table_id):
 # OUTLET SETTINGS
 # ==================================
 
-def printer_page_data():
-    """What static/js/setup/printer_setup.js needs: where Test Print sends,
-    and where it asks for the job (0 stands in for the job's id)."""
-    from django.urls import reverse
-    return {"urls": {
-        "test_print": reverse("printer_test_print"),
-        "job_status": reverse("print-job-status", args=[0]),
-    }}
-
-
-@login_required
-def printer_setup(request):
-    """
-    Printer setup for the phone-agent printing model.
-
-    The Rasova app (or a PC poll-agent) polls /orders/agent/jobs/ (key in the
-    X-Agent-Key header) and prints
-    to the printer at the default Kitchen Station's ``printer_ip``. That IP is the
-    ONLY field that actually drives printing — so this page reads/writes the default
-    station, not the legacy ``outlet.agent_host``/``use_qz_tray`` WebSocket fields.
-
-    ``outlet.printer_mac`` is still kept here: it's the printer's permanent ID, used
-    for a router DHCP reservation so the IP never drifts.
-    """
-    if request.user.role not in ["owner", "manager"]:
-        return redirect("/setup/")
-
-    from setup.services.station_service import get_default_station
-
-    outlet  = request.user.outlet
-    station = get_default_station(request.user)
-    saved   = False
-
-    if request.method == "POST":
-        # Printer IP — blank allowed (lets them clear it). Validate loosely; the
-        # GenericIPAddressField rejects garbage on save.
-        ip = (request.POST.get("printer_ip") or "").strip() or None
-        station.printer_ip = ip
-
-        port = str(request.POST.get("printer_port") or "9100").strip()
-        station.printer_port = int(port) if port.isdigit() else 9100
-
-        paper = str(request.POST.get("paper_width_mm") or "80").strip()
-        station.paper_width_mm = int(paper) if paper in ("58", "80") else 80
-
-        try:
-            station.save(update_fields=["printer_ip", "printer_port", "paper_width_mm"])
-        except Http404:
-            raise
-        except Exception:
-            messages.error(request, "That printer IP doesn't look valid — use a form like 192.168.1.100.")
-            return render(request, "setup/printer_setup.html",
-                          {"outlet": outlet, "station": station, "saved": False, "page_data": printer_page_data()})
-
-        # Mirror paper width + MAC onto the outlet for any code still reading them.
-        outlet.printer_mac    = request.POST.get("printer_mac", "").strip().upper()
-        outlet.paper_width_mm = station.paper_width_mm
-        outlet.save(update_fields=["printer_mac", "paper_width_mm"])
-        saved = True
-
-    return render(request, "setup/printer_setup.html",
-                  {"outlet": outlet, "station": station, "saved": saved, "page_data": printer_page_data()})
-
-
-@login_required
-@require_POST
-def printer_test_print(request):
-    """
-    Queue a test receipt the phone agent will print.
-
-    Unlike ``test_print_station`` (which opens a socket FROM the server — impossible
-    when the printer is on the cafe LAN), this enqueues a PrintJob exactly like a
-    real receipt. The phone app / PC poll-agent picks it up within ~2s and prints it.
-    """
-    if request.user.role not in ["owner", "manager"]:
-        return JsonResponse({"error": "Not allowed"}, status=403)
-
-    from django.conf import settings
-
-    from setup.services.station_service import get_default_station
-    from printing.models import PrintJob
-
-    station = get_default_station(request.user)
-    if not station.printer_ip:
-        return JsonResponse({"error": "Set a printer IP first, then test."}, status=422)
-
-    import base64
-    data_b64 = base64.b64encode(_build_test_receipt(station)).decode("ascii")
-
-    job = PrintJob.objects.create(
-        tenant  = request.user.tenant,
-        outlet  = request.user.outlet,
-        payload = {
-            "data_b64":     data_b64,
-            "network_host": station.printer_ip,
-            "network_port": station.printer_port,
-            "encoding":     station.printer_encoding,
-        },
-    )
-    return JsonResponse({
-        "success": True,
-        "job_id": job.pk,
-        # On a box its own worker prints the queue (box/print_queue.py).
-        "message": ("Test sent: the box prints it in a few seconds." if getattr(settings, "BOX", False)
-                    else "Test queued: a receipt prints in a few seconds if your phone app is open and logged in."),
-    })
-
-
-def _build_test_receipt(station) -> bytes:
-    """Raw ESC/POS bytes for a 'RASOVA TEST PRINT' page, sized to the station."""
-    ESC, GS = b"\x1b", b"\x1d"
-    enc   = station.printer_encoding or "cp437"
-    chars = station.chars_per_line
-    line  = ("-" * chars + "\n").encode(enc, errors="replace")
-
-    buf = b""
-    buf += ESC + b"@"                       # init
-    buf += ESC + b"a" + b"\x01"             # center
-    buf += GS  + b"!" + b"\x11"             # double width+height
-    buf += "RASOVA\n".encode(enc, errors="replace")
-    buf += GS  + b"!" + b"\x00"             # normal size
-    buf += "TEST PRINT\n".encode(enc, errors="replace")
-    buf += line
-    buf += ESC + b"a" + b"\x00"             # left
-    buf += f"Printer IP : {station.printer_ip}\n".encode(enc, errors="replace")
-    buf += f"Port       : {station.printer_port}\n".encode(enc, errors="replace")
-    buf += f"Paper      : {station.paper_width_mm}mm ({chars} chars)\n".encode(enc, errors="replace")
-    buf += line
-    buf += ESC + b"a" + b"\x01"             # center
-    buf += "If you can read this,\nprinting works!\n".encode(enc, errors="replace")
-    buf += b"\n\n\n\n\n\n"                  # feed past the cutter gap
-    buf += GS + b"V" + b"\x00"              # full cut
-    return buf
-
-
 @login_required
 def outlet_settings(request):
     """
@@ -1122,7 +920,6 @@ def outlet_settings(request):
         outlet.fssai_no     = fssai_no
         outlet.sac_code     = sac_code
         outlet.gst_inclusive = gst_inclusive
-        outlet.use_qz_tray            = "use_qz_tray"            in request.POST
         # D7: the composition scheme stays off while the outlet sells liquor.
         wants_composition = "is_composition_scheme" in request.POST
         from menu.liquor import composition_refusal
@@ -1198,13 +995,11 @@ def outlet_settings(request):
         outlet.opening_time = opening_time
         outlet.closing_time = closing_time
 
-        # ── Printer settings ──
-        outlet.printer_mac = request.POST.get("printer_mac", "").strip().upper()
-        outlet.agent_host  = request.POST.get("agent_host", "localhost").strip() or "localhost"
-        try:
-            outlet.paper_width_mm = int(request.POST.get("paper_width_mm", 80))
-        except (ValueError, TypeError):
-            outlet.paper_width_mm = 80
+        # The printer's MAC, the PC agent's address, QZ Tray and the paper
+        # width are Setup > Printers' (setup/views/printer_views.py). This
+        # form has no such fields, and writing them anyway wiped the MAC,
+        # reset the agent to localhost, a 58 mm printer to 80 mm and turned
+        # QZ Tray off on every save (found 22 Nov 2026).
 
         outlet.save()
 

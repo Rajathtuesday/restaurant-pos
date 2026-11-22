@@ -66,8 +66,18 @@
     <a href="/setup/kitchen-stations/" class="setup-card">
         <div class="card-icon"><i class="bi bi-fire"></i></div>
         <div class="card-title">Kitchen Stations</div>
-        <div class="card-desc">Define preparation stations (Hot Kitchen, Bar, Bakery) for targeted KOT printing.</div>
+        <div class="card-desc">Preparation stations (Hot Kitchen, Bar, Bakery): which dishes' KOTs go where.</div>
         <div class="card-status status-pending"><i class="bi bi-circle"></i> Review</div>
+    </a>
+
+    <a href="{% url 'setup_printers' %}" class="setup-card" id="printersCard">
+        <div class="card-icon"><i class="bi bi-printer"></i></div>
+        <div class="card-title">Printers</div>
+        <div class="card-desc">Kitchen, bar and bill printers: addresses, paper, and a test print for each.</div>
+        <div class="card-status status-{{ printers.level }}">
+            {% if printers.level == 'ok' %}<i class="bi bi-check-circle-fill"></i>{% elif printers.level == 'bad' %}<i class="bi bi-exclamation-triangle-fill"></i>{% else %}<i class="bi bi-circle"></i>{% endif %}
+            {{ printers.words }}
+        </div>
     </a>
 
     <a href="/setup/payment-methods/" class="setup-card">

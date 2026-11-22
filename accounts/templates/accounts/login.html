@@ -5,8 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if tenant %}{{ tenant.name }} · Staff Login{% else %}Rasova POS · Login{% endif %}</title>
-  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="manifest" href="/manifest.json">
+  {% include 'core/_app_head.html' %}
 
   <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">
   <link href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}" rel="stylesheet">

@@ -67,8 +67,8 @@ outlet.paper_width_mm   # 58 or 80
 A Rasova box sits on the restaurant's own network, so it prints straight to each printer's IP on port 9100, with no agent, phone app or QZ Tray. KOTs and bills print from the box, and the box prints its own print queue too (Setup's test print included: `box/print_queue.py`).
 
 1. Give every printer a fixed IP on the restaurant's router.
-2. In **Setup, Kitchen Stations**, enter each station's printer IP.
-3. **Setup, Printer, Test print**: the box prints the test page within a few seconds.
+2. In **Setup, Printers**, enter each station's printer IP and press **Save**.
+3. Press that printer's **Test print**: the box prints the test page within a few seconds, and the row says "Printed" once the printer took it, or why it didn't.
 
 Everything below this section (MAC addresses, agents, Termux, Raspberry Pi) is for the cloud and isn't needed on a box. The full box guide is [`BOX_GUIDE.md`](BOX_GUIDE.md).
 
@@ -104,16 +104,14 @@ python rasova_agent.py --install
 ```
 
 ### Step 4: Enable agent printing
-1. Go to **Setup → Outlet Settings → Thermal Printer**
-2. Tick **Rasova Print Agent** checkbox
-3. Save
+1. Go to **Setup, Printers, For every printer, Printing from a Windows PC**
+2. Set **The PC agent's address** (`localhost` when the agent runs on this PC), and tick **Print bills through QZ Tray** for a USB printer
+3. Press **Save for every printer**
 
 ### Step 5: Test
-1. Go to **Setup → Kitchen Stations**
-2. Click **Select USB Printer**: your printer should appear in the list
-3. Select it and click **Test Print**
-4. You should see 2 partial cuts + 1 full cut on the paper
-5. Green indicator = agent connected ✓
+1. On **Setup, Printers**, open the printer's **More** and type the Windows printer name under **USB printer name (QZ Tray)**, then **Save**
+2. Press its **Test print**
+3. The row says "Printed" once the printer took the page, or why it didn't
 
 ---
 
@@ -297,7 +295,7 @@ sudo systemctl status rasova-agent
 1. **Setup → Outlet Settings → Thermal Printer**
 2. Click **Test Agent Connection**
 3. Should show: `Connected: Agent v1.1.0 on linux` ✓
-4. Go to **Kitchen Stations → Test Print** to verify paper prints correctly
+4. Go to **Setup, Printers** and press the printer's **Test print** to verify paper prints correctly
 
 ---
 
@@ -341,7 +339,7 @@ sudo systemctl restart rasova-agent
 
 1. Print a network config page from the printer (hold Feed 3 seconds)
 2. Confirm the printer is on the same WiFi/LAN as the device
-3. Go to **Kitchen Stations → Discover Network Printers**: does the printer appear?
+3. On **Setup, Printers**, press **Find printers** (needs the PC agent running): does the printer appear?
 4. If not, check the printer's Ethernet cable or reconnect it to WiFi
 
 ---

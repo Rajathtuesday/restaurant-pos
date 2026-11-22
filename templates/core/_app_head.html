@@ -1,0 +1,8 @@
+{% load static %}{# Rasova as an app on a home screen: the icon and full screen. One copy for base.html and the login page. iPhones ignore an SVG touch icon (they show a screenshot of the page instead), so it is a PNG. A box is plain http, where a phone never "installs" a site, so these tags are how an iPhone gets Rasova's icon and a screen without Safari's bars (box/templates/box/connect.html). #}
+<link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
+<link rel="apple-touch-icon" sizes="180x180" href="{% static 'icon-180.png' %}">
+<link rel="manifest" href="/manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rasova">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">

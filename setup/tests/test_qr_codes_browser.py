@@ -37,6 +37,6 @@ class QrCodesDrawnHereTest(BrowserTestCase):
         self.assertGreaterEqual(seen["drawn"], 2, "both tables of the fixture")
         self.assertEqual((seen["failed"], seen["elsewhere"]), (0, []))
 
-    def test_the_printer_pages_two_codes_are_drawn_too(self):
-        seen = self.look("/setup/printer/")
+    def test_the_printers_pages_two_codes_are_drawn_too(self):
+        seen = self.look("/setup/printers/")
         self.assertEqual((seen["spots"], seen["drawn"], seen["failed"], seen["elsewhere"]), (2, 2, 0, []))

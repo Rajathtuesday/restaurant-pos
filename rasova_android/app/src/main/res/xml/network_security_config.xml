@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Rasova 1.3.0: a Rasova box is plain http on the restaurant's own network
+  (http://192.168.1.50): a certificate needs the internet to get and renew,
+  and a box has none. Android blocks plain http unless the app allows it,
+  and a WebView only honours this switch for the whole app, never for one
+  address, so it is on here.
+
+  What keeps plain http to the local network is the app's own code, with
+  unit tests (ServerUrlTest): every address the app saves is upgraded to
+  https unless it is local (ServerUrl.secure), the WebView sends any http
+  link to an internet address to https instead (MainActivity), an https
+  page never loads anything over http (MIXED_CONTENT_NEVER_ALLOW), and the
+  print service refuses plain http to the internet (PrintService).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

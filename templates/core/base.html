@@ -9,9 +9,7 @@
     <meta name="theme-color" content="#fafafa">
     <title>{% block title %}{{ request.user.tenant.name|default:"Rasova POS" }}{% endblock %}</title>
 
-    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
-    <link rel="apple-touch-icon" href="{% static 'icon-512.svg' %}">
-    <link rel="manifest" href="/manifest.json">
+    {% include 'core/_app_head.html' %}
 
     {# Everything below is served by Rasova itself (static/vendor, VENDOR.md): no outside host between a cashier and the page. #}
     <link rel="stylesheet" href="{% static 'vendor/fonts/fonts.css' %}">

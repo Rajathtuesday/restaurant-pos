@@ -232,7 +232,7 @@ Each table has its own printed QR code. When a guest scans it:
 
 **The Rasova app won't install ("App not installed")** - you have a version from before 19 Oct 2026. Uninstall the old Rasova app (long-press its icon, then Uninstall), then install the new one from rasova.net/android/rasova.apk. Later updates install over the top.
 
-**A printer isn't printing**: check that the local printer agent/app is running on the device connected to your printer; a browser print popup will appear as a fallback if it can't be reached. (On a Rasova box there is no agent: see the next section.)
+**A printer isn't printing**: open **Setup, Printers**. Each printer's line says when it last printed, or when and why it last failed; press its **Test print**. Check the Rasova app is open and signed in on the counter phone (or the PC agent is running); a browser print popup appears as a fallback if it can't be reached. (On a Rasova box there is no agent: see the next section.)
 
 ---
 
@@ -240,17 +240,20 @@ Each table has its own printed QR code. When a guest scans it:
 
 A Rasova box is a small computer in your restaurant that runs all of Rasova by itself, with no internet.
 
-**Opening Rasova:** on any phone, tablet or laptop on the restaurant's Wi-Fi, open Chrome and go to the address on the sticker on the box (like `http://192.168.1.50`). Laptops and iPhones can also use `http://rasova.local`. Use Chrome, not the Rasova Android app: the app is for Rasova in the cloud.
+**Opening Rasova:** on any phone, tablet or laptop on the restaurant's Wi-Fi, go to the address on the sticker on the box (like `http://192.168.1.50`). Laptops and iPhones can also use `http://rasova.local`. To open it like an app, without typing the address again, use **Box Health, Connect a device**:
+- **Android:** download the Rasova app from the box (the link on that page), open it, tap **Scan QR code** and scan the code on that page.
+- **iPhone or iPad:** in Safari, **Share, Add to Home Screen**.
+- **The counter PC:** **Download the shortcut** and double-click it; Rasova opens in its own window.
 
 **What isn't there:** guest QR ordering, waiter call and feedback, Zomato and Swiggy orders, Razorpay, WhatsApp bills and emailed reports. They need the internet. Everything else works as described in this manual.
 
-**Printing:** the box prints KOTs, bills and test prints straight to your printers; no app or agent has to be open. If something doesn't print, use **Setup, Printer, Test print**. If that doesn't print either, check the printer is on and its address in **Setup, Kitchen Stations** is right.
+**Printing:** the box prints KOTs, bills and test prints straight to your printers; no app or agent has to be open. If something doesn't print, open **Setup, Printers**: each printer's line says when it last printed, or when and why it last failed. Press that printer's **Test print**. If that doesn't print either, check the printer is on, has paper, and its address on that page is right.
 
 **Box Health** (owners and managers, the **Box Health** card on the Setup page) shows:
 - **Licence**: its state and end date, this box's id, and **Add licence file** (owner only) for the file Rasova sends you.
 - **Clock**: bills, the business day and liquor hours follow it.
 - **Backups**: the box backs itself up every night at 4:30 am to its backup drive. **Back up now** makes one straight away.
-- **Disk** and **Printers**.
+- **Disk**, **Printers** (how they're doing, and a way to Setup, Printers) and **Connect a device**.
 
 **Coloured banners at the top of every page** tell you when something needs you:
 - *The licence is ending, or has ended*: send Rasova the box id from Box health, then add the file they send. When a licence has ended, bills already open can still be billed and paid; only new orders wait.

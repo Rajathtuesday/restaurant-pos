@@ -48,6 +48,15 @@ object AgentConfig {
         return migrated
     }
 
+    /** Forget the print target: the phone was pointed at another restaurant or a box. */
+    fun clear(context: Context) {
+        context.getSharedPreferences(JSBridge.PREFS, Context.MODE_PRIVATE).edit()
+            .remove(KEY_SERVER_URL)
+            .remove(KEY_AGENT_KEY)
+            .remove(KEY_OLD_POLL_URL)
+            .apply()
+    }
+
     fun save(context: Context, target: Target) {
         context.getSharedPreferences(JSBridge.PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_SERVER_URL, target.serverUrl)

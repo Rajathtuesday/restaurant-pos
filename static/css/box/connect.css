@@ -1,0 +1,15 @@
+/* box/templates/box/connect.html: Connect a device */
+.cn-address { border: 1px solid var(--accent-gold); padding: 1rem 1.1rem; margin-bottom: 1rem; background: var(--panel-bg); }
+.cn-address p { margin: 0 0 .4rem; }
+.cn-big { font-family: 'Space Mono', monospace; font-size: clamp(1.3rem, 6vw, 2.2rem); font-weight: 700; overflow-wrap: anywhere; color: var(--text-main); }
+.cn-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 760px) { .cn-grid { grid-template-columns: repeat(3, 1fr); } }
+.cn-device ol, .cn-tips ul { padding-left: 1.2rem; margin: .5rem 0; font-size: .88rem; line-height: 1.55; }
+.cn-device li { margin-bottom: .35rem; }
+.cn-qr { background: #fff; padding: 6px; line-height: 0; width: max-content; margin: .25rem 0 .5rem; }
+.cn-download { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; margin: .25rem 0 .5rem; }
+.cn-tips { margin-top: 1rem; }
+kbd { font-family: inherit; border: 1px solid var(--border-color); padding: 0 .3rem; font-size: .8em; }
+.cn-device a:not(.btn-box), .cn-tips a { color: var(--accent-gold); }
+.page-body code { color: var(--text-main); font-family: 'Space Mono', monospace; font-size: .85em; }
+kbd { background: transparent; color: inherit; border-radius: 3px; }
