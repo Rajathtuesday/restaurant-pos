@@ -23,3 +23,12 @@ const LEVELS = new Set(["ok", "bad", "idle", "none"]);
 export function stateClass(level) {
   return "is-" + (LEVELS.has(level) ? level : "none");
 }
+
+/*
+ * Has the owner changed a printer's row since it was saved? Test print
+ * prints with what is saved on the server, so a new address typed but not
+ * saved would quietly test the old one.
+ */
+export function unsaved(now, saved) {
+  return PRINTER_FIELDS.some((name) => (now[name] ?? "") !== (saved[name] ?? ""));
+}

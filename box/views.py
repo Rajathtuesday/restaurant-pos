@@ -134,7 +134,10 @@ def learn_address(request):
     except ValueError:
         ip = None
     state = BoxState.get()
-    if ip is not None and ip.is_private and not ip.is_loopback:
+    # Not the box itself, not 0.0.0.0, not a 169.254 or fe80 address (one a
+    # machine gives itself when the router didn't answer): none of those is
+    # an address another device can be paired with.
+    if ip is not None and ip.is_private and not (ip.is_loopback or ip.is_link_local or ip.is_unspecified):
         if state.lan_address != host:
             BoxState.objects.filter(pk=1).update(lan_address=host[:100])
         return host
@@ -154,6 +157,8 @@ def connect(request):
         "address": f"http://{address}",
         "login_url": f"http://{address}/login/",
         "by_name": not _is_number(name),
+        # Opened by name and never by number: the code can only carry the name.
+        "number_known": _is_number(split_domain_port(address)[0]),
         "on_the_box": name in ("localhost", "127.0.0.1", "::1", "[::1]"),
         "version": getattr(settings, "RASOVA_VERSION", "dev"),
     })

@@ -14,12 +14,11 @@ the last one that failed, with the reason, are facts, not guesses. Two
 queries however many printers there are.
 """
 import base64
+import ipaddress
 import re
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.core.validators import validate_ipv46_address
 from django.db.models import Max
 from django.db.models.fields.json import KT
 from django.utils import timezone
@@ -34,6 +33,8 @@ PAPERS = {58, 80}
 CUTS = {c for c, _ in KitchenStation.CUT_CHOICES}
 ENCODINGS = {e for e, _ in KitchenStation.ENCODING_CHOICES}
 MAC = re.compile(r"^([0-9A-F]{2}:){5}[0-9A-F]{2}$")
+DIGITS = re.compile(r"[0-9]{1,5}")             # ASCII only: "²".isdigit() is True and int() refuses it
+PADDED_IPV4 = re.compile(r"[0-9]{1,3}(\.[0-9]{1,3}){3}")
 MARGINS = (0, 2, 4, 6, 8)
 
 
@@ -48,32 +49,24 @@ def read_printer(data, station):
     Before this, a typo such as "192.168.1." went straight to the database,
     whose inet column refused it with a 500, and a port of 0 or 99999 was
     saved and could never print."""
-    out = {}
-    ip = str(data.get("printer_ip") or "").strip()
-    if ip:
-        try:
-            validate_ipv46_address(ip)
-        except ValidationError:
-            raise PrinterInputError(f"\"{ip[:40]}\" is not a printer address. It looks like 192.168.1.60: "
-                                    "hold the printer's Feed button to print its own address.")
-    out["printer_ip"] = ip or None
+    out = {"printer_ip": read_address(str(data.get("printer_ip") or ""))}
 
-    port = str(data.get("printer_port") or "9100").strip()
-    if not port.isdigit() or not 1 <= int(port) <= 65535:
+    port = str(data.get("printer_port") or "").strip() or "9100"
+    if not DIGITS.fullmatch(port) or not 1 <= int(port) <= 65535:
         raise PrinterInputError("The port is a number from 1 to 65535. Thermal printers almost always use 9100.")
     out["printer_port"] = int(port)
 
-    paper = str(data.get("paper_width_mm") or "80").strip()
-    if not paper.isdigit() or int(paper) not in PAPERS:
+    paper = str(data.get("paper_width_mm") or "").strip() or "80"
+    if not DIGITS.fullmatch(paper) or int(paper) not in PAPERS:
         raise PrinterInputError("The paper is 80 mm or 58 mm wide.")
     out["paper_width_mm"] = int(paper)
 
-    cut = str(data.get("cut_type") or "full").strip()
+    cut = str(data.get("cut_type") or "").strip() or "full"
     if cut not in CUTS:
         raise PrinterInputError("Choose a full cut, a partial cut or no cut.")
     out["cut_type"] = cut
 
-    encoding = str(data.get("printer_encoding") or "cp437").strip()
+    encoding = str(data.get("printer_encoding") or "").strip() or "cp437"
     if encoding not in ENCODINGS:
         raise PrinterInputError("Choose CP437, CP850 or UTF-8.")
     out["printer_encoding"] = encoding
@@ -91,6 +84,29 @@ def read_printer(data, station):
                                     "Leave it blank if you don't have it.")
         out["printer_mac"] = mac
     return out
+
+
+def read_address(typed):
+    """A printer's address as the database will keep it, or None for none.
+
+    Many printers' self-test pages print their address zero-padded
+    ("192.168.001.050"), and an owner types what the paper says: that is the
+    printer's address, not a typo, so the zeros go. An IPv6 address with a
+    zone ("fe80::1%eth0") passed Django's check but the database's inet
+    column refused it with a 500; it is refused here with a sentence."""
+    ip = typed.strip()
+    if not ip:
+        return None
+    if PADDED_IPV4.fullmatch(ip):
+        ip = ".".join(str(int(part)) for part in ip.split("."))
+    try:
+        parsed = ipaddress.ip_address(ip)
+        if getattr(parsed, "scope_id", None):
+            raise ValueError("zone")
+    except ValueError:
+        raise PrinterInputError(f"\"{typed.strip()[:40]}\" is not a printer address. It looks like 192.168.1.60: "
+                                "hold the printer's Feed button to print its own address.")
+    return str(parsed)
 
 
 def save_printer(station, data):
@@ -119,7 +135,7 @@ def printer_states(outlet, stations, now=None):
     from printing.models import PrintJob
 
     now = now or timezone.now()
-    hosts = sorted({s.printer_ip for s in stations if s.printer_ip})
+    hosts = sorted({s.printer_ip for s in stations if s.printer_ip}) if outlet is not None else []
     last_ok, last_fail = {}, {}
     if hosts:
         recent = (PrintJob.objects.for_outlet(outlet.tenant_id, outlet.pk)
@@ -174,7 +190,9 @@ def outlet_stations(outlet):
 def printers_summary(outlet):
     """One line for the Setup card and Box health: "3 printers, all OK",
     "Bar didn't print at 20:12", or "No printer yet". level as in
-    printer_states."""
+    printer_states. A platform superuser has no outlet: no printers."""
+    if outlet is None:
+        return {"level": "none", "words": "No outlet chosen", "count": 0}
     stations = outlet_stations(outlet)
     with_printer = [s for s in stations if s.printer_ip]
     if not with_printer:

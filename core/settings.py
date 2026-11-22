@@ -319,6 +319,12 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # index.html in public/ is served at exactly / (the landing page)
 WHITENOISE_ROOT        = BASE_DIR / 'public'
 WHITENOISE_INDEX_FILE  = True
+# The Android app (public/android/rasova.apk, served by the cloud and by a
+# box) as what it is. Neither WhiteNoise's own table nor Python's knows .apk,
+# so it went out as application/octet-stream, which some phones' browsers
+# save as a .bin file that won't install. It must live here: WhiteNoise reads
+# its media types from settings only (22 Nov 2026).
+WHITENOISE_MIMETYPES   = {".apk": "application/vnd.android.package-archive"}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

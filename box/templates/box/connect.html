@@ -20,9 +20,12 @@
     {% if on_the_box %}
       <p class="muted warn" id="onTheBox">This page was opened on the box itself, so it can't see the address phones
         use. Open it from a phone or laptop on the restaurant's Wi-Fi.</p>
-    {% elif by_name %}
+    {% elif by_name and number_known %}
       <p class="muted" id="byName">Opened by name. Laptops and iPhones can use the name; many Android phones can't, so
         the QR code below carries the number the box was last opened at.</p>
+    {% elif by_name %}
+      <p class="muted warn" id="numberUnknown">Many Android phones can't use the name. Open this page once at the box's
+        number address (on the sticker, like http://192.168.1.50): the QR code then carries the number.</p>
     {% endif %}
     <p class="muted">Every device must be on the restaurant's Wi-Fi (or cable). The box needs no internet.</p>
   </div>

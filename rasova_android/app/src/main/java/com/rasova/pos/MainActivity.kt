@@ -253,34 +253,30 @@ class MainActivity : AppCompatActivity() {
             override fun shouldOverrideUrlLoading(
                 view: WebView, request: WebResourceRequest
             ): Boolean {
-                val link = request.url.toString()
-                if (link == OfflinePage.SETUP_LINK) {
-                    showSetup()
-                    return true
-                }
-                // Plain http only on the local network (a box); an internet
-                // address goes to https instead, never in the clear.
-                if (!ServerUrl.cleartextAllowed(link)) {
-                    view.loadUrl(ServerUrl.secure(link))
-                    return true
-                }
-                val host = request.url.host ?: ""
-                val serverHost = Uri.parse(serverUrl).host ?: ""
-                // Keep rasova pages inside the app; open external links in the browser
-                return if (host == serverHost ||
-                           host == "localhost" ||
-                           host == "127.0.0.1") {
-                    false
-                } else {
-                    startActivity(android.content.Intent(
-                        android.content.Intent.ACTION_VIEW, request.url))
-                    true
+                return when (val route = Links.route(request.url.toString(), serverUrl)) {
+                    Route.Setup -> { showSetup(); true }
+                    Route.InApp -> false
+                    is Route.Upgrade -> { view.loadUrl(route.url); true }
+                    Route.Outside -> { openOutside(request.url); true }
                 }
             }
         }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * A link for another app: the browser, WhatsApp, a UPI app, the dialler.
+     * With nothing on the phone to open it (a upi: link and no UPI app), this
+     * used to crash the app; now it says so.
+     */
+    private fun openOutside(url: Uri) {
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, url))
+        } catch (e: android.content.ActivityNotFoundException) {
+            Toast.makeText(this, "No app on this phone can open that link.", Toast.LENGTH_LONG).show()
+        }
+    }
 
     private fun getSavedUrl(): String? =
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE)

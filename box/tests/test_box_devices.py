@@ -164,3 +164,37 @@ class AppFromTheBoxTest(BoxBase):
         self.assertIn("COPY public/android/rasova.apk /app/public/android/rasova.apk",
                       (base / "Dockerfile").read_text())
 
+
+class ConnectEdgeCaseTest(BoxBase):
+    def open(self, user, host):
+        c = Client(HTTP_HOST=host)
+        c.force_login(user)
+        return c.get("/box/connect/")
+
+    def test_addresses_no_other_device_can_use_are_never_learned(self):
+        _, _, owner = self.restaurant()
+        for host in ("169.254.10.20", "0.0.0.0", "127.0.0.1:8000", "[::1]", "[fe80::1]"):
+            self.open(owner, host)
+            self.assertEqual(BoxState.get().lan_address, "", host)
+        self.open(owner, "[fd00::50]")                          # a private IPv6 the router gave out
+        self.assertEqual(BoxState.get().lan_address, "[fd00::50]")
+
+    def test_by_name_before_any_number_says_to_open_it_by_number_once(self):
+        _, _, owner = self.restaurant()
+        page = self.open(owner, "rasova.local")
+        self.assertContains(page, 'id="numberUnknown"')
+        self.assertNotContains(page, 'id="byName"')
+
+    def test_a_new_number_replaces_the_old_one(self):
+        _, _, owner = self.restaurant()
+        self.open(owner, "192.168.1.50")
+        self.open(owner, "192.168.0.20")                        # the router was replaced
+        self.assertEqual(BoxState.get().lan_address, "192.168.0.20")
+        self.assertContains(self.open(owner, "rasova.local"), 'data-qr="http://192.168.0.20/login/"')
+
+    def test_a_platform_superuser_on_box_health_is_not_a_500(self):
+        self.restaurant()
+        boss = User.objects.create_superuser(username="box-boss", password="pw", email="")
+        c = Client(HTTP_HOST="192.168.1.50")
+        c.force_login(boss)
+        self.assertNotEqual(c.get("/box/health/").status_code, 500)

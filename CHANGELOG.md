@@ -31,6 +31,15 @@ The owner lifted the feature freeze for 22 Nov 2026. This builds the recommended
 - Node: `printers.test.mjs` (what a printer's row sends, the box's test print wording); `core.test.mjs` (no key, no print service). Browser tests for Test print, the station line and the Printers page moved with the page.
 - Android unit tests (23, 8 new): `ServerUrlTest` (normalise, cleartext only to the local network, what a box is) and `OfflinePageTest`.
 
+### Edge cases, the same day (before the Linux CI run)
+- A printer's self-test address printed zero-padded (`192.168.001.050`) was refused as "not a printer address": the zeros go now. An IPv6 address with a zone (`fe80::1%eth0`) passed Django's check and the database refused it with a 500: refused with a sentence. A port or paper of `²` (Python's `isdigit()` says yes, `int()` says no) was a 500: only plain digits count. A blank field means its default.
+- A platform superuser (no outlet) on Setup › Printers or Box health was a 500: sent back with a sentence, and the summary says there is no outlet.
+- Connect a device never learns an address no other device can use (169.254.x, fe80::, 0.0.0.0, the box itself), and opened by name before any number was learned it says to open it once by number instead of claiming the code carries one.
+- The app download went out as `application/octet-stream` in the cloud and on a box (neither WhiteNoise nor Python knows `.apk`), which some phones' browsers save as a `.bin` that won't install: `WHITENOISE_MIMETYPES` in `core/settings.py` serves it as an Android app. That setting can only live in settings.py.
+- Test print after changing a printer's row without saving tested the old, saved address in silence: it asks for Save first.
+- Android 1.3.0: an `http://` link to another site opened inside the app over https instead of in the browser; links now route through `Links.route` (in the app, upgraded to https, or out). A link nothing on the phone can open (a `upi:` link with no UPI app) crashed the app: it says so instead.
+- Tests: `EdgeCaseTest` (10) in `test_printers.py`, `ConnectEdgeCaseTest` (4) in `test_box_devices.py` (8 of the 14 fail on the morning's code), `printers.test.mjs` (unsaved row), Android `LinksTest` (5).
+
 ## 2026-11-22: The print job status test allows a slow second
 
 ### Tests

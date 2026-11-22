@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { PRINTER_FIELDS, readPrinterForm, stateClass } from "../setup/printer_form.js";
+import { PRINTER_FIELDS, readPrinterForm, stateClass, unsaved } from "../setup/printer_form.js";
 import { createTestPrint } from "../setup/test_print.js";
 import { reply } from "./helpers.mjs";
 
@@ -73,4 +73,13 @@ test("in the cloud, nobody picking it up still points at the counter phone", asy
   const { testPrint, shown } = rig({ box: false, answers: [] });
   await testPrint.run("192.168.1.60");
   assert.match(shown.at(-1)[1], /Open the Rasova app on the counter phone/);
+});
+
+test("a row changed since its save is unsaved: Test print would print the old address", () => {
+  const saved = { printer_ip: "192.168.1.60", printer_port: "9100" };
+  assert.equal(unsaved({ printer_ip: "192.168.1.60", printer_port: "9100" }, saved), false);
+  assert.equal(unsaved({ printer_ip: "192.168.1.61", printer_port: "9100" }, saved), true);
+  assert.equal(unsaved({ printer_ip: "192.168.1.60", printer_port: "9101" }, saved), true);
+  assert.equal(unsaved({ printer_ip: "192.168.1.60" }, { printer_ip: "192.168.1.60", printer_name: "" }), false,
+    "a field neither side has, or an empty one, is no change");
 });

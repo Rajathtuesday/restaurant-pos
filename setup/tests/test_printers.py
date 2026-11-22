@@ -295,3 +295,87 @@ class BoxPrintersPageTest(PrintersWorld):
             self.client_as(self.owner).post("/setup/printers/", {"bill_inner_margin": "4", "agent_host": "x"})
         outlet = Outlet.objects.get(pk=self.r.outlet.pk)
         self.assertEqual((outlet.agent_host, outlet.use_qz_tray), ("192.168.1.20", True))
+
+
+class EdgeCaseTest(PrintersWorld):
+    """What an owner, a browser or a stray request might really send (22 Nov 2026)."""
+
+    def test_a_zero_padded_address_from_a_self_test_page_is_the_printer(self):
+        # Many printers print "192.168.001.050" on their self-test page; that
+        # was refused as "not a printer address".
+        r = self.save(self.bar, printer_ip="192.168.001.050")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(r.json()["printer_ip"], "192.168.1.50")
+        self.bar.refresh_from_db()
+        self.assertEqual(self.bar.printer_ip, "192.168.1.50")
+
+    def test_an_ipv6_zone_is_a_sentence_and_plain_ipv6_is_kept(self):
+        r = self.save(self.bar, printer_ip="fe80::1%eth0")        # passed Django's check, the database refused it
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.save(self.bar, printer_ip="fd00::5").status_code, 200)
+        self.bar.refresh_from_db()
+        self.assertEqual(self.bar.printer_ip, "fd00::5")
+
+    def test_digits_that_are_not_plain_digits_are_refused_not_a_500(self):
+        for port in ("²", "٩١٠٠", "9100.0", " ", "1e3"):
+            r = self.save(self.bar, printer_port=port)
+            self.assertEqual(r.status_code, 400 if port.strip() else 200, repr(port))
+        self.assertEqual(self.save(self.bar, paper_width_mm="²").status_code, 400)
+
+    def test_numbers_sent_as_numbers_are_fine(self):
+        r = self.save(self.bar, printer_port=9101, paper_width_mm=58)
+        self.assertEqual(r.status_code, 200, r.content)
+        self.bar.refresh_from_db()
+        self.assertEqual((self.bar.printer_port, self.bar.paper_width_mm), (9101, 58))
+
+    def test_a_body_that_is_not_a_printers_settings_is_refused(self):
+        c = self.client_as(self.owner)
+        url = f"/setup/printers/{self.bar.id}/save/"
+        for body in ("[]", "null", "{not json", "\"192.168.1.9\""):
+            self.assertEqual(c.post(url, data=body, content_type="application/json").status_code, 400, body)
+        self.bar.refresh_from_db()
+        self.assertEqual(self.bar.printer_ip, "192.168.1.61")
+
+    def test_two_stations_on_one_printer_share_its_state(self):
+        KitchenStation.objects.filter(pk=self.bar.pk).update(printer_ip="192.168.1.50")
+        self.job(self.counter, PrintJob.FAILED, 1, error="Out of paper")
+        states = svc.printer_states(self.r.outlet, svc.outlet_stations(self.r.outlet))
+        self.assertEqual((states[self.counter.id]["level"], states[self.bar.id]["level"]), ("bad", "bad"))
+
+    def test_an_outlet_with_no_stations_yet(self):
+        outlet = Outlet.objects.create(tenant=self.r.tenant, name="New Branch")
+        owner = User.objects.create_user(username="pr-new", password="pw", role="manager",
+                                         tenant=self.r.tenant, outlet=outlet)
+        page = self.client_as(owner).get("/setup/printers/")
+        self.assertContains(page, "No printers yet")
+        self.assertEqual(svc.printers_summary(outlet)["words"], "No printer yet")
+
+    def test_a_platform_superuser_with_no_outlet_is_sent_back_not_a_500(self):
+        boss = User.objects.create_superuser(username="pr-boss", password="pw", email="")
+        c = self.client_as(boss)
+        self.assertEqual(c.get("/setup/printers/").status_code, 302)
+        self.assertEqual(c.post("/setup/printers/", {"bill_inner_margin": "4"}).status_code, 302)
+        r = c.post(f"/setup/printers/{self.bar.id}/save/", data="{}", content_type="application/json")
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(svc.printers_summary(None)["level"], "none")
+
+    def test_the_live_demo_cannot_change_printers(self):
+        from orders.services.demo_seed import DEMO_OWNER_USERNAME
+        User.objects.filter(pk=self.owner.pk).update(username=DEMO_OWNER_USERNAME)
+        self.owner.refresh_from_db()
+        c = self.client_as(self.owner)
+        session = c.session
+        session["demo_trailer_mode"] = True
+        session.save()
+        r = c.post(f"/setup/printers/{self.bar.id}/save/", data=json.dumps({"printer_ip": "10.9.9.9"}),
+                   content_type="application/json")
+        self.assertEqual(r.status_code, 403)
+        c.post("/setup/printers/", {"bill_inner_margin": "0"})
+        self.bar.refresh_from_db()
+        self.assertEqual(self.bar.printer_ip, "192.168.1.61")
+        self.assertIsNone(Outlet.objects.get(pk=self.r.outlet.pk).print_profile)
+
+    def test_the_app_download_is_served_as_an_android_app(self):
+        r = Client().get("/android/rasova.apk")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r["Content-Type"], "application/vnd.android.package-archive")

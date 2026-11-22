@@ -54,6 +54,11 @@ def page_data(outlet):
 @role_required("owner", "manager")
 def printers(request):
     outlet = request.user.outlet
+    if outlet is None:
+        # A platform superuser passes both decorators with no outlet; printers
+        # belong to an outlet, so there is nothing to show (a 500 before).
+        messages.error(request, "Printers belong to an outlet: sign in as the restaurant's owner or manager.")
+        return redirect("/dashboard/")
     if request.method == "POST":
         if is_demo_trailer(request):
             messages.info(request, BLOCKED_MESSAGE)
