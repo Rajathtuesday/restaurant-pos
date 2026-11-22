@@ -5,6 +5,8 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.os.Handler
+import android.os.Looper
 
 /**
  * Keeps the app on the restaurant's own network while it talks to a Rasova
@@ -17,12 +19,27 @@ import android.net.NetworkRequest
  * sits on the right Wi-Fi. Binding the app's process to the Wi-Fi (or a
  * cable) sends everything, the WebView included, to the box's network.
  *
+ * The binding must be in place BEFORE the first page loads: binding while a
+ * page loads changes the network under the WebView, which aborts the load
+ * (seen on an Android 16 emulator, 22 Nov 2026: the box served the login
+ * page and the app showed "can't reach the box"). So bind() calls back once
+ * the process is bound, or after WAIT_MS when there is no Wi-Fi or cable at
+ * all (the load then fails and the offline page says what to check). It
+ * binds once, and never moves a working binding to another network.
+ *
  * Only for a box: in the cloud the app follows Android's own choice.
  */
 class LocalNetwork(context: Context) {
 
+    companion object {
+        const val WAIT_MS = 3000L
+    }
+
     private val cm = context.getSystemService(ConnectivityManager::class.java)
+    private val main = Handler(Looper.getMainLooper())
     private var callback: ConnectivityManager.NetworkCallback? = null
+    private var bound: Network? = null
+    private val waiting = mutableListOf<() -> Unit>()
 
     /** Wi-Fi or a cable, with or without the internet. */
     private val request: NetworkRequest = NetworkRequest.Builder()
@@ -31,19 +48,44 @@ class LocalNetwork(context: Context) {
         .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         .build()
 
-    fun bind() {
-        if (callback != null) return
-        val cb = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                cm.bindProcessToNetwork(network)
-            }
-
-            override fun onLost(network: Network) {
-                if (cm.boundNetworkForProcess == network) cm.bindProcessToNetwork(null)
-            }
+    /** Bind to the local network, then run [ready] on the main thread. */
+    fun bind(ready: () -> Unit) {
+        if (bound != null) {
+            ready()
+            return
         }
-        cm.registerNetworkCallback(request, cb)
-        callback = cb
+        waiting.add(ready)
+        if (callback == null) {
+            val cb = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    main.post {
+                        if (bound == null) {
+                            cm.bindProcessToNetwork(network)
+                            bound = network
+                        }
+                        release()
+                    }
+                }
+
+                override fun onLost(network: Network) {
+                    main.post {
+                        if (bound == network) {
+                            cm.bindProcessToNetwork(null)
+                            bound = null
+                        }
+                    }
+                }
+            }
+            cm.registerNetworkCallback(request, cb)
+            callback = cb
+        }
+        main.postDelayed({ release() }, WAIT_MS)            // no Wi-Fi or cable: load anyway, fail, explain
+    }
+
+    private fun release() {
+        val now = waiting.toList()
+        waiting.clear()
+        now.forEach { it() }
     }
 
     fun unbind() {
@@ -55,6 +97,8 @@ class LocalNetwork(context: Context) {
             }
         }
         callback = null
+        bound = null
+        waiting.clear()
         cm.bindProcessToNetwork(null)
     }
 

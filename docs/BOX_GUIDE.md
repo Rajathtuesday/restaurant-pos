@@ -503,6 +503,7 @@ The licence ties to that PC's machine id the same way it does to our box.
 - **Tests.** `box/tests/test_box.py`; CI runs the `box` app. In the compiled test image, `RASOVA_COMPILED_TESTS=1` makes tests that read files a box doesn't carry skip there, and only there (`core.testing.not_in_compiled_build`). A file missing from the repository still fails CI.
 - **Line endings.** `box/host/rasova-box` and every `.sh` are kept LF by `.gitattributes`. A CRLF script fails inside Linux.
 - **Devices.** `box/views.py` `connect` and `shortcut` (Connect a device); the box learns its number address from the owner's own visit (`BoxState.lan_address`), because it can't see it from inside its container. The box's pages hand the Android app `http://` and no agent key (`core/context_processors.py`). The box image carries `public/android/rasova.apk` (the Dockerfile copies it; `Dockerfile.dockerignore` lets that one file in), so copy each new release APK there.
+- **End to end.** `scripts/box_e2e.py <box address> <a printer's IP>` checks a fresh box over the network as a phone sees it (first run, the app download, Connect a device, Printers with a real test page, a printer that never answers). Under Docker Desktop, give it a pretend printer: a Python listener on port 9100 in a container on the box's network.
 - **The Android app** (`rasova_android/`, 1.3.0): a local address is a box (`ServerUrl.isBox`), on plain http (`network_security_config.xml` allows it app-wide, because a WebView can't allow it per address; `ServerUrl.cleartextAllowed` keeps it to the local network in the WebView and the print service). On a box the app binds itself to the Wi-Fi (`LocalNetwork.kt`). Unit tests: `gradlew testDebugUnitTest` with JDK 17.
 
 ---
@@ -511,7 +512,7 @@ The licence ties to that PC's machine id the same way it does to our box.
 
 - `install.sh` hasn't yet run on a real mini PC: everything so far ran under Docker Desktop.
 - No pull-the-plug test during service yet, and no test with real thermal printers on a box.
-- The Android app's box mode (1.3.0), the iPhone home screen and the counter PC shortcut haven't been tried on real devices against a box: one Android phone, one iPhone and one Windows PC, in the same session as the real-hardware run of `install.sh`.
+- The Android app's box mode (1.3.0) has run on an Android 16 emulator against the box image (22 Nov 2026), not yet on a real phone; the iPhone home screen and the counter PC shortcut haven't been tried at all. One Android phone, one iPhone and one Windows PC, in the same session as the real-hardware run of `install.sh`, and `scripts/box_e2e.py` against that box (28 checks over the network; it does the first run itself, so run it on a fresh box).
 - Their everyday Windows PC as the box (section 16): not built.
 - Bundles don't update the `rasova-box` script itself (section 8).
 - A box doesn't sync with the cloud: the owner sees reports at the restaurant, not from home.

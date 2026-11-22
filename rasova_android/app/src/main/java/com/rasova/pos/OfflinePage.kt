@@ -9,6 +9,13 @@ object OfflinePage {
     /** The link the offline page uses to reopen the setup screen. */
     const val SETUP_LINK = "rasova://setup"
 
+    /**
+     * Retry: the app loads Rasova again. It was location.reload(), which
+     * reloaded this page itself (it has no web address), and the link
+     * router sent that to Chrome (seen on the emulator, 22 Nov 2026).
+     */
+    const val RETRY_LINK = "rasova://retry"
+
     private fun escape(text: String) = text
         .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
@@ -34,16 +41,16 @@ object OfflinePage {
           h2{color:#C9A84C;font-size:1.1rem;letter-spacing:3px;margin:0 0 8px}
           p{color:rgba(255,255,255,0.6);font-size:0.9rem;line-height:1.5;margin:0 0 32px}
           b{color:#fff;font-weight:normal;word-break:break-all}
-          button{background:#C9A84C;border:none;color:#0a0a0a;padding:0.8rem 2rem;min-height:44px;
-                 font-size:0.9rem;font-weight:700;letter-spacing:1px;cursor:pointer}
-          a{display:inline-block;margin-top:20px;color:#C9A84C;font-size:0.85rem;padding:12px;letter-spacing:1px}
+          a.retry{display:inline-block;background:#C9A84C;color:#0a0a0a;padding:0.8rem 2rem;min-height:44px;box-sizing:border-box;
+                   font-size:0.9rem;font-weight:700;letter-spacing:1px;text-decoration:none;line-height:1.6}
+          a.change{display:block;margin-top:20px;color:#C9A84C;font-size:0.85rem;padding:12px;letter-spacing:1px}
         </style></head>
         <body>
           <div class="diamond"></div>
           <h2>RASOVA</h2>
           <p>$words</p>
-          <button onclick="location.reload()">RETRY</button>
-          <a href="$SETUP_LINK">CHANGE ADDRESS</a>
+          <a class="retry" href="$RETRY_LINK">RETRY</a>
+          <a class="change" href="$SETUP_LINK">CHANGE ADDRESS</a>
         </body></html>
         """.trimIndent()
     }

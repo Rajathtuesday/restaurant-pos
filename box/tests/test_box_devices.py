@@ -198,3 +198,17 @@ class ConnectEdgeCaseTest(BoxBase):
         c = Client(HTTP_HOST="192.168.1.50")
         c.force_login(boss)
         self.assertNotEqual(c.get("/box/health/").status_code, 500)
+
+
+class BoxLoginPageTest(BoxBase):
+    def test_a_box_login_claims_nothing_the_box_does_not_have(self):
+        # It said "60s AI menu import" and "Rs 999 per month" on a box, which
+        # has no AI import (it needs the internet) and no monthly plan.
+        self.restaurant()
+        page = Client(HTTP_HOST="192.168.1.50").get("/login/").content.decode()
+        self.assertNotIn("AI Menu Import", page)
+        self.assertNotIn("Per Month", page)
+        self.assertIn("Internet Needed", page)
+        with override_settings(BOX=False):
+            cloud = Client().get("/login/").content.decode()
+        self.assertIn("AI Menu Import", cloud)

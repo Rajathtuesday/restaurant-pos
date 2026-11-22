@@ -40,6 +40,16 @@ The owner lifted the feature freeze for 22 Nov 2026. This builds the recommended
 - Android 1.3.0: an `http://` link to another site opened inside the app over https instead of in the browser; links now route through `Links.route` (in the app, upgraded to https, or out). A link nothing on the phone can open (a `upi:` link with no UPI app) crashed the app: it says so instead.
 - Tests: `EdgeCaseTest` (10) in `test_printers.py`, `ConnectEdgeCaseTest` (4) in `test_box_devices.py` (8 of the 14 fail on the morning's code), `printers.test.mjs` (unsaved row), Android `LinksTest` (5).
 
+### Found on a real box and a real phone, the same evening
+The box image was built and run under compose, with a pretend printer on its network, and app 1.3.0 ran on an Android 16 emulator against it (installed over 1.2.0, so the release key upgrades). Over HTTP, 28 of 28 checks passed (`scripts/box_e2e.py`, kept for the real mini PC): first run, the app download as an Android app, http and no agent key, Connect a device, the shortcut, a zero-padded printer address, a test page the box itself printed, a printer that never answers named on Printers, Setup and Box health. On the phone:
+- **Onboarding turned a pub into fine dining** (cloud and box): step 1's "Type of restaurant" had no Pub, so a pub owner pressing Next saved Fine Dining and the pub's liquor features went. The list now comes from the model's choices, and only a real type is saved (`setup/views/onboarding_views.py`, `setup/tests/test_onboarding_type.py`).
+- **The app bound itself to the Wi-Fi while the first page loaded**, which can abort the load: it now binds first, then loads (`LocalNetwork.bind(ready)`), and never moves a working binding.
+- **Retry on the offline page opened Chrome**: it reloaded the offline page itself, which has no web address, and that went to the browser (in 1.2.0 too). Retry is the app's own link now (`rasova://retry`), and the app's own pages stay in the app.
+- **One dropped page showed "can't reach the box"**: a page load cut off mid-way (seen as `ERR_CONTENT_LENGTH_MISMATCH` through Docker Desktop's port forwarding, while the next load was fine) is now tried once more, quietly, a second later; a form being sent is never repeated. Seen working on the emulator: onboarding cut, reloaded, shown.
+- The offline page stayed "offline" in the app's memory after it finished loading, so coming back to the app never retried; only a real page clears it now. The reason a page failed is logged (`RasovaWeb`).
+- **A box's login page advertised "60s AI menu import" and "Rs 999 per month"**: a box has neither. It says what a box is instead.
+- Tests: Android `LinksTest` (6), `OfflinePageTest` (5); `BoxLoginPageTest`.
+
 ## 2026-11-22: The print job status test allows a slow second
 
 ### Tests

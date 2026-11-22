@@ -32,6 +32,16 @@
       <p class="left-quote">Your restaurant.<br><em>Finally</em> running<br>like it should.</p>
       {% endif %}
       <div class="left-stats">
+        {% if box.is_box %}{# A box has no AI import (it needs the internet) and no monthly plan. #}
+        <div>
+          <div class="stat-num">0</div>
+          <div class="stat-lbl">Internet Needed</div>
+        </div>
+        <div>
+          <div class="stat-num">1</div>
+          <div class="stat-lbl">Box, Yours</div>
+        </div>
+        {% else %}
         <div>
           <div class="stat-num">60s</div>
           <div class="stat-lbl">AI Menu Import</div>
@@ -40,6 +50,7 @@
           <div class="stat-num">₹999</div>
           <div class="stat-lbl">Per Month</div>
         </div>
+        {% endif %}
         <div>
           <div class="stat-num">GST</div>
           <div class="stat-lbl">Compliant</div>
@@ -128,7 +139,7 @@
       </div>
       {% else %}
       <div class="footer-note">
-        <a href="/">rasova.net</a> &nbsp;·&nbsp; Restaurant POS for India
+        {% if box.is_box %}Rasova box &nbsp;·&nbsp; runs without the internet{% else %}<a href="/">rasova.net</a> &nbsp;·&nbsp; Restaurant POS for India{% endif %}
       </div>
       {% endif %}
 

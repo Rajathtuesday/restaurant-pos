@@ -21,6 +21,13 @@ class OfflinePageTest {
     }
 
     @Test
+    fun retryIsTheAppsOwnLinkNotAReloadOfThisPage() {
+        val page = OfflinePage.html("http://192.168.1.50")
+        assertTrue(page.contains("href=\"${OfflinePage.RETRY_LINK}\""))
+        assertFalse(page.contains("location.reload"))
+    }
+
+    @Test
     fun changeAddressIsAlwaysThere() {
         assertTrue(OfflinePage.html("https://spice.rasova.net").contains("href=\"${OfflinePage.SETUP_LINK}\""))
         assertTrue(OfflinePage.html("http://192.168.1.50").contains("CHANGE ADDRESS"))

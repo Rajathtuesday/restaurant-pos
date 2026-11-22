@@ -41,6 +41,15 @@ class LinksTest {
         assertEquals(Route.Setup, Links.route(OfflinePage.SETUP_LINK, box))
     }
 
+    @Test
+    fun retryLoadsRasovaAgainAndTheAppsOwnPagesStayIn() {
+        // The offline page's Retry reloaded the page itself, which has no web
+        // address, and that was handed to Chrome (emulator, 22 Nov 2026).
+        assertEquals(Route.Retry, Links.route(OfflinePage.RETRY_LINK, box))
+        assertEquals(Route.InApp, Links.route("about:blank", box))
+        assertEquals(Route.InApp, Links.route("data:text/html,x", cloud))
+    }
+
     private fun assertEquals(expected: Route, actual: Route, message: String) =
         org.junit.Assert.assertEquals(message, expected, actual)
 }

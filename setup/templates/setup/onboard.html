@@ -48,9 +48,8 @@
             <div class="field">
                 <label>Type of Restaurant</label>
                 <select name="tenant_type">
-                    <option value="fine_dining" {% if tenant.tenant_type == 'fine_dining' %}selected{% endif %}>Fine Dining (table service)</option>
-                    <option value="franchise"   {% if tenant.tenant_type == 'franchise'   %}selected{% endif %}>QSR / Fast Food (token counter)</option>
-                    <option value="cafe"        {% if tenant.tenant_type == 'cafe'        %}selected{% endif %}>Café / Coffee Shop</option>
+                    {% for value, label in tenant_types %}<option value="{{ value }}"{% if tenant.tenant_type == value %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
                 </select>
             </div>
 

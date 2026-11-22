@@ -9,6 +9,7 @@ import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
@@ -34,6 +35,11 @@ class MainActivity : AppCompatActivity() {
 
     private var serverUrl = ""          // live URL the WebView is pointed at
     private var showingOfflinePage = false
+    // A page that failed to load is tried once more, quietly, before the
+    // offline page: a restaurant's Wi-Fi drops a connection now and then,
+    // and one dropped page is not "can't reach the box" (seen on the
+    // emulator, 22 Nov 2026: a page cut off mid-way, the next load fine).
+    private var quietRetries = 0
 
     // ZXing QR scanner — registered before onCreate as required by Activity Result API
     private val qrScanLauncher = registerForActivityResult(ScanContract()) { result ->
@@ -91,8 +97,8 @@ class MainActivity : AppCompatActivity() {
             // Returning user: URL already saved — go straight to the app
             saved != null -> {
                 serverUrl = saved
-                followNetwork()
                 if (savedInstanceState != null) {
+                    followNetwork()
                     webView.restoreState(savedInstanceState)
                 } else {
                     loadOrShowOffline()
@@ -168,13 +174,25 @@ class MainActivity : AppCompatActivity() {
         }
         serverUrl = url
         saveUrl(url)
-        followNetwork()
         setupView.visibility  = View.GONE
         splashView.visibility = View.VISIBLE
         loadOrShowOffline()
     }
 
+    /**
+     * A box: bind to the restaurant's network first, then load (LocalNetwork
+     * explains why the order matters). The cloud: load straight away.
+     */
     private fun loadOrShowOffline() {
+        if (ServerUrl.isBox(serverUrl)) {
+            localNetwork.bind { loadNow() }
+        } else {
+            localNetwork.unbind()
+            loadNow()
+        }
+    }
+
+    private fun loadNow() {
         if (canReachNetwork()) {
             showingOfflinePage = false
             webView.loadUrl(serverUrl)
@@ -187,7 +205,7 @@ class MainActivity : AppCompatActivity() {
 
     /** A box: stay on the Wi-Fi even when it has no internet (LocalNetwork). */
     private fun followNetwork() {
-        if (ServerUrl.isBox(serverUrl)) localNetwork.bind() else localNetwork.unbind()
+        if (ServerUrl.isBox(serverUrl)) localNetwork.bind {} else localNetwork.unbind()
     }
 
     private fun canReachNetwork(): Boolean =
@@ -229,8 +247,15 @@ class MainActivity : AppCompatActivity() {
 
         webView.webViewClient = object : WebViewClient() {
 
+            override fun onPageCommitVisible(view: WebView, url: String) {
+                // A page really showed: the next failure gets its quiet retry again.
+                if (url.startsWith("http")) quietRetries = 0
+            }
+
             override fun onPageFinished(view: WebView, url: String) {
-                showingOfflinePage = false
+                // The offline page finishing is not Rasova coming back: only a
+                // real page clears the flag (onResume retries while it is set).
+                if (url.startsWith("http")) showingOfflinePage = false
                 splashView.visibility = View.GONE
             }
 
@@ -238,6 +263,14 @@ class MainActivity : AppCompatActivity() {
                 view: WebView, request: WebResourceRequest, error: WebResourceError
             ) {
                 if (request.isForMainFrame) {
+                    Log.w("RasovaWeb", "Couldn't load ${request.url}: ${error.errorCode} ${error.description}")
+                    // Only a page load, never a form being sent: that is not repeated.
+                    if (request.method == "GET" && quietRetries < 1) {
+                        quietRetries++
+                        val again = request.url.toString()
+                        view.postDelayed({ view.loadUrl(again) }, 1000)
+                        return
+                    }
                     showingOfflinePage = true
                     view.loadDataWithBaseURL(null, OfflinePage.html(serverUrl), "text/html", "UTF-8", null)
                 }
@@ -255,6 +288,7 @@ class MainActivity : AppCompatActivity() {
             ): Boolean {
                 return when (val route = Links.route(request.url.toString(), serverUrl)) {
                     Route.Setup -> { showSetup(); true }
+                    Route.Retry -> { quietRetries = 0; loadOrShowOffline(); true }
                     Route.InApp -> false
                     is Route.Upgrade -> { view.loadUrl(route.url); true }
                     Route.Outside -> { openOutside(request.url); true }

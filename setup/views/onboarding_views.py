@@ -41,7 +41,10 @@ def onboarding_wizard(request):
     if step == 1:
         if request.method == "POST":
             tenant.name        = request.POST.get("name", tenant.name).strip() or tenant.name
-            tenant.tenant_type = request.POST.get("tenant_type", tenant.tenant_type)
+            # Only a real type: the form had no Pub, so step 1 turned every pub
+            # into fine dining and its liquor features went (22 Nov 2026).
+            if request.POST.get("tenant_type") in Tenant.TenantType.values:
+                tenant.tenant_type = request.POST["tenant_type"]
             if "logo" in request.FILES:
                 tenant.logo = request.FILES["logo"]
 
@@ -205,7 +208,23 @@ def onboarding_wizard(request):
         "outlet": outlet,
         "config": config,
         "is_qsr": tenant.tenant_type in ("franchise", "cafe"),
+        "tenant_types": tenant_type_options(),
     })
+
+
+# What the onboarding form calls each kind of restaurant. Drawn from the
+# model's choices, so a new kind can't be missing from the form again; a
+# kind without a line here shows the model's own label.
+TENANT_TYPE_LABELS = {
+    "fine_dining": "Fine Dining (table service)",
+    "franchise": "QSR / Fast Food (token counter)",
+    "cafe": "Café / Coffee Shop",
+    "pub": "Pub / Bar (liquor, happy hours)",
+}
+
+
+def tenant_type_options():
+    return [(value, TENANT_TYPE_LABELS.get(value, label)) for value, label in Tenant.TenantType.choices]
 
 
 @login_required
