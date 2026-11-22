@@ -128,7 +128,12 @@ class JobStatusTest(PrintingWorld):
         waiting = self.job(self.outlet)
         self.assertEqual(client.get(self.url(waiting)).json()["status"], "pending")
         failed = self.job(self.outlet, status=PrintJob.FAILED, error="no paper", done_minutes_ago=0)
-        self.assertEqual(client.get(self.url(failed)).json(), {"status": "failed", "error": "no paper", "age_seconds": 0})
+        answer = client.get(self.url(failed)).json()
+        # The age is whole seconds since the job was made: on a busy machine
+        # the request can land a second or two later (21 Nov 2026, 1 != 0).
+        age = answer.pop("age_seconds")
+        self.assertEqual(answer, {"status": "failed", "error": "no paper"})
+        self.assertTrue(0 <= age <= 5, age)
 
     def test_another_outlets_or_restaurants_job_is_not_found(self):
         client = self.client_as(self.manager)

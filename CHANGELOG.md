@@ -7,6 +7,11 @@ the source of truth.
 
 ---
 
+## 2026-11-22: The print job status test allows a slow second
+
+### Tests
+- `printing/test_printing_status.py`: the failed-job check asked for `age_seconds` to be exactly 0, but the age is whole seconds since the job was made, so a busy machine could answer 1 and fail the run (seen 21 Nov 2026). The test now checks the status and error exactly and the age as 0 to 5 seconds. No product code changed. ELI5: `md_files/eli5_print_age_test_2026-11-22.html`.
+
 ## 2026-11-21: A guest's QR dishes, approved or not accepted one by one
 
 A waiter could approve all of a guest's QR dishes on the floor, or leave the floor to remove some, but not approve them one by one; and the one per-dish approve (built for the token counter) never sent a ticket, so a dine-in dish approved on its own never reached the kitchen. Plan: `md_files/eli5_qr_approve_each_dish_2026-11-21.html`.
