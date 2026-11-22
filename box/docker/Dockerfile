@@ -45,7 +45,11 @@ COPY --from=build /app /app
 COPY box/docker/entrypoint.sh /usr/local/bin/rasova-entrypoint
 # The Rasova Android app, served by the box at /android/rasova.apk (WhiteNoise,
 # public/): a phone installs it over the restaurant's Wi-Fi, no internet needed.
-COPY public/android/rasova.apk /app/public/android/rasova.apk
+# It is the box's own copy (box/docker/android/), not public/android/: that one
+# is what rasova.net serves, and a box needs 1.3.0 or newer (the first app that
+# opens a box) whatever the cloud hands out. compile.py leaves box/docker out
+# of the app, so the file is in the image once.
+COPY box/docker/android/rasova.apk /app/public/android/rasova.apk
 # collectstatic only loads the settings, which insist on these being set;
 # the real ones are made on the box at install (rasova-box), never baked in.
 RUN chmod 755 /usr/local/bin/rasova-entrypoint \

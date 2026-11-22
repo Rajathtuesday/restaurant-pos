@@ -159,10 +159,12 @@ class AppFromTheBoxTest(BoxBase):
 
     @not_in_compiled_build("box/docker, which only Rasova's PC has")
     def test_the_box_image_carries_the_app(self):
+        # The box's own copy (box/docker/android/): rasova.net's public/android/
+        # file may stay older, a box needs the app that opens a box.
         base = Path(settings.BASE_DIR) / "box" / "docker"
-        self.assertIn("!public/android/rasova.apk", (base / "Dockerfile.dockerignore").read_text().splitlines())
-        self.assertIn("COPY public/android/rasova.apk /app/public/android/rasova.apk",
+        self.assertIn("COPY box/docker/android/rasova.apk /app/public/android/rasova.apk",
                       (base / "Dockerfile").read_text())
+        self.assertEqual((base / "android" / "rasova.apk").read_bytes()[:2], b"PK")
 
 
 class ConnectEdgeCaseTest(BoxBase):

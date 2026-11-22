@@ -32,9 +32,6 @@
 !tokens
 !waiter
 !static
-# The Android app, so a phone on the box's Wi-Fi installs it from the box
-# (Connect a device); the rest of public/ (the marketing site) stays out.
-!public/android/rasova.apk
 **/__pycache__
 **/*.pyc
 **/.env*
