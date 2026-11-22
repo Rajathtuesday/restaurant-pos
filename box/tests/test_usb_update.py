@@ -95,6 +95,23 @@ class UsbStatusTest(BoxBase):
         usb_update.status_file().write_text("id=abc\nstate=rebooting\n")
         self.assertEqual(usb_update.read_status(), {}, "an unknown state shows nothing")
 
+    def test_only_newer_versions_are_offered(self):
+        # An older bundle left on the pen drive was offered for install: going
+        # back is a restore, the database has moved on.
+        usb_update.status_file().write_text("id=v1\nstate=found\nrunning=1.4.9\nfound=1.4.2\nfound=1.4.10\n"
+                                            "found=1.4.9\nfound=1.4.9-edge\n")
+        (usb_update.data_dir() / "update-asked").write_text(f"v1\n{timezone.now().isoformat()}\n")
+        self.assertEqual(usb_update.read_status()["newer"], ["1.4.10", "1.4.9-edge"])
+        self.assertTrue(usb_update.is_newer("2.0.0", "1.99.99"))
+        self.assertFalse(usb_update.is_newer("1.4.3", "1.4.3"))
+
+    def test_an_answer_to_another_press_after_mine_counts(self):
+        # Two phones pressed at once; the helper answered the other request.
+        usb_update.ask("scan")
+        later = (timezone.now() + timedelta(seconds=2)).isoformat(timespec="seconds")
+        usb_update.status_file().write_text(f"id=someoneelse1\nstate=found\nat={later}\nfound=1.4.2\n")
+        self.assertEqual(usb_update.read_status()["state"], "found")
+
     def test_a_request_nobody_answers_says_so_after_a_minute(self):
         usb_update.ask("scan")
         self.assertEqual(usb_update.read_status()["state"], "asked")
@@ -229,6 +246,14 @@ class UsbRequestScriptTest(BoxBase):
         status = self.run_script(str(self.usb))
         self.assertEqual(status["state"], "failed")
         self.assertIn("isn't on the pen drive", status["message"])
+
+    def test_an_older_version_is_never_installed_from_the_pen_drive(self):
+        (self.home / ".env").write_text("RASOVA_VERSION=1.4.3\n")
+        make_bundle(self.usb / "old", "1.4.2", self.private)
+        usb_update.ask("install", "1.4.2")
+        status = self.run_script(str(self.usb))
+        self.assertEqual(status["state"], "failed")
+        self.assertIn("older than the version running", status["message"])
 
     def test_an_odd_request_is_ignored(self):
         folder = usb_update.requests_dir()

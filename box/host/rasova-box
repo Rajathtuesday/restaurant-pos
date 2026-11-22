@@ -349,7 +349,9 @@ status_write() {                # $1 request id, $2 state, $3 message, then the 
 find_usb_roots() {              # sets USB_ROOTS: folders where a pen drive's files can be read
   USB_ROOTS=()
   if [ "$DEV" = 1 ] && [ -n "${RASOVA_USB_ROOTS:-}" ]; then
-    IFS=':' read -r -a USB_ROOTS <<< "$RASOVA_USB_ROOTS"   # tests and a developer's PC: folders stand in
+    # Tests and a developer's PC: folders stand in, split on ';' (not ':', which
+    # every Windows path has after its drive letter).
+    IFS=';' read -r -a USB_ROOTS <<< "$RASOVA_USB_ROOTS"
     return 0
   fi
   local link dev target n=0 seen=" "
@@ -440,6 +442,12 @@ cmd_usb_request() {
     [ "${FOUND_VERSIONS[$i]}" = "$version" ] && path="${FOUND_PATHS[$i]}"
   done
   [ -n "$path" ] || { status_write "$id" failed "Rasova $version isn't on the pen drive any more. Plug it in and look again."; return 0; }
+  # Never back to an older version from the pen drive: the database has moved
+  # on. Going back is rasova-box rollback or a restore, done by Rasova.
+  if [ -n "$(current_version)" ] && [ "$(printf '%s\n%s\n' "$(current_version)" "$version" | sort -V | tail -1)" != "$version" ]; then
+    status_write "$id" failed "Rasova $version is older than the version running. Only a newer one installs from the pen drive."
+    return 0
+  fi
   status_write "$id" installing "Installing Rasova $version. The box is back in about a minute."
   log="$HOME_DIR/data/update.log"
   set +e

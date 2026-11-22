@@ -26,6 +26,12 @@ The owner, on the day the freeze was lifted: "all" of the pending box items, wit
 - `box/tests/test_usb_update.py` (15): requests are a few plain lines moved in whole; only scan or a version-shaped install; the status lets through only what it knows; no answer for a minute says so; owners start it, managers only see it; only a version the drive was found to hold installs; what the helper says is shown as text; the status address; and the helper run for real with bash on Linux: the signed bundle found, unsigned and damaged ones never offered, no update and no pen drive told apart, install handed to `rasova-box update`, a version not on the drive refused, odd requests ignored.
 - Node: `box_update.test.mjs` (restart mid-install, a scan that finds, giving up after half an hour).
 
+### Found by updating a real box, the same night
+The box image under compose was updated for real: by hand with `rasova-box update` (1.4.1 to 1.4.2, 1 min 35 s: backup, load, health check, smoke test, the undo record kept), then with the new button (Look found both signed bundles on the stand-in pen drive in 8 s, Install took 103 s, Box health showed the new version after the restart, the restaurant's menu kept). It found:
+- **An older bundle on the pen drive was offered for install.** Going back is a restore (the database has moved on), so the page offers only newer versions (1.4.10 after 1.4.9, as people mean it) and the helper refuses an older one too (`sort -V`).
+- **Two presses at once could leave the page waiting for an answer that came for the other press**, then saying "the box didn't answer": any answer written after the last press now counts.
+- In developer mode on Windows, the stand-in pen drives were split on `:`, which every Windows path has after its drive letter: `;` now.
+
 ## 2026-11-22: Every printer on one page, and phones on a Rasova box
 
 The owner lifted the feature freeze for 22 Nov 2026. This builds the recommended set of `md_files/rasova_printers_and_app_plan_eli5_2026-10-21.html`: one Printers page, Connect a device on the box, the Android app's box mode, and a spare PC as a box (option A). Option B (their everyday Windows PC) and real https on a box stay unbuilt, as the plan says.

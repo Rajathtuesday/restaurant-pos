@@ -10,7 +10,7 @@ by the box as an Android app; http and no print agent key in the pages;
 Connect a device and its shortcut; Setup > Printers (a zero-padded
 address, a typo, a test page the box itself prints, a printer that never
 answers named on Printers, Setup and Box health); the old printer page's
-redirect. It needs nothing but `requests`. Run on the box itself (or a PC
+redirect; a menu file loaded through the page; the Updates panel. It needs nothing but `requests`. Run on the box itself (or a PC
 running it under Docker), BOX_E2E_ON_THE_BOX=1 adds the localhost check.
 
 First run 22 Nov 2026 against the box image under compose on a PC, with a
@@ -142,7 +142,40 @@ check("the Setup card names the failing printer", "Bar didn" in setup)
 health = s.get(BASE + "/box/health/").text
 check("Box health shows the printers and links to Connect a device", 'id="printersPanel"' in health and 'href="/box/connect/"' in health)
 
-# 7. The old address and the agent endpoints.
+# 7. The menu file: a box has no AI import, so a menu read in the cloud comes as a file.
+menu = s.get(BASE + "/menu/").text
+check("the box's menu page has no AI Import and links the menu file",
+      'data-action="menu.aiImport"' not in menu and 'id="menuFileLink"' in menu)
+menu_file = {
+    "format": "rasova-menu", "version": 1,
+    "stations": [{"name": "Kitchen"}, {"name": "Bar", "made_on_send": True}],
+    "vat_classes": [{"name": "IMFL", "rate": "35.00"}],
+    "modifier_groups": [{"name": "Spice", "modifiers": [{"name": "Extra Hot", "price": "0"}]}],
+    "categories": [
+        {"name": "Starters", "items": [{"name": "Paneer Tikka", "price": "280", "gst_percentage": "5.00",
+                                        "station": "Kitchen", "modifier_groups": ["Spice"]}]},
+        {"name": "Drinks", "items": [{"name": "Single Malt 30ml", "price": "450", "gst_percentage": "0.00",
+                                      "vat_class": "IMFL", "station": "Bar"}]},
+    ],
+}
+page = s.get(BASE + "/menu/file/")
+token = re.search(r'<meta name="csrf-token" content="([^"]+)"', page.text).group(1)
+r = s.post(BASE + "/menu/file/check/", files={"menu_file": ("menu.json", json.dumps(menu_file), "application/json")},
+           data={"csrfmiddlewaretoken": token}, headers={"Referer": BASE + "/menu/file/"})
+check("a menu file is checked first, nothing changed yet", 'id="newItems">2<' in r.text and "Paneer Tikka" not in s.get(BASE + "/menu/").text,
+      r.status_code)
+load_token = re.search(r'name="token" value="([^"]+)"', r.text)
+if load_token:
+    s.post(BASE + "/menu/file/load/", data={"csrfmiddlewaretoken": token, "token": load_token.group(1)},
+           headers={"Referer": BASE + "/menu/file/"})
+menu = s.get(BASE + "/menu/").text
+check("then loaded: the dishes are on the box's menu", "Paneer Tikka" in menu and "Single Malt 30ml" in menu)
+
+# 8. Updates from a pen drive: the panel is there for the owner.
+health = s.get(BASE + "/box/health/").text
+check("Box health has the pen drive update", 'id="updatePanel"' in health and 'id="lookForUpdate"' in health)
+
+# 9. The old address and the agent endpoints.
 r = s.get(BASE + "/setup/printer/", allow_redirects=False)
 check("the old printer page redirects", r.status_code == 301 and r.headers["Location"] == "/setup/printers/", r.status_code)
 

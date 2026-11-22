@@ -84,7 +84,12 @@ def read_status():
         status["at"] = parse_datetime(status["at"]) if _looks_like_time(status["at"]) else None
 
     asked = _last_asked()
-    if asked and asked[0] != status.get("id"):
+    # Answered: the helper answered this request, or anything after it (two
+    # presses at once, from two phones: the helper answers the newest it sees,
+    # which may not be the one this page wrote last).
+    answered = asked and (asked[0] == status.get("id") or (
+        asked[1] is not None and status.get("at") is not None and status["at"] >= asked[1]))
+    if asked and not answered:
         # A request the helper hasn't answered yet.
         waited = (timezone.now() - asked[1]).total_seconds() if asked[1] else 0
         if waited > NO_ANSWER_AFTER:
@@ -95,8 +100,22 @@ def read_status():
     if "state" not in status:
         return {}
     status["working"] = status["state"] in WORKING
-    status["newer"] = [v for v in status["found"] if v != status.get("running")]
+    running = status.get("running")
+    status["newer"] = [v for v in status["found"] if not running or is_newer(v, running)]
     return status
+
+
+def version_key(version):
+    """1.4.10 after 1.4.9, as people mean it: the numbers as numbers, then
+    the rest (1.4.3-edge after 1.4.3)."""
+    parts = re.findall(r"\d+|[A-Za-z]+", version)
+    return [(0, int(p), "") if p.isdigit() else (1, 0, p) for p in parts]
+
+
+def is_newer(version, than):
+    """Only a newer version is offered from the pen drive: going back is a
+    restore, not an update (the database has already moved on)."""
+    return version != than and version_key(version) > version_key(than)
 
 
 def _last_asked():
