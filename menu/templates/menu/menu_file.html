@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Menu File | {{ request.user.tenant.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/menu/menu_file.css' %}">
+{% endblock %}
+
+{% block page_title %}<a href="/menu/">Menu</a> / Menu file{% endblock %}
+
+{% block content %}
+<div class="mf-page">
+  <p class="mf-eyebrow">Menu</p>
+  <h1 class="mf-title">Menu file</h1>
+  <p class="mf-sub">Save this outlet's whole menu as one file, or load a file into it: categories, dishes, prices,
+    GST and VAT, kitchen stations and modifiers. Photos, recipes and stock links stay where they are.</p>
+
+  {% for m in messages %}<div class="mf-msg {{ m.tags }}" role="status">{{ m }}</div>{% endfor %}
+
+  {% if plan %}
+  <section class="mf-card is-check" id="menuFileCheck">
+    <h2 class="mf-name">Ready to load {{ file_name }}</h2>
+    {% if plan.source %}<p class="mf-hint">Saved from {{ plan.source }}.</p>{% endif %}
+    <table class="mf-table">
+      <tr><td>New dishes</td><td id="newItems">{{ plan.new.items }}</td></tr>
+      <tr><td>Dishes updated (same name, same category)</td><td id="updatedItems">{{ plan.updated.items }}</td></tr>
+      <tr><td>New categories</td><td>{{ plan.new.categories }}</td></tr>
+      <tr><td>New kitchen stations</td><td>{{ plan.new.stations }}</td></tr>
+      <tr><td>New modifier groups</td><td>{{ plan.new.modifier_groups }}</td></tr>
+      <tr><td>New modifiers / updated</td><td>{{ plan.new.modifiers }} / {{ plan.updated.modifiers }}</td></tr>
+      {% if plan.new.vat_classes %}<tr><td>New liquor VAT classes</td><td>{{ plan.new.vat_classes }}</td></tr>{% endif %}
+    </table>
+    <p class="mf-hint">Nothing is removed: dishes not in the file stay as they are. An updated dish takes the file's
+      price, GST, station and availability.</p>
+    <form method="post" action="{% url 'menu_file_load' %}" class="mf-actions">
+      {% csrf_token %}
+      <input type="hidden" name="token" value="{{ token }}">
+      <button type="submit" class="mf-btn mf-btn-main" id="loadMenuFile">Load into {{ outlet.name }}</button>
+      <a href="{% url 'menu_file' %}" class="mf-btn">Cancel</a>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="mf-card">
+    <h2 class="mf-name">Save this menu</h2>
+    <p class="mf-hint">A file with {{ outlet.name }}'s menu. Load it into another outlet, or onto a Rasova box.</p>
+    <div class="mf-actions"><a href="{% url 'menu_file_download' %}" class="mf-btn mf-btn-main" download id="saveMenuFile">Save menu file</a></div>
+  </section>
+
+  <section class="mf-card">
+    <h2 class="mf-name">Load a menu file</h2>
+    <form method="post" action="{% url 'menu_file_check' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label class="mf-field">
+        <span class="mf-label">The file (.json)</span>
+        <input type="file" name="menu_file" accept=".json,application/json" required>
+      </label>
+      <div class="mf-actions"><button type="submit" class="mf-btn">Check the file</button></div>
+    </form>
+    <p class="mf-hint">You see what it will add and change before anything happens.</p>
+  </section>
+
+  {% if box.is_box %}
+  <section class="mf-card">
+    <h2 class="mf-name">A menu from a photo</h2>
+    <p class="mf-hint">A box has no AI menu import: it needs the internet. Send Rasova a photo of your menu; Rasova reads
+      it, and you load the file here.</p>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

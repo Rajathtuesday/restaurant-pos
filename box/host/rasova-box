@@ -14,6 +14,8 @@
 #   rasova-box rollback                undo the last update (asks first)
 #   rasova-box logs [web|worker|db]    the last lines of the log
 #   rasova-box start | stop | restart
+#   rasova-box enable-usb-updates      once: let Box health update from a pen drive
+#   rasova-box usb-request             what that runs (by systemd, never by hand)
 #
 # A bundle is a folder (usually on a pen drive) made by Rasova: manifest.json,
 # manifest.sig, images.tar.gz, compose.yml. It is copied to the disk first
@@ -31,6 +33,8 @@ BUNDLE=""
 UPDATE_KEY_PEM='-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEA7uU/qF97gCPov89liw/kJYj+bV51XeqVhdC2HKrF4UI=
 -----END PUBLIC KEY-----'
+# Tests and a developer's PC only: their own key, to sign test bundles.
+if [ "$DEV" = 1 ] && [ -n "${RASOVA_UPDATE_KEY_PEM:-}" ]; then UPDATE_KEY_PEM="$RASOVA_UPDATE_KEY_PEM"; fi
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'rasova-box: %s\n' "$*" >&2; exit 1; }
@@ -310,6 +314,176 @@ cmd_status() {
   df -h "$HOME_DIR" "$HOME_DIR/backups" | awk 'NR==1 || !seen[$1]++'
 }
 
+# ── Update from a pen drive, asked for on Box health (22 Nov 2026) ────────────
+# The web app can't run an update itself: it lives in a container with no say
+# over Docker. Box health drops a request into data/update-requests/; a systemd
+# path unit (rasova-box enable-usb-updates) then runs `rasova-box usb-request`
+# as root, which finds a pen drive, checks every bundle on it with the same
+# signature check as `update`, and installs with the same cmd_update (backup,
+# refusal while bills are open, health check, going back by itself). What
+# happened goes to data/update-status, which Box health shows.
+#
+# A request is untrusted text from the web app: only "scan", or "install" of a
+# version the pen drive really holds, signed by Rasova, is ever acted on.
+
+REQ_DIR="$HOME_DIR/data/update-requests"
+STATUS_FILE="$HOME_DIR/data/update-status"
+USB_ROOTS=()
+USB_MOUNTS=()
+FOUND_VERSIONS=()
+FOUND_PATHS=()
+
+status_write() {                # $1 request id, $2 state, $3 message, then the versions found
+  local id="$1" state="$2" msg="$3" tmp v
+  shift 3
+  tmp="$(mktemp "$HOME_DIR/data/.update-status.XXXXXX")"
+  {
+    printf 'id=%s\nstate=%s\nat=%s\nrunning=%s\n' "$id" "$state" "$(date -Is)" "$(current_version)"
+    for v in "$@"; do printf 'found=%s\n' "$v"; done
+    printf 'message=%s\n' "$(printf '%s' "$msg" | tr -d '\r\n' | cut -c1-300)"
+  } > "$tmp"
+  chmod 644 "$tmp"
+  mv "$tmp" "$STATUS_FILE"
+}
+
+find_usb_roots() {              # sets USB_ROOTS: folders where a pen drive's files can be read
+  USB_ROOTS=()
+  if [ "$DEV" = 1 ] && [ -n "${RASOVA_USB_ROOTS:-}" ]; then
+    IFS=':' read -r -a USB_ROOTS <<< "$RASOVA_USB_ROOTS"   # tests and a developer's PC: folders stand in
+    return 0
+  fi
+  local link dev target n=0 seen=" "
+  for link in /dev/disk/by-id/usb-*; do
+    [ -e "$link" ] || continue
+    dev="$(readlink -f "$link")"
+    case "$seen" in *" $dev "*) continue ;; esac
+    seen="$seen$dev "
+    blkid -s TYPE -o value "$dev" > /dev/null 2>&1 || continue    # a whole disk with partitions: they come on their own
+    target="$(findmnt -rno TARGET --source "$dev" 2> /dev/null | head -1 || true)"
+    [ "$target" = "$HOME_DIR/backups" ] && continue                # the backup stick is not an update
+    if [ -z "$target" ]; then
+      n=$((n + 1))
+      target="/run/rasova-usb/$n"
+      mkdir -p "$target"
+      if ! mount -o ro,nosuid,nodev,noexec "$dev" "$target" 2> /dev/null; then
+        rmdir "$target" 2> /dev/null || true
+        continue
+      fi
+      USB_MOUNTS+=("$target")
+    fi
+    USB_ROOTS+=("$target")
+  done
+}
+
+release_usb() {
+  local m
+  for m in "${USB_MOUNTS[@]+"${USB_MOUNTS[@]}"}"; do
+    umount "$m" 2> /dev/null || true
+    rmdir "$m" 2> /dev/null || true
+  done
+  USB_MOUNTS=()
+}
+
+find_bundles() {                # sets FOUND_VERSIONS and FOUND_PATHS: bundles signed by Rasova
+  FOUND_VERSIONS=()
+  FOUND_PATHS=()
+  local root manifest dir version
+  for root in "${USB_ROOTS[@]+"${USB_ROOTS[@]}"}"; do
+    [ -d "$root" ] || continue
+    while IFS= read -r manifest; do
+      dir="$(dirname "$manifest")"
+      [ -f "$dir/manifest.sig" ] || continue
+      # verify_bundle ends the shell when a bundle is bad: check each in its own.
+      version="$( ( trap cleanup EXIT; verify_bundle "$dir" > /dev/null 2>&1 && printf '%s' "$NEW_VERSION" ) 2> /dev/null )" || continue
+      [ -n "$version" ] || continue
+      FOUND_VERSIONS+=("$version")
+      FOUND_PATHS+=("$dir")
+    done < <(find "$root" -maxdepth 3 -type f -name manifest.json 2> /dev/null | sort)
+  done
+}
+
+cmd_usb_request() {
+  need_root
+  local req key value id="" action="" version="" i path="" log rc odd="An odd request from Box health was ignored."
+  [ -d "$REQ_DIR" ] || return 0
+  req="$(ls -1t "$REQ_DIR" 2> /dev/null | head -1 || true)"
+  [ -n "$req" ] || return 0
+  while IFS='=' read -r key value || [ -n "$key" ]; do       # a last line without a newline counts too
+    case "$key" in
+      id) id="$value" ;;
+      action) action="$value" ;;
+      version) version="$value" ;;
+    esac
+  done < <(head -c 512 "$REQ_DIR/$req")
+  rm -f "$REQ_DIR"/* 2> /dev/null || true      # one answer for any number of presses
+  printf '%s' "$id" | grep -qE '^[A-Za-z0-9]{8,64}$' || { status_write "" failed "$odd"; return 0; }
+  case "$action" in
+    scan) ;;
+    install) printf '%s' "$version" | grep -qE '^[0-9A-Za-z][0-9A-Za-z._-]{0,40}$' || { status_write "$id" failed "$odd"; return 0; } ;;
+    *) status_write "$id" failed "$odd"; return 0 ;;
+  esac
+  status_write "$id" scanning "Looking at the pen drive"
+  trap 'release_usb; cleanup' EXIT
+  find_usb_roots
+  find_bundles
+  if [ "$action" = scan ]; then
+    if [ "${#FOUND_VERSIONS[@]}" -gt 0 ]; then
+      status_write "$id" found "" "${FOUND_VERSIONS[@]}"
+    elif [ "${#USB_ROOTS[@]}" -eq 0 ]; then
+      status_write "$id" none "No pen drive found. Plug it into the box, then look again."
+    else
+      status_write "$id" none "The pen drive has no update from Rasova on it."
+    fi
+    return 0
+  fi
+  for i in "${!FOUND_VERSIONS[@]}"; do
+    [ "${FOUND_VERSIONS[$i]}" = "$version" ] && path="${FOUND_PATHS[$i]}"
+  done
+  [ -n "$path" ] || { status_write "$id" failed "Rasova $version isn't on the pen drive any more. Plug it in and look again."; return 0; }
+  status_write "$id" installing "Installing Rasova $version. The box is back in about a minute."
+  log="$HOME_DIR/data/update.log"
+  set +e
+  ( trap cleanup EXIT; cmd_update "$path" ) > "$log" 2>&1
+  rc=$?
+  set -e
+  if [ "$rc" = 0 ]; then
+    status_write "$id" done "Rasova $version is running."
+  else
+    status_write "$id" failed "$(grep -E '^rasova-box: ' "$log" | tail -1 | sed 's/^rasova-box: //')"
+  fi
+}
+
+cmd_enable_usb_updates() {
+  need_root
+  [ "$DEV" = 1 ] && die "this is for a real box, not a developer's PC"
+  installed || die "Rasova isn't installed yet; use rasova-box install"
+  mkdir -p "$REQ_DIR"
+  chown 1000:1000 "$REQ_DIR"                   # the app (uid 1000) writes requests; root acts on them
+  chmod 700 "$REQ_DIR"
+  cat > /etc/systemd/system/rasova-usb-update.path <<UNIT
+[Unit]
+Description=Rasova: Box health asked to update from a pen drive
+
+[Path]
+DirectoryNotEmpty=$REQ_DIR
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  cat > /etc/systemd/system/rasova-usb-update.service <<UNIT
+[Unit]
+Description=Rasova: look for or install an update on a pen drive
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/rasova-box usb-request
+TimeoutStartSec=45min
+UNIT
+  systemctl daemon-reload
+  systemctl enable --now rasova-usb-update.path
+  say "Box health can now update Rasova from a pen drive."
+}
+
 case "${1:-}" in
   install) shift; cmd_install "$@" ;;
   update)  shift; cmd_update "$@" ;;
@@ -321,5 +495,7 @@ case "${1:-}" in
   start)   need_root; dc up -d ;;
   stop)    need_root; dc stop ;;
   restart) need_root; dc restart ;;
+  usb-request) cmd_usb_request ;;
+  enable-usb-updates) cmd_enable_usb_updates ;;
   *)       sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

@@ -10,7 +10,8 @@
 
 {% block header_links %}
 <div class="d-flex align-items-center gap-2">
-  <button type="button" class="btn-luxury btn-gold desktop-nav-links" data-action="menu.aiImport"><i class="bi bi-magic me-1"></i> AI Import</button>
+  {# AI import needs the internet: off on a box, where its page doesn't exist (box/edition.py). #}
+  {% if 'ai_menu_import' in tenant_features %}<button type="button" class="btn-luxury btn-gold desktop-nav-links" data-action="menu.aiImport"><i class="bi bi-magic me-1"></i> AI Import</button>{% endif %}
   <button type="button" class="btn-luxury" data-action="menu.newCategory"><i class="bi bi-folder-plus me-1"></i><span class="d-none d-sm-inline"> Category</span></button>
   <button type="button" class="btn-luxury btn-gold-solid" data-action="menu.newDish"><i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline"> Add Item</span></button>
 
@@ -18,6 +19,7 @@
     <a href="/inventory/board/" class="btn-luxury"><i class="bi bi-box-seam me-1"></i> Inventory</a>
     <a href="{% url 'modifier_management' %}" class="btn-luxury"><i class="bi bi-ui-checks me-1"></i> Modifiers</a>
     <a href="{% url 'gst_management' %}" class="btn-luxury"><i class="bi bi-percent me-1"></i> GST Rates</a>
+    <a href="{% url 'menu_file' %}" class="btn-luxury" id="menuFileLink"><i class="bi bi-file-earmark-arrow-down me-1"></i> Menu File</a>
     <a href="/dashboard/" class="btn-luxury">Reports</a>
   </div>
 
@@ -34,10 +36,11 @@
   <div class="mobile-nav-overlay" data-action="menu.closeNav"></div>
   <div class="mobile-nav-panel">
     <div class="drawer-title"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--accent-gold);"></i>More Options</div>
-    <button type="button" class="drawer-btn" data-action="menu.aiImport"><i class="bi bi-magic"></i> AI Smart Import</button>
+    {% if 'ai_menu_import' in tenant_features %}<button type="button" class="drawer-btn" data-action="menu.aiImport"><i class="bi bi-magic"></i> AI Smart Import</button>{% endif %}
     <a href="/inventory/board/"><i class="bi bi-box-seam"></i> Inventory</a>
     <a href="{% url 'modifier_management' %}"><i class="bi bi-ui-checks"></i> Modifiers</a>
     <a href="{% url 'gst_management' %}"><i class="bi bi-percent"></i> GST Rates</a>
+    <a href="{% url 'menu_file' %}"><i class="bi bi-file-earmark-arrow-down"></i> Menu File</a>
     <a href="/dashboard/"><i class="bi bi-bar-chart"></i> Reports</a>
     <a href="/setup/"><i class="bi bi-gear"></i> Setup</a>
     {% if 'floor_plan' in tenant_features %}

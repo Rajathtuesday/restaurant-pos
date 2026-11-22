@@ -58,6 +58,7 @@ If you try to open a page that isn't meant for your role, Rasova will simply tak
 The first time you log in, Rasova walks you through a short setup wizard:
 
 1. **Menu**: add your categories and dishes, or photograph your existing paper menu and let Rasova's AI import it automatically (Settings → Menu → AI Import).
+   **Menu, Menu file** saves the whole menu as one file and loads one into another outlet (you see what it adds and changes first; nothing is removed).
 2. **Tables** (fine dining): bulk-create tables in one click, or add them one at a time.
 3. **Staff**: create logins for your team (see below).
 4. **Payment methods**: turn on Cash, UPI, and/or Card, and customize how each one is labeled on the bill.
@@ -244,6 +245,10 @@ A Rasova box is a small computer in your restaurant that runs all of Rasova by i
 - **Android:** download the Rasova app from the box (the link on that page), open it, tap **Scan QR code** and scan the code on that page.
 - **iPhone or iPad:** in Safari, **Share, Add to Home Screen**.
 - **The counter PC:** **Download the shortcut** and double-click it; Rasova opens in its own window.
+
+**Your menu:** a box has no AI menu import (it needs the internet). Send Rasova a photo of your menu; Rasova reads it and sends you a **menu file**, which you load on **Menu, Menu file**.
+
+**Updates:** Rasova sends you a pen drive. After closing time, plug it into the box, open **Box Health** and press **Look for an update on the pen drive**, then **Install**. The box checks the update really comes from Rasova, makes a backup first, and goes back by itself if anything goes wrong. Open bills stop it: close them first.
 
 **What isn't there:** guest QR ordering, waiter call and feedback, Zomato and Swiggy orders, Razorpay, WhatsApp bills and emailed reports. They need the internet. Everything else works as described in this manual.
 

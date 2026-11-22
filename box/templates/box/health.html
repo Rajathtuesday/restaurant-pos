@@ -63,10 +63,39 @@
       <p class="muted">The box prints every bill and KOT itself.</p>
       <a class="btn-box btn-link" href="{% url 'setup_printers' %}">Printers</a>
     </div>
+    <div class="panel" id="updatePanel" data-status-url="{% url 'box_update_status' %}"
+         data-working="{% if usb.working %}1{% endif %}" data-state="{{ usb.state|default:'' }}"><h3>Updates</h3>
+      <div class="big">Rasova {{ version }}</div>
+      {% if usb.state %}
+        <p class="muted {% if usb.state == 'failed' %}bad{% elif usb.state == 'done' %}ok{% endif %}" id="updateMessage" role="status">
+          {% if usb.state == 'found' %}{% if usb.newer %}Found on the pen drive, signed by Rasova:{% else %}The pen drive only has the version already running.{% endif %}{% else %}{{ usb.message }}{% endif %}
+        </p>
+      {% else %}
+        <p class="muted" id="updateMessage">Plug the pen drive from Rasova into the box, then look for the update. The box
+          checks it really comes from Rasova before anything changes.</p>
+      {% endif %}
+      {% if is_owner and not usb.working %}
+        {% if usb.state == 'found' and usb.newer %}
+          {% for v in usb.newer %}
+          <form method="post">{% csrf_token %}<input type="hidden" name="action" value="usb_install">
+            <input type="hidden" name="version" value="{{ v }}">
+            <button class="btn-box" type="submit" id="install-{{ v }}">Install Rasova {{ v }}</button></form>
+          {% endfor %}
+          <p class="muted">After closing time: the box makes a backup first, and goes back by itself if anything goes
+            wrong. Open bills stop it.</p>
+        {% endif %}
+        <form method="post">{% csrf_token %}<input type="hidden" name="action" value="usb_scan">
+          <button class="btn-box" type="submit" id="lookForUpdate">Look for an update on the pen drive</button></form>
+      {% endif %}
+    </div>
     <div class="panel" id="connectPanel"><h3>Phones, tablets and the counter PC</h3>
       <p class="muted">Open Rasova on a new device like an app, by scanning a QR code: no address to type.</p>
       <a class="btn-box btn-link" href="{% url 'box_connect' %}">Connect a device</a>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{% static 'js/box/health.js' %}"></script>
 {% endblock %}

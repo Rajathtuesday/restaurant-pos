@@ -1,0 +1,31 @@
+/* menu/templates/menu/menu_file.html: Menu › Menu file */
+.mf-page {
+  --mf-ok: #15803d; --mf-bad: #b91c1c;
+  max-width: 720px; margin: 0 auto; padding: 1.5rem 16px 5rem;
+}
+html.dark .mf-page, body.dark .mf-page { --mf-ok: #4ade80; --mf-bad: #f87171; }
+.mf-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin: 0 0 .4rem; }
+.mf-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin: 0 0 .75rem; }
+.mf-sub { color: var(--text-muted); font-size: .88rem; line-height: 1.6; margin: 0 0 1.5rem; }
+.mf-msg { padding: .7rem .9rem; margin-bottom: 1rem; border: 1px solid var(--border-color); font-size: .88rem; overflow-wrap: anywhere; }
+.mf-msg.success { border-color: var(--mf-ok); color: var(--mf-ok); }
+.mf-msg.error { border-color: var(--mf-bad); color: var(--mf-bad); }
+.mf-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; margin: 0 0 1rem; }
+.mf-card.is-check { border-color: var(--accent-gold); }
+.mf-name { font-size: 1rem; font-weight: 700; margin: 0 0 .4rem; overflow-wrap: anywhere; }
+.mf-hint { font-size: .8rem; color: var(--text-muted); line-height: 1.55; margin: .5rem 0 0; }
+.mf-table { width: 100%; border-collapse: collapse; font-size: .88rem; margin: .5rem 0; }
+.mf-table td { padding: .45rem 0; border-bottom: 1px solid var(--border-color); }
+.mf-table td:last-child { text-align: right; font-weight: 700; }
+.mf-field { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0; }
+.mf-label { font-size: .65rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 600; }
+.mf-field input[type=file] { min-height: 44px; font-size: .9rem; max-width: 100%; }
+.mf-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.mf-btn {
+  display: inline-flex; align-items: center; min-height: 44px; padding: .55rem 1.1rem; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; text-decoration: none; cursor: pointer;
+  background: transparent; color: var(--text-main); border: 1px solid var(--border-color); font-family: inherit;
+}
+.mf-btn:hover { border-color: var(--text-main); color: var(--text-main); }
+.mf-btn-main { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.mf-btn-main:hover { color: #fff; }

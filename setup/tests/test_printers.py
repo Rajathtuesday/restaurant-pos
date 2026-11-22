@@ -25,6 +25,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from accounts.models import User
+from core.testing import not_in_compiled_build
 from core.tests.test_tenant_walk import Restaurant
 from printing.models import PrintJob
 from setup.models import KitchenStation
@@ -375,6 +376,7 @@ class EdgeCaseTest(PrintersWorld):
         self.assertEqual(self.bar.printer_ip, "192.168.1.61")
         self.assertIsNone(Outlet.objects.get(pk=self.r.outlet.pk).print_profile)
 
+    @not_in_compiled_build("public/, which the compiled test image leaves empty")
     def test_the_app_download_is_served_as_an_android_app(self):
         r = Client().get("/android/rasova.apk")
         self.assertEqual(r.status_code, 200)

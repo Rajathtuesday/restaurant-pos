@@ -35,6 +35,7 @@ from .views import (
     sync_menu_to_outlets,
 )
 from .api import api_categories, api_items
+from menu.views import file_views
 
 urlpatterns = [
 
@@ -47,6 +48,11 @@ urlpatterns = [
     path("delete-category/<int:category_id>/", delete_category, name="delete_category"),
     path("add-recipe/", add_recipe, name="add_recipe"),
     path("ai-import/", ai_menu_importer, name="ai_menu_importer"),
+    # A menu as a file: save it, or load one (menu/views/file_views.py).
+    path("file/", file_views.menu_file_page, name="menu_file"),
+    path("file/download/", file_views.menu_file_download, name="menu_file_download"),
+    path("file/check/", file_views.menu_file_check, name="menu_file_check"),
+    path("file/load/", file_views.menu_file_load, name="menu_file_load"),
     path("ai-import-status/<str:task_id>/", ai_import_status, name="ai_import_status"),
 
     path("delete-item/<int:item_id>/", delete_menu_item, name="delete_menu_item"),

@@ -150,6 +150,7 @@ class HomeScreenIconTest(BoxBase):
 
 
 class AppFromTheBoxTest(BoxBase):
+    @not_in_compiled_build("public/, which the test image leaves empty (the box image fills it)")
     def test_a_phone_installs_the_app_from_the_box_itself(self):
         # No internet on a box: the app comes from the box, over the Wi-Fi.
         self.restaurant()

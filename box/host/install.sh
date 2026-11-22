@@ -96,3 +96,5 @@ install -m 755 "$HERE/rasova-box" /usr/local/bin/rasova-box
 
 say "8/8 Rasova"
 rasova-box install "$BUNDLE"
+# Box health can then update Rasova from a pen drive, without a keyboard here.
+rasova-box enable-usb-updates

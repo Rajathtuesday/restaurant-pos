@@ -7,6 +7,25 @@ the source of truth.
 
 ---
 
+## 2026-11-22: A menu file, box updates from a pen drive, and app 1.3.0 for everyone
+
+The owner, on the day the freeze was lifted: "all" of the pending box items, with tests for everything.
+
+### Added
+- **Menu, Menu file** (`/menu/file/`, `menu/services/menu_file.py`): save an outlet's whole menu as one JSON file (stations, liquor VAT classes, categories, dishes with price, GST, station and availability, modifier groups and which dishes use them; not photos, recipes or stock links), and load one. Loading is two steps: Check shows what it would add and update and changes nothing, Load does it in one transaction. It merges by name and never deletes. Every value is checked first (an amount the column can hold, 0/5/18% GST, a VAT drink at 0% GST, no liquor into a composition outlet, a VAT class or modifier group the file names, at most 2 MB and 5,000 dishes), each refusal a sentence naming the dish. A check loads once, only for the person who made it. How a box gets an AI-read menu: Rasova runs the AI import in the cloud, saves the file, the box loads it.
+- **Update from a pen drive, on Box health** (`box/usb_update.py`, `rasova-box usb-request` and `enable-usb-updates`): the owner plugs in the pen drive, presses Look, then Install; no keyboard, no visit. The web app writes a request; a systemd path unit runs the helper as root, which mounts USB drives read-only (never the backup stick), offers only bundles signed by Rasova and undamaged, and installs with the same `cmd_update` (backup, open bills refuse, health check, going back by itself). Box health follows it through Rasova's restart and says what happened; "the box didn't answer" after a minute when the helper isn't there. Requests are untrusted text: only "look" or "install a version the drive holds". `install.sh` enables it; a box installed earlier runs `sudo rasova-box enable-usb-updates` once.
+- **Rasova Android app 1.3.0 on rasova.net** (`public/android/rasova.apk`), the owner's call; the box keeps its own copy too.
+
+### Fixed
+- The menu page showed **AI Import** on a box, where that page doesn't exist: it shows only where the feature is on, with a **Menu File** link beside it.
+- `rasova-box`'s help printed two lines past its own text.
+- Two tests that read `public/` now skip in the box's compiled test image, which leaves `public/` empty.
+
+### Tests
+- `menu/tests/test_menu_file.py` (15): the whole menu in the file and only this outlet's; owner and manager only; a round trip rebuilds a menu in an empty outlet (stations, default station, VAT, modifiers and links); merging updates and adds and never deletes; a check loads once and only for who made it; the live demo can't load; bad files of every kind refused with a sentence; a station a dish names is made; the box's menu page has no AI Import and links the menu file.
+- `box/tests/test_usb_update.py` (15): requests are a few plain lines moved in whole; only scan or a version-shaped install; the status lets through only what it knows; no answer for a minute says so; owners start it, managers only see it; only a version the drive was found to hold installs; what the helper says is shown as text; the status address; and the helper run for real with bash on Linux: the signed bundle found, unsigned and damaged ones never offered, no update and no pen drive told apart, install handed to `rasova-box update`, a version not on the drive refused, odd requests ignored.
+- Node: `box_update.test.mjs` (restart mid-install, a scan that finds, giving up after half an hour).
+
 ## 2026-11-22: Every printer on one page, and phones on a Rasova box
 
 The owner lifted the feature freeze for 22 Nov 2026. This builds the recommended set of `md_files/rasova_printers_and_app_plan_eli5_2026-10-21.html`: one Printers page, Connect a device on the box, the Android app's box mode, and a spare PC as a box (option A). Option B (their everyday Windows PC) and real https on a box stay unbuilt, as the plan says.

@@ -194,7 +194,7 @@ Look for `"box_id"` (16 characters: digits and the letters a to f). You need it 
 
 **3. Setup.** Open the address on the owner's phone or laptop: the setup page appears. Fill in the restaurant's name, its type (Pub is first in the list), the outlet's name and GSTIN, and the owner's username and password (8 characters or more). The owner is signed in and taken to the onboarding wizard (`/setup/onboard/`). Setup can only run once.
 
-**4. Menu, tables and stations,** through the wizard.
+**4. Menu, tables and stations,** through the wizard. A box has no AI menu import (it needs the internet): Rasova reads the menu photo in the cloud and the owner loads the **menu file** on **Menu, Menu file**.
 
 **5. Printers.** In **Setup, Kitchen Stations**, make the stations (Kitchen, Bar...). Then **Setup, Printers**: give each one its printer's IP and press its **Test print**. The box prints the test page itself and the row says "Printed" once the printer took it; if not, it says why (the printer didn't answer, out of paper).
 
@@ -265,6 +265,25 @@ Backups happen by themselves every night at **4:30 am**, after a pub's 1 am clos
 ---
 
 ## 8. Updates
+
+There are two ways. The owner can do the first one alone; the second needs someone at the box with a keyboard and a screen.
+
+### 8a. The owner, from Box health (no keyboard, no visit)
+
+1. **Make the bundle** on your PC (section 3, steps 2 to 6) and copy the bundle folder onto a pen drive (any filesystem the box can read: FAT32, exFAT or ext4). Hand it over or courier it.
+2. **The owner, after closing time:** plugs the pen drive into the box, opens **Box health** on a phone and presses **Look for an update on the pen drive**.
+3. The box finds the bundle, checks it is signed by Rasova and undamaged, and shows **Install Rasova 1.0.1**. Anything unsigned or damaged on the drive is never offered.
+4. The owner presses **Install**. The box does exactly what `rasova-box update` does below (backup, refusal while bills are open, health check, going back by itself), and Box health follows it: "Rasova is restarting with the new version", then "Rasova 1.0.1 is running", or why not.
+
+How it works: the web app can't update Rasova (it runs in a container with no say over Docker). It writes a request into `data/update-requests/`; a systemd path unit on the box runs `rasova-box usb-request` as root, which mounts the pen drive read-only, checks every bundle, runs the same update and writes `data/update-status` for Box health. A request is treated as untrusted text: only "look" or "install a version the drive holds, signed by Rasova" is ever acted on.
+
+**A box installed before 22 Nov 2026** needs that helper once (`install.sh` does it on new boxes), after its `rasova-box` script is replaced (end of this section):
+```bash
+sudo rasova-box enable-usb-updates
+```
+Without it, Box health says "The box didn't answer" a minute after the button is pressed.
+
+### 8b. At the box, by hand
 
 **1. Make the bundle** on your PC (section 3, steps 2 to 6).
 
@@ -502,7 +521,9 @@ The licence ties to that PC's machine id the same way it does to our box.
 - **Compiling.** Migrations stay as source (their names start with a digit, which a compiled module can't have); so do `manage.py` and `__init__.py`. Templates, CSS and JavaScript are served as they are.
 - **Tests.** `box/tests/test_box.py`; CI runs the `box` app. In the compiled test image, `RASOVA_COMPILED_TESTS=1` makes tests that read files a box doesn't carry skip there, and only there (`core.testing.not_in_compiled_build`). A file missing from the repository still fails CI.
 - **Line endings.** `box/host/rasova-box` and every `.sh` are kept LF by `.gitattributes`. A CRLF script fails inside Linux.
-- **Devices.** `box/views.py` `connect` and `shortcut` (Connect a device); the box learns its number address from the owner's own visit (`BoxState.lan_address`), because it can't see it from inside its container. The box's pages hand the Android app `http://` and no agent key (`core/context_processors.py`). The box image carries its own copy of the app, `box/docker/android/rasova.apk`, served by the box at `/android/rasova.apk`; copy each new release APK there. `public/android/rasova.apk` is what rasova.net serves and is updated separately: on 22 Nov 2026 it stays 1.2.0 (the owner's call), while a box needs 1.3.0, the first app that opens a box.
+- **Updates from Box health.** `box/usb_update.py` (the web app's half: requests out, status in, strictly), `rasova-box usb-request` and `enable-usb-updates` (the host's half). Tests: `box/tests/test_usb_update.py` runs the script for real with bash on Linux, against folders standing in for the pen drive (`RASOVA_USB_ROOTS`) and a test key (`RASOVA_UPDATE_KEY_PEM`); both work only with `RASOVA_DEV=1`.
+- **Menu file.** Menu, Menu file (`menu/services/menu_file.py`): save an outlet's menu as JSON, load one (checked first, merged by name, never deletes). How a box gets an AI-read menu: Rasova runs the AI menu import in a cloud restaurant, saves the menu file, and it is loaded on the box.
+- **Devices.** `box/views.py` `connect` and `shortcut` (Connect a device); the box learns its number address from the owner's own visit (`BoxState.lan_address`), because it can't see it from inside its container. The box's pages hand the Android app `http://` and no agent key (`core/context_processors.py`). The box image carries its own copy of the app, `box/docker/android/rasova.apk`, served by the box at `/android/rasova.apk`; copy each new release APK there. `public/android/rasova.apk` is what rasova.net serves and is updated separately (both are 1.3.0 since 22 Nov 2026); a box needs 1.3.0 or newer, the first app that opens a box.
 - **End to end.** `scripts/box_e2e.py <box address> <a printer's IP>` checks a fresh box over the network as a phone sees it (first run, the app download, Connect a device, Printers with a real test page, a printer that never answers). Under Docker Desktop, give it a pretend printer: a Python listener on port 9100 in a container on the box's network.
 - **The Android app** (`rasova_android/`, 1.3.0): a local address is a box (`ServerUrl.isBox`), on plain http (`network_security_config.xml` allows it app-wide, because a WebView can't allow it per address; `ServerUrl.cleartextAllowed` keeps it to the local network in the WebView and the print service). On a box the app binds itself to the Wi-Fi (`LocalNetwork.kt`). Unit tests: `gradlew testDebugUnitTest` with JDK 17.
 

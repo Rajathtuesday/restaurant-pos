@@ -7,4 +7,5 @@ urlpatterns = [
     path("health/", views.health, name="box_health"),
     path("connect/", views.connect, name="box_connect"),
     path("connect/Rasova.cmd", views.shortcut, name="box_shortcut"),
+    path("update-status/", views.update_status, name="box_update_status"),
 ]

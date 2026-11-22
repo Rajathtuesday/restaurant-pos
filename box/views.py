@@ -9,7 +9,7 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db import connection, transaction
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.http.request import split_domain_port
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -93,6 +93,18 @@ def health(request):
                 messages.success(request, f"Backup made: {path.name}.")
             except backup.BackupError as e:
                 messages.error(request, f"Backup failed: {e}")
+        elif action == "usb_scan":
+            from box import usb_update
+            usb_update.ask("scan")
+        elif action == "usb_install":
+            from box import usb_update
+            version = request.POST.get("version", "")
+            # Only a version the last look at the pen drive found (signed by
+            # Rasova, checked by the box): never one typed into a request.
+            if version in usb_update.read_status().get("newer", []):
+                usb_update.ask("install", version)
+            else:
+                messages.error(request, "Look at the pen drive again first.")
         cache.delete("box_warnings")
         return redirect("box_health")
 
@@ -116,7 +128,26 @@ def health(request):
         "disk": disk,
         "printers": printers_summary(request.user.outlet),
         "is_owner": is_owner,
+        "usb": _usb_status(),
     })
+
+
+def _usb_status():
+    from box import usb_update
+    return usb_update.read_status()
+
+
+@login_required
+@tenant_required
+@role_required("owner", "manager")
+def update_status(request):
+    """What the pen drive update is doing, for Box health to follow while
+    Rasova restarts (box/usb_update.py)."""
+    _box_only()
+    status = _usb_status()
+    return JsonResponse({"state": status.get("state", ""), "working": status.get("working", False),
+                         "message": status.get("message", ""), "newer": status.get("newer", []),
+                         "running": status.get("running", "")})
 
 
 def learn_address(request):
