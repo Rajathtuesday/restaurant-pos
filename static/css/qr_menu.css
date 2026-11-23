@@ -542,7 +542,13 @@ body {
 .bill-row.is-offer { color: #10b981; }
 .cart-section-label { margin-bottom: 0.5rem; }
 .cart-section-label.is-adding { margin: 1.1rem 0 0.5rem; }
-.cart-qty { padding: 0.1rem 0.4rem; }
+/* The cart's quantity pill is as wide as its buttons: as a block-level flex
+   it stretched to the width of the offer line above it (23 Nov 2026). */
+.qty-controls.active.cart-qty { display: inline-flex; padding: 0.1rem 0.4rem; margin-top: 0.5rem; }
+.cart-item-row > div:first-child { min-width: 0; }
+.cart-item-price { text-align: right; white-space: nowrap; padding-left: 0.75rem; }
+.cart-was { text-decoration: line-through; color: var(--text-muted); font-weight: 500; font-size: 0.85em;
+    margin-right: 0.4rem; }
 .eta-banner {
     background: #fdf6e3; border: 1px solid #fde08b; border-radius: 8px;
     font-size: 0.85rem; color: #92400e; font-weight: 600;

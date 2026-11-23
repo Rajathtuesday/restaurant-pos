@@ -15,14 +15,13 @@ import { pageData } from "../core/page_data.js";
 import OrderEdit from "../order_edit.js";
 import { createRunningOrderActions } from "./actions.js";
 import { createOrderLoader } from "./loader.js";
-import { listHtml } from "./view.js";
+import { listHtml, moneyRowsHtml } from "./view.js";
 
 const data = pageData("page-data");
 const list = document.getElementById("items");
 const status = document.getElementById("ro-status");
 const totals = {
-  subtotal: document.getElementById("subtotal"),
-  gst: document.getElementById("gst"),
+  rows: document.getElementById("moneyRows"),
   total: document.getElementById("total"),
 };
 
@@ -45,8 +44,7 @@ const loader = createOrderLoader({
   url: data.urls.data,
   onOrder: (order) => {
     status.hidden = true;
-    totals.subtotal.textContent = rupees(order.subtotal);
-    totals.gst.textContent = rupees(order.gst);
+    totals.rows.innerHTML = moneyRowsHtml(order.rows);
     totals.total.textContent = rupees(order.total);
     itemsById = Object.fromEntries(order.items.map((i) => [String(i.id), i]));
     const html = listHtml(order.items, data.can);

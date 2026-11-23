@@ -7,6 +7,26 @@ the source of truth.
 
 ---
 
+## 2026-11-23: What the walkthrough recording found
+
+The owner lifted the freeze for the day: "first fix all the bugs and test it". Each was found by recording a scripted Friday night at a demo pub for the walkthrough video, and each fix comes with a test that fails on the old code.
+
+### Fixed
+- **Every KOT printed each modifier twice** ("*Peri Peri" and "+Peri Peri"): the till pasted the chosen modifier names into the dish's note as well. The note is now only what was typed (`static/js/billing/menu.js`), the cart shows the modifiers on their own line and tells two lines apart by their modifiers (`cart.js`, `ui.js`), and the order service takes a pasted list back off whatever a till sends (`orders/services/item_notes.py`), so an old cached page or the offline queue can't bring it back. Older rows read through `OrderItem.typed_note` on the KOT, the receipt page and the bill.
+- **The kitchen screen never showed a dish's modifiers**, only its note, so a guest's QR sauce choice (which has no note) never reached the cook. It shows each modifier and the typed note, once each. Category KOTs on the receipt page show modifiers too.
+- **The KOT's big header leaked into the lines below it**: python-escpos 3 sends nothing for `set(double_width=False, double_height=False)`, so the divider printed double wide and wrapped into two lines, and the lines after a tall dish name stayed tall. The printer is wrapped in `SizeSafe` (`printing/services/printing_service.py`), which sends normal size when a size is asked off; a tall TOTAL on the bill now ends with its line.
+- **A split bill printed after the first payment**, saying "Paid via UPI" against the whole total with half still owed. The bill page prints once the bill is settled (`static/js/bill/payment.js`); a printed bill says one "Paid via" line when one method paid it, a line per method with its amount when it was split, and "Balance due" while money is owed (`bill_layout.payment_rows`, on the printer, the receipt page and the queued receipt). Counter receipts said "Paid CASH" where bills said "Paid via CASH"; both say "Paid via" now (the golden receipts file regenerated: 16 lines, that word only).
+- **The dashboard's "given in discounts" disagreed with Reports** (Rs 4,937.50 against Rs 3,773 the same night): it added open tables' happy hour and cancelled orders. It counts settled bills, as the reports do.
+- **The running order page didn't add up**: Subtotal and GST only, so with happy hour on "Rs 3,750 + Rs 40.50 = Rs 3,056". It shows the bill's own rows (Subtotal, Offers, Discount, each tax, Round off).
+- **Tables came T1, T10, T11, T2**: the floor plan, Setup's tables and QR codes pages, the till's table list and the free tables for a transfer now count T1, T2 ... T10 (`orders/services/table_order.py`, and the floor plan's own sort).
+- **Onboarding's web address field didn't check anything in current Chrome**: `pattern="[a-z0-9-]+"` is invalid under the `v` flag browsers now use, so Chrome dropped it with only a console error. Escaped; a test compiles every pattern in every template the way browsers do.
+- **Onboarding offered AI Import** to a restaurant with the AI menu import switched off (and would on a box); it shows only where the feature is on.
+- **The guest's QR cart**: the quantity pill stretched to the width of the happy hour line, the line showed its price before the offer, and the bar said "1 ITEMS". The pill is as wide as its buttons, the price is after the offer with the old one struck through, and the bar says "1 item".
+
+### Tests
+- `orders/tests/test_kot_prints_once.py` (9, through the real python-escpos, not a stand-in that always sends a size), `orders/tests/test_bill_payment_rows.py` (5), `orders/tests/test_running_order_money.py`, `orders/tests/test_table_order.py` (4), `setup/tests/test_onboarding_ai.py` (2), a dashboard discounts test in `reports/tests/test_reports.py`, a QR cart test in `menu/tests/test_qr_menu_browser.py` (a real browser measuring the pill).
+- Node: the dish sheet's note, cart lines by modifiers, the kitchen card's modifiers, part payments printing nothing, the running order's money rows, the floor plan's counting order, the QR cart's line price and item word, and `html_patterns.test.mjs` (every template pattern compiled with the `v` flag).
+
 ## 2026-11-22: A menu file, box updates from a pen drive, and app 1.3.0 for everyone
 
 The owner, on the day the freeze was lifted: "all" of the pending box items, with tests for everything.

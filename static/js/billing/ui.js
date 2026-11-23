@@ -26,6 +26,7 @@ export function createScreen({ doc = document, win = globalThis, mode }) {
     return `<div class="cart-row">
       <div class="cart-row-main">
         <div class="cart-item-name">${veg}${esc(item.name)}${takeaway}</div>
+        ${(item.modifier_names || []).length ? `<div class="cart-item-note">${esc(item.modifier_names.join(", "))}</div>` : ""}
         ${item.note ? `<div class="cart-item-note">${esc(item.note)}</div>` : ""}
         ${offerNote(applied)}
       </div>

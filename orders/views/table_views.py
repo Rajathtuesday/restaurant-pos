@@ -11,6 +11,7 @@ import json
 
 from core.decorators import tenant_required, role_required, feature_required
 from orders.models import Order, OrderEvent, Table
+from orders.services.table_order import by_name
 from tablemerge.models import TableMerge
 
 logger = logging.getLogger("pos.orders")
@@ -60,7 +61,7 @@ def tables_data(request):
         outlet = request.user.outlet
         now = timezone.now()
 
-        tables = list(Table.objects.filter(tenant=tenant, outlet=outlet, is_active=True).order_by("name"))
+        tables = by_name(Table.objects.filter(tenant=tenant, outlet=outlet, is_active=True))
 
         merges = (
             TableMerge.objects
@@ -229,7 +230,7 @@ def available_tables(request):
         .exclude(id__in=merged_table_ids)
         .values("id", "name")
     )
-    return JsonResponse({"tables": list(tables)})
+    return JsonResponse({"tables": by_name(tables)})
 
 
 # merge_tables_view/unmerge_tables_view moved to tablemerge/views.py

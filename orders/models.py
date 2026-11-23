@@ -698,6 +698,14 @@ class OrderItem(models.Model):
         return {field: getattr(self, field) for field in self.TAX_SNAPSHOT_FIELDS}
 
     @property
+    def typed_note(self):
+        """The note someone typed for the kitchen, without the copy of the
+        modifier names older tills pasted in front of it (the modifiers
+        print and show on their own). orders/services/item_notes.py."""
+        from orders.services.item_notes import note_without_modifiers
+        return note_without_modifiers(self.notes, [m.name for m in self.modifiers.all()])
+
+    @property
     def tax_rate(self):
         """The rate of the line's own tax: VAT for liquor, GST otherwise."""
         return self.vat_rate if self.tax_kind == "vat" else self.gst_percentage

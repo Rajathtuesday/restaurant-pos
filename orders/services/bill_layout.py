@@ -139,6 +139,29 @@ def money(amount):
     return f"{Decimal(amount):.2f}"
 
 
+def payment_rows(order):
+    """How the bill was paid, for the foot of a printed bill, as (label,
+    value) pairs: "Paid via UPI" when one method paid it all; a line per
+    method with its amount when it was split; and "Balance due" while money
+    is still owed. It used to be "Paid via" the last payment alone, so a bill
+    printed after the first half of a split said "Paid via UPI" for the
+    whole total (found on the walkthrough recording, 23 Nov 2026)."""
+    paid = {}
+    net = Decimal("0")
+    for p in order.payments.all().order_by("paid_at", "id"):
+        net += p.amount
+        if p.method != "refund" and p.amount > 0:
+            paid[p.method.upper()] = paid.get(p.method.upper(), Decimal("0")) + p.amount
+    if not paid:
+        return ()
+    rows = [("Paid via", next(iter(paid)))] if len(paid) == 1 else [
+        (f"Paid by {method}", money(amount)) for method, amount in paid.items()]
+    due = Decimal(order.grand_total or 0) - net
+    if due >= Decimal("0.01"):
+        rows.append(("Balance due", money(due)))
+    return tuple(rows)
+
+
 def rupees(amount):
     """For a sentence staff read, Indian grouping, paise only when there are
     some: 1000 -> "₹1,000", 125000.5 -> "₹1,25,000.50"."""
@@ -224,7 +247,7 @@ def bill_layout(order):
             amount=ZERO if item.is_complimentary else Decimal(item.total_price),
             free=bool(item.is_complimentary),
             modifiers=tuple(m.name for m in item.modifiers.all()),
-            note=item.notes or "",
+            note=item.typed_note,
             offer=item.offer_name if (item.offer_discount or 0) > 0 and not item.is_complimentary else "",
             offer_amount=(Decimal(item.offer_discount or 0)
                           if not item.is_complimentary else ZERO),

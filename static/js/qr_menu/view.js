@@ -43,7 +43,7 @@ function orderedRows(items) {
  * (shown read-only first, so a second round is ordered knowing the first);
  * `notes` the offer line for each cart line (offers.js note()).
  */
-export function cartHtml({ lines, lineTotal, notes = [], already = [] }) {
+export function cartHtml({ lines, lineTotal, notes = [], offs = [], already = [] }) {
   let html = "";
   if (already.length) {
     html += `<div class="cart-items-text cart-section-label">Already ordered</div>${orderedRows(already)}`;
@@ -63,10 +63,23 @@ export function cartHtml({ lines, lineTotal, notes = [], already = [] }) {
           <button type="button" class="qty-btn" data-action="cart.inc" data-id="${esc(line.id)}" aria-label="One more ${esc(line.name)}">+</button>
         </div>
       </div>
-      <div class="cart-item-price">${esc(rupees(lineTotal(line)))}</div>
+      <div class="cart-item-price">${linePrice(lineTotal(line), offs[i])}</div>
     </div>`;
   }).join("");
   return html;
+}
+
+/* A line's price after its offer, with the price before it struck through:
+   the line said Rs 1,290 under "Happy hour -Rs 322.50" (walkthrough, 23 Nov 2026). */
+function linePrice(full, off) {
+  const cut = Number(off) || 0;
+  if (cut <= 0) return esc(rupees(full));
+  return `<span class="cart-was">${esc(rupees(full))}</span>${esc(rupees(full - cut))}`;
+}
+
+/* "1 item", "2 items": the bar said "1 ITEMS". */
+export function itemsWord(count) {
+  return Number(count) === 1 ? "item" : "items";
 }
 
 /* A dish the restaurant did not accept, so the guest is not left waiting

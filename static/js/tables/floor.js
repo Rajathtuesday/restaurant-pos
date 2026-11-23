@@ -46,7 +46,11 @@ export function summarise(tables) {
   };
 }
 
-/* [[section, tables], ...] in section order; tables with no section first. */
+/* Names the way people count them: T2 before T10 (orders/services/table_order.py). */
+const counting = (a, b) => String(a).localeCompare(String(b), "en", { numeric: true, sensitivity: "base" });
+
+/* [[section, tables], ...] in section order; tables with no section first,
+   each section's tables T1, T2 ... T10, never T1, T10, T2. */
 export function bySection(tables) {
   const sections = new Map();
   tables.forEach((t) => {
@@ -54,6 +58,7 @@ export function bySection(tables) {
     if (!sections.has(name)) sections.set(name, []);
     sections.get(name).push(t);
   });
+  sections.forEach((list) => list.sort((a, b) => counting(a.name, b.name)));
   return Array.from(sections.entries()).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 

@@ -83,7 +83,7 @@ def get_kitchen_data(user, station_name=None):
         .select_related("order", "order__table", "station", "order__token")
         .prefetch_related(Prefetch(
             "items",
-            queryset=unresolved.select_related("menu_item").order_by("id"),
+            queryset=unresolved.select_related("menu_item").prefetch_related("modifiers").order_by("id"),
             to_attr="open_items",
         ))
         .order_by("created_at")
@@ -104,7 +104,10 @@ def get_kitchen_data(user, station_name=None):
                 "name": i.menu_item.name,
                 "quantity": i.quantity,
                 "status": i.status,
-                "notes": i.notes or ""
+                # What the cook makes it with (a guest's QR sauce choice has
+                # no note at all), and what someone typed, each once.
+                "modifiers": [m.name for m in i.modifiers.all()],
+                "notes": i.typed_note,
             })
 
         if not items:

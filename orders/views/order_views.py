@@ -248,10 +248,17 @@ def running_order_data(request, order_id):
             **kitchen_stock_hint(i, is_manager, now),
         })
 
+    # The money rows the bill itself shows (Subtotal, Offers, Discount, the
+    # taxes, Round off), so they add up to the total on screen. Subtotal and
+    # GST alone left the happy hour out: Rs 3,750 + Rs 40.50 "= Rs 3,056"
+    # (the walkthrough recording, 23 Nov 2026).
+    from orders.services.bill_layout import bill_layout
+    layout = bill_layout(order)
     return JsonResponse({
         "subtotal": float(order.subtotal),
         "gst": float(order.gst_total),
         "total": float(order.grand_total),
+        "rows": [{"label": r.label, "amount": float(r.amount)} for r in layout.rows],
         "items": items
     })
 

@@ -9,8 +9,8 @@
  *   cart.totals({ dishTax, pageOffers, outlet, source, operatorSources, parcel })
  *     -> { lines, applied, totals }
  *
- * A line is one dish with one note and one takeaway flag: adding the same
- * dish with the same note again raises its quantity. Money goes through the
+ * A line is one dish with one set of modifiers, one note and one takeaway
+ * flag: adding the same dish the same way again raises its quantity. Money goes through the
  * browser copies of the tax and offer engines (cart_tax.js, offers.js),
  * which the parity tests hold equal to the server's.
  */
@@ -20,8 +20,11 @@ import { onCart as offersOnCart } from "../offers.js";
 export function createCart({ onChange = () => {} } = {}) {
   let items = [];
 
+  const modKey = (line) => [...(line.modifiers || [])].map(Number).sort((x, y) => x - y).join(",");
+
   function sameLine(a, b) {
-    return a.id === b.id && (a.note || "") === (b.note || "") && !!a.is_takeaway === !!b.is_takeaway;
+    return a.id === b.id && (a.note || "") === (b.note || "") && !!a.is_takeaway === !!b.is_takeaway
+      && modKey(a) === modKey(b);
   }
 
   return {
@@ -49,6 +52,7 @@ export function createCart({ onChange = () => {} } = {}) {
         note: dish.note || "",
         is_takeaway: !!dish.is_takeaway,
         modifiers: dish.modifiers || [],
+        modifier_names: dish.modifier_names || [],
         gst_percentage: Number(dish.gst_percentage) || 0,
         is_veg: dish.is_veg !== false,
         parcel_charge: Number(dish.parcel_charge) || 0,   // the dish's own, if it has one

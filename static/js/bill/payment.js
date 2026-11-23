@@ -82,10 +82,14 @@ export function createPayment({
     }
 
     ui.toast(data.message || "Payment recorded", "success");
-    const printed = await printer.afterPayment(orderId);
+    // The bill prints once, when it is settled. A part payment (one friend's
+    // half of a split) printed it too, saying "Paid via UPI" for the whole
+    // total with half still owed (the walkthrough recording, 23 Nov 2026).
+    const settled = !(Number(data.remaining) > 0);
+    const printed = settled ? await printer.afterPayment(orderId) : false;
     await wait(600);                       // long enough to read the toast
-    go(printed ? "" : "?print=1");
-    return { paid: true, printed };
+    go(printed || !settled ? "" : "?print=1");
+    return { paid: true, printed, settled };
   }
 
   return {

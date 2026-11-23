@@ -20,7 +20,7 @@ import logging
 
 from django.utils import timezone
 
-from orders.services.bill_layout import bill_layout, money, rate_text
+from orders.services.bill_layout import bill_layout, money, payment_rows, rate_text
 
 logger = logging.getLogger("pos.orders")
 
@@ -48,6 +48,32 @@ class ConsolePrinter:
         else:
             print("\n" + "-" * w + " [partial cut - stays connected] " + "-" * w + "\n")
 
+
+
+class SizeSafe:
+    """A printer whose set() really turns double size off.
+
+    python-escpos 3 sends nothing at all for set(double_width=False,
+    double_height=False): only a true size, or normal_textsize=True, sends a
+    size command. So every "back to normal" here was ignored and the size
+    stayed on: after a KOT's big header the divider printed in double width
+    and wrapped into two dashed lines, and the lines after a tall dish name
+    stayed tall (found on the walkthrough recording, 23 Nov 2026). A size
+    asked off, with none asked on, is sent as normal size."""
+
+    def __init__(self, printer):
+        self._printer = printer
+
+    def __getattr__(self, name):
+        return getattr(self._printer, name)
+
+    def set(self, *args, **kwargs):
+        wide, tall = kwargs.get("double_width"), kwargs.get("double_height")
+        if (wide is False or tall is False) and not wide and not tall and not kwargs.get("custom_size"):
+            kwargs.pop("double_width", None)
+            kwargs.pop("double_height", None)
+            kwargs["normal_textsize"] = True
+        return self._printer.set(*args, **kwargs)
 
 
 def _get_printer_from_station(station):
@@ -101,10 +127,10 @@ class PrintingService:
                 # 3-second timeout. Real LAN printers connect in <1s.
                 # Short timeout means unreachable printers fail fast instead of
                 # blocking send-to-kitchen for 10s per station.
-                return Network(self.host, port=self.port, timeout=3)
+                return SizeSafe(Network(self.host, port=self.port, timeout=3))
             elif self.printer_type == "usb" and self.vendor_id:
                 from escpos.printer import Usb
-                return Usb(self.vendor_id, self.product_id)
+                return SizeSafe(Usb(self.vendor_id, self.product_id))
         except Exception as e:
             logger.error("Printer connection failed (%s:%s): %s", self.host, self.port, e)
         return None
@@ -157,7 +183,7 @@ class PrintingService:
         p.text("-" * width + "\n")
         p.set(align=align, bold=True, font="a", double_height=tall_total)
         p.text(two("TOTAL", self._currency(layout.total)) + "\n")
-        p.set(align=align, bold=False, font="a")
+        p.set(align=align, bold=False, font="a", double_height=False)     # a tall TOTAL ends here
         return two
 
     def _print_included(self, p, layout, two):
@@ -261,8 +287,9 @@ class PrintingService:
             p.set(align="left", bold=True, double_height=large_font)
             p.text(f"{qty_label}{name}\n")
             p.set(align="left", bold=False, double_height=False)
-            if item.notes:
-                p.text(f"  *{str(item.notes)[:W-3]}\n")
+            note = item.typed_note
+            if note:
+                p.text(f"  *{note[:W-3]}\n")
             for mod in item.modifiers.all():
                 p.text(f"  +{str(mod.name)[:W-3]}\n")
 
@@ -344,9 +371,8 @@ class PrintingService:
         p.set(align="center", bold=False, font='a')
         two = self._print_money(p, layout, C)
 
-        payment = order.payments.order_by("-paid_at").first()
-        if payment:
-            p.text(two("Paid via", payment.method.upper()) + "\n")
+        for label, value in payment_rows(order):
+            p.text(two(label, value) + "\n")
 
         self._print_included(p, layout, two)
 
@@ -440,9 +466,8 @@ class PrintingService:
 
         two = self._print_money(p, layout, W, align="left", tall_total=True)
 
-        payment = order.payments.order_by("-paid_at").first()
-        if payment:
-            p.text(two("Paid via", payment.method.upper()) + "\n")
+        for label, value in payment_rows(order):
+            p.text(two(label, value) + "\n")
 
         self._print_included(p, layout, two)
 
@@ -567,9 +592,8 @@ class PrintingService:
 
         two = self._print_money(p, layout, W, align="left")
 
-        payment = order.payments.order_by("-paid_at").first()
-        if payment:
-            p.text(two("Paid", payment.method.upper()) + "\n")
+        for label, value in payment_rows(order):
+            p.text(two(label, value) + "\n")
 
         self._print_included(p, layout, two)
 

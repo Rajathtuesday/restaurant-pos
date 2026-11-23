@@ -140,8 +140,23 @@ test("a payment is recorded, the bill printed, and the page reloads", async () =
   assert.match(sentId, /^[0-9a-f-]{36}$/, "each payment carries an id");
   assert.deepEqual(rig.printedFor, [7]);
   assert.deepEqual(rig.went, [""]);
-  assert.deepEqual(result, { paid: true, printed: true });
+  assert.deepEqual(result, { paid: true, printed: true, settled: true });
   assert.deepEqual(rig.ui.calls.toast[0], ["Paid in full", "success"]);
+});
+
+test("a part payment (half of a split) records the money and prints nothing yet", async () => {
+  // It used to print the bill at once, "Paid via UPI" for the whole total.
+  const rig = payRig([{ success: true, message: "Partial payment recorded", remaining: 1375 }]);
+  const result = await rig.payment.pay("upi", "1375.00");
+  assert.deepEqual(rig.printedFor, [], "no bill until it is settled");
+  assert.deepEqual(rig.went, [""], "the page reloads to show what is still due");
+  assert.deepEqual(result, { paid: true, printed: false, settled: false });
+});
+
+test("the payment that settles a split bill prints it", async () => {
+  const rig = payRig([{ success: true, message: "Payment complete, order closed" }]);
+  await rig.payment.pay("cash", "1375.00");
+  assert.deepEqual(rig.printedFor, [7]);
 });
 
 test("when no printer took the bill the page reloads asking for the receipt page", async () => {

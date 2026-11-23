@@ -50,7 +50,8 @@
   <span class="item-qty">{{ item.quantity }}x</span>
   <span>{% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
 </div>
-{% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
+{% if item.typed_note %}<div class="item-note">* {{ item.typed_note }}</div>{% endif %}
+{% for mod in item.modifiers.all %}<div class="item-note">+ {{ mod.name }}</div>{% endfor %}
 {% endfor %}
 <div class="sep"></div>
 <div class="row bold"><span class="label">Total</span><span class="value">Rs.{{ group.total|floatformat:2 }}</span></div>
@@ -111,7 +112,7 @@
     <span class="item-qty bold">{{ item.quantity }}x</span>
     <span> {% if item.menu_item.is_veg %}[V]{% else %}[N]{% endif %} {{ item.menu_item.name }}</span>
   </div>
-  {% if item.notes %}<div class="item-note">* {{ item.notes }}</div>{% endif %}
+  {% if item.typed_note %}<div class="item-note">* {{ item.typed_note }}</div>{% endif %}
   {% for mod in item.modifiers.all %}<div class="item-note">+ {{ mod.name }}</div>{% endfor %}
   {% endfor %}
   <div class="sep"></div>

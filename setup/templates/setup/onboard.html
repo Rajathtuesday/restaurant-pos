@@ -109,7 +109,7 @@
                                value="{{ tenant.slug }}" maxlength="30"
                                placeholder="{{ tenant.slug }}"
                                data-action="slug.check" data-check-url="{% url 'check_slug' %}" aria-label="Web address"
-                               pattern="[a-z0-9-]+"
+                               pattern="[a-z0-9\-]+"
                                autocomplete="off">
                         <span class="subdomain-suffix">.rasova.net</span>
                     </div>
@@ -139,12 +139,14 @@
         <p class="wiz-sub">Choose how you'd like to add your menu.</p>
 
         <div class="onboard-menu-choice" style="display:grid;gap:1rem;margin-bottom:2rem;">
+            {% if 'ai_menu_import' in tenant_features %}
             <div id="ai-import-box" style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;transition:border-color 0.2s;" class="onboard-card" role="button" tabindex="0" data-action="file.pick" data-target="ai-file-input">
                 <div style="font-size:1.5rem;margin-bottom:0.4rem;">📷</div>
                 <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">AI Import</div>
                 <div style="font-size:0.72rem;color:var(--muted);line-height:1.4;">Upload a photo of your paper menu</div>
                 <input type="file" id="ai-file-input" accept="image/*" style="display:none;" data-action="ai.import" data-url="{% url 'ai_menu_importer' %}">
             </div>
+            {% endif %}
             <form method="post" action="/setup/sample-menu/" id="sample-menu-form">
                 {% csrf_token %}
                 <div style="border:1px solid var(--border);padding:1.25rem 1rem;text-align:center;cursor:pointer;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:border-color 0.2s;" class="onboard-card" role="button" tabindex="0" data-action="onboard.sample">

@@ -400,7 +400,6 @@ def thermal_receipt_view(request, order_id):
             token = order_token.display_number
 
     # Payment and change
-    payment    = order.payments.order_by("-paid_at").first()
     total_paid = order.payments.exclude(method="refund").aggregate(t=Sum("amount"))["t"] or 0
     change_due = max(0, total_paid - order.grand_total)
 
@@ -432,14 +431,14 @@ def thermal_receipt_view(request, order_id):
                 groups[key]["total"] += item.total_price
         category_groups = list(groups.values())
 
-    from orders.services.bill_layout import bill_layout
+    from orders.services.bill_layout import bill_layout, payment_rows
     return render(request, "orders/thermal_receipt.html", {
         "order":           order,
         "layout":          bill_layout(order),
+        "payment_rows":    payment_rows(order),
         "items":           items,
         "kots":            kots,
         "token":           token,
-        "payment":         payment,
         "change_due":      change_due,
         "paper_width":     paper_width,
         "split_mode":      split_mode,

@@ -37,7 +37,8 @@ function nextStep(item) {
 }
 
 function itemRow(item) {
-  const note = item.notes ? `<span class="item-note">${esc(item.notes)}</span>` : "";
+  const mods = (item.modifiers || []).map((m) => `<span class="item-note item-mod">+ ${esc(m)}</span>`).join("");
+  const note = mods + (item.notes ? `<span class="item-note">${esc(item.notes)}</span>` : "");
   return `<div class="item-row" data-item="${Number(item.id)}">
     <div class="item-main">
       <span class="item-qty">${esc(item.quantity)}</span>

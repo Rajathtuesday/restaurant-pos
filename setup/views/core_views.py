@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from orders.models import Table
+from orders.services.table_order import by_name
 from menu.models import MenuCategory, MenuItem
 from tenants.models import NO_GSTIN_MESSAGE, Outlet, read_bill_code, read_gstin
 from setup.models import KitchenStation, PaymentConfig
@@ -88,7 +89,7 @@ def setup_tables(request):
     tables = Table.objects.filter(
         tenant=tenant,
         outlet=outlet
-    ).order_by("name")
+    )
 
     if request.method == "POST":
 
@@ -131,7 +132,7 @@ def setup_tables(request):
     return render(
         request,
         "setup/setup_tables.html",
-        {"tables": tables}
+        {"tables": by_name(tables)}
     )
 
 # -------------------------------------------------
@@ -1035,9 +1036,9 @@ def setup_qr_codes(request):
     outlet = request.user.outlet
     tenant = request.user.tenant
 
-    tables = Table.objects.filter(
+    tables = by_name(Table.objects.filter(
         tenant=tenant, outlet=outlet
-    ).order_by("name")
+    ))
 
     # A box has no fixed address of its own (rasova.local, or its IP): the one
     # this device used.

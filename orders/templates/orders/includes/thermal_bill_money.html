@@ -2,7 +2,8 @@
 {% for row in layout.rows %}<div class="row small"><span class="label">{{ row.label }}</span><span class="value">{{ row.amount|floatformat:2 }}</span></div>
 {% endfor %}<div class="sep-solid"></div>
 <div class="row bold" style="font-size:{{ big_font }}px;"><span class="label">TOTAL</span><span class="value">Rs.{{ layout.total|floatformat:2 }}</span></div>
-{% if payment %}<div class="row small"><span class="label">Paid via</span><span class="value">{{ payment.method|upper }}</span></div>{% endif %}
+{% for label, value in payment_rows %}<div class="row small"><span class="label">{{ label }}</span><span class="value">{{ value }}</span></div>
+{% endfor %}
 {% if change_due and change_due > 0 %}<div class="row small"><span class="label">Change</span><span class="value">Rs.{{ change_due|floatformat:2 }}</span></div>{% endif %}
 {% if layout.included %}
 <div class="small" style="margin-top:1mm;">{% if layout.prices_include_gst %}Prices include GST:{% else %}Prices include tax:{% endif %}</div>

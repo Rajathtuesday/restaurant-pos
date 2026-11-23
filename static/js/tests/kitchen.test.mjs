@@ -268,3 +268,11 @@ test("a private window with no storage still works for the page", () => {
   assert.equal(light.toggle(), true);
   assert.ok(doc.classes.has("kitchen-light"));
 });
+
+test("a dish's modifiers show on the kitchen card, each once, apart from the typed note", () => {
+  // A guest's QR sauce has no note: without the modifiers the cook never saw it.
+  const html = boardHtml([kot(1, 1, [item(1, "sent", { modifiers: ["Korean Chilli"], notes: "extra crispy" })])], NOW);
+  assert.equal(html.split("Korean Chilli").length - 1, 1);
+  assert.match(html, /\+ Korean Chilli/);
+  assert.match(html, /extra crispy/);
+});

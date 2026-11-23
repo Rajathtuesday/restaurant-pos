@@ -407,3 +407,10 @@ test("a new table needs a name; a saved one keeps the floor in step", async () =
   assert.equal(r.seen.refreshed, 2);
   assert.equal(r.seen.closed, 0, "the Tables sheet stays open while tables are being added");
 });
+
+test("a section's tables run T1, T2 ... T10, the way people count", () => {
+  // The floor plan of a 14-table pub ran T1, T10, T11, T12, T13, T14, T2.
+  const names = ["T10", "T2", "T1", "t3", "T14"];
+  const grouped = bySection(names.map((name, i) => table(i + 1, "free", { name })));
+  assert.deepEqual(grouped[0][1].map((t) => t.name), ["T1", "T2", "t3", "T10", "T14"]);
+});

@@ -19,6 +19,18 @@ test("the same dish with the same note is one line; a different note is another"
   assert.equal(cart.quantityOf(1), 4);
 });
 
+test("a line is one set of modifiers: different ones are two lines, the same ones in any order one", () => {
+  // The modifiers used to be told apart only because their names were
+  // pasted into the note (and so printed twice on every KOT).
+  const cart = createCart();
+  cart.add({ ...PANEER, modifiers: [3], modifier_names: ["Peri Peri"] });
+  cart.add({ ...PANEER, modifiers: [4], modifier_names: ["Smoky BBQ"] });
+  cart.add({ ...PANEER, modifiers: [5, 6] });
+  cart.add({ ...PANEER, modifiers: [6, 5] });
+  assert.equal(cart.items.length, 3);
+  assert.deepEqual(cart.items.map((i) => i.quantity), [1, 1, 2]);
+});
+
 test("the counter's one-tap add merges by dish alone", () => {
   const cart = createCart();
   cart.add(PANEER, { mergeBy: "dish" });
@@ -47,7 +59,7 @@ test("the payload is what create-order reads, and a copy", () => {
   const payload = cart.toPayload();
   assert.deepEqual(payload, [{
     id: 1, name: "Paneer Tikka", price: 250, quantity: 1, note: "Extra hot | less oil",
-    is_takeaway: true, modifiers: [7], gst_percentage: 5, is_veg: true,
+    is_takeaway: true, modifiers: [7], modifier_names: [], gst_percentage: 5, is_veg: true,
   }]);
   payload[0].modifiers.push(8);
   assert.deepEqual(cart.items[0].modifiers, [7], "changing the payload does not change the cart");

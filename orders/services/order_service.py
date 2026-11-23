@@ -15,6 +15,7 @@ from orders.services.cart_limits import (
 )
 from orders.services.event_service import log_event
 from orders.services.inventory_service import check_inventory_availability
+from orders.services.item_notes import note_without_modifiers
 from orders.services.tax_service import tax_snapshot_for
 
 
@@ -233,6 +234,7 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
         # -------------------------------------------------
 
         modifier_total = Decimal("0")
+        modifier_names = []
 
         for mod_id in modifier_ids:
 
@@ -254,6 +256,14 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             )
 
             modifier_total += modifier.price
+            modifier_names.append(modifier.name)
+
+        # The note is only what was typed: a till that pasted the modifier
+        # names into it too (older JavaScript) would print each one twice.
+        typed = note_without_modifiers(order_item.notes, modifier_names)
+        if typed != order_item.notes:
+            order_item.notes = typed
+            order_item.save(update_fields=["notes"])
 
         # Update total price including modifiers
         if modifier_total > 0:

@@ -7,6 +7,7 @@
  * edit, serve, comp, edit_served, approve.
  */
 import { emptyStateHtml } from "../core/empty_state.js";
+import { rupees } from "../core/money.js";
 import { esc } from "../order_edit.js";
 
 const BADGE = {
@@ -107,4 +108,12 @@ export function approveAllHtml(items, can) {
   return `<div class="ro-guest-bar"><span>${waiting} guest dishes waiting</span>` +
     `<button type="button" class="btn-luxury btn-gold" data-action="order.approveAll">` +
     `<i class="bi bi-check-circle" aria-hidden="true"></i> Approve all</button></div>`;
+}
+
+/* The money rows the bill shows, signed, adding up to the total below them:
+   Subtotal, Offers, Discount, each tax, Round off (orders/services/bill_layout.py). */
+export function moneyRowsHtml(rows) {
+  return (rows || []).map((r) =>
+    `<div class="total-row${Number(r.amount) < 0 ? " total-row-off" : ""}"><span>${esc(r.label)}</span>` +
+    `<span>${esc(rupees(r.amount))}</span></div>`).join("");
 }

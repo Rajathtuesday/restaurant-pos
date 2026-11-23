@@ -18,7 +18,7 @@ import { createGuestCart } from "./cart.js";
 import { createModifierPick } from "./modifiers.js";
 import { createOrderSender, createOrderStore } from "./order.js";
 import { createStatusPoller } from "./status.js";
-import { cartHtml, modifierGroupsHtml, statusItemsHtml } from "./view.js";
+import { cartHtml, itemsWord, modifierGroupsHtml, statusItemsHtml } from "./view.js";
 
 const data = pageData("page-data");
 const optionsByDish = pageData("item-modifiers-raw");
@@ -74,7 +74,8 @@ function drawCart() {
   const applied = onCart(pageOffers, taxed, lines.map((l) => ({ dishId: l.id, quantity: l.qty })));
   el("cartItemsContainer").innerHTML = cartHtml({
     // onCart answers {} with no offers and a list with them: read it by index.
-    lines, lineTotal: cart.lineTotal, notes: lines.map((l, i) => offerNote(applied[i])), already: alreadyOrdered,
+    lines, lineTotal: cart.lineTotal, notes: lines.map((l, i) => offerNote(applied[i])),
+    offs: lines.map((l, i) => (applied[i] ? applied[i].discount : 0)), already: alreadyOrdered,
   });
   const t = taxTotals(taxed, data.outlet);
   el("billSubtotal").textContent = rupees(t.subtotal);
@@ -90,6 +91,7 @@ function drawCart() {
 function drawBar() {
   const count = cart.count();
   el("totalItems").textContent = String(count);
+  el("totalItemsWord").textContent = itemsWord(count);
   el("totalPrice").textContent = rupees(cart.total());
   el("cartBar").classList.toggle("visible", count > 0);
   const eta = cart.eta();

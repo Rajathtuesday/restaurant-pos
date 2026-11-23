@@ -10,7 +10,7 @@ import { createGuestCart } from "../qr_menu/cart.js";
 import { createModifierPick } from "../qr_menu/modifiers.js";
 import { createOrderSender, createOrderStore } from "../qr_menu/order.js";
 import { STAGE_INDEX, createStatusPoller, describeStatus, finished } from "../qr_menu/status.js";
-import { cartHtml, modifierGroupsHtml, statusItemsHtml } from "../qr_menu/view.js";
+import { cartHtml, itemsWord, modifierGroupsHtml, statusItemsHtml } from "../qr_menu/view.js";
 import { networkDown, reply } from "./helpers.mjs";
 
 const NAAN = { id: "7", name: "Butter Naan", price: 50, prepTime: 10, gstRate: 5 };
@@ -231,4 +231,20 @@ test("the cart shows what is already on its way above what is being added", () =
   assert.match(html, /₹100/);
   assert.doesNotMatch(cartHtml({ lines: [{ id: "7", name: "Naan", qty: 1, price: 50, modifiers: [] }], lineTotal: () => 50 }), /Already ordered/);
   assert.match(statusItemsHtml([]), /No items yet/);
+});
+
+test("a cart line with an offer shows the price after it, the old price struck through", () => {
+  // The line said ₹1,290 under "Happy hour −₹322.50".
+  const line = { id: "9", name: "Wheat Beer Pitcher", qty: 1, price: 1290, modifiers: [] };
+  const html = cartHtml({ lines: [line], lineTotal: (l) => l.qty * l.price, offs: [322.5] });
+  assert.match(html, /<span class="cart-was">₹1,290<\/span>₹967.50/);
+  const plain = cartHtml({ lines: [line], lineTotal: (l) => l.qty * l.price });
+  assert.match(plain, /<div class="cart-item-price">₹1,290<\/div>/);
+  assert.match(plain, /class="qty-controls active cart-qty"/);
+});
+
+test("the cart bar says 1 item, 2 items", () => {
+  assert.equal(itemsWord(1), "item");
+  assert.equal(itemsWord(2), "items");
+  assert.equal(itemsWord(0), "items");
 });

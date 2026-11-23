@@ -7,6 +7,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { createMenu } from "../billing/menu.js";
+
 import { createCart } from "../billing/cart.js";
 import { createCounter } from "../billing/counter.js";
 import { createDispatch } from "../billing/dispatch.js";
@@ -660,4 +662,25 @@ test("a token's order: guest items wait for approval before checkout appears", (
   assert.match(renderTokenOrder({ order_status: "paid", items: [] }), /Paid/);
   const billing = renderTokenOrder({ order_id: 9, order_status: "billing", items: [{ id: 2, quantity: 1, name: "Bun", total: 30, status: "served" }] });
   assert.doesNotMatch(billing, /data-action="order\.(bill|cancel)"/, "a billed order is finished from the bill");
+});
+
+test("the dish sheet's note is only what was typed; the modifiers go as ids and names", () => {
+  // The note used to be "Peri Peri | no onion": the KOT printed Peri Peri twice.
+  const els = {
+    itemModal: { classList: { contains: () => true }, addEventListener() {} },
+    modalItemName: {}, modifierContainer: {}, itemNote: { value: "" }, itemTakeaway: { checked: false },
+  };
+  const checked = [{ value: "Peri Peri", id: "mod_3", getAttribute: () => "0" }];
+  const doc = {
+    getElementById: (id) => els[id],
+    querySelectorAll: (sel) => (sel === ".modifier-check:checked" ? checked : []),
+  };
+  const win = { bootstrap: { Modal: { getOrCreateInstance: () => ({ show() {}, hide() {} }) } } };
+  const menu = createMenu({ doc, modifiersUrl: null, win });
+  menu.openSheet({ id: 25, name: "Chicken Wings", price: 420, gst_percentage: 5 });
+  els.itemNote.value = "  no onion ";
+  const line = menu.readSheet();
+  assert.equal(line.note, "no onion");
+  assert.deepEqual(line.modifiers, [3]);
+  assert.deepEqual(line.modifier_names, ["Peri Peri"]);
 });

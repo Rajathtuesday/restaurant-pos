@@ -159,13 +159,15 @@ export function createMenu({ doc = document, modifiersUrl, fetchFn = (...a) => f
       ids.push(parseInt(cb.id.replace("mod_", ""), 10));
       extra += parseFloat(cb.getAttribute("data-price") || 0);
     });
-    const typed = (el("itemNote")?.value || "").trim();
-    const note = [names.join(", "), typed].filter(Boolean).join(" | ");
+    // The note is only what was typed: the modifiers travel as their own
+    // ids (and names, for the cart), so a KOT prints each one once.
+    const note = (el("itemNote")?.value || "").trim();
     return {
       ...selected,
       price: selected.price + extra,
       note,
       modifiers: ids,
+      modifier_names: names,
       is_takeaway: !!el("itemTakeaway")?.checked,
     };
   }

@@ -637,6 +637,25 @@ class OwnerDashboardMetricsBusinessDateTest(TestCase):
         self.assertEqual(float(results[0]["revenue"]), 1250.0)
         self.assertEqual(results[0]["orders"], 2)
 
+    @patch("django.utils.timezone.now")
+    def test_discounts_given_count_settled_bills_only(self, mock_now):
+        """Open tables' happy hour isn't given yet, a cancelled order gave
+        nothing: the dashboard said Rs 4,937.50 where Reports said Rs 3,773
+        for one night (the walkthrough recording, 23 Nov 2026)."""
+        from reports.services.dashboard_metrics import owner_dashboard_metrics
+
+        mock_now.return_value = timezone.make_aware(_dt(2026, 7, 17, 21, 0), timezone.get_current_timezone())
+        paid = self._order_at(_dt(2026, 7, 17, 20, 0), "900.00")
+        Order.objects.filter(pk=paid.pk).update(discount_total=Decimal("100.00"))
+        for status in ("open", "cancelled"):
+            Order.objects.create(tenant=self.tenant, outlet=self.outlet, status=status,
+                                 subtotal=Decimal("800"), grand_total=Decimal("600"),
+                                 discount_total=Decimal("200.00"))
+
+        results = owner_dashboard_metrics(self.owner)
+        self.assertEqual(float(results[0]["discounts_amount"]), 100.0)
+        self.assertEqual(results[0]["discounts_count"], 1)
+
 
 # ---------------------------------------------------------------------------
 # export_services.py business-date tests

@@ -12,6 +12,7 @@ from django.views.decorators.cache import never_cache
 from core.decorators import tenant_required
 from menu.models import MenuCategory, MenuItem
 from orders.models import Order, Table
+from orders.services.table_order import by_name
 from tablemerge.models import TableMerge
 from orders.services.order_lock_service import lock_order
 from setup.models import PaymentConfig
@@ -123,9 +124,9 @@ def billing_view(request):
         .prefetch_related(Prefetch("items", queryset=MenuItem.objects.filter(is_available=True)))
     )
 
-    tables = Table.objects.filter(
+    tables = by_name(Table.objects.filter(
         tenant=request.user.tenant, outlet=request.user.outlet, is_active=True
-    ).order_by("name")
+    ))
 
     from core.features import has_feature
     from setup.models import KitchenStation

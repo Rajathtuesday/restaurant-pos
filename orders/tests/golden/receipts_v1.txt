@@ -122,7 +122,7 @@ A < |CGST 2.5%                  10.50|
 A < |SGST 2.5%                  10.50|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.441.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST extra | parcel with a token, UPI ====
@@ -266,7 +266,7 @@ A < |Parcel charge              20.00|
 A < |Round off                   0.27|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.467.00|
-A < |Paid                         UPI|
+A < |Paid via                     UPI|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST extra | mixed rates, 10% off, one voided and one free dish ====
@@ -435,7 +435,7 @@ A < |SGST 9%                    51.84|
 A < |Round off                  -0.28|
 A < |--------------------------------|
 A*< |TOTAL                 Rs.1160.00|
-A < |Paid                        CARD|
+A < |Paid via                    CARD|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST extra | paise, an item discount and a flat discount ====
@@ -583,7 +583,7 @@ A < |SGST 9%                    25.51|
 A < |Round off                   0.46|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.942.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | GST extra | big order, not paid yet ====
@@ -841,7 +841,7 @@ A < |--------------------------------|
 A < |Subtotal                  420.00|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.420.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A < |Prices include GST:|
 A < |GST 5% on 400.00|
 A < |  CGST 2.5%                10.00|
@@ -993,7 +993,7 @@ A < |Parcel charge              20.00|
 A < |Round off                   0.50|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.445.00|
-A < |Paid                         UPI|
+A < |Paid via                     UPI|
 A < |Prices include GST:|
 A < |GST 5% on 423.34|
 A < |  CGST 2.5%                10.58|
@@ -1170,7 +1170,7 @@ A < |Subtotal                 1150.00|
 A < |Discount                 -115.00|
 A < |--------------------------------|
 A*< |TOTAL                 Rs.1035.00|
-A < |Paid                        CARD|
+A < |Paid via                    CARD|
 A < |Prices include GST:|
 A < |GST 5% on 411.43|
 A < |  CGST 2.5%                10.28|
@@ -1334,7 +1334,7 @@ A < |Discount                 -137.37|
 A < |Round off                   0.40|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.862.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A < |Prices include GST:|
 A < |GST 5% on 550.55|
 A < |  CGST 2.5%                13.76|
@@ -1602,7 +1602,7 @@ A < |--------------------------------|
 A < |Subtotal                  420.00|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.420.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition | parcel with a token, UPI ====
@@ -1748,7 +1748,7 @@ A < |Parcel charge              20.00|
 A < |Round off                   0.50|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.445.00|
-A < |Paid                         UPI|
+A < |Paid via                     UPI|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition | mixed rates, 10% off, one voided and one free dish ====
@@ -1907,7 +1907,7 @@ A < |Subtotal                 1150.00|
 A < |Discount                 -115.00|
 A < |--------------------------------|
 A*< |TOTAL                 Rs.1035.00|
-A < |Paid                        CARD|
+A < |Paid via                    CARD|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition | paise, an item discount and a flat discount ====
@@ -2049,7 +2049,7 @@ A < |Discount                 -137.37|
 A < |Round off                   0.40|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.862.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition | big order, not paid yet ====
@@ -2303,7 +2303,7 @@ A < |--------------------------------|
 A < |Subtotal                  420.00|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.420.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A > |20/09 20:00|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition, GST included | parcel with a token, UPI ====
@@ -2449,7 +2449,7 @@ A < |Parcel charge              20.00|
 A < |Round off                   0.50|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.445.00|
-A < |Paid                         UPI|
+A < |Paid via                     UPI|
 A > |20/09 20:01|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition, GST included | mixed rates, 10% off, one voided and one free dish ====
@@ -2608,7 +2608,7 @@ A < |Subtotal                 1150.00|
 A < |Discount                 -115.00|
 A < |--------------------------------|
 A*< |TOTAL                 Rs.1035.00|
-A < |Paid                        CARD|
+A < |Paid via                    CARD|
 A > |20/09 20:02|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition, GST included | paise, an item discount and a flat discount ====
@@ -2750,7 +2750,7 @@ A < |Discount                 -137.37|
 A < |Round off                   0.40|
 A < |--------------------------------|
 A*< |TOTAL                  Rs.862.00|
-A < |Paid                        CASH|
+A < |Paid via                    CASH|
 A > |20/09 20:03|
 ~~~ cut FULL ~~~
 ==== bill, 32 chars | composition, GST included | big order, not paid yet ====

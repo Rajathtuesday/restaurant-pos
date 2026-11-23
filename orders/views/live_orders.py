@@ -132,7 +132,7 @@ def live_orders_data(request):
                 "quantity": i.quantity,
                 "status": i.status,
                 "modifiers": [m.name for m in i.modifiers.all()],
-                "notes": i.notes or "",
+                "notes": i.typed_note,
                 "is_complimentary": i.is_complimentary,
                 "can_reduce": can_edit and not served_lock,
                 "needs_manager": can_edit and served_lock,

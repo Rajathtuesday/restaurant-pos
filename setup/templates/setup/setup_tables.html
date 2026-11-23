@@ -32,14 +32,14 @@
             {% csrf_token %}
             <label class="form-label" for="table_count">How many tables?</label>
             <input type="number" id="table_count" name="table_count" class="setup-input" min="1" max="50" placeholder="4">
-            <p class="form-hint">Max 50 at a time. You currently have <strong style="color:var(--accent-gold)">{{ tables.count }}</strong> tables.</p>
+            <p class="form-hint">Max 50 at a time. You currently have <strong style="color:var(--accent-gold)">{{ tables|length }}</strong> tables.</p>
             <button type="submit" class="btn-add"><i class="bi bi-plus-lg me-2"></i>Add Tables</button>
         </form>
     </div>
 
     <!-- RIGHT: EXISTING TABLES -->
     <div>
-        <p class="tables-title">Configured Tables <span class="tables-count">{{ tables.count }}</span></p>
+        <p class="tables-title">Configured Tables <span class="tables-count">{{ tables|length }}</span></p>
 
         {% if tables %}
         <div class="table-grid">

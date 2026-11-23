@@ -9,7 +9,7 @@ import { test } from "node:test";
 
 import { createRunningOrderActions } from "../running_order/actions.js";
 import { createOrderLoader } from "../running_order/loader.js";
-import { actionsHtml, approveAllHtml, badgeClass, itemHtml, listHtml, sortItems } from "../running_order/view.js";
+import { actionsHtml, approveAllHtml, badgeClass, itemHtml, listHtml, moneyRowsHtml, sortItems } from "../running_order/view.js";
 import { networkDown, reply, scriptedFetch } from "./helpers.mjs";
 
 const URLS = {
@@ -295,4 +295,15 @@ test("backing out of cancelling the order stays and refreshes", async () => {
   await actions.cancelOrder();
   assert.deepEqual(seen.went, []);
   assert.equal(seen.refreshes, 1);
+});
+
+test("the money rows are the bill's own, signed, so they add up to the total", () => {
+  // Subtotal and GST alone left the happy hour out: 3,750 + 40.50 "= 3,056".
+  const html = moneyRowsHtml([
+    { label: "Subtotal", amount: 3750 }, { label: "Offers", amount: -735 },
+    { label: "CGST 2.5%", amount: 20.25 }, { label: "<b>x</b>", amount: 0 },
+  ]);
+  assert.match(html, /Offers<\/span><span>-₹735<\/span>/);
+  assert.match(html, /Subtotal<\/span><span>₹3,750<\/span>/);
+  assert.doesNotMatch(html, /<b>x<\/b>/, "a label is text, never markup");
 });

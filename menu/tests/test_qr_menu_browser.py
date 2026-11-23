@@ -147,6 +147,32 @@ class QrMenuBrowserTest(BrowserTestCase):
                      bar: document.getElementById("cartBar").classList.contains("visible") };''')])
         self.assertEqual(seen["clear"], {"asked": "Clear?", "kept": "1", "after": "0", "bar": False})
 
+    def test_a_cart_line_with_an_offer_is_tidy(self):
+        """The walkthrough recording (23 Nov 2026): the quantity pill stretched
+        to the width of the offer line, the line said the price before the
+        offer, and the bar said "1 ITEMS"."""
+        from offers.models import Offer, OfferTarget
+        from tenants.models import TenantFeatureOverride
+
+        TenantFeatureOverride.objects.create(tenant=self.tenant, feature="offers", enabled=True)
+        offer = Offer.objects.create(tenant=self.tenant, outlet=self.outlet, kind="percent_off", percent=D("20"),
+                                     name="Happy hour: 20% off the breads, every evening this month")
+        OfferTarget.objects.create(offer=offer, menu_item=self.naan)
+        seen = self.guest([("cart", HELP + '''
+            add("Butter Naan");
+            t.click('[data-action="cart.open"]');
+            await t.until(() => shown("cartModal") && document.querySelector(".cart-offer"));
+            const pill = document.querySelector(".cart-qty").getBoundingClientRect().width;
+            const offer = document.querySelector(".cart-offer").getBoundingClientRect().width;
+            return { pill: Math.round(pill), offer: Math.round(offer), was: t.text(".cart-was"),
+                     price: t.text(".cart-item-price"), bar: t.text(".cart-items-text") };''')])
+        cart = seen["cart"]
+        self.assertLess(cart["pill"], 150, cart)
+        self.assertGreater(cart["offer"], cart["pill"], "the offer line is the wide one, not the pill")
+        self.assertEqual(cart["was"], "₹50")
+        self.assertIn("₹40", cart["price"])
+        self.assertRegex(cart["bar"], r"(?i)^1 item$")
+
     def test_dark_mode_holds_across_a_reload(self):
         seen = self.guest([
             ("toggle", 't.click(\'[data-action="theme.toggle"]\'); return document.documentElement.classList.contains("dark");'),

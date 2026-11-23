@@ -90,9 +90,14 @@ def owner_dashboard_metrics(user):
             tenant=tenant, outlet_id=outlet.id, created_at__gte=start, created_at__lt=end,
             status="cancelled",
         ).count()
+        # Discounts on settled bills, as the reports count them. Open tables'
+        # happy hour (not given yet: the bill may change) and cancelled
+        # orders used to be added in, so the dashboard said Rs 4,937.50 given
+        # where Reports said Rs 3,773 for the same night (the walkthrough
+        # recording, 23 Nov 2026).
         disc = Order.objects.filter(
             tenant=tenant, outlet_id=outlet.id, created_at__gte=start, created_at__lt=end,
-            discount_total__gt=0,
+            status__in=["closed", "paid"], discount_total__gt=0,
         ).aggregate(total=Sum("discount_total"), count=Count("id"))
 
         results.append({
