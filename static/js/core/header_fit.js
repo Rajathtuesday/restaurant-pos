@@ -18,8 +18,18 @@
  * A folded control stays on the page, hidden, so its badge and its own
  * handlers keep working; the More menu repeats it and clicks it.
  * Preview with the reasoning: md_files/header_icons_preview_2026-11-21.html.
+ *
+ * A link or button a page put in the header without data-fit (most pages'
+ * own actions) folds too: named by its words, less important than every
+ * marked control, the later on the page the sooner it folds. Until 26 Nov
+ * 2026 those kept their width whatever the screen; the row is right-aligned
+ * and does not wrap, so on a tablet it ran off the LEFT edge, over the logo,
+ * where nobody can reach it (Inventory's Add Ingredient, and 35 more pages).
+ * A form field (a search box, a date) cannot be clicked from a menu and keeps
+ * its place.
  */
 export const CORE_RANK = 6;
+export const LOOSE_RANK = 100;
 export const STYLES = [
   ["auto", "Fit the screen"],
   ["both", "Icons and words"],
@@ -81,6 +91,12 @@ function targetOf(el) {
   return el.matches("a, button") ? el : el.querySelector("a, button");
 }
 
+/* A control's name for the More menu: its own words, or what it says it is. */
+export function nameOf(el) {
+  const words = (el.textContent || "").replace(/\s+/g, " ").trim();
+  return words || el.getAttribute("aria-label") || el.getAttribute("title") || "";
+}
+
 export function startHeaderFit({ doc = document, win = window, csrf = () => "", post = null } = {}) {
   const row = doc.querySelector("[data-header-fit]");
   if (!row || !win.ResizeObserver) return null;
@@ -110,6 +126,28 @@ export function startHeaderFit({ doc = document, win = window, csrf = () => "", 
     return [...row.querySelectorAll("[data-fit]")].filter((el) => !el.hidden && !el.closest("[hidden]"));
   }
 
+  // The page's own links and buttons (no data-fit), as the page shows them
+  // on this screen: one its CSS hides here (d-none d-sm-inline-flex) stays
+  // hidden, as the page meant.
+  function looseControls() {
+    return [...row.querySelectorAll("a[href], button")].filter((el) => {
+      if (more.contains(el) || el.closest("[data-fit]") || el.hidden || el.closest("[hidden]")) return false;
+      el.classList.remove("fit-folded");
+      return win.getComputedStyle(el).display !== "none";
+    });
+  }
+
+  // Anything past either end of the row. A right-aligned row that does not
+  // wrap spills off its LEFT end, which scrollWidth never counts.
+  function overflows() {
+    if (row.scrollWidth > row.clientWidth + 1) return true;
+    const box = row.getBoundingClientRect();
+    return [...row.children].some((el) => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && (r.left < box.left - 1 || r.right > box.right + 1);
+    });
+  }
+
   function measure(el) {
     el.classList.remove("fit-folded");
     const width = {};
@@ -123,24 +161,29 @@ export function startHeaderFit({ doc = document, win = window, csrf = () => "", 
   function fit() {
     scheduled = false;
     row.dataset.fitReady = "";
-    const els = controls();
-    const items = els.map((el, id) => ({
-      id, el, rank: Number(el.dataset.fitRank) || 5, round: el.hasAttribute("data-fit-round"), width: measure(el),
+    const marked = controls().map((el) => ({
+      el, name: el.dataset.fit, rank: Number(el.dataset.fitRank) || 5, round: el.hasAttribute("data-fit-round"), width: measure(el),
     }));
-    // Controls without data-fit (a page's own switch) keep their width.
-    const fixed = [...row.children].filter((el) => el !== more && !el.querySelector("[data-fit]") && !el.hasAttribute("data-fit")
-      && !el.hidden).reduce((sum, el) => sum + el.getBoundingClientRect().width + 8, 0);
+    const loose = looseControls().map((el, n) => {
+      const w = Math.ceil(el.getBoundingClientRect().width);
+      return { el, loose: true, name: nameOf(el), rank: LOOSE_RANK + n, round: false, width: { both: w, icon: w, word: w } };
+    });
+    const items = [...marked, ...loose].map((c, id) => ({ ...c, id }));
+    // What can not fold (a search box, a date) keeps its width.
+    const fixed = [...row.children].filter((el) => el !== more && !el.hidden
+      && !items.some((c) => c.el === el || el.contains(c.el)))
+      .reduce((sum, el) => sum + el.getBoundingClientRect().width + 8, 0);
     const reserved = fixed + Math.ceil(moreBtn.getBoundingClientRect().width || 44) + 8;
     const style = row.dataset.headerStyle || "auto";
     const look = plan(items, row.clientWidth, style, { reserved });
     for (const c of items) {
-      c.el.dataset.look = look[c.id] === "more" ? (START[style] || "both") : look[c.id];
+      if (!c.loose) c.el.dataset.look = look[c.id] === "more" ? (START[style] || "both") : look[c.id];
       c.el.classList.toggle("fit-folded", look[c.id] === "more");
     }
     // The measuring is an estimate (nested gaps); the row is the truth.
     const lowFirst = [...items].sort((a, b) => b.rank - a.rank);
     for (const c of lowFirst) {
-      if (row.scrollWidth <= row.clientWidth + 1) break;
+      if (!overflows()) break;
       if (!c.el.classList.contains("fit-folded")) c.el.classList.add("fit-folded");
     }
     folded = items.filter((c) => c.el.classList.contains("fit-folded")).sort((a, b) => a.rank - b.rank);
@@ -168,7 +211,7 @@ export function startHeaderFit({ doc = document, win = window, csrf = () => "", 
       const icon = doc.createElement("i");
       icon.className = "bi " + iconOf(c.el);
       const name = doc.createElement("span");
-      name.textContent = c.el.dataset.fit;
+      name.textContent = c.name;
       item.append(icon, name);
       const badge = badgeOf(c.el);
       if (badge) {
@@ -229,5 +272,5 @@ export function startHeaderFit({ doc = document, win = window, csrf = () => "", 
   observer = new win.MutationObserver(refit);
   observer.observe(row, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["hidden"] });
   fit();
-  return { fit, plan: () => folded.map((c) => c.el.dataset.fit) };
+  return { fit, plan: () => folded.map((c) => c.name) };
 }

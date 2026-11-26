@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { CORE_RANK, plan } from "../core/header_fit.js";
+import { CORE_RANK, LOOSE_RANK, nameOf, plan } from "../core/header_fit.js";
 
 // The floor page's controls, with widths close to the real ones (px).
 const word = (name) => 26 + name.length * 9;
@@ -74,4 +74,25 @@ test("icons and words never fold a name: what does not fit goes under More", () 
 test("icons only and words only keep their look everywhere", () => {
   assert.ok(Object.values(plan(FLOOR, 1920, "icons", { reserved: RESERVED })).every((v) => v === "icon"));
   assert.ok(Object.values(plan(FLOOR, 1920, "words", { reserved: RESERVED })).every((v) => v === "word" || v === "more"));
+});
+
+// A page's own header link (no data-fit) folds too, by its words (26 Nov 2026).
+const fake = (text, attrs = {}) => ({ textContent: text, getAttribute: (k) => attrs[k] ?? null });
+
+test("a page's own link is named by its words, else its label, else its title", () => {
+  assert.equal(nameOf(fake("\n  Add   Ingredient ")), "Add Ingredient");
+  assert.equal(nameOf(fake("", { "aria-label": "Search", title: "Find" })), "Search");
+  assert.equal(nameOf(fake(" ", { title: "Print" })), "Print");
+});
+
+test("a page's own links fold under More before any marked control, the last first", () => {
+  const own = (id, n) => ({ id, rank: LOOSE_RANK + n, round: false, width: { both: 150, icon: 150, word: 150 } });
+  const items = [...FLOOR, own("add", 0), own("consumption", 1)];
+  for (const width of [390, 768, 1024, 1366, 1600, 1920, 2400]) {
+    const look = plan(items, width, "auto", { reserved: RESERVED });
+    const at = `at ${width}: ${JSON.stringify(look)}`;
+    if (FLOOR.some((c) => look[c.id] === "more")) assert.ok(look.add === "more" && look.consumption === "more", at);
+    if (look.add === "more") assert.equal(look.consumption, "more", at);
+    assert.ok(used(items, look) <= width || Object.values(look).every((v) => v === "more"), at);
+  }
 });

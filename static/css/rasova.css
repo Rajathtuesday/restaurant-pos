@@ -487,7 +487,10 @@ body {
     justify-content: flex-end;
     overflow: visible !important;
 }
-[data-fit-ready] .action-group { flex-wrap: nowrap !important; }
+/* A page's group of header buttons is as wide as its buttons. tables.css made
+   the floor plan's 100% wide on a phone (from when the header wrapped): beside
+   the More button it then ran 52 px off the left edge of the screen. */
+[data-fit-ready] .action-group { flex-wrap: nowrap !important; width: auto !important; margin-top: 0 !important; }
 [data-fit-ready] .header-clock, [data-fit-ready] .header-history { display: inline-flex !important; }
 [data-fit-ready] .fit-folded { display: none !important; }
 [data-fit] { flex-shrink: 0; }
