@@ -13,6 +13,7 @@ The rest of `md_files/rasova_fault_fix_plan_2026-11-26.md`, on the owner's "cont
 
 ### Fixed
 - **Order History totals were about 2.4 times too high** (item 1). The summary was one `aggregate()` with `Count("items")` beside `Sum("grand_total")`: the join to the items repeats each order once per dish, so each bill was added once per dish and dishes were counted as orders (49 orders and Rs 84,109 shown, 21 and Rs 34,379 true). The totals are summed over the orders alone (`pk__in` the filtered set), so no join, the items or a payments filter, can inflate them again. The third chip shows the average bill (it repeated the revenue), and money reads "₹34,379" like every other screen, not "Rs.34379". Tests: `orders/tests/test_order_history_totals.py` (5, all fail on the old code).
+- **The till's category bar showed blank on a phone or an upright tablet** (item 3). Below 992 px the bar sits in a flex column of fixed height and could shrink: with a long menu the browser squeezed it from 78 px to 32 px and the names sat below the strip. It no longer shrinks (`flex-shrink: 0`, the till and the token counter). Tests: `CategoryBarTest` in `orders/tests/test_billing_browser.py`, with a pub-sized menu (with three dishes nothing is squeezed): the till at 390 and 768 px fails on the old code; the token counter, which was fine, is held too.
 
 ## 2026-11-26: The login lockout locks for real, and only the right person
 

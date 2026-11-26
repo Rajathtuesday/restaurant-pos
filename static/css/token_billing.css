@@ -111,6 +111,7 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
     background: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
     scrollbar-width: none;
+    flex-shrink: 0;   /* never squeezed blank by a tall menu (as the till's was, 26 Nov 2026) */
     /* sticky so it stays visible while scrolling menu */
     position: sticky;
     top: var(--header-h);

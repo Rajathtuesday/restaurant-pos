@@ -358,3 +358,46 @@ class OfflineReadyTest(BillingBrowserBase):
         self.assertTrue(cached["billingModule"] and cached["itsImports"] and cached["billingCss"], cached)
         self.assertEqual(cached["missing"], [], "the billing page needs these and they are not cached")
         self.assertGreater(cached["count"], 25)
+
+
+# The category bar on a phone or an upright tablet: how tall it is against
+# what it needs, and whether the first category's name is on the screen.
+CATEGORY_BAR = """
+const bar = [...document.querySelectorAll(".mobile-category-nav")].find((el) => getComputedStyle(el).display !== "none");
+const first = bar.querySelector(".category-item");
+const r = first.getBoundingClientRect();
+const b = bar.getBoundingClientRect();
+return { squeezed: bar.scrollHeight - bar.clientHeight, inside: r.top >= b.top - 1 && r.bottom <= b.bottom + 1 && r.height > 0 };
+"""
+
+
+class CategoryBarTest(BillingBrowserBase):
+    """Why (26 Nov 2026, item 3 of the fault plan): below 992 px the till's
+    category bar sits in a flex column of fixed height; it could shrink, and
+    the browser squeezed it from the 78 px it needs to 32 px, so its names
+    sat below the strip and it showed blank."""
+
+    def setUp(self):
+        super().setUp()
+        # A pub's menu, taller than the screen: only then does the column
+        # squeeze anything (with three dishes there is room for all).
+        drinks = MenuCategory.objects.create(tenant=self.tenant, outlet=self.outlet, name="Draught Beer")
+        MenuItem.objects.bulk_create([
+            MenuItem(tenant=self.tenant, outlet=self.outlet, category=drinks,
+                     name=f"Lager {n}", price=D("300"), gst_percentage=D("0"))
+            for n in range(40)
+        ])
+
+    def check(self, url, viewport):
+        seen = self.browse([("bar", CATEGORY_BAR)], url=url, viewport=viewport)
+        self.assertEqual(seen["bar"], {"squeezed": 0, "inside": True}, f"{url} at {viewport['width']} px")
+
+    def test_the_till_on_a_phone(self):
+        self.check("/billing/", {"width": 390, "height": 844, "mobile": True})
+
+    def test_the_till_on_an_upright_tablet(self):
+        self.check("/billing/", {"width": 768, "height": 1024})
+
+    def test_the_token_counter_on_a_phone(self):
+        order, _ = TokenCounterTest.token_order(self, 1)
+        self.check(f"/token/{order.id}/bill/", {"width": 390, "height": 844, "mobile": True})
