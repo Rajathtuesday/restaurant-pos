@@ -346,6 +346,12 @@ body {
 .bill-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted); }
 .bill-total { display: flex; justify-content: space-between; margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px dashed var(--border-color); font-weight: 700; font-size: 1.2rem; color: var(--text-main); }
 
+/* Every field on the guest page in the theme's colours. A field keeps the
+   browser's own black text unless told: in dark mode the special
+   instructions and the search box were black on #111 (26 Nov 2026). */
+input, textarea, select { color: var(--text-main); }
+input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1; }
+
 .special-instructions {
     width: 100%; border: 1px solid var(--border-color);
     border-radius: 8px; padding: 0.8rem;

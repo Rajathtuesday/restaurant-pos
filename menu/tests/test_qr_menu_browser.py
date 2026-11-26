@@ -182,6 +182,36 @@ class QrMenuBrowserTest(BrowserTestCase):
         self.assertTrue(seen["toggle"])
         self.assertEqual(seen["after"], {"dark": True, "icon": "bi bi-sun"})
 
+    def test_every_field_is_readable_in_dark_mode(self):
+        # Why (26 Nov 2026, item 5 of the fault plan): the special
+        # instructions box and the search box set a dark background but no
+        # text colour, so a guest typing "less spicy" saw black on #111
+        # (1.11:1). Each field, with what a guest typed, against its own
+        # background: 4.5:1 at least, in light and in dark.
+        contrast = HELP + '''
+            const rgb = (s) => s.match(/[\\d.]+/g).slice(0, 3).map(Number);
+            const lum = (c) => { const [r, g, b] = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+                                 return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+            const ratio = (el) => { const cs = getComputedStyle(el);
+                                    const [a, b] = [lum(rgb(cs.color)), lum(rgb(cs.backgroundColor))].sort((x, y) => y - x);
+                                    return Math.round(((a + 0.05) / (b + 0.05)) * 100) / 100; };
+            add("Paneer Tikka");
+            await t.until(() => shown("modifierModal"));
+            const box = document.getElementById("specialInstructions");
+            box.value = "less spicy";
+            const search = document.getElementById("searchInput");
+            search.value = "naan";
+            return { instructions: ratio(box), search: ratio(search) };
+        '''
+        light = self.guest([("seen", contrast)])["seen"]
+        dark = self.guest([
+            ("toggle", 't.click(\'[data-action="theme.toggle"]\'); return true;'),
+            ("seen", contrast),
+        ])["seen"]
+        for mode, seen in (("light", light), ("dark", dark)):
+            for field, value in seen.items():
+                self.assertGreaterEqual(value, 4.5, f"{field} in {mode} mode: {seen}")
+
     def test_a_menu_with_no_dishes_says_so(self):
         empty_outlet = Outlet.objects.create(tenant=self.tenant, name="New Branch")
         table = Table.objects.create(tenant=self.tenant, outlet=empty_outlet, name="B1")
