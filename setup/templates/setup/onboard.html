@@ -120,9 +120,9 @@
             <div class="field">
                 <label>Restaurant Logo (optional)</label>
                 {% if tenant.logo %}
-                <img src="{{ tenant.logo.url }}" class="logo-preview show" id="logoPreview">
+                <img src="{{ tenant.logo.url }}" class="logo-preview show" id="logoPreview" alt="Your logo">
                 {% else %}
-                <img src="" class="logo-preview" id="logoPreview">
+                <img src="" class="logo-preview" id="logoPreview" alt="Your logo">
                 {% endif %}
                 <label class="file-btn" for="logoFile"><i class="bi bi-upload me-1"></i>Upload Logo</label>
                 <input type="file" id="logoFile" name="logo" accept="image/*" style="display:none;"
