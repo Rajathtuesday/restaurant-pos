@@ -1,4 +1,6 @@
-from core.decorators import tenant_required, feature_required, role_required
+from core.decorators import tenant_required, feature_required, open_when, role_required
+from core.features import audit_report_open
+from reports.tabs import report_tabs
 # reports/views.py
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
@@ -183,6 +185,7 @@ def dashboard(request):
     gst_inclusive = getattr(outlet, "gst_inclusive", False) if outlet else False
 
     return render(request, "reports/dashboard.html", {
+        "report_tabs": report_tabs(request),
         "sales":          sales,
         "items":          items if not is_limited_view else [],
         "hourly_sales":   hourly,
@@ -265,6 +268,7 @@ def kitchen_dashboard(request):
         }, encoder=DjangoJSONEncoder)
 
     return render(request, "reports/kitchen_dashboard.html", {
+        "report_tabs": report_tabs(request),
         "k_perf": k_perf,
         "k_items": k_items,
         "outlets": outlets,
@@ -434,6 +438,7 @@ def inventory_report(request):
     closing = list(closing_stock(tenant, outlet)) if outlet else []
 
     return render(request, "reports/inventory_report.html", {
+        "report_tabs": report_tabs(request),
         "outlets": outlets,
         "current_outlet": outlet,
         "date_filter": date_filter,
@@ -634,6 +639,7 @@ def menu_engineering_report_view(request):
     report = menu_engineering_report(tenant, outlet, start_date, end_date)
 
     return render(request, "reports/menu_engineering.html", {
+        "report_tabs": report_tabs(request),
         "report": report,
         "outlets": outlets,
         "current_outlet": outlet,
@@ -691,6 +697,7 @@ def labor_report_view(request):
     report = labor_cost_report(tenant, outlet, start_date, end_date)
 
     return render(request, "reports/labor_report.html", {
+        "report_tabs": report_tabs(request),
         "report": report,
         "outlets": outlets,
         "current_outlet": outlet,
@@ -702,7 +709,7 @@ def labor_report_view(request):
 
 @login_required
 @tenant_required
-@feature_required("advanced_reports")
+@open_when(audit_report_open, "The Discount/Void Audit is not switched on for your restaurant.")
 @role_required("owner", "manager")
 def audit_report_view(request):
     """
@@ -748,6 +755,7 @@ def audit_report_view(request):
     report = discount_void_audit(tenant, outlet, start_date, end_date)
 
     return render(request, "reports/audit_report.html", {
+        "report_tabs": report_tabs(request),
         "report": report,
         "outlets": outlets,
         "current_outlet": outlet,
@@ -808,6 +816,7 @@ def crm_analytics_report_view(request):
     report = crm_analytics_report(tenant, outlet, start_date, end_date)
 
     return render(request, "reports/crm_analytics.html", {
+        "report_tabs": report_tabs(request),
         "report": report,
         "outlets": outlets,
         "current_outlet": outlet,

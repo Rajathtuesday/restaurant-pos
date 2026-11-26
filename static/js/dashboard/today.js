@@ -12,7 +12,10 @@ export function alertsHtml(alerts) {
   if (!alerts || !alerts.length) {
     return '<span class="today-ok"><i class="bi bi-check-circle"></i> Nothing needs a look</span>';
   }
-  return alerts.map((a) => `<a class="today-alert is-${esc(a.level)}" href="${esc(a.href)}">${esc(a.words)}</a>`).join("");
+  // No href: the report it would lead to does not open here; words only.
+  return alerts.map((a) => (a.href
+    ? `<a class="today-alert is-${esc(a.level)}" href="${esc(a.href)}">${esc(a.words)}</a>`
+    : `<span class="today-alert is-${esc(a.level)}">${esc(a.words)}</span>`)).join("");
 }
 
 export function clock(date) {

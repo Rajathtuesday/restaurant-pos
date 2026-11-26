@@ -60,7 +60,7 @@ def owner_dashboard(request):
     groups = dashboard_tiles(request.user, features,
                              direct_billing_mode=direct_billing_mode, active_token_count=active_token_count)
     return render(request, "accounts/owner_dashboard.html", {
-        "today":               today_blocks(metrics),
+        "today":               today_blocks(metrics, audit=_audit_opens(request.user)),
         "groups":              groups,
         "page_data": {
             "refresh_ms": 60000,
@@ -81,13 +81,20 @@ def owner_dashboard(request):
     })
 
 
+def _audit_opens(user):
+    """Whether the dashboard's voids and discounts may link to the Audit."""
+    from core.decorators import may
+    from reports.views import audit_report_view
+    return may(user, audit_report_view)
+
+
 @login_required
 @tenant_required
 def dashboard_metrics_json(request):
     if request.user.role not in ["owner", "manager", "cashier"]:
         return JsonResponse({"error": "forbidden"}, status=403)
     metrics = owner_dashboard_metrics(request.user)
-    return JsonResponse({"metrics": metrics, "today": today_blocks(metrics)})
+    return JsonResponse({"metrics": metrics, "today": today_blocks(metrics, audit=_audit_opens(request.user))})
 
 
 @login_required

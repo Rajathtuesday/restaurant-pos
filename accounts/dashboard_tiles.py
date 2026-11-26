@@ -111,22 +111,27 @@ def dashboard_tiles(user, features, *, direct_billing_mode=False, active_token_c
     return groups
 
 
-def needs_a_look(metric):
+def needs_a_look(metric, audit=True):
     """What in today's numbers deserves the owner's attention, in words:
-    [(level, words, where)]. Empty means nothing does."""
+    [(level, words, where)]. Empty means nothing does. `audit`: whether the
+    Discount/Void Audit opens for this person; where it does not, voids and
+    discounts are words with nowhere to go ("" for where), never a link to a
+    403 (as they were for every restaurant without advanced_reports until
+    26 Nov 2026)."""
     out = []
+    audit_url = reverse("audit_report") if audit else ""
     if metric.get("voids_today"):
         n = metric["voids_today"]
-        out.append(("alert", f"{n} void{'s' if n != 1 else ''} today", reverse("audit_report")))
+        out.append(("alert", f"{n} void{'s' if n != 1 else ''} today", audit_url))
     if metric.get("discounts_amount"):
-        out.append(("warn", f"{rupees(metric['discounts_amount'])} given in discounts", reverse("audit_report")))
+        out.append(("warn", f"{rupees(metric['discounts_amount'])} given in discounts", audit_url))
     if metric.get("low_stock"):
         n = metric["low_stock"]
         out.append(("alert", f"{n} ingredient{'s' if n != 1 else ''} low on stock", reverse("inventory_board")))
     return out
 
 
-def today_blocks(metrics):
+def today_blocks(metrics, audit=True):
     """One block per outlet, ready to show: the numbers as words, and what
     needs a look. The page draws it, and the minute's refresh
     (dashboard_metrics_json) sends the same, so the screen never works
@@ -138,5 +143,5 @@ def today_blocks(metrics):
         "avg": rupees(round(m["avg_order_value"] or 0)),
         "tables": m["active_tables"],
         "kitchen": m["kitchen_orders"],
-        "alerts": [{"level": level, "words": words, "href": href} for level, words, href in needs_a_look(m)],
+        "alerts": [{"level": level, "words": words, "href": href} for level, words, href in needs_a_look(m, audit)],
     } for m in metrics]

@@ -33,6 +33,12 @@ test("the alerts in words, as links, escaped; none says so", () => {
   assert.match(alertsHtml([]), /Nothing needs a look/);
 });
 
+test("an alert whose report does not open here is words, never a link to a 403", () => {
+  const html = alertsHtml([{ level: "warn", words: "₹450 given in discounts", href: "" }]);
+  assert.match(html, /<span class="today-alert is-warn">₹450 given in discounts<\/span>/);
+  assert.doesNotMatch(html, /<a /);
+});
+
 test("a block goes into its card", () => {
   const card = fakeCard();
   drawBlock(card, BLOCK);

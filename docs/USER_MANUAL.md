@@ -139,7 +139,7 @@ Good to know:
 - **Uses are bills.** A promo used on a bill counts once, however many times it is tapped. If the promo is taken off, replaced or the bill is cancelled, the use comes back.
 - **Editing** (the pencil) changes the promo from now on. Bills that already have it keep what they got.
 - **Who can change what:** the owner, every promo. A manager, only their own outlet's promos. A promo for every outlet is the owner's alone.
-- The **Discount / Void Audit** report lists each promo with its paid bills and what it gave away.
+- The **Discount / Void Audit** report lists each promo with its paid bills and what it gave away. Every pub has it; other restaurants have it with the advanced reports. A report tab only shows when that report is switched on for your restaurant.
 
 ---
 

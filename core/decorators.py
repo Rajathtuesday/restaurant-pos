@@ -44,7 +44,25 @@ def may(user, view):
         return False
     from core.features import has_feature
     tenant = getattr(user, "tenant", None)
-    return all(has_feature(tenant, f) for f in getattr(view, "required_features", ()))
+    return (all(has_feature(tenant, f) for f in getattr(view, "required_features", ()))
+            and all(check(tenant) for check in getattr(view, "open_checks", ())))
+
+
+def open_when(check, refusal):
+    """Restricts a view to tenants for which `check(tenant)` is true: a rule
+    a list of features cannot say (the Discount/Void Audit is open with
+    advanced_reports, and for every pub). may() asks the same check, so a
+    link to the view shows exactly where the view opens. Superusers pass,
+    as with feature_required."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def _wrapped_view(request, *args, **kwargs):
+            if request.user.is_superuser or check(getattr(request.user, "tenant", None)):
+                return view_func(request, *args, **kwargs)
+            raise PermissionDenied(refusal)
+        _wrapped_view.open_checks = tuple(getattr(view_func, "open_checks", ())) + (check,)
+        return _wrapped_view
+    return decorator
 
 
 def tenant_required(view_func):
@@ -136,20 +154,15 @@ def feature_required(*features):
                         request.path.startswith("/api/")
                         or "application/json" in request.META.get("HTTP_ACCEPT", "")
                     )
+                    # In words an owner can act on (templates/403.html shows
+                    # them): not an internal feature name, and not "ask your
+                    # manager", which the owner was told before 26 Nov 2026.
                     if is_api:
                         return JsonResponse(
-                            {
-                                "error": (
-                                    f"Feature '{feature}' is not available "
-                                    "for your account type."
-                                )
-                            },
+                            {"error": "This is not switched on for your restaurant."},
                             status=403,
                         )
-                    raise PermissionDenied(
-                        f"The '{feature}' feature is not available "
-                        "for your restaurant type."
-                    )
+                    raise PermissionDenied("This is not switched on for your restaurant.")
 
             return view_func(request, *args, **kwargs)
 

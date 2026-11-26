@@ -43,7 +43,7 @@
             </div>
         </div>
         <div class="today-alerts" data-field="alerts">
-            {% for alert in day.alerts %}<a class="today-alert is-{{ alert.level }}" href="{{ alert.href }}">{{ alert.words }}</a>{% empty %}<span class="today-ok"><i class="bi bi-check-circle"></i> Nothing needs a look</span>{% endfor %}
+            {% for alert in day.alerts %}{% if alert.href %}<a class="today-alert is-{{ alert.level }}" href="{{ alert.href }}">{{ alert.words }}</a>{% else %}<span class="today-alert is-{{ alert.level }}">{{ alert.words }}</span>{% endif %}{% empty %}<span class="today-ok"><i class="bi bi-check-circle"></i> Nothing needs a look</span>{% endfor %}
         </div>
     </div>
     {% empty %}

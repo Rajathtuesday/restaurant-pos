@@ -170,6 +170,10 @@ Not there yet: Postgres row-level security (isolation lives in the code).
 `@feature_required("x")`, templates `{% if 'x' in tenant_features %}`.
 `@role_required` and `@feature_required` record what they allow on the view, and
 `core.decorators.may(user, view)` asks it, so a page's data never copies role lists.
+A rule a feature list cannot say goes in `@open_when(check, refusal)`, which `may()` asks
+too: the Discount/Void Audit is open with `advanced_reports` and for every pub
+(`core.features.audit_report_open`). The report tabs (`reports/tabs.py`) and the
+dashboard's voids and discounts link only where `may()` says the page opens.
 Feature overrides are cached on the tenant object (a test that switches one mid-test
 must re-read the user).
 

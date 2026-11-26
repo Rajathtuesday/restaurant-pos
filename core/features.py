@@ -246,3 +246,13 @@ def get_all_known_features():
     for features in FEATURE_GROUPS.values():
         all_features.update(features)
     return all_features
+
+
+def audit_report_open(tenant):
+    """The Discount/Void Audit (reports/audit/): open with advanced_reports,
+    and for every pub, whose owner needs it most: it shows who discounted,
+    comped and voided (the owner's decision D2, 26 Nov 2026). The other
+    advanced reports stay with advanced_reports."""
+    if not tenant:
+        return False
+    return has_feature(tenant, "advanced_reports") or tenant.tenant_type == "pub"
