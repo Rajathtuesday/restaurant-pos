@@ -1,5 +1,7 @@
 package com.rasova.pos
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -14,6 +16,8 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
 import android.webkit.SslErrorHandler
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -21,6 +25,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
@@ -44,6 +49,32 @@ class MainActivity : AppCompatActivity() {
     // ZXing QR scanner: registered before onCreate as required by Activity Result API
     private val qrScanLauncher = registerForActivityResult(ScanContract()) { result ->
         result.contents?.let { handleScannedUrl(it) }
+    }
+
+    // A page's file button: the phone's picker, its answer back to the page
+    // exactly once (PendingAnswer.kt). Registered before onCreate, like the scanner.
+    private val filePick = PendingAnswer<Array<Uri>>()
+    private val filePickLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        filePick.finish(chosenFiles(result.resultCode, result.data))
+    }
+
+    private fun pickFiles(callback: ValueCallback<Array<Uri>>, params: WebChromeClient.FileChooserParams): Boolean {
+        filePick.begin { files -> callback.onReceiveValue(files) }
+        try {
+            filePickLauncher.launch(Intent.createChooser(params.createIntent(), null))
+        } catch (e: ActivityNotFoundException) {
+            filePick.finish(null)
+            Toast.makeText(this, "No app on this phone can choose a file.", Toast.LENGTH_LONG).show()
+        }
+        return true
+    }
+
+    /** The files the picker returned: one, several (a multiple pick), or none. */
+    private fun chosenFiles(resultCode: Int, data: Intent?): Array<Uri>? {
+        if (resultCode != Activity.RESULT_OK || data == null) return null
+        val clip = data.clipData
+        if (clip != null && clip.itemCount > 0) return Array(clip.itemCount) { clip.getItemAt(it).uri }
+        return data.data?.let { arrayOf(it) }
     }
 
     companion object {
@@ -242,8 +273,9 @@ class MainActivity : AppCompatActivity() {
         // The real version, so the server can ask an old app to update (AppUserAgent.kt).
         settings.userAgentString = AppUserAgent.append(settings.userAgentString, BuildConfig.VERSION_NAME)
         webView.addJavascriptInterface(JSBridge(this), "Android")
-        // Without this the pages' alert/confirm/prompt never show (JsDialogs.kt).
-        webView.webChromeClient = JsDialogs(this)
+        // Without this the pages' alert/confirm/prompt never show, and their
+        // file buttons do nothing (JsDialogs.kt).
+        webView.webChromeClient = JsDialogs(this, ::pickFiles)
 
         webView.webViewClient = object : WebViewClient() {
 
