@@ -94,7 +94,7 @@ A cashier taps Dispatch: `POST https://spice.rasova.net/create-order/`.
 | `SessionMiddleware`, `AuthenticationMiddleware` | Who is signed in |
 | `TenantMiddleware` | Which restaurant this subdomain is |
 | `CsrfViewMiddleware` | A write must carry the CSRF token (cookie `csrftoken2`) |
-| `AxesMiddleware` | Locks an account after repeated wrong passwords |
+| `AxesMiddleware` | Turns a login refused as locked into Rasova's login page (429) saying when it opens (`accounts/lockout.py`) |
 | `SubscriptionStatusMiddleware` | A lapsed Rasova subscription sees the suspended page |
 | `ContextLoggingMiddleware` | Sets the current restaurant and outlet (turns on automatic query scoping) and a trace id |
 | `SlowQueryMiddleware` (`core/db_limits.py`) | Logs any query over 500 ms (`pos.slow_sql`); web requests have a 15 s statement timeout |
@@ -427,7 +427,17 @@ once CPU credits run out: right for zero customers, to be resized before the fir
 ## 14. Security, in short
 
 - HTTPS everywhere (Cloudflare "Always Use HTTPS", HSTS), secure cookies.
-- Login lockout (django-axes); rate limits on login, order creation and guest actions.
+- Login lockout (django-axes, `accounts/lockout.py`). Axes is FIRST in
+  `AUTHENTICATION_BACKENDS`, so a locked name is refused even with the right password.
+  A lock is on a name at an address: 5 wrong passwords in an hour lock that name from
+  that address, never the whole address (a pub's phones share one public address). 20
+  wrong for one name in an hour, from anywhere, lock the name everywhere. A lock opens
+  after the hour; owners and managers press Unlock on Setup > Staff; an owner locked out
+  of their own account waits, or Rasova staff run `manage.py axes_reset_username <name>`.
+  Axes is off under the test runner (`client.login()` has no request);
+  `accounts/tests/test_login_lockout.py` switches it on.
+- Rate limits: login 10 a minute for one name from one address and 60 a minute per
+  address; order creation and guest actions have their own.
 - Guests reach only their own things through signed tokens (a table's QR token, a signed
   bill link, feedback, order status).
 - The print agent's secret travels in a header, never a URL.

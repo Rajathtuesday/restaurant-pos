@@ -49,3 +49,9 @@ body:has(#showInactiveToggle:checked) .inactive-row { display: table-row; }
 /* The pay rate sheet: its type list above its amount. */
 .pay-type { display: block; width: 100%; margin-bottom: 10px; }
 .pay-amount { margin: 0; }
+
+/* Locked out by wrong passwords (accounts/lockout.py): when the lock
+   opens, and Unlock first among the row's buttons. */
+.locked-badge { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px; color: var(--danger, #ef4444); white-space: nowrap; }
+.btn-unlock { border-color: var(--danger, #ef4444); color: var(--danger, #ef4444); }
+.btn-unlock:hover { border-color: var(--accent-gold); color: var(--accent-gold); }

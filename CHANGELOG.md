@@ -7,6 +7,24 @@ the source of truth.
 
 ---
 
+## 2026-11-26: The login lockout locks for real, and only the right person
+
+Item 2 of the fault plan (`md_files/rasova_fault_fix_plan_2026-11-26.md`), approved by the owner as decision D1: "yes do all the necessary things which it should have and also put more test". Each fix comes with a test that fails on the old code.
+
+### Fixed
+- **A right password walked through the lock.** `core/settings.py` listed `ModelBackend` first and axes last, under a comment saying axes must be last; axes must be first. Django stops at the first backend that returns a user, so a right password was accepted before axes was asked: after 7 wrong guesses ("locked" from the 5th) the right one logged in. Axes is first now, and a locked name is refused whatever password it brings.
+- **One waiter's typos would have locked a whole pub out.** Axes locked an address (its default), and every phone on a pub's Wi-Fi shares one public address: after 5 typos by one waiter, the next person's typo said "locked", and with axes first the next person's right password would have been refused too, for an hour. A lock is now on a name at an address (`AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]`, 5 wrong, an hour). Both changes are in one commit: either alone leaves a hole.
+- **A guesser changing address had no limit.** 20 wrong passwords for one name within the hour, from any mix of addresses, lock that name everywhere (`accounts/lockout.py`, `RasovaAxesHandler`: axes 6.4 has one failure limit for every rule). A name is never locked from anywhere at 5, which would let anyone lock any waiter out.
+- **The login rate limit turned away a shift change.** It was 10 tries a minute per address, good logins counted, so the eleventh waiter logging in on one Wi-Fi was refused. It is 10 a minute for one name from one address, plus 60 a minute per address against trying many names.
+- **The words.** A lock said axes' bare "Account locked: too many login attempts" on a blank page. It is Rasova's login page, status 429: "Too many wrong passwords for this name. Try again after 10:42 pm, or ask the owner to unlock it." A try while locked no longer restarts the hour, so the time shown stays true. The rate limit says "Too many tries from this network. Wait a minute." and keeps the restaurant's login page. A wrong password still says "Invalid username or password."
+
+### Added
+- **Unlock on Setup > Staff** (`setup_staff`, `unlock_staff_login`, `/setup/staff/<id>/unlock/`), approved by the owner with this item: a locked person shows "Locked until 10:42 pm" and an Unlock button, which opens the lock at once without changing the password. Same people and rules as the password reset: owner or manager, this restaurant's staff only, never an owner account; POST with CSRF, through Rasova's own confirm sheet (`core/post_actions.js`). The password reset still unlocks. An owner locked out of their own account waits the hour, or Rasova staff run `manage.py axes_reset_username <name>` (docs/USER_MANUAL.md).
+
+### Tests
+- `accounts/tests/test_login_lockout.py` (38, through the real login page, each phone at its own address): the right password refused after 5 wrong; someone else on the same Wi-Fi logs in, and their typo says wrong password; the same name from another address logs in; 20 from 20 addresses lock the name everywhere, 19 do not, a guesser moving on after each lock is stopped at 20; the time shown, a retry not moving it, the lock opening after the hour; 12 logins in a minute on one Wi-Fi, 11 tries for one name slowed, 60 names from one address; Unlock by the owner and by a manager, not by a cashier (403), another restaurant's staff (404), an owner account (403), POST only; the reset still unlocks; the Staff page's "Locked until"; the live demo link while its name is locked; locks by the visitor's address behind Cloudflare and nginx; and the settings held in place. 30 fail on the old code; the other 8 hold what was already right (four typos then the right password, 19 from anywhere, the demo link) and the new arithmetic.
+- Axes is off under the test runner (`client.login()` calls `authenticate()` with no request, which axes refuses from first place); the lockout tests switch it on.
+
 ## 2026-11-23: What the walkthrough recording found
 
 The owner lifted the freeze for the day: "first fix all the bugs and test it". Each was found by recording a scripted Friday night at a demo pub for the walkthrough video, and each fix comes with a test that fails on the old code.

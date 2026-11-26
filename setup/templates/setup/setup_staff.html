@@ -82,10 +82,11 @@
             <tbody>
                 {% for member in staff %}
                 <tr id="staff-row-{{ member.id }}" class="{% if not member.is_active %}inactive-row{% endif %}">
-                    <td>{{ member.username }}{% if not member.is_active %} <span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1px;color:#ef4444;">Inactive</span>{% endif %}</td>
+                    <td>{{ member.username }}{% if not member.is_active %} <span style="font-size:0.62rem;text-transform:uppercase;letter-spacing:1px;color:#ef4444;">Inactive</span>{% endif %}{% if member.locked_until %} <span class="locked-badge" id="locked-{{ member.id }}">Locked until {{ member.locked_until }}</span>{% endif %}</td>
                     <td><span class="role-badge {{ member.role }}">{{ member.get_role_display }}</span></td>
                     <td style="color:var(--text-muted);font-size:0.75rem;">{{ member.outlet.name|default:"-" }}</td>
                     <td style="display:flex;gap:6px;">
+                        {% if member.locked_until %}<button type="button" class="btn-reset-pw btn-unlock" data-action="post" data-url="{% url 'unlock_staff_login' member.id %}" data-confirm="Unlock {{ member.username }}?" data-confirm-text="{{ member.username }} can log in again now, with the same password. The wrong tries are forgotten." data-confirm-button="Yes, unlock" data-done="{{ member.username }} can log in now.">Unlock</button>{% endif %}
                         <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.role" data-current="{{ member.role }}" data-url="{% url 'edit_staff_role' member.id %}">Edit Role</button>
                         <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.outlet" data-current="{{ member.outlet_id|default_if_none:'' }}" data-url="{% url 'edit_staff_outlet' member.id %}">Edit Location</button>
                         <button type="button" class="btn-reset-pw" data-name="{{ member.username }}" data-action="staff.pay" data-url="{% url 'edit_pay_rate' member.id %}">Edit Pay Rate</button>

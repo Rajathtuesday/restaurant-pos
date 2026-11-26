@@ -7,7 +7,9 @@ from django.contrib import messages
 from django.shortcuts import render, redirect
 from django_ratelimit.decorators import ratelimit
 
+from accounts.lockout import lockout_response
 from accounts.models import User
+from core.utils import get_client_ip
 
 
 def _role_path(user):
@@ -48,11 +50,25 @@ def _subdomain_redirect(user, path):
     return f"{proto}://{tenant.slug}.{domain}{path}"
 
 
-@ratelimit(key="ip", rate="10/m", method="POST", block=False)
+def _name_at_address(group, request):
+    """The rate limit's key for one name typed from one address."""
+    return f"{get_client_ip(request)} {request.POST.get('username', '')}"
+
+
+# Two rate limits, both checked before any password. One name from one
+# address: 10 tries a minute, right or wrong (axes locks the name there at
+# 5 wrong; this stops the page being hammered). One address, every name:
+# 60 a minute, against trying many names from one place; a whole pub's
+# shift change (every phone on its Wi-Fi shares one public address) never
+# comes near it. Until 26 Nov 2026 it was 10 a minute per address with good
+# logins counted, so the eleventh waiter at a shift change was turned away.
+@ratelimit(group="login-address", key="ip", rate="60/m", method="POST", block=False)
+@ratelimit(group="login-name", key=_name_at_address, rate="10/m", method="POST", block=False)
 def login_view(request):
+    tenant = getattr(request, "tenant", None)
     if getattr(request, "limited", False):
-        messages.error(request, "Too many login attempts. Please wait a minute.")
-        return render(request, "accounts/login.html", status=429)
+        messages.error(request, "Too many tries from this network. Wait a minute.")
+        return render(request, "accounts/login.html", {"tenant": tenant}, status=429)
 
     if request.method == "POST":
         username = request.POST.get("username", "")
@@ -65,11 +81,14 @@ def login_view(request):
             url  = _subdomain_redirect(user, path)
             return redirect(url or path)
 
+        # Axes refused it as locked (accounts/lockout.py), whether or not
+        # the password was right: say so, and when it opens.
+        if getattr(request, "axes_locked_out", False):
+            return lockout_response(request, getattr(request, "axes_credentials", None))
+
         messages.error(request, "Invalid username or password.")
 
-    return render(request, "accounts/login.html", {
-        "tenant": getattr(request, "tenant", None),
-    })
+    return render(request, "accounts/login.html", {"tenant": tenant})
 
 
 def logout_view(request):

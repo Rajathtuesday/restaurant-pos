@@ -49,6 +49,12 @@ Every screen in Rasova is built around one rule: **big buttons, plain words, not
 
 If you try to open a page that isn't meant for your role, Rasova will simply take you back to your own dashboard. Nothing breaks, nothing is exposed.
 
+**Too many wrong passwords.** Five wrong passwords for one name from one place (a phone, or the restaurant's Wi-Fi) lock that name there for an hour. The login page says "Too many wrong passwords for this name. Try again after 10:42 pm, or ask the owner to unlock it." Only that name is locked: everyone else on the same Wi-Fi logs in as usual, and a typo of theirs still says "Invalid username or password." Twenty wrong passwords for one name within an hour, from anywhere, lock that name everywhere for the hour (someone is guessing it).
+
+- **A staff member is locked:** the owner or a manager opens **Setup → Staff**, where the person shows "Locked until 10:42 pm", and presses **Unlock**. They can log in at once with the same password.
+- **The owner is locked out of their own account:** wait until the time shown, or ask Rasova support, who can unlock the name on the server (`manage.py axes_reset_username <name>`).
+- **"Too many tries from this network. Wait a minute."** means too many login attempts in one minute (ten for one name, or sixty from one place). Wait a minute and try again.
+
 ---
 
 ## 3. For Owners & Managers
@@ -69,6 +75,10 @@ You can revisit any of these later from the **Setup** menu; nothing here is a on
 ### Adding Staff
 
 Go to **Setup → Staff**. Fill in a username, password, role, and outlet, then click **Add Staff**. That's it: they can log in immediately.
+
+### Unlocking a Staff Member
+
+Someone locked out by wrong passwords shows **Locked until** and a time beside their name on **Setup → Staff**. Press **Unlock**: they can log in at once with the password they have. Owners and managers can unlock anyone on the staff list; owner accounts are not on it and cannot be unlocked here.
 
 ### Resetting a Staff Member's Password
 
@@ -229,7 +239,7 @@ Each table has its own printed QR code. When a guest scans it:
 
 **The internet goes down**: new orders and cash payments both keep working and will sync automatically once the connection returns; you'll see a banner at the top of the screen showing how many actions are waiting to sync. UPI and card payments are the only things that require a live connection.
 
-**Locked out after too many wrong password attempts**: ask your owner or manager to reset your password from **Setup → Staff**; it also clears the lockout automatically.
+**Locked out after too many wrong password attempts**: the login page says when you can try again. Ask your owner or manager to press **Unlock** beside your name on **Setup → Staff** (your password stays the same), or to reset your password there, which also unlocks. An owner locked out of their own account waits until the time shown, or asks Rasova support to unlock it.
 
 **The Rasova app won't install ("App not installed")** - you have a version from before 19 Oct 2026. Uninstall the old Rasova app (long-press its icon, then Uninstall), then install the new one from rasova.net/android/rasova.apk. Later updates install over the top.
 

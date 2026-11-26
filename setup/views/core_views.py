@@ -466,6 +466,14 @@ def setup_staff(request):
         if value in User.ASSIGNABLE_STAFF_ROLES
     ]
 
+    # "Locked until 10:42 pm" beside anyone too many wrong passwords have
+    # locked out, with Unlock. One query for the whole list.
+    from accounts.lockout import clock, locks_for
+    locks = locks_for(member.username for member in staff)
+    for member in staff:
+        opens = locks.get(member.username)
+        member.locked_until = clock(opens) if opens else ""
+
     return render(
         request,
         "setup/setup_staff.html",
@@ -508,10 +516,36 @@ def reset_staff_password(request, user_id):
     target.set_password(new_password)
     target.save(update_fields=["password"])
 
-    from axes.utils import reset as axes_reset
-    axes_reset(username=target.username)
+    from accounts.lockout import unlock
+    unlock(target.username)
 
     return JsonResponse({"success": True, "message": f"Password reset for {target.username}."})
+
+
+@login_required
+@role_required("owner", "manager")
+@require_POST
+@blocked_in_demo_trailer
+def unlock_staff_login(request, user_id):
+    """
+    Lets a staff member locked out by wrong passwords log in again at once,
+    with the password they have: forgets every wrong password counted for
+    their name, at every address (accounts/lockout.py). Same people and the
+    same boundary as the password reset above: an owner or manager, this
+    restaurant's staff only, never an owner account. An owner locked out of
+    their own account waits the hour, or Rasova staff run
+    `manage.py axes_reset_username <name>`.
+    """
+    target = get_object_or_404(
+        User, id=user_id, tenant=request.user.tenant
+    )
+    if target.role == "owner":
+        return JsonResponse({"error": "Owner accounts can't be unlocked here."}, status=403)
+
+    from accounts.lockout import unlock
+    unlock(target.username)
+
+    return JsonResponse({"success": True, "message": f"{target.username} can log in now."})
 
 
 @login_required

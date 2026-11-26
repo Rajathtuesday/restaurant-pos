@@ -455,19 +455,35 @@ if not DEBUG and not BOX:
 AUTH_USER_MODEL = 'accounts.User'
 
 # -------------------------------------------------------
-# AUTHENTICATION BACKENDS — axes must be last
+# AUTHENTICATION BACKENDS: axes must be FIRST
 # -------------------------------------------------------
+# Django asks the backends in order and stops at the first that returns a
+# user. Axes never returns a user: it only refuses a locked login. Listed
+# after ModelBackend (as it was until 26 Nov 2026), a right password was
+# accepted before axes was asked, so a guesser kept guessing until right.
+# A test in accounts/tests/test_login_lockout.py holds this order.
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
     'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 # -------------------------------------------------------
-# DJANGO-AXES — brute-force login protection
+# DJANGO-AXES: brute-force login protection
 # -------------------------------------------------------
+# A lock is on a NAME AT AN ADDRESS: 5 wrong passwords for ravi from the
+# pub's Wi-Fi lock ravi there for an hour, and nobody else. Locking the
+# address alone (axes' default) would lock a whole pub out after one
+# waiter's typos, since every phone on its Wi-Fi shares one public
+# address. A name guessed from many addresses is locked everywhere after
+# 20, in accounts/lockout.py (axes has one failure limit for every rule).
 AXES_FAILURE_LIMIT = int(os.getenv("AXES_FAILURE_LIMIT", "5"))  # lockout after 5 failures
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_COOLOFF_TIME = 1  # hours before account is unlocked automatically
-AXES_LOCKOUT_CALLABLE = None  # use default 403 response
+AXES_HANDLER = "accounts.lockout.RasovaAxesHandler"     # adds the 20-from-anywhere rule
+AXES_LOCKOUT_CALLABLE = "accounts.lockout.lockout_response"  # Rasova's login page, 429, with when it opens
+# A try while locked does not restart the hour, so "Try again after 10:42
+# pm" stays true even for a waiter who keeps trying before then.
+AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 AXES_RESET_ON_SUCCESS = True  # clear failure count on successful login
 AXES_USERNAME_FORM_FIELD = "username"
 AXES_ENABLE_ADMIN = False  # don't lock admin separately
@@ -866,6 +882,11 @@ HEALTH_TOKEN = os.getenv("HEALTH_TOKEN", "")
 
 if _TESTING:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+    # Under the test runner only: axes is off. With axes first among the
+    # backends, client.login() (authenticate() with no request) would raise
+    # AxesBackendRequestParameterRequired. The lockout's own tests switch it
+    # on with override_settings(AXES_ENABLED=True), and post to the login page.
+    AXES_ENABLED = False
 
 CELERY_BROKER_URL = REDIS_URL or "redis://127.0.0.1:6379/0"
 CELERY_RESULT_BACKEND = "django-db"
