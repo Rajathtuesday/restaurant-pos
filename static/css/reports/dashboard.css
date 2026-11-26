@@ -54,7 +54,7 @@
 }
 .table-minimal td { border-bottom: 1px solid var(--border-color); padding: 1.2rem 0; font-size: 0.95rem; }
 .table-minimal tbody tr:last-child td { border-bottom: none; }
-.text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent-gold); }
+.text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--gold-text); }
 
 .context-info {
   font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px;

@@ -2,7 +2,7 @@
 .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
 @media(max-width: 640px) { .page-body { grid-template-columns: minmax(0, 1fr); } }
 
-.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin-bottom: 0.5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; }
 .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
 .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
@@ -11,13 +11,13 @@
 .setup-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.5rem; font-family: inherit; }
 .setup-input:focus { border-bottom-color: var(--accent-gold); }
 
-.btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn-add { width: 100%; padding: 0.9rem; background: var(--accent-gold); border: none; color: var(--on-gold, #111111); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
 .btn-add:hover { background: var(--accent-hover); }
 
 .alert { padding: 0.8rem 1.2rem; margin-bottom: 1.5rem; font-size: 0.8rem; border-left: 3px solid var(--accent-gold); background: rgba(197,160,89,0.08); }
 
 .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; display: block; }
 .category-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.2rem 1.5rem; margin-bottom: 0.75rem; display: flex; align-items: center; }
-.category-icon { color: var(--accent-gold); margin-right: 0.75rem; }
+.category-icon { color: var(--gold-text); margin-right: 0.75rem; }
 .category-name { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
 .empty-state { color: var(--text-muted); font-size: 0.8rem; font-style: italic; padding: 1.5rem 0; }

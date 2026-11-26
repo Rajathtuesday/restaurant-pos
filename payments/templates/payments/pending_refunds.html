@@ -38,7 +38,7 @@
           {% if r.customer_complaint %}
             <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:3px;"><i class="bi bi-person me-1"></i>{{ r.customer_complaint }}</div>
           {% endif %}
-          <div style="font-size:0.8rem;"><i class="bi bi-person-badge me-1" style="color:var(--accent-gold);"></i>{{ r.reason }}</div>
+          <div style="font-size:0.8rem;"><i class="bi bi-person-badge me-1" style="color:var(--gold-text);"></i>{{ r.reason }}</div>
         </td>
         <td style="font-size:0.78rem;color:var(--text-muted);">
           {{ r.refunded_by.get_full_name|default:r.refunded_by.username }}
@@ -57,7 +57,7 @@
 
   {% else %}
   <div class="empty-state">
-    <i class="bi bi-check-circle" style="font-size:2.5rem;display:block;margin-bottom:1rem;color:#10b981;"></i>
+    <i class="bi bi-check-circle" style="font-size:2.5rem;display:block;margin-bottom:1rem;color:var(--success-text);"></i>
     No pending refunds.
   </div>
   {% endif %}

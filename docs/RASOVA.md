@@ -347,7 +347,7 @@ Rules in `docs/FRONTEND.md`. In short:
 - **No inline script, style block or onclick in any template.** The ratchet
   (`core/tests/test_frontend_hygiene.py`) is empty since 15 Nov 2026 and fails on any new
   one; it also fails on an em dash in a template.
-- Styles in `static/css/<app>/<template>.css`; colours as tokens in `static/css/luxury.css`
+- Styles in `static/css/<app>/<template>.css`; colours as tokens in `static/css/themes/luxury.css` (words in gold, green and orange use `--gold-text`, `--success-text`, `--warning-text`, words on gold `--on-gold`: the brand gold is too faint for words on white; `core/tests/test_theme_contrast.py`)
   (light and dark; Bootstrap's `--bs-*` mapped to them).
 - Third-party files live in `static/vendor/` with versions and hashes (`static/vendor/VENDOR.md`); no
   outside host is loaded by any page (a test checks). QR codes are drawn locally.

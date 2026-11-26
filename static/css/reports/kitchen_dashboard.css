@@ -22,7 +22,7 @@
 .table-minimal th { border-bottom: 1px solid var(--border-color); padding: 1rem 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); }
 .table-minimal td { border-bottom: 1px solid var(--border-color); padding: 1.2rem 0; font-size: 0.95rem; }
 .table-minimal tr:last-child td { border-bottom: none; }
-.text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--accent-gold); }
+.text-value { font-family: 'DM Serif Display', serif; font-style: italic; color: var(--gold-text); }
 
 .context-info { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 3rem; text-align: center; }
 .context-info strong { color: var(--text-main); }

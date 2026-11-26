@@ -23,6 +23,14 @@
     --danger:            #ef4444;
     --success:           #10b981;
 
+    /* Words in gold, green and orange (26 Nov 2026, the owner's pick D3): the
+       brand gold is 2.46:1 on white, too faint to read, and keeps to lines,
+       borders and backgrounds. Words on a gold button are near-black. */
+    --gold-text:         #8a6a2e;
+    --on-gold:           #111111;
+    --success-text:      #047857;
+    --warning-text:      #c2410c;
+
     /* ── Font families ── */
     --font-display:  'DM Serif Display', Georgia, serif;
     --font-mono:     'Space Mono', 'Courier New', monospace;
@@ -52,6 +60,9 @@ html.dark {
     --border-color:#262626;
     --accent-gold: #d4af37;
     --accent-hover:#e5c45e;
+    --gold-text:   #d4af37;
+    --success-text:#10b981;
+    --warning-text:#f97316;
     --shadow-soft: 0 4px 15px rgba(0,0,0,0.3);
     --shadow-hover:0 10px 30px rgba(0,0,0,0.5);
 }
@@ -155,7 +166,7 @@ pre,
     gap: 10px;
     line-height: 1.1;
 }
-.brand-title:hover { color: var(--accent-gold); }
+.brand-title:hover { color: var(--gold-text); }
 
 .brand-subtitle {
     font-size: var(--text-xs);       /* 12.5px: was 0.72rem = 11.5px */
@@ -195,7 +206,7 @@ pre,
 .btn-accent {
     background: var(--accent-gold);
     border-color: var(--accent-gold);
-    color: #fff !important;
+    color: var(--on-gold, #111111) !important;
 }
 .btn-luxury.btn-luxury-primary:hover,
 .btn-accent:hover { opacity: 0.9; }
@@ -214,7 +225,7 @@ pre,
     min-height: var(--min-tap-target);
     min-width: var(--min-tap-target);
 }
-@media (hover: hover) { .btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); } }
+@media (hover: hover) { .btn-icon:hover { color: var(--gold-text); transform: scale(1.1); } }
 
 /* ── Cards ───────────────────────────────────────────────── */
 .card {
@@ -341,7 +352,7 @@ option {
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
 
 /* ── Utility helpers ─────────────────────────────────────── */
-.text-accent  { color: var(--accent-gold) !important; }
+.text-accent  { color: var(--gold-text) !important; }
 .border-accent{ border-color: var(--accent-gold) !important; }
 .bg-panel     { background: var(--panel-bg); }
 .bg-surface   { background: var(--bg-color); }
@@ -367,7 +378,7 @@ option {
 
 /* ── Navigation active states ────────────────────────────── */
 .nav-link { color: var(--text-muted); font-size: var(--text-sm); }
-.nav-link:hover, .nav-link.active { color: var(--accent-gold); }
+.nav-link:hover, .nav-link.active { color: var(--gold-text); }
 
 /* Report tab bar (reports/_report_tabs.html, on all seven report pages).
    The seven tabs are about 940px wide, so on a phone the row used to push

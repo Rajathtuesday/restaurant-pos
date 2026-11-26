@@ -25,7 +25,7 @@
 .overtime-badge { font-size: 0.65rem; color: var(--red); }
 
 .add-cell { display: flex; align-items: center; justify-content: center; color: var(--border); font-size: 1.3rem; cursor: pointer; min-height: 48px; transition: var(--smooth); }
-.add-cell:hover { color: var(--gold); }
+.add-cell:hover { color: var(--gold-text); }
 
 .side-panel { background: var(--panel); border: 1px solid var(--border); padding: 1.5rem; height: fit-content; position: sticky; top: 1.5rem; }
 .panel-title { font-family: 'DM Serif Display', serif; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; }

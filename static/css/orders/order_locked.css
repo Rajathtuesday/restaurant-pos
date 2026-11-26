@@ -18,7 +18,7 @@
 
 .lock-icon {
     font-size: 4rem;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     margin-bottom: 1.5rem;
     display: inline-block;
     animation: pulse-gold 2s infinite ease-in-out;

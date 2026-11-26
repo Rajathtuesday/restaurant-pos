@@ -159,7 +159,7 @@ body {
     text-decoration: none;
     font-weight: 700;
 }
-.brand-title:hover { color: var(--accent-gold); }
+.brand-title:hover { color: var(--gold-text); }
 .brand-subtitle {
     font-size: 0.82rem;
     text-transform: uppercase;
@@ -236,7 +236,7 @@ body {
     text-align: center; padding: 3.5rem 1.5rem; margin: 1rem auto; max-width: 34rem;
     color: var(--text-muted);
 }
-.rv-empty > i { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; color: var(--accent-gold); }
+.rv-empty > i { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; color: var(--gold-text); }
 .rv-empty h3 { font-family: 'DM Serif Display', serif; color: var(--text-main); font-size: 1.4rem; margin-bottom: 0.5rem; }
 .rv-empty p { font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.25rem; }
 
@@ -249,7 +249,7 @@ body {
    page named itself: an empty page-name span leaves just the outlet. */
 .brand-subtitle .page-name:not(:empty) + .outlet-name:not(:empty)::before { content: " · "; }
 .brand-subtitle a { color: inherit; text-decoration: none; }
-.brand-subtitle a:hover { color: var(--accent-gold); }
+.brand-subtitle a:hover { color: var(--gold-text); }
 
 .btn-icon {
     background: transparent;
@@ -263,7 +263,7 @@ body {
     justify-content: center;
     transition: var(--transition-smooth);
 }
-@media (hover: hover) { .btn-icon:hover { color: var(--accent-gold); transform: scale(1.1); } }
+@media (hover: hover) { .btn-icon:hover { color: var(--gold-text); transform: scale(1.1); } }
 
 /* ---- Setup checklist (bottom right until setup is complete) ---- */
 .setup-checklist {
@@ -291,7 +291,7 @@ body {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     font-weight: 700;
 }
 .setup-checklist__close {
@@ -316,7 +316,7 @@ body {
 }
 .setup-checklist__item.is-done { color: var(--text-muted); }
 .setup-checklist__mark { color: var(--border-color); font-size: 0.85rem; }
-.setup-checklist__item.is-done .setup-checklist__mark { color: #10b981; font-size: 1rem; }
+.setup-checklist__item.is-done .setup-checklist__mark { color: var(--success-text); font-size: 1rem; }
 .setup-checklist__btn {
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
@@ -331,7 +331,7 @@ body {
     white-space: nowrap;
     font-family: inherit;
 }
-.setup-checklist__gear { color: var(--accent-gold); }
+.setup-checklist__gear { color: var(--gold-text); }
 
 /* ---- "Install Rasova POS" banner ---- */
 .pwa-banner {
@@ -352,7 +352,7 @@ body {
 .pwa-banner__sub { font-size: 0.75rem; color: var(--text-muted); }
 .pwa-banner__install {
     background: var(--accent-gold);
-    color: #fff;
+    color: var(--on-gold, #111111);
     border: none;
     padding: 0.6rem 1.2rem;
     font-size: 0.8rem;
@@ -405,18 +405,18 @@ body {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 3px;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     margin-bottom: 0.4rem;
 }
 .pwa-sheet__title { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 1.1rem; }
 .pwa-sheet__steps { margin: 0; padding-left: 1.2rem; color: var(--text-muted); font-size: 0.82rem; line-height: 2; }
-.pwa-sheet__steps a { color: var(--accent-gold); }
+.pwa-sheet__steps a { color: var(--gold-text); }
 .pwa-sheet__steps code { background: rgba(255,255,255,0.05); padding: 2px 6px; font-size: 0.78rem; }
 .pwa-sheet__cmd { font-size: 0.75rem; word-break: break-all; }
 .pwa-sheet__test { margin-top: 1.25rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .pwa-sheet__test-btn {
     background: var(--accent-gold);
-    color: #fff;
+    color: var(--on-gold, #111111);
     border: none;
     padding: 0.55rem 1.2rem;
     font-size: 0.75rem;
@@ -561,7 +561,7 @@ body {
     text-align: left;
     cursor: pointer;
 }
-.fit-menu-item .bi { font-size: 1.1rem; color: var(--accent-gold); width: 1.2rem; text-align: center; }
+.fit-menu-item .bi { font-size: 1.1rem; color: var(--gold-text); width: 1.2rem; text-align: center; }
 @media (hover: hover) { .fit-menu-item:hover { background: rgba(197, 160, 89, 0.12); } }
 .fit-menu-item:focus-visible { outline: 2px solid var(--accent-gold); outline-offset: -2px; }
 .fit-menu-badge {

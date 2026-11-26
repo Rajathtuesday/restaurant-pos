@@ -25,7 +25,7 @@
 }
 .today-revenue {
     display: block; font-family: 'DM Serif Display', serif; font-size: 2.6rem;
-    line-height: 1.1; color: var(--accent-gold);
+    line-height: 1.1; color: var(--gold-text);
 }
 .today-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.95rem; color: var(--text-muted); }
 .today-facts strong { color: var(--text-main); font-weight: 700; }
@@ -82,17 +82,17 @@
     font: inherit;
 }
 .quick-card.is-accent { border-color: var(--accent-gold); }
-.quick-card.is-accent .icon { color: var(--accent-gold); }
+.quick-card.is-accent .icon { color: var(--gold-text); }
 @media (hover: hover) {
     .quick-card:hover { transform: translateY(-3px); border-color: var(--accent-gold); color: var(--text-main); box-shadow: var(--shadow-hover); }
-    .quick-card:hover .icon { color: var(--accent-gold); }
+    .quick-card:hover .icon { color: var(--gold-text); }
 }
 .quick-card:active { transform: translateY(0); border-color: var(--accent-gold); }
 .quick-card .icon { position: relative; font-size: 1.75rem; margin-bottom: 0.6rem; color: var(--text-muted); }
 .tile-label { font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; }
 .tile-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
 .tile-badge {
-    position: absolute; top: -6px; right: -12px; background: var(--accent-gold); color: #fff;
+    position: absolute; top: -6px; right: -12px; background: var(--accent-gold); color: var(--on-gold, #111111);
     border-radius: 9px; font-size: 0.65rem; padding: 1px 6px; font-weight: 700; line-height: 1.4;
 }
 .dash-group-staff .quick-card { border-style: dashed; }

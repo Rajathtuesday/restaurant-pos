@@ -23,7 +23,7 @@
 
   <!-- Feature summary -->
   <div class="cfg-section">
-    <h3><i class="bi bi-toggles" style="color:var(--accent-gold);"></i> Active Features</h3>
+    <h3><i class="bi bi-toggles" style="color:var(--gold-text);"></i> Active Features</h3>
     <div style="margin-bottom:1rem;">
       {% for f in feature_summary %}
         <span class="feat-pill {% if f.on %}feat-on{% else %}feat-off{% endif %}">
@@ -40,13 +40,13 @@
       {% endfor %}
     </div>
     <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.75rem;">
-      Presets apply instantly. For fine-grained control: <a href="/settings/features/?tenant_id={{ tenant.id }}" style="color:var(--accent-gold);">Feature Flags →</a>
+      Presets apply instantly. For fine-grained control: <a href="/settings/features/?tenant_id={{ tenant.id }}" style="color:var(--gold-text);">Feature Flags →</a>
     </p>
   </div>
 
   <!-- Outlet info -->
   <div class="cfg-section">
-    <h3><i class="bi bi-shop" style="color:var(--accent-gold);"></i> Outlet Info</h3>
+    <h3><i class="bi bi-shop" style="color:var(--gold-text);"></i> Outlet Info</h3>
     <form method="post">
       {% csrf_token %}
       <input type="hidden" name="action" value="update_outlet">
@@ -69,7 +69,7 @@
         <input type="text" name="address" value="{{ outlet.address|default:'' }}" placeholder="Shop 4, MG Road, Pune 411001">
       </div>
       <div class="field" style="max-width:220px;">
-        <label>SAC Code <span style="color:var(--accent-gold);font-size:0.65rem;">(printed on every bill)</span></label>
+        <label>SAC Code <span style="color:var(--gold-text);font-size:0.65rem;">(printed on every bill)</span></label>
         <input type="text" name="sac_code" value="{{ outlet.sac_code|default:'996331' }}" maxlength="8" placeholder="996331" style="font-family:monospace;">
         <div style="font-size:0.65rem;color:var(--text-muted);margin-top:3px;">996331 = Restaurant/Café/QSR &nbsp;·&nbsp; 996332 = Delivery &nbsp;·&nbsp; 996334 = Catering</div>
       </div>
@@ -97,7 +97,7 @@
   </div>
 
   <div class="cfg-section">
-    <h3><i class="bi bi-receipt" style="color:var(--accent-gold);"></i> Rasova Subscription</h3>
+    <h3><i class="bi bi-receipt" style="color:var(--gold-text);"></i> Rasova Subscription</h3>
     <form method="post">
       {% csrf_token %}
       <input type="hidden" name="action" value="update_subscription">
@@ -154,16 +154,16 @@
 
   <!-- Printer / Kitchen Stations -->
   <div class="cfg-section">
-    <h3><i class="bi bi-printer" style="color:var(--accent-gold);"></i> Printers / Kitchen Stations</h3>
+    <h3><i class="bi bi-printer" style="color:var(--gold-text);"></i> Printers / Kitchen Stations</h3>
     {% for station in stations %}
     <div style="border:1px solid var(--border-color);padding:1.25rem;margin-bottom:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <div>
           <strong>{{ station.name }}</strong>
-          {% if station.is_default %}<span style="font-size:0.6rem;color:var(--accent-gold);margin-left:8px;text-transform:uppercase;letter-spacing:1px;">Default (billing)</span>{% endif %}
+          {% if station.is_default %}<span style="font-size:0.6rem;color:var(--gold-text);margin-left:8px;text-transform:uppercase;letter-spacing:1px;">Default (billing)</span>{% endif %}
         </div>
         {% if station.printer_ip %}
-          <span style="font-size:0.75rem;color:#10b981;"><i class="bi bi-wifi"></i> {{ station.printer_ip }}:{{ station.printer_port }}</span>
+          <span style="font-size:0.75rem;color:var(--success-text);"><i class="bi bi-wifi"></i> {{ station.printer_ip }}:{{ station.printer_port }}</span>
         {% else %}
           <span style="font-size:0.75rem;color:var(--text-muted);"><i class="bi bi-wifi-off"></i> No printer configured</span>
         {% endif %}
@@ -216,7 +216,7 @@
 
   <!-- Payment methods -->
   <div class="cfg-section">
-    <h3><i class="bi bi-cash-coin" style="color:var(--accent-gold);"></i> Payment Methods</h3>
+    <h3><i class="bi bi-cash-coin" style="color:var(--gold-text);"></i> Payment Methods</h3>
     <form method="post">
       {% csrf_token %}
       <input type="hidden" name="action" value="update_payment">
@@ -241,7 +241,7 @@
 
   <!-- Staff -->
   <div class="cfg-section">
-    <h3><i class="bi bi-people" style="color:var(--accent-gold);"></i> Staff Accounts ({{ staff.count }})</h3>
+    <h3><i class="bi bi-people" style="color:var(--gold-text);"></i> Staff Accounts ({{ staff.count }})</h3>
     {% for user in staff %}
     <div class="staff-row">
       <div>
@@ -283,7 +283,7 @@
 
   <!-- Quick links -->
   <div class="cfg-section">
-    <h3><i class="bi bi-box-arrow-up-right" style="color:var(--accent-gold);"></i> Next Steps</h3>
+    <h3><i class="bi bi-box-arrow-up-right" style="color:var(--gold-text);"></i> Next Steps</h3>
     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
       <a href="/admin/tenants/tenant/{{ tenant.id }}/change/" class="btn-cfg"><i class="bi bi-pencil me-1"></i>Edit in Admin</a>
       <a href="/settings/features/?tenant_id={{ tenant.id }}" class="btn-cfg"><i class="bi bi-toggles me-1"></i>Fine-tune Features</a>

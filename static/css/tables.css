@@ -60,7 +60,7 @@ html.dark {
   transition: var(--transition-smooth); text-align: center;
 }
 .btn-card-action:hover { background: var(--text-main); color: var(--panel-bg); }
-.btn-card-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-card-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: var(--on-gold, #111111); }
 .btn-card-primary:hover { background: #b59250; color: #fff; }
 
 /* Metrics */
@@ -86,7 +86,7 @@ html.dark .btn-close { filter: invert(1); }
 .form-select-luxury { background-color: transparent; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 0; padding: 0.75rem 1rem; font-size: 0.9rem; width: 100%; margin-bottom: 1rem; }
 
 .waiter-badge {
-  width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: #fff;
+  width: 28px; height: 28px; border-radius: 50%; background: var(--accent-gold); color: var(--on-gold, #111111);
   display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800;
   border: 2px solid var(--panel-bg); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   position: absolute; top: -10px; right: -10px; z-index: 5; cursor: help;
@@ -113,7 +113,7 @@ html.dark .btn-close { filter: invert(1); }
 /* Cooking badge */
 .cooking-badge {
   display: inline-flex; align-items: center; gap: 4px;
-  font-size: 0.75rem; font-weight: 700; color: #f97316;
+  font-size: 0.75rem; font-weight: 700; color: var(--warning-text);
   background: rgba(249,115,22,.1); border: 1px solid rgba(249,115,22,.3);
   border-radius: 12px; padding: 2px 8px; margin-top: 6px;
 }
@@ -139,13 +139,13 @@ html.dark .btn-close { filter: invert(1); }
   padding: 3px 10px; border-radius: 20px; font-size: 0.75rem;
 }
 .chip-danger { background: rgba(239,68,68,.1); color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
-.chip-warn   { background: rgba(249,115,22,.1); color: #f97316; border: 1px solid rgba(249,115,22,.3); }
+.chip-warn   { background: rgba(249,115,22,.1); color: var(--warning-text); border: 1px solid rgba(249,115,22,.3); }
 .chip-info   { background: rgba(6,182,212,.1);  color: #06b6d4; border: 1px solid rgba(6,182,212,.3); }
-.chip-ok     { background: rgba(16,185,129,.1); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
+.chip-ok     { background: rgba(16,185,129,.1); color: var(--success-text); border: 1px solid rgba(16,185,129,.3); }
 
 /* The header */
 .brand-link { text-decoration: none; color: inherit; }
-.brand-icon { color: var(--accent-gold); }
+.brand-icon { color: var(--gold-text); }
 .brand-sub { font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; }
 
 /* The page */
@@ -173,7 +173,7 @@ html.dark .btn-close { filter: invert(1); }
 .btn-luxury.btn-sheet-danger, .btn-luxury.btn-sheet-danger:hover { color: #ef4444; border-color: #ef4444; }
 .btn-luxury.btn-sheet-clean, .btn-luxury.btn-sheet-clean:hover { color: var(--c-clean); border-color: var(--c-clean); }
 .btn-luxury.btn-sheet-billing, .btn-luxury.btn-sheet-billing:hover { color: #06b6d4; border-color: #06b6d4; }
-.btn-luxury.btn-sheet-bill, .btn-luxury.btn-sheet-bill:hover { color: #10b981; border-color: #10b981; }
+.btn-luxury.btn-sheet-bill, .btn-luxury.btn-sheet-bill:hover { color: var(--success-text); border-color: #10b981; }
 .btn-luxury.btn-sheet-approval, .btn-luxury.btn-sheet-approval:hover { color: #f43f5e; border-color: #f43f5e; background: rgba(244,63,94,0.1); }
 /* A guest's QR dishes on the More sheet: a tick and a cross on each */
 .guest-dishes { list-style: none; margin: 0 0 0.25rem; padding: 0; text-align: left; }
@@ -184,7 +184,7 @@ html.dark .btn-close { filter: invert(1); }
     flex: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;
     border-radius: var(--border-radius, 0); border: 1px solid var(--border-color); background: transparent; font-size: 1.1rem;
 }
-.guest-dish-btn.is-yes { color: #10b981; border-color: #10b981; }
+.guest-dish-btn.is-yes { color: var(--success-text); border-color: #10b981; }
 .guest-dish-btn.is-yes:hover { background: rgba(16,185,129,0.12); }
 .guest-dish-btn.is-no { color: #ef4444; border-color: #ef4444; }
 .guest-dish-btn.is-no:hover { background: rgba(239,68,68,0.12); }

@@ -1,9 +1,9 @@
 /* setup/templates/setup/setup.html */
 /* ── Hero ── */
 .hero { text-align: center; padding: 4rem 2rem 2rem; }
-.hero-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 1rem; }
+.hero-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin-bottom: 1rem; }
 .hero-title { font-size: 2.5rem; font-family: 'DM Serif Display', serif; margin-bottom: 0.75rem; }
-.hero-title i { font-style: italic; font-weight: 400; color: var(--accent-gold); }
+.hero-title i { font-style: italic; font-weight: 400; color: var(--gold-text); }
 .hero-sub { color: var(--text-muted); font-size: 0.9rem; max-width: 480px; margin: 0 auto; line-height: 1.7; }
 .hero-divider { width: 40px; height: 1px; background: var(--border-color); margin: 2rem auto; }
 
@@ -17,7 +17,7 @@
 @media (hover: hover) { .setup-card:hover { border-color: var(--accent-gold); transform: translateY(-3px); color: var(--text-main); } }
 .setup-card::before { content: ''; position: absolute; top: 0; left: 0; width: 0; height: 2px; background: var(--accent-gold); transition: width 0.4s ease; }
 .setup-card:hover::before { width: 100%; }
-.card-icon { font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 1.2rem; }
+.card-icon { font-size: 1.5rem; color: var(--gold-text); margin-bottom: 1.2rem; }
 .card-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; color: var(--text-main); margin-bottom: 0.6rem; }
 .card-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.6; }
 .card-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 1.2rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }

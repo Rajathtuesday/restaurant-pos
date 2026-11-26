@@ -10,6 +10,6 @@
 .cn-download { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; margin: .25rem 0 .5rem; }
 .cn-tips { margin-top: 1rem; }
 kbd { font-family: inherit; border: 1px solid var(--border-color); padding: 0 .3rem; font-size: .8em; }
-.cn-device a:not(.btn-box), .cn-tips a { color: var(--accent-gold); }
+.cn-device a:not(.btn-box), .cn-tips a { color: var(--gold-text); }
 .page-body code { color: var(--text-main); font-family: 'Space Mono', monospace; font-size: .85em; }
 kbd { background: transparent; color: inherit; border-radius: 3px; }

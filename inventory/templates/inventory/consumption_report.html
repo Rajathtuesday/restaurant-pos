@@ -74,7 +74,7 @@
       <tr data-name="{{ item.name|lower }}" data-category="{{ item.category }}">
         <td style="font-weight:600;">{{ item.name }}</td>
         <td style="color:var(--text-muted);font-size:.8rem;">{{ item.category|default:"-" }}</td>
-        <td style="font-family:'Space Mono',monospace;color:var(--accent-gold);">
+        <td style="font-family:'Space Mono',monospace;color:var(--gold-text);">
           {{ consumed|floatformat:3 }}
         </td>
         <td style="font-family:'Space Mono',monospace;
@@ -104,7 +104,7 @@
     <i class="bi bi-inbox text-muted"></i>
     No consumption data for {{ report_date|date:"d M Y" }}.<br>
     <span style="font-size:.75rem;">Orders need recipes configured for ingredients to show here.</span><br>
-    <a href="/menu/" style="color:var(--accent-gold);font-size:.75rem;">Set up recipes in Menu →</a>
+    <a href="/menu/" style="color:var(--gold-text);font-size:.75rem;">Set up recipes in Menu →</a>
   </div>
   {% endif %}
 

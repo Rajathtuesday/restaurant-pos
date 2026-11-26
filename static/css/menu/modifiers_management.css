@@ -14,7 +14,7 @@
 .modifier-row { padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
 .modifier-row:last-child { border-bottom: none; }
 .modifier-name { font-weight: 500; }
-.modifier-price { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
+.modifier-price { font-family: 'Space Mono', monospace; color: var(--gold-text); }
 
 .form-input-luxury {
     background: transparent; border: none; border-bottom: 1px solid var(--border-color);
@@ -34,7 +34,7 @@
     transition: var(--transition-smooth); display: inline-flex; align-items: center; text-decoration: none;
 }
 .btn-luxury:hover { border-color: var(--text-main); color: var(--panel-bg); background: var(--text-main); }
-.btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-gold { background: var(--accent-gold); border-color: var(--accent-gold); color: var(--on-gold, #111111); }
 .btn-gold:hover { background: #b59250; border-color: #b59250; color: #fff; }
 
 html.dark .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }

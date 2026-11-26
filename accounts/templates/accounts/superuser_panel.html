@@ -24,7 +24,7 @@
 
   <!-- Create new restaurant -->
   <div class="create-panel">
-    <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.5rem;">New Restaurant</p>
+    <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--gold-text);margin-bottom:0.5rem;">New Restaurant</p>
     <h2 style="font-family:'DM Serif Display',serif;font-size:1.3rem;font-weight:400;margin-bottom:1.5rem;">Add a Restaurant</h2>
     <form id="createForm" data-action="restaurant.create" data-url="{% url 'superuser_create' %}" data-tenant-url="{% url 'superuser_tenant' 0 %}">
       <div class="field-row" style="margin-bottom:1rem;">
@@ -72,7 +72,7 @@
   </div>
 
   <!-- Restaurant list -->
-  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--accent-gold);margin-bottom:0.75rem;">All Restaurants ({{ tenant_data|length }})</p>
+  <p style="font-size:0.6rem;text-transform:uppercase;letter-spacing:3px;color:var(--gold-text);margin-bottom:0.75rem;">All Restaurants ({{ tenant_data|length }})</p>
   <table class="su-table">
     <thead>
       <tr>

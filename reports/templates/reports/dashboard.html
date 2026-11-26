@@ -33,7 +33,7 @@
       {% endif %}
     </strong>
     {% if gst_inclusive %}
-    <span class="ms-3" style="font-size:0.65rem;background:rgba(16,185,129,.1);color:#10b981;padding:2px 8px;border-radius:3px;border:1px solid rgba(16,185,129,.3);letter-spacing:1px;text-transform:uppercase;">
+    <span class="ms-3" style="font-size:0.65rem;background:rgba(16,185,129,.1);color:var(--success-text);padding:2px 8px;border-radius:3px;border:1px solid rgba(16,185,129,.3);letter-spacing:1px;text-transform:uppercase;">
       GST Inclusive Pricing
     </span>
     {% endif %}
@@ -44,12 +44,12 @@
 
   {% if gst_inclusive %}
   <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-left:3px solid #10b981;padding:0.6rem 1rem;margin-bottom:1.5rem;font-size:0.78rem;color:var(--text-muted);">
-    <i class="bi bi-info-circle me-1" style="color:#10b981;"></i>
+    <i class="bi bi-info-circle me-1" style="color:var(--success-text);"></i>
     <strong style="color:var(--text-main);">GST-Inclusive Mode:</strong>
     Revenue figures show the total collected from customers (GST inside).
     <em>Net Revenue</em> = grand total − GST back-calculated from each order.
     <em>GST</em> = amount embedded in customer prices, not added on top.
-    <a href="/setup/outlet/" style="color:#10b981;margin-left:6px;">Change pricing mode →</a>
+    <a href="/setup/outlet/" style="color:var(--success-text);margin-left:6px;">Change pricing mode →</a>
   </div>
   {% endif %}
 
@@ -112,7 +112,7 @@
         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs ₹{{ p.revenue|floatformat:0 }}</div>
         {% if d.revenue is not None %}
           {% if d.revenue >= 0 %}
-            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↑ {{ d.revenue }}%</span>
+            <span style="color:var(--success-text);font-size:0.78rem;font-weight:700;">↑ {{ d.revenue }}%</span>
           {% else %}
             <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↓ {{ d.revenue|slice:"1:" }}%</span>
           {% endif %}
@@ -126,7 +126,7 @@
         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs {{ p.orders }}</div>
         {% if d.orders is not None %}
           {% if d.orders >= 0 %}
-            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↑ {{ d.orders }}%</span>
+            <span style="color:var(--success-text);font-size:0.78rem;font-weight:700;">↑ {{ d.orders }}%</span>
           {% else %}
             <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↓ {{ d.orders|slice:"1:" }}%</span>
           {% endif %}
@@ -140,7 +140,7 @@
         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs ₹{{ p.avg_order|floatformat:0 }}</div>
         {% if d.avg_order is not None %}
           {% if d.avg_order >= 0 %}
-            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↑ {{ d.avg_order }}%</span>
+            <span style="color:var(--success-text);font-size:0.78rem;font-weight:700;">↑ {{ d.avg_order }}%</span>
           {% else %}
             <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↓ {{ d.avg_order|slice:"1:" }}%</span>
           {% endif %}
@@ -156,7 +156,7 @@
         <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.3rem;">vs ₹{{ p.discounts|floatformat:0 }}</div>
         {% if d.discounts is not None %}
           {% if d.discounts <= 0 %}
-            <span style="color:#10b981;font-size:0.78rem;font-weight:700;">↓ {{ d.discounts|slice:"1:" }}% better</span>
+            <span style="color:var(--success-text);font-size:0.78rem;font-weight:700;">↓ {{ d.discounts|slice:"1:" }}% better</span>
           {% else %}
             <span style="color:#ef4444;font-size:0.78rem;font-weight:700;">↑ {{ d.discounts }}% more</span>
           {% endif %}
@@ -202,7 +202,7 @@
 
       <div style="padding:0.75rem;border-left:3px solid var(--border-color);">
         <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Discounts Given</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#f97316;">₹{{ pl.discounts|floatformat:0 }}</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--warning-text);">₹{{ pl.discounts|floatformat:0 }}</div>
       </div>
 
       {% if pl.cogs > 0 %}
@@ -213,19 +213,19 @@
 
       <div style="padding:0.75rem;border-left:3px solid #10b981;">
         <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Profit</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#10b981;">₹{{ pl.gross_profit|floatformat:0 }}</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--success-text);">₹{{ pl.gross_profit|floatformat:0 }}</div>
       </div>
 
       <div style="padding:0.75rem;border-left:3px solid #10b981;background:rgba(16,185,129,0.05);">
         <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Margin</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:#10b981;font-weight:700;">{{ pl.gross_margin_pct }}%</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--success-text);font-weight:700;">{{ pl.gross_margin_pct }}%</div>
       </div>
       {% else %}
       <div style="padding:0.75rem;border-left:3px solid var(--border-color);grid-column:span 2;">
         <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Gross Margin</div>
         <div style="font-size:0.82rem;color:var(--text-muted);margin-top:0.3rem;">
           <i class="bi bi-info-circle me-1"></i>
-          Link recipes to menu items in <a href="/menu/" style="color:var(--accent-gold);">Menu Management</a> to calculate COGS and gross margin.
+          Link recipes to menu items in <a href="/menu/" style="color:var(--gold-text);">Menu Management</a> to calculate COGS and gross margin.
         </div>
       </div>
       {% endif %}
@@ -244,7 +244,7 @@
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;">
         <div style="padding:0.75rem;border-left:3px solid #f97316;">
           <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Operating Expenses</div>
-          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:#f97316;">₹{{ net_pl.operating_expenses|floatformat:0 }}</div>
+          <div style="font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--warning-text);">₹{{ net_pl.operating_expenses|floatformat:0 }}</div>
         </div>
         <div style="padding:0.75rem;border-left:3px solid {% if net_pl.net_profit >= 0 %}#10b981{% else %}#ef4444{% endif %};background:{% if net_pl.net_profit >= 0 %}rgba(16,185,129,0.05){% else %}rgba(239,68,68,0.05){% endif %};">
           <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;color:var(--text-muted);">Net Profit</div>
@@ -261,7 +261,7 @@
       </div>
       {% endif %}
       <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.75rem;">
-        <a href="/finance/expenses/" style="color:var(--accent-gold);">Manage expenses →</a>
+        <a href="/finance/expenses/" style="color:var(--gold-text);">Manage expenses →</a>
       </div>
     </div>
     {% else %}
@@ -352,7 +352,7 @@
 
   {% else %}
   <div class="card-elegant text-center py-5 mb-5">
-    <i class="bi bi-shield-lock-fill mb-3" style="font-size:2.5rem;color:var(--accent-gold);"></i>
+    <i class="bi bi-shield-lock-fill mb-3" style="font-size:2.5rem;color:var(--gold-text);"></i>
     <h5 style="font-family:'DM Serif Display',serif;">Channel Privacy Protection</h5>
     <p class="text-muted small mx-auto" style="max-width:500px;">Specific operational data (itemized sales, table turnover, and staff ranking) is suppressed for non-owner roles to protect restaurant privacy.</p>
   </div>
@@ -363,7 +363,7 @@
     style="background:var(--panel-bg);color:var(--text-main);border-left:1px solid var(--border-color);">
     <div class="offcanvas-header" style="border-bottom:1px solid var(--border-color);">
       <h5 style="font-family:'DM Serif Display',serif;font-size:1.4rem;margin:0;">
-        <i class="bi bi-grid me-2" style="color:var(--accent-gold);"></i> Operations
+        <i class="bi bi-grid me-2" style="color:var(--gold-text);"></i> Operations
       </h5>
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas" style="filter:invert(var(--invert-val,0));"></button>
     </div>

@@ -10,12 +10,12 @@
 .audit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
 .audit-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.25rem 1.5rem; }
 .audit-card h3 {
-  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-gold);
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 2px; color: var(--gold-text);
   margin-bottom: 1rem;
 }
 .audit-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px dashed var(--border-color); font-size: 0.85rem; }
 .audit-row:last-child { border-bottom: none; }
-.audit-row .count { font-family: 'Space Mono', monospace; color: var(--accent-gold); }
+.audit-row .count { font-family: 'Space Mono', monospace; color: var(--gold-text); }
 .audit-empty { color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; }
 .coverage-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.75rem; }
 .unpaid-card { margin-bottom: 1.5rem; }

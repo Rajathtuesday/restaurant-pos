@@ -35,7 +35,7 @@
 <div class="mobile-nav-drawer" id="mobileNavDrawer">
   <div class="mobile-nav-overlay" data-action="menu.closeNav"></div>
   <div class="mobile-nav-panel">
-    <div class="drawer-title"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--accent-gold);"></i>More Options</div>
+    <div class="drawer-title"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--gold-text);"></i>More Options</div>
     {% if 'ai_menu_import' in tenant_features %}<button type="button" class="drawer-btn" data-action="menu.aiImport"><i class="bi bi-magic"></i> AI Smart Import</button>{% endif %}
     <a href="/inventory/board/"><i class="bi bi-box-seam"></i> Inventory</a>
     <a href="{% url 'modifier_management' %}"><i class="bi bi-ui-checks"></i> Modifiers</a>
@@ -63,15 +63,15 @@
 {% if request.user.outlet.gst_inclusive %}
 <div class="container-fluid mx-auto px-4 mt-3" style="max-width:1400px;padding:0 2rem;">
   <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-left:3px solid #10b981;padding:0.6rem 1rem;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-    <span><i class="bi bi-check-circle-fill me-2" style="color:#10b981;"></i><strong>GST Inclusive Pricing</strong>: the prices you set here are what customers pay. GST is back-calculated inside those prices.</span>
-    <a href="/setup/outlet/" style="font-size:0.72rem;color:#10b981;text-decoration:none;white-space:nowrap;">Change in Settings →</a>
+    <span><i class="bi bi-check-circle-fill me-2" style="color:var(--success-text);"></i><strong>GST Inclusive Pricing</strong>: the prices you set here are what customers pay. GST is back-calculated inside those prices.</span>
+    <a href="/setup/outlet/" style="font-size:0.72rem;color:var(--success-text);text-decoration:none;white-space:nowrap;">Change in Settings →</a>
   </div>
 </div>
 {% else %}
 <div class="container-fluid mx-auto px-4 mt-3" style="max-width:1400px;padding:0 2rem;">
   <div style="background:rgba(197,160,89,.07);border:1px solid rgba(197,160,89,.2);border-left:3px solid var(--accent-gold);padding:0.6rem 1rem;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
-    <span><i class="bi bi-info-circle me-2" style="color:var(--accent-gold);"></i><strong>GST Exclusive Pricing</strong>: prices shown here are base prices. GST is added on top when billing.</span>
-    <a href="/setup/outlet/" style="font-size:0.72rem;color:var(--accent-gold);text-decoration:none;white-space:nowrap;">Change in Settings →</a>
+    <span><i class="bi bi-info-circle me-2" style="color:var(--gold-text);"></i><strong>GST Exclusive Pricing</strong>: prices shown here are base prices. GST is added on top when billing.</span>
+    <a href="/setup/outlet/" style="font-size:0.72rem;color:var(--gold-text);text-decoration:none;white-space:nowrap;">Change in Settings →</a>
   </div>
 </div>
 {% endif %}

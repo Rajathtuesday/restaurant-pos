@@ -11,7 +11,7 @@
 
 {% block header_links %}
 {% if request.user.is_superuser %}
-<a href="/agency/dashboard/" class="btn-luxury" style="background:var(--accent-gold); border-color:var(--accent-gold); color:white;">
+<a href="/agency/dashboard/" class="btn-luxury" style="background:var(--accent-gold); border-color:var(--accent-gold); color:var(--on-gold, #111111);">
     <i class="bi bi-graph-up-arrow me-1"></i> Channel Analytics
 </a>
 <span class="badge bg-danger">Admin View</span>
@@ -22,7 +22,7 @@
 <div class="container py-3">
     {% if messages %}
         {% for msg in messages %}
-            <div class="alert" style="background: rgba(16,185,129,0.1); border: 1px solid #10b981; color: #10b981; border-radius: 4px; padding: 0.8rem; font-size: 0.8rem; margin-bottom: 1.5rem;">
+            <div class="alert" style="background: rgba(16,185,129,0.1); border: 1px solid #10b981; color: var(--success-text); border-radius: 4px; padding: 0.8rem; font-size: 0.8rem; margin-bottom: 1.5rem;">
                 {{ msg }}
             </div>
         {% endfor %}
@@ -73,7 +73,7 @@
                             </a>
                         </td>
                         {% if request.user.is_superuser %}
-                        <td style="color:var(--accent-gold); font-weight:600;">
+                        <td style="color:var(--gold-text); font-weight:600;">
                             <form method="POST" style="display:flex; gap:0.5rem; align-items:center;">
                                 {% csrf_token %}
                                 <input type="hidden" name="action" value="allocate_client">
@@ -136,7 +136,7 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-action" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn-luxury" style="background:var(--accent-gold); border-color:var(--accent-gold); color:#fff;">Create Client</button>
+            <button type="submit" class="btn-luxury" style="background:var(--accent-gold); border-color:var(--accent-gold); color:var(--on-gold, #111111);">Create Client</button>
         </div>
       </form>
     </div>

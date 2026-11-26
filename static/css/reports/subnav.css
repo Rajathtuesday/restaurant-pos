@@ -23,7 +23,7 @@
   transition: color 0.2s, border-color 0.2s; display: inline-block;
 }
 .report-tab:hover   { color: var(--text-main); }
-.report-tab.active  { color: var(--accent-gold); border-bottom-color: var(--accent-gold); font-weight: 600; }
+.report-tab.active  { color: var(--gold-text); border-bottom-color: var(--accent-gold); font-weight: 600; }
 
 .subnav-sep { width: 1px; height: 20px; background: var(--border-color); margin: 0 0.25rem; }
 
@@ -43,9 +43,9 @@
   align-items: center; gap: 5px; font-family: inherit;
   transition: all 0.15s;
 }
-.subnav-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-.subnav-btn.gold  { border-color: var(--accent-gold); color: var(--accent-gold); }
-.subnav-btn.gold:hover { background: var(--accent-gold); color: #fff; }
+.subnav-btn:hover { border-color: var(--accent-gold); color: var(--gold-text); }
+.subnav-btn.gold  { border-color: var(--accent-gold); color: var(--gold-text); }
+.subnav-btn.gold:hover { background: var(--accent-gold); color: var(--on-gold, #111111); }
 
 .report-digest { padding: 0.5rem 0.6rem; }
 .subnav-dates { display: flex; gap: 0.4rem; align-items: center; }

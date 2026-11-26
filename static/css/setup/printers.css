@@ -5,10 +5,10 @@
 }
 html.dark .pr-page, body.dark .pr-page { --pr-ok: #4ade80; --pr-bad: #f87171; --pr-idle: #fbbf24; }
 
-.pr-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin: 0 0 .4rem; }
+.pr-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin: 0 0 .4rem; }
 .pr-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin: 0 0 .75rem; }
 .pr-sub { color: var(--text-muted); font-size: .88rem; line-height: 1.6; margin: 0 0 1.5rem; }
-.pr-sub a, .pr-hint a, .pr-empty a, .pr-app a { color: var(--accent-gold); }
+.pr-sub a, .pr-hint a, .pr-empty a, .pr-app a { color: var(--gold-text); }
 
 .pr-msg { padding: .7rem .9rem; margin-bottom: 1rem; border: 1px solid var(--border-color); font-size: .88rem; }
 .pr-msg.success { border-color: var(--pr-ok); color: var(--pr-ok); }
@@ -54,7 +54,7 @@ html.dark .pr-page, body.dark .pr-page { --pr-ok: #4ade80; --pr-bad: #f87171; --
 }
 .pr-btn:hover:not(:disabled) { border-color: var(--text-main); }
 .pr-btn:disabled { opacity: .45; cursor: not-allowed; }
-.pr-btn-main { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.pr-btn-main { background: var(--accent-gold); border-color: var(--accent-gold); color: var(--on-gold, #111111); }
 .pr-btn-quiet { font-weight: 500; color: var(--text-muted); }
 .pr-result { font-size: .82rem; margin: .6rem 0 0; min-height: 1.2em; overflow-wrap: anywhere; }
 .pr-result.is-wait { color: var(--text-muted); }

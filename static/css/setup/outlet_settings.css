@@ -1,6 +1,6 @@
 /* setup/templates/setup/outlet_settings.html */
 .page-body { max-width: 700px; margin: 3rem auto 5rem; padding: 0 1.5rem; }
-.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin-bottom: 0.5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
 .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0 2rem; }
 
@@ -12,7 +12,7 @@
 
 .settings-section { border: 1px solid var(--border-color); background: var(--panel-bg); margin-bottom: 1.5rem; overflow: hidden; }
 .section-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.6rem; }
-.section-icon { color: var(--accent-gold); font-size: 1rem; }
+.section-icon { color: var(--gold-text); font-size: 1rem; }
 .section-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
 .section-body { padding: 1.5rem; }
 
@@ -36,7 +36,7 @@
 .compliance-note { background: rgba(197,160,89,0.06); border: 1px solid rgba(197,160,89,0.25); padding: 0.75rem 1rem; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.6; }
 .compliance-note strong { color: var(--text-main); }
 
-.btn-save { width: 100%; padding: 1.1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: background 0.2s, transform 0.1s; font-family: 'Outfit', sans-serif; }
+.btn-save { width: 100%; padding: 1.1rem; background: var(--accent-gold); border: none; color: var(--on-gold, #111111); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 1.5rem; transition: background 0.2s, transform 0.1s; font-family: 'Outfit', sans-serif; }
 .btn-save:hover { background: var(--accent-hover); }
 .btn-save:active { transform: scale(0.99); }
 

@@ -36,8 +36,8 @@
         {% endfor %}
 
         <div class="pin-state" id="pinState">
-            {% if has_pin %}<i class="bi bi-shield-check" style="color:#10b981;"></i> You have a PIN set.
-            {% else %}<i class="bi bi-shield-exclamation" style="color:var(--accent-gold);"></i> You have no PIN yet, so nobody can ask you to approve.{% endif %}
+            {% if has_pin %}<i class="bi bi-shield-check" style="color:var(--success-text);"></i> You have a PIN set.
+            {% else %}<i class="bi bi-shield-exclamation" style="color:var(--gold-text);"></i> You have no PIN yet, so nobody can ask you to approve.{% endif %}
         </div>
 
         <form method="post" autocomplete="off">

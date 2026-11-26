@@ -1,14 +1,14 @@
 /* setup/templates/setup/setup_payment_methods.html */
 .page-body { max-width: 680px; margin: 4rem auto; padding: 0 2rem; }
 
-.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin-bottom: 0.5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
 .page-sub { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; margin-bottom: 2.5rem; }
 .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.5rem 0; }
 
 .method-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1.5rem 2rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; transition: border-color 0.2s; }
 .method-card:has(input:checked) { border-color: var(--accent-gold); }
-.method-icon { font-size: 1.4rem; color: var(--accent-gold); width: 36px; }
+.method-icon { font-size: 1.4rem; color: var(--gold-text); width: 36px; }
 .method-info { flex: 1; }
 .method-name { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
 .method-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
@@ -23,7 +23,7 @@
 input:checked + .slider { background: var(--accent-gold); }
 input:checked + .slider::before { transform: translateX(20px); background: #fff; }
 
-.btn-save { width: 100%; padding: 1rem; background: var(--accent-gold); border: none; color: #fff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 2rem; transition: background 0.2s; }
+.btn-save { width: 100%; padding: 1rem; background: var(--accent-gold); border: none; color: var(--on-gold, #111111); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; cursor: pointer; margin-top: 2rem; transition: background 0.2s; }
 .btn-save:hover { background: var(--accent-hover); }
 
 @media (max-width: 600px) {

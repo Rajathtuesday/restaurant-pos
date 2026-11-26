@@ -106,7 +106,7 @@
 
         {% if station.is_default and not any_station_has_printer %}
         <div style="background:rgba(16,185,129,0.07);border-left:3px solid #10b981;padding:0.7rem 0.9rem;margin-bottom:1rem;font-size:0.72rem;line-height:1.6;">
-          <strong style="color:#10b981;">Cashier printer.</strong>
+          <strong style="color:var(--success-text);">Cashier printer.</strong>
           Bill + all KOTs print here as one strip. Leave other stations with no IP.
         </div>
         {% endif %}
@@ -145,7 +145,7 @@
   {% if any_station_has_printer %}
   <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1.5rem;">
     <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1rem;">
-      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:#10b981;background:rgba(16,185,129,.1);padding:3px 10px;">Multi-Printer Mode</span>
+      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--success-text);background:rgba(16,185,129,.1);padding:3px 10px;">Multi-Printer Mode</span>
       <span style="font-size:0.75rem;color:var(--text-muted);">Each station prints its own KOT when an order is sent</span>
     </div>
     <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.75rem;flex-wrap:wrap;">
@@ -170,7 +170,7 @@
   {% else %}
   <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1.5rem;">
     <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:1.25rem;">
-      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--accent-gold);background:rgba(197,160,89,.1);padding:3px 10px;">Cashier Strip Mode</span>
+      <span style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;font-weight:700;color:var(--gold-text);background:rgba(197,160,89,.1);padding:3px 10px;">Cashier Strip Mode</span>
       <span style="font-size:0.75rem;color:var(--text-muted);">Bill + all KOTs print as one connected strip at payment</span>
     </div>
     <div style="display:flex;align-items:stretch;gap:0;flex-wrap:wrap;row-gap:0.5rem;">

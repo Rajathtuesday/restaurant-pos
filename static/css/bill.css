@@ -25,7 +25,7 @@
     box-shadow: 0 15px 50px rgba(0,0,0,0.12);
 }
 .r-header  { text-align: center; margin-bottom: 1.5rem; border-bottom: 1px dashed var(--border-color); padding-bottom: 1.5rem; }
-.r-logo    { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 0.4rem; }
+.r-logo    { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--gold-text); margin-bottom: 0.4rem; }
 .r-address { font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; }
 .r-gst     { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; font-weight: 600; }
 
@@ -43,13 +43,13 @@
 .item-qty  { color: var(--text-muted); }
 .item-val  { font-weight: 600; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .item-note { font-size: 0.75rem; color: var(--text-muted); padding-left: 0.4rem; margin-top: 0.1rem; }
-.item-offer { font-size: 0.75rem; color: #10b981; margin-top: 0.15rem; padding-left: 0.4rem; }
+.item-offer { font-size: 0.75rem; color: var(--success-text); margin-top: 0.15rem; padding-left: 0.4rem; }
 
 .total-row { display: flex; justify-content: space-between; padding: 0.22rem 0; font-size: 0.85rem; }
 .grand-total {
     display: flex; justify-content: space-between;
     font-family: 'DM Serif Display', serif;
-    font-size: 1.5rem; font-weight: 700; color: var(--accent-gold);
+    font-size: 1.5rem; font-weight: 700; color: var(--gold-text);
     border-top: 1px solid var(--border-color);
     margin-top: 0.9rem; padding-top: 0.9rem;
 }
@@ -83,7 +83,7 @@
 .btn-set:hover { border-color: var(--accent-gold); color: var(--text-main); }
 
 .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.75rem; margin-top: 1.25rem; }
-.btn-pay { background: var(--panel-bg); border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 72px; }
+.btn-pay { background: var(--panel-bg); border: 1px solid var(--accent-gold); color: var(--gold-text); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 1rem; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 72px; }
 .btn-pay i { font-size: 1.2rem; }
 .btn-pay:hover { background: var(--accent-gold); color: #000; }
 .btn-pay:active { opacity: 0.85; }
@@ -93,7 +93,7 @@
 
 /* ── Back nav ─────────────────────────────────────────── */
 .nav-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--text-muted); text-decoration: none; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 1rem; }
-.nav-back:hover { color: var(--accent-gold); }
+.nav-back:hover { color: var(--gold-text); }
 
 /* ── GST breakdown ────────────────────────────────────── */
 .gst-breakdown { margin: 0.75rem 0; padding: 0.75rem; border: 1px dashed var(--border-color); background: rgba(197,160,89,0.03); }
@@ -107,7 +107,7 @@
     background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
     padding: 0.55rem 0.7rem; font-size: 0.85rem; outline: none; flex: 1; min-width: 70px; min-height: 44px;
 }
-.btn-apply { background: var(--accent-gold); color: #fff; border: none; padding: 0.55rem 1.1rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
+.btn-apply { background: var(--accent-gold); color: var(--on-gold, #111111); border: none; padding: 0.55rem 1.1rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
 .btn-remove { background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.55rem 1rem; font-size: 0.75rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; flex: 1.5; white-space: nowrap; min-height: 44px; }
 
 /* ── Loyalty points section ───────────────────────────── */
@@ -141,18 +141,18 @@
 
 /* ---- pieces that used to carry their look in a style attribute ---- */
 .invoice-title { font-family: 'DM Serif Display', serif; font-size: 1.1rem; }
-.invoice-title i { color: var(--accent-gold); }
+.invoice-title i { color: var(--gold-text); }
 .r-logo-img { max-height: 80px; margin-bottom: 0.5rem; }
 .r-outlet { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.4rem; }
 .meta--second { margin-top: -6px; }
 .meta .meta-right { text-align: right; }
-.item-discount-btn { background: transparent; border: none; color: var(--accent-gold); cursor: pointer; padding: 0 4px; font-size: 0.75rem; min-width: 44px; min-height: 44px; margin: -12px 0; } /* 44px to tap, no taller line */
+.item-discount-btn { background: transparent; border: none; color: var(--gold-text); cursor: pointer; padding: 0 4px; font-size: 0.75rem; min-width: 44px; min-height: 44px; margin: -12px 0; } /* 44px to tap, no taller line */
 .total-row--off { color: #ef4444; }
 .total-row--muted { color: var(--text-muted); }
 .total-row--small { font-size: 0.78rem; padding: 0.1rem 0; }
 .total-row--sum { font-size: 0.82rem; font-weight: 700; }
 .total-row--balance { margin-top: 0.4rem; font-weight: 700; }
-.total-row--given-back { color: #10b981; }
+.total-row--given-back { color: var(--success-text); }
 .tax-included { border-top: 1px dashed var(--border-color); padding: 0.35rem 0; margin: 0.4rem 0; }
 .tax-included-title { font-size: 0.75rem; font-style: italic; }
 .tax-included-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-top: 0.2rem; }
@@ -173,7 +173,7 @@
 #promo-select { width: 100%; min-height: 44px; background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem; font-size: 0.82rem; outline: none; }
 .field-select--narrow { max-width: 110px; }
 .field-num--reason { max-width: none; flex: 1 1 140px; }
-.discount-active { margin-top: 0.7rem; font-size: 0.78rem; color: var(--accent-gold); }
+.discount-active { margin-top: 0.7rem; font-size: 0.78rem; color: var(--gold-text); }
 .discount-paused { margin-top: 0.4rem; font-size: 0.78rem; color: var(--danger, #ef4444); }
 
 #change-display { display: none; background: #dc2626; color: #fff; text-align: center; padding: 0.9rem 1rem; margin-bottom: 0.75rem; }
@@ -183,13 +183,13 @@
 .pay-shortcuts { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 .btn-pay--wide { width: 100%; }
 .btn-action--quiet { border-color: var(--border-color); color: var(--text-muted); }
-.btn-action--gold { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn-action--gold { border-color: var(--accent-gold); color: var(--gold-text); }
 .btn-action--link { text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; }
-.paid-note { text-align: center; padding: 1rem; color: #10b981; font-weight: 700; letter-spacing: 2px; font-size: 0.75rem; }
+.paid-note { text-align: center; padding: 1rem; color: var(--success-text); font-weight: 700; letter-spacing: 2px; font-size: 0.75rem; }
 .after-pay { display: flex; gap: 0.5rem; margin-top: 1.25rem; }
 .after-pay .btn-action { margin-top: 0; }
 
-.loyalty-title i { color: var(--accent-gold); }
+.loyalty-title i { color: var(--gold-text); }
 .loyalty-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
 .input-pay--text { padding: 0.6rem 0.8rem; font-size: 0.9rem; font-family: 'Outfit', sans-serif; text-align: left; }
 .input-pay--inline { margin: 0; flex: 1; }
@@ -198,11 +198,11 @@
 .btn-set--lookup { flex: 0 0 80px; }
 .loyalty-info { display: none; }
 .loyalty-info.is-shown { display: block; }
-.loyalty-points { color: var(--accent-gold); }
+.loyalty-points { color: var(--gold-text); }
 .redeem-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; }
 .redeem-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); white-space: nowrap; }
 .btn-pay--award { width: 100%; padding: 0.9rem; }
-.loyalty-msg.is-shown { display: block; color: #10b981; }
+.loyalty-msg.is-shown { display: block; color: var(--success-text); }
 .loyalty-msg.is-shown.is-error { color: #ef4444; }
 
 /* ---- the Razorpay QR sheet (static/js/bill/razorpay_qr.js) ---- */

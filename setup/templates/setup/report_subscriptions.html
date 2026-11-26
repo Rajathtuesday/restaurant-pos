@@ -27,14 +27,14 @@
         <div style="background:var(--panel-bg);border:1px solid var(--border-color);padding:1rem 1.25rem;margin-bottom:2rem;">
             <p class="form-label" style="margin-bottom:0.75rem;">What you'll actually receive</p>
             <div style="font-size:0.82rem;line-height:1.9;">
-                <div><i class="bi bi-check-circle-fill" style="color:#10b981;"></i> Sales &amp; order count (always included)</div>
+                <div><i class="bi bi-check-circle-fill" style="color:var(--success-text);"></i> Sales &amp; order count (always included)</div>
                 <div style="{% if not has_advanced_reports %}color:var(--text-muted);{% endif %}">
-                    <i class="bi {% if has_advanced_reports %}bi-check-circle-fill" style="color:#10b981;{% else %}bi-x-circle" style="color:var(--text-muted);{% endif %}"></i>
+                    <i class="bi {% if has_advanced_reports %}bi-check-circle-fill" style="color:var(--success-text);{% else %}bi-x-circle" style="color:var(--text-muted);{% endif %}"></i>
                     Net profit, labor cost, menu mix, discount/void summary
                     {% if not has_advanced_reports %} (needs the Advanced Reports feature){% endif %}
                 </div>
                 <div style="{% if not has_advanced_reports or not has_crm %}color:var(--text-muted);{% endif %}">
-                    <i class="bi {% if has_advanced_reports and has_crm %}bi-check-circle-fill" style="color:#10b981;{% else %}bi-x-circle" style="color:var(--text-muted);{% endif %}"></i>
+                    <i class="bi {% if has_advanced_reports and has_crm %}bi-check-circle-fill" style="color:var(--success-text);{% else %}bi-x-circle" style="color:var(--text-muted);{% endif %}"></i>
                     Repeat customer rate
                     {% if not has_advanced_reports or not has_crm %} (needs Advanced Reports + CRM){% endif %}
                 </div>
@@ -78,7 +78,7 @@
                 <tr id="sub-row-{{ s.id }}">
                     <td style="max-width:220px;overflow-wrap:break-word;">{{ s.recipient_emails }}</td>
                     <td style="color:var(--text-muted);font-size:0.8rem;">{{ s.outlet.name|default:"All outlets" }}</td>
-                    <td>{% if s.is_active %}<span style="color:#10b981;">Active</span>{% else %}<span style="color:var(--text-muted);">Paused</span>{% endif %}</td>
+                    <td>{% if s.is_active %}<span style="color:var(--success-text);">Active</span>{% else %}<span style="color:var(--text-muted);">Paused</span>{% endif %}</td>
                     <td style="display:flex;gap:6px;">
                         <button type="button" class="btn-reset-pw" data-action="post" data-url="{% url 'report_subscription_toggle' s.id %}">{% if s.is_active %}Pause{% else %}Resume{% endif %}</button>
                         <button type="button" class="btn-reset-pw" data-action="post" data-url="{% url 'report_subscription_delete' s.id %}" data-confirm="Delete this subscription?" data-confirm-text="This cannot be undone." data-confirm-button="Delete" data-done="Subscription deleted." data-remove="#sub-row-{{ s.id }}">Delete</button>

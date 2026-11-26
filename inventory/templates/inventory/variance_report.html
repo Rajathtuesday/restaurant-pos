@@ -38,7 +38,7 @@
       <div class="summary-lbl">Items Tracked</div>
     </div>
     <div class="summary-card">
-      <div class="summary-num" style="color:#10b981;">{{ ok_count }}</div>
+      <div class="summary-num" style="color:var(--success-text);">{{ ok_count }}</div>
       <div class="summary-lbl">OK (within 3%)</div>
     </div>
     <div class="summary-card">
@@ -101,8 +101,8 @@
           {% if r.variance_pct is not None and r.variance_pct|floatformat:1 != '0.0' %}
             {% if r.variance_pct > 8 or r.variance_pct < -8 %}color:#ef4444;
             {% elif r.variance_pct > 3 or r.variance_pct < -3 %}color:#f59e0b;
-            {% else %}color:#10b981;{% endif %}
-          {% else %}color:#10b981;{% endif %}">
+            {% else %}color:var(--success-text);{% endif %}
+          {% else %}color:var(--success-text);{% endif %}">
           {% if r.variance > 0 %}+{% endif %}{{ r.variance|floatformat:2 }}
         </td>
         <td>
@@ -119,7 +119,7 @@
           {% endif %}
         </td>
         <td style="color:#ef4444;">{{ r.wastage|floatformat:2 }}</td>
-        <td style="color:#10b981;">+{{ r.restocked|floatformat:2 }}</td>
+        <td style="color:var(--success-text);">+{{ r.restocked|floatformat:2 }}</td>
         <td style="font-weight:600;">{{ r.item.stock|floatformat:2 }}</td>
       </tr>
       {% endfor %}

@@ -1,6 +1,6 @@
 /* inventory/templates/inventory/consumption_report.html */
 .page-body { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
-.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
+.page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin-bottom: .5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
 .page-sub { color: var(--text-muted); font-size: .82rem; margin-bottom: 2rem; }
 .divider { height: 1px; background: var(--border-color); margin: 1.5rem 0; }
@@ -9,18 +9,18 @@
 .date-input { background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
               padding: .6rem .9rem; font-size: .88rem; font-family: inherit; outline: none; }
 .date-input:focus { border-color: var(--accent-gold); }
-.btn-filter { background: var(--accent-gold); border: none; color: #fff; padding: .6rem 1.2rem;
+.btn-filter { background: var(--accent-gold); border: none; color: var(--on-gold, #111111); padding: .6rem 1.2rem;
               font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;
               cursor: pointer; font-family: inherit; }
 .btn-export { background: transparent; border: 1px solid var(--border-color); color: var(--text-muted);
               padding: .6rem 1.2rem; font-size: .78rem; text-transform: uppercase; letter-spacing: 1.5px;
               font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none;
               display: inline-flex; align-items: center; gap: .4rem; transition: all .15s; }
-.btn-export:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn-export:hover { border-color: var(--accent-gold); color: var(--gold-text); }
 
 .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
 .summary-card { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem; }
-.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--accent-gold); }
+.summary-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--gold-text); }
 .summary-lbl { font-size: .62rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); margin-top: .2rem; }
 
 .table { width: 100%; border-collapse: collapse; }

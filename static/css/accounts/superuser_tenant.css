@@ -9,11 +9,11 @@
 .field select option { background: var(--panel-bg); }
 .field-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
 .btn-cfg { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.5rem 1.2rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; transition: all 0.2s; }
-.btn-cfg:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-.btn-cfg-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-cfg:hover { border-color: var(--accent-gold); color: var(--gold-text); }
+.btn-cfg-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: var(--on-gold, #111111); }
 .btn-cfg-primary:hover { background: #b59250; color: #fff; }
 .feat-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; margin: 3px; }
-.feat-on  { background: rgba(16,185,129,.1); color:#10b981; border:1px solid rgba(16,185,129,.3); }
+.feat-on  { background: rgba(16,185,129,.1); color:var(--success-text); border:1px solid rgba(16,185,129,.3); }
 .feat-off { background: rgba(115,115,115,.1); color:var(--text-muted); border:1px solid var(--border-color); }
 .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.88rem; }
 .role-chip { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 2px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }

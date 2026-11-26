@@ -39,7 +39,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <span class="modifier-price">₹{{ mod.price }}</span>
                             {% if mod.inventory_links.exists %}
-                            <span title="Inventory linked" style="color:var(--accent-gold);font-size:0.7rem;letter-spacing:1px;">
+                            <span title="Inventory linked" style="color:var(--gold-text);font-size:0.7rem;letter-spacing:1px;">
                                 <i class="bi bi-box-seam"></i>
                                 {% for link in mod.inventory_links.all %}{{ link.inventory_item.name }} ×{{ link.quantity_required }}{{ link.unit }}{% if not forloop.last %}, {% endif %}{% endfor %}
                             </span>

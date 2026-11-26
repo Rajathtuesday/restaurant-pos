@@ -25,7 +25,7 @@
 .btn-agg { padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 3px; border: none; background: transparent; color: var(--muted); cursor: pointer; transition: var(--transition); }
 
 /* ── Gold primary button (New Order) ── */
-.btn-lux-primary { background: var(--gold); border-color: var(--gold); color: #fff; font-size: 0.8rem; padding: 0.65rem 1.4rem; }
+.btn-lux-primary { background: var(--gold); border-color: var(--gold); color: var(--on-gold, #111111); font-size: 0.8rem; padding: 0.65rem 1.4rem; }
 .btn-lux-primary:hover { background: var(--gold-hover); border-color: var(--gold-hover); color: #fff; }
 .btn-lux-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -35,7 +35,7 @@
 @media (max-width: 480px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
 .stat-card { background: var(--panel); border: 1px solid var(--border); padding: 1.25rem; text-align: center; }
 .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); margin-bottom: 0.4rem; }
-.stat-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--gold); line-height: 1; }
+.stat-value { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--gold-text); line-height: 1; }
 .stat-value.neutral { color: var(--text); }
 .stat-value.online-color { color: var(--online); }
 
@@ -43,7 +43,7 @@
 .section-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
 .section-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; display: flex; align-items: center; gap: 0.5rem; margin: 0; }
 .section-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.2rem 0.5rem; border-radius: 2px; font-family: 'Outfit', sans-serif; font-weight: 600; }
-.section-tag.counter { background: rgba(197,160,89,0.12); color: var(--gold); }
+.section-tag.counter { background: rgba(197,160,89,0.12); color: var(--gold-text); }
 .section-tag.online-tag { background: rgba(252,128,25,0.12); color: var(--online); }
 
 /* ── Token grid ── */
@@ -62,7 +62,7 @@
 .token-amount { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.4rem; }
 .token-badge { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.15rem 0.5rem; border: 1px solid var(--border); display: inline-block; color: var(--muted); }
 .token-badge.billing { border-color: var(--warning); color: var(--warning); }
-.token-badge.paid { border-color: var(--success); color: var(--success); }
+.token-badge.paid { border-color: var(--success); color: var(--success-text); }
 .token-badge.platform { border: none; padding: 0.2rem 0.5rem; border-radius: 2px; font-weight: 600; }
 .token-badge.zomato { background: var(--zomato); color: #fff; }
 .token-badge.swiggy { background: var(--online); color: #fff; }

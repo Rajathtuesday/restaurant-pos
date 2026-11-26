@@ -7,7 +7,7 @@
 @media (hover: hover) { .qr-card:hover { transform: translateY(-5px); border-color: var(--accent-gold); box-shadow: 0 10px 30px rgba(0,0,0,0.05); } }
 
 .restaurant-name { font-family: 'DM Serif Display', serif; font-size: 1.4rem; margin-bottom: 5px; }
-.table-name { text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; font-weight: 700; color: var(--accent-gold); margin-bottom: 20px; }
+.table-name { text-transform: uppercase; letter-spacing: 2px; font-size: 0.75rem; font-weight: 700; color: var(--gold-text); margin-bottom: 20px; }
 
 .qr-image { width: 180px; height: 180px; margin: 0 auto 20px; border: 1px solid var(--border-color); padding: 10px; background: #fff; /* white bg required for QR scanability */ }
 .qr-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 10px; }

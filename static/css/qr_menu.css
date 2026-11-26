@@ -11,6 +11,8 @@
     --text-muted: #737373;
     --border-color: #eaeaea;
     --accent-gold: #c5a059;
+    --gold-text: #8a6a2e;      /* words in gold (the brand gold is too faint on white) */
+    --on-gold: #111111;        /* words on a gold button */
     --veg-color: #16a34a;
     --nonveg-color: #dc2626;
     --transition-smooth: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -22,6 +24,7 @@ html.dark {
     --text-muted: #888888;
     --border-color: #262626;
     --accent-gold: #d4af37;
+    --gold-text: #d4af37;
 }
 /* Bootstrap's own colours follow these tokens (.text-muted drew near-black
    text on the dark page; core/tests/test_colour_walk.py). */
@@ -39,7 +42,7 @@ body {
     transition: var(--transition-smooth);
 }
 .serif-text { font-family: 'DM Serif Display', serif; }
-.text-accent-gold { color: var(--accent-gold); }
+.text-accent-gold { color: var(--gold-text); }
 
 /* HEADER */
 .menu-header {
@@ -131,7 +134,7 @@ body {
     transition: all 0.2s ease;
 }
 .cat-tab.active {
-    color: var(--accent-gold);
+    color: var(--gold-text);
     border-bottom-color: var(--accent-gold);
 }
 
@@ -229,7 +232,7 @@ body {
 /* BUTTONS & CONTROLS */
 .add-btn {
     background: transparent;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     border: 1px solid var(--accent-gold);
     padding: 0.5rem 1.1rem;
     min-height: 40px;
@@ -258,7 +261,7 @@ body {
    overwhelm that layout. Still a large jump from the ~24px it was. */
 .qty-btn {
     background: none; border: none;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     font-size: 1.2rem;
     font-weight: 600;
     width: 40px; height: 40px;
@@ -293,7 +296,7 @@ body {
 .cart-total-text { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
 .view-cart-btn {
     background: var(--accent-gold);
-    color: #fff; border: none;
+    color: var(--on-gold, #111111); border: none;
     padding: 0.6rem 1.5rem;
     border-radius: 8px;
     font-weight: 600;
@@ -377,7 +380,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
     display: flex; align-items: center; justify-content: center;
 }
 .btn-icon { border: none; background: transparent; color: var(--text-main); font-size: 1.25rem; cursor: pointer; padding: 0.4rem; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; transition: var(--transition-smooth); }
-.btn-icon:hover { color: var(--accent-gold); }
+.btn-icon:hover { color: var(--gold-text); }
 
 /* MODIFIER MODAL */
 .modifier-overlay {
@@ -411,10 +414,10 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
     border: 2px solid var(--border-color); flex-shrink: 0; transition: all 0.2s;
 }
 .modifier-check.checked { background: var(--accent-gold); border-color: var(--accent-gold); }
-.modifier-price { font-size: 0.85rem; font-weight: 600; color: var(--accent-gold); }
+.modifier-price { font-size: 0.85rem; font-weight: 600; color: var(--gold-text); }
 .modifier-total { font-size: 1rem; font-weight: 700; color: var(--text-main); }
 .confirm-modifier-btn {
-    background: var(--accent-gold); color: #fff; border: none;
+    background: var(--accent-gold); color: var(--on-gold, #111111); border: none;
     padding: 0.75rem 1.5rem; border-radius: 10px;
     font-weight: 600; font-size: 0.95rem; text-transform: uppercase;
 }
@@ -440,7 +443,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
 .order-status-pill.above-cart-bar { bottom: 5.5rem; }
 .order-status-pill:active { transform: scale(0.96); }
 .order-status-number {
-    background: var(--accent-gold); color: #fff; font-weight: 700;
+    background: var(--accent-gold); color: var(--on-gold, #111111); font-weight: 700;
     font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 999px;
     flex-shrink: 0; letter-spacing: 0.02em;
 }
@@ -496,7 +499,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
 .call-waiter-btn {
     display: flex; align-items: center; gap: 0.4rem;
     background: transparent;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     border: 1.5px solid var(--accent-gold);
     padding: 0.65rem 1.1rem;
     min-height: 40px;
@@ -510,7 +513,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
     white-space: nowrap;
 }
 .call-waiter-btn i { font-size: 0.85rem; }
-.call-waiter-btn:hover:not(:disabled) { background: var(--accent-gold); color: #fff; }
+.call-waiter-btn:hover:not(:disabled) { background: var(--accent-gold); color: var(--on-gold, #111111); }
 .call-waiter-btn:active:not(:disabled) { transform: scale(0.96); }
 .call-waiter-btn:disabled { cursor: default; opacity: 0.85; }
 .call-waiter-btn.notified {
@@ -545,7 +548,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
 .modifier-footer { border-top: 1px solid var(--border-color); }
 .modifier-req-badge.is-required { background: #fef3c7; color: #92400e; }
 .modifier-error { color: #dc2626; font-size: 0.85rem; margin: 0.5rem 0 0; }
-.bill-row.is-offer { color: #10b981; }
+.bill-row.is-offer { color: var(--success-text); }
 .cart-section-label { margin-bottom: 0.5rem; }
 .cart-section-label.is-adding { margin: 1.1rem 0 0.5rem; }
 /* The cart's quantity pill is as wide as its buttons: as a block-level flex
@@ -559,7 +562,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); opacity: 1
     background: #fdf6e3; border: 1px solid #fde08b; border-radius: 8px;
     font-size: 0.85rem; color: #92400e; font-weight: 600;
 }
-.eta-banner i { color: #c5a059; }
+.eta-banner i { color: var(--gold-text); }
 .clear-cart-btn { border-radius: 12px; font-weight: 600; }
 .clear-cart-btn.is-asking { background: #dc3545; color: #fff; }
 .place-order-btn.is-sent { background: #16a34a; color: #fff; }

@@ -47,7 +47,7 @@
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: rgba(197,160,89,0.04); }
 .mono { font-family: 'Space Mono', monospace; }
-.text-gold { color: var(--accent-gold); }
+.text-gold { color: var(--gold-text); }
 .badge-type {
   display: inline-block; padding: 0.15rem 0.5rem;
   border-radius: 4px; font-size: 0.7rem; font-weight: 600;
@@ -79,7 +79,7 @@
   color: var(--text-muted); border-bottom: 2px solid transparent;
   transition: var(--transition-smooth);
 }
-.section-tab.active { color: var(--accent-gold); border-bottom-color: var(--accent-gold); }
+.section-tab.active { color: var(--gold-text); border-bottom-color: var(--accent-gold); }
 
 @media print {
   .pos-header, .report-subnav, .section-tabs, .subnav-btn { display: none !important; }

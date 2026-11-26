@@ -10,14 +10,14 @@
 .su-table tr:hover td { background: var(--panel-bg); }
 
 .type-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 1px; padding: 3px 8px; border: 1px solid var(--border-color); color: var(--text-muted); }
-.type-badge.franchise { border-color: #f97316; color: #f97316; }
-.type-badge.fine_dining { border-color: var(--accent-gold); color: var(--accent-gold); }
+.type-badge.franchise { border-color: #f97316; color: var(--warning-text); }
+.type-badge.fine_dining { border-color: var(--accent-gold); color: var(--gold-text); }
 .type-badge.pub { border-color: #c8794a; color: #c8794a; }
 .type-badge.cafe { border-color: #a855f7; color: #a855f7; }
 
 .btn-su { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.35rem 0.8rem; border: 1px solid var(--border-color); background: transparent; color: var(--text-main); cursor: pointer; text-decoration: none; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; }
-.btn-su:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-.btn-su-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.btn-su:hover { border-color: var(--accent-gold); color: var(--gold-text); }
+.btn-su-primary { background: var(--accent-gold); border-color: var(--accent-gold); color: var(--on-gold, #111111); }
 .btn-su-primary:hover { background: #b59250; color: #fff; }
 
 .create-panel { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; margin-bottom: 2rem; }
@@ -33,5 +33,5 @@
 
 /* The New Restaurant form's status line: waiting, done, refused. */
 .create-status { font-size: 0.8rem; color: var(--text-muted); }
-.create-status[data-tone="ok"] { color: #10b981; }
+.create-status[data-tone="ok"] { color: var(--success-text); }
 .create-status[data-tone="bad"] { color: #ef4444; }

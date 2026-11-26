@@ -6,6 +6,8 @@
   --text-muted: #737373;
   --border-color: #eaeaea;
   --accent-gold: #c5a059;
+  --gold-text: #8a6a2e;
+  --on-gold: #111111;
 }
 body {
   background-color: var(--bg-color);
@@ -47,7 +49,7 @@ body {
 }
 .report-header .report-title {
   font-size: 1rem; text-transform: uppercase; letter-spacing: 4px;
-  color: var(--accent-gold); margin-top: 0.75rem; font-weight: 600;
+  color: var(--gold-text); margin-top: 0.75rem; font-weight: 600;
 }
 .composition-badge {
   display: inline-block;
@@ -79,7 +81,7 @@ body {
 .summary-card .value {
   font-size: 1.75rem; font-weight: 600; color: var(--text-main);
 }
-.summary-card .value.gold { color: var(--accent-gold); }
+.summary-card .value.gold { color: var(--gold-text); }
 .summary-card .sub {
   font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;
 }

@@ -2,11 +2,11 @@
 .card-elegant { background: var(--panel-bg); border: 1px solid var(--border-color); padding: 2rem; box-shadow: var(--shadow-soft); border-radius: 0; height: 100%; transition: var(--transition-smooth); }
 @media (hover: hover) { .card-elegant:hover { border-color: var(--accent-gold); transform: translateY(-3px); } }
 .metric-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 0.5rem; }
-.metric-value { font-family: 'DM Serif Display', serif; font-size: 2rem; margin: 0; color: var(--accent-gold); }
+.metric-value { font-family: 'DM Serif Display', serif; font-size: 2rem; margin: 0; color: var(--gold-text); }
 .table-luxury { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 .table-luxury th { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); padding: 1.2rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; }
 .table-luxury td { padding: 1.2rem 1rem; border-bottom: 1px dashed var(--border-color); font-size: 0.95rem; }
 .agent-name { font-weight: 600; color: var(--text-main); }
-.revenue-pill { background: rgba(197,160,89,0.1); color: var(--accent-gold); padding: 4px 12px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.85rem; }
+.revenue-pill { background: rgba(197,160,89,0.1); color: var(--gold-text); padding: 4px 12px; font-weight: 700; font-family: 'Space Mono', monospace; font-size: 0.85rem; }
 .progress { height: 6px; border-radius: 10px; background: var(--border-color); margin-top: 8px; }
 .progress-bar { background: var(--accent-gold); }

@@ -4,7 +4,7 @@
   max-width: 720px; margin: 0 auto; padding: 1.5rem 16px 5rem;
 }
 html.dark .mf-page, body.dark .mf-page { --mf-ok: #4ade80; --mf-bad: #f87171; }
-.mf-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin: 0 0 .4rem; }
+.mf-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin: 0 0 .4rem; }
 .mf-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin: 0 0 .75rem; }
 .mf-sub { color: var(--text-muted); font-size: .88rem; line-height: 1.6; margin: 0 0 1.5rem; }
 .mf-msg { padding: .7rem .9rem; margin-bottom: 1rem; border: 1px solid var(--border-color); font-size: .88rem; overflow-wrap: anywhere; }
@@ -27,5 +27,5 @@ html.dark .mf-page, body.dark .mf-page { --mf-ok: #4ade80; --mf-bad: #f87171; }
   background: transparent; color: var(--text-main); border: 1px solid var(--border-color); font-family: inherit;
 }
 .mf-btn:hover { border-color: var(--text-main); color: var(--text-main); }
-.mf-btn-main { background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; }
+.mf-btn-main { background: var(--accent-gold); border-color: var(--accent-gold); color: var(--on-gold, #111111); }
 .mf-btn-main:hover { color: #fff; }

@@ -8,6 +8,8 @@
     --text-main: #111111;
     --text-muted: #737373;
     --accent-gold: #c5a059;
+    --gold-text: #8a6a2e;
+    --on-gold: #111111;
 }
 @media (prefers-color-scheme: dark) {
     :root {
@@ -15,6 +17,7 @@
         --text-main: #f5f5f5;
         --text-muted: #888888;
         --accent-gold: #d4af37;
+        --gold-text: #d4af37;
     }
 }
 
@@ -38,7 +41,7 @@
     font-family: 'DM Serif Display', serif;
     font-size: 8rem;
     line-height: 1;
-    color: var(--accent-gold);
+    color: var(--gold-text);
     margin-bottom: 1rem;
 }
 .error-code--word {
@@ -91,11 +94,11 @@
 }
 .btn-luxury--gold {
     border-color: var(--accent-gold);
-    color: var(--accent-gold);
+    color: var(--gold-text);
     padding: 0.9rem 2.4rem;
 }
 .btn-luxury--gold:hover {
     background: var(--accent-gold);
-    color: #fff;
+    color: var(--on-gold, #111111);
 }
 .btn-luxury--spaced { margin-top: 2rem; }

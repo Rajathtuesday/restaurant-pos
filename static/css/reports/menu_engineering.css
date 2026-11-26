@@ -23,8 +23,8 @@
   font-size: 0.62rem; text-transform: uppercase; letter-spacing: 1px;
   padding: 3px 9px; border-radius: 20px; font-weight: 600;
 }
-.quadrant-Star      { background: rgba(16,185,129,0.12); color: #10b981; }
+.quadrant-Star      { background: rgba(16,185,129,0.12); color: var(--success-text); }
 .quadrant-Plowhorse { background: rgba(59,130,246,0.12); color: #3b82f6; }
-.quadrant-Puzzle    { background: rgba(249,115,22,0.12); color: #f97316; }
+.quadrant-Puzzle    { background: rgba(249,115,22,0.12); color: var(--warning-text); }
 .quadrant-Dog       { background: rgba(239,68,68,0.12);  color: #ef4444; }
 .quadrant-Unknown   { background: var(--border-color);   color: var(--text-muted); }

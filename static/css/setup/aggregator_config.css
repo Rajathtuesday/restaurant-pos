@@ -1,7 +1,7 @@
 /* setup/templates/setup/aggregator_config.html */
 .setup-container { max-width: 800px; margin: 0 auto; padding: 2rem 2rem 4rem; }
 
-.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
+.page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin-bottom: 0.5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
 .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }
 .page-sub { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; margin-bottom: 2rem; }
@@ -15,7 +15,7 @@
 .form-control:focus { border-color: var(--accent-gold); outline: none; }
 .form-control[readonly] { background: rgba(0,0,0,0.02); color: var(--text-muted); cursor: not-allowed; font-family: 'Space Mono', monospace; font-size: 0.85rem; }
 
-.code-block { background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); padding: 1rem; font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--accent-gold); word-break: break-all; margin-top: 0.5rem; }
+.code-block { background: rgba(0,0,0,0.05); border: 1px solid var(--border-color); padding: 1rem; font-family: 'Space Mono', monospace; font-size: 0.85rem; color: var(--gold-text); word-break: break-all; margin-top: 0.5rem; }
 html.dark .code-block { background: rgba(255,255,255,0.05); }
 
 .switch-wrapper { display: flex; align-items: center; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
@@ -27,7 +27,7 @@ html.dark .code-block { background: rgba(255,255,255,0.05); }
 input:checked + .slider { background-color: rgba(197,160,89,0.3); border: 1px solid var(--accent-gold); }
 input:checked + .slider:before { transform: translateX(20px); background-color: var(--accent-gold); }
 
-.btn-gold { background: transparent; border: 1px solid var(--accent-gold); color: var(--accent-gold); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.8rem 2rem; cursor: pointer; transition: 0.2s; font-weight: 600; min-height: 48px; }
+.btn-gold { background: transparent; border: 1px solid var(--accent-gold); color: var(--gold-text); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; padding: 0.8rem 2rem; cursor: pointer; transition: 0.2s; font-weight: 600; min-height: 48px; }
 .btn-gold:hover { background: var(--accent-gold); color: #000; }
 
 @media (max-width: 600px) {

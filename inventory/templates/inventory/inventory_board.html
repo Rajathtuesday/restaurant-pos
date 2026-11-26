@@ -49,7 +49,7 @@
     <div id="lowStockBar" class="d-flex align-items-center justify-content-between flex-wrap gap-2"
          style="border:1px solid var(--accent-gold); background:color-mix(in srgb, var(--accent-gold) 8%, transparent); padding:0.7rem 1rem; margin-bottom:1rem; border-radius:2px;">
         <span id="lowStockBarText" style="font-size:0.85rem; color:var(--text-main);">
-            <i class="bi bi-exclamation-triangle-fill me-1" style="color:var(--accent-gold);"></i>
+            <i class="bi bi-exclamation-triangle-fill me-1" style="color:var(--gold-text);"></i>
             {{ low_stock_count }} item{{ low_stock_count|pluralize }} low on stock
         </span>
         <button type="button" class="btn-luxury btn-gold" id="genPoBtn" data-action="inv.generate" data-url="{% url 'generate_purchase_orders' %}" data-po-list="{% url 'purchase_order_list' %}" data-suppliers="{% url 'supplier_list' %}">
@@ -82,7 +82,7 @@
                         <td class="stock-val text-muted">₹{{ item.cost_price }}</td>
                         <td id="stock{{ item.id }}" class="stock-val">{{ item.stock }}</td>
                         <td class="text-muted text-uppercase" style="font-size:0.85rem; letter-spacing:1px;">{{ item.unit }}</td>
-                        <td class="stock-val" style="color:var(--accent-gold);">
+                        <td class="stock-val" style="color:var(--gold-text);">
                             {% widthratio item.cost_price 1 item.stock %}
                         </td>
                         <td>
@@ -99,7 +99,7 @@
                                 <button type="submit" class="btn-luxury px-3" title="Add received stock"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add</button>
                                 </form>
                                 <button class="btn-luxury px-3" style="border-color:#c9503a;color:#c9503a;" type="button" data-action="inv.waste" data-id="{{ item.id }}" data-name="{{ item.name }}" data-unit="{{ item.unit }}" data-url="{% url 'inventory_log_wastage' 0 %}" title="Log wastage / spillage: reduces stock and records it as a loss"><i class="bi bi-droplet-half me-1"></i>Waste</button>
-                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--accent-gold);" type="button" data-action="inv.adjust" data-id="{{ item.id }}" data-name="{{ item.name }}" data-unit="{{ item.unit }}" data-stock="{{ item.stock }}" data-url="{% url 'inventory_adjust_stock' 0 %}" title="Correct stock after a physical count: not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
+                                <button class="btn-luxury px-3" style="border-color:var(--accent-gold);color:var(--gold-text);" type="button" data-action="inv.adjust" data-id="{{ item.id }}" data-name="{{ item.name }}" data-unit="{{ item.unit }}" data-stock="{{ item.stock }}" data-url="{% url 'inventory_adjust_stock' 0 %}" title="Correct stock after a physical count: not a loss, just fixes the number"><i class="bi bi-sliders me-1"></i>Adjust</button>
                             </div>
                         </td>
                         <td>
@@ -285,7 +285,7 @@
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="submit" class="btn-luxury w-100 justify-content-center" style="border-color:var(--accent-gold);color:var(--accent-gold);">
+                <button type="submit" class="btn-luxury w-100 justify-content-center" style="border-color:var(--accent-gold);color:var(--gold-text);">
                     <i class="bi bi-sliders me-2"></i>Apply Adjustment
                 </button>
             </div>
