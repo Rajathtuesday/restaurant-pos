@@ -15,7 +15,7 @@ class PrintJob(TenantScopedModel):
     X-Agent-Key header) every 2 s,
     prints to the local printer over TCP 9100, then marks the job done.
 
-    This architecture means the agent never needs an open port or inbound connection —
+    This architecture means the agent never needs an open port or inbound connection:
     it only makes outbound HTTP calls, so Android battery optimisers and NAT routers
     cannot break the connection.
 
@@ -71,7 +71,7 @@ class PrintJob(TenantScopedModel):
         super().save(*args, **kwargs)
         # Arm the per-outlet "has pending work" hint whenever a brand-new job is
         # queued as PENDING. Setting it AFTER super().save() means the row is
-        # committed/visible before the flag is set — which is what makes the
+        # committed/visible before the flag is set: which is what makes the
         # poll's delete-before-read safe (no job is ever left with a cleared flag).
         # Over-arming is harmless (a false positive just costs one wasted poll).
         # A cache failure must never block creating a print job; the poll's

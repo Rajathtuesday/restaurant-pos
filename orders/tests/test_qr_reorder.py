@@ -3,11 +3,11 @@ Tests for the QR-guest reorder/merge fix in create_order (orders/views/billing_v
 
 Background: a guest ordering from the digital menu always sent source="web"
 and never an order_id, so create_order always tried to INSERT a new
-status="open" Order for the table — colliding with the DB's
+status="open" Order for the table: colliding with the DB's
 unique_open_order_per_table constraint the moment a second round was placed,
 and failing with a generic error. The fix: the frontend now remembers the
 order_id from the first placement and sends it back on later rounds, and the
-backend merges new items into that same order — but only after verifying the
+backend merges new items into that same order: but only after verifying the
 order actually belongs to the SAME table the guest scanned (a guest is never
 authenticated, so this is the one thing standing between "reorder" and an
 IDOR letting a guest add items to a stranger's table's bill).
@@ -83,7 +83,7 @@ class ReorderMergeTest(_Base):
         self.assertEqual(order.subtotal, expected_subtotal)
         self.assertGreater(order.grand_total, order.subtotal)  # GST was applied
 
-        # Still exactly one open order for the table — no duplicate created.
+        # Still exactly one open order for the table: no duplicate created.
         self.assertEqual(
             Order.objects.filter(tenant=self.tenant, outlet=self.outlet,
                                   table=self.table_a, status="open").count(),
@@ -114,12 +114,12 @@ class ReorderCrossTableIDORTest(_Base):
         table_b_order_id = table_b_order.json()["order_id"]
 
         # A guest scanning TABLE A tries to "reorder" using Table B's order_id
-        # (e.g. a guessed/copy-pasted id) — must be refused.
+        # (e.g. a guessed/copy-pasted id): must be refused.
         resp = self._place(self.table_a, self.item2, order_id=table_b_order_id)
         self.assertEqual(resp.status_code, 403)
         self.assertIn("does not belong to this table", resp.json()["error"])
 
-        # Table B's order must be untouched — still just the original item.
+        # Table B's order must be untouched: still just the original item.
         order = Order.objects.get(id=table_b_order_id)
         self.assertEqual(order.items.count(), 1)
 

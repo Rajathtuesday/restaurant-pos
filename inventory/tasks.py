@@ -11,8 +11,8 @@ logger = logging.getLogger("pos.inventory")
 FUZZY_THRESHOLD = 72
 
 # Confidence (0-1) at/above which a fuzzy match's "include" checkbox
-# defaults checked in the review UI. Below this — like every AI-resolved or
-# new-ingredient row — it defaults unchecked, forcing explicit review.
+# defaults checked in the review UI. Below this: like every AI-resolved or
+# new-ingredient row: it defaults unchecked, forcing explicit review.
 FUZZY_HIGH_CONFIDENCE = 0.90
 
 
@@ -27,12 +27,12 @@ def ai_import_recipe(self, job_id, text, image_b64, mime_type):
     and stages the result as RecipeImportLine rows for human review.
 
     Unlike menu.tasks.ai_import_menu, progress is written to the
-    RecipeImportJob row itself, not the Django cache — the job is created
+    RecipeImportJob row itself, not the Django cache: the job is created
     (status="processing") before .delay() is called, so status polling can
     never hit a "not found" race, and a review can safely outlive any cache
     TTL.
 
-    Nothing here writes to the real Recipe table — that only happens when a
+    Nothing here writes to the real Recipe table: that only happens when a
     human confirms via recipe_import_views.recipe_import_confirm, through
     the same inventory.recipe_service.upsert_recipe() the manual "add
     ingredient" UI uses.
@@ -70,12 +70,12 @@ def ai_import_recipe(self, job_id, text, image_b64, mime_type):
         inventory_by_name = {item.name.lower(): item for item in inventory_items}
         inventory_names = [item.name for item in inventory_items]
 
-        # Layer 1 — deterministic match: exact name, then rapidfuzz.
+        # Layer 1: deterministic match: exact name, then rapidfuzz.
         layer1 = {}  # name -> (method, matched_item_or_None, confidence_or_None)
         unmatched_names = []
         for name, _ in entries:
             if name in layer1:
-                continue  # duplicate ingredient line — resolve once, reuse
+                continue  # duplicate ingredient line: resolve once, reuse
             exact_item = inventory_by_name.get(name.lower())
             if exact_item:
                 layer1[name] = ("exact", exact_item, 1.0)
@@ -112,7 +112,7 @@ def ai_import_recipe(self, job_id, text, image_b64, mime_type):
                     needs_manual_quantity=needs_manual,
                     match_method=method, match_confidence=confidence,
                     suggested_inventory_item=matched_item, is_new_ingredient=matched_item is None,
-                    # Pre-filled as a convenience default only — nothing is written
+                    # Pre-filled as a convenience default only: nothing is written
                     # to Recipe until a human explicitly confirms the review.
                     resolved_inventory_item=matched_item,
                     final_quantity=extracted_qty, final_unit=extracted_unit,

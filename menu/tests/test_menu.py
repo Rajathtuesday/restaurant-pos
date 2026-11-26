@@ -362,7 +362,7 @@ class MenuItemMutationTests(TestCase):
 
 class DigitalMenuTableTokenTest(TestCase):
     """
-    Regression coverage for the QR menu security fix — digital_menu() used
+    Regression coverage for the QR menu security fix: digital_menu() used
     to accept a plain ?table=<id> as an alternative to ?table_token=<uuid>,
     with no auth check. Table ids are small sequential integers, so that
     path let anyone enumerate them and get the page to hand back that
@@ -387,7 +387,7 @@ class DigitalMenuTableTokenTest(TestCase):
 
     def test_plain_table_id_no_longer_resolves_a_table(self):
         resp = self.client.get(reverse("digital_menu"), {"table": self.table.id})
-        # No token, no logged-in user with a tenant — falls through to the
+        # No token, no logged-in user with a tenant: falls through to the
         # "no valid table token provided" 404, exactly like a request with
         # no table info at all. Never resolves self.table or leaks its
         # qr_token into the rendered page.
@@ -395,7 +395,7 @@ class DigitalMenuTableTokenTest(TestCase):
 
     def test_plain_table_id_does_not_leak_qr_token_even_for_logged_in_staff(self):
         # A logged-in staff member hitting ?table=<id> must not have it
-        # silently resolve someone else's table either — it should just
+        # silently resolve someone else's table either: it should just
         # fall back to their own tenant/outlet context, same as visiting
         # the page with no table info at all.
         staff = User.objects.create_user(

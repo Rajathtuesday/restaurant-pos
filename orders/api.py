@@ -46,7 +46,7 @@ def notification_api(request):
     km_count = kitchen_msgs_qs.count()
     kitchen_msgs = kitchen_msgs_qs[:20]
 
-    # 3. Unread System Notifications — capped at 50.
+    # 3. Unread System Notifications: capped at 50.
     # Without a limit, low-stock alerts accumulate and this query returns
     # thousands of rows on every 8-second poll across all open browser tabs.
     # Only the kinds the header's "Low stock & system alerts" badge is for:
@@ -58,7 +58,7 @@ def notification_api(request):
     ).order_by('-created_at')[:50]
 
     # 4. QR orders awaiting staff approval (guest-placed items land as
-    # status="review" — see orders/services/order_service.py). Distinct order
+    # status="review": see orders/services/order_service.py). Distinct order
     # count, not item count, so one order with 5 review items shows as "1".
     qr_orders_qs = (
         # Open bills only: a guest's dish left unapproved on a bill that was

@@ -4,7 +4,7 @@ Archive one Postgres WAL segment to the private R2 backup bucket.
 
 Postgres calls this itself, automatically, once per WAL segment (every time
 a 16MB segment fills up, or every `archive_timeout` seconds, whichever comes
-first — see postgresql.conf). Wired in via `archive_command`. Postgres will
+first: see postgresql.conf). Wired in via `archive_command`. Postgres will
 NOT reuse or delete a WAL segment until this script exits 0 for it, so a
 bug here that always fails will fill the server's disk with backlogged WAL
 files. Keep this simple, fail loudly, never swallow an error.
@@ -51,16 +51,16 @@ def main():
         region_name="auto",
     )
     # .gz: a forced-early segment (archive_timeout) is still a fixed 16MB file,
-    # mostly zero-padding on a quiet night — gzip crushes that down to almost nothing.
+    # mostly zero-padding on a quiet night: gzip crushes that down to almost nothing.
     key = f"wal/{wal_filename}.gz"
 
     # Postgres can call this again for a segment it already archived (e.g. after
-    # a crash mid-archive) — skip re-upload rather than erroring, and still exit 0.
+    # a crash mid-archive): skip re-upload rather than erroring, and still exit 0.
     try:
         s3.head_object(Bucket=BUCKET, Key=key)
         return
     except Exception:
-        pass  # not found yet — proceed to upload
+        pass  # not found yet: proceed to upload
 
     with open(wal_path, "rb") as f:
         blob = gzip.compress(f.read())

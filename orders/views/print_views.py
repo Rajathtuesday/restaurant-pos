@@ -68,7 +68,7 @@ def print_bill_action(request, order_id):
     """
     Print bill + KOTs after payment.
 
-    Always prints synchronously — the web request blocks for ~1-2s while the
+    Always prints synchronously: the web request blocks for ~1-2s while the
     printer responds, which is acceptable at payment time. Celery is intentionally
     NOT used here because:
       • A Celery worker may not be running (local dev, small setups)
@@ -359,10 +359,10 @@ def download_pdf_bill(request, order_id):
 
 
 # -------------------------------------------------
-# THERMAL RECEIPT — browser-based printing
+# THERMAL RECEIPT: browser-based printing
 # Opens in a popup, auto-calls window.print(), closes after printing.
 # Works with any printer that has a Windows/Mac driver installed.
-# This is the cloud-only printing solution — no local agent required.
+# This is the cloud-only printing solution: no local agent required.
 # -------------------------------------------------
 
 @login_required
@@ -384,7 +384,7 @@ def thermal_receipt_view(request, order_id):
     kots = []
     token = None
     if not has_feature(order.tenant, "kitchen_display"):
-        # QSR strip mode — include KOTs in the receipt
+        # QSR strip mode: include KOTs in the receipt
         kots = list(
             KOTBatch.objects
             .filter(order=order)
@@ -410,7 +410,7 @@ def thermal_receipt_view(request, order_id):
 
     items = order.items.exclude(status="voided").select_related("menu_item__category")
 
-    # Counter Billing Mode — group items by category for split browser print
+    # Counter Billing Mode: group items by category for split browser print
     split_mode = getattr(order.outlet, "split_bill_by_category", False)
     category_groups = []
     if split_mode:

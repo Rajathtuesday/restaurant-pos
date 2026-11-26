@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='paymentconfig',
             name='upi_id',
-            field=models.CharField(blank=True, default='', help_text='UPI ID (VPA) shown as QR on bill — e.g. myrestaurant@okaxis', max_length=100),
+            field=models.CharField(blank=True, default='', help_text='UPI ID (VPA) shown as QR on bill: e.g. myrestaurant@okaxis', max_length=100),
         ),
     ]

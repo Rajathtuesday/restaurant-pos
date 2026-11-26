@@ -9,7 +9,7 @@ import android.provider.Settings
 import android.webkit.JavascriptInterface
 
 /**
- * JavaScript bridge — methods here are callable from Django's JS as:
+ * JavaScript bridge: methods here are callable from Django's JS as:
  *   Android.startPrintingWithKey(serverUrl, agentKey)
  *   Android.startPrinting(oldPollUrl)        (pages from before 1.1.0)
  *   Android.getPrintingStatus()
@@ -59,7 +59,7 @@ class JSBridge(private val context: Context) {
             context.startService(intent)
         }
 
-        // 3. Ask Android "don't kill this app" — shows a one-tap system dialog.
+        // 3. Ask Android "don't kill this app": shows a one-tap system dialog.
         //    We only show it if not already exempted (no repeated nagging).
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager

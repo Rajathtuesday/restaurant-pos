@@ -28,7 +28,7 @@ def deduct_inventory_for_items(order_items):
 
     # 1a. Base recipe deductions (menu item → ingredient)
     # select_related("inventory_item") so recipe.inventory_item.unit below is
-    # free — it was already being fetched implicitly via .inventory_item_id.
+    # free: it was already being fetched implicitly via .inventory_item_id.
     for order_item in order_items:
         recipes_manager = getattr(order_item.menu_item, "recipes", None)
         if recipes_manager is None:
@@ -115,7 +115,7 @@ def deduct_inventory_for_items(order_items):
         if qty_to_reduce > 0:
             # FIX: Calculate new_stock BEFORE the F() update.
             # After update(stock=F(...)), inv_item.stock is still the OLD value
-            # on the in-memory object — using it post-update gives wrong threshold comparisons.
+            # on the in-memory object: using it post-update gives wrong threshold comparisons.
             new_stock = inv_item.stock - qty_to_reduce
 
             # Update with F() to avoid race conditions on concurrent requests
@@ -174,7 +174,7 @@ def deduct_inventory_for_items(order_items):
 
 def check_inventory_availability(menu_item, quantity=1):
     """
-    Warn-only inventory check — never blocks an order.
+    Warn-only inventory check: never blocks an order.
     KOT deduction already handles soft-drain to 0 gracefully,
     so blocking here would be stricter than the deduction allows.
     """

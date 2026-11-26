@@ -1,6 +1,6 @@
 # tenants/tests/test_tenant_config_service.py
 """
-Tests for tenants/services/tenant_config_service.py — the shared logic
+Tests for tenants/services/tenant_config_service.py: the shared logic
 extracted from portal/views.py::tenant_config and
 accounts/views/superuser_views.py::tenant_config, which had silently
 drifted apart: the superuser panel was missing parcel_charge_amount,
@@ -13,7 +13,7 @@ never applied a preset's outlet-field overrides.
 Coverage:
   - The service functions work correctly in isolation
   - Both admin panels (portal and superuser) now produce IDENTICAL
-    results for the same tenant — the actual regression this exists to
+    results for the same tenant: the actual regression this exists to
     prevent
 """
 from decimal import Decimal
@@ -46,7 +46,7 @@ class TenantConfigServiceUnitTest(TestCase):
 
     def test_get_feature_summary_includes_previously_missing_features(self):
         # The superuser panel's own key_features list used to omit these
-        # three entirely — they were invisible from that panel no matter
+        # three entirely: they were invisible from that panel no matter
         # what state they were actually in.
         summary_keys = {row["key"] for row in tcs.get_feature_summary(self.tenant)}
         self.assertIn("counter_billing", summary_keys)
@@ -88,7 +88,7 @@ class TenantConfigServiceUnitTest(TestCase):
 
     def test_apply_preset_to_tenant_applies_outlet_overrides(self):
         # The superuser copy of apply_preset never applied a preset's
-        # "outlet" field overrides at all — this proves the shared
+        # "outlet" field overrides at all: this proves the shared
         # version actually does.
         user = _superuser()
         preset = tcs.apply_preset_to_tenant(self.tenant, "counter_billing", user)
@@ -102,7 +102,7 @@ class TenantConfigServiceUnitTest(TestCase):
         self.assertIsNone(result)
 
     def test_qsr_kds_preset_exists_and_matches_sibling_shape(self):
-        # qsr_kds only ever existed in the superuser copy before — confirm
+        # qsr_kds only ever existed in the superuser copy before: confirm
         # it survived the merge and got the same field shape as the others
         # (portal's presets never had it at all).
         self.assertIn("qsr_kds", tcs.PRESETS)

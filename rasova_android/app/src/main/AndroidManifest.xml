@@ -5,7 +5,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- ForegroundService: allows our PrintService to run visibly in the background.
-         Android cannot kill foreground services — they show a persistent notification. -->
+         Android cannot kill foreground services: they show a persistent notification. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <!-- On Android 14+ (API 34), foreground services must declare their type -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"
@@ -18,7 +18,7 @@
          instead of making the user navigate Settings manually -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
-    <!-- NetworkState: check connectivity before attempting HTTP — no user dialog needed -->
+    <!-- NetworkState: check connectivity before attempting HTTP: no user dialog needed -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <!-- Notifications: Android 13+ (API 33) requires this runtime permission for the
@@ -34,7 +34,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:theme="@style/Theme.AppCompat.NoActionBar">
 
-        <!-- MainActivity: the screen the user sees — a full-screen WebView -->
+        <!-- MainActivity: the screen the user sees: a full-screen WebView -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

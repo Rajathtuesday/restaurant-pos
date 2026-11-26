@@ -277,7 +277,7 @@ class UserSchemaReviewTest(TestCase):
     """Tests for schema-review fixes applied to the accounts.User model."""
 
     def test_kitchen_role_in_choices(self):
-        """role_required('kitchen') is used in print_views — 'kitchen' must be in ROLE_CHOICES."""
+        """role_required('kitchen') is used in print_views: 'kitchen' must be in ROLE_CHOICES."""
         role_values = [r[0] for r in User.ROLE_CHOICES]
         self.assertIn("kitchen", role_values)
 
@@ -365,13 +365,13 @@ class CaptainLoginRedirectTest(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# toggle_feature_flag — feature gating + per-tenant audit history
+# toggle_feature_flag: feature gating + per-tenant audit history
 # ---------------------------------------------------------------------------
 
 class ToggleFeatureFlagAuditTest(TestCase):
     """
     Razorpay/WhatsApp (and every other custom-only feature) are toggled per-tenant
-    through this view. Each toggle must leave a permanent TenantFeatureAuditLog row —
+    through this view. Each toggle must leave a permanent TenantFeatureAuditLog row:
     TenantFeatureOverride itself only holds current state, not history.
     """
 
@@ -438,7 +438,7 @@ class ToggleFeatureFlagAuditTest(TestCase):
         history = TenantFeatureAuditLog.objects.filter(
             tenant=self.tenant, feature="whatsapp_receipts"
         ).order_by("changed_at")
-        # Both toggles must be preserved — not one row overwritten in place.
+        # Both toggles must be preserved: not one row overwritten in place.
         self.assertEqual(history.count(), 2)
         self.assertTrue(history[0].enabled)
         self.assertFalse(history[1].enabled)
@@ -459,7 +459,7 @@ class ToggleFeatureFlagAuditTest(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# _FEATURE_META completeness — the toggle UI's own list must not drift from
+# _FEATURE_META completeness: the toggle UI's own list must not drift from
 # the system's real, canonical list of features
 # ---------------------------------------------------------------------------
 

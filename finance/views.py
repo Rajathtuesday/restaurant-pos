@@ -18,7 +18,7 @@ from .models import Expense
 @role_required("owner", "manager")
 @feature_required("advanced_reports")
 def expense_list(request):
-    """Expense ledger — list + the create form, same single-page pattern as
+    """Expense ledger: list + the create form, same single-page pattern as
     setup_staff.html (create form alongside the existing list)."""
     expenses = Expense.objects.filter(tenant=request.user.tenant).select_related("outlet")[:200]
     outlets = Outlet.objects.filter(tenant=request.user.tenant)

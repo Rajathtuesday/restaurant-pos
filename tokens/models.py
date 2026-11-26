@@ -11,7 +11,7 @@ class DailyTokenCounter(TenantScopedModel):
     WHY this exists instead of MAX(token_number)+1:
       select_for_update() cannot lock aggregate results in Django.
       Two concurrent requests both read MAX=5, both try to create
-      token 6, the second crashes on unique_together — order is lost.
+      token 6, the second crashes on unique_together: order is lost.
       A counter ROW can be locked with select_for_update(), so only
       one request increments at a time.
 
@@ -47,7 +47,7 @@ class TokenOrder(TenantScopedModel):
     Attaches a daily sequential token number to an Order for
     Franchise / Cafe (QSR) tenants.
 
-    One token per order — enforced by OneToOneField.
+    One token per order: enforced by OneToOneField.
     Token numbers reset to 1 every business day per outlet.
 
     is_online=True  → Order came from Zomato/Swiggy/web aggregator.
@@ -76,7 +76,7 @@ class TokenOrder(TenantScopedModel):
     )
 
     # ── Pickup-readiness lifecycle (QSR "Order Ready" display board) ────
-    # Set by staff, not inferred from per-item kitchen-display tracking —
+    # Set by staff, not inferred from per-item kitchen-display tracking:
     # QSR outlets run with kitchen_display OFF (strip-mode auto-KOT
     # instead), so there is no per-item ready state to read here.
     ready_at = models.DateTimeField(null=True, blank=True)
@@ -111,7 +111,7 @@ class DailyOnlineTokenCounter(TenantScopedModel):
       - A burst of online orders doesn't push walk-in token numbers into the hundreds.
       - Kitchen and cashier can instantly tell walk-in from delivery by the prefix.
 
-    Same row-lock pattern as DailyTokenCounter — never use MAX()+1.
+    Same row-lock pattern as DailyTokenCounter: never use MAX()+1.
 
     Moved here from orders/models.py (Phase 2 of the orders app split) via a
     state-only migration -- the underlying table is still named

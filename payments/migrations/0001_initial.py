@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                     fields=[
                         ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                         ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                        ('customer_complaint', models.CharField(blank=True, default='', help_text='What the customer said — visible to owner', max_length=500)),
+                        ('customer_complaint', models.CharField(blank=True, default='', help_text='What the customer said: visible to owner', max_length=500)),
                         ('reason', models.CharField(help_text="Manager's internal note for this refund", max_length=255)),
                         ('status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')], default='pending', max_length=20)),
                         ('created_at', models.DateTimeField(auto_now_add=True)),

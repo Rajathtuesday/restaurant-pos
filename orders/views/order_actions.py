@@ -99,7 +99,7 @@ def cancel_item(request, item_id):
     """
     Voids a specific order item. Delegates to void_service.void_order_item
     for inventory restoration (unit-converted, includes modifier-linked
-    inventory) and table-state recalculation — this used to duplicate that
+    inventory) and table-state recalculation: this used to duplicate that
     logic inline without either of those, so a cancelled item after KOT-send
     never returned its deducted stock and never updated the table.
     """
@@ -113,7 +113,7 @@ def cancel_item(request, item_id):
             approver=approver,
         )
         # void_order_item recalculates totals on its own freshly-locked Order
-        # object, not item.order (held before the call) — re-fetch, don't
+        # object, not item.order (held before the call): re-fetch, don't
         # trust the stale one.
         new_total = Order.objects.get(id=item.order_id).grand_total
         logger.info("User %s cancelled item #%s", request.user.username, item_id)

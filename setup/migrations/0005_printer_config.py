@@ -18,11 +18,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='kitchenstation',
             name='paper_width_mm',
-            field=models.IntegerField(choices=[(58, '58mm — small receipt (32 chars/line)'), (80, '80mm — standard receipt (48 chars/line)')], default=80, help_text='Physical paper roll width'),
+            field=models.IntegerField(choices=[(58, '58mm: small receipt (32 chars/line)'), (80, '80mm: standard receipt (48 chars/line)')], default=80, help_text='Physical paper roll width'),
         ),
         migrations.AddField(
             model_name='kitchenstation',
             name='printer_encoding',
-            field=models.CharField(choices=[('cp437', 'CP437 — standard (most printers)'), ('cp850', 'CP850 — western Europe'), ('utf-8', 'UTF-8 — modern printers only')], default='cp437', help_text='Use UTF-8 only if your printer explicitly supports it; otherwise CP437', max_length=10),
+            field=models.CharField(choices=[('cp437', 'CP437: standard (most printers)'), ('cp850', 'CP850: western Europe'), ('utf-8', 'UTF-8: modern printers only')], default='cp437', help_text='Use UTF-8 only if your printer explicitly supports it; otherwise CP437', max_length=10),
         ),
     ]

@@ -1,6 +1,6 @@
 # orders/tests/test_aggregator_ingest.py
 """
-Tests for api_ingest_order (orders/api.py) — the aggregator webhook endpoint.
+Tests for api_ingest_order (orders/api.py): the aggregator webhook endpoint.
 
 Bugs found and fixed in this file, oldest first:
 1. A `return` from inside `transaction.atomic()` does not roll back (only an
@@ -56,7 +56,7 @@ class AggregatorIngestBase(TestCase):
         )
 
         # is_ip_allowed only returns True automatically when settings.DEBUG is
-        # True — patch it directly so this test doesn't depend on that.
+        # True: patch it directly so this test doesn't depend on that.
         patcher = patch("orders.api.is_ip_allowed", return_value=True)
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -101,7 +101,7 @@ class ValidOrderIngestTest(AggregatorIngestBase):
 
 
 class PartialOrderRegressionTest(AggregatorIngestBase):
-    """The critical regression test — a `return` inside atomic() doesn't
+    """The critical regression test: a `return` inside atomic() doesn't
     roll back, so this used to leave a broken order committed."""
 
     def test_bad_menu_item_does_not_create_partial_order(self):

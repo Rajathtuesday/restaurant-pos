@@ -1,7 +1,7 @@
 # orders/migrations/0033_dailyordercounter_orderevent_composite_idx.py
 #
 # Changes:
-#   1. Adds DailyOrderCounter model — per-tenant/outlet/day sequential counter
+#   1. Adds DailyOrderCounter model: per-tenant/outlet/day sequential counter
 #      used by Order.save() to generate INV-YYYYMMDD-NNNN order numbers.
 #
 #   2. Adds composite index on OrderEvent(tenant, outlet, event_type, created_at)

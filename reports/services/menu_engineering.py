@@ -1,6 +1,6 @@
 # reports/services/menu_engineering.py
 """
-Menu engineering (stars / plowhorses / puzzles / dogs) report — crosses
+Menu engineering (stars / plowhorses / puzzles / dogs) report: crosses
 item_reports.top_items()'s popularity axis with cogs.item_cogs_map()'s
 profitability axis into the classic four-quadrant view, split on the median
 of each axis (standard menu-engineering methodology, not fixed thresholds).

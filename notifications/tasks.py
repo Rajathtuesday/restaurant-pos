@@ -17,7 +17,7 @@ def send_whatsapp_receipt_task(self, order_id, bill_url):
     Sends a WhatsApp bill receipt off the request/response cycle.
 
     Previously this ran synchronously inside payment_views.py's
-    transaction.on_commit() — the Meta/Twilio HTTP call (up to an 8s timeout)
+    transaction.on_commit(): the Meta/Twilio HTTP call (up to an 8s timeout)
     was blocking the cashier's "payment complete" response. No new Celery
     queue is introduced; this lands on the default queue like everything
     else not explicitly routed to "printing".

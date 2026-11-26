@@ -2,11 +2,11 @@
 # Keep Rasova's append-only logs from growing forever.
 #
 # Django app logs (pos.log, errors.log, django.log, security.log) already self-cap
-# via Python's RotatingFileHandler — this script only handles the plain-append logs
+# via Python's RotatingFileHandler: this script only handles the plain-append logs
 # that nothing rotates: celery.log and backup.log.
 #
 # Strategy: if a log is bigger than MAX_BYTES, keep only the most recent KEEP_BYTES
-# (in-place truncate, safe while celery/cron is still appending — no restart needed).
+# (in-place truncate, safe while celery/cron is still appending: no restart needed).
 #
 # Run by hand:   bash scripts/clean_logs.sh
 # Weekly cron:   0 3 * * 0 cd /home/ubuntu/rasova && bash scripts/clean_logs.sh >> logs/clean_logs.log 2>&1

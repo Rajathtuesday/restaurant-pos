@@ -2,7 +2,7 @@
 Tests for void_service._restore_inventory_for_void.
 
 Voiding a dispatched item must reverse the exact deduction that happened
-when the KOT was sent — same unit conversion, same modifier handling as
+when the KOT was sent: same unit conversion, same modifier handling as
 deduct_inventory_for_items. Before this fix, restoration used the raw
 recipe quantity with no conversion (over/under-restoring by whatever the
 unit mismatch was) and never restored modifier-linked inventory at all.
@@ -33,7 +33,7 @@ class VoidInventoryRestoreTests(TestCase):
         self.naan = MenuItem.objects.create(
             tenant=self.tenant, outlet=self.outlet, category=self.cat, name="Naan", price=Decimal("60"),
         )
-        # Tracked in KG — recipe written in grams, so a naive restore would
+        # Tracked in KG: recipe written in grams, so a naive restore would
         # be off by 1000x.
         self.flour = InventoryItem.objects.create(
             tenant=self.tenant, outlet=self.outlet,
@@ -59,7 +59,7 @@ class VoidInventoryRestoreTests(TestCase):
 
     def test_restore_converts_gram_recipe_against_kg_item(self):
         """2 Naans sent (0.5kg × 2 = 1.0kg deducted, stock now 9.0kg). Voiding
-        must restore exactly 1.0kg — the pre-fix bug would have restored 1000
+        must restore exactly 1.0kg: the pre-fix bug would have restored 1000
         (reading grams as kg) or 0.001 depending on direction."""
         order, item = self._order_with_sent_item(quantity=2)
         self.assertEqual(self.flour.stock, Decimal("9.000"))
@@ -87,7 +87,7 @@ class VoidInventoryRestoreTests(TestCase):
 
     def test_modifier_linked_inventory_is_restored(self):
         """Previously: modifier-driven deduction (e.g. Extra Cheese) was
-        never reversed on void at all — a permanent, silent stock loss on
+        never reversed on void at all: a permanent, silent stock loss on
         every voided item that had a costed modifier."""
         cheese = InventoryItem.objects.create(
             tenant=self.tenant, outlet=self.outlet,
@@ -144,7 +144,7 @@ class VoidInventoryRestoreTests(TestCase):
         self.assertEqual(bad_item.stock, Decimal("5"))  # unchanged, not corrupted
 
     def test_voiding_last_item_updates_table_state(self):
-        """void_order_item previously never touched table state at all —
+        """void_order_item previously never touched table state at all:
         voiding the last active item on a table must free it."""
         table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1")
         order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, table=table, status="open")
@@ -161,7 +161,7 @@ class VoidInventoryRestoreTests(TestCase):
 
     def test_voiding_review_item_does_not_restore_inventory(self):
         """A "review" item (QR guest item awaiting staff approval) has never
-        been sent to the kitchen, so it's never had inventory deducted —
+        been sent to the kitchen, so it's never had inventory deducted:
         voiding it must not add phantom stock that was never taken."""
         order = Order.objects.create(tenant=self.tenant, outlet=self.outlet, status="open")
         item = OrderItem.objects.create(

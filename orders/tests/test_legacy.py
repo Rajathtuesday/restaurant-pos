@@ -5,18 +5,18 @@
 # Tests 4, 5, 7 all called POST /update-order-status/<id>/ which no longer exists.
 # The architecture moved from order-level status transitions to item-level transitions.
 #
-# Test 4 — test_kitchen_preparing
+# Test 4: test_kitchen_preparing
 #   Old: POST /update-order-status/{order.id}/  {"status": "preparing"}  → 200
 #   Why dead: That URL was removed. Item status is now changed via /item-start/<item_id>/
 #   Fix: Create an OrderItem with status="sent", POST to /item-start/{item.id}/,
 #        verify item.status == "preparing"
 #
-# Test 5 — test_kitchen_ready
+# Test 5: test_kitchen_ready
 #   Old: POST /update-order-status/{order.id}/  {"status": "ready"}
 #   Fix: Create an OrderItem with status="preparing", POST to /item-ready/{item.id}/,
 #        verify item.status == "ready"
 #
-# Test 7 — test_payment
+# Test 7: test_payment
 #   Old: POST /update-order-status/{order.id}/  {"status": "paid"}
 #   Why dead: Same removed endpoint. Real payment goes through /pay/<order_id>/.
 #   Fix: Use the real /pay/ endpoint with proper setup:
@@ -25,7 +25,7 @@
 #   Also: The view now transitions the order to "closed" (not "paid") after
 #   full payment. Assertion updated accordingly.
 #
-# Tests 1, 2, 3, 6 were already correct — no changes.
+# Tests 1, 2, 3, 6 were already correct: no changes.
 
 import json
 from decimal import Decimal
@@ -75,7 +75,7 @@ class POSTestCase(TestCase):
         )
 
     # ------------------------------------------------------------------
-    # TEST 1 — create order  (unchanged)
+    # TEST 1: create order  (unchanged)
     # ------------------------------------------------------------------
 
     def test_create_order(self):
@@ -95,7 +95,7 @@ class POSTestCase(TestCase):
         self.assertEqual(order.items.count(), 1)
 
     # ------------------------------------------------------------------
-    # TEST 2 — table reuses existing open order  (unchanged)
+    # TEST 2: table reuses existing open order  (unchanged)
     # ------------------------------------------------------------------
 
     def test_table_reuse_open_order(self):
@@ -115,7 +115,7 @@ class POSTestCase(TestCase):
         self.assertEqual(order.id, data["order_id"])
 
     # ------------------------------------------------------------------
-    # TEST 3 — send to kitchen
+    # TEST 3: send to kitchen
     #
     # Changed: assertion was order.status == "confirmed" which is wrong.
     # send_to_kitchen → create_kot never changes order.status.
@@ -139,16 +139,16 @@ class POSTestCase(TestCase):
         response = self.client.post(f"/send-to-kitchen/{order.id}/")
         self.assertEqual(response.status_code, 200)
 
-        # Order status is unchanged — send_to_kitchen does not transition it
+        # Order status is unchanged: send_to_kitchen does not transition it
         order.refresh_from_db()
         self.assertEqual(order.status, "open")
 
-        # The item is now "sent" to the kitchen — that is the real effect
+        # The item is now "sent" to the kitchen: that is the real effect
         order_item.refresh_from_db()
         self.assertEqual(order_item.status, "sent")
 
     # ------------------------------------------------------------------
-    # TEST 4 — kitchen marks item as preparing
+    # TEST 4: kitchen marks item as preparing
     #
     # Changed: /update-order-status/ is gone. Status is now per-item.
     # Endpoint: POST /item-start/<item_id>/
@@ -177,7 +177,7 @@ class POSTestCase(TestCase):
         self.assertEqual(order_item.status, "preparing")
 
     # ------------------------------------------------------------------
-    # TEST 5 — kitchen marks item as ready
+    # TEST 5: kitchen marks item as ready
     #
     # Changed: /update-order-status/ is gone.
     # Endpoint: POST /item-ready/<item_id>/
@@ -207,14 +207,14 @@ class POSTestCase(TestCase):
     # (Phase 4 of the orders app split).
 
     # ------------------------------------------------------------------
-    # TEST 7 — mark order paid
+    # TEST 7: mark order paid
     #
     # Changed: /update-order-status/ is gone.
     # Endpoint: POST /pay/<order_id>/  with JSON {"method": "cash", "amount": ...}
     #
     # Required setup that the old test skipped:
-    #   1. PaymentConfig  — pay_order enforces outlet-level method config
-    #   2. CashSession    — pay_order blocks payment if no open cash session
+    #   1. PaymentConfig : pay_order enforces outlet-level method config
+    #   2. CashSession   : pay_order blocks payment if no open cash session
     #
     # Assertion: after full payment the order transitions to "closed",
     # not "paid" (the view calls order.status = "closed" after full payment).

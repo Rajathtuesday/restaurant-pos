@@ -29,7 +29,7 @@ def dashboard(request):
     # NOTE: @tenant_required is deliberately NOT applied here. Sales agents are
     # modelled via Tenant.sales_agent and have User.tenant = None, so
     # tenant_required would 403 them before the agent tenant-resolution logic
-    # below ever runs — making the dashboard dead code for its intended users.
+    # below ever runs: making the dashboard dead code for its intended users.
     # This view instead resolves the tenant itself and hard-403s if none is
     # found. Owners/managers still only ever see their own request.user.tenant.
     # Determine which tenant we are viewing
@@ -54,7 +54,7 @@ def dashboard(request):
     if not tenant:
         return HttpResponseForbidden("No tenant context found.")
 
-    # outlet selection — resolved BEFORE the date default below, since each
+    # outlet selection: resolved BEFORE the date default below, since each
     # outlet can have its own business_day_start_hour and "today" depends
     # on which one (or None, for the cross-outlet default) is in scope.
     date_filter = request.GET.get("date_filter", "today")
@@ -211,7 +211,7 @@ def dashboard(request):
 def kitchen_dashboard(request):
     tenant = request.user.tenant
 
-    # outlet selection — resolved before the date default, same reasoning
+    # outlet selection: resolved before the date default, same reasoning
     # as dashboard() above.
     date_filter = request.GET.get("date_filter", "today")
     outlet_id = request.GET.get("outlet")
@@ -283,7 +283,7 @@ def kitchen_dashboard(request):
 @role_required("owner", "manager")
 def inspection_report(request):
     """
-    Government / tax inspection view — hardcoded to TODAY only.
+    Government / tax inspection view: hardcoded to TODAY only.
     No date controls. No history. Owner shows this screen to the inspector.
     Accessible to owner and manager only.
     """

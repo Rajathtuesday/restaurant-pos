@@ -2,11 +2,11 @@
 Regression tests for the critical authorization fixes in setup/.
 
 Covers:
-  1. setup_payment_methods — a cashier (default role) can no longer reach the
+  1. setup_payment_methods: a cashier (default role) can no longer reach the
      Razorpay/UPI credentials page (the payment-fraud hole).
-  2. setup_staff — an owner cannot mint another "owner" via the staff form
+  2. setup_staff: an owner cannot mint another "owner" via the staff form
      (role must be in the assignable set).
-  3. onboarding_wizard — a low-privilege staff account can't POST wizard steps
+  3. onboarding_wizard: a low-privilege staff account can't POST wizard steps
      (name/slug rewrite, staff creation, UPI change).
 
 Run: python manage.py test setup.tests.test_security_fixes
@@ -85,7 +85,7 @@ class StaffRoleValidationTest(_Base):
         client.post(reverse("setup_staff"), data={
             "username": "sneaky_owner",
             "password": "pw12345",
-            "role": "owner",   # must be rejected — not an assignable role
+            "role": "owner",   # must be rejected: not an assignable role
         })
         self.assertFalse(User.objects.filter(username="sneaky_owner").exists())
 
@@ -219,7 +219,7 @@ class ResetStaffPasswordTest(_Base):
 
 class ToggleStaffActiveTest(_Base):
     """
-    Regression tests for toggle_staff_active — deactivation was chosen over
+    Regression tests for toggle_staff_active: deactivation was chosen over
     hard delete specifically because StaffSchedule.staff and
     CashSession.opened_by both CASCADE on the user FK.
     """
@@ -287,7 +287,7 @@ class ToggleStaffActiveTest(_Base):
 
     def test_deactivation_kills_active_session(self):
         # The waiter logs in for real (creates an actual session), then the
-        # owner deactivates them — that session must die immediately, not
+        # owner deactivates them: that session must die immediately, not
         # just block future logins.
         staff_client = Client()
         logged_in = staff_client.login(username="waiter1", password="pw")
@@ -295,7 +295,7 @@ class ToggleStaffActiveTest(_Base):
 
         # Confirm the session actually works before deactivation. waiter
         # isn't owner/manager so setup_wizard redirects to /dashboard/, not
-        # to login — that redirect target is what proves the session (as
+        # to login: that redirect target is what proves the session (as
         # opposed to the role) is what's being checked here.
         resp = staff_client.get(reverse("setup_wizard"))
         self.assertEqual(resp.status_code, 302)
@@ -312,7 +312,7 @@ class ToggleStaffActiveTest(_Base):
 
     def test_deactivated_user_cannot_log_in(self):
         # Client.login() shortcuts around the real login view and doesn't
-        # pass a request into authenticate(), which axes' backend requires —
+        # pass a request into authenticate(), which axes' backend requires:
         # POSTing to the actual login view is what a real browser attempt
         # looks like, and is what actually needs to reject this.
         self.waiter.is_active = False
@@ -327,7 +327,7 @@ class ToggleStaffActiveTest(_Base):
 
 class EditStaffRoleTest(_Base):
     """
-    Regression tests for edit_staff_role — role was previously set-once at
+    Regression tests for edit_staff_role: role was previously set-once at
     account creation with no way to change it later short of direct DB/admin
     access.
     """
@@ -374,7 +374,7 @@ class EditStaffRoleTest(_Base):
         self.assertEqual(self.waiter.role, "waiter")
 
     def test_cannot_set_role_to_owner(self):
-        # Same privilege-escalation boundary as staff creation — role must
+        # Same privilege-escalation boundary as staff creation: role must
         # come from ASSIGNABLE_STAFF_ROLES, never trusted verbatim from POST.
         client = Client()
         client.force_login(self.owner)
@@ -419,7 +419,7 @@ class EditStaffRoleTest(_Base):
         self.assertEqual(resp.status_code, 400)
 
     def test_role_change_takes_effect_on_next_request_without_relogin(self):
-        # Unlike is_active, role isn't checked at authenticate() — it's read
+        # Unlike is_active, role isn't checked at authenticate(): it's read
         # fresh from the DB on every request via role_required, so a demoted
         # manager should lose access on their very next click, no forced
         # logout needed the way toggle_staff_active needs one.
@@ -438,7 +438,7 @@ class EditStaffRoleTest(_Base):
         resp = self._post(owner_client, manager.id, "waiter")
         self.assertEqual(resp.status_code, 200)
 
-        # Same session cookie as before, no re-login — role gate now blocks.
+        # Same session cookie as before, no re-login: role gate now blocks.
         resp = manager_client.get(reverse("setup_payment_methods"))
         self.assertEqual(resp.status_code, 302)
         self.assertIn("/dashboard/", resp["Location"])
@@ -446,7 +446,7 @@ class EditStaffRoleTest(_Base):
 
 class EditStaffOutletTest(_Base):
     """
-    Regression tests for edit_staff_outlet — moving a staff member between
+    Regression tests for edit_staff_outlet: moving a staff member between
     a tenant's outlets previously required direct DB/admin access; outlet was
     only ever set once, at account creation.
     """

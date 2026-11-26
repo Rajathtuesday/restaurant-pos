@@ -54,7 +54,7 @@ def guest_profile(request, guest_id):
 @tenant_required
 @feature_required("crm")
 def guest_lookup(request):
-    """API: Look up a guest by phone — used in the billing/bill modal."""
+    """API: Look up a guest by phone: used in the billing/bill modal."""
     phone = request.GET.get("phone", "").strip()
     if not phone:
         return JsonResponse({"error": "Phone required"}, status=400)

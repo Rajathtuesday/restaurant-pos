@@ -1,6 +1,6 @@
 # notifications/services/whatsapp_service.py
 """
-WhatsApp receipt sending — supports two backends:
+WhatsApp receipt sending: supports two backends:
 
   1. Meta WhatsApp Business Cloud API (default, free tier: 1000 msg/month)
      Set in .env:  META_WHATSAPP_TOKEN, META_WHATSAPP_PHONE_ID
@@ -11,7 +11,7 @@ WhatsApp receipt sending — supports two backends:
 
 Resolution order: Meta → Twilio → silent skip.
 
-The service NEVER raises — if WhatsApp fails, the bill still goes through.
+The service NEVER raises: if WhatsApp fails, the bill still goes through.
 """
 
 import logging
@@ -190,7 +190,7 @@ def _build_message(order, bill_url: str) -> str:
             lines.append(f"  {item.quantity}x {item.menu_item.name}  ₹{item.total_price:.0f}")
     except Exception as e:
         # Still send the receipt without an itemized list rather than block
-        # the message entirely — but log it, so a missing item list is
+        # the message entirely: but log it, so a missing item list is
         # discoverable instead of silently, permanently invisible.
         logger.warning("WhatsApp receipt: failed to build item list for order %s: %s", order.id, e)
 

@@ -12,14 +12,14 @@ logger = logging.getLogger("pos.core")
 def csrf_failure(request, reason=""):
     """
     Custom CSRF_FAILURE_VIEW. Django's built-in one is a bare, unstyled
-    403 page with no recovery action — someone hitting a stale CSRF token
+    403 page with no recovery action: someone hitting a stale CSRF token
     (the exact class of bug fixed elsewhere this session) had no way to
     tell what happened or what to do about it.
 
     apiClient (templates/core/base.html) always sends
     Content-Type: application/json on every POST/PUT/DELETE, so that's a
     reliable, already-true-today signal for "this was a fetch() call, not
-    real page navigation" — those get a clean JSON error the frontend's
+    real page navigation": those get a clean JSON error the frontend's
     existing toast/alert handling can show directly, instead of trying to
     render an HTML error page inside a JSON parser and failing silently.
     Everything else (a real page load, or an old-style plain form POST)
@@ -41,7 +41,7 @@ def csrf_failure(request, reason=""):
 def landing(request):
     # WhiteNoise serves public/index.html at / for unauthenticated users
     # before this view is ever called. This view only runs when WhiteNoise
-    # doesn't intercept — e.g. authenticated users who should go to dashboard.
+    # doesn't intercept: e.g. authenticated users who should go to dashboard.
     if request.user.is_authenticated:
         return redirect("/dashboard/")
     return redirect("/login/")
@@ -143,7 +143,7 @@ def health_check(request):
         connection.ensure_connection()
         return JsonResponse({"status": "healthy", "database": "connected"}, status=200)
     except Exception:
-        # Public endpoint — never leak the raw DB error (may contain host/creds).
+        # Public endpoint: never leak the raw DB error (may contain host/creds).
         # Log the detail server-side; return a generic status to the caller.
         import logging
         logging.getLogger("pos.core").exception("Health check DB connection failed")

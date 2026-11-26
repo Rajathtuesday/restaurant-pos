@@ -1,5 +1,5 @@
 """
-Demo helper — fires a correctly-signed fake Zomato/Swiggy order at the
+Demo helper: fires a correctly-signed fake Zomato/Swiggy order at the
 local aggregator webhook so you can show "online order comes in automatically"
 without a real Zomato/Swiggy connection.
 

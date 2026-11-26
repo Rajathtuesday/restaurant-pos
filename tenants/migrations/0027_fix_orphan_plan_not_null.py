@@ -4,7 +4,7 @@ Fix schema drift on the `plan` column.
 History context: an earlier migration (0008_tenant_plan_tenant_trial_ends_at)
 added Tenant.plan, then that migration's source was later deleted from the
 graph. The result is that the CURRENT .py migration graph never creates the
-`plan` column, but databases migrated back when it existed still carry it —
+`plan` column, but databases migrated back when it existed still carry it:
 as a NOT NULL column with no default and no matching model field. On those
 databases every ORM Tenant insert (the superuser create-restaurant flow)
 failed with: null value in column "plan".

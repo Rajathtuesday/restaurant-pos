@@ -287,7 +287,7 @@ def setup_kitchen_stations(request):
     # Determine print mode for the strip preview.
     # Only non-default stations matter: if any have their own printer IP,
     # they print KOTs independently (per-station mode).
-    # The default station always has the cashier printer — don't count it.
+    # The default station always has the cashier printer: don't count it.
     default_station = next((s for s in stations_list if s.is_default), None) or (stations_list[0] if stations_list else None)
     any_station_has_printer = any(
         s.printer_ip for s in stations_list
@@ -458,7 +458,7 @@ def setup_staff(request):
 
         return redirect("setup_staff")
 
-    # Authoritative role list for the edit-role modal — built from
+    # Authoritative role list for the edit-role modal: built from
     # ASSIGNABLE_STAFF_ROLES rather than copied from the create-account
     # dropdown above, so it can't drift from what's actually assignable.
     role_choices = [
@@ -494,7 +494,7 @@ def reset_staff_password(request, user_id):
     back in.
     """
     # Scoped to this tenant and excludes role="owner", matching the same
-    # boundary the staff list itself already uses — a manager (or another
+    # boundary the staff list itself already uses: a manager (or another
     # owner from this same tenant-scoped list) can't reach an account
     # outside their tenant by guessing an id, and can't touch an owner
     # account through this endpoint.
@@ -556,7 +556,7 @@ def toggle_staff_active(request, user_id):
     """
     Deactivate/reactivate a staff account, rather than deleting it.
 
-    A hard delete would cascade into real business history — shift
+    A hard delete would cascade into real business history: shift
     schedules (StaffSchedule.staff) and cash sessions
     (CashSession.opened_by) both CASCADE on the user FK, and several
     other tables (orders, inventory transfers, requisitions) reference
@@ -576,7 +576,7 @@ def toggle_staff_active(request, user_id):
 
     if not target.is_active:
         # is_active flipping to False does NOT invalidate a session that was
-        # already established before this change — Django only checks
+        # already established before this change: Django only checks
         # is_active during authenticate() at login time, not on every
         # subsequent request. Without this, a staff member deactivated
         # mid-shift could keep using the app until their session expired
@@ -603,7 +603,7 @@ def edit_staff_role(request, user_id):
     """
     Changes an existing staff member's role. Unlike is_active (only checked
     at login), role_required reads request.user.role fresh from the DB on
-    every request, so the new role takes effect on their very next click —
+    every request, so the new role takes effect on their very next click:
     no forced logout or session invalidation needed.
     """
     target = get_object_or_404(
@@ -618,7 +618,7 @@ def edit_staff_role(request, user_id):
         return JsonResponse({"error": "Invalid request."}, status=400)
 
     new_role = data.get("role")
-    # Never trust the posted role — same boundary as staff creation above:
+    # Never trust the posted role: same boundary as staff creation above:
     # without this, a manager could post role="owner" and escalate someone
     # (or themselves, via a second account) straight to full ownership.
     if new_role not in User.ASSIGNABLE_STAFF_ROLES:
@@ -652,7 +652,7 @@ def edit_staff_outlet(request, user_id):
     """
     Reassigns an existing staff member to a different outlet within the same
     tenant. Scoped by tenant only (not the acting manager's own outlet),
-    matching reset_staff_password/toggle_staff_active/edit_staff_role above —
+    matching reset_staff_password/toggle_staff_active/edit_staff_role above:
     an owner managing several outlets moves people between them from any of
     their outlets' staff pages, not just the destination one.
     """
@@ -668,7 +668,7 @@ def edit_staff_outlet(request, user_id):
         return JsonResponse({"error": "Invalid request."}, status=400)
 
     outlet_id = data.get("outlet_id")
-    # Never trust the posted outlet_id without checking tenant ownership —
+    # Never trust the posted outlet_id without checking tenant ownership:
     # otherwise a crafted request could reassign staff onto another tenant's
     # outlet (FK integrity is satisfied, tenant isolation is not).
     try:
@@ -816,7 +816,7 @@ def delete_station(request, station_id):
         outlet=request.user.outlet,
     )
 
-    # Edge case 1 — only station, refuse deletion
+    # Edge case 1: only station, refuse deletion
     total = KitchenStation.objects.filter(
         tenant=request.user.tenant,
         outlet=request.user.outlet,
@@ -830,7 +830,7 @@ def delete_station(request, station_id):
 
     was_default = station.is_default
 
-    # Edge case 2 — deleting default station: reassign menu items + promote another
+    # Edge case 2: deleting default station: reassign menu items + promote another
     if was_default:
         next_station = (
             KitchenStation.objects
@@ -855,7 +855,7 @@ def delete_station(request, station_id):
                 next_station.is_default = True
                 next_station.save(update_fields=["is_default"])
     else:
-        # Edge case 3 — non-default station with menu items assigned
+        # Edge case 3: non-default station with menu items assigned
         # Reassign those items to the default station
         from menu.models import MenuItem
         default = KitchenStation.objects.filter(
@@ -907,7 +907,7 @@ def rename_table(request, table_id):
 @login_required
 def outlet_settings(request):
     """
-    Outlet Settings page — owners can update all restaurant details
+    Outlet Settings page: owners can update all restaurant details
     (name, address, GSTIN, FSSAI, phone, WhatsApp, email) without
     touching Django admin.
     """
@@ -1024,7 +1024,7 @@ def outlet_settings(request):
         if hasattr(outlet, "whatsapp_no"):
             outlet.whatsapp_no = whatsapp_no
 
-        # Operating hours — blank string → None so the field stays nullable
+        # Operating hours: blank string → None so the field stays nullable
         opening_time = request.POST.get("opening_time", "").strip() or None
         closing_time = request.POST.get("closing_time", "").strip() or None
         outlet.opening_time = opening_time
@@ -1062,7 +1062,7 @@ def outlet_settings(request):
 @login_required
 @tenant_required
 def setup_qr_codes(request):
-    """Print QR codes for all tables — one QR per table linking to the digital menu."""
+    """Print QR codes for all tables: one QR per table linking to the digital menu."""
     if request.user.role not in ["owner", "manager"]:
         return redirect("/setup/")
     from django.conf import settings

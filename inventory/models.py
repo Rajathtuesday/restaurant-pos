@@ -44,7 +44,7 @@ class InventoryItem(TenantScopedModel):
 
     name = models.CharField(max_length=255)
 
-    # Free-text, not a separate model — restaurants group ingredients very
+    # Free-text, not a separate model: restaurants group ingredients very
     # differently (Veggies/Dairy/Spices vs Bar/Kitchen/Dry Store), so a
     # rigid choices list or a full CRUD-able category model would fight
     # whatever convention each tenant already uses. Blank means "unfiled".
@@ -159,7 +159,7 @@ class InventoryItem(TenantScopedModel):
             )
 
             if new_stock <= item.low_stock_threshold:
-                # trigger_reorder is a DB write — keep it in-transaction so
+                # trigger_reorder is a DB write: keep it in-transaction so
                 # TestCase tests and rollbacks behave correctly.
                 if item.preferred_supplier and item.reorder_quantity > 0:
                     try:
@@ -290,12 +290,12 @@ class InventoryItem(TenantScopedModel):
         than the system had, negative = found less), for reconciling a
         physical count or correcting a miscount/unlogged loss. Unlike
         reduce_stock/add_stock, this is deliberately not tied to a specific
-        business event (a sale, a delivery, spillage) — a reason is
+        business event (a sale, a delivery, spillage): a reason is
         required precisely because "adjustment" is otherwise unaccountable.
 
         The transaction_type "adjustment" already existed as a defined
         choice on InventoryTransaction with nothing anywhere that could
-        actually create one — there was no way for a manager to correct
+        actually create one: there was no way for a manager to correct
         the system's stock number at all before this.
         """
         delta = Decimal(delta)
@@ -451,13 +451,13 @@ class PurchaseOrder(TenantScopedModel):
         receipts: optional {item_id: {"quantity_received": Decimal,
         "invoiced_price": Decimal or None}}. quantity_received here means
         "how much arrived in THIS delivery" (added to the item's running
-        total), not a new grand total — a manager filling this in doesn't
+        total), not a new grand total: a manager filling this in doesn't
         have to remember/re-enter everything received on a previous partial
         receipt, just what showed up today.
 
         Backward-compatible default: with receipts=None (or an item simply
         missing from it), the full remaining ordered quantity for that line
-        is received at its ordered price — the exact one-click "Receive"
+        is received at its ordered price: the exact one-click "Receive"
         behavior this method used to be the entirety of.
 
         Deliberately avoids calling add_stock() to prevent nested
@@ -496,7 +496,7 @@ class PurchaseOrder(TenantScopedModel):
                 invoiced_price = entry.get("invoiced_price")
                 invoiced_price = Decimal(str(invoiced_price)) if invoiced_price not in (None, "") else None
             else:
-                # Not mentioned in the payload — default to fully receiving
+                # Not mentioned in the payload: default to fully receiving
                 # whatever's left on this line, at the ordered price.
                 increment = remaining
                 invoiced_price = None
@@ -901,7 +901,7 @@ class StockRequisition(TenantScopedModel):
         """
         Decide whether to fulfill from central kitchen or vendor.
         Sets self.route and self.fulfilling_outlet.
-        Does NOT save — caller must save.
+        Does NOT save: caller must save.
         """
         from tenants.models import Outlet as _Outlet
 
@@ -924,7 +924,7 @@ class StockRequisition(TenantScopedModel):
                 ck_outlet = _Outlet.objects.filter(id=ck).first()
 
         if not ck_outlet or ck_outlet == self.requesting_outlet:
-            # No central kitchen or CK is us — go to vendor
+            # No central kitchen or CK is us: go to vendor
             self.route = "external"
             self.fulfilling_outlet = None
             return
@@ -976,7 +976,7 @@ class RequisitionItem(models.Model):
 # AI RECIPE IMPORT
 #
 # Staging tables for AI-extracted recipes. Nothing here ever gets read by the
-# order/KOT/COGS pipeline — those only ever read the real Recipe table.
+# order/KOT/COGS pipeline: those only ever read the real Recipe table.
 # A RecipeImportJob's lines are proposals; Recipe rows are only created when a
 # human explicitly confirms via recipe_service.upsert_recipe. See
 # inventory/recipe_import_views.py and inventory/tasks.py:ai_import_recipe.
@@ -1035,7 +1035,7 @@ class RecipeImportLine(models.Model):
     raw_ingredient_name = models.CharField(max_length=255, blank=True)
     raw_quantity_text = models.CharField(max_length=100, blank=True)  # e.g. "1 cup", "a pinch"
 
-    # --- deterministic/AI-resolved quantity. Null if genuinely ambiguous —
+    # --- deterministic/AI-resolved quantity. Null if genuinely ambiguous:
     # never a guess (see inventory/recipe_unit_table.py).
     extracted_quantity = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     extracted_unit = models.CharField(max_length=10, choices=UNIT_CHOICES, null=True, blank=True)
@@ -1044,7 +1044,7 @@ class RecipeImportLine(models.Model):
     # --- matching ---
     match_method = models.CharField(max_length=10, choices=MATCH_METHOD)
     match_confidence = models.FloatField(null=True, blank=True)  # 0-1, fuzzy layer only
-    # What the AI/fuzzy layer proposed. Deliberately never the write target —
+    # What the AI/fuzzy layer proposed. Deliberately never the write target:
     # confirm() only ever reads resolved_inventory_item below, so a bug that
     # fails to populate the human-owned fields can't fall back to writing an
     # unreviewed suggestion into Recipe.

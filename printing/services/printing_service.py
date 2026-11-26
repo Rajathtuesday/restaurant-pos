@@ -3,8 +3,8 @@
 Thermal printer service using python-escpos.
 
 Supports Epson, Star, Citizen, and any ESC/POS-compatible printer over:
-  - Network (IP:port 9100)  — most restaurant printers
-  - USB (vendor_id + product_id) — single-terminal setups
+  - Network (IP:port 9100) : most restaurant printers
+  - USB (vendor_id + product_id): single-terminal setups
 
 Paper widths:
   58mm → 32 chars/line
@@ -147,7 +147,7 @@ class PrintingService:
         # "none" → skip cut; staff tears manually
 
     def _currency(self, amount) -> str:
-        """₹ doesn't exist in CP437 — always use Rs. for safety. To the paisa:
+        """₹ doesn't exist in CP437: always use Rs. for safety. To the paisa:
         a bill rounded to the rupee line by line doesn't add up."""
         return f"Rs.{money(amount)}"
 
@@ -312,7 +312,7 @@ class PrintingService:
         profile = getattr(order.outlet, "print_profile", None)
         bill_margin = profile.bill_inner_margin if profile else 4
 
-        # ── HEADER — centered, Font A ───────────────────────────────────
+        # ── HEADER: centered, Font A ───────────────────────────────────
         p.set(align="center", bold=True,  font='a')
         p.text(f"{str(order.tenant.name)[:W]}\n")
 
@@ -344,10 +344,10 @@ class PrintingService:
 
         sep_inner = "-" * C
 
-        # ── TITLE — Tax Invoice / Bill of Supply / Bill ─────────────────
+        # ── TITLE: Tax Invoice / Bill of Supply / Bill ─────────────────
         self._print_title(p, layout, C)
 
-        # ── INVOICE INFO — centered block, Font A ───────────────────────
+        # ── INVOICE INFO: centered block, Font A ───────────────────────
         p.set(align="center", bold=False, font='a')
         p.text(tc("Bill No.", order.display_number) + "\n")
         # created_at is stored in UTC; the bill shows the outlet's local time
@@ -359,7 +359,7 @@ class PrintingService:
 
         p.text(sep_inner + "\n")
 
-        # ── ITEMS — centered block, Font A ──────────────────────────────
+        # ── ITEMS: centered block, Font A ──────────────────────────────
         p.set(align="center", bold=False, font='a')
         for line in layout.lines:
             for row in self._dish_rows(line, C):
@@ -367,7 +367,7 @@ class PrintingService:
 
         p.text(sep_inner + "\n")
 
-        # ── MONEY — rows that add up to the total (bill_layout) ─────────
+        # ── MONEY: rows that add up to the total (bill_layout) ─────────
         p.set(align="center", bold=False, font='a')
         two = self._print_money(p, layout, C)
 
@@ -378,7 +378,7 @@ class PrintingService:
 
         p.text(sep_inner + "\n")
 
-        # ── FOOTER — Font B, centered ────────────────────────────────────
+        # ── FOOTER: Font B, centered ────────────────────────────────────
         p.set(align="center", bold=False, font='b')
         p.text("Thank you for visiting!\n")
         p.text("Powered by Rasova POS\n")
@@ -458,7 +458,7 @@ class PrintingService:
         p.text(f"Date : {timezone.localtime(order.created_at).strftime('%d/%m/%Y %H:%M')}\n")
         p.text(self._sep() + "\n")
 
-        # FULL item list — same as a normal bill (customer needs this for records)
+        # FULL item list: same as a normal bill (customer needs this for records)
         for line in layout.lines:
             for row in self._dish_rows(line, W):
                 p.text(row + "\n")
@@ -545,7 +545,7 @@ class PrintingService:
 
     # ------------------------------------------------------------------
     # QSR TOKEN RECEIPT BODY
-    # Compact receipt for counter handoff — token number printed big.
+    # Compact receipt for counter handoff: token number printed big.
     # ------------------------------------------------------------------
 
     def _print_qsr_token_body(self, p, order):
@@ -567,7 +567,7 @@ class PrintingService:
         p.text(f"Bill No. {order.display_number}\n")
         p.text(self._sep() + "\n")
 
-        # Token number — as large as the printer supports
+        # Token number: as large as the printer supports
         try:
             token_num = order.token.display_number if hasattr(order, "token") and order.token else None
         except Exception:
@@ -617,7 +617,7 @@ class PrintingService:
             return False
 
     # ------------------------------------------------------------------
-    # COMBINED PRINT — three modes
+    # COMBINED PRINT: three modes
     #
     # strip_mode=True (QSR, no station printers):
     #   token receipt → PARTIAL → KOT 1 → PARTIAL → KOT N → FULL CUT
@@ -653,7 +653,7 @@ class PrintingService:
             for i, kot in enumerate(kots):
                 self._print_kot_body(p, order, kot)
                 if i == len(kots) - 1:
-                    p.cut(mode="FULL")   # final tear — entire strip off the roll
+                    p.cut(mode="FULL")   # final tear: entire strip off the roll
                 else:
                     p.cut(mode="PART")   # stay connected to next section
 
@@ -663,7 +663,7 @@ class PrintingService:
             return False
 
     # ------------------------------------------------------------------
-    # TEST PRINT — run this to verify alignment before going live
+    # TEST PRINT: run this to verify alignment before going live
     # ------------------------------------------------------------------
 
     def test_print(self, station_name="Test Station") -> bool:
@@ -689,7 +689,7 @@ class PrintingService:
             p.text(f"Encoding: {self.encoding}\n")
             p.text("-" * W + "\n")
 
-            # Ruler — shows if chars per line matches physical paper
+            # Ruler: shows if chars per line matches physical paper
             ruler_top = "".join(str((i + 1) % 10) for i in range(W))
             ruler_bot = "".join(str(((i + 1) // 10) % 10) for i in range(W))
             p.text(ruler_top + "\n")

@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='outlet',
             name='is_central_kitchen',
-            field=models.BooleanField(default=False, help_text="True → this outlet is the tenant's central kitchen, the source that fulfills stock requisitions raised by other outlets internally instead of routing them to a vendor. Only meaningful for franchise/hub-spoke tenants with the central_kitchen feature. Explicit flag — StockRequisition.auto_route() used to guess this from batch history alone before this field existed."),
+            field=models.BooleanField(default=False, help_text="True → this outlet is the tenant's central kitchen, the source that fulfills stock requisitions raised by other outlets internally instead of routing them to a vendor. Only meaningful for franchise/hub-spoke tenants with the central_kitchen feature. Explicit flag: StockRequisition.auto_route() used to guess this from batch history alone before this field existed."),
         ),
     ]

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Restore DRILL — proves a backup is actually restorable, safely.
+Restore DRILL: proves a backup is actually restorable, safely.
 
 Downloads the LATEST backup from the private R2 bucket (rasova-backups),
 restores it into a THROWAWAY database (NEVER production), runs sanity checks,

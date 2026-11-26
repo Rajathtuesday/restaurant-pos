@@ -4,7 +4,7 @@ Tests for printing/tasks.py::print_kot_task.
 This Celery task had zero test coverage anywhere in the repo (confirmed by
 grep for the task name across orders/tests/ before Phase 3 of the orders
 app split). It's worth covering now specifically because the move relocated
-KOTBatch to kitchen.models — this proves the task still resolves
+KOTBatch to kitchen.models: this proves the task still resolves
 kitchen.models.KOTBatch correctly end-to-end after that move.
 
 Run: python manage.py test orders.tests.test_tasks

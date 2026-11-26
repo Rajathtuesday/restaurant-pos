@@ -190,7 +190,7 @@ def bump_kot(request, kot_id):
     from kitchen.models import KOTBatch
     from kitchen.services.kitchen_service import set_item_ready
     try:
-        # Scope by outlet as well as tenant — without order__outlet a multi-outlet
+        # Scope by outlet as well as tenant: without order__outlet a multi-outlet
         # tenant's kitchen staff at outlet A could bump outlet B's KOT by id.
         kot = KOTBatch.objects.select_related("order").get(
             id=kot_id,
@@ -205,7 +205,7 @@ def bump_kot(request, kot_id):
             except Exception as e:
                 # Partial success is by design (one bad item shouldn't block
                 # the rest), but a failure here used to be completely
-                # invisible — kitchen staff just saw a lower bumped count
+                # invisible: kitchen staff just saw a lower bumped count
                 # with no way to tell why.
                 logger.warning("bump_kot: could not mark item %s ready: %s", item.id, e)
         logger.info("KOT #%s bumped - %d items marked ready by %s", kot.kot_number, bumped, request.user.username)

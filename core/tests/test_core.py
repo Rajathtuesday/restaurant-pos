@@ -73,7 +73,7 @@ class TenantRequiredSuperuserBypassTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_regular_user_without_tenant_still_blocked(self):
-        # Existing behavior must be unchanged for non-superusers — this
+        # Existing behavior must be unchanged for non-superusers: this
         # decorator's whole job for everyone else is exactly this check.
         from django.core.exceptions import PermissionDenied
 
@@ -110,7 +110,7 @@ class TenantRequiredSuperuserBypassTest(TestCase):
 
 class CsrfFailureViewTest(TestCase):
     """
-    Django's test Client normally bypasses CSRF checks entirely —
+    Django's test Client normally bypasses CSRF checks entirely:
     enforce_csrf_checks=True is required to actually trigger a real
     failure and exercise CSRF_FAILURE_VIEW, same as a real browser would.
     """
@@ -119,7 +119,7 @@ class CsrfFailureViewTest(TestCase):
         self.client = Client(enforce_csrf_checks=True)
 
     def test_json_request_gets_json_error_not_html(self):
-        # No csrfmiddlewaretoken, no X-CSRFToken header — a guaranteed
+        # No csrfmiddlewaretoken, no X-CSRFToken header: a guaranteed
         # CSRF failure, sent the way apiClient actually sends requests.
         response = self.client.post(
             reverse("login"),

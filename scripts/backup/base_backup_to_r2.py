@@ -9,7 +9,7 @@ meaningful as changes applied ON TOP OF a physical copy of the real data
 files. You cannot replay WAL against a pg_dump. This script produces that
 physical copy, so a point-in-time recovery has something to start from.
 
-Run weekly — WAL archives fill the gap between base backups, so the more
+Run weekly: WAL archives fill the gap between base backups, so the more
 often this runs, the less WAL a future recovery has to replay:
 
 Cron (Sunday 3am):
@@ -77,7 +77,7 @@ def main():
         )
         key = f"base/rasova_base_{stamp}.tar.gz"
         # upload_file (not put_object + f.read()) streams straight from disk and
-        # switches to multipart automatically past its threshold — a base backup
+        # switches to multipart automatically past its threshold: a base backup
         # only ever gets bigger as the real DB grows, this shouldn't ever need
         # revisiting for a size ceiling or a full-file memory buffer either.
         s3.upload_file(base_file, BUCKET, key, ExtraArgs={"ContentType": "application/gzip"})
@@ -96,7 +96,7 @@ def main():
         if deleted:
             print(f"[base-backup] pruned {deleted} base backup(s) older than {RETAIN_WEEKS} weeks")
 
-        # prune WAL segments no longer reachable from any base backup we still keep —
+        # prune WAL segments no longer reachable from any base backup we still keep:
         # anything archived before `cutoff` predates our oldest surviving photo, so a
         # recovery could never need it. Without this step, WAL would grow forever.
         deleted_wal = 0

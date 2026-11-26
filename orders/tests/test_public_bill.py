@@ -70,7 +70,7 @@ class PublicBillViewTest(CounterBillingBase):
 
 class WhatsAppDispatchGatingTest(CounterBillingBase):
     """
-    whatsapp_receipts is a custom-only feature (core/features.py) — off for
+    whatsapp_receipts is a custom-only feature (core/features.py): off for
     every tenant until a TenantFeatureOverride turns it on. pay_order's
     post-payment WhatsApp dispatch must respect that gate.
     """

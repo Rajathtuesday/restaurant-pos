@@ -1,6 +1,6 @@
 # orders/tests/test_captain_permissions.py
 """
-Tests for the new "captain" staff role — a senior floor-service tier with
+Tests for the new "captain" staff role: a senior floor-service tier with
 more access than waiter but less than manager, added per user request.
 
 Confirmed scope (see the plan this was implemented from):

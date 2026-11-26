@@ -1,6 +1,6 @@
 """
 Tests proving cancel_item/cancel_order (orders/views/order_actions.py) now
-actually reach void_service.void_order_item in production — these are the
+actually reach void_service.void_order_item in production: these are the
 live, URL-wired endpoints the waiter UI calls. Before this fix, cancel_item
 duplicated voiding logic inline with zero inventory restoration and zero
 table-state update; void_order_item had both, correctly, but was dead code.

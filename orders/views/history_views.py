@@ -1,5 +1,5 @@
 """
-Order History — searchable, filterable, role-scoped list of all past orders.
+Order History: searchable, filterable, role-scoped list of all past orders.
 
 Role access:
   owner   / manager → all orders, any date, full audit trail, CSV export
@@ -75,13 +75,13 @@ def _base_queryset(request):
 
     if role == "captain":
         # All outlet orders (captain supervises multiple waiters, not just
-        # their own tickets) but a tighter window than cashier's 30 days —
+        # their own tickets) but a tighter window than cashier's 30 days:
         # a middle tier between waiter (own orders, today) and cashier.
         cutoff, _ = get_business_date_range(today - timedelta(days=7), outlet)
         base   = base.filter(created_at__gte=cutoff)
         return base, True
 
-    # owner / manager — everything. NOTE: this is a fail-open default —
+    # owner / manager: everything. NOTE: this is a fail-open default:
     # any role not explicitly handled above (e.g. "agent", "kitchen") lands
     # here with full, unrestricted access. Not fixing that pre-existing gap
     # here; just don't add a new role above without remembering that.
@@ -92,7 +92,7 @@ def _apply_filters(qs, params, is_restricted, outlet=None):
     """Apply GET filter params to queryset, respecting role restrictions.
     Dates are business days (6 AM to 6 AM), as in every report."""
 
-    # Date range — restricted roles cannot go beyond their allowed window
+    # Date range: restricted roles cannot go beyond their allowed window
     date_from = params.get("date_from", "")
     date_to   = params.get("date_to",   "")
 
@@ -122,7 +122,7 @@ def _apply_filters(qs, params, is_restricted, outlet=None):
         # Default: exclude open orders from history (they're on billing screen)
         qs = qs.exclude(status="open")
 
-    # Payment method — filter orders that have at least one payment of this type
+    # Payment method: filter orders that have at least one payment of this type
     method = params.get("method", "")
     if method and method != "all":
         if method == "complimentary":
@@ -144,7 +144,7 @@ def _apply_filters(qs, params, is_restricted, outlet=None):
         except (ValueError, TypeError):
             pass
 
-    # Search — order number OR customer phone
+    # Search: order number OR customer phone
     q = params.get("q", "").strip()
     if q:
         qs = qs.filter(
@@ -312,7 +312,7 @@ def order_detail_api(request, order_id):
             "item_discount_pct": float(item.item_discount_pct) if hasattr(item, "item_discount_pct") and item.item_discount_pct else 0,
         })
 
-    # Build payments — include ID so JS can POST refund requests
+    # Build payments: include ID so JS can POST refund requests
     payments_data = []
     for p in order.payments.all():
         if p.method == "refund" or float(p.amount) < 0:
@@ -416,7 +416,7 @@ def export_orders_csv(request):
     qs, is_restricted = _base_queryset(request)
     qs = _apply_filters(qs, request.GET, is_restricted, request.user.outlet)
     # Annotate the item count in the same query instead of calling
-    # order.items.count() per row below — that was one extra query per CSV
+    # order.items.count() per row below: that was one extra query per CSV
     # row, up to EXPORT_LIMIT (2000) round trips for a single export.
     qs = qs.annotate(item_count=Count("items"))
 
@@ -490,7 +490,7 @@ def export_orders_csv(request):
             pay.get("refund", 0),
             order.status,
             dur,
-            "",  # NOTE column — only in header
+            "",  # NOTE column: only in header
         ])
 
     logger.info(

@@ -395,7 +395,7 @@ class ExportServicesTest(TestCase):
 
     def test_generate_gstr1_excel_includes_hsn_summary_sheet(self):
         """Table 12 (HSN/SAC summary) is mandatory for every GSTR-1 filer,
-        not just tenants with B2B sales — it must always be present, with
+        not just tenants with B2B sales: it must always be present, with
         the fixture's known 5% item correctly rolled into SAC 996331."""
         import openpyxl
         from reports.services.export_services import generate_gstr1_excel
@@ -536,7 +536,7 @@ class ExportReportsViewTest(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# P&L / GROSS MARGIN REPORT — refund-netting regression test
+# P&L / GROSS MARGIN REPORT: refund-netting regression test
 #
 # gross_margin_report used to sum Order.grand_total, which never changes after
 # a refund (approve_refund records the refund as a separate negative Payment
@@ -553,7 +553,7 @@ class GrossMarginReportRefundTest(TestCase):
         from reports.services.pl_reports import gross_margin_report
 
         order = create_paid_order(self.tenant, self.outlet, self.user, self.item, grand_total=500)
-        # A partial refund against that same order — recorded as its own
+        # A partial refund against that same order: recorded as its own
         # negative Payment row, exactly like approve_refund does in production.
         Payment.objects.create(
             order=order, method="refund", amount=Decimal("-150.00"),
@@ -580,7 +580,7 @@ class GrossMarginReportRefundTest(TestCase):
 # ---------------------------------------------------------------------------
 # owner_dashboard_metrics business-date tests
 #
-# Same bug class as the Z-report fix — a single created_at__date= filter
+# Same bug class as the Z-report fix: a single created_at__date= filter
 # against timezone.localdate() ignores the outlet's business-day cutoff,
 # so any order placed after midnight but before the cutoff hour would
 # vanish from the live dashboard until the calendar caught up.
@@ -620,7 +620,7 @@ class OwnerDashboardMetricsBusinessDateTest(TestCase):
             _dt(2026, 7, 17, 21, 0), timezone.get_current_timezone()
         )
         self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
-        # Past midnight, before the 6 AM cutoff — same business day.
+        # Past midnight, before the 6 AM cutoff: same business day.
         self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
 
         # Owner checks the dashboard at 4 AM, still the same business day
@@ -660,7 +660,7 @@ class OwnerDashboardMetricsBusinessDateTest(TestCase):
 # ---------------------------------------------------------------------------
 # export_services.py business-date tests
 #
-# A separate module from the report *services* fixed earlier — this file
+# A separate module from the report *services* fixed earlier: this file
 # has its own independent date-filtering, missed in the first sweep, found
 # by specifically re-checking GSTR-1 for accuracy. Same bug, same fix,
 # applied here across every generate_*_csv/excel function, GSTR-1 included
@@ -687,7 +687,7 @@ class ExportServicesBusinessDateTest(TestCase):
 
         # 9 PM order (business day = the 17th) and a 2 AM order the *next*
         # calendar day that's still the same business day under a 6 AM
-        # cutoff — the exact case a plain created_at__date filter drops.
+        # cutoff: the exact case a plain created_at__date filter drops.
         self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
         self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
 
@@ -700,7 +700,7 @@ class ExportServicesBusinessDateTest(TestCase):
         taxable_total = total_row[3]
 
         # create_paid_order's fixture item always carries a fixed
-        # total_price of 400 regardless of the order's grand_total — so
+        # total_price of 400 regardless of the order's grand_total: so
         # both orders' item lines (400 + 400 = 800) must be present. Under
         # the old bug, only the 2 AM order's line (400) would show up.
         self.assertEqual(taxable_total, 800.0)
@@ -732,7 +732,7 @@ class ExportServicesBusinessDateTest(TestCase):
         rows = list(reader)[1:]  # skip header
 
         # Both orders share the same fixture item, so this collapses into
-        # one row — quantity should reflect both orders (2 each = 4), not
+        # one row: quantity should reflect both orders (2 each = 4), not
         # just the 2 AM one.
         self.assertEqual(len(rows), 1)
         self.assertEqual(int(rows[0][2]), 4)  # Quantity Sold column
@@ -750,7 +750,7 @@ class ExportServicesBusinessDateTest(TestCase):
         rows = list(reader)[1:]  # skip header
 
         # Both orders were created_by the same fixture user, so this
-        # collapses into one row — 2 orders, not just the 2 AM one.
+        # collapses into one row: 2 orders, not just the 2 AM one.
         self.assertEqual(len(rows), 1)
         self.assertEqual(int(rows[0][1]), 2)  # Total Orders Handled column
 
@@ -766,7 +766,7 @@ class ExportServicesBusinessDateTest(TestCase):
         reader = csv.reader(io.StringIO(result))
         rows = list(reader)[1:]  # skip header
 
-        # Same fixture item/category on both orders — one row, revenue
+        # Same fixture item/category on both orders: one row, revenue
         # from both orders' item lines (400 + 400), not just the 2 AM one.
         self.assertEqual(len(rows), 1)
         self.assertEqual(float(rows[0][2]), 800.0)  # Total Revenue column

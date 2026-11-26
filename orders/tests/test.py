@@ -2,32 +2,32 @@
 #
 # BUGS FIXED IN THIS FILE
 # ========================
-# Bug 1 — Wrong URL
+# Bug 1: Wrong URL
 #   Old:  self.client.get(f'/orders/{self.order.id}/billing/')
 #   Why:  No such URL pattern exists. orders/urls.py defines path("billing/", ...)
 #         and is included at root with no prefix, so the real URL is /billing/.
 #   Fix:  Use reverse('billing-view') + f'?table={self.table.id}'
 #
-# Bug 2 — Missing query param
+# Bug 2: Missing query param
 #   Old:  URL had no ?table= param
-#   Why:  billing_view() does table_id = request.GET.get("table") — it looks up
+#   Why:  billing_view() does table_id = request.GET.get("table"): it looks up
 #         the order via table, not via order ID in the URL. Without ?table=, the
 #         view returns the blank POS page (HTTP 200 with order=None), which means
 #         the lock check is never reached.
 #   Fix:  Always pass ?table={self.table.id} on both test requests.
 #
-# Bug 3 — Order must have status "open" or "billing"
-#   Old:  Order.objects.create(...) — no status field set
+# Bug 3: Order must have status "open" or "billing"
+#   Old:  Order.objects.create(...): no status field set
 #   Why:  billing_view filters: status__in=["open", "billing"]. Default status may
 #         not be in this list, so order would come back None again.
 #   Fix:  Explicitly set status="open" in setUp.
 #
-# Bug 4 — Lock set on wrong model
+# Bug 4: Lock set on wrong model
 #   Old:  self.order.locked_by = self.user1 / self.order.save()
 #   Why:  Order has NO locked_by field. The lock system lives entirely in the
 #         separate OrderLock model (OneToOneField → Order, related_name="lock").
 #         lock_order() in order_lock_service.py reads order.lock and checks
-#         lock.locked_by — it never looks at a field on Order itself.
+#         lock.locked_by: it never looks at a field on Order itself.
 #   Fix:  Create an OrderLock instance directly with expires_at in the future.
 
 from datetime import timedelta
@@ -92,7 +92,7 @@ class OrderLockTestCase(TestCase):
         return reverse('billing-view') + f'?table={self.table.id}'
 
     # ------------------------------------------------------------------
-    # Test 1 — creator gets HTTP 200 on an unlocked order
+    # Test 1: creator gets HTTP 200 on an unlocked order
     # ------------------------------------------------------------------
     def test_order_lock_fetched_before_check(self):
         """
@@ -109,7 +109,7 @@ class OrderLockTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
 
     # ------------------------------------------------------------------
-    # Test 2 — other user is blocked when order is locked by user1
+    # Test 2: other user is blocked when order is locked by user1
     # ------------------------------------------------------------------
     def test_order_lock_prevents_other_user(self):
         """
@@ -118,7 +118,7 @@ class OrderLockTestCase(TestCase):
         returns (False, user1), so order_locked.html is rendered.
         That template contains the text "Order Currently Locked" → assert passes.
         """
-        # Bug 4 fix: create an OrderLock row — Order has no locked_by field.
+        # Bug 4 fix: create an OrderLock row: Order has no locked_by field.
         # The lock service reads order.lock (the OneToOneField reverse accessor)
         # and checks lock.locked_by and lock.expires_at.
         OrderLock.objects.create(
@@ -132,5 +132,5 @@ class OrderLockTestCase(TestCase):
         # Same URL fixes as Test 1
         response = self.client.get(self._billing_url())
 
-        # order_locked.html renders "Order Currently Locked" — "locked" is present
+        # order_locked.html renders "Order Currently Locked": "locked" is present
         self.assertIn("locked", response.content.decode().lower())

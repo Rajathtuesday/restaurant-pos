@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='purchaseorderitem',
             name='quantity_received',
-            field=models.DecimalField(decimal_places=3, default=0, help_text='How much of this line has actually arrived so far. Can be less than quantity — a delivery can be partial or split across more than one receipt.', max_digits=12),
+            field=models.DecimalField(decimal_places=3, default=0, help_text='How much of this line has actually arrived so far. Can be less than quantity: a delivery can be partial or split across more than one receipt.', max_digits=12),
         ),
         migrations.AlterField(
             model_name='purchaseorder',

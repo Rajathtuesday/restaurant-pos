@@ -261,7 +261,7 @@ class Order(TenantScopedModel):
     # For new orders: the entire INSERT + counter increment is wrapped in one
     # atomic block so no concurrent reader ever sees order_number=NULL.
     # For update saves (recalculate_totals, apply_discount …): no transaction
-    # wrapper here — the caller's atomic block (if any) is not polluted with
+    # wrapper here: the caller's atomic block (if any) is not polluted with
     # extra savepoints on every call.
     # -------------------------------------------------
     def save(self, *args, **kwargs):
@@ -800,7 +800,7 @@ class Payment(models.Model):
         ("cash",      "Cash"),
         ("upi",       "UPI"),
         ("card",      "Card"),
-        # Aggregator methods — written by api_ingest_order for pre-paid webhook orders
+        # Aggregator methods: written by api_ingest_order for pre-paid webhook orders
         ("zomato",    "Zomato"),
         ("swiggy",    "Swiggy"),
         ("uber_eats", "Uber Eats"),
@@ -859,10 +859,10 @@ class Payment(models.Model):
             # A gateway (Razorpay, etc.) may retry the same webhook; the view-level
             # `.exists()` check before creating a Payment closes that race in the
             # common case, but is a plain SELECT-then-INSERT with no atomicity
-            # guarantee of its own — two near-simultaneous deliveries could both
+            # guarantee of its own: two near-simultaneous deliveries could both
             # pass the check before either commits. This constraint is the real
             # backstop: the second INSERT fails at the database instead of silently
-            # recording a duplicate payment. Scoped to non-blank references only —
+            # recording a duplicate payment. Scoped to non-blank references only:
             # manual cash/card payments leave `reference` null, and blank ("")
             # values (e.g. an aggregator payment with no aggregator_id) are excluded
             # too, since those are legitimately non-unique.

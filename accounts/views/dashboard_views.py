@@ -99,7 +99,7 @@ def dashboard_metrics_json(request):
 
 @login_required
 def sales_dashboard(request):
-    """Reseller view — superuser sees all tenants; agents see their own."""
+    """Reseller view: superuser sees all tenants; agents see their own."""
     from tenants.models import Tenant
     from accounts.models import User
     from django.contrib import messages

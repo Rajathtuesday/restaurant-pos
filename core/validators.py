@@ -90,7 +90,7 @@ def normalize_phone(raw):
     Raises ValidationError if the result is not a valid Indian mobile
     (10 digits, first digit 6-9).
 
-    Phone is optional everywhere it's used — empty/None passes through as None.
+    Phone is optional everywhere it's used: empty/None passes through as None.
     """
     if raw is None:
         return None

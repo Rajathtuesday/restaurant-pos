@@ -19,7 +19,7 @@ def waiter_performance(tenant, outlet=None, start_date=None, end_date=None):
     _, range_end = get_business_date_range(end_date, outlet)
 
     # ----------------------------
-    # BASE QUERY — business-day bounds, not plain calendar dates
+    # BASE QUERY: business-day bounds, not plain calendar dates
     # ----------------------------
     query = Order.objects.filter(
         tenant=tenant,

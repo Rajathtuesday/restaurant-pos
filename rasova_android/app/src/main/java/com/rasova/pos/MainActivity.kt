@@ -41,7 +41,7 @@ class MainActivity : AppCompatActivity() {
     // emulator, 22 Nov 2026: a page cut off mid-way, the next load fine).
     private var quietRetries = 0
 
-    // ZXing QR scanner — registered before onCreate as required by Activity Result API
+    // ZXing QR scanner: registered before onCreate as required by Activity Result API
     private val qrScanLauncher = registerForActivityResult(ScanContract()) { result ->
         result.contents?.let { handleScannedUrl(it) }
     }
@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
 
         val saved = getSavedUrl()
         when {
-            // Returning user: URL already saved — go straight to the app
+            // Returning user: URL already saved: go straight to the app
             saved != null -> {
                 serverUrl = saved
                 if (savedInstanceState != null) {

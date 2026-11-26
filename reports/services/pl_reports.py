@@ -50,7 +50,7 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     if outlet:
         order_qs = order_qs.filter(outlet=outlet)
 
-    # Composition scheme outlets issue Bill of Supply — no GST to collect.
+    # Composition scheme outlets issue Bill of Supply: no GST to collect.
     # Zero out gst_total contribution from those outlets.
     non_comp_qs = order_qs.filter(outlet__is_composition_scheme=False)
 
@@ -58,11 +58,11 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
     # Gross revenue is summed from actual Payment rows for these orders, NOT
     # Order.grand_total. grand_total is the order's original billed amount and
     # never changes after a refund (approve_refund records the refund as a
-    # separate negative Payment instead) — so summing grand_total overstated
+    # separate negative Payment instead): so summing grand_total overstated
     # revenue by the refunded amount and disagreed with the Sales Dashboard
     # (reports/services/sales_reports.py:daily_sales), which already nets
     # refunds this same way. Order scope (which orders count as "in period")
-    # is unchanged — still order.created_at, not payment date.
+    # is unchanged: still order.created_at, not payment date.
     totals2 = order_qs.aggregate(
         discounts   = Sum("discount_total"),
         order_count = Count("id"),
@@ -84,7 +84,7 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
         .exclude(status="voided")
     )
 
-    # Per-item breakdown lives in cogs.py (shared with menu_engineering.py) —
+    # Per-item breakdown lives in cogs.py (shared with menu_engineering.py):
     # this function only needs the total and the coverage counts.
     cogs_map, items_with_recipe, items_without_recipe = item_cogs_map(item_qs)
     cogs = sum(cogs_map.values(), Decimal("0"))

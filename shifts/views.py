@@ -163,7 +163,7 @@ def update_shift_tips(request, shift_id):
     """Manager can update tips for any shift."""
     try:
         data = json.loads(request.body)
-        # Scope by outlet — a manager at outlet A must not edit outlet B's shift.
+        # Scope by outlet: a manager at outlet A must not edit outlet B's shift.
         shift = Shift.objects.get(
             id=shift_id, tenant=request.user.tenant, outlet=request.user.outlet
         )
@@ -291,7 +291,7 @@ def close_cash_session(request):
 
         # A cash refund physically leaves the drawer, but approve_refund records
         # the reversing entry as method="refund" (never "cash") so the sum above
-        # doesn't subtract it — which used to manufacture a phantom shortfall the
+        # doesn't subtract it: which used to manufacture a phantom shortfall the
         # cashier got blamed for. Find the refund reversing entries in this
         # window, then subtract only those whose ORIGINAL payment was cash
         # (a refund against a card/UPI sale didn't come out of the drawer).
@@ -372,7 +372,7 @@ def export_z_report(request):
     start, end = get_business_date_range(business_date, outlet)
 
     # All three queries below key off this ONE order set instead of each
-    # independently re-deriving "today" — previously orders were filtered
+    # independently re-deriving "today": previously orders were filtered
     # by created_at__date, payments by paid_at__date, and sessions by
     # opened_at__date, three different fields on three different plain
     # calendar-date filters that (a) ignored the outlet's business-day
@@ -498,7 +498,7 @@ from .models import ShiftTemplate, StaffSchedule
 @role_required("manager", "owner")
 def schedule_builder(request):
     """
-    Weekly schedule grid — managers only.
+    Weekly schedule grid: managers only.
     Shows each staff member vs each day of the week.
     Supports ?week=YYYY-MM-DD to navigate to any Monday.
     """
@@ -631,7 +631,7 @@ def create_schedule_entry(request):
     template = None
     if template_id:
         try:
-            # Scope by outlet — otherwise another outlet's template (different
+            # Scope by outlet: otherwise another outlet's template (different
             # pay rate / hours) could be applied to this outlet's schedule.
             template = ShiftTemplate.objects.get(
                 id=template_id, tenant=request.user.tenant, outlet=request.user.outlet

@@ -18,13 +18,13 @@ def owner_dashboard_metrics(user):
         outlets = list(Outlet.objects.filter(id=user.outlet.id))
 
     # Each outlet can have its own business_day_start_hour, so "today" isn't
-    # one shared date across a multi-outlet tenant — outlet A might already
+    # one shared date across a multi-outlet tenant: outlet A might already
     # be on the next business day while outlet B (opened later, or on a
     # later cutoff) is still on the previous one. A single shared
     # `today = localdate()` used for every outlet, and a plain
     # created_at__date= filter, meant any order placed after midnight but
     # before an outlet's cutoff hour vanished from that outlet's own
-    # dashboard until the calendar caught up — the exact bug already found
+    # dashboard until the calendar caught up: the exact bug already found
     # and fixed in the Z-report, live here on the page an owner actually
     # watches all day.
     business_dates = {o.id: get_business_date(timezone.now(), o) for o in outlets}
@@ -37,7 +37,7 @@ def owner_dashboard_metrics(user):
     if cached is not None:
         return cached
 
-    # Low stock and kitchen queue are point-in-time, not "today" scoped —
+    # Low stock and kitchen queue are point-in-time, not "today" scoped:
     # still fine to batch across outlets. Everything "today"-scoped is
     # computed per-outlet below since each has its own business-day window.
     outlet_ids = [o.id for o in outlets]
@@ -71,7 +71,7 @@ def owner_dashboard_metrics(user):
     )
     stock_map = {s["outlet_id"]: s["count"] for s in low_stock_qs}
 
-    # Assemble — each outlet queried with its own business-day window.
+    # Assemble: each outlet queried with its own business-day window.
     results = []
     for outlet in outlets:
         start, end = ranges[outlet.id]

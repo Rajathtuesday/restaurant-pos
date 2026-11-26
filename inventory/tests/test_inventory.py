@@ -750,7 +750,7 @@ class VarianceReportTests(TestCase):
         self.assertIn("Variance %", content)
 
     def test_variance_zero_when_txn_matches_recipe(self):
-        """Transactions consumed exactly what recipes expected — variance = 0."""
+        """Transactions consumed exactly what recipes expected: variance = 0."""
         from inventory.models import InventoryTransaction
         from menu.models import MenuItem, MenuCategory
         from inventory.models import Recipe as MenuRecipe
@@ -789,7 +789,7 @@ class VarianceReportTests(TestCase):
         self.assertEqual(rum_row["variance"], Decimal("0.000"))
 
     def test_variance_negative_when_deduction_missed(self):
-        """Recipe expected 60ml but no transaction fired — tracking gap (-60)."""
+        """Recipe expected 60ml but no transaction fired: tracking gap (-60)."""
         from menu.models import MenuItem, MenuCategory
         from inventory.models import Recipe as MenuRecipe
         from orders.models import Order, OrderItem
@@ -814,7 +814,7 @@ class VarianceReportTests(TestCase):
             price=Decimal("300"), gst_percentage=Decimal("0"),
             total_price=Decimal("300"), status="served"
         )
-        # No InventoryTransaction — deduction never fired
+        # No InventoryTransaction: deduction never fired
         resp = self.client.get(_variance_report_url())
         rows = resp.context["rows"]
         rum_row = next(r for r in rows if r["item"].name == "Bacardi Rum")
@@ -823,7 +823,7 @@ class VarianceReportTests(TestCase):
         self.assertEqual(rum_row["variance"], Decimal("-60.000"))  # tracking gap
 
     def test_variance_positive_when_deduction_exceeds_orders(self):
-        """Transaction shows 90ml consumed but recipes only expect 60ml — over-deduction (+30)."""
+        """Transaction shows 90ml consumed but recipes only expect 60ml: over-deduction (+30)."""
         from inventory.models import InventoryTransaction
         from menu.models import MenuItem, MenuCategory
         from inventory.models import Recipe as MenuRecipe
@@ -988,17 +988,17 @@ class ModifierInventoryTests(TestCase):
 
 
 # ============================================================
-# VARIANCE REPORT — BUG FIX TESTS
+# VARIANCE REPORT: BUG FIX TESTS
 # ============================================================
 
 @_NO_MANIFEST
 class VarianceReportBugFixTests(TestCase):
     """
     Covers the four bugs fixed in the variance report:
-      Bug 1 — ModifierRecipe quantities were missing from recipe_expected
-      Bug 2 — summary card counters used broken forloop.last logic
-      Bug 3 — ok_count used variance_pct >= -3 (included high positive variance as OK)
-      Bug 4 — positive variance was only amber; now treated equal to negative
+      Bug 1: ModifierRecipe quantities were missing from recipe_expected
+      Bug 2: summary card counters used broken forloop.last logic
+      Bug 3: ok_count used variance_pct >= -3 (included high positive variance as OK)
+      Bug 4: positive variance was only amber; now treated equal to negative
     """
 
     def setUp(self):
@@ -1075,7 +1075,7 @@ class VarianceReportBugFixTests(TestCase):
 
     def test_modifier_without_recipe_does_not_inflate_expected(self):
         """
-        Modifier with no ModifierRecipe — only the base recipe counts in expected.
+        Modifier with no ModifierRecipe: only the base recipe counts in expected.
         """
         from inventory.models import Recipe, InventoryTransaction
         from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
@@ -1096,7 +1096,7 @@ class VarianceReportBugFixTests(TestCase):
             tenant=self.tenant, outlet=self.outlet, name="Sauces"
         )
         mod = Modifier.objects.create(group=group, name="Extra Ketchup", price=Decimal("0"))
-        # No ModifierRecipe — modifier has no inventory link
+        # No ModifierRecipe: modifier has no inventory link
 
         order = Order.objects.create(
             tenant=self.tenant, outlet=self.outlet, status="closed"
@@ -1312,7 +1312,7 @@ def _consumption_report_url():
 class VarianceReportRecipeUnitConversionTests(TestCase):
     """recipe_map (the 'expected consumption' side of the variance report) must
     convert a recipe's unit into the inventory item's own unit before summing
-    — the exact same conversion deduct_inventory_for_items already applies at
+   : the exact same conversion deduct_inventory_for_items already applies at
     KOT time. Before this fix, recipe_map used the raw recipe quantity, so a
     recipe in grams against a kg-tracked item made recipe_expected wildly
     different from txn_consumed (which WAS correctly converted), showing a
@@ -1326,7 +1326,7 @@ class VarianceReportRecipeUnitConversionTests(TestCase):
             username="varunit_mgr", password="pwd",
             role="manager", tenant=self.tenant, outlet=self.outlet,
         )
-        # Tracked in KG — recipe will be written in grams.
+        # Tracked in KG: recipe will be written in grams.
         self.flour = InventoryItem.objects.create(
             tenant=self.tenant, outlet=self.outlet,
             name="Flour", unit="kg", stock=Decimal("10.000"),
@@ -1357,7 +1357,7 @@ class VarianceReportRecipeUnitConversionTests(TestCase):
     def test_recipe_in_grams_against_kg_item_shows_zero_variance_when_healthy(self):
         """Recipe: 500g flour per Naan (0.5kg), item tracked in kg. 2 Naans sold
         → expected 1.0kg. If the real KOT deduction also converted correctly
-        (1.0kg consumed), variance must be 0 — not a false +999kg from
+        (1.0kg consumed), variance must be 0: not a false +999kg from
         comparing an unconverted 1000g against a converted 1.0kg."""
         from inventory.models import InventoryTransaction
 
@@ -1376,7 +1376,7 @@ class VarianceReportRecipeUnitConversionTests(TestCase):
         self.assertEqual(flour_row["variance"], Decimal("0.000"))
 
     def test_incompatible_recipe_unit_is_skipped_not_counted(self):
-        """Recipe accidentally set to 'pcs' against a kg-tracked item — must be
+        """Recipe accidentally set to 'pcs' against a kg-tracked item: must be
         excluded from recipe_expected entirely, never treated as a raw number."""
         self._sell_naan(recipe_qty=2, recipe_unit="pcs", order_qty=3)
 
@@ -1496,7 +1496,7 @@ class ConsumptionReportBugFixTests(TestCase):
 
     def test_modifier_consumption_now_included(self):
         """Previously: modifier-linked inventory consumption was invisible on
-        this report entirely — only base recipes were summed."""
+        this report entirely: only base recipes were summed."""
         from inventory.models import ModifierRecipe
         from menu.models import MenuItem, MenuCategory, ModifierGroup, Modifier
         from orders.models import Order, OrderItem, OrderItemModifier
@@ -1505,7 +1505,7 @@ class ConsumptionReportBugFixTests(TestCase):
         naan = MenuItem.objects.create(
             tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
         )
-        # No base Recipe at all — only a modifier link.
+        # No base Recipe at all: only a modifier link.
         group = ModifierGroup.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extras")
         mod = Modifier.objects.create(group=group, name="Extra Flour Dusting", price=Decimal("10"))
         ModifierRecipe.objects.create(
@@ -1557,7 +1557,7 @@ class ConsumptionReportBugFixTests(TestCase):
 
 
 class InventoryItemCategoryTests(TestCase):
-    """Free-text category field — lightweight grouping/filtering aid, no
+    """Free-text category field: lightweight grouping/filtering aid, no
     separate model. Covers persistence, clearing, and truncation."""
 
     def setUp(self):
@@ -1633,11 +1633,11 @@ class InventoryItemCategoryTests(TestCase):
 #
 # Recipe/ModifierRecipe/BatchItem each store their own `unit`, independent of
 # the InventoryItem they point at. A recipe entered in grams against an item
-# tracked in kilograms used to be treated as a raw number — off by 1000x.
+# tracked in kilograms used to be treated as a raw number: off by 1000x.
 # ---------------------------------------------------------------------------
 
 class UnitConversionUtilTests(TestCase):
-    """Pure tests of inventory.unit_conversion — no DB involved."""
+    """Pure tests of inventory.unit_conversion: no DB involved."""
 
     def test_grams_to_kilograms(self):
         from inventory.unit_conversion import convert_quantity
@@ -1680,7 +1680,7 @@ class UnitConversionUtilTests(TestCase):
 class RecipeDeductionUnitConversionTests(TestCase):
     """deduct_inventory_for_items (the real KOT-time deduction path) must
     convert a recipe's unit into the inventory item's own unit before
-    touching stock, and must fail safe — skip and log, never guess — when
+    touching stock, and must fail safe, skip and log, never guess, when
     the two units can't be converted at all."""
 
     def setUp(self):
@@ -1734,7 +1734,7 @@ class RecipeDeductionUnitConversionTests(TestCase):
         self.assertEqual(self.flour.stock, Decimal("10.000") - Decimal("1.5"))
 
     def test_incompatible_unit_recipe_is_skipped_not_corrupted(self):
-        """Recipe accidentally set to 'pcs' against a kg-tracked item — must
+        """Recipe accidentally set to 'pcs' against a kg-tracked item: must
         NOT deduct a meaningless number. Stock stays untouched."""
         from orders.services.inventory_service import deduct_inventory_for_items
 
@@ -1748,7 +1748,7 @@ class RecipeDeductionUnitConversionTests(TestCase):
 class AddRecipeUnitDefaultTests(TestCase):
     """add_recipe (menu/views/item_views.py) previously had no unit field at
     all and every recipe silently got the model's hardcoded unit='g' default
-    — wrong for anything not tracked in grams. Now defaults to the inventory
+   : wrong for anything not tracked in grams. Now defaults to the inventory
     item's own unit, and rejects an explicitly incompatible one."""
 
     def setUp(self):
@@ -1765,7 +1765,7 @@ class AddRecipeUnitDefaultTests(TestCase):
             tenant=self.tenant, outlet=self.outlet, category=cat,
             name="Chicken Curry", price=Decimal("250"),
         )
-        # Tracked in PIECES, not weight — the case that used to be silently
+        # Tracked in PIECES, not weight: the case that used to be silently
         # broken (recipe defaulted to unit="g" regardless).
         self.eggs = InventoryItem.objects.create(
             tenant=self.tenant, outlet=self.outlet,
@@ -1826,7 +1826,7 @@ class AddRecipeUnitDefaultTests(TestCase):
 
 class GrossMarginCogsUnitConversionTests(TestCase):
     """gross_margin_report's COGS calculation multiplies recipe quantity by
-    the inventory item's cost_price (Rs per inventory-item unit) — the
+    the inventory item's cost_price (Rs per inventory-item unit): the
     quantity must be converted into that unit first."""
 
     def setUp(self):
@@ -1854,7 +1854,7 @@ class GrossMarginCogsUnitConversionTests(TestCase):
             tenant=self.tenant, outlet=self.outlet, category=cat,
             name="Gulab Jamun", price=Decimal("120"),
         )
-        # 200g of sugar per plate — item is costed per KG.
+        # 200g of sugar per plate: item is costed per KG.
         Recipe.objects.create(
             menu_item=item, inventory_item=self.sugar,
             quantity_required=Decimal("200"), unit="g",
@@ -1877,7 +1877,7 @@ class GrossMarginCogsUnitConversionTests(TestCase):
         self.assertEqual(result["cogs"], 20.0)
 
     def test_modifier_recipe_included_in_cogs(self):
-        """COGS previously only summed base Recipe links — a paid modifier's
+        """COGS previously only summed base Recipe links: a paid modifier's
         inventory link (e.g. Extra Cheese) was silently excluded, undercosting
         (and overstating margin on) any dish sold with it."""
         from inventory.models import ModifierRecipe
@@ -1890,7 +1890,7 @@ class GrossMarginCogsUnitConversionTests(TestCase):
             tenant=self.tenant, outlet=self.outlet, category=cat,
             name="Plain Toast", price=Decimal("50"),
         )
-        # No base recipe at all — only a modifier link, same as a real
+        # No base recipe at all: only a modifier link, same as a real
         # "Extra X" add-on with no base ingredient cost of its own.
         group = ModifierGroup.objects.create(tenant=self.tenant, outlet=self.outlet, name="Extras")
         mod = Modifier.objects.create(group=group, name="Extra Sugar", price=Decimal("5"))
@@ -1912,14 +1912,14 @@ class GrossMarginCogsUnitConversionTests(TestCase):
         today = get_business_date(timezone.now(), self.outlet)
         result = gross_margin_report(self.tenant, self.outlet, today, today)
 
-        # 200g sugar = 0.2kg * Rs 100/kg = Rs 20 — previously Rs 0 (excluded).
+        # 200g sugar = 0.2kg * Rs 100/kg = Rs 20: previously Rs 0 (excluded).
         self.assertEqual(result["cogs"], 20.0)
         self.assertEqual(result["items_with_recipe"], 1)
 
 
 class ProductionCapacityUnitConversionTests(TestCase):
     """production_capacity() (reports/services/inventory_reports.py) divides
-    stock by recipe.quantity_required to say how many portions can be made —
+    stock by recipe.quantity_required to say how many portions can be made:
     must convert into the inventory item's own unit first, same bug class as
     the consumption/variance reports and COGS."""
 
@@ -1940,7 +1940,7 @@ class ProductionCapacityUnitConversionTests(TestCase):
         naan = MenuItem.objects.create(
             tenant=self.tenant, outlet=self.outlet, category=cat, name="Naan", price=Decimal("60"),
         )
-        # 500g per Naan, item tracked in kg — 10kg stock should support 20 Naans,
+        # 500g per Naan, item tracked in kg: 10kg stock should support 20 Naans,
         # not 10/500 = 0 (the pre-fix bug, treating grams as if already kg).
         Recipe.objects.create(
             menu_item=naan, inventory_item=self.flour,
@@ -1955,7 +1955,7 @@ class ProductionCapacityUnitConversionTests(TestCase):
 
     def test_incompatible_unit_treated_as_zero_capacity(self):
         """A recipe with a genuinely incompatible unit is a data problem, not
-        a stock shortage — but must still show as 0, not silently excluded,
+        a stock shortage: but must still show as 0, not silently excluded,
         since the dish's real deduction is unreliable either way."""
         from inventory.models import Recipe
         from menu.models import MenuItem, MenuCategory
@@ -1980,7 +1980,7 @@ class AutoRouteTests(TestCase):
     """
     Coverage for StockRequisition.auto_route(), previously untested.
 
-    Outlet.is_central_kitchen didn't exist before this — auto_route() used
+    Outlet.is_central_kitchen didn't exist before this: auto_route() used
     to guess which outlet was the central kitchen purely from
     ProductionBatch history (whichever outlet made the first-ever batch),
     with no explicit flag anywhere on Outlet. That heuristic is kept as a
@@ -2024,7 +2024,7 @@ class AutoRouteTests(TestCase):
         self.assertEqual(req.fulfilling_outlet, self.ck)
 
     def test_falls_back_to_batch_heuristic_when_no_flag_set(self):
-        """No outlet has is_central_kitchen=True anywhere for this tenant —
+        """No outlet has is_central_kitchen=True anywhere for this tenant:
         must fall back to the old 'first outlet to produce a batch' guess,
         so tenants that existed before this field shipped aren't broken."""
         from inventory.models import ProductionBatch
@@ -2066,7 +2066,7 @@ class AutoRouteTests(TestCase):
 
     def test_requesting_outlet_flagged_as_own_ck_goes_external(self):
         """A requisition raised BY the central kitchen itself can't be
-        fulfilled by itself — must go to a vendor, not loop internally."""
+        fulfilled by itself: must go to a vendor, not loop internally."""
         self.branch.is_central_kitchen = True
         self.branch.save()
 
@@ -2080,7 +2080,7 @@ class PartialReceivingTests(TestCase):
     """
     Coverage for PurchaseOrder.receive_order()'s partial-receiving and
     price-variance support. Before this, receive_order() had no concept of
-    "quantity actually received" distinct from "quantity ordered" — every
+    "quantity actually received" distinct from "quantity ordered": every
     receipt assumed the full ordered amount arrived exactly as ordered, at
     exactly the ordered price. A short delivery, one split across two
     trips, or a vendor charging more at the door than quoted had no honest
@@ -2168,7 +2168,7 @@ class PartialReceivingTests(TestCase):
 
     def test_receiving_the_remainder_completes_the_po(self):
         self.po.receive_order(receipts={str(self.flour.id): {"quantity_received": "4"}})
-        # Second call omits flour entirely — defaults to "whatever's left" (6),
+        # Second call omits flour entirely: defaults to "whatever's left" (6),
         # and sugar defaults the same way (its full 5).
         self.po.receive_order()
 
@@ -2201,7 +2201,7 @@ class PartialReceivingTests(TestCase):
         self.flour.refresh_from_db()
         stock_after_first = self.flour.stock
 
-        self.po.receive_order()  # already "received" — should not double-add stock
+        self.po.receive_order()  # already "received": should not double-add stock
 
         self.flour.refresh_from_db()
         self.assertEqual(self.flour.stock, stock_after_first)
@@ -2222,7 +2222,7 @@ class PartialReceivingTests(TestCase):
 
         self.assertTrue(data["success"])
         self.po.refresh_from_db()
-        # sugar was never mentioned — defaults to fully received on this 2nd call too.
+        # sugar was never mentioned: defaults to fully received on this 2nd call too.
         self.assertEqual(self.po.status, "received")
 
     def test_view_empty_body_receives_everything_default(self):
@@ -2251,7 +2251,7 @@ class ManualStockAdjustmentTests(TestCase):
     Coverage for InventoryItem.adjust_stock() and the adjust_stock view.
 
     "adjustment" already existed as a defined InventoryTransaction type
-    with no view or endpoint anywhere that could actually create one — a
+    with no view or endpoint anywhere that could actually create one: a
     physical count that didn't match the system had no way to be
     reconciled by a manager.
     """
@@ -2315,7 +2315,7 @@ class ManualStockAdjustmentTests(TestCase):
     # ---- View-level ----
 
     def test_view_new_count_computes_correct_delta(self):
-        """Manager enters what they actually counted (12), not a delta —
+        """Manager enters what they actually counted (12), not a delta:
         the view computes 12 - 20 = -8 itself."""
         resp = self._adjust({"new_count": "12", "reason": "Physical count"})
         data = resp.json()
@@ -2357,7 +2357,7 @@ class POVendorEmailTests(TestCase):
     Coverage for the Phase 3 vendor-email flow: mark_po_ordered emails a
     PDF copy of the PO to the supplier, but only when the outlet has
     explicitly opted in (Outlet.po_vendor_email_enabled) and the supplier
-    has an email on file. Off by default — nothing is sent on a tenant's
+    has an email on file. Off by default: nothing is sent on a tenant's
     behalf until they turn it on.
     """
 

@@ -7,10 +7,10 @@
 #    AFTER:  records only `remaining` as amount, returns change_due
 #    WHY recording `remaining` not the tendered amount:
 #      Recording ₹500 for a ₹480 bill makes the Z-report show ₹500
-#      cash collected — the restaurant never kept that ₹20.
+#      cash collected: the restaurant never kept that ₹20.
 #
 # 2. paid → closed in one place:
-#    BEFORE: service set "paid", view set "closed" — callers that
+#    BEFORE: service set "paid", view set "closed": callers that
 #            skipped the view left orders stuck at "paid".
 #    AFTER:  service transitions all the way to "closed" and sets
 #            closed_at. Returns order_closed=True for callers.
@@ -55,23 +55,23 @@ def process_payment(order, method, amount, user=None, reference=None, request_ke
     ----------
     order     : Order instance (will be re-fetched under lock)
     method    : "cash" | "upi" | "card"
-    amount    : Decimal — the amount TENDERED (may exceed remaining for cash)
+    amount    : Decimal: the amount TENDERED (may exceed remaining for cash)
     user      : User instance or None
-    reference : str or None — external transaction ID (e.g. Razorpay payment id)
+    reference : str or None: external transaction ID (e.g. Razorpay payment id)
     request_key : str or None, the screen's id for this payment (see Payment.request_key)
 
     Returns
     -------
     {
         "payment":      Payment instance,
-        "remaining":    Decimal — balance still due after this payment (≥0),
-        "change_due":   Decimal — change to return to the customer (≥0),
-        "order_closed": bool   — True if this payment fully settled the order,
+        "remaining":    Decimal: balance still due after this payment (≥0),
+        "change_due":   Decimal: change to return to the customer (≥0),
+        "order_closed": bool  : True if this payment fully settled the order,
     }
 
     Raises
     ------
-    ValidationError  — zero/negative amount, or order already fully paid.
+    ValidationError : zero/negative amount, or order already fully paid.
     """
     # Lock the order row to prevent concurrent over-payment.
     order = type(order).objects.select_for_update().get(id=order.id)
@@ -139,10 +139,10 @@ def process_payment(order, method, amount, user=None, reference=None, request_ke
         # QSR Inventory Deduction (counter orders only).
         #
         # Fine dining deducts at the KOT/serve stage (kitchen flow).
-        # QSR has no KOT serve step — the cashier takes the order and
+        # QSR has no KOT serve step: the cashier takes the order and
         # hands it over immediately, so we deduct at payment close.
         #
-        # Failures are LOGGED but never block payment — the transaction
+        # Failures are LOGGED but never block payment: the transaction
         # is already recorded and the customer's change is due.
         # ---------------------------------------------------------------
         if order.source == "counter":
@@ -208,7 +208,7 @@ def _deduct_inventory_for_order(order):
                 continue
             _deduct(recipe.inventory_item, qty_to_deduct, "recipe")
 
-        # Modifier-linked inventory (e.g. "Extra Cheese") — this used to be
+        # Modifier-linked inventory (e.g. "Extra Cheese"): this used to be
         # skipped entirely on the QSR/counter deduction path, unlike the
         # fine-dining KOT path, so a paid modifier's ingredient was never
         # deducted for any counter-billing order.

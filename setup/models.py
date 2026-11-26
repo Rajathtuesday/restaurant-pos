@@ -17,7 +17,7 @@ class KitchenStation(TenantScopedModel):
     
     printer_ip = models.GenericIPAddressField(null=True, blank=True, help_text="IP of the thermal printer for this station")
 
-    # QZ Tray — USB/local printing via browser
+    # QZ Tray: USB/local printing via browser
     printer_name = models.CharField(
         max_length=200, blank=True, default="",
         help_text=(
@@ -91,7 +91,7 @@ class PaymentConfig(TenantScopedModel):
     upi_id = models.CharField(max_length=100, blank=True, default="",
                               help_text="UPI ID (VPA) shown as QR on bill: e.g. myrestaurant@okaxis")
 
-    # Razorpay — bring-your-own-keys. Each tenant connects their OWN Razorpay
+    # Razorpay: bring-your-own-keys. Each tenant connects their OWN Razorpay
     # account; money settles to their own bank account, Rasova never holds funds.
     # key_id is a public identifier (shown in Razorpay's own dashboard URLs,
     # not sensitive) and stays plaintext. key_secret/webhook_secret are real
@@ -120,7 +120,7 @@ class PaymentConfig(TenantScopedModel):
     @classmethod
     def for_outlet(cls, outlet, tenant=None):
         """Safe get-or-create that handles the OneToOneField race condition.
-        Returns (obj, created) — drop-in replacement for get_or_create."""
+        Returns (obj, created): drop-in replacement for get_or_create."""
         from django.db import IntegrityError
         try:
             return cls.objects.get_or_create(
@@ -150,8 +150,8 @@ class AggregatorConfig(TenantScopedModel):
     uber_eats_enabled = models.BooleanField(default=False)
     
     # Store aggregator sync API keys or webhook secrets.
-    # These are genuine secrets — used to validate inbound Zomato/Swiggy
-    # webhook signatures — so they are encrypted at rest, exactly like the
+    # These are genuine secrets: used to validate inbound Zomato/Swiggy
+    # webhook signatures: so they are encrypted at rest, exactly like the
     # Razorpay secrets above. Previously plaintext CharFields, which meant a DB
     # dump leaked them and let an attacker forge order webhooks.
     zomato_webhook_secret = EncryptedCharField(max_length=255, null=True, blank=True)
@@ -178,7 +178,7 @@ class AggregatorConfig(TenantScopedModel):
     @classmethod
     def for_outlet(cls, outlet, tenant=None):
         """Safe get-or-create that handles the OneToOneField race condition.
-        Returns (obj, created) — drop-in replacement for get_or_create."""
+        Returns (obj, created): drop-in replacement for get_or_create."""
         from django.db import IntegrityError
         try:
             return cls.objects.get_or_create(

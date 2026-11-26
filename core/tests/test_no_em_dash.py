@@ -68,6 +68,24 @@ class NoEmDashOnScreenTest(SimpleTestCase):
                     found.append(f"{path}:{node.lineno}")
         self.assertEqual(found, [], "strings with an em dash (a colon, a comma or a full stop reads better)")
 
+    def test_no_tracked_file_holds_one(self):
+        # Phase B (the owner's decision D4, 26 Nov 2026): comments,
+        # docstrings, scripts, config, the Android app, docs. Third-party
+        # files Rasova ships unchanged (static/vendor) are theirs.
+        binary = (".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".pdf", ".woff", ".woff2", ".ttf", ".otf",
+                  ".eot", ".mp3", ".mp4", ".zip", ".apk", ".jar", ".keystore", ".jks", ".db", ".sqlite3", ".xlsx")
+        found = []
+        for path in tracked():
+            if path.startswith("static/vendor/") or path.lower().endswith(binary):
+                continue
+            try:
+                text = (ROOT / path).read_text(encoding="utf-8")
+            except (UnicodeDecodeError, FileNotFoundError):
+                continue
+            if DASH in text:
+                found.append(f"{path} ({text.count(DASH)})")
+        self.assertEqual(found, [])
+
     def test_no_template_writes_one(self):
         entity = re.compile(r"&mdash;|&#8212;|&#x2014;", re.IGNORECASE)
         found = [path for path in tracked("*.html", "*.txt")

@@ -11,7 +11,7 @@ could actually run out of disk and stop accepting writes, not a theoretical
 risk. This script checks Postgres's own bookkeeping (`pg_stat_archiver`) plus
 the actual pg_wal directory, and exits non-zero the moment something looks off.
 
-Three independent signals, on purpose — either one alone can miss things:
+Three independent signals, on purpose: either one alone can miss things:
   1. `pg_stat_archiver`: Postgres's own record of when it last successfully
      archived a segment, and when it last failed. Precise, but only reflects
      what Postgres itself has tried, not what's piling up on disk right now.
@@ -20,15 +20,15 @@ Three independent signals, on purpose — either one alone can miss things:
   3. Total R2 storage used: the time-based retention in base_backup_to_r2.py
      (delete anything older than RETAIN_WEEKS) doesn't protect against a
      genuine write-volume spike ballooning size WITHIN that window. This is
-     deliberately a WARNING, not an auto-delete — pruning WAL more
+     deliberately a WARNING, not an auto-delete: pruning WAL more
      aggressively than the stated retention window to save space could
      silently strand an older base backup with no WAL left to replay onto
      it, breaking the exact recovery guarantee this system exists for. A
      size problem gets a human's attention, not a silent policy change.
 
 Run this on a schedule and read its output/exit code, it does not send an
-alert on its own (no email/Slack wired up — that's a separate decision).
-Runs as `postgres`, not `ubuntu` — the local pg_wal check reads Postgres's
+alert on its own (no email/Slack wired up: that's a separate decision).
+Runs as `postgres`, not `ubuntu`: the local pg_wal check reads Postgres's
 own data directory, which is 700-owned by postgres and correctly not
 readable by any other account, `postgres` already has natural access to
 its own files, no extra grant needed:
@@ -54,14 +54,14 @@ import boto3
 
 # If archiving hasn't succeeded in longer than this, something's wrong.
 # Should be a few multiples of archive_timeout (300s in postgresql.conf),
-# not exactly equal to it — a single slow segment isn't an incident.
+# not exactly equal to it: a single slow segment isn't an incident.
 STALE_AFTER_SECONDS = int(os.getenv("WAL_ARCHIVE_STALE_SECONDS", "1800"))  # 30 min
 
-# pg_wal directory itself — if this many uncollected 16MB segments pile up
+# pg_wal directory itself: if this many uncollected 16MB segments pile up
 # (default 50 = ~800MB), that's a backlog worth knowing about on a small box.
 PG_WAL_SEGMENT_WARN_COUNT = int(os.getenv("WAL_LOCAL_SEGMENT_WARN_COUNT", "50"))
 
-# Total R2 backup storage (db/ + wal/ + base/ combined) — warn comfortably
+# Total R2 backup storage (db/ + wal/ + base/ combined): warn comfortably
 # before the 10GB free tier, so there's time to react before anything
 # actually gets throttled or starts costing money unexpectedly.
 R2_STORAGE_WARN_GB = float(os.getenv("R2_STORAGE_WARN_GB", "8"))
@@ -120,7 +120,7 @@ def check_local_wal_backlog():
     """Independent of Postgres's own bookkeeping: is pg_wal itself piling up?"""
     # `SHOW data_directory` would need the app role to hold pg_read_all_settings,
     # a privilege it has no other reason to carry. The data directory is static
-    # server config, not something that needs a live DB query — read it from an
+    # server config, not something that needs a live DB query: read it from an
     # env var instead (falls back to the standard Debian/Ubuntu layout).
     data_dir = os.getenv("PG_DATA_DIR", PG_DATA_DIR_DEFAULT)
     pg_wal_dir = os.path.join(data_dir, "pg_wal")
@@ -143,12 +143,12 @@ def check_local_wal_backlog():
 
 
 def check_r2_storage_usage():
-    """Total size across the whole bucket — independent of any object's age.
+    """Total size across the whole bucket: independent of any object's age.
 
     Catches what the time-based retention in base_backup_to_r2.py structurally
     cannot: a genuine spike in write volume (a bug, a busy season, real growth)
     ballooning WAL size within the current retention window itself. Warns only
-    — see the module docstring for why this never auto-deletes anything.
+   : see the module docstring for why this never auto-deletes anything.
     """
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
         _warn("R2 not configured: can't check storage usage.")

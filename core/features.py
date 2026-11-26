@@ -32,7 +32,7 @@ TENANT_FEATURES = {
         'role_based_access',
         'multi_outlet',
         'shift_management',
-        # Billing modes — fine dining can also be on composition scheme
+        # Billing modes: fine dining can also be on composition scheme
         'composition_scheme',
         'parcel_charge',
     ],
@@ -119,7 +119,7 @@ TENANT_FEATURES = {
 }
 
 # -----------------------------------------------------------------------------
-# FEATURE GROUPS — used for the UI to display features by category.
+# FEATURE GROUPS: used for the UI to display features by category.
 # Features listed here that are not in TENANT_FEATURES are "custom only"
 # (can only be enabled via TenantFeatureOverride, never on by default).
 # -----------------------------------------------------------------------------
@@ -177,13 +177,13 @@ FEATURE_GROUPS = {
     ],
     'Menu': [
         'ai_menu_import',
-        # Custom-only, unlike ai_menu_import — a wrong ingredient match
+        # Custom-only, unlike ai_menu_import: a wrong ingredient match
         # silently corrupts stock deduction/COGS on every future order of
         # that dish, so this ships opt-in per tenant rather than default-on.
         'ai_recipe_import',
     ],
     'Payments & Notifications': [
-        # Custom-only — deliberately absent from every TENANT_FEATURES list.
+        # Custom-only: deliberately absent from every TENANT_FEATURES list.
         # Off for every tenant until a superuser enables it for that tenant
         # specifically (via TenantFeatureOverride), e.g. when they ask for it.
         'razorpay_gateway',
@@ -197,9 +197,9 @@ def has_feature(tenant, feature):
     Returns True if the given tenant has the given feature enabled.
 
     Resolution order:
-      1. TenantFeatureOverride — explicit per-tenant on/off. If an override
+      1. TenantFeatureOverride: explicit per-tenant on/off. If an override
          exists, it wins regardless of the tenant type default.
-      2. TENANT_FEATURES[tenant.tenant_type] — the baseline feature set for
+      2. TENANT_FEATURES[tenant.tenant_type]: the baseline feature set for
          the tenant's restaurant type.
 
     Overrides are cached on the tenant instance (_feature_overrides) for the
@@ -222,7 +222,7 @@ def has_feature(tenant, feature):
         return False
 
     # Superusers always have all features (makes testing and support easier).
-    # Check this on the tenant object isn't the right place — callers should
+    # Check this on the tenant object isn't the right place: callers should
     # check request.user.is_superuser. But has_feature is sometimes called
     # without a request, so we don't enforce that here.
 
@@ -235,7 +235,7 @@ def has_feature(tenant, feature):
     if feature in tenant._feature_overrides:
         return tenant._feature_overrides[feature]
 
-    # No override — use the type default.
+    # No override: use the type default.
     defaults = TENANT_FEATURES.get(tenant.tenant_type, TENANT_FEATURES['fine_dining'])
     return feature in defaults
 

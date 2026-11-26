@@ -5,15 +5,15 @@ Back up the Rasova Postgres database to a PRIVATE Cloudflare R2 bucket.
   pg_dump  ->  gzip  ->  R2 (private bucket)  ->  prune backups older than N days
 
 Why a separate PRIVATE bucket: the media bucket (rasova-media) is PUBLIC so logos
-serve over the internet. A database dump must NEVER live in a public bucket — make
+serve over the internet. A database dump must NEVER live in a public bucket: make
 a second bucket (default: rasova-backups) and do NOT attach a public domain to it.
 
 Setup (one time):
-  1. In Cloudflare R2, create a bucket  rasova-backups  (leave it PRIVATE — no
+  1. In Cloudflare R2, create a bucket  rasova-backups  (leave it PRIVATE: no
      custom domain, no public dev URL).
-  2. The R2 API token you already created has Object Read & Write — it works for
+  2. The R2 API token you already created has Object Read & Write: it works for
      this bucket too (same account).
-  3. Add to .env (optional — these are the defaults):
+  3. Add to .env (optional: these are the defaults):
         R2_BACKUP_BUCKET=rasova-backups
         R2_BACKUP_RETAIN_DAYS=30
 
@@ -65,7 +65,7 @@ def main():
     # `gzip.compress()` + a single put_object() meant: the entire uncompressed
     # dump had to fit in RAM, AND the final upload was capped at R2's 5GiB
     # single-PUT limit. Piping through two real OS processes means neither
-    # limit applies — memory usage stays flat regardless of DB size, and
+    # limit applies: memory usage stays flat regardless of DB size, and
     # boto3's upload_fileobj automatically switches to multipart for
     # anything past its threshold, so there's no size ceiling at all here.
     env = dict(os.environ, PGPASSWORD=str(db.get("PASSWORD", "")))

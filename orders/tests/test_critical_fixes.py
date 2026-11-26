@@ -40,7 +40,7 @@ def _franchise(name="Stress Franchise"):
 
 
 # ======================================================================
-#  3. SECURITY — create_order must not leak internal exception text
+#  3. SECURITY: create_order must not leak internal exception text
 # ======================================================================
 
 class CreateOrderSecurityTests(TestCase):
@@ -88,7 +88,7 @@ class CreateOrderSecurityTests(TestCase):
 
 
 # ======================================================================
-#  5. PHONE VALIDATION — bad numbers rejected cleanly, not via DB error
+#  5. PHONE VALIDATION: bad numbers rejected cleanly, not via DB error
 # ======================================================================
 
 class CustomerPhoneValidationTests(TestCase):
@@ -138,7 +138,7 @@ class CustomerPhoneValidationTests(TestCase):
 
 
 # ======================================================================
-#  6. PHONE NORMALISER — unit tests for the validator itself
+#  6. PHONE NORMALISER: unit tests for the validator itself
 # ======================================================================
 
 class NormalizePhoneUnitTests(TestCase):
@@ -166,7 +166,7 @@ class NormalizePhoneUnitTests(TestCase):
 
 
 # ======================================================================
-#  4. TENANT ISOLATION — one tenant cannot read another's orders
+#  4. TENANT ISOLATION: one tenant cannot read another's orders
 # ======================================================================
 
 class TenantIsolationTests(TestCase):

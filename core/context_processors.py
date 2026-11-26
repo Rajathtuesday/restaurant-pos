@@ -16,7 +16,7 @@ def tenant_features(request):
 
     # Use the canonical feature list from FEATURE_GROUPS so custom-only features
     # (multi_kitchen, loyalty_points, etc.) are evaluated for tenants that have
-    # overrides enabling them — not just the TENANT_FEATURES defaults.
+    # overrides enabling them: not just the TENANT_FEATURES defaults.
     resolved_features = [f for f in get_all_known_features() if has_feature(tenant, f)]
 
     return {

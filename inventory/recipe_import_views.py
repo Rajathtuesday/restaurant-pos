@@ -1,4 +1,4 @@
-"""AI recipe importer — upload a recipe document, review the AI-suggested
+"""AI recipe importer: upload a recipe document, review the AI-suggested
 ingredient matches/quantities, and only then write to the real Recipe table.
 
 Every view here is gated behind the ai_recipe_import feature flag (opt-in
@@ -92,7 +92,7 @@ def recipe_import_status(request, job_id):
 @role_required("owner", "manager")
 def recipe_import_review(request, job_id):
     """The mandatory human review screen. Nothing has touched the real
-    Recipe table yet — this page is the only path to recipe_import_confirm."""
+    Recipe table yet: this page is the only path to recipe_import_confirm."""
     job = get_object_or_404(
         RecipeImportJob, id=job_id, tenant=request.user.tenant, outlet=request.user.outlet
     )
@@ -174,7 +174,7 @@ def recipe_import_update_line(request, line_id):
 @role_required("owner", "manager")
 @require_POST
 def recipe_import_add_line(request, job_id):
-    """The review page's "+ Add ingredient" row — covers extraction that
+    """The review page's "+ Add ingredient" row: covers extraction that
     missed an ingredient entirely, which the AI has nothing to "correct"."""
     job = get_object_or_404(
         RecipeImportJob, id=job_id, tenant=request.user.tenant, outlet=request.user.outlet
@@ -195,7 +195,7 @@ def recipe_import_add_line(request, job_id):
 @role_required("owner", "manager")
 @require_POST
 def recipe_import_confirm(request, job_id):
-    """Write every included, fully-resolved line to the real Recipe table —
+    """Write every included, fully-resolved line to the real Recipe table:
     all in one transaction so a single bad line can't leave a half-saved
     recipe."""
     job = get_object_or_404(

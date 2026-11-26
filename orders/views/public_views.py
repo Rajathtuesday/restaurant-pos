@@ -1,6 +1,6 @@
 # orders/views/public_views.py
 """
-Public, login-free views — reachable by customers via a signed link (e.g. the
+Public, login-free views: reachable by customers via a signed link (e.g. the
 WhatsApp bill receipt). Never key anything in here off request.user.
 """
 import logging
@@ -67,7 +67,7 @@ def public_bill(request, signed_token):
 def submit_feedback(request, signed_token):
     """
     Guest-facing star rating + comment for one order, reached from a "Rate
-    your experience" link on the public bill (same signed token — it's
+    your experience" link on the public bill (same signed token: it's
     already order-scoped and expiry-bounded, no reason to mint a second one).
     guest_feedback is custom-only (core/features.py) and off by default, so
     an unenabled tenant gets a friendly notice, not a raw 404 -- the link

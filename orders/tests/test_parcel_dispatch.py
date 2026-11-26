@@ -1,13 +1,13 @@
 """
-Parcel Charge — Complete Test Suite
+Parcel Charge: Complete Test Suite
 ====================================
 
 HOW THE SYSTEM WORKS
 --------------------
 Two data points live on the server:
 
-  Outlet.parcel_charge_amount   — unit price per item (e.g. ₹5). Set once in settings.
-  Order.parcel_surcharge        — actual charge on a specific order (e.g. ₹25 for 5 items).
+  Outlet.parcel_charge_amount  : unit price per item (e.g. ₹5). Set once in settings.
+  Order.parcel_surcharge       : actual charge on a specific order (e.g. ₹25 for 5 items).
                                   Starts at 0. Written only by toggle_parcel.
 
 TOGGLE LOGIC (order_actions.toggle_parcel)
@@ -27,9 +27,9 @@ ALLOWED ORDER STATUSES: "open", "billing". Closed/cancelled → 404.
 
 CLIENT-SIDE STATE (billing.html)
 ---------------------------------
-  _parcelOn             — user intent (do they want parcel?)
-  _parcelAppliedToOrder — order_id that parcel is actually applied to on the server
-  _parcelAmount         — read-only unit price from outlet settings
+  _parcelOn            : user intent (do they want parcel?)
+  _parcelAppliedToOrder: order_id that parcel is actually applied to on the server
+  _parcelAmount        : read-only unit price from outlet settings
 
 BUG THAT WAS FIXED
 -------------------
@@ -40,20 +40,20 @@ and turned it OFF. Bill showed ₹0 parcel.
 
 THREE GAPS FIXED
 -----------------
-Gap 1 — kitchen send fails after parcel applied:
+Gap 1: kitchen send fails after parcel applied:
     Old: _parcelAppliedToOrder was set in the kitchen-send success block.
          If kitchen send failed, the next dispatch re-toggled parcel OFF.
     Fix: _parcelAppliedToOrder is now set inside the parcel fetch's own .then(),
          before the kitchen send. A kitchen-send failure leaves parcel ON.
 
-Gap 2 — session resume (page refresh):
+Gap 2: session resume (page refresh):
     Old: running_order_items returned no parcel info. After refresh _parcelOn=false,
          _parcelAppliedToOrder=null. If user toggled ON and dispatched, the client
          fired toggle-parcel which found parcel_surcharge>0 and turned it OFF.
     Fix: running_order_items now returns parcel_on + parcel_amount.
          loadRunningOrder() syncs _parcelOn and _parcelAppliedToOrder from those values.
 
-Gap 3 — QSR path:
+Gap 3: QSR path:
     Old: submitQSROrder called toggle-parcel but never updated _parcelAppliedToOrder.
     Fix: _parcelAppliedToOrder = qsrPendingOrderId set right after the await.
 
@@ -259,7 +259,7 @@ class ToggleCalculationTests(ParcelBase):
         """
         self.idli.parcel_charge = Decimal("8")
         self.idli.save(update_fields=["parcel_charge"])
-        # dosa has parcel_charge=0 — should not contribute
+        # dosa has parcel_charge=0: should not contribute
         order = self._make_order([(self.idli, 2), (self.dosa, 3)])
         d = self._toggle(order.id).json()
         # Expected: 2 × ₹8 = ₹16 (dosa contributes ₹0)
@@ -330,7 +330,7 @@ class ToggleTotalIntegrationTests(ParcelBase):
     def test_parcel_preserved_after_recalculate_without_retoggle(self):
         """
         recalculate_totals preserves parcel_surcharge.
-        This mirrors what happens when the kitchen sends more items —
+        This mirrors what happens when the kitchen sends more items:
         the JS fix skips toggle, totals are recalculated, parcel stays.
         """
         order = self._make_order([(self.idli, 2)])
@@ -338,7 +338,7 @@ class ToggleTotalIntegrationTests(ParcelBase):
         order.refresh_from_db()
         surcharge_before = order.parcel_surcharge
 
-        # Simulate more items added (second dispatch — no re-toggle)
+        # Simulate more items added (second dispatch: no re-toggle)
         OrderItem.objects.create(
             order=order, menu_item=self.dosa,
             quantity=1, price=self.dosa.price,
@@ -356,7 +356,7 @@ class ToggleTotalIntegrationTests(ParcelBase):
                          order.subtotal + order.gst_total + surcharge_before + order.round_off)
 
 
-# ── 4. Gap 2 — running_order_items returns parcel state ────────────────────────
+# ── 4. Gap 2: running_order_items returns parcel state ────────────────────────
 
 class RunningOrderParcelStateTests(ParcelBase):
     """
@@ -404,7 +404,7 @@ class RunningOrderParcelStateTests(ParcelBase):
     def test_no_order_for_table_returns_null_without_crash(self):
         """
         Hole 1 fix: when no open order exists for a table, order_id=None.
-        The client's loadRunningOrder() checks `if (d.order_id)` — the else branch
+        The client's loadRunningOrder() checks `if (d.order_id)`: the else branch
         now resets _parcelOn=false and _parcelAppliedToOrder=null so parcel state
         from a PREVIOUS table does not bleed into a fresh table selection.
         """
@@ -446,7 +446,7 @@ class RunningOrderParcelStateTests(ParcelBase):
         self.assertEqual(d["order_id"], order.id)
 
 
-# ── 5. Gap 1 — parcel state recorded before kitchen send ──────────────────────
+# ── 5. Gap 1: parcel state recorded before kitchen send ──────────────────────
 
 class ParcelAppliedBeforeKitchenSendTests(ParcelBase):
     """
@@ -457,13 +457,13 @@ class ParcelAppliedBeforeKitchenSendTests(ParcelBase):
     if the parcel fetch succeeds (server has parcel ON), the client records it
     even if the subsequent kitchen-send call fails.
 
-    These tests prove the server leaves parcel ON after a single toggle — so
+    These tests prove the server leaves parcel ON after a single toggle: so
     a client that correctly records _parcelAppliedToOrder after the parcel
     fetch will NOT re-fire toggle on retry.
     """
 
     def test_parcel_on_server_after_single_toggle(self):
-        """Server has parcel ON after one toggle — retry must not toggle again."""
+        """Server has parcel ON after one toggle: retry must not toggle again."""
         order = self._make_order([(self.idli, 2)])
         self._toggle(order.id)
         order.refresh_from_db()
@@ -476,8 +476,8 @@ class ParcelAppliedBeforeKitchenSendTests(ParcelBase):
         The fix ensures the client only fires once per order.
         """
         order = self._make_order([(self.idli, 2)])
-        self._toggle(order.id)   # parcel ON — what the client does on dispatch
-        self._toggle(order.id)   # parcel OFF — what would happen on a naive retry
+        self._toggle(order.id)   # parcel ON: what the client does on dispatch
+        self._toggle(order.id)   # parcel OFF: what would happen on a naive retry
         order.refresh_from_db()
         self.assertEqual(order.parcel_surcharge, Decimal("0"))
 
@@ -495,13 +495,13 @@ class ParcelAppliedBeforeKitchenSendTests(ParcelBase):
         self.assertEqual(order.parcel_surcharge, saved)
 
 
-# ── Hole 2 — toggle-parcel HTTP status determines whether client records apply ──
+# ── Hole 2: toggle-parcel HTTP status determines whether client records apply ──
 
 class ToggleHttpStatusTests(ParcelBase):
     """
     Hole 2 fix: the JS now checks r.ok before setting _parcelAppliedToOrder.
 
-    fetch() only rejects on network failure — it resolves for 404, 500, etc.
+    fetch() only rejects on network failure: it resolves for 404, 500, etc.
     Before the fix, even a 500 from toggle-parcel would set _parcelAppliedToOrder,
     causing the client to skip the parcel toggle on the next dispatch while the
     server still has parcel_surcharge=0.
@@ -509,7 +509,7 @@ class ToggleHttpStatusTests(ParcelBase):
     After the fix: r.ok (status 200–299) → record applied. Non-2xx → don't record,
     so the next dispatch retries the toggle correctly.
 
-    Python tests verify the HTTP status contract the server upholds — this is
+    Python tests verify the HTTP status contract the server upholds: this is
     the foundation the client-side r.ok check depends on.
     """
 
@@ -535,7 +535,7 @@ class ToggleHttpStatusTests(ParcelBase):
         self.assertGreaterEqual(resp.status_code, 400)
 
     def test_successful_toggle_off_also_returns_200(self):
-        """Toggling OFF also returns 200 — r.ok=true → client correctly records parcel_on=false."""
+        """Toggling OFF also returns 200: r.ok=true → client correctly records parcel_on=false."""
         order = self._make_order([(self.idli, 2)])
         self._toggle(order.id)           # ON  → 200
         resp = self._toggle(order.id)    # OFF → 200
@@ -555,7 +555,7 @@ class ToggleHttpStatusTests(ParcelBase):
         self.assertIn("grand_total", d)
 
 
-# ── 6. Gap 3 — QSR: each new order gets parcel applied exactly once ────────────
+# ── 6. Gap 3: QSR: each new order gets parcel applied exactly once ────────────
 
 class QSRParcelDispatchTests(ParcelBase):
     """

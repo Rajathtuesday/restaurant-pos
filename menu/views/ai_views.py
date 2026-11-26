@@ -59,7 +59,7 @@ def ai_menu_importer(request):
             )
             return JsonResponse({"queued": True, "task_id": task.id})
         except Exception:
-            # Celery/Redis down — run synchronously (slower but works)
+            # Celery/Redis down: run synchronously (slower but works)
             logger.warning("Celery unavailable for AI import: running synchronously")
             return _run_sync(request, text, image_b64, mime_type)
 
@@ -71,7 +71,7 @@ def ai_menu_importer(request):
 @login_required
 @tenant_required
 def ai_import_status(request, task_id):
-    """Poll endpoint — returns task status stored in cache by ai_import_menu task."""
+    """Poll endpoint: returns task status stored in cache by ai_import_menu task."""
     result = cache.get(f"ai_import:{task_id}")
     if result is None:
         return JsonResponse({"status": "not_found"}, status=404)

@@ -25,7 +25,7 @@ logger = logging.getLogger("pos.printing")
 _LOCAL_TENANT_ID = int(os.getenv("RASOVA_TENANT_ID", "0"))
 _LOCAL_OUTLET_ID = int(os.getenv("RASOVA_OUTLET_ID", "0"))
 
-# Idempotency TTL — keep "already printed" markers for 2 hours.
+# Idempotency TTL: keep "already printed" markers for 2 hours.
 # Prevents double-printing when a task is retried after a crash.
 _IDEMPOTENCY_TTL = 7200
 
@@ -68,7 +68,7 @@ def print_kot_task(self, station_id, order_id, kot_id):
                          kot.kot_number, order.outlet_id, _LOCAL_OUTLET_ID)
             return False
 
-        # ── Idempotency — prevent double-print on retry ────────────────────
+        # ── Idempotency: prevent double-print on retry ────────────────────
         idem_key = f"kot_printed_{kot_id}"
         if cache.get(idem_key):
             logger.info("KOT #%s already printed: skipping duplicate task.", kot.kot_number)
@@ -112,7 +112,7 @@ def print_kot_task(self, station_id, order_id, kot_id):
         return False
 
     except Exception as exc:
-        # MaxRetriesExceededError is a subclass of Exception — catch it
+        # MaxRetriesExceededError is a subclass of Exception: catch it
         # explicitly so we don't try to retry a task that's already exhausted.
         if isinstance(exc, self.MaxRetriesExceededError):
             logger.error("KOT #%s gave up after %s retries (from general handler).",
@@ -172,7 +172,7 @@ def print_bill_task(self, order_id, station_id):
                          order.outlet_id, _LOCAL_OUTLET_ID)
             return False
 
-        # ── Idempotency — prevent double-print on retry ────────────────────
+        # ── Idempotency: prevent double-print on retry ────────────────────
         idem_key = f"bill_printed_{order_id}"
         if cache.get(idem_key):
             logger.info("Bill for Order #%s already printed: skipping duplicate.", order_id)
@@ -205,7 +205,7 @@ def print_bill_task(self, order_id, station_id):
 
         if strip_mode:
             if any_station_has_printer:
-                # QSR with station printers: KOTs already printed — just token receipt
+                # QSR with station printers: KOTs already printed: just token receipt
                 logger.info("QSR order #%s: station printers used for KOTs: printing token only.", order.id)
                 success = printer.print_token_receipt(order)
             else:
@@ -213,7 +213,7 @@ def print_bill_task(self, order_id, station_id):
                 success = printer.print_bill_with_kots(order, kots, strip_mode=True)
         else:
             if any_station_has_printer:
-                # Fine dining with per-station printers: KOTs already at stations — just bill
+                # Fine dining with per-station printers: KOTs already at stations: just bill
                 logger.info("Order #%s: station printers used for KOTs: printing bill only.", order.id)
                 success = printer.print_bill(order)
             else:

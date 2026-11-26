@@ -116,7 +116,7 @@ class PrintService : Service() {
             var backoffMs = 2_000L  // doubles on error, resets on success, max 30s
 
             while (isActive) {
-                // Skip HTTP entirely when offline — avoids 1,800 exceptions/hour on WiFi drop
+                // Skip HTTP entirely when offline: avoids 1,800 exceptions/hour on WiFi drop
                 if (!isNetworkAvailable()) {
                     status = "error"
                     delay(5_000)
@@ -159,7 +159,7 @@ class PrintService : Service() {
                     backoffMs = minOf(backoffMs * 2, 30_000L)
                     Log.e(TAG, "Poll error (next retry in ${backoffMs}ms): ${e.message}")
                     status = "error"
-                    notify("Print error — retrying…")
+                    notify("Print error: retrying…")
                 }
 
                 delay(backoffMs)
@@ -201,7 +201,7 @@ class PrintService : Service() {
             // Base64 → raw bytes: this is the ESC/POS receipt data
             val bytes: ByteArray = Base64.decode(dataB64, Base64.DEFAULT)
             // Open a raw TCP socket to the printer (port 9100 is the universal ESC/POS port).
-            // Socket(host, port) has NO connect timeout — if a printer is powered off in a
+            // Socket(host, port) has NO connect timeout: if a printer is powered off in a
             // way that silently drops packets (unplugged, wrong IP) rather than actively
             // refusing the connection, this can hang far longer than 5s, stalling every
             // other queued job behind it. Socket() + connect(address, timeoutMs) caps the

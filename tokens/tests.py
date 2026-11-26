@@ -200,7 +200,7 @@ class TestTokenOrderIsOnline(TestCase, QSRFixtureMixin):
             tenant=self.tenant, outlet=self.outlet,
             order=o1, token_number=1, date=self.today, is_online=False,
         )
-        # Must NOT raise — different is_online separates them
+        # Must NOT raise: different is_online separates them
         TokenOrder.objects.create(
             tenant=self.tenant, outlet=self.outlet,
             order=o2, token_number=1, date=self.today, is_online=True,
@@ -302,7 +302,7 @@ class TestAssignOnlineToken(TestCase, QSRFixtureMixin):
             tenant=self.tenant, outlet=self.outlet,
             order=existing_order, token_number=5, date=self.today, is_online=True,
         )
-        # No DailyOnlineTokenCounter row exists — next assign should pick up from 6
+        # No DailyOnlineTokenCounter row exists: next assign should pick up from 6
         new_order = self._make_order(source="swiggy")
         business_date = get_business_date(timezone.now(), self.outlet)
         with transaction.atomic():
@@ -311,7 +311,7 @@ class TestAssignOnlineToken(TestCase, QSRFixtureMixin):
 
 
 # ======================================================================
-#  4. create_token_order view — RBAC
+#  4. create_token_order view: RBAC
 # ======================================================================
 
 class TestCreateTokenOrderRBAC(TestCase, QSRFixtureMixin):
@@ -942,7 +942,7 @@ class TestTokenBillingView(TestCase, TokenFixtureMixin):
 
     def test_cross_tenant_order_returns_404(self):
         """An order that belongs to another tenant must return 404."""
-        # We don't need to create a real Order — querying a non-existent
+        # We don't need to create a real Order: querying a non-existent
         # ID owned by another tenant has the same effect and avoids the
         # DailyOrderCounter unique-constraint collision between tests.
         resp = self.client.get(reverse("token-bill", args=[999998]))
@@ -991,7 +991,7 @@ class TestFeatureRequiredDecorator(TestCase, TokenFixtureMixin):
         c = Client()
         c.login(username="su", password="pass")
         resp = c.get(reverse("token-dashboard"))
-        # Superuser should not get 403 — may redirect or 200
+        # Superuser should not get 403: may redirect or 200
         self.assertNotEqual(resp.status_code, 403)
 
 
@@ -1127,7 +1127,7 @@ class CreateOrderTokenFixTests(TransactionTestCase):
         ).first()
         self.assertIsNotNone(
             counter,
-            "create_order did not use DailyTokenCounter — still on MAX()+1?",
+            "create_order did not use DailyTokenCounter: still on MAX()+1?",
         )
         self.assertEqual(counter.value, 1)
 
@@ -1174,7 +1174,7 @@ class TokenStressTests(TransactionTestCase):
                     order, self.outlet, self.tenant, self.business_date
                 )
                 results[idx] = tok.token_number
-        except Exception as e:          # noqa: BLE001 — record for assertion
+        except Exception as e:          # noqa: BLE001 -- record for assertion
             results[idx] = f"ERROR: {e}"
         finally:
             connection.close()
@@ -1245,7 +1245,7 @@ class TenantIsolationTests(TestCase):
         resp = c.get(reverse("token-bill", args=[self.order_b.id]))
         self.assertEqual(
             resp.status_code, 404,
-            "Tenant A was able to load Tenant B's token bill — ISOLATION BREACH",
+            "Tenant A was able to load Tenant B's token bill: ISOLATION BREACH",
         )
 
 
@@ -1262,12 +1262,12 @@ class TestDailyCounterNoRedundantIndex(TestCase):
     def test_daily_token_counter_no_duplicate_index(self):
         field_sets = _field_names_in_indexes(DailyTokenCounter)
         self.assertNotIn(("outlet", "date"), field_sets,
-                         "unique_together already creates this index — explicit one is redundant")
+                         "unique_together already creates this index: explicit one is redundant")
 
     def test_daily_online_token_counter_no_duplicate_index(self):
         field_sets = _field_names_in_indexes(DailyOnlineTokenCounter)
         self.assertNotIn(("outlet", "date"), field_sets,
-                         "unique_together already creates this index — explicit one is redundant")
+                         "unique_together already creates this index: explicit one is redundant")
 
 
 # ======================================================================

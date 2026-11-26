@@ -140,7 +140,7 @@ class SubscriptionStatusMiddleware:
     TenantMiddleware (needs request.tenant).
 
     Only gates already-authenticated, non-superuser requests. Anonymous
-    requests pass through untouched — this is deliberate, not an oversight:
+    requests pass through untouched: this is deliberate, not an oversight:
     gating before login too would also block a superuser from reaching the
     login page on a suspended tenant's subdomain to investigate/support it,
     since superuser status can't be known until after they've logged in.

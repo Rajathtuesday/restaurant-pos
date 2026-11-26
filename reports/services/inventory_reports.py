@@ -12,7 +12,7 @@ def _business_range_filter(qs, outlet, start_date, end_date):
     Applies business-day-aware date bounds to an InventoryTransaction
     queryset. A plain created_at__date__gte/lte comparison would silently
     drop a transaction recorded after midnight but before the outlet's
-    cutoff hour — e.g. a 2 AM wastage entry belongs to the previous
+    cutoff hour: e.g. a 2 AM wastage entry belongs to the previous
     business day, not the new calendar day.
     """
     if start_date:
@@ -149,7 +149,7 @@ def inventory_cost(tenant, outlet, start_date=None, end_date=None):
 
 
 def closing_stock(tenant, outlet):
-    """Current stock snapshot — all items for the outlet, low-stock items first."""
+    """Current stock snapshot: all items for the outlet, low-stock items first."""
     from inventory.models import InventoryItem
     return (
         InventoryItem.objects
@@ -185,7 +185,7 @@ def production_capacity(tenant, outlet):
         for r in recipes:
             inv = r.inventory_item
             # A recipe's unit doesn't have to match the inventory item's own
-            # unit (e.g. a recipe in grams against a kg-tracked item) — must
+            # unit (e.g. a recipe in grams against a kg-tracked item): must
             # convert before dividing, same as KOT-time deduction does, or
             # "how many can I make" is off by whatever the unit ratio is.
             required_per = recipe_expected_quantity(
@@ -195,7 +195,7 @@ def production_capacity(tenant, outlet):
             if required_per and required_per > 0:
                 can_make = inv.stock / required_per
             else:
-                # None (incompatible units) or zero/blank — treat as a hard
+                # None (incompatible units) or zero/blank: treat as a hard
                 # stop rather than silently excluding the line, since a
                 # broken recipe line here means this dish's stock deduction
                 # is unreliable, not just untracked for this report.

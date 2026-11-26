@@ -14,7 +14,7 @@ db.sqlite3
 media/
 staticfiles/
 
-# Environment — NEVER commit secrets
+# Environment: NEVER commit secrets
 .env
 .env.*
 # ...except the template itself, which only ever holds placeholder values
@@ -39,7 +39,7 @@ pos.log
 logs/*
 pos.log.*
 
-# Build artifacts — never commit zips
+# Build artifacts: never commit zips
 *.zip
 *.tar.gz
 

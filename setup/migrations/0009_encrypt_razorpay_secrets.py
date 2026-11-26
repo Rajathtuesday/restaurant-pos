@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
     """
     Switches razorpay_key_secret/razorpay_webhook_secret to encrypted
     storage. Any value saved before this migration was plaintext and is
-    NOT re-encrypted in place (by explicit decision, not oversight) — it's
+    NOT re-encrypted in place (by explicit decision, not oversight): it's
     cleared instead, since attempting to "encrypt" old plaintext through a
     blanket migration risks silently mismatching whatever a given Razorpay
     dashboard actually has on file. Tenants who'd already entered Razorpay

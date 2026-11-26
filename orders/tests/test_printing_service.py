@@ -1,5 +1,5 @@
 """
-Printing Service — Unit Tests
+Printing Service: Unit Tests
 ==============================
 
 Tests for:
@@ -27,7 +27,7 @@ from tenants.models import Outlet, PrintProfile, Tenant
 # ── Minimal ESC/POS printer that captures raw bytes ───────────────────────────
 
 class BP:
-    """Mirror of the BytesPrinter used in print_queue.py — used for direct tests."""
+    """Mirror of the BytesPrinter used in print_queue.py: used for direct tests."""
     def __init__(self, encoding="cp437"):
         self.buf = b""
         self._enc = encoding
@@ -187,7 +187,7 @@ class BillBodyTests(PrintingServiceBase):
     def test_bill_contains_center_alignment(self):
         order = self._make_order()
         raw = self._bill_bytes(order)
-        self.assertIn(b"\x1b\x61\x01", raw)  # ESC a 1 — center
+        self.assertIn(b"\x1b\x61\x01", raw)  # ESC a 1: center
 
     def test_bill_contains_bold_total(self):
         order = self._make_order()
@@ -261,7 +261,7 @@ class KotBodyTests(PrintingServiceBase):
         order = self._make_order()
         kot   = self._make_kot(order)
         raw   = self._kot_bytes(order, kot)
-        self.assertIn(b"\x1d\x21\x01", raw)   # GS ! — double height
+        self.assertIn(b"\x1d\x21\x01", raw)   # GS !: double height
 
     def test_kot_large_font_false_no_double_height_for_items(self):
         """Profile with kot_large_font=False → item rows do NOT use double-height."""
@@ -328,4 +328,4 @@ class KotBodyTests(PrintingServiceBase):
         order = self._make_order()
         kot   = self._make_kot(order)
         raw   = self._kot_bytes(order, kot)
-        self.assertIn(b"\x1d\x21\x11", raw)   # GS ! 0x11 — double width + height
+        self.assertIn(b"\x1d\x21\x11", raw)   # GS ! 0x11: double width + height

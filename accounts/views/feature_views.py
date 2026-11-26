@@ -1,4 +1,4 @@
-"""Feature flag management UI — superuser only."""
+"""Feature flag management UI: superuser only."""
 import json
 import logging
 from django.contrib.auth.decorators import login_required
@@ -142,7 +142,7 @@ def toggle_feature_flag(request):
         )
         source = "override"
 
-    # Append-only history — TenantFeatureOverride above is a single mutable row
+    # Append-only history: TenantFeatureOverride above is a single mutable row
     # per (tenant, feature), so without this, past changes are lost on the next toggle.
     TenantFeatureAuditLog.objects.create(
         tenant=tenant, feature=feature, enabled=bool(enabled), source=source,

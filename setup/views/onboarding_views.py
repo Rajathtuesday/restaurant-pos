@@ -19,14 +19,14 @@ logger = logging.getLogger("pos.setup")
 
 
 # -------------------------------------------------
-# ONBOARDING WIZARD  — /setup/onboard/?step=N
+# ONBOARDING WIZARD : /setup/onboard/?step=N
 # 5 steps: Restaurant Info → Menu → Staff → Tables → Payment
 # -------------------------------------------------
 
 @login_required
 @tenant_required
 def onboarding_wizard(request):
-    # Owner/manager only. Every POST step here mutates tenant-critical state —
+    # Owner/manager only. Every POST step here mutates tenant-critical state:
     # the restaurant name, the subdomain slug, GST/FSSAI numbers, new staff
     # accounts, and the UPI VPA printed on customer bills. Without this gate a
     # waiter/cashier could rewrite any of it (and Step 3 could mint an owner).
@@ -48,7 +48,7 @@ def onboarding_wizard(request):
             if "logo" in request.FILES:
                 tenant.logo = request.FILES["logo"]
 
-            # Custom subdomain — validate and apply if provided
+            # Custom subdomain: validate and apply if provided
             custom_slug = slugify(request.POST.get("custom_slug", "").strip())
             if custom_slug and custom_slug != tenant.slug:
                 slug_ok = (
@@ -293,7 +293,7 @@ def checklist_status(request):
 
 
 def check_slug_available(request):
-    """AJAX — returns whether a slug is available for use as a subdomain."""
+    """AJAX: returns whether a slug is available for use as a subdomain."""
     raw  = request.GET.get("slug", "").strip()
     slug = slugify(raw)
     tenant = getattr(request.user, "tenant", None) if request.user.is_authenticated else None

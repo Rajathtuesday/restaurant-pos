@@ -160,7 +160,7 @@ class CashSession(TenantScopedModel):
     outlet = models.ForeignKey("tenants.Outlet", on_delete=models.CASCADE)
 
     # Business date this session belongs to (may differ from opened_at.date() for
-    # outlets whose business day crosses midnight — see Outlet.business_day_start_hour).
+    # outlets whose business day crosses midnight: see Outlet.business_day_start_hour).
     date = models.DateField(null=True, blank=True)
 
     opened_at = models.DateTimeField(auto_now_add=True)

@@ -21,7 +21,7 @@ def top_items(tenant, outlet=None, start_date=None, end_date=None):
         order__status__in=["paid","closed"],
         order__created_at__gte=range_start, order__created_at__lt=range_end,
         is_complimentary=False,
-    ).exclude(status="voided")   # voided items were never actually sold — matches Order.recalculate_totals
+    ).exclude(status="voided")   # voided items were never actually sold: matches Order.recalculate_totals
 
     if outlet:
         query = query.filter(order__outlet=outlet)
@@ -30,7 +30,7 @@ def top_items(tenant, outlet=None, start_date=None, end_date=None):
         query
         .values("menu_item__name")
         # total = quantity sold; total_rev = revenue. The dashboard CSV reads
-        # `total_rev` — without this annotation it defaulted to 0, so every
+        # `total_rev`: without this annotation it defaulted to 0, so every
         # exported item row showed zero revenue and a zero average rate.
         .annotate(total=Sum("quantity"), total_rev=Sum("total_price"))
         .order_by("-total", "menu_item__name")[:10]   # ties by name, so the top 10 is stable

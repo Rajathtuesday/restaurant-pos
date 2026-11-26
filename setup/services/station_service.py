@@ -8,8 +8,8 @@ def get_default_station_for(tenant, outlet):
     """Resolve (or auto-create) the default kitchen station for a tenant/outlet.
 
     Kept separate from get_default_station(user) so callers that have no user
-    — e.g. aggregator/webhook order ingestion, where the order arrives from
-    Zomato/Swiggy with no logged-in staff member — can still resolve a station.
+   : e.g. aggregator/webhook order ingestion, where the order arrives from
+    Zomato/Swiggy with no logged-in staff member: can still resolve a station.
 
     An outlet has at most one default station (one_default_station_per_outlet).
     This used to look only for an active default and otherwise create one, so

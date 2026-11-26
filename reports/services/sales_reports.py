@@ -26,7 +26,7 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
 
     logger.debug("Fetching daily_sales for %s | Outlet: %s | %s to %s", tenant, outlet, start_date, end_date)
 
-    # Business-day bounds, not plain calendar dates — a payment at 2 AM on
+    # Business-day bounds, not plain calendar dates: a payment at 2 AM on
     # what looks like "the next day" still belongs to the previous business
     # day if it's before the outlet's cutoff hour. Using date__gte/lte
     # against a calendar date would silently drop it from the report.
@@ -45,7 +45,7 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
         payments = payments.filter(order__outlet=outlet)
 
     # ----------------------------
-    # TOTAL SALES (net of refunds — negative Payment rows from approve_refund cancel out)
+    # TOTAL SALES (net of refunds: negative Payment rows from approve_refund cancel out)
     # ----------------------------
     total_sales = payments.aggregate(
         total=Sum("amount")
@@ -61,7 +61,7 @@ def daily_sales(tenant, outlet=None, start_date=None, end_date=None):
     total_orders = orders.count()
 
     # ----------------------------
-    # PAYMENT SPLIT (exclude refund rows — they affect total_sales, not a payment method)
+    # PAYMENT SPLIT (exclude refund rows: they affect total_sales, not a payment method)
     # ----------------------------
     payment_split = (
         payments
@@ -108,19 +108,19 @@ def hourly_sales(tenant, outlet=None, start_date=None, end_date=None):
     - If 1 day: Groups by Hour (using tenant's local timezone)
     - If multi-day: Groups by Date
 
-    FIX: Uses paid_at (payment date) consistently — same field as daily_sales().
+    FIX: Uses paid_at (payment date) consistently: same field as daily_sales().
     Previously used order__created_at which caused daily totals and the hourly
     chart to disagree on split-midnight orders.
     """
     if start_date is None: start_date = get_business_date(timezone.now(), outlet)
     if end_date is None:   end_date   = get_business_date(timezone.now(), outlet)
 
-    # Business-day bounds, same reasoning as daily_sales() above — keeps
+    # Business-day bounds, same reasoning as daily_sales() above: keeps
     # the two reports agreeing on which payments count as "today".
     range_start, _ = get_business_date_range(start_date, outlet)
     _, range_end = get_business_date_range(end_date, outlet)
 
-    # Always filter by paid_at — consistent with daily_sales()
+    # Always filter by paid_at: consistent with daily_sales()
     payments = Payment.objects.filter(
         order__tenant=tenant,
         paid_at__gte=range_start,

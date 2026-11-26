@@ -202,7 +202,7 @@ def setup_promos(request):
 @tenant_required
 @require_POST
 def promo_create(request):
-    """JSON endpoint — create a new promo."""
+    """JSON endpoint: create a new promo."""
     if request.user.role not in ["owner", "manager"]:
         from django.http import HttpResponseForbidden
         return HttpResponseForbidden()
@@ -222,7 +222,7 @@ def promo_create(request):
         return error_response(e, 400)
     all_outlets_flag = data.get("all_outlets", False) is True
 
-    # Resolve outlet — None = all outlets
+    # Resolve outlet: None = all outlets
     outlet = None if all_outlets_flag else request.user.outlet
 
     # Another outlet picked from the list

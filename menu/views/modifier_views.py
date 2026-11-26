@@ -197,7 +197,7 @@ def add_modifier_recipe(request, modifier_id):
         data        = json.loads(request.body)
         inv_item_id = data.get("inventory_item_id")
         quantity    = data.get("quantity")
-        # None keeps an existing row's unit unchanged — a bare quantity-only
+        # None keeps an existing row's unit unchanged: a bare quantity-only
         # edit must never silently reset a deliberately different unit.
         unit        = data.get("unit")
 

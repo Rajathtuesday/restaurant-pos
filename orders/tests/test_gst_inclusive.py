@@ -9,7 +9,7 @@ Inclusive (gst_inclusive=True): item.price is the CUSTOMER PRICE.
   grand_total = inclusive_price - discounts
   subtotal + gst_total ≡ grand_total  (always)
 
-Every test uses Decimal arithmetic — no floats allowed in financial code.
+Every test uses Decimal arithmetic: no floats allowed in financial code.
 """
 from decimal import Decimal
 from django.test import TestCase
@@ -170,7 +170,7 @@ class TestGSTInclusive(TestCase):
         )
 
     def test_no_float_rounding_errors(self):
-        """Decimal arithmetic — result must be a Decimal, not a float."""
+        """Decimal arithmetic: result must be a Decimal, not a float."""
         mi = _item(self.tenant, self.outlet, self.cat, "Item", "33.33", 5)
         order = _order_with_items(self.outlet, self.tenant, [(mi, 3)])
         self.assertIsInstance(order.gst_total,   Decimal)
@@ -270,7 +270,7 @@ class TestGSTInclusive(TestCase):
             price=mi.price, gst_percentage=mi.gst_percentage,
             total_price=mi.price, status="pending",
         )
-        # voided item — should NOT affect totals
+        # voided item: should NOT affect totals
         OrderItem.objects.create(
             order=order, menu_item=mi, quantity=1,
             price=mi.price, gst_percentage=mi.gst_percentage,
@@ -290,7 +290,7 @@ class TestGSTInclusive(TestCase):
             price=mi.price, gst_percentage=mi.gst_percentage,
             total_price=mi.price, status="served",
         )
-        # complimentary item — excluded from totals
+        # complimentary item: excluded from totals
         OrderItem.objects.create(
             order=order, menu_item=mi, quantity=1,
             price=mi.price, gst_percentage=mi.gst_percentage,

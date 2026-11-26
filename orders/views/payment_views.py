@@ -270,7 +270,7 @@ def pay_order(request, order_id):
                             from notifications.tasks import send_whatsapp_receipt_task
                             from orders.views.public_views import make_public_bill_token
                             from django.urls import reverse
-                            # Sign + build the absolute URL here, synchronously — the
+                            # Sign + build the absolute URL here, synchronously: the
                             # Celery task has no `request` object to build it from.
                             token = make_public_bill_token(_order_id)
                             bill_url = request.build_absolute_uri(reverse("public-bill", args=[token]))

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Rasova POS — one-shot bootstrap for a FRESH Ubuntu/Debian server.
+# Rasova POS: one-shot bootstrap for a FRESH Ubuntu/Debian server.
 #
 # Installs everything and brings the app up: system packages, PostgreSQL,
 # Redis, nginx, the Python venv, the .env (with freshly generated secrets),
@@ -27,7 +27,7 @@ DB_USER="${DB_USER:-pos_user}"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 16)}"   # generated once if not given
 
 DOMAIN="${DOMAIN:-}"                 # e.g. rasova.net  (blank = localhost only, DEBUG stays off)
-GOOGLE_API_KEY="${GOOGLE_API_KEY:-}" # optional — enables AI menu import
+GOOGLE_API_KEY="${GOOGLE_API_KEY:-}" # optional: enables AI menu import
 # ──────────────────────────────────────────────────────────────────────────────
 
 log() { echo -e "\n\033[1;36m== $* ==\033[0m"; }
@@ -121,7 +121,7 @@ EOF
     chmod 600 "$ENV_FILE"
     echo "  wrote $ENV_FILE  (generated SECRET_KEY + FIELD_ENCRYPTION_KEY; DB password inside)"
 else
-    echo "  $ENV_FILE already exists — leaving it untouched"
+    echo "  $ENV_FILE already exists: leaving it untouched"
 fi
 
 # ── 7. Migrate + collect static ─────────────────────────────────────────────────
@@ -144,11 +144,11 @@ systemctl daemon-reload
 systemctl enable --now gunicorn celery
 
 # ── 9. nginx reverse proxy ──────────────────────────────────────────────────────
-# Proxies EVERYTHING to gunicorn, including /static/ — WhiteNoise (running
+# Proxies EVERYTHING to gunicorn, including /static/: WhiteNoise (running
 # inside the Django app) serves static files with proper cache headers and
 # manifest-hashed filenames. No nginx alias for /static/ or /media/: this
 # used to alias both directly to disk, which drifted from what's actually
-# running in production and, for /media/, is flat-out stale — uploaded media
+# running in production and, for /media/, is flat-out stale: uploaded media
 # lives on Cloudflare R2 now (MEDIA_URL points at R2 directly whenever
 # AWS_STORAGE_BUCKET_NAME is set), so nothing ever requests /media/ on the
 # app's own domain. Confirmed by diffing this against the live server's

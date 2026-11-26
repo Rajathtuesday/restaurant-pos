@@ -1,5 +1,5 @@
 """
-Print Queue — Complete Test Suite
+Print Queue: Complete Test Suite
 ===================================
 
 HOW THE SYSTEM WORKS
@@ -10,9 +10,9 @@ Instead, the browser pushes a print job to EC2 via HTTPS, the agent polls EC2 ev
 
 DATA MODEL
 ----------
-  Outlet.print_agent_key  — UUID secret that authenticates the agent's HTTP polls.
+  Outlet.print_agent_key : UUID secret that authenticates the agent's HTTP polls.
                              Never exposed to the browser.  One per outlet.
-  PrintJob                — One row per receipt.  States: pending → processing → done / failed.
+  PrintJob               : One row per receipt.  States: pending → processing → done / failed.
                             Auto-expires after 5 min (stale jobs are not served).
 
 API SURFACE
@@ -214,7 +214,7 @@ class AddJobTests(PrintQueueBase):
         self.assertEqual(r.status_code, 404)
 
     def test_multiple_jobs_can_be_queued_for_same_order(self):
-        """Re-print is allowed — creates a second pending job."""
+        """Re-print is allowed: creates a second pending job."""
         order = self._make_order()
         self._add_job(order.id)
         self._add_job(order.id)
@@ -317,7 +317,7 @@ class PollTests(PrintQueueBase):
                           data={"order_id": other_order.id},
                           content_type="application/json")
 
-        # Poll with OUR outlet's key — should see 0 jobs
+        # Poll with OUR outlet's key: should see 0 jobs
         jobs = self._poll().json()["jobs"]
         self.assertEqual(jobs, [])
 
@@ -370,7 +370,7 @@ class DoneTests(PrintQueueBase):
         self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PENDING)
 
     def test_done_wrong_outlet_key_cannot_mark_other_outlets_job(self):
-        """Outlet B's key cannot mark outlet A's job done — returns 404 (not 403)
+        """Outlet B's key cannot mark outlet A's job done: returns 404 (not 403)
         so the response doesn't reveal that the job exists for another outlet."""
         other_outlet = Outlet.objects.create(tenant=self.tenant, name="Branch 2")
         order = self._make_order()
@@ -535,21 +535,21 @@ class TenantIsolationTests(PrintQueueBase):
         self.assertEqual(self._poll().json()["jobs"], [])
 
     def test_done_cross_tenant_job_returns_404(self):
-        """Our outlet key cannot mark another tenant's job done — 404, job stays pending."""
+        """Our outlet key cannot mark another tenant's job done: 404, job stays pending."""
         _, rival_job_id = self._make_other_tenant_job()
         r = self._done(rival_job_id)
         self.assertEqual(r.status_code, 404)
         self.assertEqual(PrintJob.objects.get(pk=rival_job_id).status, PrintJob.PENDING)
 
     def test_failed_cross_tenant_job_silently_ignored(self):
-        """Our outlet key cannot fail another tenant's job — 200 but job stays pending."""
+        """Our outlet key cannot fail another tenant's job: 200 but job stays pending."""
         _, rival_job_id = self._make_other_tenant_job()
         r = self._failed(rival_job_id, error="attempted cross-tenant failure")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(PrintJob.objects.get(pk=rival_job_id).status, PrintJob.PENDING)
 
     def test_job_tenant_set_to_creator_tenant(self):
-        """PrintJob.tenant_id always equals the requesting user's tenant — no cross-contamination."""
+        """PrintJob.tenant_id always equals the requesting user's tenant: no cross-contamination."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
         self.assertEqual(PrintJob.objects.get(pk=job_id).tenant_id, self.tenant.id)
@@ -587,7 +587,7 @@ class AddJobEdgeCaseTests(PrintQueueBase):
         self.assertEqual(r.status_code, 405)
 
     def test_order_with_voided_items_still_queues(self):
-        """Receipt is still generated when some items are voided — voided items excluded."""
+        """Receipt is still generated when some items are voided: voided items excluded."""
         import base64
         order = self._make_order(qty=1)
         extra = MenuItem.objects.create(
@@ -633,7 +633,7 @@ class PollEdgeCaseTests(PrintQueueBase):
         self.assertEqual(len(self._poll().json()["jobs"]), 5)
 
     def test_data_b64_contains_escpos_cut_sequence(self):
-        """Decoded base64 contains GS V (0x1D 0x56) — the ESC/POS paper-cut command."""
+        """Decoded base64 contains GS V (0x1D 0x56): the ESC/POS paper-cut command."""
         import base64
         order = self._make_order()
         self._add_job(order.id)
@@ -686,7 +686,7 @@ class PollEdgeCaseTests(PrintQueueBase):
 class DoneEdgeCaseTests(PrintQueueBase):
 
     def test_failed_job_cannot_be_marked_done(self):
-        """A job that failed is no longer pending — done returns 404, status unchanged."""
+        """A job that failed is no longer pending: done returns 404, status unchanged."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
         self._poll()
@@ -709,7 +709,7 @@ class DoneEdgeCaseTests(PrintQueueBase):
 class FailedEdgeCaseTests(PrintQueueBase):
 
     def test_failed_sets_done_at_timestamp(self):
-        """done_at is stamped when a job fails — enables audit and dashboard queries."""
+        """done_at is stamped when a job fails: enables audit and dashboard queries."""
         order = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
         self._poll()
@@ -717,7 +717,7 @@ class FailedEdgeCaseTests(PrintQueueBase):
         self.assertIsNotNone(PrintJob.objects.get(pk=job_id).done_at)
 
     def test_wrong_outlet_key_same_tenant_silently_ignored(self):
-        """Outlet B key (same tenant) cannot fail outlet A's job — 200 but job unchanged."""
+        """Outlet B key (same tenant) cannot fail outlet A's job: 200 but job unchanged."""
         branch = Outlet.objects.create(tenant=self.tenant, name="Branch 3")
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
@@ -726,7 +726,7 @@ class FailedEdgeCaseTests(PrintQueueBase):
         self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PENDING)
 
     def test_already_done_job_cannot_be_failed(self):
-        """Marking a done job as failed does nothing — status stays DONE."""
+        """Marking a done job as failed does nothing: status stays DONE."""
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
         self._poll()
@@ -735,7 +735,7 @@ class FailedEdgeCaseTests(PrintQueueBase):
         self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.DONE)
 
     def test_empty_error_body_stores_empty_string(self):
-        """No error field in body → error_msg is '' not None — safe for DB NOT NULL."""
+        """No error field in body → error_msg is '' not None: safe for DB NOT NULL."""
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
         self._poll()
@@ -822,26 +822,26 @@ class RedisGatedPollTests(PrintQueueBase):
     """
     The poll endpoint checks a per-outlet Redis flag before running the claim
     transaction, so idle polls cost one cache read instead of a DB transaction.
-    These tests prove the optimization works AND — more importantly — that it
+    These tests prove the optimization works AND, more importantly, that it
     never drops a receipt, which is the dangerous failure mode.
     """
 
     def setUp(self):
         super().setUp()
         from django.core.cache import cache
-        cache.clear()  # LocMemCache persists across tests — start each test clean
+        cache.clear()  # LocMemCache persists across tests: start each test clean
 
     def _flag(self):
         from django.core.cache import cache
         return cache.get(PrintJob.pending_flag_key(self.outlet.id))
 
-    # 1 — creating a job arms the per-outlet flag (via PrintJob.save)
+    # 1: creating a job arms the per-outlet flag (via PrintJob.save)
     def test_adding_a_job_arms_the_pending_flag(self):
         order = self._make_order()
         self._add_job(order.id)
         self.assertTrue(self._flag(), "creating a job must arm the per-outlet flag")
 
-    # 2 — the flag gates but does not block: a real job is still claimed
+    # 2: the flag gates but does not block: a real job is still claimed
     def test_flagged_poll_claims_the_job(self):
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
@@ -849,14 +849,14 @@ class RedisGatedPollTests(PrintQueueBase):
         self.assertIn(job_id, ids)
         self.assertEqual(PrintJob.objects.get(pk=job_id).status, PrintJob.PROCESSING)
 
-    # 3 — the flag stays armed while a job is in flight (PROCESSING)
+    # 3: the flag stays armed while a job is in flight (PROCESSING)
     def test_flag_stays_armed_while_job_processing(self):
         order = self._make_order()
         self._add_job(order.id)
         self._poll()  # claims → PROCESSING
         self.assertTrue(self._flag(), "flag must stay armed while a job is processing")
 
-    # 4 — draining the queue clears the flag so polls go cheap again
+    # 4: draining the queue clears the flag so polls go cheap again
     def test_flag_cleared_after_queue_drained(self):
         order  = self._make_order()
         job_id = self._add_job(order.id).json()["job_id"]
@@ -865,7 +865,7 @@ class RedisGatedPollTests(PrintQueueBase):
         self._poll()        # sees empty queue → must clear the flag
         self.assertFalse(self._flag(), "flag must clear once the queue is empty")
 
-    # 5 — the cheap path actually skips the claim transaction
+    # 5: the cheap path actually skips the claim transaction
     def test_idle_poll_skips_the_claim_transaction(self):
         from django.test import Client
         from django.test.utils import CaptureQueriesContext
@@ -887,7 +887,7 @@ class RedisGatedPollTests(PrintQueueBase):
         self.assertLess(len(cheap), len(full),
                         "an idle poll must issue fewer queries than a full poll")
 
-    # 6 — FAIL SAFE: a cache outage must never drop a job
+    # 6: FAIL SAFE: a cache outage must never drop a job
     def test_cache_down_still_delivers_job(self):
         from unittest.mock import patch
         order  = self._make_order()
@@ -897,7 +897,7 @@ class RedisGatedPollTests(PrintQueueBase):
             ids = [j["id"] for j in self._poll().json()["jobs"]]
         self.assertIn(job_id, ids, "a cache outage must not drop a print job")
 
-    # 7 — SAFETY SWEEP: a lost flag is recovered on the next sweep
+    # 7: SAFETY SWEEP: a lost flag is recovered on the next sweep
     def test_lost_flag_recovered_by_sweep(self):
         from django.core.cache import cache
         order  = self._make_order()
@@ -909,7 +909,7 @@ class RedisGatedPollTests(PrintQueueBase):
         self.assertIn(job_id, ids,
                       "the periodic sweep must recover a job whose flag was lost")
 
-    # 8 — isolation: one outlet's flag never satisfies another outlet's poll
+    # 8: isolation: one outlet's flag never satisfies another outlet's poll
     def test_flag_is_namespaced_per_outlet(self):
         from django.core.cache import cache
         order = self._make_order()

@@ -185,7 +185,7 @@ class TestShiftOvertimeHoursQueryBehaviour(TestCase):
         )
         now = timezone.now()
         clock_in = now - timedelta(hours=10)
-        # Schedule must match the clock-in DATE — overtime_hours looks up by
+        # Schedule must match the clock-in DATE: overtime_hours looks up by
         # clocked_in_at.date() (shifts/models.py:60). Using now.date() made this
         # test flaky: a 10h-earlier clock-in crosses UTC midnight ~40% of the day,
         # missing the schedule and falling back to the 9h default.
@@ -204,7 +204,7 @@ class TestShiftOvertimeHoursQueryBehaviour(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Role-gate tests — codify who may access shifts management views.
+# Role-gate tests: codify who may access shifts management views.
 # These replace 8 inline role checks that are now @role_required("manager","owner").
 # If any gate is dropped, the deny-loop below fails immediately.
 # ---------------------------------------------------------------------------
@@ -218,7 +218,7 @@ class ShiftsRoleGateTests(TestCase):
         self.waiter  = _user(self.tenant, self.outlet, role="waiter",  suffix="waiter")
         self.cashier = _user(self.tenant, self.outlet, role="cashier", suffix="cashier")
 
-        # Every manager/owner-gated shifts view. Args use dummy ids — the role
+        # Every manager/owner-gated shifts view. Args use dummy ids: the role
         # gate (decorator) runs before the view body, so a 403 fires regardless
         # of whether the id exists.
         self.gated = [
@@ -271,7 +271,7 @@ class ShiftsRoleGateTests(TestCase):
 
     def test_manager_passes_gate_on_post_endpoint(self):
         # Manager POSTs empty body → gets past the role gate (not 403/302).
-        # Body then fails validation (400) — proves the gate allowed them through.
+        # Body then fails validation (400): proves the gate allowed them through.
         c = Client()
         c.force_login(self.manager)
         resp = c.post(
@@ -282,7 +282,7 @@ class ShiftsRoleGateTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Cash register (session) open/close endpoints — the backend of the restored
+# Cash register (session) open/close endpoints: the backend of the restored
 # Cash Sessions UI. These guard the feature that, once disabled, deadlocked
 # fine-dining payment (no session UI, but payment requires a session).
 # ---------------------------------------------------------------------------
@@ -352,7 +352,7 @@ class CashSessionEndpointTests(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Payment ↔ cash-session gate — proves WHY the Cash Sessions UI must stay
+# Payment ↔ cash-session gate: proves WHY the Cash Sessions UI must stay
 # reachable: fine-dining payment is blocked until a register is open, while
 # cafe/franchise auto-opens one.
 # ---------------------------------------------------------------------------
@@ -425,7 +425,7 @@ class PaymentCashSessionGateTests(TestCase):
 # export_z_report business-date tests
 #
 # Previously the report filtered orders by created_at__date, payments by
-# paid_at__date, and sessions by opened_at__date — three plain calendar-date
+# paid_at__date, and sessions by opened_at__date: three plain calendar-date
 # filters that ignored the outlet's business-day cutoff entirely. A cashier
 # closing out at, say, 4 AM (a realistic time after a late dinner service)
 # would see timezone.localdate() return the *new* calendar day, and the
@@ -449,7 +449,7 @@ class ZReportBusinessDateTest(TestCase):
         # auto_now_add fires at INSERT time regardless of what created_at
         # ends up being set to afterward, so the mocked timezone.now() must
         # already be a real datetime before create() runs, not just before
-        # the assertions — it's overwritten immediately below anyway.
+        # the assertions: it's overwritten immediately below anyway.
         order = Order.objects.create(
             tenant=self.tenant, outlet=self.outlet, status="paid",
             subtotal=Decimal(subtotal), grand_total=Decimal(subtotal),
@@ -464,9 +464,9 @@ class ZReportBusinessDateTest(TestCase):
         mock_now.return_value = timezone.make_aware(
             _dt(2026, 7, 17, 21, 0), timezone.get_current_timezone()
         )
-        # Prior evening's dinner service — clearly "yesterday" by any measure.
+        # Prior evening's dinner service: clearly "yesterday" by any measure.
         self._order_at(_dt(2026, 7, 17, 21, 0), "1000.00")
-        # Same business day, but past midnight — the exact case the old
+        # Same business day, but past midnight: the exact case the old
         # created_at__date filter got wrong.
         self._order_at(_dt(2026, 7, 18, 2, 0), "250.00")
 
@@ -486,7 +486,7 @@ class ZReportBusinessDateTest(TestCase):
         # business day both orders belong to), not the 18th.
         self.assertIn("z_report_2026-07-17.csv", resp["Content-Disposition"])
 
-        # Both orders' revenue must be present — under the old bug, only
+        # Both orders' revenue must be present: under the old bug, only
         # the 2 AM order would have survived a created_at__date filter
         # evaluated at report-run time.
         self.assertIn("1250.00", content.replace(",", ""))  # combined subtotal
@@ -496,7 +496,7 @@ class ZReportBusinessDateTest(TestCase):
         mock_now.return_value = timezone.make_aware(
             _dt(2026, 7, 17, 20, 0), timezone.get_current_timezone()
         )
-        # A single order — the point here is that Payment totals must come
+        # A single order: the point here is that Payment totals must come
         # from this exact order set (order__in=orders_qs), not an
         # independently paid_at-filtered query that could silently diverge.
         self._order_at(_dt(2026, 7, 17, 20, 0), "500.00")

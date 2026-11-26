@@ -49,8 +49,8 @@ from offers.services import page_offers
 def _popular_items(tenant, outlet, top_n=12):
     """
     Returns (popular_list, pop_counts) scoped strictly to tenant + outlet.
-      popular_list — top_n MenuItem instances by 30-day order count
-      pop_counts   — {item_id: count} used to sort items within categories
+      popular_list: top_n MenuItem instances by 30-day order count
+      pop_counts  : {item_id: count} used to sort items within categories
     Cached 15 min per outlet.
     """
     key = f"pop:{tenant.id}:{outlet.id}"
@@ -397,7 +397,7 @@ def create_token_order(request):
 def assign_counter_token(order, outlet, tenant, business_date):
     """
     Creates a TokenOrder with is_online=False for a counter / walk-in order.
-    Uses DailyTokenCounter row-lock — NEVER MAX()+1, which races under load.
+    Uses DailyTokenCounter row-lock: NEVER MAX()+1, which races under load.
     Must be called inside an existing transaction.atomic() block.
 
     Returns the created TokenOrder instance.

@@ -8,7 +8,7 @@ from core.utils import get_business_date, get_business_date_range
 def category_sales(tenant, outlet=None, start_date=None, end_date=None):
 
     # ---------------------------------------------
-    # QUERY — business-day bounds, not plain calendar dates
+    # QUERY: business-day bounds, not plain calendar dates
     # ---------------------------------------------
 
     start_date = start_date or get_business_date(timezone.now(), outlet)

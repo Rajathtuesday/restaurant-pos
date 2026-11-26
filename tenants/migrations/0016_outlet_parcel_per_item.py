@@ -18,6 +18,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='outlet',
             name='parcel_charge_amount',
-            field=models.DecimalField(decimal_places=2, default=0, help_text='Packaging charge per item for parcel/takeaway orders. Set to 0 to disable. Example: ₹5 per item — 3 items = ₹15 parcel charge total.', max_digits=6),
+            field=models.DecimalField(decimal_places=2, default=0, help_text='Packaging charge per item for parcel/takeaway orders. Set to 0 to disable. Example: ₹5 per item: 3 items = ₹15 parcel charge total.', max_digits=6),
         ),
     ]

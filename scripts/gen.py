@@ -1,6 +1,6 @@
 """
 One-off script: renders a marketing brochure PDF from `brochure.html` using
-WeasyPrint. Not wired into any Django app or view — run manually when needed.
+WeasyPrint. Not wired into any Django app or view: run manually when needed.
 
 Currently non-functional as-is: expects a `brochure.html` file in this same
 directory (scripts/), which does not exist in the repo. Create one before

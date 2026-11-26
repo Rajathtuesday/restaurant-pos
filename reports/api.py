@@ -23,7 +23,7 @@ def api_dashboard(request):
     tenant = request.user.tenant
     date_filter = request.GET.get("date_filter", "today")
 
-    # Outlet must be resolved BEFORE the "today" default below — each
+    # Outlet must be resolved BEFORE the "today" default below: each
     # outlet can have its own business_day_start_hour, so which calendar
     # date "today" actually is depends on which outlet (or None, for the
     # cross-outlet default) we're asking about.
@@ -94,7 +94,7 @@ def api_kitchen_dashboard(request):
     tenant = request.user.tenant
     date_filter = request.GET.get("date_filter", "today")
 
-    # Same ordering fix as api_dashboard — resolve outlet first, since its
+    # Same ordering fix as api_dashboard: resolve outlet first, since its
     # business_day_start_hour determines what "today" even means.
     outlet_id = request.GET.get("outlet")
     if request.user.role == "owner":

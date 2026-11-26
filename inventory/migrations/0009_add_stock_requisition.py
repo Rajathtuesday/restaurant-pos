@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
             name='StockRequisition',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('draft', 'Draft'), ('pending', 'Pending'), ('approved', 'Approved — Ready to Fulfill'), ('in_production', 'In Production (CK Processing)'), ('ordered', 'Ordered from Vendor'), ('fulfilled', 'Fulfilled'), ('cancelled', 'Cancelled')], default='draft', max_length=20)),
+                ('status', models.CharField(choices=[('draft', 'Draft'), ('pending', 'Pending'), ('approved', 'Approved: Ready to Fulfill'), ('in_production', 'In Production (CK Processing)'), ('ordered', 'Ordered from Vendor'), ('fulfilled', 'Fulfilled'), ('cancelled', 'Cancelled')], default='draft', max_length=20)),
                 ('route', models.CharField(choices=[('auto', 'Auto-route'), ('internal', 'Central Kitchen'), ('external', 'Vendor PO'), ('split', 'Split (CK + Vendor)')], default='auto', max_length=20)),
                 ('notes', models.TextField(blank=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

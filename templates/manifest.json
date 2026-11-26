@@ -1,7 +1,7 @@
 {
   "name": "Rasova POS",
   "short_name": "Rasova",
-  "description": "Restaurant POS — Billing, KOT, Reports",
+  "description": "Restaurant POS: Billing, KOT, Reports",
   "start_url": "/dashboard/",
   "display": "standalone",
   "orientation": "any",

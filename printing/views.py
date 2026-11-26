@@ -1,5 +1,5 @@
 """
-Print queue — server-side job list consumed by Rasova Agent in polling mode.
+Print queue: server-side job list consumed by Rasova Agent in polling mode.
 
 Browser (Android) → POST /orders/agent/add-job/        (CSRF, adds PrintJob row)
 Agent             → GET  /orders/agent/jobs/            (no CSRF, auth: X-Agent-Key)
@@ -11,7 +11,7 @@ in the X-Agent-Key header. It used to be part of the URL
 (/orders/agent/<key>/jobs/), which put the secret in every access log, proxy
 log and Cloudflare log line, polled every 2 seconds.
 
-The agent polls every 2 s using plain HTTP — no WebSocket, no inbound port,
+The agent polls every 2 s using plain HTTP: no WebSocket, no inbound port,
 no firewall issues.  Android cannot kill an outbound HTTP loop the same way
 it kills a listening WebSocket server.
 
@@ -42,7 +42,7 @@ _JOB_TTL = timedelta(minutes=5)
 # Device that claimed a job is considered crashed after this long without done/failed
 _CLAIM_TTL = timedelta(minutes=2)
 # Max time an idle outlet can go without a real DB check, even when the Redis
-# "pending" flag says empty — bounds the worst-case delay if a flag is ever lost.
+# "pending" flag says empty: bounds the worst-case delay if a flag is ever lost.
 _SWEEP_SECONDS = 30
 # How long the "pending work" flag lives if never cleared (safety backstop).
 _FLAG_TTL = 3600
@@ -140,14 +140,14 @@ def print_queue_poll(request):
 
     # ── Fast path ──────────────────────────────────────────────────────────────
     # 99% of polls find nothing. When the Redis "pending" flag is unset, skip the
-    # whole claim transaction — turning an idle poll from 2-3 Postgres queries
+    # whole claim transaction: turning an idle poll from 2-3 Postgres queries
     # into one Redis read.
     #
     # The flag is a HINT: false positives are harmless (one wasted DB poll), but a
     # false negative would drop a receipt. Two guards prevent that:
     #   1. If the cache is unreachable, FAIL SAFE to the full DB path.
     #   2. Even when the flag says empty, a real DB sweep still runs at most once
-    #      per _SWEEP_SECONDS per outlet — so a lost flag delays a job by seconds,
+    #      per _SWEEP_SECONDS per outlet: so a lost flag delays a job by seconds,
     #      never forever.
     try:
         flagged = cache.get(flag_key)
@@ -162,7 +162,7 @@ def print_queue_poll(request):
             recently_swept = False
         if recently_swept:
             return JsonResponse({"jobs": []})      # truly cheap: one Redis read
-        # Sweep due — fall through to a real DB check and remember we did so.
+        # Sweep due: fall through to a real DB check and remember we did so.
         try:
             cache.set(sweep_key, 1, timeout=_SWEEP_SECONDS)
         except Exception:
@@ -203,9 +203,9 @@ def print_queue_poll(request):
             created_at__gte=now - _JOB_TTL,
         ).order_by("created_at")
 
-        # PostgreSQL: SKIP LOCKED skips rows another transaction already locked —
+        # PostgreSQL: SKIP LOCKED skips rows another transaction already locked:
         # two concurrent polls will never claim the same job.
-        # SQLite (dev/test): plain SELECT FOR UPDATE — no real concurrency in dev.
+        # SQLite (dev/test): plain SELECT FOR UPDATE: no real concurrency in dev.
         if connection.vendor == "postgresql":
             qs = qs.select_for_update(skip_locked=True)
         else:
@@ -233,7 +233,7 @@ def print_queue_poll(request):
         if job_ids else []
     )
 
-    # Re-arm the flag if servable work remains — more PENDING jobs, or jobs still
+    # Re-arm the flag if servable work remains: more PENDING jobs, or jobs still
     # PROCESSING (in flight on a device, which also keeps stale-reset polling alive).
     # When the queue is truly empty the flag stays cleared and polls go cheap again.
     try:
@@ -359,15 +359,15 @@ def _build_receipt_b64(order, chars, cut, encoding) -> str:
             else:
                 self.buf += bytes(t)
         def set(self, **kw):
-            # Font — ESC M <n>: 0=Font A (normal), 1=Font B (~60% height, fits more per roll)
+            # Font: ESC M <n>: 0=Font A (normal), 1=Font B (~60% height, fits more per roll)
             font = kw.get('font', 'a')
             self.buf += b'\x1b\x4d' + bytes([0 if str(font).lower() == 'a' else 1])
-            # Alignment — ESC a <n>: 0=left 1=center 2=right
+            # Alignment: ESC a <n>: 0=left 1=center 2=right
             align_byte = {'left': 0, 'center': 1, 'right': 2}.get(kw.get('align', 'left'), 0)
             self.buf += b'\x1b\x61' + bytes([align_byte])
-            # Bold — ESC E <n>
+            # Bold: ESC E <n>
             self.buf += b'\x1b\x45' + bytes([1 if kw.get('bold') else 0])
-            # Character size — GS ! <n>: upper nibble=width-1, lower nibble=height-1
+            # Character size: GS ! <n>: upper nibble=width-1, lower nibble=height-1
             w = 2 if kw.get('double_width') else kw.get('width', 1)
             h = 2 if kw.get('double_height') else kw.get('height', 1)
             self.buf += b'\x1d\x21' + bytes([((w - 1) << 4) | (h - 1)])

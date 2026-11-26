@@ -29,7 +29,7 @@ if len(_sys_argv.argv) > 1 and _sys_argv.argv[1] == "test":
         os.environ[_secret] = ""
 
 # -------------------------------------------------------
-# SENTRY — initialise as early as possible, before apps
+# SENTRY: initialise as early as possible, before apps
 # -------------------------------------------------------
 import sentry_sdk
 _SENTRY_DSN = os.getenv("SENTRY_DSN", "")
@@ -71,7 +71,7 @@ DEMO_FOUNDER_KEY = os.getenv('DEMO_FOUNDER_KEY', '')
 
 # Encrypts at-rest secrets stored in the database (e.g. PaymentConfig's
 # Razorpay key/webhook secrets). Required in every environment, same as
-# SECRET_KEY — a missing key must never silently fall back to plaintext.
+# SECRET_KEY: a missing key must never silently fall back to plaintext.
 FIELD_ENCRYPTION_KEY = os.getenv('FIELD_ENCRYPTION_KEY')
 if not FIELD_ENCRYPTION_KEY:
     from django.core.exceptions import ImproperlyConfigured
@@ -80,7 +80,7 @@ if not FIELD_ENCRYPTION_KEY:
         "Generate one with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
     )
 # SECURITY WARNING: don't run with debug turned on in production!
-# Defaults to False — production must explicitly opt in to DEBUG via env var.
+# Defaults to False: production must explicitly opt in to DEBUG via env var.
 # A missing/misspelled DEBUG var must never silently expose tracebacks + secrets.
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
@@ -330,7 +330,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # -------------------------------------------------------
-# MEDIA STORAGE — S3 via django-storages
+# MEDIA STORAGE: S3 via django-storages
 # Set AWS_STORAGE_BUCKET_NAME in env to enable S3 storage.
 # Falls back to local disk for development.
 # -------------------------------------------------------
@@ -354,13 +354,13 @@ if _AWS_BUCKET:
     AWS_STORAGE_BUCKET_NAME = _AWS_BUCKET
     AWS_ACCESS_KEY_ID       = os.getenv("AWS_ACCESS_KEY_ID", "")
     AWS_SECRET_ACCESS_KEY   = os.getenv("AWS_SECRET_ACCESS_KEY", "")
-    # R2 ignores region, but boto3 needs a value — "auto" works for Cloudflare R2.
+    # R2 ignores region, but boto3 needs a value: "auto" works for Cloudflare R2.
     AWS_S3_REGION_NAME      = os.getenv("AWS_S3_REGION_NAME", "auto")
     # Cloudflare R2 (or any S3-compatible store): point this at the R2 endpoint,
     # e.g. https://<ACCOUNT_ID>.r2.cloudflarestorage.com  (blank = real AWS S3)
     AWS_S3_ENDPOINT_URL     = os.getenv("AWS_S3_ENDPOINT_URL", "") or None
     AWS_S3_FILE_OVERWRITE   = False
-    AWS_DEFAULT_ACL         = None      # R2 has no ACLs — public access is via the bucket's public domain
+    AWS_DEFAULT_ACL         = None      # R2 has no ACLs: public access is via the bucket's public domain
     AWS_QUERYSTRING_AUTH    = False     # serve plain public URLs, not signed/expiring ones
     AWS_S3_CUSTOM_DOMAIN    = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
     if AWS_S3_CUSTOM_DOMAIN:
@@ -409,7 +409,7 @@ if not DEBUG and not BOX:
 
     # Without an explicit cookie domain, a cookie is scoped to the EXACT host
     # that set it. auth_views.py redirects a user from the apex/login host to
-    # their tenant's own subdomain (tenant-slug.rasova.net) after login — a
+    # their tenant's own subdomain (tenant-slug.rasova.net) after login: a
     # user who authenticates anywhere other than that exact subdomain (the
     # apex domain, or a host TenantMiddleware didn't resolve) would silently
     # not have their session cookie sent to the subdomain they're redirected
@@ -426,7 +426,7 @@ if not DEBUG and not BOX:
     # cookie scoped to the exact host (e.g. spice.rasova.net) alongside the
     # new one scoped to .rasova.net. Both were valid, both got sent, and the
     # JS reading document.cookie and Django's own request.COOKIES parsing
-    # weren't guaranteed to pick the same one of the two — producing a
+    # weren't guaranteed to pick the same one of the two: producing a
     # persistent, unexplained "CSRF token from header incorrect" 403 on
     # every POST from that browser, confirmed in logs/security.log
     # recurring across several days on one staff device, that clearing
@@ -561,7 +561,7 @@ LOGGING = {
             ),
             "style": "{",
         },
-        # Request-specific format (no tenant filter — uses its own fields)
+        # Request-specific format (no tenant filter: uses its own fields)
         "request_fmt": {
             "format": (
                 "[{levelname}] {asctime} {message}"
@@ -643,7 +643,7 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
-        # CSRF 403s after login are expected (token rotates on auth) — suppress in dev
+        # CSRF 403s after login are expected (token rotates on auth): suppress in dev
         "django.security.csrf": {
             "handlers": ["security_file"],
             "level": "WARNING" if not DEBUG else "ERROR",
@@ -658,7 +658,7 @@ LOGGING = {
 
         # ── POS application loggers ───────────────────────────────
         "pos": {
-            # Root POS logger — all pos.* namespaces inherit this
+            # Root POS logger: all pos.* namespaces inherit this
             "handlers": ["pos_file", "error_file", "console"],
             "level": "DEBUG",
             "propagate": False,
@@ -760,7 +760,7 @@ FORCE_SCRIPT_NAME = ""
 
 # -------------------------------------------------------
 # WHATSAPP RECEIPTS
-# Backend 1 (preferred): Meta WhatsApp Business Cloud API — free 1000 msg/month
+# Backend 1 (preferred): Meta WhatsApp Business Cloud API: free 1000 msg/month
 #   META_WHATSAPP_TOKEN    = your permanent system user token
 #   META_WHATSAPP_PHONE_ID = phone number ID from Meta Business dashboard
 # Backend 2 (fallback): Twilio
@@ -806,7 +806,7 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_PASSWORD", "")
 DEFAULT_FROM_EMAIL  = os.getenv("EMAIL_USER", "noreply@rasova.net")
 
 # -------------------------------------------------------
-# SESSION — long enough for a full 12-hour QSR shift.
+# SESSION: long enough for a full 12-hour QSR shift.
 # SESSION_EXPIRE_AT_BROWSER_CLOSE removed:
 #   Tablets used as POS terminals rarely close the browser tab.
 #   With it set to True, sessions expired silently when the browser
@@ -814,10 +814,10 @@ DEFAULT_FROM_EMAIL  = os.getenv("EMAIL_USER", "noreply@rasova.net")
 #   hit /token/X/bill/ and see "Order not found" because @login_required
 #   was redirecting to /accounts/login/ (404) instead of /login/.
 # -------------------------------------------------------
-SESSION_COOKIE_AGE = 86400  # 24 hours — restaurants run 18-hour shifts
+SESSION_COOKIE_AGE = 86400  # 24 hours: restaurants run 18-hour shifts
 
 # -------------------------------------------------------
-# CACHE + SESSION ENGINE — adapts to whether Redis is
+# CACHE + SESSION ENGINE: adapts to whether Redis is
 # available in this environment.
 #
 # REDIS_URL defaults to "" (empty) so local dev WITHOUT
@@ -826,7 +826,7 @@ SESSION_COOKIE_AGE = 86400  # 24 hours — restaurants run 18-hour shifts
 #
 # With Redis:    RedisCache + cached_db sessions  → multi-worker safe
 # Without Redis: LocMemCache + db sessions        → single-worker only
-#                (dev / demo laptop — perfectly fine)
+#                (dev / demo laptop: perfectly fine)
 # -------------------------------------------------------
 REDIS_URL = os.getenv("REDIS_URL", "")
 
@@ -852,7 +852,7 @@ else:
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # django-ratelimit: when the cache is unavailable (Redis down, tests, etc.)
-# fail OPEN — allow the request rather than returning a 500.
+# fail OPEN: allow the request rather than returning a 500.
 # This prevents the login page from crashing when Redis is not running.
 #
 # SECURITY TRADE-OFF: while Redis is down, ALL rate limits (login, order
@@ -862,12 +862,12 @@ else:
 # page), but be aware the rate-limit layer is best-effort, not a hard guarantee.
 RATELIMIT_FAIL_OPEN = True
 
-# django-ratelimit's counters live in CACHES["default"], which — unlike the
-# database — is NOT rolled back between individual TestCase methods. A full
+# django-ratelimit's counters live in CACHES["default"], which: unlike the
+# database: is NOT rolled back between individual TestCase methods. A full
 # `manage.py test` run (locally or in CI) shares one cache for its entire
 # process, so hundreds of tests hitting a rate-limited endpoint (create_order
 # is 20/min per IP) across the whole suite exhaust real production limits
-# and start returning spurious 403s to unrelated, later tests — confirmed
+# and start returning spurious 403s to unrelated, later tests: confirmed
 # repeatedly this session (orders.tests.test_qr_reorder passes cleanly
 # in isolation, only fails when run as part of a large combined suite).
 # No test anywhere asserts on an actual rate-limit 403/429 (confirmed by
@@ -928,7 +928,7 @@ CELERY_TASK_DEFAULT_QUEUE = "default"
 CELERY_TASK_ACKS_LATE = True
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
 
-# Discard tasks queued more than 30 minutes ago — stale print jobs from a
+# Discard tasks queued more than 30 minutes ago: stale print jobs from a
 # previous session should not print when the worker restarts.
 CELERY_TASK_EXPIRES = 1800  # seconds
 

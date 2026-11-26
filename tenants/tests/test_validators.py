@@ -119,10 +119,10 @@ class TestFSSAIValidator(TestCase):
 class TestTenantSlugNoRedundantIndex(TestCase):
 
     def test_slug_index_not_explicitly_listed(self):
-        """unique=True on slug already creates an index — no manual Index should duplicate it."""
+        """unique=True on slug already creates an index: no manual Index should duplicate it."""
         field_sets = [tuple(idx.fields) for idx in Tenant._meta.indexes]
         self.assertNotIn(("slug",), field_sets,
-                         "Explicit Index(['slug']) is redundant — unique=True creates the index.")
+                         "Explicit Index(['slug']) is redundant: unique=True creates the index.")
 
     def test_tenant_type_index_present(self):
         field_sets = [tuple(idx.fields) for idx in Tenant._meta.indexes]

@@ -7,10 +7,10 @@ from django.core.cache import cache
 
 logger = logging.getLogger("pos.menu")
 
-CACHE_TTL = 600  # 10 minutes — enough for any reasonable import
+CACHE_TTL = 600  # 10 minutes: enough for any reasonable import
 
 
-# The global Celery limit is 30s soft / 60s hard — right for fast tasks like
+# The global Celery limit is 30s soft / 60s hard: right for fast tasks like
 # printing, but a Claude PDF/photo call routinely takes longer, especially on a
 # small server. Give THIS task its own generous limit (not the global one) so a
 # menu import isn't killed mid-call, while other tasks keep the short leash.

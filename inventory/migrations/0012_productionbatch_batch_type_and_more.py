@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='productionbatch',
             name='batch_type',
-            field=models.CharField(choices=[('produce', 'Produced — new goods from ingredients'), ('move', 'Moved — existing kitchen stock leaves')], default='produce', help_text="'move' debits the central kitchen's own stock when the batch is dispatched; 'produce' does not (the goods are newly made).", max_length=10),
+            field=models.CharField(choices=[('produce', 'Produced: new goods from ingredients'), ('move', 'Moved: existing kitchen stock leaves')], default='produce', help_text="'move' debits the central kitchen's own stock when the batch is dispatched; 'produce' does not (the goods are newly made).", max_length=10),
         ),
         migrations.AddConstraint(
             model_name='batchtransfer',

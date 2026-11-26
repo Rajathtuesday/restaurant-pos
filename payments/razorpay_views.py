@@ -52,7 +52,7 @@ def create_razorpay_qr(request, order_id):
         )
     if not config.razorpay_key_id or not config.razorpay_key_secret:
         # Tell the owner EXACTLY which credential is missing rather than a
-        # blanket "not connected" — Razorpay hides the Key Secret behind a
+        # blanket "not connected": Razorpay hides the Key Secret behind a
         # separate "reveal" action in their dashboard, so it's a genuinely
         # easy field to miss when copying credentials in. A generic message
         # here just produces a confused "but I did connect it!" support ping.
@@ -100,7 +100,7 @@ def create_razorpay_qr(request, order_id):
 
 
 # -------------------------------------------------
-# POLL QR STATUS (cashier-facing — bill screen polls this)
+# POLL QR STATUS (cashier-facing: bill screen polls this)
 # -------------------------------------------------
 
 @login_required
@@ -116,7 +116,7 @@ def razorpay_qr_status(request, qr_code_id):
 
 
 # -------------------------------------------------
-# WEBHOOK (Razorpay-facing — no login, external caller)
+# WEBHOOK (Razorpay-facing: no login, external caller)
 # -------------------------------------------------
 
 def _entity(payload, kind):
@@ -131,7 +131,7 @@ def _entity(payload, kind):
 @require_POST
 def razorpay_webhook(request):
     """
-    Outlet is resolved from ?tenant_id=&outlet_id= — matches the existing
+    Outlet is resolved from ?tenant_id=&outlet_id=: matches the existing
     aggregator webhook convention (orders/api.py::api_ingest_order takes
     both, not outlet_id alone). Signature can't be verified without first
     knowing which outlet's webhook secret to try.
@@ -139,8 +139,8 @@ def razorpay_webhook(request):
     Requiring both (not just outlet_id, which is already globally unique
     and would resolve the tenant on its own) is a deliberate multi-tenant
     integrity check: the lookup below fails closed if a outlet_id is ever
-    paired with the wrong tenant_id — e.g. a stale/copy-pasted webhook URL
-    pointed at the wrong tenant's outlet — rather than silently succeeding
+    paired with the wrong tenant_id: e.g. a stale/copy-pasted webhook URL
+    pointed at the wrong tenant's outlet: rather than silently succeeding
     because outlet_id alone happened to be enough.
     """
     # Checked as numbers before the lookup: Outlet.objects.get(id="abc")
@@ -175,12 +175,12 @@ def razorpay_webhook(request):
 
     event = payload.get("event", "")
 
-    # QR closed/expired without payment — no-op, not an error. Razorpay
+    # QR closed/expired without payment: no-op, not an error. Razorpay
     # retries on non-2xx, so always return 200 for events we don't act on.
     if event in ("qr_code.closed",):
         qr_code_id = _entity(payload, "qr_code").get("id")
         # Scoped by tenant+outlet even though qr_code_id is already a Razorpay-
-        # issued unique string — a valid signature only proves the caller knows
+        # issued unique string: a valid signature only proves the caller knows
         # *this* outlet's webhook secret, not that qr_code_id belongs to it.
         RazorpayQRCode.objects.filter(
             qr_code_id=qr_code_id, tenant=outlet.tenant, outlet=outlet, status="active"
@@ -188,7 +188,7 @@ def razorpay_webhook(request):
         return JsonResponse({"ok": True})
 
     if event != "qr_code.credited":
-        # Only QR-based payments are wired up — other events (direct payment
+        # Only QR-based payments are wired up: other events (direct payment
         # links, etc.) aren't part of this flow.
         return JsonResponse({"ok": True})
 
@@ -216,14 +216,14 @@ def razorpay_webhook(request):
         )
         return JsonResponse({"error": "Malformed payload"}, status=400)
 
-    # Idempotency — Razorpay may retry the same webhook.
+    # Idempotency: Razorpay may retry the same webhook.
     if Payment.objects.filter(reference=razorpay_payment_id).exists():
         return JsonResponse({"ok": True, "already_recorded": True})
 
     order = get_object_or_404(Order, id=order_id, tenant=outlet.tenant, outlet=outlet)
 
     # Integrity check: tenant+outlet in the URL must match tenant+outlet in
-    # the QR's notes — catches a webhook routed to the right outlet but a
+    # the QR's notes: catches a webhook routed to the right outlet but a
     # payload referencing a different tenant/outlet's order.
     if str(notes.get("outlet_id")) != str(outlet.id) or str(notes.get("tenant_id")) != str(outlet.tenant_id):
         logger.error(
@@ -235,7 +235,7 @@ def razorpay_webhook(request):
     webhook_amount = paise_to_decimal(webhook_amount_paise)
 
     # The .exists() check above closes the common case (retries seconds/minutes
-    # apart), but is a plain SELECT-then-INSERT with no atomicity of its own —
+    # apart), but is a plain SELECT-then-INSERT with no atomicity of its own:
     # two near-simultaneous deliveries could both pass it before either commits.
     # The real backstop is the database-level unique constraint on
     # Payment.reference: if it fires anywhere below, Postgres aborts this whole
@@ -245,12 +245,12 @@ def razorpay_webhook(request):
         with transaction.atomic():
             current_remaining = order.grand_total - order.amount_paid()
 
-            # Validate against current state, not the QR's stale original quote —
+            # Validate against current state, not the QR's stale original quote:
             # the order may have changed (discount, added item) since the QR was shown.
             if current_remaining <= 0:
                 # Reconciliation path: the order was already closed by another means
                 # (e.g. cashier took cash) while this UPI payment was in flight.
-                # The money is real and sitting in the restaurant's Razorpay account —
+                # The money is real and sitting in the restaurant's Razorpay account:
                 # it must leave an audit trail, never silently disappear.
                 Payment.objects.create(
                     order=order, method="upi", amount=webhook_amount, reference=razorpay_payment_id,
@@ -291,13 +291,13 @@ def razorpay_webhook(request):
             try:
                 result = process_payment(order, "upi", amount_to_record, user=None, reference=razorpay_payment_id)
                 if result["order_closed"] and order.table:
-                    # Mirrors pay_order's behaviour (payment_views.py) — process_payment
+                    # Mirrors pay_order's behaviour (payment_views.py): process_payment
                     # itself doesn't know about tables, so every caller that closes an
                     # order is responsible for this transition.
                     order.table.state = "free"
                     order.table.save(update_fields=["state"])
             except ValidationError:
-                # Lost the race between this check and process_payment's own lock —
+                # Lost the race between this check and process_payment's own lock:
                 # treat it the same as the already-fully-paid case above.
                 Payment.objects.create(
                     order=order, method="upi", amount=amount_to_record, reference=razorpay_payment_id,

@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='outlet',
             name='paper_width_mm',
-            field=models.IntegerField(choices=[(58, '58mm — narrow roll'), (80, '80mm — standard roll')], default=80, help_text='Thermal paper width. Most restaurant printers use 80mm.'),
+            field=models.IntegerField(choices=[(58, '58mm: narrow roll'), (80, '80mm: standard roll')], default=80, help_text='Thermal paper width. Most restaurant printers use 80mm.'),
         ),
         migrations.AddField(
             model_name='outlet',

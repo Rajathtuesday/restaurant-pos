@@ -172,7 +172,7 @@ class AIService:
         """
         mt = (mime_type or "").lower()
 
-        # PDF — sniff the magic bytes too, in case the browser sent no mime type
+        # PDF: sniff the magic bytes too, in case the browser sent no mime type
         if mt == "application/pdf" or file_bytes[:5] == b"%PDF-":
             return {"type": "document", "source": {
                 "type": "base64", "media_type": "application/pdf",
@@ -516,13 +516,13 @@ class AIService:
         """
         Extracts a flat ingredient list from a recipe document/photo: each
         line is the ingredient name and the quantity exactly as written
-        ("1 cup", "a pinch", "200g") — no unit conversion, no inventory
+        ("1 cup", "a pinch", "200g"): no unit conversion, no inventory
         matching. Those are separate, independently-debuggable steps done by
         inventory/recipe_unit_table.py and match_ingredients() below, so a
         bad extraction and a bad match/conversion never get tangled together
         in one opaque failure.
 
-        Unlike parse_menu, there is no manual-regex fallback — a recipe's
+        Unlike parse_menu, there is no manual-regex fallback: a recipe's
         prose/format varies far more than a price list, so without AI this
         just raises a clear "AI not configured" error rather than guessing.
         """
@@ -570,7 +570,7 @@ class AIService:
 
         Returns {ingredient_name: matched_inventory_name_or_None}. Any name
         missing from the response (an error, the AI left it out, etc.) is
-        treated as unmatched by the caller — never assumed matched.
+        treated as unmatched by the caller: never assumed matched.
         """
         if not unmatched_names:
             return {}
@@ -599,7 +599,7 @@ class AIService:
             answer = self._ask(RECIPE_MODEL, self._content(prompt), MATCH_SCHEMA, effort="low")
             parsed = {m["ingredient"]: m["inventory_item"] for m in answer["matches"]}
             # Only trust names that were actually offered, matched to names
-            # that actually exist in inventory — anything else falls back to
+            # that actually exist in inventory: anything else falls back to
             # unmatched rather than trusting an AI-invented name.
             inventory_set = set(inventory_names)
             result = {}

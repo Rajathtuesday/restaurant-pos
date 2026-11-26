@@ -62,7 +62,7 @@ def _make_table(tenant, outlet, name="T1"):
 
 
 # ─────────────────────────────────────────────
-# 1. LOGIN VIEW — shows error on bad credentials
+# 1. LOGIN VIEW: shows error on bad credentials
 # ─────────────────────────────────────────────
 
 class LoginViewTests(TestCase):
@@ -101,7 +101,7 @@ class LoginViewTests(TestCase):
 # (Phase 3 of the orders app split).
 
 # ─────────────────────────────────────────────
-# 4. ADD ITEMS — cross-tenant modifier injection blocked
+# 4. ADD ITEMS: cross-tenant modifier injection blocked
 # ─────────────────────────────────────────────
 
 class ModifierTenantIsolationTest(TestCase):
@@ -143,7 +143,7 @@ class ModifierTenantIsolationTest(TestCase):
 
 
 # ─────────────────────────────────────────────
-# 5. ADD ITEMS — happy path works correctly
+# 5. ADD ITEMS: happy path works correctly
 # ─────────────────────────────────────────────
 
 class AddItemsHappyPathTest(TestCase):
@@ -179,7 +179,7 @@ class AddItemsHappyPathTest(TestCase):
 
 
 # ─────────────────────────────────────────────
-# 6. RECALCULATE TOTALS — uses aggregate (no N+1 loop)
+# 6. RECALCULATE TOTALS: uses aggregate (no N+1 loop)
 # ─────────────────────────────────────────────
 
 class RecalculateTotalsAggregateTest(TestCase):
@@ -245,7 +245,7 @@ class RecalculateTotalsAggregateTest(TestCase):
 
 
 # ─────────────────────────────────────────────
-# 7. DISCOUNT — percentage and fixed amount
+# 7. DISCOUNT: percentage and fixed amount
 # ─────────────────────────────────────────────
 
 class DiscountTest(TestCase):

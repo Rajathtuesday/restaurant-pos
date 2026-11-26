@@ -316,7 +316,7 @@ def add_recipe(request):
         inventory_id = data.get("inventory_item")
         quantity     = data.get("quantity")
         # None keeps an existing row's unit unchanged, or defaults to the
-        # inventory item's own unit for a new row — see recipe_service.
+        # inventory item's own unit for a new row: see recipe_service.
         unit = data.get("unit")
 
         if not quantity:

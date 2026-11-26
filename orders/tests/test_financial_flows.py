@@ -71,7 +71,7 @@ def _order_item(order, menu_item, qty=1):
 
 
 # ═══════════════════════════════════════════════
-# 1.  CASH SESSION — OPEN / CLOSE / RECONCILE
+# 1.  CASH SESSION: OPEN / CLOSE / RECONCILE
 # ═══════════════════════════════════════════════
 
 class CashSessionOpenTest(TestCase):
@@ -186,7 +186,7 @@ class CashSessionCloseTest(TestCase):
 
 
 # ═══════════════════════════════════════════════
-# 2.  BILLING VIEW — access control & table isolation
+# 2.  BILLING VIEW: access control & table isolation
 # ═══════════════════════════════════════════════
 
 class BillingViewAccessTest(TestCase):
@@ -224,7 +224,7 @@ class BillingViewAccessTest(TestCase):
 
 
 # ═══════════════════════════════════════════════
-# 3.  CREATE ORDER — edge cases
+# 3.  CREATE ORDER: edge cases
 # ═══════════════════════════════════════════════
 
 class CreateOrderEdgeCasesTest(TestCase):
@@ -261,7 +261,7 @@ class CreateOrderEdgeCasesTest(TestCase):
             "cart": [{"id": foreign_item.id, "quantity": 1, "modifiers": [], "note": ""}],
             "table_id": None
         })
-        # Menu item belongs to a different tenant — must be rejected
+        # Menu item belongs to a different tenant: must be rejected
         self.assertGreaterEqual(resp.status_code, 400, 
             f"Expected 4xx for cross-tenant item, got {resp.status_code}: {resp.json()}")
 
@@ -288,7 +288,7 @@ class CreateOrderEdgeCasesTest(TestCase):
 
 
 # ═══════════════════════════════════════════════
-# 4.  PAY ORDER — settlement flow
+# 4.  PAY ORDER: settlement flow
 # ═══════════════════════════════════════════════
 
 class PayOrderTest(TestCase):
@@ -350,7 +350,7 @@ class PayOrderTest(TestCase):
     def test_zero_amount_rejected(self):
         resp = self._pay("cash", 0)
         self.assertIn(resp.status_code, [400, 200])
-        # Either reject at validation or respond — must not crash
+        # Either reject at validation or respond: must not crash
         self.assertIsNotNone(resp.json())
 
     def test_partial_payment_does_not_close_order(self):

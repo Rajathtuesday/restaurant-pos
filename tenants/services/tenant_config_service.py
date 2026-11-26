@@ -1,6 +1,6 @@
 # tenants/services/tenant_config_service.py
 """
-Single source of truth for tenant-configuration admin logic — shared by
+Single source of truth for tenant-configuration admin logic: shared by
 portal/views.py and accounts/views/superuser_views.py.
 
 Both apps used to carry their own hand-copied version of this: the same
@@ -12,7 +12,7 @@ is_composition_scheme, and split_bill_by_category entirely, its feature
 summary couldn't even display whether composition_scheme or parcel_charge
 were on, and its PRESETS dict had a different set of presets from
 portal's (missing "counter_billing", carrying a "qsr_kds" portal never
-had) — so applying the "same" preset from the two panels didn't actually
+had): so applying the "same" preset from the two panels didn't actually
 produce the same result. Same root cause as the table-state and
 cancel-item bugs from earlier this session: two implementations of one
 feature, edited independently, silently disagreeing.
@@ -31,9 +31,9 @@ logger = logging.getLogger("pos.tenants")
 
 
 # ---------------------------------------------------------------------------
-# PRESETS — merged from both previously-independent copies. Portal's set
+# PRESETS: merged from both previously-independent copies. Portal's set
 # was the more complete one (icon/color, outlet-field overrides, and
-# parcel_charge/composition_scheme in every enable list) — used as the
+# parcel_charge/composition_scheme in every enable list): used as the
 # template for every preset, including "qsr_kds", which only existed in
 # the superuser copy and has been brought up to the same shape.
 # ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ PRESETS = {
 }
 
 # The full feature set shown on a tenant's config screen. Superuser's copy
-# was missing counter_billing, composition_scheme, and parcel_charge —
+# was missing counter_billing, composition_scheme, and parcel_charge:
 # meaning those three could be silently on or off with no way to see it
 # from that panel.
 KEY_FEATURES = [
@@ -165,7 +165,7 @@ def update_outlet_from_post(outlet, post):
         outlet.parcel_charge_amount = Decimal(post.get("parcel_charge_amount", "0") or "0")
     except Exception:
         # Bad input (e.g. non-numeric) silently leaves the field at its
-        # previous value instead of erroring — that's an intentional
+        # previous value instead of erroring: that's an intentional
         # best-effort default, but it was invisible when it happened.
         logger.warning(
             "Could not parse parcel_charge_amount=%r for outlet %s: left unchanged",

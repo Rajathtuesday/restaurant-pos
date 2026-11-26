@@ -9,12 +9,12 @@ android {
 
     defaultConfig {
         applicationId "com.rasova.pos"
-        minSdk 26          // Android 8.0+ — covers 95%+ of active devices
+        minSdk 26          // Android 8.0+: covers 95%+ of active devices
         targetSdk 34
         versionCode 6
         versionName "1.3.0"   // 1.3.0: a Rasova box (plain http on the local network, kept on the Wi-Fi when it has no internet; the print service stops when the phone is pointed elsewhere); 1.2.1: tells the server its real version (AppUserAgent), so the server can ask an old app to update; 1.2.0: pages' alert/confirm/prompt shown (JsDialogs), release key; 1.1.1: internet server addresses always https (ServerUrl); 1.1.0: agent key in the X-Agent-Key header
 
-        // Empty by default — release builds get the URL from SharedPreferences
+        // Empty by default: release builds get the URL from SharedPreferences
         // (user types it or scans a QR on first launch).
         buildConfigField "String", "SERVER_URL", '""'
     }
@@ -48,7 +48,7 @@ android {
 
     buildTypes {
         debug {
-            // Blank — like release. First launch shows the setup screen so each
+            // Blank: like release. First launch shows the setup screen so each
             // restaurant scans its own QR (encodes https://<slug>.rasova.net) or
             // types its subdomain. Hardcoding rasova.net here short-circuited the
             // setup flow and dumped every device on the marketing landing page.

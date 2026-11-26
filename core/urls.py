@@ -111,12 +111,12 @@ urlpatterns = [
 
     path(settings.ADMIN_URL, admin.site.urls),
 
-    # default redirect — authenticated → dashboard, anonymous → login
+    # default redirect: authenticated → dashboard, anonymous → login
     path('', views.landing, name='landing'),
 
     # Health check
     path('health/', views.health_check, name='health_check'),
-    # Demo tenant switcher — DEBUG only, 404 in production
+    # Demo tenant switcher: DEBUG only, 404 in production
     path('demo/', views.demo_switch, name='demo_switch'),
     path('robots.txt', robots_txt),
     path('sitemap.xml', sitemap_xml),

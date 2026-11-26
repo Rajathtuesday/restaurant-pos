@@ -4,7 +4,7 @@ The single validated write path for MenuItem->InventoryItem and
 Modifier->InventoryItem recipe links. Both the manual "add ingredient" views
 (menu/views/item_views.py::add_recipe, menu/views/modifier_views.py::
 add_modifier_recipe) and the AI recipe importer's confirm step call these
-functions — so the two paths can never silently drift apart on validation.
+functions: so the two paths can never silently drift apart on validation.
 """
 from core.errors import UserError
 from inventory.models import ModifierRecipe, Recipe
@@ -13,7 +13,7 @@ from inventory.unit_conversion import units_compatible
 
 class RecipeUnitMismatchError(UserError):
     """Raised when a posted unit can't be converted to the inventory item's
-    tracked unit (different measurement families — e.g. volume vs weight)."""
+    tracked unit (different measurement families: e.g. volume vs weight)."""
 
 
 class RecipeCrossTenantError(UserError):
@@ -26,7 +26,7 @@ def upsert_recipe(menu_item, inventory_item, quantity, unit=None):
     Create or update the Recipe linking menu_item to inventory_item.
 
     unit=None keeps whatever unit an existing Recipe row already has, or
-    defaults to the inventory item's own unit for a new row — a bare
+    defaults to the inventory item's own unit for a new row: a bare
     quantity-only edit must never silently reset a deliberately different
     unit back to the default.
     """
@@ -60,7 +60,7 @@ def upsert_modifier_recipe(modifier, inventory_item, quantity, unit=None):
     """Same as upsert_recipe, for Modifier -> InventoryItem links.
 
     ModifierRecipe has no model-level clean() cross-tenant check today (a
-    pre-existing gap — Recipe has one, this doesn't) so it's enforced here
+    pre-existing gap: Recipe has one, this doesn't) so it's enforced here
     instead, same as the unit check.
     """
     if modifier.group.tenant_id != inventory_item.tenant_id:

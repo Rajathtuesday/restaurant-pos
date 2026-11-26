@@ -15,7 +15,7 @@ from openpyxl.utils import get_column_letter
 
 logger = logging.getLogger("pos.reports")
 
-# Official GST state/UT codes — the first 2 digits of any GSTIN.
+# Official GST state/UT codes: the first 2 digits of any GSTIN.
 # Reference: https://www.gstn.org.in (public, fixed government table).
 GST_STATE_CODES = {
     "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab",
@@ -47,7 +47,7 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
     output = io.StringIO()
     writer = csv.writer(output)
 
-    # Composition Scheme note for CA — only shown when applicable
+    # Composition Scheme note for CA: only shown when applicable
     if outlet and getattr(outlet, 'is_composition_scheme', False):
         writer.writerow([
             'NOTE: Composition Taxable Person: not eligible to collect tax on supplies.',
@@ -316,7 +316,7 @@ def _operator_supplies_sheet(wb, tenant, orders, start_date, end_date):
 def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     """
     Generates a GSTR-1 compliant Excel report for B2C sales, plus the
-    Table 12 HSN/SAC summary — mandatory for every GST filer regardless
+    Table 12 HSN/SAC summary: mandatory for every GST filer regardless
     of B2B/B2C mix, unlike the B2CS sheet which only matters once there's
     B2C turnover to report.
     """
@@ -381,13 +381,13 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
     total_central = Decimal("0.0")
     total_state = Decimal("0.0")
 
-    # Real place of supply, derived from the outlet's own GSTIN — not a
+    # Real place of supply, derived from the outlet's own GSTIN: not a
     # hardcoded placeholder. If the report spans multiple outlets that don't
     # share one state, don't guess: this report only computes CGST/SGST
     # (intra-state), never IGST, so mixing states into one "Local" row would
     # be silently wrong for whichever outlet isn't actually local. Proper
     # multi-state GSTR-1 (with real IGST math) is a larger, separate piece of
-    # work — this only fixes the misleading placeholder value.
+    # work: this only fixes the misleading placeholder value.
     if outlet:
         pos_state = _place_of_supply(outlet)
     else:
@@ -443,8 +443,8 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
 
     _autosize_columns(ws)
 
-    # ── Table 12 — HSN/SAC Summary ──────────────────────────────────────────
-    # Mandatory for every GSTR-1 filer, unconditionally — unlike the B2CS
+    # ── Table 12: HSN/SAC Summary ──────────────────────────────────────────
+    # Mandatory for every GSTR-1 filer, unconditionally: unlike the B2CS
     # sheet above, this isn't optional just because a period had no B2C sales.
     # A restaurant's whole menu is one GST service classification (SAC 996331,
     # "restaurant/catering services"), so this reuses gst_groups from above,
@@ -498,11 +498,11 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
             RESTAURANT_SAC,
             RESTAURANT_SAC_DESC,
             'NA',   # services have no unit of measure
-            0,      # Total Quantity — not applicable for services
+            0,      # Total Quantity: not applicable for services
             round(float(total_value), 2),
             float(rate),
             round(float(taxable), 2),
-            0.0,    # IGST — same intra-state-only limitation as the B2CS sheet
+            0.0,    # IGST: same intra-state-only limitation as the B2CS sheet
             round(float(cgst), 2),
             round(float(sgst), 2),
             0.0,    # Cess
@@ -581,7 +581,7 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
     
     writer.writerow(['Category Name', 'Items Sold', 'Total Revenue'])
     
-    # Same canonical "sold item" definition as the dashboard — exclude voided
+    # Same canonical "sold item" definition as the dashboard: exclude voided
     # and complimentary items so this export agrees with the on-screen numbers.
     range_start, _ = get_business_date_range(start_date, outlet)
     _, range_end = get_business_date_range(end_date, outlet)
@@ -613,7 +613,7 @@ def generate_category_csv(tenant, outlet, start_date, end_date):
 
 
 def generate_pl_csv(tenant, outlet, start_date, end_date):
-    """Generates the Net Profit / P&L CSV — revenue, COGS, operating
+    """Generates the Net Profit / P&L CSV: revenue, COGS, operating
     expenses, net profit, and the expense category breakdown."""
     from reports.services.pl_reports import net_profit_report
 

@@ -80,7 +80,7 @@ class CounterBillingBase(TestCase):
         self.client.login(username="counter_owner", password="testpass")
 
     def _make_order(self, items=None):
-        """Helper — creates an open order with given items."""
+        """Helper: creates an open order with given items."""
         order = Order.objects.create(
             tenant=self.tenant, outlet=self.outlet,
             created_by=self.owner, source="counter",
@@ -135,7 +135,7 @@ class CompositionSchemeTest(CounterBillingBase):
         """Order grand_total = subtotal when all items have 0% GST on composition outlet."""
         self.outlet.is_composition_scheme = True
         self.outlet.save(update_fields=["is_composition_scheme"])
-        # Items with 0% GST — total equals price sum
+        # Items with 0% GST: total equals price sum
         order = self._make_order([(self.juice, 1), (self.chai, 1)])
         self.assertEqual(order.grand_total, Decimal("55"))
 
@@ -160,7 +160,7 @@ class SplitBillTest(CounterBillingBase):
         """3 categories in order → 3 category groups."""
         order = self._make_order()
         resp = self.client.get(f"/thermal-receipt/{order.id}/")
-        # Breakfast (idli), Juice, Tea — 3 groups
+        # Breakfast (idli), Juice, Tea: 3 groups
         self.assertEqual(len(resp.context["category_groups"]), 3)
 
     def test_category_groups_single_category(self):
@@ -259,7 +259,7 @@ class ParcelSurchargeTest(CounterBillingBase):
         """Outlet with parcel_charge_amount=0 → no button shown (template gating)."""
         self.outlet.parcel_charge_amount = Decimal("0")
         self.outlet.save(update_fields=["parcel_charge_amount"])
-        # Just verify the value is 0 — template hiding is a visual test
+        # Just verify the value is 0: template hiding is a visual test
         self.assertEqual(self.outlet.parcel_charge_amount, Decimal("0"))
 
 
@@ -303,7 +303,7 @@ class InventoryDeductionTest(CounterBillingBase):
 
     def test_insufficient_stock_does_not_block_payment(self):
         """If stock runs out, payment still succeeds (just logs a warning)."""
-        self.batter.stock = Decimal("0.05")  # only 50g — less than 200g needed
+        self.batter.stock = Decimal("0.05")  # only 50g: less than 200g needed
         self.batter.save(update_fields=["stock"])
 
         order = self._make_order([(self.idli, 2)])
@@ -340,12 +340,12 @@ class InventoryDeductionTest(CounterBillingBase):
         )
 
         batter = InventoryItem.objects.get(id=self.batter.id)
-        # 2 idlis × 0.1 kg = 0.2 kg deducted — counter orders ALWAYS deduct
+        # 2 idlis × 0.1 kg = 0.2 kg deducted: counter orders ALWAYS deduct
         self.assertAlmostEqual(float(batter.stock), initial_stock - 0.2, places=2)
 
     def test_modifier_recipe_deducted_on_qsr_counter_payment(self):
         """The QSR/counter deduction path (_deduct_inventory_for_order) used
-        to only look at base recipes — a paid modifier's inventory link (e.g.
+        to only look at base recipes: a paid modifier's inventory link (e.g.
         Extra Chutney) was silently never deducted at all on counter orders,
         unlike the fine-dining KOT path which already handled it."""
         from inventory.models import InventoryItem, ModifierRecipe

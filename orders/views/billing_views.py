@@ -267,7 +267,7 @@ def create_order(request):
 
     if table:
         # A QR code (or a staff-picked table) may point at a table that's
-        # currently merged into another one — attach the order to the
+        # currently merged into another one: attach the order to the
         # merge's primary table so it lands in the same place a waiter's
         # order for this physical table would.
         from tablemerge.services import resolve_primary_table
@@ -321,7 +321,7 @@ def create_order(request):
 
                 # Guest (QR, no login) reordering more items into their table's
                 # existing open order. A guest is only ever trusted for the ONE
-                # table they scanned — without this check, a guest could pass
+                # table they scanned: without this check, a guest could pass
                 # ANY order_id in this tenant/outlet (e.g. by guessing a nearby
                 # number) and silently add items to a different table's bill.
                 # Staff (user is not None) are already scoped to their own
@@ -411,10 +411,10 @@ def create_order(request):
             changed = ["source", "aggregator_order_id", "customer_name", "customer_phone"]
 
             # Franchise / Cafe Token Generation
-            # Uses the row-locked DailyTokenCounter helper — NEVER MAX()+1,
+            # Uses the row-locked DailyTokenCounter helper: NEVER MAX()+1,
             # which produces duplicate token numbers under concurrent load.
             # Every order gets a token for these tenants, not just table-less
-            # ones — a QR scan always resolves a table, so restricting this to
+            # ones: a QR scan always resolves a table, so restricting this to
             # table is None silently skipped every guest QR self-order, which
             # never showed up on the token dashboard or got a pickup number.
             if tenant and tenant.tenant_type in ['franchise', 'cafe']:
@@ -427,7 +427,7 @@ def create_order(request):
 
             # Discounts may ONLY be applied by an authenticated staff member.
             # `source` is fully client-controlled, so it must not appear in this
-            # gate — a QR guest could send source="takeaway" to unlock it and
+            # gate: a QR guest could send source="takeaway" to unlock it and
             # then post discount_value="999999" to drive the total to zero
             # (recalculate_totals clamps the discount to the subtotal → free
             # food). Guests have user=None and never reach this branch.
@@ -522,7 +522,7 @@ def create_order(request):
         return error_response(e, 400)
     except Exception:
         # Never leak internal exception text (DB constraints, table names) to
-        # the client — especially unauthenticated QR guests. Log full trace,
+        # the client: especially unauthenticated QR guests. Log full trace,
         # return a generic message.
         logger.exception("Order creation failed")
         return JsonResponse(

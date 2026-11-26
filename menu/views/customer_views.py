@@ -213,7 +213,7 @@ def call_waiter(request, qr_token):
 def order_status(request, signed_token):
     """
     Public, read-only status poll for a guest who just placed a QR order.
-    No login required — a guest has no account. Deliberately returns only
+    No login required: a guest has no account. Deliberately returns only
     non-sensitive fields (item names/quantities/status, a plain-English stage)
     and NOTHING financial (no prices, totals, or payment info).
 
@@ -285,7 +285,7 @@ def order_status(request, signed_token):
         "token_display": token.display_number if token else None,
         "token_ready": bool(token and token.ready_at and not token.collected_at),
         "token_collected": bool(token and token.collected_at),
-        # Order-level lifecycle status (open/billing/paid/closed/cancelled) —
+        # Order-level lifecycle status (open/billing/paid/closed/cancelled):
         # NOT item stage. Lets the guest's page know when to stop polling and
         # stop offering "add more items" (billing_views.create_order already
         # refuses to merge into anything that isn't open/billing server-side;
@@ -329,7 +329,7 @@ def digital_menu(request):
     from core.features import has_feature
 
     # Deliberately table_token only. A `?table=<id>` fallback used to exist
-    # here, resolving a table by its plain integer id with no auth check —
+    # here, resolving a table by its plain integer id with no auth check:
     # table ids are small sequential integers, so that path let anyone
     # enumerate them and have the page hand back that table's real,
     # secret qr_token, completely bypassing the "must physically scan the

@@ -11,7 +11,7 @@ def _fernet() -> Fernet:
 class EncryptedCharField(models.CharField):
     """
     A CharField that's encrypted at rest (Fernet/AES) and transparently
-    decrypted on read. Blank/empty values pass through untouched — there's
+    decrypted on read. Blank/empty values pass through untouched: there's
     nothing worth encrypting in an empty string, and it lets the field's
     existing blank=True/default="" usage keep working unchanged.
     """
@@ -28,6 +28,6 @@ class EncryptedCharField(models.CharField):
         try:
             return _fernet().decrypt(value.encode()).decode()
         except InvalidToken:
-            # Value predates encryption (or the key changed) — surface it
+            # Value predates encryption (or the key changed): surface it
             # as-is rather than crashing every read of this row.
             return value

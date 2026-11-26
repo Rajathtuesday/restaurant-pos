@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='refund',
             name='customer_complaint',
-            field=models.CharField(blank=True, default='', help_text='What the customer said — visible to owner', max_length=500),
+            field=models.CharField(blank=True, default='', help_text='What the customer said: visible to owner', max_length=500),
         ),
         migrations.AlterField(
             model_name='refund',

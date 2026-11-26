@@ -379,7 +379,7 @@ def delete_supplier(request, supplier_id):
     except Supplier.DoesNotExist:
         return JsonResponse({"error": "Supplier not found"}, status=404)
 
-    # Soft-delete — keeps PO history intact
+    # Soft-delete: keeps PO history intact
     supplier.is_active = False
     supplier.save(update_fields=["is_active"])
     return JsonResponse({"success": True})
@@ -724,14 +724,14 @@ def mark_po_ordered(request, po_id):
 @require_POST
 def receive_purchase_order(request, po_id):
     """
-    Records a delivery against a PO — updates inventory stock for the
+    Records a delivery against a PO: updates inventory stock for the
     received line items atomically. Supports partial receiving: a real
     delivery is often short or split across trips.
 
     Body (optional): { "items": { "<item_id>": {"quantity_received": n,
     "invoiced_price": n or null}, ... } }. Any item omitted, or an empty/
     missing body entirely, defaults to receiving that line's full
-    remaining ordered quantity at its ordered price — the original
+    remaining ordered quantity at its ordered price: the original
     one-click "Receive" behavior.
 
     Edge cases:
@@ -787,7 +787,7 @@ def cancel_purchase_order(request, po_id):
     """
     Cancels a PO.
     - Cannot cancel a received or partially received PO (some stock is
-      already in — cancelling would hide that a delivery happened).
+      already in: cancelling would hide that a delivery happened).
     - Cancelling a draft or ordered PO is allowed.
     """
     if not _manager_required(request.user):
@@ -832,7 +832,7 @@ def purchase_order_print(request, po_id):
 @login_required
 @tenant_required
 def purchase_order_view(request):
-    """Legacy alias for the old URL — redirect to new list view."""
+    """Legacy alias for the old URL: redirect to new list view."""
     from django.shortcuts import redirect
     return redirect("purchase_order_list")
 
@@ -858,7 +858,7 @@ def consumption_report(request):
     tenant = request.user.tenant
     outlet = request.user.outlet
 
-    # Date filter — default today, allow ?date=YYYY-MM-DD
+    # Date filter: default today, allow ?date=YYYY-MM-DD
     date_str = request.GET.get("date", "")
     try:
         from datetime import date as dt_date
@@ -886,7 +886,7 @@ def consumption_report(request):
         .prefetch_related("modifiers__modifier__inventory_links__inventory_item")
     )
 
-    # Aggregate consumption per inventory item via recipes AND modifiers —
+    # Aggregate consumption per inventory item via recipes AND modifiers:
     # this used to only look at base recipes, silently missing anything
     # deducted through a modifier link (e.g. "Extra Cheese").
     consumption: dict = {}  # {inventory_item_id: {"item": obj, "consumed": Decimal}}
@@ -902,7 +902,7 @@ def consumption_report(request):
             continue
         for recipe in order_item.menu_item.recipes.select_related("inventory_item").all():
             # A recipe's unit doesn't have to match the inventory item's own
-            # unit (e.g. a recipe in grams against a kg-tracked item) — must
+            # unit (e.g. a recipe in grams against a kg-tracked item): must
             # convert before multiplying, same as the actual KOT deduction
             # does, or this silently shows a number 1000x off.
             qty = recipe_expected_quantity(
@@ -1022,7 +1022,7 @@ def log_wastage(request, item_id):
 @require_POST
 def adjust_stock(request, item_id):
     """
-    Manually corrects an item's stock — e.g. reconciling a physical count
+    Manually corrects an item's stock: e.g. reconciling a physical count
     against what the system shows. Body: either {"new_count": n} (the
     counted total) or {"delta": n} (a signed +/- change), plus a required
     "reason". Exactly one of new_count/delta must be given.
@@ -1118,7 +1118,7 @@ def variance_report(request):
     # the day still trading, not to the calendar's next day.
     day_start, day_end = get_business_date_range(report_date, outlet)
 
-    # Step 1 — recipe-expected consumption per inventory item (from actual orders sold)
+    # Step 1: recipe-expected consumption per inventory item (from actual orders sold)
     sold_items = (
         OrderItem.objects
         .filter(
@@ -1140,7 +1140,7 @@ def variance_report(request):
         if not oi.menu_item:
             continue
         for recipe in oi.menu_item.recipes.all():
-            # Convert into the inventory item's own unit before multiplying —
+            # Convert into the inventory item's own unit before multiplying:
             # a recipe entered in grams against a kg-tracked item would
             # otherwise inflate "expected" by 1000x and show a fake variance.
             qty = recipe_expected_quantity(
@@ -1166,7 +1166,7 @@ def variance_report(request):
                     recipe_map.get(mod_recipe.inventory_item_id, Decimal("0")) + qty * Decimal(str(oi.quantity))
                 )
 
-    # Step 2 — per item: compare recipe vs transaction
+    # Step 2: per item: compare recipe vs transaction
     items = InventoryItem.objects.filter(tenant=tenant, outlet=outlet).order_by("name")
     rows = []
     for item in items:

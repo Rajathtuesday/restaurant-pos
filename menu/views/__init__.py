@@ -1,14 +1,14 @@
 """
-menu.views package — re-exports everything so urls.py needs no changes.
+menu.views package: re-exports everything so urls.py needs no changes.
 
 Split by concern:
-  customer_views   — QR menu, digital menu, waiter call (no login required)
-  management_views — menu management page
-  item_views       — item CRUD, toggle, platform, station, recipe
-  category_views   — category CRUD
-  modifier_views   — modifier groups, modifiers, item linking
-  gst_views        — GST rate management
-  ai_views         — AI photo importer, multi-outlet sync
+  customer_views  : QR menu, digital menu, waiter call (no login required)
+  management_views: menu management page
+  item_views      : item CRUD, toggle, platform, station, recipe
+  category_views  : category CRUD
+  modifier_views  : modifier groups, modifiers, item linking
+  gst_views       : GST rate management
+  ai_views        : AI photo importer, multi-outlet sync
 """
 from .customer_views import menu_view, call_waiter, digital_menu, order_status
 from .management_views import menu_management

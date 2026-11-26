@@ -1,13 +1,13 @@
 # payments/razorpay_gateway.py
 """
-Razorpay UPI QR integration — bring-your-own-keys.
+Razorpay UPI QR integration: bring-your-own-keys.
 
 Each tenant connects their OWN Razorpay account (own Key ID + Key Secret).
 Money settles directly to the restaurant's bank account; Rasova never holds
 or routes funds. This keeps Rasova outside RBI's Payment Aggregator
-regulatory perimeter — a marketplace/split-payment model is out of scope.
+regulatory perimeter: a marketplace/split-payment model is out of scope.
 
-Uses `requests` directly (matches the rest of the app's convention — no SDK
+Uses `requests` directly (matches the rest of the app's convention: no SDK
 anywhere). The official `razorpay` package's only real value-add, a
 webhook-signature helper, is a one-line `hmac.compare_digest` already
 replicated here, the same way `orders/api.py`'s aggregator webhook does it.
@@ -32,7 +32,7 @@ def paise_to_decimal(paise: int) -> Decimal:
 
 
 def decimal_to_paise(amount: Decimal) -> int:
-    # Never round-trip through float — order.grand_total is already
+    # Never round-trip through float: order.grand_total is already
     # quantized to 2 decimal places, so this is exact.
     return int((amount * 100).to_integral_value())
 
@@ -50,7 +50,7 @@ def create_qr_payment(order, payment_config, requested_amount=None):
 
     Returns the RazorpayQRCode row created to track it.
 
-    Raises requests.RequestException on network/API failure — callers should
+    Raises requests.RequestException on network/API failure: callers should
     catch and surface a clean error to the cashier.
     """
     from payments.models import RazorpayQRCode

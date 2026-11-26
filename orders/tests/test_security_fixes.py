@@ -2,11 +2,11 @@
 Regression tests for the critical security fixes from the code-review pass.
 
 Covers:
-  1. create_order — a QR guest cannot apply a discount (the "free food" hole),
+  1. create_order: a QR guest cannot apply a discount (the "free food" hole),
      and staff discounts are bounded (percentage capped at 100, negatives -> 0).
-  2. approve_refund / reject_refund — cross-tenant IDOR: an owner in Tenant A
+  2. approve_refund / reject_refund: cross-tenant IDOR: an owner in Tenant A
      cannot approve or reject a refund belonging to Tenant B.
-  3. cancel_order / cancel_item — now require a privileged role.
+  3. cancel_order / cancel_item: now require a privileged role.
 
 Run: python manage.py test orders.tests.test_security_fixes
 """
@@ -57,7 +57,7 @@ class GuestDiscountTest(_Base):
         )
         self.assertEqual(resp.status_code, 200)
         order = Order.objects.get(id=resp.json()["order_id"])
-        # The discount must NOT have been applied — grand_total stays > 0.
+        # The discount must NOT have been applied: grand_total stays > 0.
         self.assertEqual(order.discount_value, Decimal("0"))
         self.assertGreater(order.grand_total, Decimal("0"))
 

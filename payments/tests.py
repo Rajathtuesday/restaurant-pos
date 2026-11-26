@@ -361,7 +361,7 @@ class RazorpayWebhookTest(CounterBillingBase):
     def test_credited_event_moves_table_to_free(self):
         """
         Mirrors pay_order's behaviour (payment_views.py) for the cashier-driven
-        flow — a customer paying via Razorpay QR with no cashier involved must
+        flow: a customer paying via Razorpay QR with no cashier involved must
         still trigger the same table lifecycle transition.
         """
         table = Table.objects.create(tenant=self.tenant, outlet=self.outlet, name="T1", state="billing")
@@ -404,7 +404,7 @@ class RazorpayWebhookTest(CounterBillingBase):
 
     def test_tenant_mismatch_rejected(self):
         """
-        Same outlet_id, but notes claim a different tenant_id — must be
+        Same outlet_id, but notes claim a different tenant_id: must be
         rejected even though outlet_id alone would otherwise resolve fine.
         """
         order = self._make_order()
@@ -443,7 +443,7 @@ class RazorpayWebhookTest(CounterBillingBase):
         """
         Real race: cashier takes cash and closes the order while the customer's
         UPI payment is still in flight. The webhook must not be dropped, and
-        must not raise — it leaves an audit trail for manual refund instead.
+        must not raise: it leaves an audit trail for manual refund instead.
         """
         order = self._make_order()
         process_payment(order, "cash", order.grand_total)  # closes the order first
@@ -454,7 +454,7 @@ class RazorpayWebhookTest(CounterBillingBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json().get("reconciliation_needed"))
-        # The money is real — it must be recorded, not silently dropped.
+        # The money is real: it must be recorded, not silently dropped.
         razorpay_payment = Payment.objects.get(reference="pay_race")
         self.assertEqual(razorpay_payment.amount, order.grand_total)
         self.assertTrue(
@@ -644,7 +644,7 @@ class RefundDefaultStatusTest(TestCase):
             reason="Error",
             refunded_by=self.user
         )
-        # Do NOT save — just verify the default field value
+        # Do NOT save: just verify the default field value
         self.assertNotEqual(refund.status, "approved")
 
 
@@ -684,7 +684,7 @@ class RefundCrossTenantIDORTest(TestCase):
             reverse("approve-refund", args=[self.refund_b.id]),
             content_type="application/json",
         )
-        # The view catches the scoped-lookup miss and returns a clean 400 —
+        # The view catches the scoped-lookup miss and returns a clean 400:
         # crucially the refund must NOT be approved and no negative Payment made.
         self.refund_b.refresh_from_db()
         self.assertEqual(self.refund_b.status, "pending")

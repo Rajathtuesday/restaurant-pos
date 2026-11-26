@@ -127,7 +127,7 @@ def approve_refund(refund_id, approver, tenant, outlet):
     refund.save(update_fields=["status"])
 
     # Create a negative Payment so revenue reports reflect net (gross - refunds).
-    # daily_sales() sums Payment.amount — the negative entry cancels out the refunded amount.
+    # daily_sales() sums Payment.amount: the negative entry cancels out the refunded amount.
     Payment.objects.create(
         order=refund.order,
         method="refund",
@@ -152,7 +152,7 @@ def approve_refund(refund_id, approver, tenant, outlet):
 def reject_refund(refund_id, rejecter, tenant, outlet, reason=""):
     """
     Rejects a pending refund.
-    Scoped to the rejecter's tenant/outlet — same cross-tenant isolation
+    Scoped to the rejecter's tenant/outlet: same cross-tenant isolation
     boundary as approve_refund().
     """
     if rejecter.role not in ("manager", "owner") and not rejecter.is_superuser:

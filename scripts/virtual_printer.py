@@ -2,7 +2,7 @@
 """
 Rasova Virtual Thermal Printer
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Listens on TCP 9100 — the ESC/POS standard port.
+Listens on TCP 9100: the ESC/POS standard port.
 Set any Kitchen Station → Printer IP = 127.0.0.1 in Rasova setup.
 Every print job appears in this terminal window.
 
@@ -29,11 +29,11 @@ def strip_escpos(data: bytes) -> str:
     while i < len(data):
         b = data[i]
 
-        if b == 0x1B:                      # ESC — 1 or 2 extra bytes
+        if b == 0x1B:                      # ESC: 1 or 2 extra bytes
             i += 1
             if i >= len(data): break
             cmd = data[i]
-            if cmd in (0x40,):             # ESC @ init — no extra
+            if cmd in (0x40,):             # ESC @ init: no extra
                 pass
             elif cmd in (0x21, 0x45, 0x61, 0x4D, 0x74):
                 i += 1                     # 1 data byte
@@ -43,16 +43,16 @@ def strip_escpos(data: bytes) -> str:
                 pass
             i += 1
 
-        elif b == 0x1D:                    # GS — variable
+        elif b == 0x1D:                    # GS: variable
             i += 1
             if i >= len(data): break
             cmd = data[i]
-            if cmd == 0x56:               # GS V — paper cut
+            if cmd == 0x56:               # GS V: paper cut
                 out.append("\n" + "─" * W + "  ✂ CUT\n")
                 i += 2
             elif cmd in (0x21, 0x42, 0x77, 0x68):
                 i += 2
-            elif cmd == 0x6B:             # GS k — barcode (variable)
+            elif cmd == 0x6B:             # GS k: barcode (variable)
                 i += 2
                 while i < len(data) and data[i] != 0x00:
                     i += 1
@@ -67,17 +67,17 @@ def strip_escpos(data: bytes) -> str:
             out.append("\n")
             i += 1
 
-        elif b == 0x0D:                    # CR — ignore
+        elif b == 0x0D:                    # CR: ignore
             i += 1
 
-        elif b == 0x00:                    # NUL — ignore
+        elif b == 0x00:                    # NUL: ignore
             i += 1
 
         elif 0x20 <= b <= 0x7E:           # printable ASCII
             out.append(chr(b))
             i += 1
 
-        elif b > 0x7E:                     # extended (₹ etc) — placeholder
+        elif b > 0x7E:                     # extended (₹ etc): placeholder
             out.append("?")
             i += 1
 

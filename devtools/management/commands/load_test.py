@@ -6,7 +6,7 @@ create_kot -> process_payment) under concurrent threads and reports throughput,
 latency percentiles, and an error breakdown. A second phase hammers a single
 table to prove the unique-open-order-per-table guard holds under a race.
 
-This is a DB-level concurrency test (not an HTTP load test) — it exercises the
+This is a DB-level concurrency test (not an HTTP load test): it exercises the
 select_for_update locks, the daily counters, and the payment path where the real
 races live. Run it against Postgres; on SQLite the writer lock serialises
 everything and the numbers are meaningless (the command warns about this).
@@ -123,7 +123,7 @@ class Command(BaseCommand):
         """Run n full order lifecycles on ONE dedicated table, sequentially.
 
         Each worker owns its own table so there's no artificial same-table
-        contention — the real concurrency stress is the shared per-outlet daily
+        contention: the real concurrency stress is the shared per-outlet daily
         counters (order number, KOT number) that every worker increments under
         select_for_update. Returns (latencies, errors)."""
         lats, errs = [], {}
@@ -145,7 +145,7 @@ class Command(BaseCommand):
                     key = type(exc).__name__
                     errs[key] = errs.get(key, 0) + 1
         finally:
-            connection.close()  # thread-local connection — release it
+            connection.close()  # thread-local connection: release it
         return lats, errs
 
     # ------------------------------------------------------------------- main

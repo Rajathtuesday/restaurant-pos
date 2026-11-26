@@ -3,7 +3,7 @@ Tests for update_table_state (orders/services/order_service.py) and the
 matching computation in tables_data (orders/views/table_views.py).
 
 Bug being fixed: a table with an order whose items were all cancelled
-never went back to "free" — voided items weren't excluded from the status
+never went back to "free": voided items weren't excluded from the status
 checks, so a fully-voided order fell through every branch into a catch-all
 that set "ordering". A mixed served+voided order (e.g. a QR customer's
 first round served, a cancelled reorder voided) had the same problem.

@@ -78,7 +78,7 @@ def aggregator_setup(request):
 
 # ==================================
 # AGGREGATOR QUICK TOGGLE
-# One-tap on/off for online orders — called from token dashboard
+# One-tap on/off for online orders: called from token dashboard
 # and owner dashboard without navigating to full settings.
 # ==================================
 

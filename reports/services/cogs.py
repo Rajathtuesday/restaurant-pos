@@ -1,6 +1,6 @@
 # reports/services/cogs.py
 """
-Per-menu-item COGS (cost of goods sold) computation — extracted from
+Per-menu-item COGS (cost of goods sold) computation: extracted from
 pl_reports.py::gross_margin_report so the same recipe/modifier costing logic
 can be reused by menu_engineering.py without duplicating it. This is a pure
 refactor of that function's inline loop; gross_margin_report's own numbers
@@ -65,7 +65,7 @@ def item_cogs_map(order_items_queryset):
                 qty_recipe_unit = item.quantity * recipe.quantity_required
                 try:
                     # cost_price is per the INVENTORY ITEM's unit, so the
-                    # quantity must be in that same unit before multiplying —
+                    # quantity must be in that same unit before multiplying:
                     # a recipe in grams against an item costed per kilogram
                     # would otherwise overstate COGS by 1000x.
                     qty = convert_quantity(qty_recipe_unit, recipe.unit, recipe.inventory_item.unit)

@@ -75,7 +75,7 @@ def get_or_create_open_order(user, table, tenant=None, outlet=None):
                 return order
 
         except IntegrityError:
-            # Another terminal created it simultaneously — fetch the winner.
+            # Another terminal created it simultaneously: fetch the winner.
             return Order.objects.get(
                 tenant=t,
                 outlet=o,
@@ -155,10 +155,10 @@ def add_items_to_order(user, order, cart_items, tenant=None, outlet=None):
             raise ModifierError("Modifier not found or access denied.")
 
         # -------------------------------------------------
-        # INVENTORY CHECK — warn-only by design (see check_inventory_availability's
+        # INVENTORY CHECK: warn-only by design (see check_inventory_availability's
         # docstring): it always returns True and only logs a warning, matching the
         # soft-drain-to-0 behavior at KOT time. The `raise InventoryError` this used
-        # to have here could never fire and was misleading — removed rather than
+        # to have here could never fire and was misleading: removed rather than
         # left as dead code implying orders get blocked on low stock, which they don't.
         # -------------------------------------------------
         check_inventory_availability(menu_item, quantity)
@@ -292,7 +292,7 @@ def update_table_state(order):
 
     # "billing"/"cleaning" are owned by the billing & payment flows
     # (billing_core.py, payment_views.py, razorpay_views.py,
-    # discount_views.py) — never overwrite them from item-status churn,
+    # discount_views.py): never overwrite them from item-status churn,
     # e.g. a manager voiding an already-served item mid-bill-review must not
     # silently bounce the table back out of "billing".
     if table.state in ("billing", "cleaning"):
@@ -302,7 +302,7 @@ def update_table_state(order):
     # table serialize correctly instead of racing on table.state.
     order = Order.objects.select_for_update().get(id=order.id)
 
-    # Voided items are inert — they must never keep a table looking active.
+    # Voided items are inert: they must never keep a table looking active.
     # This is the fix for the "table stuck on Ordering after everything gets
     # cancelled" bug: previously order.items.all() included voided items,
     # so a fully-voided order fell through every branch below into the
@@ -316,7 +316,7 @@ def update_table_state(order):
         table.state = "preparing"
 
     # "review" (QR guest items awaiting staff approval) gets its own branch
-    # rather than folding into sent/preparing — nothing is actually cooking
+    # rather than folding into sent/preparing: nothing is actually cooking
     # yet, so "preparing" would be a misleading label for the kitchen.
     elif items.filter(status__in=["review", "pending"]).exists():
         table.state = "ordering"

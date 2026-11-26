@@ -23,11 +23,11 @@ class NothingToSend(Exception):
 def create_kot(user, order, print_on_create=True):
     """
     print_on_create=False: create KOT records but skip queuing print tasks.
-    Used by pay_order() in auto-KOT mode — print_bill_task handles everything.
+    Used by pay_order() in auto-KOT mode: print_bill_task handles everything.
 
     `user` may be None (e.g. aggregator/webhook order ingestion, where there
     is no logged-in staff member). Tenant/outlet are taken from the order
-    itself, not the user — the KOT belongs to the order's outlet regardless of
+    itself, not the user: the KOT belongs to the order's outlet regardless of
     who triggered it, which is also strictly more correct for the staff path.
     """
     tenant = order.tenant
@@ -88,7 +88,7 @@ def create_kot(user, order, print_on_create=True):
     # -----------------------------------------
 
     print_jobs = []
-    # Resolved once — used as fallback printer for stations without their own IP.
+    # Resolved once: used as fallback printer for stations without their own IP.
     _default_station_cache = None
 
     def _default_station():
@@ -136,7 +136,7 @@ def create_kot(user, order, print_on_create=True):
         # -----------------------------------------
         # QUEUE KOT PRINTING (OUTSIDE TRANSACTION)
         # If this station has no printer, fall back to the default station's
-        # printer — this is the single-printer QSR pattern where one counter
+        # printer: this is the single-printer QSR pattern where one counter
         # printer handles all KOTs and bills.
         # -----------------------------------------
         printer_station = station if (station and station.printer_ip) else _default_station()

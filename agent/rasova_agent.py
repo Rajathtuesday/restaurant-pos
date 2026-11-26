@@ -545,7 +545,7 @@ async def smart_network_print(
     """
     Try network printing with progressive fallback:
     1. Provided IP (normal path)
-    2. ARP resolution of MAC address (permanent identifier — survives DHCP changes)
+    2. ARP resolution of MAC address (permanent identifier: survives DHCP changes)
     3. Cached last_seen_ip for this outlet
     4. Full subnet scan, try each discovered IP until one works
     Returns (success, message, working_ip_or_None)
@@ -793,7 +793,7 @@ def poll_target(argv):
 
 def run_poll_mode(server_url: str, agent_key: str, interval: float = 2.0):  # noqa: C901
     """
-    Polling mode — no WebSocket server, no open port, no firewall config.
+    Polling mode: no WebSocket server, no open port, no firewall config.
 
     The agent is now a simple HTTP client:
       1. GET  <server>/orders/agent/jobs/        → list of pending print jobs
@@ -940,7 +940,7 @@ if __name__ == "__main__":
         uninstall_autostart()
         sys.exit(0)
 
-    # ── Poll mode — Android / low-power device ────────────────────────────────
+    # ── Poll mode: Android / low-power device ────────────────────────────────
     if "--poll" in sys.argv or "--server" in sys.argv:
         target = poll_target(sys.argv)
         if target is None:
@@ -956,7 +956,7 @@ if __name__ == "__main__":
             run_poll_mode(server_url, agent_key)
         sys.exit(0)
 
-    # ── Normal run (WebSocket server — desktop) ───────────────────────────────
+    # ── Normal run (WebSocket server: desktop) ───────────────────────────────
     try:
         import websockets  # noqa: F401 (only checks it is installed)
     except ImportError:

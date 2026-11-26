@@ -215,7 +215,7 @@ class Tenant(models.Model):
         ordering = ["name"]
 
         indexes = [
-            # slug has unique=True — Postgres already creates a unique index on it.
+            # slug has unique=True: Postgres already creates a unique index on it.
             models.Index(fields=["tenant_type"]),
         ]
 
@@ -244,7 +244,7 @@ class Tenant(models.Model):
                 logger.error("Rejected invalid logo upload for tenant '%s': %s", self.name, exc)
                 self.logo = None
 
-        # Slugs are subdomain names — always force lowercase
+        # Slugs are subdomain names: always force lowercase
         if self.slug:
             self.slug = self.slug.lower().strip()
 
@@ -812,14 +812,14 @@ class TenantFeatureAuditLog(models.Model):
     """
     Append-only history of feature flag changes per tenant.
 
-    TenantFeatureOverride is a single mutable row per (tenant, feature) — toggling
+    TenantFeatureOverride is a single mutable row per (tenant, feature): toggling
     it overwrites the previous state. This log exists so "who turned on Razorpay for
     this tenant, and when" survives being toggled again later.
     """
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="feature_audit_log")
     feature = models.CharField(max_length=50)
     enabled = models.BooleanField()
-    # 50, not 20 — "preset:<key>" needs to fit any real preset key.
+    # 50, not 20: "preset:<key>" needs to fit any real preset key.
     # "preset:counter_billing" alone is 23 characters; the original 20-char
     # limit meant applying that specific preset would crash with a
     # DataError the moment anyone actually did it, this had just never

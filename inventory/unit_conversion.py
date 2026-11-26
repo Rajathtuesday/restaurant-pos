@@ -4,7 +4,7 @@ Unit conversion between the small set of units Rasova tracks inventory in.
 
 Recipe, ModifierRecipe, RequisitionItem and BatchItem each store their own
 `unit`, independent of the InventoryItem they reference. Nothing used to
-convert between them — a recipe entered in grams against an item tracked in
+convert between them: a recipe entered in grams against an item tracked in
 kilograms was silently treated as a raw number, off by a factor of 1000.
 This module is the single place that conversion happens, so every stock
 deduction/addition path uses the same rules instead of each re-deriving them.
@@ -13,7 +13,7 @@ from core.errors import UserError
 from decimal import Decimal
 
 # Which measurement family each unit belongs to. Conversion is only valid
-# within the same family — grams can become kilograms, but grams can never
+# within the same family: grams can become kilograms, but grams can never
 # become pieces or millilitres; those are fundamentally different quantities.
 UNIT_FAMILY = {
     "g":   "weight",
@@ -36,7 +36,7 @@ _TO_BASE = {
 
 class IncompatibleUnitsError(UserError, ValueError):
     """Raised when asked to convert between two units in different measurement
-    families (e.g. grams to pieces) — there is no correct number to return,
+    families (e.g. grams to pieces): there is no correct number to return,
     so callers must handle this explicitly rather than get a silently wrong one."""
 
 
@@ -46,7 +46,7 @@ def convert_quantity(quantity, from_unit: str, to_unit: str) -> Decimal:
     `to_unit`. Returns a Decimal.
 
     Raises IncompatibleUnitsError if the two units are not in the same
-    measurement family, or if either unit is unrecognized — callers should
+    measurement family, or if either unit is unrecognized: callers should
     catch this, log it loudly, and skip that line rather than deduct/add a
     meaningless number.
     """
@@ -82,14 +82,14 @@ def units_compatible(unit_a: str, unit_b: str) -> bool:
 def recipe_expected_quantity(quantity_required, recipe_unit, inventory_item, *, logger=None, context=""):
     """
     Converts a Recipe/ModifierRecipe quantity into the inventory item's own
-    unit — the same "what should this recipe line actually deduct" question
+    unit: the same "what should this recipe line actually deduct" question
     orders.services.inventory_service.deduct_inventory_for_items answers at
     KOT time, needed again anywhere a report recomputes expected consumption
     from the recipe formula (consumption_report, variance_report) instead of
     reading it back from an already-converted transaction.
 
     Returns None (and logs, if a logger is given) rather than a meaningless
-    number when the units are incompatible — fail safe, never guess.
+    number when the units are incompatible: fail safe, never guess.
     """
     try:
         return convert_quantity(Decimal(str(quantity_required)), recipe_unit, inventory_item.unit)

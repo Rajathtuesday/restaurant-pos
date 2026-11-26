@@ -55,7 +55,7 @@ def _menu_item(tenant, outlet, name="Bread"):
 
 
 # ---------------------------------------------------------------------------
-# Recipe.clean() — cross-tenant guard
+# Recipe.clean(): cross-tenant guard
 # ---------------------------------------------------------------------------
 
 class TestRecipeClean(TestCase):
@@ -88,7 +88,7 @@ class TestRecipeClean(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# BatchItem — per-tenant barcode uniqueness
+# BatchItem: per-tenant barcode uniqueness
 # ---------------------------------------------------------------------------
 
 class TestBatchItemBarcode(TestCase):
@@ -141,7 +141,7 @@ class TestBatchItemBarcode(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# InventoryTransaction — date-range indexes
+# InventoryTransaction: date-range indexes
 # ---------------------------------------------------------------------------
 
 class TestInventoryTransactionIndexes(TestCase):

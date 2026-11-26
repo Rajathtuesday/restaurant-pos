@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('extracted_quantity', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('extracted_unit', models.CharField(blank=True, choices=[('pcs', 'Pieces'), ('g', 'Grams'), ('kg', 'Kilograms'), ('ml', 'Milliliters'), ('l', 'Liters')], max_length=10, null=True)),
                 ('needs_manual_quantity', models.BooleanField(default=False)),
-                ('match_method', models.CharField(choices=[('exact', 'Exact name match'), ('fuzzy', 'Fuzzy match'), ('ai', 'AI-resolved'), ('new', 'No match — new ingredient'), ('manual', 'Manually added by reviewer')], max_length=10)),
+                ('match_method', models.CharField(choices=[('exact', 'Exact name match'), ('fuzzy', 'Fuzzy match'), ('ai', 'AI-resolved'), ('new', 'No match: new ingredient'), ('manual', 'Manually added by reviewer')], max_length=10)),
                 ('match_confidence', models.FloatField(blank=True, null=True)),
                 ('is_new_ingredient', models.BooleanField(default=False)),
                 ('final_quantity', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),

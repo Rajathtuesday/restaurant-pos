@@ -96,7 +96,7 @@ class QrOrderRespectsTableMergeTest(_Base):
         self.assertEqual(order.items.count(), 2)
 
     def test_unmerged_table_qr_order_behaves_as_before(self):
-        # No merge in effect at all — must be a complete no-op.
+        # No merge in effect at all: must be a complete no-op.
         resp = self._place(self.table_a, self.item)
         self.assertEqual(resp.status_code, 200)
         order = Order.objects.get(id=resp.json()["order_id"])

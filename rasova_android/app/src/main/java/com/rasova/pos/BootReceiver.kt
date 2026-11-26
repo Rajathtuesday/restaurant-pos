@@ -6,9 +6,9 @@ import android.content.Intent
 import android.os.Build
 
 /**
- * Listens for BOOT_COMPLETED — fires once after the phone finishes starting up.
+ * Listens for BOOT_COMPLETED: fires once after the phone finishes starting up.
  * Reads the saved server and agent key (AgentConfig) and restarts PrintService.
- * The user never needs to open the app after a reboot — printing just resumes.
+ * The user never needs to open the app after a reboot: printing just resumes.
  */
 class BootReceiver : BroadcastReceiver() {
 

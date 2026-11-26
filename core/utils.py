@@ -147,7 +147,7 @@ def get_business_date_range(business_date, outlet=None):
     Any "today's sales" style report that filters on a plain
     `created_at__date=` will silently misattribute orders placed after
     midnight but before the cutoff (e.g. 1 AM at a restaurant open past
-    midnight) to the wrong business day — they'd count as "tomorrow" on a
+    midnight) to the wrong business day: they'd count as "tomorrow" on a
     calendar-date filter, while get_business_date() correctly treats them
     as still belonging to the previous business day. Use this range with
     `created_at__gte=start, created_at__lt=end` to match that.

@@ -239,7 +239,7 @@ class TestGSTBreakdownCache(TestCase):
 
 
 # ---------------------------------------------------------------------------
-# Order.save() — no longer @transaction.atomic at class level
+# Order.save(): no longer @transaction.atomic at class level
 # ---------------------------------------------------------------------------
 
 class TestOrderSaveNoTopLevelAtomic(TestCase):
@@ -281,7 +281,7 @@ class TestOrderSaveNoTopLevelAtomic(TestCase):
         order = _order_with_item(self.tenant, self.outlet)
         order.refresh_from_db()
         original = order.order_number
-        # recalculate_totals calls save() internally — should not regenerate number
+        # recalculate_totals calls save() internally: should not regenerate number
         order.recalculate_totals()
         order.refresh_from_db()
         self.assertEqual(order.order_number, original)

@@ -206,7 +206,7 @@ class ClearOrphanedLowStockAlertsMigrationTest(TestCase):
 
 
 class WhatsAppBuildMessageTest(TestCase):
-    """_build_message() must never raise — a broken item list should still
+    """_build_message() must never raise: a broken item list should still
     produce a sendable receipt, but the failure must be logged, not silently
     swallowed."""
 

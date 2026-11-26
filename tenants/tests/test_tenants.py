@@ -113,7 +113,7 @@ class TenantFeatureFlagTest(TestCase):
         self.assertFalse(has_feature(self.fine_dining, "nonexistent_feature_xyz"))
 
     def test_razorpay_gateway_off_by_default_for_every_tenant_type(self):
-        # Custom-only feature — deliberately absent from every TENANT_FEATURES
+        # Custom-only feature: deliberately absent from every TENANT_FEATURES
         # list, so it must be False until a TenantFeatureOverride enables it.
         self.assertFalse(has_feature(self.fine_dining, "razorpay_gateway"))
         self.assertFalse(has_feature(self.franchise, "razorpay_gateway"))
@@ -262,7 +262,7 @@ class PrintProfileModelTest(TestCase):
     def test_name_can_repeat_across_tenants(self):
         tenant2 = Tenant.objects.create(name="Other Cafe", slug="other-cafe")
         self._profile("Standard")
-        # Same name, different tenant — must not raise
+        # Same name, different tenant: must not raise
         PrintProfile.objects.create(
             tenant=tenant2, name="Standard",
             bill_inner_margin=4, kot_large_font=True, kot_show_total=True,
@@ -304,11 +304,11 @@ class PrintProfileModelTest(TestCase):
 
 
 class SubscriptionSuspensionMiddlewareTest(TestCase):
-    """SubscriptionStatusMiddleware (core/middleware.py) — suspended tenants
+    """SubscriptionStatusMiddleware (core/middleware.py): suspended tenants
     must lose access, except for superusers (support) and logout.
 
     Tenant resolution here goes through TenantMiddleware's real subdomain
-    path (HTTP_HOST), not the ?tenant= dev fallback — Django's test runner
+    path (HTTP_HOST), not the ?tenant= dev fallback: Django's test runner
     forces settings.DEBUG=False during `manage.py test` regardless of what
     .env says, so the DEBUG-gated fallback never fires under `test`.
     """

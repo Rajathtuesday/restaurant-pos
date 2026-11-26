@@ -287,7 +287,7 @@ class KitchenStationModelTest(TestCase):
 
 class RazorpaySecretEncryptionTest(TestCase):
     """razorpay_key_secret / razorpay_webhook_secret must never sit in the
-    database as plaintext — only razorpay_key_id (a public identifier, not
+    database as plaintext: only razorpay_key_id (a public identifier, not
     a secret) is allowed to stay readable in a raw row."""
 
     def setUp(self):

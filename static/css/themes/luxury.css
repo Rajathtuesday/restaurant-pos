@@ -1,5 +1,5 @@
 /* ============================================================
-   LUXURY THEME — Fine Dining / Premium
+   LUXURY THEME: Fine Dining / Premium
    Black, white, and gold. Sharp edges. Serif headings.
    Google Fonts: Outfit (body) · DM Serif Display (headings) · Space Mono (code)
    ============================================================ */
@@ -30,15 +30,15 @@
     /* ── Type scale (base 16px) ──
        Use these variables instead of hardcoding px/rem in templates.
        All values readable on a tablet at arm's length. */
-    --text-2xs: 0.7rem;    /* 11.2px — use only for legal/tiny labels  */
-    --text-xs:  0.78rem;   /* 12.5px — table headers, chips            */
-    --text-sm:  0.875rem;  /* 14px   — secondary body, hints           */
-    --text-base:1rem;      /* 16px   — main body text                  */
-    --text-lg:  1.125rem;  /* 18px   — slightly prominent body         */
-    --text-xl:  1.25rem;   /* 20px   — small headings                  */
-    --text-2xl: 1.5rem;    /* 24px   — section headings                */
-    --text-3xl: 1.875rem;  /* 30px   — page headings                   */
-    --text-4xl: 2.25rem;   /* 36px   — hero numbers (metrics, totals)  */
+    --text-2xs: 0.7rem;    /* 11.2px: use only for legal/tiny labels  */
+    --text-xs:  0.78rem;   /* 12.5px: table headers, chips            */
+    --text-sm:  0.875rem;  /* 14px  : secondary body, hints           */
+    --text-base:1rem;      /* 16px  : main body text                  */
+    --text-lg:  1.125rem;  /* 18px  : slightly prominent body         */
+    --text-xl:  1.25rem;   /* 20px  : small headings                  */
+    --text-2xl: 1.5rem;    /* 24px  : section headings                */
+    --text-3xl: 1.875rem;  /* 30px  : page headings                   */
+    --text-4xl: 2.25rem;   /* 36px  : hero numbers (metrics, totals)  */
 }
 
 /* ── Dark mode ───────────────────────────────────────────── */
@@ -88,7 +88,7 @@ html {
        overscroll, the moment before <body> is laid out) shows <html>. */
     background-color: var(--bg-color);
     color-scheme: light;
-    font-size: 16px;                 /* explicit root — prevents browser scaling */
+    font-size: 16px;                 /* explicit root: prevents browser scaling */
     -webkit-text-size-adjust: 100%;  /* no iPhone auto-inflate on rotation       */
 }
 
@@ -105,7 +105,7 @@ body {
 
 html.dark { color-scheme: dark; }
 
-/* ── Heading Scale — DM Serif Display ───────────────────── */
+/* ── Heading Scale: DM Serif Display ───────────────────── */
 h1, h2, h3, h4, h5, h6,
 .serif-text,
 .brand-title,
@@ -124,7 +124,7 @@ h4, .h4 { font-size: var(--text-lg);   } /* 18px */
 h5, .h5 { font-size: var(--text-base); } /* 16px */
 h6, .h6 { font-size: var(--text-sm);   } /* 14px */
 
-/* Monospace — for order numbers, barcodes, IDs */
+/* Monospace: for order numbers, barcodes, IDs */
 .mono-text,
 code,
 pre,
@@ -146,7 +146,7 @@ pre,
 
 .brand-title {
     font-family: var(--font-display);
-    font-size: 1.4rem;               /* was not defined — now clear */
+    font-size: 1.4rem;               /* was not defined: now clear */
     font-weight: 400;
     color: var(--text-main);
     text-decoration: none;
@@ -158,7 +158,7 @@ pre,
 .brand-title:hover { color: var(--accent-gold); }
 
 .brand-subtitle {
-    font-size: var(--text-xs);       /* 12.5px — was 0.72rem = 11.5px */
+    font-size: var(--text-xs);       /* 12.5px: was 0.72rem = 11.5px */
     text-transform: uppercase;
     letter-spacing: 2px;
     color: var(--text-muted);
@@ -172,7 +172,7 @@ pre,
     background: transparent;
     color: var(--text-main);
     padding: 0.6rem 1.1rem;
-    font-size: var(--text-xs);       /* 12.5px — was 0.75rem = 12px */
+    font-size: var(--text-xs);       /* 12.5px: was 0.75rem = 12px */
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 600;
@@ -231,7 +231,7 @@ pre,
     color: var(--text-main);
     border-radius: 0;
     min-height: var(--min-tap-target);
-    font-size: var(--text-base);     /* 16px — was often unset, defaulting tiny */
+    font-size: var(--text-base);     /* 16px: was often unset, defaulting tiny */
     font-family: var(--font-main, 'Outfit', sans-serif);
 }
 .form-control:focus, .form-select:focus {
@@ -281,7 +281,7 @@ option {
 .table th {
     border-color: var(--border-color);
     color: var(--text-muted);
-    font-size: var(--text-xs);       /* 12.5px — was 0.7rem = 11.2px */
+    font-size: var(--text-xs);       /* 12.5px: was 0.7rem = 11.2px */
     text-transform: uppercase;
     letter-spacing: 2px;
     font-weight: 600;
@@ -292,7 +292,7 @@ option {
 .badge {
     border-radius: 0;
     letter-spacing: 0.5px;
-    font-size: var(--text-xs);       /* 12.5px — was 0.65rem = 10.4px */
+    font-size: var(--text-xs);       /* 12.5px: was 0.65rem = 10.4px */
     text-transform: uppercase;
     font-family: var(--font-main, 'Outfit', sans-serif);
 }

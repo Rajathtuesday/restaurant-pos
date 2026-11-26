@@ -1,6 +1,6 @@
 # billing/razorpay_gateway.py
 """
-Rasova's OWN Razorpay integration — for charging restaurant tenants their
+Rasova's OWN Razorpay integration: for charging restaurant tenants their
 Rasova subscription fee. Deliberately separate from payments/razorpay_gateway.py,
 which is the tenant-owned, bring-your-own-keys integration used to collect a
 RESTAURANT's payments from ITS OWN diners. Never share credentials or code

@@ -16,7 +16,7 @@ from inventory.models import InventoryItem, Recipe, RecipeImportJob
 
 
 class RecipeUnitTableTests(TestCase):
-    """Pure tests of inventory.recipe_unit_table — no DB involved."""
+    """Pure tests of inventory.recipe_unit_table: no DB involved."""
 
     def test_native_unit_trusted_directly(self):
         from inventory.recipe_unit_table import parse_quantity_text
@@ -102,7 +102,7 @@ class RecipeUnitTableTests(TestCase):
 
 
 class RecipeServiceTests(TestCase):
-    """recipe_service.upsert_recipe / upsert_modifier_recipe — the single
+    """recipe_service.upsert_recipe / upsert_modifier_recipe: the single
     validated write path shared by the manual UI and the AI importer."""
 
     def setUp(self):
@@ -297,7 +297,7 @@ class RecipeImportJobLifecycleTests(TestCase):
     ):
         """The single most important test here: one bad line must not leave
         a half-saved recipe. Onion (valid) and Milk (deliberately given an
-        incompatible unit) are confirmed together — if either line fails,
+        incompatible unit) are confirmed together: if either line fails,
         NEITHER should be written."""
         mock_delay.side_effect = _run_task_synchronously
         mock_parse_recipe.return_value = [
@@ -310,7 +310,7 @@ class RecipeImportJobLifecycleTests(TestCase):
         job = RecipeImportJob.objects.get(id=job_id)
 
         milk_line = job.lines.get(raw_ingredient_name="Milk")
-        self.assertTrue(milk_line.include_in_recipe)  # exact match, clean quantity — pre-filled
+        self.assertTrue(milk_line.include_in_recipe)  # exact match, clean quantity: pre-filled
         # Simulate a reviewer mistake: force the unit to something
         # incompatible with Milk's tracked unit (ml, a volume) instead of
         # going through recipe_import_update_line.
@@ -322,7 +322,7 @@ class RecipeImportJobLifecycleTests(TestCase):
 
         self.assertEqual(Recipe.objects.filter(menu_item=self.menu_item).count(), 0)
         job.refresh_from_db()
-        self.assertEqual(job.status, "ready_for_review")  # unchanged — never got to "confirmed"
+        self.assertEqual(job.status, "ready_for_review")  # unchanged: never got to "confirmed"
 
     @patch("inventory.tasks.ai_import_recipe.apply_async")
     @patch("core.ai_service.AIService.match_ingredients")
@@ -338,7 +338,7 @@ class RecipeImportJobLifecycleTests(TestCase):
 
         second = self.client.post(reverse("recipe-import-confirm", args=[job_id]))
         self.assertEqual(second.status_code, 400)
-        # Still exactly one Recipe row — the second confirm must not double-write.
+        # Still exactly one Recipe row: the second confirm must not double-write.
         self.assertEqual(Recipe.objects.filter(menu_item=self.menu_item, inventory_item=self.onion).count(), 1)
 
     def test_feature_flag_gate_rejects_tenant_without_override(self):
