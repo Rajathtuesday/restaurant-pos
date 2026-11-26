@@ -159,7 +159,7 @@ def razorpay_webhook(request):
         return JsonResponse({"error": "Razorpay not configured for this outlet"}, status=404)
 
     if not has_feature(outlet.tenant, "razorpay_gateway"):
-        logger.warning("Razorpay webhook received for gated-off tenant %s — ignored", outlet.tenant_id)
+        logger.warning("Razorpay webhook received for gated-off tenant %s: ignored", outlet.tenant_id)
         return JsonResponse({"error": "Feature not enabled"}, status=403)
 
     signature = request.headers.get("X-Razorpay-Signature", "")
@@ -263,7 +263,7 @@ def razorpay_webhook(request):
                 )
                 logger.error(
                     "Razorpay payment %s for order #%s arrived after the order was already "
-                    "fully paid by another method — recorded for manual reconciliation/refund.",
+                    "fully paid by another method: recorded for manual reconciliation/refund.",
                     razorpay_payment_id, order.id,
                 )
                 RazorpayQRCode.objects.filter(
@@ -284,7 +284,7 @@ def razorpay_webhook(request):
                     },
                 )
                 logger.warning(
-                    "Razorpay webhook amount %s exceeds order #%s remaining %s — recorded %s, flagged.",
+                    "Razorpay webhook amount %s exceeds order #%s remaining %s: recorded %s, flagged.",
                     webhook_amount, order.id, current_remaining, amount_to_record,
                 )
 
@@ -309,7 +309,7 @@ def razorpay_webhook(request):
                     metadata={"razorpay_payment_id": razorpay_payment_id, "reason": "race with process_payment lock"},
                 )
                 logger.error(
-                    "Razorpay payment %s for order #%s lost the payment-lock race — "
+                    "Razorpay payment %s for order #%s lost the payment-lock race: "
                     "recorded for manual reconciliation/refund.",
                     razorpay_payment_id, order.id,
                 )

@@ -154,7 +154,7 @@ class Command(BaseCommand):
 
         if "sqlite" in connection.vendor:
             log.write(self.style.WARNING(
-                "DB backend is SQLite — its single writer lock serialises all writes, "
+                "DB backend is SQLite: its single writer lock serialises all writes, "
                 "so concurrency numbers here are NOT representative. Point DB_* env vars "
                 "at Postgres for a real result.\n"
             ))
@@ -168,7 +168,7 @@ class Command(BaseCommand):
 
         # ---------------- Phase 1: throughput ----------------
         log.write(self.style.MIGRATE_HEADING(
-            f"\nPhase 1 — throughput: {total} order lifecycles, "
+            f"\nPhase 1, throughput: {total} order lifecycles, "
             f"{workers} workers x {per_worker} each (one table per worker)"
         ))
         db_before = db_snapshot()
@@ -209,7 +209,7 @@ class Command(BaseCommand):
         if not opts["no_race"]:
             rw = opts["race_workers"]
             log.write(self.style.MIGRATE_HEADING(
-                f"\nPhase 2 — race probe: {rw} threads open an order on ONE table at once"
+                f"\nPhase 2, race probe: {rw} threads open an order on ONE table at once"
             ))
             race_table = Table.objects.create(tenant=tenant, outlet=outlet, name="LT-RACE")
 
@@ -245,7 +245,7 @@ class Command(BaseCommand):
         if not opts["no_reservation_race"]:
             rw = opts["race_workers"]
             log.write(self.style.MIGRATE_HEADING(
-                f"\nPhase 3 — reservation race probe: {rw} threads book ONE table/time-slot at once"
+                f"\nPhase 3, reservation race probe: {rw} threads book ONE table/time-slot at once"
             ))
             res_table = Table.objects.create(tenant=tenant, outlet=outlet, name="LT-RES-RACE")
             res_time = timezone.now() + timedelta(days=1)
@@ -312,7 +312,7 @@ class Command(BaseCommand):
             soak_workers = opts["soak_workers"] or workers
             checkpoint_s = opts["soak_checkpoint_seconds"]
             log.write(self.style.MIGRATE_HEADING(
-                f"\nPhase 4 — soak test: {soak_workers} workers, sustained for {soak_minutes} min, "
+                f"\nPhase 4, soak test: {soak_workers} workers, sustained for {soak_minutes} min, "
                 f"checkpoint every {checkpoint_s}s"
             ))
             soak_tables = [

@@ -87,7 +87,7 @@ def check_pg_stat_archiver():
         row = cur.fetchone()
 
     if row is None:
-        _warn("pg_stat_archiver returned no row — unexpected, investigate.")
+        _warn("pg_stat_archiver returned no row: unexpected, investigate.")
         return False
 
     archived_count, last_archived_time, failed_count, last_failed_time, last_failed_wal = row
@@ -95,19 +95,19 @@ def check_pg_stat_archiver():
     ok = True
 
     if last_archived_time is None:
-        _warn("no WAL segment has ever been archived yet — expected right after setup, "
+        _warn("no WAL segment has ever been archived yet: expected right after setup, "
               "otherwise archive_mode may not actually be on.")
         ok = False
     else:
         age = (now - last_archived_time).total_seconds()
         if age > STALE_AFTER_SECONDS:
             _warn(f"last successful archive was {age/60:.0f} min ago "
-                  f"(threshold {STALE_AFTER_SECONDS/60:.0f} min) — archiving may have stalled.")
+                  f"(threshold {STALE_AFTER_SECONDS/60:.0f} min): archiving may have stalled.")
             ok = False
 
     if last_failed_time is not None and (last_archived_time is None or last_failed_time > last_archived_time):
         _warn(f"most recent archive attempt FAILED (wal segment: {last_failed_wal}, "
-              f"at {last_failed_time}) and no successful archive since — check archive_command "
+              f"at {last_failed_time}) and no successful archive since: check archive_command "
               f"can actually run (permissions, .env readable by the postgres OS user, R2 reachable).")
         ok = False
 
@@ -125,7 +125,7 @@ def check_local_wal_backlog():
     data_dir = os.getenv("PG_DATA_DIR", PG_DATA_DIR_DEFAULT)
     pg_wal_dir = os.path.join(data_dir, "pg_wal")
     if not os.path.isdir(pg_wal_dir):
-        _warn(f"couldn't find pg_wal at {pg_wal_dir} — check path (this script must run "
+        _warn(f"couldn't find pg_wal at {pg_wal_dir}: check path (this script must run "
               f"on the DB server itself, not a remote client).")
         return False
 
@@ -136,7 +136,7 @@ def check_local_wal_backlog():
     if count > PG_WAL_SEGMENT_WARN_COUNT:
         approx_mb = count * 16
         _warn(f"{count} segments locally (~{approx_mb} MB) exceeds the warn threshold "
-              f"({PG_WAL_SEGMENT_WARN_COUNT}) — Postgres is holding onto WAL it couldn't "
+              f"({PG_WAL_SEGMENT_WARN_COUNT}): Postgres is holding onto WAL it couldn't "
               f"archive yet. On a small disk this can become a real outage if it keeps growing.")
         return False
     return True
@@ -151,7 +151,7 @@ def check_r2_storage_usage():
     — see the module docstring for why this never auto-deletes anything.
     """
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
-        _warn("R2 not configured — can't check storage usage.")
+        _warn("R2 not configured: can't check storage usage.")
         return False
 
     s3 = boto3.client(
@@ -173,7 +173,7 @@ def check_r2_storage_usage():
     if total_gb > R2_STORAGE_WARN_GB:
         _warn(f"R2 backup storage ({total_gb:.2f} GB) has crossed {R2_STORAGE_WARN_GB} GB. "
               f"Time-based retention alone doesn't catch a volume spike within the retention "
-              f"window — this needs a human decision (shorten RETAIN_WEEKS, or budget for paid "
+              f"window: this needs a human decision (shorten RETAIN_WEEKS, or budget for paid "
               f"R2 storage beyond the 10GB free tier, ~$0.015/GB/month), not an automatic one.")
         return False
     return True
@@ -185,10 +185,10 @@ def main():
     ok_storage  = check_r2_storage_usage()
 
     if ok_archiver and ok_local and ok_storage:
-        print("[wal-health] OK — archiving is healthy.")
+        print("[wal-health] OK: archiving is healthy.")
         sys.exit(0)
     else:
-        print("[wal-health] ONE OR MORE CHECKS FAILED — see WARNING lines above.")
+        print("[wal-health] ONE OR MORE CHECKS FAILED: see WARNING lines above.")
         sys.exit(1)
 
 

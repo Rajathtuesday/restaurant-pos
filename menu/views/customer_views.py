@@ -271,7 +271,7 @@ def order_status(request, signed_token):
     elif statuses and statuses == {"served"}:
         stage, label = "served", "Enjoy your meal!"
     elif "pending" in statuses:
-        stage, label = "confirmed", "Order confirmed — sending to the kitchen"
+        stage, label = "confirmed", "Order confirmed: sending to the kitchen"
     else:
         stage, label = "placed", "Order received"
 

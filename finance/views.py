@@ -75,7 +75,7 @@ def expense_create(request):
             created_by=request.user,
         )
     except Exception:
-        return JsonResponse({"error": "Could not save expense — check the date is valid (YYYY-MM-DD)."}, status=400)
+        return JsonResponse({"error": "Could not save expense: check the date is valid (YYYY-MM-DD)."}, status=400)
 
     return JsonResponse({
         "success": True,

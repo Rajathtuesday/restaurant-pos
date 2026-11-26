@@ -46,4 +46,4 @@ class Expense(TenantScopedModel):
         ordering = ["-expense_date"]
 
     def __str__(self):
-        return f"{self.get_category_display()} — ₹{self.amount} ({self.expense_date})"
+        return f"{self.get_category_display()}: ₹{self.amount} ({self.expense_date})"

@@ -65,7 +65,7 @@ def create_subscription_payment_link(invoice, owner_user=None):
             "amount": decimal_to_paise(invoice.amount),
             "currency": "INR",
             "description": (
-                f"Rasova subscription — {tenant.name} "
+                f"Rasova subscription: {tenant.name} "
                 f"({invoice.period_start} to {invoice.period_end})"
             ),
             "customer": {"name": tenant.name, "email": owner},

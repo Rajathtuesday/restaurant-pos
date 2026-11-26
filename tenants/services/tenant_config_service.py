@@ -39,7 +39,7 @@ logger = logging.getLogger("pos.tenants")
 # ---------------------------------------------------------------------------
 PRESETS = {
     "qsr_no_kds": {
-        "label": "QSR — counter, no kitchen screen",
+        "label": "QSR: counter, no kitchen screen",
         "icon":  "bi-ticket-perforated",
         "color": "#10b981",
         "enable":  ["token_system", "kot_system", "inventory", "reports",
@@ -51,7 +51,7 @@ PRESETS = {
         "outlet":  {"split_bill_by_category": False},
     },
     "qsr_kds": {
-        "label": "QSR — with kitchen display",
+        "label": "QSR: with kitchen display",
         "icon":  "bi-display",
         "color": "#0ea5e9",
         "enable":  ["token_system", "kot_system", "kitchen_display",
@@ -62,7 +62,7 @@ PRESETS = {
         "outlet":  {"split_bill_by_category": False},
     },
     "counter_billing": {
-        "label": "Counter Billing — multi-section hotel / food court",
+        "label": "Counter Billing: multi-section hotel / food court",
         "icon":  "bi-receipt-cutoff",
         "color": "#6366f1",
         "enable":  ["token_system", "kot_system", "inventory", "reports",
@@ -73,7 +73,7 @@ PRESETS = {
         "outlet":  {"split_bill_by_category": True},
     },
     "fine_dining": {
-        "label": "Fine Dining — full table service",
+        "label": "Fine Dining: full table service",
         "icon":  "bi-table",
         "color": "#c5a059",
         "enable":  ["floor_plan", "waiter_call", "kitchen_display", "kot_system",
@@ -85,7 +85,7 @@ PRESETS = {
         "outlet":  {"split_bill_by_category": False},
     },
     "pub": {
-        "label": "Pub / Bar — tables, kitchen and liquor on state VAT",
+        "label": "Pub / Bar: tables, kitchen and liquor on state VAT",
         "icon":  "bi-cup-straw",
         "color": "#c8794a",
         "enable":  ["floor_plan", "waiter_call", "kitchen_display", "kot_system",
@@ -100,7 +100,7 @@ PRESETS = {
         "outlet":  {"split_bill_by_category": False, "staff_discount_limit_pct": Decimal("10.00")},
     },
     "cafe": {
-        "label": "Café — mixed counter + tables",
+        "label": "Café: mixed counter + tables",
         "icon":  "bi-cup-hot",
         "color": "#f59e0b",
         "enable":  ["token_system", "floor_plan", "qr_menu", "waiter_call",
@@ -168,7 +168,7 @@ def update_outlet_from_post(outlet, post):
         # previous value instead of erroring — that's an intentional
         # best-effort default, but it was invisible when it happened.
         logger.warning(
-            "Could not parse parcel_charge_amount=%r for outlet %s — left unchanged",
+            "Could not parse parcel_charge_amount=%r for outlet %s: left unchanged",
             post.get("parcel_charge_amount"), outlet.id,
         )
     if "parcel_gst_rate" in post:
@@ -225,7 +225,7 @@ def update_subscription_from_post(tenant, post):
     try:
         tenant.subscription_fee = Decimal(post.get("subscription_fee", "0") or "0")
     except Exception:
-        logger.warning("Could not parse subscription_fee=%r for tenant %s — left unchanged",
+        logger.warning("Could not parse subscription_fee=%r for tenant %s: left unchanged",
                         post.get("subscription_fee"), tenant.id)
     new_status = post.get("subscription_status")
     if new_status in dict(tenant._meta.get_field("subscription_status").choices):

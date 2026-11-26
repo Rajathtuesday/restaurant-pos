@@ -40,7 +40,7 @@ def _place_of_supply(outlet):
         code = outlet.gst_no[:2]
         if code in GST_STATE_CODES:
             return GST_STATE_CODES[code]
-    return "Unknown — set outlet GSTIN"
+    return "Unknown: set outlet GSTIN"
 
 def generate_orders_csv(tenant, outlet, start_date, end_date):
     """Generates a detailed CSV of all orders in the given date range."""
@@ -50,7 +50,7 @@ def generate_orders_csv(tenant, outlet, start_date, end_date):
     # Composition Scheme note for CA — only shown when applicable
     if outlet and getattr(outlet, 'is_composition_scheme', False):
         writer.writerow([
-            'NOTE: Composition Taxable Person — not eligible to collect tax on supplies.',
+            'NOTE: Composition Taxable Person: not eligible to collect tax on supplies.',
             f'GSTIN: {outlet.gst_no or "N/A"}',
             f'Period: {start_date} to {end_date}'
         ])
@@ -395,14 +395,14 @@ def generate_gstr1_excel(tenant, outlet, start_date, end_date):
         if len(outlet_states) == 1:
             pos_state = _place_of_supply(tenant.outlets.filter(gst_no__startswith=next(iter(outlet_states))).first())
         elif len(outlet_states) > 1:
-            pos_state = "Multiple states — export per outlet"
+            pos_state = "Multiple states: export per outlet"
             logger.warning(
                 "GSTR-1 export for tenant %s spans outlets in multiple states (%s); "
                 "this report only computes CGST/SGST, not IGST. Export per outlet instead.",
                 tenant.id, outlet_states,
             )
         else:
-            pos_state = "Unknown — set outlet GSTIN"
+            pos_state = "Unknown: set outlet GSTIN"
     
     for rate, data in b2cs_groups:
         taxable = data['taxable']

@@ -63,7 +63,7 @@ def convert_quantity(quantity, from_unit: str, to_unit: str) -> Decimal:
     if fam_from != fam_to:
         raise IncompatibleUnitsError(
             f"Cannot convert {from_unit!r} ({fam_from}) to {to_unit!r} ({fam_to}) "
-            f"— they measure different things."
+            f": they measure different things."
         )
 
     base_qty = quantity * _TO_BASE[from_unit]

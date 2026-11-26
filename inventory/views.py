@@ -801,7 +801,7 @@ def cancel_purchase_order(request, po_id):
         return JsonResponse({"error": "Purchase order not found"}, status=404)
 
     if po.status in ("received", "partially_received"):
-        return JsonResponse({"error": f"Cannot cancel a '{po.status}' PO — stock has already been received against it"}, status=400)
+        return JsonResponse({"error": f"Cannot cancel a '{po.status}' PO: stock has already been received against it"}, status=400)
 
     if po.status == "cancelled":
         return JsonResponse({"error": "PO is already cancelled"}, status=400)
@@ -1000,7 +1000,7 @@ def log_wastage(request, item_id):
 
     reason = data.get("reason", "").strip()[:100]
     notes  = data.get("notes", "").strip()[:200]
-    reference = reason if not notes else f"{reason} — {notes}"
+    reference = reason if not notes else f"{reason}: {notes}"
 
     try:
         item.record_wastage(quantity, reference=reference or "Manual wastage")
@@ -1212,7 +1212,7 @@ def variance_report(request):
                 r["item"].name, r["item"].category, r["item"].unit,
                 f"{r['recipe_expected']:.3f}", f"{r['txn_consumed']:.3f}",
                 f"{r['variance']:.3f}",
-                f"{r['variance_pct']:.1f}" if r["variance_pct"] is not None else "—",
+                f"{r['variance_pct']:.1f}" if r["variance_pct"] is not None else "-",
                 f"{r['wastage']:.3f}", f"{r['restocked']:.3f}",
                 f"{r['item'].stock:.3f}",
             ])

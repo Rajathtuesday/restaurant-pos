@@ -113,7 +113,7 @@ def gross_margin_report(tenant, outlet=None, start_date=None, end_date=None):
         # Note shown to the user
         "cogs_note": (
             f"COGS covers {recipe_coverage}% of items (those with recipes linked). "
-            f"{items_without_recipe} items have no recipe — their cost is excluded."
+            f"{items_without_recipe} items have no recipe: their cost is excluded."
             if items_without_recipe else
             "COGS covers 100% of items sold."
         ),

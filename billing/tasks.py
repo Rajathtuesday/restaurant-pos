@@ -88,7 +88,7 @@ def generate_monthly_invoices():
             pdf_bytes = render_invoice_pdf(invoice, payment_link_url=link_url)
             if owner and owner.email:
                 email = EmailMessage(
-                    subject=f"Rasova subscription invoice — {tenant.name}",
+                    subject=f"Rasova subscription invoice: {tenant.name}",
                     body=f"Your Rasova invoice for {period_start} to {period_end} is attached.\n\nPay online: {link_url}",
                     to=[owner.email],
                 )

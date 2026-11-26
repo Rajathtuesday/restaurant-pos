@@ -45,7 +45,7 @@
   "gross_margin": {
    "avg_order_value": 874.55,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 302 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 302 items have no recipe: their cost is excluded.",
    "discounts": 2353.5,
    "gross_margin_pct": 100.0,
    "gross_profit": 81346.1,
@@ -534,7 +534,7 @@
   "net_profit": {
    "avg_order_value": 874.55,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 302 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 302 items have no recipe: their cost is excluded.",
    "discounts": 2353.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
@@ -702,7 +702,7 @@
   "gross_margin": {
    "avg_order_value": 808.93,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 88 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 88 items have no recipe: their cost is excluded.",
    "discounts": 438.5,
    "gross_margin_pct": 100.0,
    "gross_profit": 23459.0,
@@ -1173,7 +1173,7 @@
   "net_profit": {
    "avg_order_value": 808.93,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 88 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 88 items have no recipe: their cost is excluded.",
    "discounts": 438.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
@@ -1191,7 +1191,7 @@
   },
   "orders_csv": [
    [
-    "NOTE: Composition Taxable Person — not eligible to collect tax on supplies.",
+    "NOTE: Composition Taxable Person: not eligible to collect tax on supplies.",
     "GSTIN: 29ABCDE1234F1Z5",
     "Period: 2026-09-01 to 2026-09-30"
    ],
@@ -2050,7 +2050,7 @@
   "gross_margin": {
    "avg_order_value": 1027.03,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe: their cost is excluded.",
    "discounts": 639.5,
    "gross_margin_pct": 100.0,
    "gross_profit": 32350.97,
@@ -2609,7 +2609,7 @@
   "net_profit": {
    "avg_order_value": 1027.03,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe: their cost is excluded.",
    "discounts": 639.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,
@@ -3480,7 +3480,7 @@
   "gross_margin": {
    "avg_order_value": 779.17,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe: their cost is excluded.",
    "discounts": 1275.5,
    "gross_margin_pct": 100.0,
    "gross_profit": 25536.13,
@@ -4039,7 +4039,7 @@
   "net_profit": {
    "avg_order_value": 779.17,
    "cogs": 0.0,
-   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe — their cost is excluded.",
+   "cogs_note": "COGS covers 0.0% of items (those with recipes linked). 107 items have no recipe: their cost is excluded.",
    "discounts": 1275.5,
    "expense_breakdown": [],
    "gross_margin_pct": 100.0,

@@ -83,7 +83,7 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
         logger.warning("AI import timed out (soft limit)")
         cache.set(cache_key, {
             "status": "error",
-            "error": "The menu took too long to read. Try a smaller or clearer file — "
+            "error": "The menu took too long to read. Try a smaller or clearer file: "
                      "for a big PDF, split it into a few pages and import them one at a time.",
         }, CACHE_TTL)
 

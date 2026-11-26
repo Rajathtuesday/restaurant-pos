@@ -27,7 +27,7 @@
       <th style="text-align:right;">Amount</th>
     </tr>
     <tr>
-      <td>Rasova subscription &mdash; {{ invoice.period_start|date:"d M Y" }} to {{ invoice.period_end|date:"d M Y" }}</td>
+      <td>Rasova subscription, {{ invoice.period_start|date:"d M Y" }} to {{ invoice.period_end|date:"d M Y" }}</td>
       <td style="text-align:right;">&#8377;{{ invoice.amount|floatformat:2 }}</td>
     </tr>
     <tr class="amount-row">

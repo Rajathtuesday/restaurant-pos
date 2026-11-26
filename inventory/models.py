@@ -562,7 +562,7 @@ class PurchaseOrderItem(models.Model):
     quantity_received = models.DecimalField(
         max_digits=12, decimal_places=3, default=0,
         help_text="How much of this line has actually arrived so far. Can be "
-                   "less than quantity — a delivery can be partial or split "
+                   "less than quantity: a delivery can be partial or split "
                    "across more than one receipt.",
     )
     invoiced_price = models.DecimalField(
@@ -736,11 +736,11 @@ class ProductionBatch(TenantScopedModel):
     BATCH_TYPE = (
         # New goods cooked/assembled from ingredients (e.g. "Gravy Base").
         # The finished good is created fresh; nothing is debited on dispatch.
-        ("produce", "Produced — new goods from ingredients"),
+        ("produce", "Produced: new goods from ingredients"),
         # Existing stock the central kitchen already holds is physically moved
         # to a branch. Dispatch DEBITS the kitchen's own stock so total
         # tenant-wide inventory stays constant across the transfer.
-        ("move", "Moved — existing kitchen stock leaves"),
+        ("move", "Moved: existing kitchen stock leaves"),
     )
 
     tenant = models.ForeignKey("tenants.Tenant", on_delete=models.CASCADE)
@@ -838,7 +838,7 @@ class StockRequisition(TenantScopedModel):
     STATUS = [
         ("draft",         "Draft"),
         ("pending",       "Pending"),
-        ("approved",      "Approved — Ready to Fulfill"),
+        ("approved",      "Approved: Ready to Fulfill"),
         ("in_production", "In Production (CK Processing)"),
         ("ordered",       "Ordered from Vendor"),
         ("fulfilled",     "Fulfilled"),
@@ -892,7 +892,7 @@ class StockRequisition(TenantScopedModel):
         ]
 
     def __str__(self):
-        return f"Req #{self.id} — {self.requesting_outlet.name} [{self.status}]"
+        return f"Req #{self.id}: {self.requesting_outlet.name} [{self.status}]"
 
     def is_editable(self):
         return self.status in ("draft", "pending")
@@ -994,7 +994,7 @@ MATCH_METHOD = [
     ("exact",  "Exact name match"),
     ("fuzzy",  "Fuzzy match"),
     ("ai",     "AI-resolved"),
-    ("new",    "No match — new ingredient"),
+    ("new",    "No match: new ingredient"),
     ("manual", "Manually added by reviewer"),
 ]
 

@@ -45,7 +45,7 @@ def deduct_inventory_for_items(order_items):
                 # corrupting stock.
                 logger.error(
                     "[UNIT MISMATCH] Recipe %s (menu item '%s') -> inventory item '%s': %s. "
-                    "Skipping this deduction — fix the recipe's unit.",
+                    "Skipping this deduction: fix the recipe's unit.",
                     recipe.id, order_item.menu_item.name, recipe.inventory_item.name, e,
                 )
                 continue
@@ -76,7 +76,7 @@ def deduct_inventory_for_items(order_items):
                 except IncompatibleUnitsError as e:
                     logger.error(
                         "[UNIT MISMATCH] ModifierRecipe %s -> inventory item '%s': %s. "
-                        "Skipping this deduction — fix the modifier recipe's unit.",
+                        "Skipping this deduction: fix the modifier recipe's unit.",
                         mr.id, mr.inventory_item.name, e,
                     )
                     continue
@@ -192,12 +192,12 @@ def check_inventory_availability(menu_item, quantity=1):
             )
             if inventory.stock < required:
                 logger.warning(
-                    "[INVENTORY WARN] %s: need %.2f %s, have %.2f — order allowed, will soft-drain at KOT",
+                    "[INVENTORY WARN] %s: need %.2f %s, have %.2f: order allowed, will soft-drain at KOT",
                     inventory.name, required, inventory.unit, inventory.stock,
                 )
         except InventoryItem.DoesNotExist:
             logger.warning(
-                "[INVENTORY WARN] Recipe for '%s' references missing inventory item id=%s — skipping check",
+                "[INVENTORY WARN] Recipe for '%s' references missing inventory item id=%s: skipping check",
                 menu_item.name, recipe.inventory_item_id,
             )
 

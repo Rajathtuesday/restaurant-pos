@@ -35,11 +35,11 @@ def run(source="zomato", base_url="http://127.0.0.1:8000"):
             config.swiggy_webhook_secret = secret
             config.swiggy_enabled = True
         config.save()
-        print(f"No {source} webhook secret was set — generated a temporary one for this demo.")
+        print(f"No {source} webhook secret was set: generated a temporary one for this demo.")
 
     items = list(MenuItem.objects.filter(tenant=tenant, outlet=outlet, is_available=True)[:2])
     if not items:
-        print("No available menu items found for this outlet — add one before demoing.")
+        print("No available menu items found for this outlet: add one before demoing.")
         return
 
     payload = {

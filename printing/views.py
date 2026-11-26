@@ -191,7 +191,7 @@ def print_queue_poll(request):
         ).update(status=PrintJob.PENDING, claimed_at=None)
         if reset:
             logger.warning(
-                "PrintQueue: outlet %d — %d stale PROCESSING job(s) reset to PENDING (device crashed mid-print)",
+                "PrintQueue: outlet %d: %d stale PROCESSING job(s) reset to PENDING (device crashed mid-print)",
                 outlet.pk, reset,
             )
 

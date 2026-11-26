@@ -104,7 +104,7 @@ def _send_twilio(phone: str, message: str, order_id) -> bool:
         client.messages.create(from_=from_, to=f"whatsapp:{phone}", body=message)
         return True
     except ImportError:
-        logger.warning("Twilio not installed — pip install twilio")
+        logger.warning("Twilio not installed: pip install twilio")
         return False
     except Exception as e:
         logger.error("Twilio WhatsApp send failed for order %s: %s", order_id, e)

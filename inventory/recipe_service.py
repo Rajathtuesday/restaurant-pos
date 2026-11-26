@@ -38,7 +38,7 @@ def upsert_recipe(menu_item, inventory_item, quantity, unit=None):
     if unit and not units_compatible(unit, inventory_item.unit):
         raise RecipeUnitMismatchError(
             f"'{unit}' can't be converted to '{inventory_item.unit}' "
-            f"({inventory_item.name}'s tracked unit) — they measure different things."
+            f"({inventory_item.name}'s tracked unit): they measure different things."
         )
 
     existing = Recipe.objects.filter(menu_item=menu_item, inventory_item=inventory_item).first()
@@ -71,7 +71,7 @@ def upsert_modifier_recipe(modifier, inventory_item, quantity, unit=None):
     if unit and not units_compatible(unit, inventory_item.unit):
         raise RecipeUnitMismatchError(
             f"'{unit}' can't be converted to '{inventory_item.unit}' "
-            f"({inventory_item.name}'s tracked unit) — they measure different things."
+            f"({inventory_item.name}'s tracked unit): they measure different things."
         )
 
     existing = ModifierRecipe.objects.filter(modifier=modifier, inventory_item=inventory_item).first()

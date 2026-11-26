@@ -174,7 +174,7 @@ def _deduct_inventory_for_order(order):
         try:
             inv_item.reduce_stock(
                 qty_to_deduct,
-                reference=f"Order #{order.id} — Token #{getattr(getattr(order, 'token', None), 'token_number', '?')}"
+                reference=f"Order #{order.id}: Token #{getattr(getattr(order, 'token', None), 'token_number', '?')}"
             )
             logger.info(
                 "Inventory | deducted %.3f %s of '%s' for Order #%s (%s)",
@@ -202,7 +202,7 @@ def _deduct_inventory_for_order(order):
             except IncompatibleUnitsError as e:
                 logger.error(
                     "[UNIT MISMATCH] Recipe %s (menu item '%s') -> inventory item '%s': %s. "
-                    "Skipping this deduction — fix the recipe's unit.",
+                    "Skipping this deduction: fix the recipe's unit.",
                     recipe.id, order_item.menu_item.name, recipe.inventory_item.name, e,
                 )
                 continue
@@ -222,7 +222,7 @@ def _deduct_inventory_for_order(order):
                 except IncompatibleUnitsError as e:
                     logger.error(
                         "[UNIT MISMATCH] ModifierRecipe %s (modifier '%s') -> inventory item '%s': %s. "
-                        "Skipping this deduction — fix the modifier recipe's unit.",
+                        "Skipping this deduction: fix the modifier recipe's unit.",
                         mr.id, oim.modifier.name, mr.inventory_item.name, e,
                     )
                     continue

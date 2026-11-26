@@ -41,7 +41,7 @@ def main():
     wal_path, wal_filename = sys.argv[1], sys.argv[2]
 
     if not settings.AWS_S3_ENDPOINT_URL or not settings.AWS_ACCESS_KEY_ID:
-        sys.exit("[wal-archive] R2 not configured — refusing to silently drop a WAL segment.")
+        sys.exit("[wal-archive] R2 not configured: refusing to silently drop a WAL segment.")
 
     s3 = boto3.client(
         "s3",

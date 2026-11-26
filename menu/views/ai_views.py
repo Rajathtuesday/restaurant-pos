@@ -41,7 +41,7 @@ def ai_menu_importer(request):
         if file:
             if file.size > 15 * 1024 * 1024:
                 return JsonResponse(
-                    {"error": "Image too large — please use a photo under 15 MB."},
+                    {"error": "Image too large: please use a photo under 15 MB."},
                     status=400,
                 )
             image_b64 = base64.b64encode(file.read()).decode()
@@ -60,7 +60,7 @@ def ai_menu_importer(request):
             return JsonResponse({"queued": True, "task_id": task.id})
         except Exception:
             # Celery/Redis down — run synchronously (slower but works)
-            logger.warning("Celery unavailable for AI import — running synchronously")
+            logger.warning("Celery unavailable for AI import: running synchronously")
             return _run_sync(request, text, image_b64, mime_type)
 
     except Exception:
@@ -118,7 +118,7 @@ def _run_sync(request, text, image_b64, mime_type):
         # one is deliberate and actionable, so return it directly instead of
         # letting it get swallowed into the generic message.
         return JsonResponse({
-            "error": "The menu took too long to read. Try a smaller or clearer file — "
+            "error": "The menu took too long to read. Try a smaller or clearer file: "
                      "for a big PDF, split it into a few pages and import them one at a time."
         }, status=400)
     except Exception:

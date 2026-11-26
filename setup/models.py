@@ -36,13 +36,13 @@ class KitchenStation(TenantScopedModel):
         help_text="Drinks count as made as soon as they're sent (turn on for a bar).",
     )
 
-    PAPER_WIDTH_CHOICES = [(58, "58mm — small receipt (32 chars/line)"), (80, "80mm — standard receipt (48 chars/line)")]
+    PAPER_WIDTH_CHOICES = [(58, "58mm: small receipt (32 chars/line)"), (80, "80mm: standard receipt (48 chars/line)")]
     paper_width_mm = models.IntegerField(default=80, choices=PAPER_WIDTH_CHOICES, help_text="Physical paper roll width")
 
     CUT_CHOICES = [("full", "Full cut"), ("partial", "Partial cut"), ("none", "No cut (tear manually)")]
     cut_type = models.CharField(max_length=10, default="full", choices=CUT_CHOICES)
 
-    ENCODING_CHOICES = [("cp437", "CP437 — standard (most printers)"), ("cp850", "CP850 — western Europe"), ("utf-8", "UTF-8 — modern printers only")]
+    ENCODING_CHOICES = [("cp437", "CP437: standard (most printers)"), ("cp850", "CP850: western Europe"), ("utf-8", "UTF-8: modern printers only")]
     printer_encoding = models.CharField(max_length=10, default="cp437", choices=ENCODING_CHOICES, help_text="Use UTF-8 only if your printer explicitly supports it; otherwise CP437")
 
     @property
@@ -89,7 +89,7 @@ class PaymentConfig(TenantScopedModel):
 
     # UPI VPA for QR generation on the bill (e.g. restaurant@okaxis)
     upi_id = models.CharField(max_length=100, blank=True, default="",
-                              help_text="UPI ID (VPA) shown as QR on bill — e.g. myrestaurant@okaxis")
+                              help_text="UPI ID (VPA) shown as QR on bill: e.g. myrestaurant@okaxis")
 
     # Razorpay — bring-your-own-keys. Each tenant connects their OWN Razorpay
     # account; money settles to their own bank account, Rasova never holds funds.

@@ -51,15 +51,15 @@ def robots_txt(request):
     # searchable), unlike the rest of the app.
     content = """User-agent: *
 
-# Public — the marketing site
+# Public: the marketing site
 Allow: /
 
-# Public — the customer-facing digital menu (overrides the /menu/
+# Public: the customer-facing digital menu (overrides the /menu/
 # disallow below; see the comment in robots_txt() for why)
 Allow: /menu/digital-menu/
 Allow: /menu/qr/
 
-# Private app areas — keep crawlers out (these are login-gated anyway)
+# Private app areas: keep crawlers out (these are login-gated anyway)
 Disallow: /admin/
 Disallow: /superadmin/
 Disallow: /dashboard/

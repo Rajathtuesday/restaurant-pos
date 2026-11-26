@@ -58,7 +58,7 @@ _QTY_RE = re.compile(
 )
 
 # A bare number range ("200-250", "1-2") — never averaged or guessed.
-_RANGE_RE = re.compile(r"^\s*\d+(?:\.\d+)?\s*[-–—]\s*\d+(?:\.\d+)?\s*[a-zA-Z]*\s*$")
+_RANGE_RE = re.compile(r"^\s*\d+(?:\.\d+)?\s*[-–\u2014]\s*\d+(?:\.\d+)?\s*[a-zA-Z]*\s*$")
 
 
 def parse_quantity_text(raw_text: str):

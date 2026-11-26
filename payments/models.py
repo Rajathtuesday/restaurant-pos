@@ -83,7 +83,7 @@ class Refund(models.Model):
 
     customer_complaint = models.CharField(
         max_length=500, blank=True, default="",
-        help_text="What the customer said — visible to owner"
+        help_text="What the customer said: visible to owner"
     )
 
     reason = models.CharField(

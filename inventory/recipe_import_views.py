@@ -53,7 +53,7 @@ def recipe_import_start(request):
     if file:
         if file.size > 15 * 1024 * 1024:
             return JsonResponse(
-                {"error": "File too large — please use a file under 15 MB."}, status=400
+                {"error": "File too large: please use a file under 15 MB."}, status=400
             )
         image_b64 = base64.b64encode(file.read()).decode()
         mime_type = file.content_type
@@ -69,7 +69,7 @@ def recipe_import_start(request):
     try:
         dispatch(ai_import_recipe, job_id=job.id, text=text, image_b64=image_b64, mime_type=mime_type)
     except Exception:
-        logger.warning("Celery unavailable for recipe import — running synchronously")
+        logger.warning("Celery unavailable for recipe import: running synchronously")
         ai_import_recipe(job.id, text, image_b64, mime_type)
 
     return JsonResponse({"success": True, "job_id": job.id})
@@ -248,7 +248,7 @@ def recipe_import_discard(request, job_id):
     )
     if job.status == "confirmed":
         return JsonResponse(
-            {"error": "Already confirmed — those recipe changes were saved and can't be discarded here."},
+            {"error": "Already confirmed: those recipe changes were saved and can't be discarded here."},
             status=400,
         )
     job.status = "discarded"

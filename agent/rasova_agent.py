@@ -820,7 +820,7 @@ def run_poll_mode(server_url: str, agent_key: str, interval: float = 2.0):  # no
     auth = {"X-Agent-Key": agent_key}
 
     logger.info("=" * 56)
-    logger.info("  Rasova Print Agent v%s — POLL MODE", VERSION)
+    logger.info("  Rasova Print Agent v%s: POLL MODE", VERSION)
     logger.info("  Polling: %s", jobs_url)
     logger.info("  Interval: %.1f s", interval)
     logger.info("  Platform: %s", sys.platform)
@@ -872,7 +872,7 @@ def run_poll_mode(server_url: str, agent_key: str, interval: float = 2.0):  # no
             if e.code == 403:
                 logger.error("Invalid agent key: copy the setup command again from Rasova")
                 sys.exit(1)
-            logger.warning("HTTP %d from server — will retry", e.code)
+            logger.warning("HTTP %d from server: will retry", e.code)
             consecutive_errors += 1
         except Exception as e:
             consecutive_errors += 1
@@ -898,7 +898,7 @@ def install_autostart_termux_poll(server_url: str, agent_key: str):
 
     script = (
         "#!/data/data/com.termux/files/usr/bin/sh\n"
-        "# Rasova Agent — auto-generated boot script\n"
+        "# Rasova Agent: auto-generated boot script\n"
         "# termux-wake-lock prevents Android from pausing the CPU\n"
         "termux-wake-lock\n"
         f"SERVER_URL='{server_url}'\n"
@@ -918,7 +918,7 @@ def install_autostart_termux_poll(server_url: str, agent_key: str):
     print(f"  Boot script: {boot_script}")
     print(f"  Logs:        {log_path}")
     print()
-    print("  IMPORTANT — one-time Android setup (do this once):")
+    print("  IMPORTANT: one-time Android setup (do this once):")
     print("  1. Install Termux:Boot from F-Droid, then open it once")
     print("  2. Android Settings → Apps → Termux → Battery → Unrestricted")
     print()

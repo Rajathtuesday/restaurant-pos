@@ -201,7 +201,7 @@ class AIService:
             raise Exception(
                 "Couldn't read that file. Please upload a photo (JPG/PNG), a PDF, "
                 "a Word document (.docx), an Excel sheet (.xlsx), or plain text/CSV. "
-                "(iPhone HEIC photos aren't supported — screenshot the menu instead.)"
+                "(iPhone HEIC photos aren't supported: screenshot the menu instead.)"
             )
 
     def _extract_docx(self, file_bytes):
@@ -546,7 +546,7 @@ class AIService:
         1. "ingredient": the ingredient name only (e.g. "Onion", not "2 medium onions")
         2. "quantity_text": the quantity EXACTLY as written in the source,
            unmodified (e.g. "1 cup", "2 medium", "a pinch", "200g", "1/2 tsp").
-           Do not convert, round, or normalize it — copy it verbatim.
+           Do not convert, round, or normalize it: copy it verbatim.
 
         If the same ingredient appears more than once (e.g. once in a marinade and
         once as a garnish), output it as two separate entries rather than combining them.
@@ -583,7 +583,7 @@ class AIService:
         item name that refers to the SAME real-world ingredient (matching
         synonyms/variants is fine, e.g. "cream" -> "Heavy Cream"), or null if
         none of the inventory items are actually the same ingredient. Do not
-        pick a loosely related item just because no better option exists —
+        pick a loosely related item just because no better option exists;
         null is the correct answer when unsure.
 
         Ingredients to match: {json.dumps(unmatched_names)}

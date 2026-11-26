@@ -252,5 +252,5 @@ class StaffPayRate(TenantScopedModel):
 
     def __str__(self):
         if self.pay_type == "monthly":
-            return f"{self.staff.username} — ₹{self.monthly_salary}/month"
-        return f"{self.staff.username} — ₹{self.hourly_rate}/hour"
+            return f"{self.staff.username}: ₹{self.monthly_salary}/month"
+        return f"{self.staff.username}: ₹{self.hourly_rate}/hour"

@@ -60,23 +60,23 @@ def print_kot_task(self, station_id, order_id, kot_id):
 
         # ── Tenant + outlet isolation ──────────────────────────────────────
         if _LOCAL_TENANT_ID and order.tenant_id != _LOCAL_TENANT_ID:
-            logger.debug("KOT #%s is for tenant %s — skipping (this worker = tenant %s).",
+            logger.debug("KOT #%s is for tenant %s: skipping (this worker = tenant %s).",
                          kot.kot_number, order.tenant_id, _LOCAL_TENANT_ID)
             return False
         if _LOCAL_OUTLET_ID and order.outlet_id != _LOCAL_OUTLET_ID:
-            logger.debug("KOT #%s is for outlet %s — skipping (this worker = outlet %s).",
+            logger.debug("KOT #%s is for outlet %s: skipping (this worker = outlet %s).",
                          kot.kot_number, order.outlet_id, _LOCAL_OUTLET_ID)
             return False
 
         # ── Idempotency — prevent double-print on retry ────────────────────
         idem_key = f"kot_printed_{kot_id}"
         if cache.get(idem_key):
-            logger.info("KOT #%s already printed — skipping duplicate task.", kot.kot_number)
+            logger.info("KOT #%s already printed: skipping duplicate task.", kot.kot_number)
             return True
 
         if not station.printer_ip:
             logger.warning(
-                "Station '%s' has no printer IP — KOT #%s skipped.",
+                "Station '%s' has no printer IP: KOT #%s skipped.",
                 station.name, kot.kot_number,
             )
             return False
@@ -104,7 +104,7 @@ def print_kot_task(self, station_id, order_id, kot_id):
         raise self.retry(exc=Exception("Print failed"))
 
     except (KitchenStation.DoesNotExist, Order.DoesNotExist, KOTBatch.DoesNotExist) as exc:
-        logger.error("KOT print failed — record not found: %s", exc)
+        logger.error("KOT print failed: record not found: %s", exc)
         return False
 
     except self.MaxRetriesExceededError:
@@ -164,22 +164,22 @@ def print_bill_task(self, order_id, station_id):
 
         # ── Tenant + outlet isolation ──────────────────────────────────────
         if _LOCAL_TENANT_ID and order.tenant_id != _LOCAL_TENANT_ID:
-            logger.debug("Bill for tenant %s — skipping (this worker = tenant %s).",
+            logger.debug("Bill for tenant %s: skipping (this worker = tenant %s).",
                          order.tenant_id, _LOCAL_TENANT_ID)
             return False
         if _LOCAL_OUTLET_ID and order.outlet_id != _LOCAL_OUTLET_ID:
-            logger.debug("Bill for outlet %s — skipping (this worker = outlet %s).",
+            logger.debug("Bill for outlet %s: skipping (this worker = outlet %s).",
                          order.outlet_id, _LOCAL_OUTLET_ID)
             return False
 
         # ── Idempotency — prevent double-print on retry ────────────────────
         idem_key = f"bill_printed_{order_id}"
         if cache.get(idem_key):
-            logger.info("Bill for Order #%s already printed — skipping duplicate.", order_id)
+            logger.info("Bill for Order #%s already printed: skipping duplicate.", order_id)
             return True
 
         if not station.printer_ip:
-            logger.warning("No printer IP on station '%s' — bill print skipped.", station.name)
+            logger.warning("No printer IP on station '%s': bill print skipped.", station.name)
             return False
 
         printer = PrintingService(
@@ -206,7 +206,7 @@ def print_bill_task(self, order_id, station_id):
         if strip_mode:
             if any_station_has_printer:
                 # QSR with station printers: KOTs already printed — just token receipt
-                logger.info("QSR order #%s: station printers used for KOTs — printing token only.", order.id)
+                logger.info("QSR order #%s: station printers used for KOTs: printing token only.", order.id)
                 success = printer.print_token_receipt(order)
             else:
                 # QSR, one cashier printer: token + KOTs as connected strip
@@ -214,12 +214,12 @@ def print_bill_task(self, order_id, station_id):
         else:
             if any_station_has_printer:
                 # Fine dining with per-station printers: KOTs already at stations — just bill
-                logger.info("Order #%s: station printers used for KOTs — printing bill only.", order.id)
+                logger.info("Order #%s: station printers used for KOTs: printing bill only.", order.id)
                 success = printer.print_bill(order)
             else:
                 # Hotel / fine dining, one cashier printer:
                 # bill → PARTIAL → KOT station1 → PARTIAL → KOT station2 → FULL
-                logger.info("Order #%s: one cashier printer — printing bill+KOT strip.", order.id)
+                logger.info("Order #%s: one cashier printer: printing bill+KOT strip.", order.id)
                 success = printer.print_bill_with_kots(order, kots, cashier_strip=True)
 
         if success:
@@ -232,7 +232,7 @@ def print_bill_task(self, order_id, station_id):
         raise self.retry(exc=Exception("Bill print failed"))
 
     except (KitchenStation.DoesNotExist, Order.DoesNotExist) as exc:
-        logger.error("Bill print failed — record not found: %s", exc)
+        logger.error("Bill print failed: record not found: %s", exc)
         return False
 
     except self.MaxRetriesExceededError:
@@ -254,6 +254,6 @@ def _store_printer_error(outlet_id, station_name, kot_number, detail):
         _PRINTER_ERROR_TTL,
     )
     logger.warning(
-        "Printer error stored — outlet %s, station '%s', KOT #%s: %s",
+        "Printer error stored: outlet %s, station '%s', KOT #%s: %s",
         outlet_id, station_name, kot_number, detail,
     )

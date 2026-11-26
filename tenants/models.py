@@ -300,7 +300,7 @@ class PrintProfile(models.Model):
     # ── KOT settings ──────────────────────────────────────────────────────
     kot_large_font = models.BooleanField(
         default=True,
-        help_text="Items print double-height — easier for chefs to read at a glance.",
+        help_text="Items print double-height: easier for chefs to read at a glance.",
     )
     kot_show_total = models.BooleanField(
         default=True,
@@ -424,7 +424,7 @@ class Outlet(models.Model):
         default=False,
         help_text=(
             "True  → menu prices already include GST. Bill back-calculates and shows GST inside the price. "
-            "         Example: Coffee ₹25 — GST (5%) ₹1.19 included. Customer pays ₹25 exactly. "
+            "         Example: Coffee ₹25: GST (5%) ₹1.19 included. Customer pays ₹25 exactly. "
             "         Use this for QSRs, cafés, and Zomato/Swiggy restaurants. "
             "False → GST is added on top of menu prices at billing (default). "
             "         Example: Coffee ₹23.81 + GST ₹1.19 = ₹25. "
@@ -439,7 +439,7 @@ class Outlet(models.Model):
         help_text=(
             "Packaging charge per item for parcel/takeaway orders. "
             "Set to 0 to disable. "
-            "Example: ₹5 per item — 3 items = ₹15 parcel charge total."
+            "Example: ₹5 per item: 3 items = ₹15 parcel charge total."
         )
     )
 
@@ -604,7 +604,7 @@ class Outlet(models.Model):
             "that fulfills stock requisitions raised by other outlets "
             "internally instead of routing them to a vendor. Only meaningful "
             "for franchise/hub-spoke tenants with the central_kitchen "
-            "feature. Explicit flag — StockRequisition.auto_route() used to "
+            "feature. Explicit flag: StockRequisition.auto_route() used to "
             "guess this from batch history alone before this field existed."
         )
     )
@@ -661,7 +661,7 @@ class Outlet(models.Model):
 
     paper_width_mm = models.IntegerField(
         default=80,
-        choices=[(58, "58mm — narrow roll"), (80, "80mm — standard roll")],
+        choices=[(58, "58mm: narrow roll"), (80, "80mm: standard roll")],
         help_text="Thermal paper width. Most restaurant printers use 80mm."
     )
 

@@ -50,7 +50,12 @@ def _not_null_without_default(field):
             and getattr(field, "db_default", NOT_PROVIDED) is NOT_PROVIDED and not field.primary_key)
 
 
-def problems_in(migration):
+def problems_in(migration, before=None):
+    """What `migration` takes away. `before(model_name, field_name)`: the
+    field as it stood before the migration (None: not known). An AlterField
+    on a field that was already NOT NULL with no default takes nothing away:
+    only its words (choices, help text) changed, which the previous version
+    never sees in the database (26 Nov 2026, the em dash labels)."""
     found = []
     for op in migration.operations:
         name = type(op).__name__
@@ -62,6 +67,9 @@ def problems_in(migration):
                 and getattr(op.field, "db_default", NOT_PROVIDED) is NOT_PROVIDED:
             found.append(f"AddField {op.model_name}.{op.name} is NOT NULL with a one-off default only")
         elif isinstance(op, migrations.AlterField) and _not_null_without_default(op.field):
+            old = before(op.model_name, op.name) if before else None
+            if old is not None and _not_null_without_default(old):
+                continue
             found.append(f"AlterField {op.model_name}.{op.name} leaves it NOT NULL with no default")
     return found
 
@@ -84,9 +92,16 @@ class MigrationsOnlyAddTest(SimpleTestCase):
     def test_new_migrations_only_add(self):
         bad = {}
         seen = []
+        loader = MigrationLoader(None, ignore_no_migrations=True)
         for app, name, migration in self.checked():
             seen.append(f"{app}.{name}")
-            found = problems_in(migration)
+
+            def before(model, field, app=app, name=name):
+                state = loader.project_state((app, name), at_end=False)
+                model_state = state.models.get((app, model.lower()))
+                return model_state.fields.get(field) if model_state else None
+
+            found = problems_in(migration, before)
             if found and (app, name) not in ALLOWED:
                 bad[f"{app}.{name}"] = found
         self.assertIn("orders.0072_order_request", seen, "the cut-off moved: today's migrations must be checked")
@@ -112,3 +127,16 @@ class MigrationsOnlyAddTest(SimpleTestCase):
             "AddField order.code is NOT NULL with a one-off default only",
             "AlterField order.name leaves it NOT NULL with no default",
         ])
+
+    def test_new_words_on_a_field_that_was_already_not_null_take_nothing_away(self):
+        from django.db import models
+
+        class Fake:
+            operations = [
+                migrations.AlterField("order", "kind", models.CharField(max_length=9, choices=[("a", "A: new words")])),
+                migrations.AlterField("order", "note", models.CharField(max_length=9)),
+            ]
+        was = {"kind": models.CharField(max_length=9, choices=[("a", "A, old words")]),
+               "note": models.CharField(max_length=9, null=True)}
+        found = problems_in(Fake, lambda model, field: was.get(field))
+        self.assertEqual(found, ["AlterField order.note leaves it NOT NULL with no default"])

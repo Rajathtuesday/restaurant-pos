@@ -301,7 +301,7 @@ def check_slug_available(request):
     if not slug:
         return JsonResponse({"available": False, "reason": "Enter a subdomain"})
     if len(slug) < 3:
-        return JsonResponse({"available": False, "reason": "Too short — minimum 3 characters"})
+        return JsonResponse({"available": False, "reason": "Too short: minimum 3 characters"})
     if slug in RESERVED_SLUGS:
         return JsonResponse({"available": False, "reason": f"'{slug}' is reserved"})
 
@@ -309,6 +309,6 @@ def check_slug_available(request):
     if tenant:
         qs = qs.exclude(id=tenant.id)
     if qs.exists():
-        return JsonResponse({"available": False, "reason": "Already taken — try another"})
+        return JsonResponse({"available": False, "reason": "Already taken: try another"})
 
     return JsonResponse({"available": True, "slug": slug})

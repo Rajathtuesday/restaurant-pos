@@ -61,7 +61,7 @@ def main():
 
     # ── Safety: never touch production ──────────────────────────────────────────
     if TEST_DB == prod:
-        sys.exit(f"[drill] REFUSING — drill DB name equals production ({prod}).")
+        sys.exit(f"[drill] REFUSING: drill DB name equals production ({prod}).")
 
     s3 = _r2()
 
@@ -96,7 +96,7 @@ def main():
     run(["dropdb", *conn, "--if-exists", TEST_DB], capture_output=True)
     r = run(["createdb", *conn, TEST_DB], capture_output=True)
     if r.returncode != 0:
-        sys.exit("[drill] createdb failed — does the DB user have CREATEDB?\n"
+        sys.exit("[drill] createdb failed: does the DB user have CREATEDB?\n"
                  + r.stderr.decode("utf-8", "replace")[:400])
     print(f"[drill] created throwaway DB: {TEST_DB}")
 
@@ -136,7 +136,7 @@ def main():
         except OSError:
             pass
 
-    print("[drill] ✅ SUCCESS — the backup is valid and restorable.")
+    print("[drill] ✅ SUCCESS: the backup is valid and restorable.")
 
 
 if __name__ == "__main__":
