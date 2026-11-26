@@ -480,6 +480,21 @@ body {
    Only once the script runs ([data-fit-ready]); without it the header keeps
    the old wrapping and the phone's sideways scroll. Rasova's own theme: the
    luxury buttons, the theme's colours, light and dark. */
+/* Until the fit has run, the row is one line and out of sight: the fit runs
+   from core/app.js, after the page's first paint, and every page load showed
+   the full words wrapped over two or three rows, then jumped (until 26 Nov
+   2026). If the script never runs, the row shows anyway after two seconds. */
+.header-right[data-header-fit]:not([data-fit-ready]) {
+    flex-wrap: nowrap !important;
+    overflow: hidden;
+    visibility: hidden;
+    animation: header-fit-fallback 0s linear 2s forwards;
+}
+.header-right[data-header-fit]:not([data-fit-ready]) .action-group,
+.header-right[data-header-fit]:not([data-fit-ready]) .d-flex { flex-wrap: nowrap !important; width: auto !important; margin-top: 0 !important; }
+.header-right[data-header-fit]:not([data-fit-ready]) > *,
+.header-right[data-header-fit]:not([data-fit-ready]) .action-group > * { flex-shrink: 0; white-space: nowrap; }
+@keyframes header-fit-fallback { to { visibility: visible; } }
 .header-right[data-fit-ready] {
     flex: 1 1 0;
     min-width: min(100%, 22rem);

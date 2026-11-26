@@ -130,3 +130,58 @@ class BusyScreensFitTest(BrowserTestCase):
                     row = out["results"]["row"]
                     self.assertEqual(row["rows"], 1, (label, width, row))
                     self.assertFalse(row["overflow"], (label, width, row))
+
+
+# The header's state while the fit has not run: whether its row shows, and
+# how many rows its visible controls make.
+BEFORE_FIT = """() => {
+  const row = document.querySelector("[data-header-fit]");
+  const shown = [...row.querySelectorAll("a, button")].filter((el) => el.offsetParent !== null);
+  const middles = shown.map((el) => { const b = el.getBoundingClientRect(); return b.top + b.height / 2; }).sort((a, b) => a - b);
+  return {
+    fitted: row.hasAttribute("data-fit-ready"),
+    visible: getComputedStyle(row).visibility === "visible",
+    rows: middles.filter((m, i) => i === 0 || m - middles[i - 1] > 16).length,
+  };
+}"""
+
+
+class HeaderBeforeTheFitTest(BrowserTestCase):
+    """Why (26 Nov 2026, item 12a of the fault plan): the fit runs from
+    core/app.js, a module that waits behind two large scripts, so every page
+    load showed the header's full words, wrapped over two or three rows, then
+    jumped to one fitted row. Until the fit runs, the row is one line and out
+    of sight; if the script never runs, it shows anyway after two seconds.
+    Here app.js never arrives, so the page is caught before its fit."""
+
+    def setUp(self):
+        self.r = Restaurant("Alpha", "flash-alpha")
+
+    def page_without_app_js(self):
+        from django.conf import settings
+        from django.test import Client
+        client = Client()
+        client.force_login(self.r.owner)
+        context = self.browser.new_context(viewport={"width": 1024, "height": 768})
+        self.addCleanup(context.close)
+        context.add_cookies([{"name": settings.SESSION_COOKIE_NAME,
+                              "value": client.cookies[settings.SESSION_COOKIE_NAME].value, "url": self.live_server_url}])
+        context.route("**/js/core/app*.js", lambda route: route.abort())
+        page = context.new_page()
+        page.goto(self.live_server_url + "/tables/", wait_until="load")
+        return page
+
+    def test_no_wrapped_words_show_before_the_fit(self):
+        page = self.page_without_app_js()
+        page.wait_for_timeout(300)
+        seen = page.evaluate(BEFORE_FIT)
+        self.assertFalse(seen["fitted"])
+        self.assertFalse(seen["visible"], seen)
+        self.assertEqual(seen["rows"], 1, seen)
+
+    def test_the_row_shows_anyway_if_the_script_never_runs(self):
+        page = self.page_without_app_js()
+        page.wait_for_timeout(2600)
+        seen = page.evaluate(BEFORE_FIT)
+        self.assertTrue(seen["visible"], seen)
+        self.assertEqual(seen["rows"], 1, seen)
