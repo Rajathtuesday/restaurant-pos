@@ -393,6 +393,11 @@ CSRF_COOKIE_NAME = "csrftoken2"
 # Security Headers (the cloud only: a box serves plain http on the
 # restaurant's own network, so its cookies can't be https-only, and it has no
 # rasova.net domain, Cloudflare or proxy in front of it)
+if BOX:
+    # Django sends Cross-Origin-Opener-Policy by default. Chrome honours it
+    # only on https, and on a box's plain http it logged a warning on every
+    # page (26 Nov 2026). The cloud keeps Django's default.
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 if not DEBUG and not BOX:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

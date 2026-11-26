@@ -842,9 +842,13 @@ class CloudUntouchedTest(TestCase):
         env.pop("EMAIL_BACKEND")
         code = ("import django,json;django.setup();from django.conf import settings as s;"
                 "print(json.dumps([s.BOX,s.ALLOWED_HOSTS,s.SESSION_COOKIE_SECURE,s.CSRF_COOKIE_SECURE,"
-                "s.SESSION_COOKIE_DOMAIN,s.SECURE_HSTS_SECONDS,list(s.CELERY_BEAT_SCHEDULE)]))")
+                "s.SESSION_COOKIE_DOMAIN,s.SECURE_HSTS_SECONDS,list(s.CELERY_BEAT_SCHEDULE),"
+                "s.SECURE_CROSS_ORIGIN_OPENER_POLICY]))")
         out = subprocess.run([os.sys.executable, "-c", code], env=env, capture_output=True, text=True,
                              cwd=str(Path(__file__).resolve().parents[2]))
         self.assertEqual(out.returncode, 0, out.stderr[-500:])
         self.assertEqual(json.loads(out.stdout.strip().splitlines()[-1]),
-                         [True, ["*"], False, False, None, 0, ["box-nightly-backup"]])
+                         [True, ["*"], False, False, None, 0, ["box-nightly-backup"],
+                          # No COOP header: a box serves plain http, where Chrome ignores
+                          # it and warned on every page (26 Nov 2026, plan item 12b).
+                          None])
