@@ -31,7 +31,8 @@
 .table tr:hover td { background: rgba(197,160,89,0.03); }
 
 .bar-wrap { width: 120px; background: var(--border-color); height: 6px; border-radius: 3px; display: inline-block; vertical-align: middle; }
-.bar-fill { height: 100%; border-radius: 3px; background: var(--accent-gold); }
+/* display: block: the fill is a <span>; inline, it ignored its width and height and every bar was empty (26 Nov 2026). */
+.bar-fill { display: block; height: 100%; border-radius: 3px; background: var(--accent-gold); }
 .bar-fill.low { background: #ef4444; }
 .bar-fill.ok  { background: #10b981; }
 

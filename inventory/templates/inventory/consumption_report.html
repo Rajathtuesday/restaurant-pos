@@ -85,14 +85,12 @@
           {% endif %}
         </td>
         <td>
-          {% with total=consumed|add:item.stock %}
-          {% if total > 0 %}
-          <span class="bar-wrap" title="{{ consumed|floatformat:2 }} used of {{ total|floatformat:2 }} on hand today">
+          {% if row.used_pct is not None %}
+          <span class="bar-wrap" title="{{ consumed|floatformat:2 }} used of {{ row.on_hand|floatformat:2 }} on hand today">
             <span class="bar-fill {% if item.stock <= item.low_stock_threshold %}low{% else %}ok{% endif %}"
-                  style="width:{% widthratio consumed total 100 %}%"></span>
+                  style="width:{{ row.used_pct }}%"></span>
           </span>
           {% endif %}
-          {% endwith %}
         </td>
         <td style="color:var(--text-muted);font-size:.78rem;">{{ item.unit }}</td>
       </tr>

@@ -927,6 +927,14 @@ def consumption_report(request):
 
     # Sort by consumed (most used first)
     report_rows = sorted(consumption.values(), key=lambda x: x["consumed"], reverse=True)
+    # The usage bar: what was used of what was on hand today (used + left),
+    # worked out here in Decimal. The template did it with |add, which tries
+    # int() first: 0.5 kg used and 1.5 kg left made 0 + 1, and the bar said
+    # half where a quarter was used (26 Nov 2026).
+    for row in report_rows:
+        on_hand = row["consumed"] + Decimal(str(row["item"].stock or 0))
+        row["on_hand"] = on_hand
+        row["used_pct"] = (row["consumed"] * 100 / on_hand).quantize(Decimal("1")) if on_hand > 0 else None
     categories = sorted({r["item"].category for r in report_rows if r["item"].category})
 
     # CSV export
