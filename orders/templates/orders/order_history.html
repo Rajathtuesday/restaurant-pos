@@ -96,20 +96,20 @@
       <span>Orders</span>
     </div>
     <div class="sum-chip">
-      <strong>Rs.{{ total_revenue|floatformat:0 }}</strong>
+      <strong>{{ revenue_text }}</strong>
       <span>Revenue</span>
     </div>
     {% if total_orders > 0 %}
     <div class="sum-chip">
-      <strong>Rs.{{ total_revenue|floatformat:0 }}</strong>
-      <span>Avg: Rs.{% widthratio total_revenue total_orders 1 %}</span>
+      <strong>{{ average_text }}</strong>
+      <span>Average bill</span>
     </div>
     {% endif %}
     {% if pay_map %}
     <div class="sum-chip pay-bar">
-      {% if pay_map.cash  %}<span class="pay-dot" style="background:#10b981;"></span> Cash Rs.{{ pay_map.cash|floatformat:0 }}&nbsp;&nbsp;{% endif %}
-      {% if pay_map.upi   %}<span class="pay-dot" style="background:#3b82f6;"></span> UPI Rs.{{ pay_map.upi|floatformat:0 }}&nbsp;&nbsp;{% endif %}
-      {% if pay_map.card  %}<span class="pay-dot" style="background:#a855f7;"></span> Card Rs.{{ pay_map.card|floatformat:0 }}{% endif %}
+      {% if pay_map.cash  %}<span class="pay-dot" style="background:#10b981;"></span> Cash {{ pay_map.cash }}&nbsp;&nbsp;{% endif %}
+      {% if pay_map.upi   %}<span class="pay-dot" style="background:#3b82f6;"></span> UPI {{ pay_map.upi }}&nbsp;&nbsp;{% endif %}
+      {% if pay_map.card  %}<span class="pay-dot" style="background:#a855f7;"></span> Card {{ pay_map.card }}{% endif %}
       <span style="color:var(--text-muted);font-size:0.65rem;">Payment breakdown</span>
     </div>
     {% endif %}
@@ -163,7 +163,7 @@
           {% endif %}
         </td>
         <td style="font-size:0.82rem;">{{ order.items.count }}</td>
-        <td style="text-align:right;font-weight:600;">Rs.{{ order.grand_total|floatformat:0 }}</td>
+        <td style="text-align:right;font-weight:600;">{{ order.total_text }}</td>
         <td>
           {% for p in order.payments.all %}
             {% if p.method != "refund" %}

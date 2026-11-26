@@ -11,6 +11,7 @@ Role access:
 import csv
 import logging
 from datetime import timedelta, date
+from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
@@ -21,6 +22,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from core.decorators import tenant_required, role_required
+from core.money import rupees
 from core.utils import get_business_date, get_business_date_range, get_business_period
 from orders.models import Order, OrderItem, Payment, OrderEvent
 from payments.models import Refund
@@ -187,23 +189,29 @@ def order_history_view(request):
     qs, is_restricted = _base_queryset(request)
     qs = _apply_filters(qs, request.GET, is_restricted, request.user.outlet)
 
-    # Summary stats for the filtered set (before pagination)
-    summary = qs.exclude(status="cancelled").aggregate(
+    # Summary of the filtered set (before pagination), summed over the
+    # orders themselves. Never over `qs` with a join in it: a join (the
+    # items, or a filter on payments) repeats each order once per row it
+    # meets, and the sum then adds a bill once per dish. Until 26 Nov 2026
+    # Count("items") sat in this aggregate: 49 orders and Rs 84,109 were
+    # shown for 21 orders and Rs 34,379.
+    counted = qs.exclude(status="cancelled")
+    summary = Order.objects.filter(pk__in=counted.values("pk")).aggregate(
         total_orders  = Count("id"),
         total_revenue = Sum("grand_total"),
-        total_items   = Count("items"),
     )
     total_revenue = summary["total_revenue"] or 0
     total_orders  = summary["total_orders"]  or 0
+    average_bill  = (Decimal(str(total_revenue)) / total_orders).quantize(Decimal("1")) if total_orders else 0
 
     # Payment method breakdown
     payment_summary = (
         Payment.objects
-        .filter(order__in=qs.exclude(status="cancelled"), method__in=["cash", "upi", "card"])
+        .filter(order__in=counted.values("pk"), method__in=["cash", "upi", "card"])
         .values("method")
         .annotate(total=Sum("amount"))
     )
-    pay_map = {row["method"]: float(row["total"]) for row in payment_summary}
+    pay_map = {row["method"]: rupees(row["total"]) for row in payment_summary if row["total"]}
 
     # Staff list for filter dropdown (owner/manager only)
     staff_list = []
@@ -225,12 +233,16 @@ def order_history_view(request):
     except (ValueError, TypeError):
         page_number = 1
     page = paginator.get_page(page_number)
+    for order in page.object_list:
+        order.total_text = rupees(order.grand_total)
 
     return render(request, "orders/order_history.html", {
         "page_data":      order_history_page_data(),
         "page":           page,
         "total_orders":   total_orders,
         "total_revenue":  total_revenue,
+        "revenue_text":   rupees(total_revenue),
+        "average_text":   rupees(average_bill),
         "pay_map":        pay_map,
         "staff_list":     staff_list,
         "is_restricted":  is_restricted,

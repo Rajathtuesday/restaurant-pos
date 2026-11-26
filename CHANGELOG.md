@@ -7,6 +7,13 @@ the source of truth.
 
 ---
 
+## 2026-11-26: What the fault sweep found, fixed
+
+The rest of `md_files/rasova_fault_fix_plan_2026-11-26.md`, on the owner's "continue the other fixes which are needed", with his decisions D2 (Discount/Void Audit on for pubs), D4 (comment dashes too), D6 (the header fix in one place) and D7 (delete the dead Gemini file). One commit per item, each with a test that fails on the old code.
+
+### Fixed
+- **Order History totals were about 2.4 times too high** (item 1). The summary was one `aggregate()` with `Count("items")` beside `Sum("grand_total")`: the join to the items repeats each order once per dish, so each bill was added once per dish and dishes were counted as orders (49 orders and Rs 84,109 shown, 21 and Rs 34,379 true). The totals are summed over the orders alone (`pk__in` the filtered set), so no join, the items or a payments filter, can inflate them again. The third chip shows the average bill (it repeated the revenue), and money reads "₹34,379" like every other screen, not "Rs.34379". Tests: `orders/tests/test_order_history_totals.py` (5, all fail on the old code).
+
 ## 2026-11-26: The login lockout locks for real, and only the right person
 
 Item 2 of the fault plan (`md_files/rasova_fault_fix_plan_2026-11-26.md`), approved by the owner as decision D1: "yes do all the necessary things which it should have and also put more test". Each fix comes with a test that fails on the old code.
