@@ -437,6 +437,8 @@ html.large-text .qty-value   { font-size: 1rem    !important; }
     bottom: 16px;
     left: 16px;
     right: 16px;
+    width: calc(100% - 32px);   /* a button with left and right still took 100% and ran 16 px off (26 Nov 2026) */
+    box-sizing: border-box;
     background: var(--accent-gold);
     color: #fff;
     padding: 1rem 1.5rem;

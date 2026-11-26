@@ -6,7 +6,7 @@
 .section-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 1rem; }
 
 .page-body { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem; display: grid; grid-template-columns: 1fr 1.6fr; gap: 3rem; align-items: start; }
-@media(max-width: 700px) { .page-body { grid-template-columns: 1fr; } }
+@media(max-width: 700px) { .page-body { grid-template-columns: minmax(0, 1fr); } }
 
 /* Add-station form */
 .field-label { display: block; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted); font-weight: 600; margin-bottom: 0.4rem; }
@@ -33,7 +33,7 @@
 .pm-icon  { font-size: 1.2rem; margin-bottom: 0.2rem; }
 .pm-title { font-size: 0.78rem; font-weight: 700; color: var(--text-main); }
 .pm-desc  { font-size: 0.65rem; color: var(--text-muted); line-height: 1.4; }
-@media(max-width:500px) { .print-mode-grid { grid-template-columns: 1fr; } }
+@media(max-width:500px) { .print-mode-grid { grid-template-columns: minmax(0, 1fr); } }
 #printModeHint { margin-top: 0.75rem; font-size: 0.72rem; color: var(--text-muted); line-height: 1.6; }
 
 /* Station cards */
@@ -51,7 +51,7 @@
 .printer-panel { border-top: 1px solid var(--border-color); padding: 1.25rem; display: none; }
 .printer-panel.open { display: block; }
 .printer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
-@media(max-width:500px) { .printer-grid { grid-template-columns: 1fr; } }
+@media(max-width:500px) { .printer-grid { grid-template-columns: minmax(0, 1fr); } }
 .field-select { width: 100%; background: var(--panel-bg); border: none; border-bottom: 1px solid var(--border-color); color: var(--text-main); padding: 0.55rem 0; font-size: 0.9rem; outline: none; margin-bottom: 1.4rem; font-family: inherit; cursor: pointer; appearance: none; }
 .field-select:focus { border-bottom-color: var(--accent-gold); }
 

@@ -37,7 +37,7 @@ body {
   grid-template-rows: 1fr;   /* an explicit row that fills the body, instead of relying on an implicit row to stretch itself */
 }
 @media (max-width: 768px) {
-  body { grid-template-columns: 1fr; }
+  body { grid-template-columns: minmax(0, 1fr); }
   .left-panel { display: none; }
 }
 

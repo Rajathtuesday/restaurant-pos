@@ -84,6 +84,7 @@ html.dark .category-header:hover { background: rgba(255,255,255,0.02); }
     background: var(--panel-bg); border: 1px solid var(--border-color); color: var(--text-main);
     font-family: 'Outfit', sans-serif; font-size: 0.78rem; padding: 0.35rem 0.55rem;
     border-radius: 6px; cursor: pointer; outline: none; transition: border-color 0.2s;
+    max-width: 100%; min-width: 0;   /* as wide as its longest option, it ran off a phone (26 Nov 2026) */
 }
 .gst-select:focus { border-color: var(--accent-gold); }
 .gst-select option { background: var(--panel-bg); color: var(--text-main); }
@@ -112,7 +113,7 @@ html.dark .item-row:hover { background: rgba(255,255,255,0.01); }
     .bulk-section { width: 100%; justify-content: flex-end; }
     .item-row { flex-wrap: wrap; gap: 0.4rem; padding: 0.85rem 1rem; }
     .item-gst-control { width: 100%; }
-    .item-gst-control .gst-select { flex: 1; }
+    .item-gst-control .gst-select, .bulk-section .gst-select { flex: 1; }
 }
 
 .saving-dot[hidden] { display: none; }

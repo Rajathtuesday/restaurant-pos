@@ -26,7 +26,7 @@
 .field-mono { font-family: 'Space Mono', monospace; font-size: 0.9rem; letter-spacing: 1px; text-transform: uppercase; }
 
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-@media (max-width: 560px) { .two-col { grid-template-columns: 1fr; gap: 0; } }
+@media (max-width: 560px) { .two-col { grid-template-columns: minmax(0, 1fr); gap: 0; } }
 
 .logo-preview { display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1rem; }
 .logo-img { width: 72px; height: 72px; object-fit: contain; border: 1px solid var(--border-color); padding: 6px; background: var(--panel-bg); }

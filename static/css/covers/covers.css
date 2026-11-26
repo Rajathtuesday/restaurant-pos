@@ -1,6 +1,6 @@
 /* covers/templates/covers/covers.html */
-.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 2.5rem; align-items: start; }
-@media (max-width: 760px) { .page-body { grid-template-columns: 1fr; } }
+.page-body { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 2.5rem; align-items: start; }
+@media (max-width: 760px) { .page-body { grid-template-columns: minmax(0, 1fr); } }
 .page-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: .5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin-bottom: .25rem; }
 .page-sub { color: var(--text-muted); font-size: .82rem; line-height: 1.6; margin-bottom: 1.25rem; }

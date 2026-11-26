@@ -45,7 +45,7 @@
     {% endif %}
 
     <div class="dashboard-card p-0">
-        <table class="table-luxury">
+        <div class="table-responsive"><table class="table-luxury">
             <thead>
                 <tr>
                     <th>Date</th><th>Opened</th><th>Closed</th><th>Cash Sales</th><th>Discrepancy</th><th>Status</th>
@@ -67,7 +67,7 @@
                 </tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
         {% if not sessions %}
         {% include "core/_empty_state.html" with icon="cash-stack" title="No register sessions yet" text="Open the register at the start of the day with the cash in the drawer; closing it gives the end-of-day count." modal="#openSessionModal" label="Open register" %}
         {% endif %}

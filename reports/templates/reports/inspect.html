@@ -87,7 +87,7 @@
   <div class="panel">
     <div class="section-label">Payment Breakdown</div>
     {% if payments %}
-    <table class="table-clean">
+    <div class="table-responsive"><table class="table-clean">
       <thead>
         <tr>
           <th>Method</th>
@@ -109,7 +109,7 @@
           <td class="text-end mono">₹{{ gross|floatformat:2 }}</td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
     {% else %}
       <div class="empty-state">No payment records for today.</div>
     {% endif %}
@@ -120,7 +120,7 @@
   <div class="panel">
     <div class="section-label">GST Breakdown by Rate</div>
     {% if gst_by_rate %}
-    <table class="table-clean">
+    <div class="table-responsive"><table class="table-clean">
       <thead>
         <tr>
           <th>GST Rate</th>
@@ -148,7 +148,7 @@
           <td class="text-end mono">₹{{ gst_totals.gst|floatformat:2 }}</td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
     {% else %}
       <div class="empty-state">No GST transactions today.</div>
     {% endif %}
@@ -159,7 +159,7 @@
   <div class="panel">
     <div class="section-label">Top Items Sold Today</div>
     {% if items_today %}
-    <table class="table-clean">
+    <div class="table-responsive"><table class="table-clean">
       <thead>
         <tr>
           <th>#</th>
@@ -176,7 +176,7 @@
         </tr>
         {% endfor %}
       </tbody>
-    </table>
+    </table></div>
     {% else %}
       <div class="empty-state">No items sold today.</div>
     {% endif %}
@@ -186,7 +186,7 @@
   <div class="panel">
     <div class="section-label">All Orders · {{ today|date:"d M Y" }}</div>
     {% if orders %}
-    <table class="table-clean">
+    <div class="table-responsive"><table class="table-clean">
       <thead>
         <tr>
           <th>Order #</th>
@@ -216,7 +216,7 @@
           <td class="no-print"></td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
     {% else %}
       <div class="empty-state">No orders recorded for today.</div>
     {% endif %}

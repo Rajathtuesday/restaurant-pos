@@ -119,7 +119,7 @@
             </div>
 
             <!-- Items Table -->
-            <table class="items-table">
+            <div class="po-table-scroll"><table class="items-table">
                 <thead>
                     <tr>
                         <th style="width:38px">#</th>
@@ -161,7 +161,7 @@
                         <td>₹ {{ po.total_amount }}</td>
                     </tr>
                 </tfoot>
-            </table>
+            </table></div>
 
             <!-- Notes -->
             {% if po.notes %}

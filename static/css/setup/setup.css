@@ -39,7 +39,7 @@ html.dark .status-bad, body.dark .status-bad { color: #f87171; }
        enough room for two very cramped columns at ~170px each
        once auto-fit fits them; a real setup card (icon + title +
        2-line description) needs the full width to stay readable. */
-    .setup-grid { grid-template-columns: 1fr; padding: 0 1.1rem 3rem; gap: 1.1rem; }
+    .setup-grid { grid-template-columns: minmax(0, 1fr); padding: 0 1.1rem 3rem; gap: 1.1rem; }
     .setup-card { padding: 1.5rem; }
     .upload-card { margin: 0 1.1rem 2.25rem; padding: 1.25rem; }
 }

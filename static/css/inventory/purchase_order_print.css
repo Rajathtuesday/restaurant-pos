@@ -317,3 +317,6 @@ body {
     .signatures { break-inside: avoid; }
     @page { margin: 15mm 12mm; size: A4; }
 }
+
+/* On a phone the A4 table scrolls inside its box instead of pushing the page sideways. */
+@media screen { .po-table-scroll { overflow-x: auto; max-width: 100%; } }

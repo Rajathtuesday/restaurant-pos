@@ -31,9 +31,9 @@
 .stat-val.green { color: var(--success); }
 
 .layout { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; align-items: start; }
-@media(max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+@media(max-width: 760px) { .layout { grid-template-columns: minmax(0, 1fr); } }
 @media(max-width: 480px) {
-    .two { grid-template-columns: 1fr; }
+    .two { grid-template-columns: minmax(0, 1fr); }
     .tbl-btn { padding: .55rem .7rem; min-height: 40px; font-size: .74rem; }
 }
 

@@ -69,7 +69,10 @@
 .wastage-subhead { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-weight: 600; margin: 1.4rem 0.8rem 0.4rem; }
 
 /* ── Section tabs ───────────────────────────────── */
-.section-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-color); margin-bottom: 0; }
+.section-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border-color); margin-bottom: 0;
+  overflow-x: auto; scrollbar-width: none; }   /* on a phone the last tabs were off the edge (26 Nov 2026) */
+.section-tabs::-webkit-scrollbar { display: none; }
+.section-tab { flex-shrink: 0; white-space: nowrap; }
 .section-tab {
   padding: 0.7rem 1.1rem; font-size: 0.8rem; font-weight: 500;
   cursor: pointer; border: none; background: none;

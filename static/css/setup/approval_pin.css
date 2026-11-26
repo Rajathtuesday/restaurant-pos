@@ -1,6 +1,6 @@
 /* setup/templates/setup/approval_pin.html */
 .page-body { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: start; }
-@media(max-width: 720px) { .page-body { grid-template-columns: 1fr; padding: 2rem 1rem; } }
+@media(max-width: 720px) { .page-body { grid-template-columns: minmax(0, 1fr); padding: 2rem 1rem; } }
 .page-eyebrow { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--accent-gold); margin-bottom: 0.5rem; }
 .page-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 0.5rem; }
 .divider { width: 40px; height: 1px; background: var(--accent-gold); margin: 1.2rem 0; }

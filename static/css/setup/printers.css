@@ -26,7 +26,7 @@ html.dark .pr-page, body.dark .pr-page { --pr-ok: #4ade80; --pr-bad: #f87171; --
 .pr-state.is-bad { color: var(--pr-bad); font-weight: 600; }
 .pr-state.is-idle { color: var(--pr-idle); }
 
-.pr-fields { display: grid; grid-template-columns: 1fr; gap: .75rem; }
+.pr-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: .75rem; }
 @media (min-width: 560px) { .pr-fields { grid-template-columns: 2fr 1fr; } .pr-more .pr-fields { grid-template-columns: 1fr 1fr; } }
 .pr-field { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
 .pr-field-short { max-width: 320px; margin: .75rem 0 0; }
@@ -65,7 +65,7 @@ html.dark .pr-page, body.dark .pr-page { --pr-ok: #4ade80; --pr-bad: #f87171; --
 .pr-check input { width: 20px; height: 20px; margin-top: .1rem; flex-shrink: 0; accent-color: var(--accent-gold); }
 .pr-every .pr-name { margin-bottom: .25rem; }
 
-.pr-app-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: .75rem; }
+.pr-app-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-top: .75rem; }
 @media (min-width: 560px) { .pr-app-grid { grid-template-columns: 1fr 1fr; } }
 .pr-app-step { display: flex; gap: .9rem; align-items: flex-start; }
 .pr-app-step p { font-size: .8rem; line-height: 1.55; margin: 0; color: var(--text-muted); }
