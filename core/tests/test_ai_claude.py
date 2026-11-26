@@ -134,3 +134,24 @@ class PricingTest(SimpleTestCase):
 
     def test_a_refusal_is_no_suggestion(self):
         self.assertIsNone(AIService(client=FakeClaude(text="", stop_reason="refusal")).suggest_pricing("Dal", "x"))
+
+
+class ClaudeOnlyTest(SimpleTestCase):
+    """Rasova's AI is Claude only (15 Nov 2026). core/gemma_service.py, a
+    parked local-model router that nothing imported, was deleted on 26 Nov
+    2026 (the owner's decision D7); nothing may reach another model again."""
+
+    def test_no_app_code_talks_to_another_model(self):
+        import re
+        import subprocess
+        from pathlib import Path
+
+        from django.conf import settings
+
+        root = Path(settings.BASE_DIR)
+        files = subprocess.run(["git", "ls-files", "*.py"], capture_output=True, text=True, cwd=root).stdout.split()
+        other = re.compile(r"ollama|gemma|generativeai|google\.genai|:11434", re.IGNORECASE)
+        found = [f for f in files
+                 if "/tests/" not in f and not f.startswith("md_files/") and (root / f).exists()
+                 and other.search((root / f).read_text(encoding="utf-8"))]
+        self.assertEqual(found, [])

@@ -5,7 +5,3 @@ extend-exclude = ["md_files", "graft", "staticfiles", "*/migrations/*", ".claude
 
 [lint]
 select = ["E9", "F"]
-
-[lint.per-file-ignores]
-# Parked: the start of a local-model fallback for the AI import, kept as written.
-"core/gemma_service.py" = ["F"]
