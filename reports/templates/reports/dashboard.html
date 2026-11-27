@@ -389,9 +389,11 @@
         Partner Portal <i class="bi bi-briefcase fs-5"></i>
       </a>
       {% endif %}
-      <a href="/admin/" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
+      {% if request.user.is_superuser %}{# the admin's address is a secret: never on an owner's page #}
+      <a href="{% url 'admin:index' %}" class="btn-luxury w-100 text-decoration-none d-flex justify-content-between align-items-center">
         System Admin <i class="bi bi-shield-lock fs-5"></i>
       </a>
+      {% endif %}
     </div>
   </div>
 

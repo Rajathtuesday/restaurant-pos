@@ -7,7 +7,8 @@
    from the page itself on 'online'/page-load, not via a sync event.)
    ============================================================ */
 
-const CACHE_VERSION = 'rasova-v7';
+// v8 (27 Nov 2026): clears admin pages kept under an ADMIN_URL other than /admin/.
+const CACHE_VERSION = 'rasova-v8';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const MENU_CACHE    = `${CACHE_VERSION}-menu`;
 
@@ -208,12 +209,14 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // App pages: network first, cache on success, serve cache when offline
+    // App pages: network first, cache on success, serve cache when offline.
+    // A page the server marks X-Rasova-Offline: never (the admin's, at its
+    // secret address) is never kept.
     const isBillingOrKitchen = url.pathname.startsWith('/billing') || url.pathname.startsWith('/kitchen');
     event.respondWith(
         fetch(request, { credentials: 'include' })
             .then(response => {
-                if (response.ok) {
+                if (response.ok && response.headers.get('X-Rasova-Offline') !== 'never') {
                     const clone = response.clone();
                     caches.open(MENU_CACHE).then(c => c.put(request, clone));
                 }

@@ -105,7 +105,7 @@ def dashboard_tiles(user, features, *, direct_billing_mode=False, active_token_c
         staff.tiles.append(Tile("Partner", "Resellers and clients", "briefcase", "/sales/"))
     if not manager and user.is_superuser:
         staff.tiles.append(Tile("Features", "Platform flags", "toggles", reverse("feature_flags")))
-        staff.tiles.append(Tile("Admin", "Django backend", "shield-lock", "/admin/"))
+        staff.tiles.append(Tile("Admin", "Django backend", "shield-lock", reverse("admin:index")))
     if staff.tiles:
         groups.append(staff)
     return groups

@@ -51,7 +51,7 @@
     {% if active_slug %}
     <a href="/demo/?clear=1" class="btn-clear"><i class="bi bi-x-circle"></i> Clear Active Tenant</a>
     {% endif %}
-    <a href="/admin/tenants/tenant/" class="btn-clear" target="_blank"><i class="bi bi-database"></i> Django Admin</a>
+    <a href="{% url 'admin:tenants_tenant_changelist' %}" class="btn-clear" target="_blank"><i class="bi bi-database"></i> Django Admin</a>
   </div>
 
   <p class="hint">

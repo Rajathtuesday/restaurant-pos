@@ -431,6 +431,11 @@ once CPU credits run out: right for zero customers, to be resized before the fir
 ## 14. Security, in short
 
 - HTTPS everywhere (Cloudflare "Always Use HTTPS", HSTS), secure cookies.
+- The Django admin lives at `ADMIN_URL` (`.env`; production sets an unguessable path).
+  Every admin link is reversed from the admin's URLs and drawn only for superusers;
+  robots.txt and the service worker never name it (admin responses carry
+  `X-Rasova-Offline: never`, which the service worker obeys). Its login has the
+  staff login's rate limits and the axes lockout.
 - Login lockout (django-axes, `accounts/lockout.py`). Axes is FIRST in
   `AUTHENTICATION_BACKENDS`, so a locked name is refused even with the right password.
   A lock is on a name at an address: 5 wrong passwords in an hour lock that name from

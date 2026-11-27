@@ -12,7 +12,7 @@
 {% block header_links %}
 <a href="/sales/" class="btn-luxury me-2">Reseller Dashboard</a>
 <a href="/settings/features/" class="btn-luxury me-2">Feature Flags</a>
-<a href="/admin/" class="btn-luxury">Django Admin</a>
+<a href="{% url 'admin:index' %}" class="btn-luxury">Django Admin</a>
 {% endblock %}
 
 {% block content %}

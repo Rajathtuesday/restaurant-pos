@@ -21,6 +21,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from django.views.generic import TemplateView
+from accounts.views.auth_views import admin_login
 from core import views
 
 def custom_404(request, exception):
@@ -109,6 +110,9 @@ handler500 = "core.urls.custom_500"
 
 urlpatterns = [
 
+    # The admin's login with the staff login's rate limits; ahead of the
+    # admin's own URLs, which serve the same address.
+    path(settings.ADMIN_URL + "login/", admin_login),
     path(settings.ADMIN_URL, admin.site.urls),
 
     # default redirect: authenticated → dashboard, anonymous → login

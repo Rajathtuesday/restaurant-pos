@@ -55,20 +55,30 @@ def _name_at_address(group, request):
     return f"{get_client_ip(request)} {request.POST.get('username', '')}"
 
 
-# Two rate limits, both checked before any password. One name from one
-# address: 10 tries a minute, right or wrong (axes locks the name there at
-# 5 wrong; this stops the page being hammered). One address, every name:
-# 60 a minute, against trying many names from one place; a whole pub's
-# shift change (every phone on its Wi-Fi shares one public address) never
-# comes near it. Until 26 Nov 2026 it was 10 a minute per address with good
-# logins counted, so the eleventh waiter at a shift change was turned away.
-@ratelimit(group="login-address", key="ip", rate="60/m", method="POST", block=False)
-@ratelimit(group="login-name", key=_name_at_address, rate="10/m", method="POST", block=False)
+def login_rate_limits(view):
+    """Two rate limits, both checked before any password, on every login
+    page (the staff login and the admin's; they share the counters). One
+    name from one address: 10 tries a minute, right or wrong (axes locks the
+    name there at 5 wrong; this stops the page being hammered). One address,
+    every name: 60 a minute, against trying many names from one place; a
+    whole pub's shift change (every phone on its Wi-Fi shares one public
+    address) never comes near it. Until 26 Nov 2026 it was 10 a minute per
+    address with good logins counted, so the eleventh waiter at a shift
+    change was turned away; the admin's login had none until 27 Nov 2026."""
+    view = ratelimit(group="login-name", key=_name_at_address, rate="10/m", method="POST", block=False)(view)
+    return ratelimit(group="login-address", key="ip", rate="60/m", method="POST", block=False)(view)
+
+
+def _too_many_tries(request):
+    messages.error(request, "Too many tries from this network. Wait a minute.")
+    return render(request, "accounts/login.html", {"tenant": getattr(request, "tenant", None)}, status=429)
+
+
+@login_rate_limits
 def login_view(request):
     tenant = getattr(request, "tenant", None)
     if getattr(request, "limited", False):
-        messages.error(request, "Too many tries from this network. Wait a minute.")
-        return render(request, "accounts/login.html", {"tenant": tenant}, status=429)
+        return _too_many_tries(request)
 
     if request.method == "POST":
         username = request.POST.get("username", "")
@@ -89,6 +99,16 @@ def login_view(request):
         messages.error(request, "Invalid username or password.")
 
     return render(request, "accounts/login.html", {"tenant": tenant})
+
+
+@login_rate_limits
+def admin_login(request):
+    """The Django admin's login (at ADMIN_URL, core/urls.py), with the staff
+    login's rate limits. Axes guards it as it guards every login."""
+    if getattr(request, "limited", False):
+        return _too_many_tries(request)
+    from django.contrib import admin
+    return admin.site.login(request)
 
 
 def logout_view(request):

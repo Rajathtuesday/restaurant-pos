@@ -241,6 +241,12 @@ class NoStoreForAuthenticatedResponsesMiddleware:
     server. Applies Cache-Control: no-store to every authenticated response,
     once, centrally -- new views get this for free instead of needing to
     remember @never_cache individually.
+
+    The service worker keeps app pages for offline whatever Cache-Control
+    says (offline billing needs them). An admin page carries
+    X-Rasova-Offline: never, and the service worker keeps nothing that says
+    so: it never has to know the admin's address, which is a secret in
+    production (ADMIN_URL, 27 Nov 2026).
     """
     def __init__(self, get_response):
         self.get_response = get_response
@@ -249,6 +255,8 @@ class NoStoreForAuthenticatedResponsesMiddleware:
         response = self.get_response(request)
         if request.user.is_authenticated:
             response["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+        if request.path.startswith("/" + settings.ADMIN_URL):
+            response["X-Rasova-Offline"] = "never"
         return response
 
 

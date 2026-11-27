@@ -285,7 +285,7 @@
   <div class="cfg-section">
     <h3><i class="bi bi-box-arrow-up-right" style="color:var(--gold-text);"></i> Next Steps</h3>
     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-      <a href="/admin/tenants/tenant/{{ tenant.id }}/change/" class="btn-cfg"><i class="bi bi-pencil me-1"></i>Edit in Admin</a>
+      <a href="{% url 'admin:tenants_tenant_change' tenant.id %}" class="btn-cfg"><i class="bi bi-pencil me-1"></i>Edit in Admin</a>
       <a href="/settings/features/?tenant_id={{ tenant.id }}" class="btn-cfg"><i class="bi bi-toggles me-1"></i>Fine-tune Features</a>
       <a href="/menu/" class="btn-cfg" target="_blank"><i class="bi bi-grid me-1"></i>Open Menu Manager</a>
       <a href="/setup/onboard/" class="btn-cfg" target="_blank"><i class="bi bi-play-circle me-1"></i>Run Onboarding Wizard</a>

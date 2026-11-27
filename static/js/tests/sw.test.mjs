@@ -16,7 +16,7 @@ import vm from "node:vm";
 const SOURCE = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
 const ORIGIN = "https://spice.rasova.net";
 
-function worker({ network = "down", kept = {} } = {}) {
+function worker({ network = "down", kept = {}, headers = {} } = {}) {
   const handlers = {};
   const self = {
     location: new URL(ORIGIN),
@@ -25,6 +25,7 @@ function worker({ network = "down", kept = {} } = {}) {
     clients: { claim: async () => {} },
   };
   const fetched = [];
+  const stored = [];
   const context = {
     self,
     location: self.location,
@@ -34,14 +35,18 @@ function worker({ network = "down", kept = {} } = {}) {
     fetch: async (request) => {
       fetched.push(typeof request === "string" ? request : request.url);
       if (network === "down") throw new TypeError("Failed to fetch");
-      return new Response("fresh", { status: 200 });
+      const url = typeof request === "string" ? request : request.url;
+      return new Response("fresh", { status: 200, headers: headers[url] || {} });
     },
     caches: {
       match: async (request) => {
         const url = typeof request === "string" ? new URL(request, ORIGIN).href : request.url;
         return kept[url] ? new Response(kept[url]) : undefined;
       },
-      open: async () => ({ put: async () => {}, add: async () => {}, addAll: async () => {} }),
+      open: async () => ({
+        put: async (request) => { stored.push(typeof request === "string" ? request : request.url); },
+        add: async () => {}, addAll: async () => {},
+      }),
       keys: async () => [],
       delete: async () => true,
     },
@@ -55,7 +60,7 @@ function worker({ network = "down", kept = {} } = {}) {
     handlers.fetch({ request: { url, method, destination }, respondWith: (promise) => { answer = promise; } });
     return answer === "browser" ? answer : await answer;
   }
-  return { ask, fetched };
+  return { ask, fetched, stored };
 }
 
 test("another host's script is left to the browser, never answered with nothing", async () => {
@@ -88,4 +93,17 @@ test("online, a hashed static file comes from the network and pages still work",
   const sw = worker({ network: "up" });
   assert.equal(await (await sw.ask(`${ORIGIN}/static/js/core/app.0123456789ab.js`)).text(), "fresh");
   assert.equal(await (await sw.ask(`${ORIGIN}/tables/`, { destination: "document" })).text(), "fresh");
+});
+
+// The admin's address is a secret in production (ADMIN_URL), so the worker
+// cannot skip it by name: the server marks every admin response
+// X-Rasova-Offline: never, and nothing so marked is kept (27 Nov 2026).
+test("a page the server marks not for offline is never kept; an app page still is", async () => {
+  const admin = `${ORIGIN}/back-office-x9/tenants/tenant/`;
+  const page = `${ORIGIN}/billing/`;
+  const sw = worker({ network: "up", headers: { [admin]: { "X-Rasova-Offline": "never" } } });
+  assert.equal(await (await sw.ask(admin, { destination: "document" })).text(), "fresh");
+  assert.equal(await (await sw.ask(page, { destination: "document" })).text(), "fresh");
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(sw.stored, [page]);
 });

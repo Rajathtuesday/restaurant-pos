@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-27: The admin at its own address, and only there
+
+The owner: "we might need to change the admin url", then "yes do the admin fix". `/admin/` is the first address every scanner tries, and `ADMIN_URL` (`.env`) was meant to move it, but setting it would have broken links and spread the new address.
+
+### Fixed
+- **Six admin links were written as `/admin/` by hand** (the superuser dashboard tile, the superuser panel, a tenant's edit link, the reports dashboard, the demo switch page): with `ADMIN_URL` changed they went nowhere. Each is reversed from the admin's own URLs now.
+- **The reports dashboard showed "System Admin" to every owner and manager**: with a secret address, that would have printed it into every restaurant's page. Only superusers see an admin link.
+- **The service worker kept admin pages for offline** under any address but `/admin/`, and it can't be told a secret address. Admin responses now say `X-Rasova-Offline: never`, and the worker keeps nothing that says so (`static/sw.js`, cache v8 clears anything kept before).
+- **The admin's login had the lockout but no rate limit.** It has the staff login's limits, sharing their counters (`accounts.views.auth_views.login_rate_limits`). `robots.txt` never names the configured address.
+
+### Tests
+- `core/tests/test_admin_url.py` (7, run with `ADMIN_URL` set and the URL map rebuilt: the admin only at its address, every superuser link going to it, an owner never seeing it, robots.txt, the offline mark, the login's rate limits; 5 fail on the old code) and a service worker node test (fails on the old `sw.js`).
+
+To move the admin: set `ADMIN_URL=<an unguessable path>/` in the server's `.env` and restart gunicorn.
+
 ## 2026-11-26: What the fault sweep found, fixed
 
 The rest of `md_files/rasova_fault_fix_plan_2026-11-26.md`, on the owner's "continue the other fixes which are needed", with his decisions D2 (Discount/Void Audit on for pubs), D4 (comment dashes too), D6 (the header fix in one place) and D7 (delete the dead Gemini file). One commit per item, each with a test that fails on the old code.
