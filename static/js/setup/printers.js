@@ -1,17 +1,16 @@
 /*
  * Setup > Printers (setup/templates/setup/printers.html): each printer's
- * Save and Test print, Find printers (the PC agent's scan, cloud only), the
- * MAC address field's formatting and the counter phone's QR codes.
+ * Save and Test print, Find printers (the PC agent's scan, cloud only) and
+ * the MAC address field's formatting.
  *
  * Test print goes through the print queue (test_print.js), the same road
- * as a real bill: on a box the box prints it, in the cloud the phone app or
- * PC agent collects it. Each row waits for its own job's answer.
+ * as a real bill: on a box the box prints it, in the cloud the PC agent
+ * collects it. Each row waits for its own job's answer.
  * Addresses come from setup.views.printer_views.page_data.
  */
 import { api, platform } from "../core/app.js";
 import { delegate } from "../core/dom.js";
 import { pageData } from "../core/page_data.js";
-import { drawQrCodes } from "../core/qr.js";
 import { withId } from "../billing/urls.js";
 import { formatMac } from "./mac.js";
 import { agentProblem, agentUrl, createAgent } from "./station_agent.js";
@@ -113,8 +112,6 @@ async function find(button) {
     button.disabled = false;
   }
 }
-
-if (!data.box) drawQrCodes();
 
 delegate(document.body, {
   "printer.test": (b) => test(b),

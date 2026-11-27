@@ -4,14 +4,18 @@ Asking an old Android app to update (B16, 13 Nov 2026).
 Why: an old Rasova app stops printing, and the restaurant only sees "Rasova
 does not print". The app now names its real version in every request
 (rasova_android AppUserAgent, tested in AppUserAgentTest.kt); below
-core.app_version.MINIMUM_ANDROID_APP every page shows a banner saying so,
-with the download. Before 1.2.1 every app said "1.0" whatever it was.
+core.app_version.MINIMUM_ANDROID_APP every page shows a banner saying so.
+Before 1.2.1 every app said "1.0" whatever it was.
+
+Since 27 Nov 2026 rasova.net does not serve the app (work on it is paused):
+in the cloud the banner points to the phone's browser, and only a box,
+which serves its own copy, links to a download.
 
 Run: python manage.py test core.tests.test_app_version
 """
 from unittest import mock
 
-from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from core.app_version import MINIMUM_ANDROID_APP, app_update, app_version, is_older
 from core.tests.test_tenant_walk import Restaurant
@@ -48,8 +52,12 @@ class VersionTest(SimpleTestCase):
 
     def test_below_the_minimum_the_banner_has_what_it_needs(self):
         factory = RequestFactory()
+        # rasova.net has no app to offer; a box serves its own
         self.assertEqual(app_update(factory.get("/", HTTP_USER_AGENT=OLD_APP), minimum="1.2.1"),
-                         {"version": "1.0", "minimum": "1.2.1", "download": "/android/rasova.apk"})
+                         {"version": "1.0", "minimum": "1.2.1", "download": None})
+        with override_settings(BOX=True):
+            self.assertEqual(app_update(factory.get("/", HTTP_USER_AGENT=OLD_APP), minimum="1.2.1")["download"],
+                             "/android/rasova.apk")
         self.assertIsNone(app_update(factory.get("/", HTTP_USER_AGENT=NEW_APP), minimum="1.2.1"))
         self.assertIsNone(app_update(factory.get("/", HTTP_USER_AGENT=BROWSER), minimum="1.2.1"))
 
@@ -71,12 +79,16 @@ class BannerTest(TestCase):
             html = self.page(OLD_APP, url)
             self.assertIn("data-app-update", html, url)
             self.assertIn("This Rasova app is out of date", html)
-            self.assertIn('href="/android/rasova.apk"', html)
+            # no link to a download rasova.net does not have
+            self.assertNotIn("rasova.apk", html)
+            self.assertIn("open Rasova in the phone's browser", html)
 
     def test_a_new_app_and_a_browser_do_not(self):
         self.assertNotIn("data-app-update", self.page(NEW_APP))
         self.assertNotIn("data-app-update", self.page(BROWSER))
 
-    def test_the_download_is_there(self):
+    def test_rasova_net_no_longer_serves_the_app(self):
+        """27 Nov 2026: the app download came off rasova.net (the Android
+        app is paused). A box keeps its own copy (box/docker/android/)."""
         response = Client().get("/android/rasova.apk")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)

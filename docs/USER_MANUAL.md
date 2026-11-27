@@ -241,9 +241,9 @@ Each table has its own printed QR code. When a guest scans it:
 
 **Locked out after too many wrong password attempts**: the login page says when you can try again. Ask your owner or manager to press **Unlock** beside your name on **Setup → Staff** (your password stays the same), or to reset your password there, which also unlocks. An owner locked out of their own account waits until the time shown, or asks Rasova support to unlock it.
 
-**The Rasova app won't install ("App not installed")** - you have a version from before 19 Oct 2026. Uninstall the old Rasova app (long-press its icon, then Uninstall), then install the new one from rasova.net/android/rasova.apk. Later updates install over the top.
+**The Rasova Android app** is not offered on rasova.net since 27 Nov 2026. Use Rasova in the phone's browser; printing goes through the print agent on a counter PC (Setup, Printers). On a Rasova box, the app is still on **Connect a device**.
 
-**A printer isn't printing**: open **Setup, Printers**. Each printer's line says when it last printed, or when and why it last failed; press its **Test print**. Check the Rasova app is open and signed in on the counter phone (or the PC agent is running); a browser print popup appears as a fallback if it can't be reached. (On a Rasova box there is no agent: see the next section.)
+**A printer isn't printing**: open **Setup, Printers**. Each printer's line says when it last printed, or when and why it last failed; press its **Test print**. Check the print agent is running on the counter PC; a browser print popup appears as a fallback if it can't be reached. (On a Rasova box there is no agent: see the next section.)
 
 ---
 

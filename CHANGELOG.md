@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-11-27: The Android app is off rasova.net
+
+The owner tried the app on a phone (the wrong logo, the wrong colours, endless loading after a scan) and paused work on it: "we will pause mobile dev on rasova", then "remove the apk download". A Rasova box keeps its own copy (`box/docker/android/rasova.apk`, Connect a device): untouched.
+
+### Changed
+- **rasova.net no longer serves the app**: `public/android/rasova.apk` is gone, so `/android/rasova.apk` answers 404.
+- **Setup, Printers** (cloud): the phone card (scan to download the app, scan to connect) is now "The counter PC", which points to the print agent (`/agent/rasova_agent.py`); the page's intro says the PC agent collects the print queue. The QR library and the card's styles went with it.
+- **An out-of-date app** is told, in the cloud, to open Rasova in the phone's browser instead of being sent to a download that is gone (`core/app_version.py`: a link only on a box; the banner and `static/js/core/platform.js`).
+- **The cafe and home pages** no longer promise phone printing with no computer at the counter: printing goes through the print agent on a counter PC, or a Rasova box. README, DEPLOY, USER_MANUAL, RASOVA and PRINTING_SYSTEM say the app is paused.
+
+### Tests
+- `core/tests/test_app_version.py`: no download link in the cloud, one on a box, `/android/rasova.apk` is 404. `setup/tests/test_printers.py`: the cloud Printers page has no app, no QR library, and links the print agent. Three fail on the old code.
+
 ## 2026-11-27: Three things the phone reels caught
 
 Recording the Instagram reels on a phone ("take it from mobile pov") showed these on screen; the third on the owner's "yes add the badge fix to the same commit".

@@ -150,22 +150,21 @@ class HomeScreenIconTest(BoxBase):
 
 
 class AppFromTheBoxTest(BoxBase):
-    @not_in_compiled_build("public/, which the test image leaves empty (the box image fills it)")
-    def test_a_phone_installs_the_app_from_the_box_itself(self):
-        # No internet on a box: the app comes from the box, over the Wi-Fi.
-        self.restaurant()
-        r = Client(HTTP_HOST="192.168.1.50").get("/android/rasova.apk")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(b"".join(r.streaming_content)[:2], b"PK", "an APK is a zip")
-
     @not_in_compiled_build("box/docker, which only Rasova's PC has")
     def test_the_box_image_carries_the_app(self):
-        # The box's own copy (box/docker/android/): rasova.net's public/android/
-        # file may stay older, a box needs the app that opens a box.
+        """No internet on a box: the app comes from the box, over the Wi-Fi.
+
+        The box's own copy (box/docker/android/) goes into the image's
+        public/android/, where WhiteNoise serves it as an Android app.
+        Until 27 Nov 2026 a test served it from the checkout's public/,
+        which was rasova.net's copy; rasova.net no longer serves the app
+        (work on it is paused), so the checkout has none. On a built
+        image, scripts/box_e2e.py fetches it from the box itself."""
         base = Path(settings.BASE_DIR) / "box" / "docker"
         self.assertIn("COPY box/docker/android/rasova.apk /app/public/android/rasova.apk",
                       (base / "Dockerfile").read_text())
-        self.assertEqual((base / "android" / "rasova.apk").read_bytes()[:2], b"PK")
+        self.assertEqual((base / "android" / "rasova.apk").read_bytes()[:2], b"PK", "an APK is a zip")
+        self.assertEqual(settings.WHITENOISE_MIMETYPES[".apk"], "application/vnd.android.package-archive")
 
 
 class ConnectEdgeCaseTest(BoxBase):

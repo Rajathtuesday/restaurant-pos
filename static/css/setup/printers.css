@@ -8,7 +8,7 @@ html.dark .pr-page, body.dark .pr-page { --pr-ok: #4ade80; --pr-bad: #f87171; --
 .pr-eyebrow { font-size: .65rem; text-transform: uppercase; letter-spacing: 4px; color: var(--gold-text); margin: 0 0 .4rem; }
 .pr-title { font-family: 'DM Serif Display', serif; font-size: 1.8rem; margin: 0 0 .75rem; }
 .pr-sub { color: var(--text-muted); font-size: .88rem; line-height: 1.6; margin: 0 0 1.5rem; }
-.pr-sub a, .pr-hint a, .pr-empty a, .pr-app a { color: var(--gold-text); }
+.pr-sub a, .pr-hint a, .pr-empty a { color: var(--gold-text); }
 
 .pr-msg { padding: .7rem .9rem; margin-bottom: 1rem; border: 1px solid var(--border-color); font-size: .88rem; }
 .pr-msg.success { border-color: var(--pr-ok); color: var(--pr-ok); }
@@ -65,10 +65,4 @@ html.dark .pr-page, body.dark .pr-page { --pr-ok: #4ade80; --pr-bad: #f87171; --
 .pr-check input { width: 20px; height: 20px; margin-top: .1rem; flex-shrink: 0; accent-color: var(--accent-gold); }
 .pr-every .pr-name { margin-bottom: .25rem; }
 
-.pr-app-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-top: .75rem; }
-@media (min-width: 560px) { .pr-app-grid { grid-template-columns: 1fr 1fr; } }
-.pr-app-step { display: flex; gap: .9rem; align-items: flex-start; }
-.pr-app-step p { font-size: .8rem; line-height: 1.55; margin: 0; color: var(--text-muted); }
-.pr-app-step p strong { color: var(--text-main); }
-.pr-app-step .qr-draw { flex-shrink: 0; background: #fff; padding: 4px; line-height: 0; }
 .pr-empty { color: var(--text-muted); font-size: .9rem; }

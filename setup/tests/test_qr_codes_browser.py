@@ -37,6 +37,8 @@ class QrCodesDrawnHereTest(BrowserTestCase):
         self.assertGreaterEqual(seen["drawn"], 2, "both tables of the fixture")
         self.assertEqual((seen["failed"], seen["elsewhere"]), (0, []))
 
-    def test_the_printers_pages_two_codes_are_drawn_too(self):
+    def test_the_printers_page_has_no_codes_since_the_app_card_went(self):
+        # Its two codes (download the app, connect it) went with the phone
+        # card on 27 Nov 2026, when the app came off rasova.net.
         seen = self.look("/setup/printers/")
-        self.assertEqual((seen["spots"], seen["drawn"], seen["failed"], seen["elsewhere"]), (2, 2, 0, []))
+        self.assertEqual((seen["spots"], seen["drawn"], seen["failed"], seen["elsewhere"]), (0, 0, 0, []))

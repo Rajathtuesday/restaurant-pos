@@ -113,7 +113,7 @@ Each type gets its own default feature set (`core/features.py`). Owners and supe
 
 ### Android Print App
 - **Phone-only printing** - the Rasova Android app polls the print queue and sends ESC/POS to network thermal printers, so a counter needs only a phone and a printer (see `PRINTING_SYSTEM.md`)
-- **Version 1.2.0** on the site (`rasova.net/android/rasova.apk`), signed with Rasova's own release key; the pages' confirm and prompt dialogs work inside the app. A phone with a version from before 19 Oct 2026 uninstalls it once first (see `rasova_android/README.md`)
+- **Paused since 27 Nov 2026**: work on the app stopped and its download came off rasova.net (a phone try found the wrong logo and colours and endless loading after a scan). In the cloud, printing goes through the PC print agent (`agent/rasova_agent.py`); a Rasova box still serves app 1.3.0 on Connect a device. The app is signed with Rasova's own release key (see `rasova_android/README.md`)
 
 ### Ordering
 - QR self-ordering - customer scans → views menu → places order → appears for staff approval

@@ -17,8 +17,8 @@
       This box sends every bill and KOT to the printers itself. Keep each printer switched on and wired to the same
       router as the box.
     {% else %}
-      Every bill and KOT waits in Rasova's print queue until the Rasova app on the counter phone (or the PC agent)
-      collects it and sends it to the printer. Keep that phone on the same Wi-Fi as the printers.
+      Every bill and KOT waits in Rasova's print queue until the Rasova print agent on a PC at the counter collects
+      it and sends it to the printer. Keep that PC on the same Wi-Fi as the printers.
     {% endif %}
     Which dishes go to which printer is set on <a href="{% url 'setup_kitchen_stations' %}">Kitchen Stations</a>.
   </p>
@@ -147,24 +147,12 @@
       <a href="{% url 'box_connect' %}">Connect a device</a>.</p>
   </section>
   {% else %}
-  <section class="pr-card pr-app">
-    <h2 class="pr-name">The counter phone</h2>
-    <div class="pr-app-grid">
-      <div class="pr-app-step">
-        <div class="qr-draw" data-qr="https://rasova.net/android/rasova.apk" data-qr-size="110"
-             data-qr-label="Scan to download the Rasova Android app"></div>
-        <p><strong>1. Install the Rasova app.</strong> Scan with the phone's camera, or
-          <a href="/android/rasova.apk" download>download it here</a>. No Play Store needed.</p>
-      </div>
-      <div class="pr-app-step">
-        <div class="qr-draw" data-qr="{{ login_url }}" data-qr-size="110"
-             data-qr-label="Scan to connect the app to this restaurant"></div>
-        <p><strong>2. Connect it.</strong> Open the app, tap Scan QR code and scan this. Then sign in: printing starts by
-          itself and keeps going while the phone is on.</p>
-      </div>
-    </div>
-    <p class="pr-hint">Installed the app before 19 Oct 2026? Uninstall it first: the new one is signed with Rasova's own
-      key, so Android won't install it over the old one.</p>
+  {# The phone app's card (install it, scan to connect) stood here until 27 Nov 2026, when the app #}
+  {# download came off rasova.net: work on the Android app is paused. #}
+  <section class="pr-card">
+    <h2 class="pr-name">The counter PC</h2>
+    <p class="pr-hint">Printing needs the Rasova print agent running on a PC on the same Wi-Fi as the printers:
+      <a href="{% url 'agent_download' 'rasova_agent.py' %}" download>download it here</a>.</p>
   </section>
   {% endif %}
 </div>
@@ -172,6 +160,5 @@
 
 {% block extra_js %}
 {{ page_data|json_script:"page-data" }}
-{% if not is_box %}<script src="{% static 'js/vendor/qrcode.min.js' %}"></script>{% endif %}
 <script type="module" src="{% static 'js/setup/printers.js' %}"></script>
 {% endblock %}

@@ -276,8 +276,8 @@ the server queues a PrintJob (ESC/POS bytes, the printer's IP)
      |  every 2 s: GET /orders/agent/jobs/  (header X-Agent-Key = the outlet's secret)
      v
 a print app on the restaurant's network
-  - the Rasova Android app (a foreground service): the normal way
-  - the PC agent (agent/rasova_agent.py), or Termux on a phone
+  - the PC agent (agent/rasova_agent.py): the way since 27 Nov 2026, or Termux on a phone
+  - the Rasova Android app (a foreground service): paused, not offered on rasova.net since 27 Nov 2026
      |  TCP 9100 on the restaurant's Wi-Fi
      v
 the thermal printer --> the app reports done, or failed with the reason

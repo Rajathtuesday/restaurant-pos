@@ -898,7 +898,11 @@ not a full table scan.
 
 ## 14. Setup Guide: Micro Steps
 
-### Path A: Native Android APK (Recommended: easiest)
+### Path A: Native Android APK (paused: not offered on rasova.net since 27 Nov 2026)
+
+> The app download came off rasova.net on 27 Nov 2026 and work on the app is
+> paused; use Path C (the Windows PC agent), or Path B on a phone. Kept here
+> for when the app returns.
 
 **One-time setup. After this: zero manual work ever.**
 

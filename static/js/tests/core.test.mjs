@@ -53,7 +53,9 @@ test("an old app without the keyed bridge is told to update, once per session", 
     console.warn = warn;
   }
   assert.equal(toasts.length, 1);
-  assert.match(toasts[0], /Update the Rasova app/);
+  assert.match(toasts[0], /too old to print/);
+  // rasova.net no longer offers the app (27 Nov 2026): no address to a download that is gone
+  assert.doesNotMatch(toasts[0], /rasova\.apk/);
 });
 
 test("a page with no agent key (a Rasova box prints by itself) starts no print service", () => {

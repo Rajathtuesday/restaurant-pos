@@ -60,7 +60,8 @@ export function startAndroidPrinting({
     if (ui && storage && !storage.getItem("rasova_app_update_shown")) {
       storage.setItem("rasova_app_update_shown", "1");
       ui.toast(
-        "Update the Rasova app to keep printing: uninstall it, then install the new one from rasova.net/android/rasova.apk",
+        // rasova.net no longer offers the app (27 Nov 2026), so no address here
+        "This Rasova app is too old to print: uninstall it and open Rasova in the phone's browser",
         "warning",
       );
     }

@@ -25,7 +25,6 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from accounts.models import User
-from core.testing import not_in_compiled_build
 from core.tests.test_tenant_walk import Restaurant
 from printing.models import PrintJob
 from setup.models import KitchenStation
@@ -376,8 +375,12 @@ class EdgeCaseTest(PrintersWorld):
         self.assertEqual(self.bar.printer_ip, "192.168.1.61")
         self.assertIsNone(Outlet.objects.get(pk=self.r.outlet.pk).print_profile)
 
-    @not_in_compiled_build("public/, which the compiled test image leaves empty")
-    def test_the_app_download_is_served_as_an_android_app(self):
-        r = Client().get("/android/rasova.apk")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r["Content-Type"], "application/vnd.android.package-archive")
+    def test_rasova_net_offers_no_app_download(self):
+        """27 Nov 2026: work on the Android app is paused and its download
+        came off rasova.net. Printers points to the PC print agent instead
+        (a box still offers the app on Connect a device, box/docker/android/)."""
+        self.assertEqual(Client().get("/android/rasova.apk").status_code, 404)
+        page = self.client_as(self.owner).get("/setup/printers/").content.decode()
+        for gone in ("rasova.apk", "Install the Rasova app", "qrcode.min.js"):
+            self.assertNotIn(gone, page, gone)
+        self.assertIn('href="/agent/rasova_agent.py"', page)

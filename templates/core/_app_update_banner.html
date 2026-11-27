@@ -2,10 +2,17 @@
 Shown inside the Android app when it is older than the server needs
 (core/app_version.py). Drawn by the server, so it shows even if the page's
 own scripts fail. Not dismissable: an old app stops printing.
+A box serves the new app (Connect a device); rasova.net has not since
+27 Nov 2026, so there the way on is the phone's browser.
 {% endcomment %}
 <div class="app-update-banner" role="alert" data-app-update>
     <i class="bi bi-phone" aria-hidden="true"></i>
+    {% if app_update.download %}
     <span><strong>This Rasova app is out of date</strong> (version {{ app_update.version }}). Printing and new screens need {{ app_update.minimum }} or newer:
     uninstall this app, then install the new one.</span>
     <a class="btn-luxury text-decoration-none" href="{{ app_update.download }}" download>Get the new app</a>
+    {% else %}
+    <span><strong>This Rasova app is out of date</strong> (version {{ app_update.version }}). Printing and new screens need {{ app_update.minimum }} or newer:
+    uninstall this app and open Rasova in the phone's browser.</span>
+    {% endif %}
 </div>

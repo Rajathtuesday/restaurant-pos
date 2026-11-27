@@ -78,7 +78,6 @@ def printers(request):
         "bill_inner_margin": profile.bill_inner_margin if profile else 4,
         "margins": svc.MARGINS,
         "is_box": is_box(),
-        "login_url": f"https://{request.user.tenant.slug}.rasova.net/login/",
         "page_data": page_data(outlet),
     })
 

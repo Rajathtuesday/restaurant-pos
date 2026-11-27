@@ -575,14 +575,16 @@ Domain:           rasova.net
 - [ ] Staff accounts created (Manager, Cashier, Waiter as needed)
 - [ ] Reports dashboard checked: correct data showing
 - [ ] Staff discount limit set in Outlet Settings (off by default, so otherwise cashiers and captains can give any discount, and captains any free dish)
-- [ ] Phone printing: Android app 1.2.0 or later installed from `rasova.net/android/rasova.apk` (uninstall a version from before 19 Oct 2026 first)
+- [ ] Printing: the PC print agent running on a counter PC on the printers' Wi-Fi (Setup, Printers, The counter PC). The Android app is not offered on rasova.net since 27 Nov 2026
 - [ ] Client given login URL and credentials
 
 ---
 
 ## PART 17: Releasing the Android print app
 
-The app is not on the Play Store; the site serves it from `public/android/rasova.apk`, so a release is a normal deploy.
+**Paused since 27 Nov 2026**: work on the app stopped and rasova.net no longer serves it (`public/android/` is gone). A box image carries its own copy, `box/docker/android/rasova.apk`. The steps below are for when the work starts again; step 5 then also puts the file back in `public/android/` and the Printers page's phone card back (see the 27 Nov commit).
+
+The app is not on the Play Store; the site served it from `public/android/rasova.apk`, so a release was a normal deploy.
 
 1. In `rasova_android/app/build.gradle` raise `versionCode` by one and set `versionName`.
 2. Build and test on the signing PC (it has the release key, see `rasova_android/README.md`, "Release signing"):
