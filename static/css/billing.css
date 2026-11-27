@@ -143,7 +143,12 @@
 .cart-page-breakdown { border-top: 1px dashed var(--border-color); margin-top: 1rem; padding-top: 1rem; }
 #cartSummaryBlockMobile { flex-shrink: 0; }
 
+/* The toast sizes to its words and stays 20 px in from the right. Its own
+   width, said here: rasova.css gives every block inside <main> width: 100%,
+   and without this the toast took that too, running from -20 px across the
+   whole screen on every device (until 27 Nov 2026). */
 .toast-minimal {
+  width: max-content; max-width: calc(100vw - 40px);
   position: fixed; top: 20px; right: 20px; background: var(--text-main); color: var(--bg-color);
   padding: 1rem 1.5rem; z-index: 1060; opacity: 0; transition: opacity 0.3s ease;
   pointer-events: none; text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem;

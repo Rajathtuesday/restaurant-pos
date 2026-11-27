@@ -18,7 +18,10 @@
    margin: 0 auto shrinks to its content instead of growing to its
    max-width: the dashboard sat in a 565 px strip on a laptop (15 Nov 2026).
    With width: 100%, max-width and the auto margins centre it as meant.
-   core/tests/test_browser_smoke_walk.py checks every page. */
+   It reaches a box laid over the page from inside <main> too (a toast, a
+   floating bar): such a box says its own width, or it is stretched across
+   the screen (the till's toast was, until 27 Nov 2026).
+   core/tests/test_browser_smoke_walk.py checks every page, both kinds. */
 main > * { width: 100%; }
 
 /* No background on <html> or <body> here. This file loads after the theme,
@@ -274,6 +277,12 @@ body {
     font-family: var(--font-main, 'Outfit', sans-serif);
 }
 .setup-checklist[hidden] { display: none; }
+/* While the badge shows, <main> keeps room under its last line (the badge
+   stands 1.5rem up and about 2.5rem tall), so a page scrolled to its end has
+   nothing under it. Until 27 Nov 2026 a phone could never bring "Save
+   Configuration", "Set my PIN" and five more out from under the badge.
+   core/tests/test_setup_checklist_room_browser.py walks every setup page. */
+main:has(~ .setup-checklist:not([hidden])) { padding-bottom: 5.5rem; }
 .setup-checklist__panel {
     background: var(--panel-bg);
     border: 1px solid var(--border-color);

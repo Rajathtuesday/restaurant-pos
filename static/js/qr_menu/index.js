@@ -195,7 +195,9 @@ async function placeOrder(button) {
     el("specialInstructions").value = "";
     drawBar();
     closeCart();
-    toast("Order sent to the kitchen");
+    // A guest's dishes wait for a waiter's yes (status "review",
+    // orders/services/order_service.py); nothing reaches the kitchen yet.
+    toast("Order received: waiting for the restaurant to confirm");
     poller.start();
   } else if (result.kind === "not-yours") {
     toast("Starting a new order for this table: tap Place Order again.", true);

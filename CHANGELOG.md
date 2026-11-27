@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-27: Three things the phone reels caught
+
+Recording the Instagram reels on a phone ("take it from mobile pov") showed these on screen; the third on the owner's "yes add the badge fix to the same commit".
+
+### Fixed
+- **The till's "Order Sent" message ran across the whole screen, 20 px past the left edge, on every device.** `main > * { width: 100% }` (`static/css/rasova.css`, 15 Nov) gives page blocks their width, and it stretched the fixed toast too. The toast says its own width now (`static/css/billing.css`). The page walk had marked it "parked on purpose" on 26 Nov; it no longer parks it, and it now checks that every box laid over a page from inside `<main>` (fixed or absolute) stays on the screen, at laptop, phone and tablet size.
+- **A guest who ordered by QR read "Order sent to the kitchen"** while every dish waits for a waiter's yes (status "review"). It now says "Order received: waiting for the restaurant to confirm", the same words as the guest's status sheet.
+- **On a phone, the "Setup 3/5 complete" badge kept a page's last buttons under it**, with the page scrolled to its end: "Save Configuration" (Payment methods), "Set my PIN", Staff's Edit buttons, the last cards of the Dashboard, Setup and GST pages. The badge is fixed in the corner until setup is done, so a new owner setting up on a phone met it on exactly the steps it asks for. While it shows, `<main>` keeps room under its last line (`static/css/rasova.css`).
+
+### Tests
+- `core/tests/test_browser_smoke_walk.py`: boxes over the page must stay on screen (all three passes fail on the old toast). `menu/tests/test_qr_menu_browser.py`: the guest's words after placing, and that every dish is in review (fails on the old words). `core/tests/test_setup_checklist_room_browser.py` (new): every page the badge shows on, and Menu file's check page, at phone size and scrolled to its end, has no button, link or field under the badge (fails on the old code with the seven above).
+
 ## 2026-11-27: The admin at its own address, and only there
 
 The owner: "we might need to change the admin url", then "yes do the admin fix". `/admin/` is the first address every scanner tries, and `ADMIN_URL` (`.env`) was meant to move it, but setting it would have broken links and spread the new address.

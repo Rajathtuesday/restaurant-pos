@@ -57,7 +57,11 @@ NOT_WALKED = {
 # Parts of a page parked off screen on purpose until they are opened: the
 # cut-off check does not count them. Each with its reason.
 PARKED = {
-    "#toastBox": "the till's toast, out of sight until it has something to say",
+    # (#toastBox, the till's toast, was parked here on 26 Nov 2026 as "out
+    # of sight until it has something to say". It was not parked: rasova.css's
+    # main > * { width: 100% } stretched it from -20 px across the whole
+    # screen, and every "Order Sent" showed so. Never park a box to make the
+    # walk pass without looking at why it is off the edge.)
     ".drawer:not(.open)": "a purchase order drawer (new, receive), slid off screen until opened",
     "#detailPanel": "Order History's detail panel, slid off screen until an order is opened",
     ".marquee-section": "the marketing page's ticker runs past the edges on purpose",
@@ -160,26 +164,48 @@ return wrong;
 # Each block directly inside <main> that is centred (equal side margins) or
 # has a max-width in px must be as wide as it may be: the room <main> gives
 # it, or its max-width, whichever is less.
+#
+# A box laid over the page from inside <main> (fixed or absolute: a toast, a
+# floating button) is not a page block, and the width that page blocks get
+# must not reach it: it stays on the screen. Until 27 Nov 2026 the till's
+# "Order Sent" toast ran from -20 px across the whole screen on every
+# device, stretched by the rule written for the page blocks
+# (static/css/rasova.css), and this walk skipped it.
 WIDTH = r"""
 const main = document.querySelector("main");
 if (!main) return [];
 const room = main.clientWidth;
+const W = document.documentElement.clientWidth;
+const parked = PARKED_SELECTORS;
 const wrong = [];
 for (const el of main.children) {
   const cs = getComputedStyle(el);
-  if (cs.display === "none" || cs.position === "fixed" || cs.position === "absolute") continue;
+  if (cs.display === "none") continue;
+  const name = el.tagName.toLowerCase() + (el.id ? "#" + el.id : "")
+    + (el.className ? "." + String(el.className).trim().split(/\s+/).join(".") : "");
+  if (cs.position === "fixed" || cs.position === "absolute") {
+    // Closed until opened (the phone till's order page is hidden and slid
+    // off to the right; a closed offcanvas likewise): as the cut-off check.
+    // A toast waiting at opacity 0 is not closed: it shows where it stands.
+    const closed = cs.visibility === "hidden"
+      || el.matches(".modal:not(.show), [hidden], .offcanvas:not(.show), dialog:not([open])");
+    const r = el.getBoundingClientRect();
+    if (!closed && r.width >= 2 && r.height >= 2 && (r.left < -2 || r.right > W + 2) && !el.matches(parked)) {
+      wrong.push(`${name} (${cs.position}) runs off the screen: ${Math.round(r.left)}..${Math.round(r.right)} px of ${W}`);
+    }
+    continue;
+  }
   const max = cs.maxWidth.endsWith("px") ? parseFloat(cs.maxWidth) : Infinity;
   const centred = cs.marginLeft === cs.marginRight && parseFloat(cs.marginLeft) > 0;
   if (max === Infinity && !centred) continue;
   const want = Math.min(max, room);
   const width = el.getBoundingClientRect().width;
   if (width < want - 2) {
-    const name = el.tagName.toLowerCase() + (el.className ? "." + String(el.className).trim().split(/\s+/).join(".") : "");
     wrong.push(`${name} is ${Math.round(width)} px wide with room for ${Math.round(want)} px`);
   }
 }
 return wrong;
-"""
+""".replace("PARKED_SELECTORS", repr(", ".join(PARKED)))
 
 
 def rows_a_phone_must_fit(r):

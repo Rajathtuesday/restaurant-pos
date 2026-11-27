@@ -78,7 +78,7 @@ class QrMenuBrowserTest(BrowserTestCase):
                          subtotal: t.text("#billSubtotal"), gst: t.text("#billGst"), total: t.text("#billTotal") };'''),
             ("place", HELP + '''
                 t.click('[data-action="order.place"]');
-                const said = await toast("kitchen");
+                const said = await toast("confirm");
                 await t.until(() => t.text("#totalItems") === "0");          // emptied only once the server took it
                 await t.until(() => !document.getElementById("orderStatusPill").classList.contains("hidden"));
                 return { said, bar: document.getElementById("cartBar").classList.contains("visible"),
@@ -101,7 +101,9 @@ class QrMenuBrowserTest(BrowserTestCase):
         self.assertEqual(seen["cart"]["options"], "Hot")
         # 50 + 260 at 5% GST on top: 310 + 15.50
         self.assertEqual((seen["cart"]["subtotal"], seen["cart"]["gst"]), ("₹310", "₹15.50"))
-        self.assertEqual(seen["place"]["said"].strip(), "Order sent to the kitchen")
+        # Until 27 Nov 2026 the guest read "Order sent to the kitchen" while
+        # every dish waited for a waiter's yes. The words say what happens.
+        self.assertEqual(seen["place"]["said"].strip(), "Order received: waiting for the restaurant to confirm")
         self.assertFalse(seen["place"]["bar"])
         self.assertEqual(seen["place"]["pill"], "Received")
         self.assertIn("Already ordered", seen["again"])
@@ -113,6 +115,8 @@ class QrMenuBrowserTest(BrowserTestCase):
         tikka = order.items.get(menu_item=self.tikka)
         self.assertEqual([m.modifier_id for m in tikka.modifiers.all()], [self.hot.id])
         self.assertEqual(OrderRequest.objects.filter(order=order).count(), 2, "each round had its own request id")
+        # What the toast says is what happened: every dish waits for a waiter.
+        self.assertEqual({i.status for i in order.items.all()}, {"review"})
 
     def test_filters_and_search(self):
         seen = self.guest([("filter", HELP + '''
