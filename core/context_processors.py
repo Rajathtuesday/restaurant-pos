@@ -5,10 +5,15 @@ def base_url(request):
     return {'BASE_URL': settings.BASE_URL}
 
 def tenant_features(request):
-    if not request.user.is_authenticated:
+    # An error page raised before AuthenticationMiddleware (a refused host,
+    # say) renders with no request.user at all: answer as for a visitor.
+    # Until 27 Nov 2026 this read request.user, and every such 400 became
+    # a 500 (core/tests/test_error_pages_early.py).
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
         return {'tenant_features': [], 'tenant_type': 'fine_dining'}
 
-    tenant = getattr(request.user, 'tenant', None)
+    tenant = getattr(user, 'tenant', None)
     if not tenant:
         return {'tenant_features': [], 'tenant_type': 'fine_dining'}
 
@@ -24,6 +29,17 @@ def tenant_features(request):
         'tenant_type': tenant.tenant_type,
     }
 
+
+
+def _own_host(request):
+    """The host the page answers on. For a host Rasova refuses (the 400
+    page for it renders with this processor too), the main site's: asking
+    the request again would raise DisallowedHost inside the error page."""
+    from django.core.exceptions import DisallowedHost
+    try:
+        return request.get_host()
+    except DisallowedHost:
+        return settings.CANONICAL_HOST
 
 
 def frontend(request):
@@ -45,7 +61,7 @@ def frontend(request):
         # can say http and the Android print service refuses a cleartext
         # internet address. A box has no https at all (it lives on the
         # restaurant's own network), so it says what it really is.
-        "server_url": (request.scheme if box else "https") + "://" + request.get_host(),
+        "server_url": (request.scheme if box else "https") + "://" + _own_host(request),
         "agent_host": (getattr(outlet, "agent_host", None) or "localhost") if outlet is not None else "localhost",
     }
     if outlet is not None and not box:

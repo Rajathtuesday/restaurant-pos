@@ -17,7 +17,7 @@ import { pageData } from "../core/page_data.js";
 import { withId } from "../billing/urls.js";
 import { goTo } from "../core/site_path.js";
 import {
-  dishFields, dishProblem, hiddenBySearch, menuImportStep, pollUntil, postForm, recipeImportStep, syncWords,
+  dishFields, dishProblem, hiddenBySearch, importMenu, pollUntil, postForm, recipeImportStep, syncWords,
 } from "./manage_parts.js";
 
 const data = pageData("page-data");
@@ -196,22 +196,11 @@ async function runMenuImport(btn) {
     return;
   }
   busyButton(btn, "Uploading…");
-  const form = new FormData();
-  if (file) form.append("file", file);
-  form.append("text", text);
-  const sent = await postForm({ fetchFn: fetch, csrf: api.getCsrf, url: data.urls.aiImport, form });
-  if (!sent.ok) {
-    ui.toast(sent.message, "error");
-    freeButton(btn, label);
-    return;
-  }
-  if (!sent.data.queued) {
-    ui.toast(sent.data.message || "Menu imported.", "success");
-    setTimeout(reload, 1500);
-    return;
-  }
-  busyButton(btn, "AI is processing…");
-  const end = await pollUntil({ get: () => getJson(withId(data.urls.aiStatus, sent.data.task_id)), step: menuImportStep });
+  // The one importer, shared with setup step 2 (manage_parts.js)
+  const end = await importMenu({
+    fetchFn: (...args) => fetch(...args), csrf: api.getCsrf, url: data.urls.aiImport,
+    statusUrl: data.urls.aiStatus, file, text, onQueued: () => busyButton(btn, "AI is processing…"),
+  });
   if (end.state === "done") {
     ui.toast(end.words, "success");
     setTimeout(reload, 1500);

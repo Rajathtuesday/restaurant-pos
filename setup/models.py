@@ -120,15 +120,19 @@ class PaymentConfig(TenantScopedModel):
     @classmethod
     def for_outlet(cls, outlet, tenant=None):
         """Safe get-or-create that handles the OneToOneField race condition.
-        Returns (obj, created): drop-in replacement for get_or_create."""
+        Returns (obj, created): drop-in replacement for get_or_create.
+
+        Scoped to the outlet's own restaurant, not the signed-in user's: the
+        superuser panel manages other restaurants, and with the ambient
+        scope (core/models.py) it found no row, tried to make a second one
+        and crashed (28 Nov 2026)."""
         from django.db import IntegrityError
+        owner = tenant or outlet.tenant
+        rows = cls.objects.for_outlet(owner, outlet)
         try:
-            return cls.objects.get_or_create(
-                outlet=outlet,
-                defaults={'tenant': tenant or outlet.tenant},
-            )
+            return rows.get_or_create(outlet=outlet, defaults={'tenant': owner})
         except IntegrityError:
-            return cls.objects.get(outlet=outlet), False
+            return rows.get(outlet=outlet), False
 
     def __str__(self):
         return f"Payment Config for {self.outlet}"
@@ -178,15 +182,19 @@ class AggregatorConfig(TenantScopedModel):
     @classmethod
     def for_outlet(cls, outlet, tenant=None):
         """Safe get-or-create that handles the OneToOneField race condition.
-        Returns (obj, created): drop-in replacement for get_or_create."""
+        Returns (obj, created): drop-in replacement for get_or_create.
+
+        Scoped to the outlet's own restaurant, not the signed-in user's: the
+        superuser panel manages other restaurants, and with the ambient
+        scope (core/models.py) it found no row, tried to make a second one
+        and crashed (28 Nov 2026)."""
         from django.db import IntegrityError
+        owner = tenant or outlet.tenant
+        rows = cls.objects.for_outlet(owner, outlet)
         try:
-            return cls.objects.get_or_create(
-                outlet=outlet,
-                defaults={'tenant': tenant or outlet.tenant},
-            )
+            return rows.get_or_create(outlet=outlet, defaults={'tenant': owner})
         except IntegrityError:
-            return cls.objects.get(outlet=outlet), False
+            return rows.get(outlet=outlet), False
 
     def __str__(self):
         return f"Aggregator Config for {self.outlet}"

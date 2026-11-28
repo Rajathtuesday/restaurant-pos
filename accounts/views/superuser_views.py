@@ -128,7 +128,10 @@ def tenant_config(request, tenant_id):
             "error": f"Tenant '{tenant.name}' has no outlet yet. Create one in Admin.",
         })
 
-    stations = KitchenStation.objects.filter(tenant=tenant, outlet=outlet)
+    # The restaurant being managed, named: a superuser may belong to a
+    # restaurant of their own, and the ambient scope (core/models.py) would
+    # show that one's rows instead (28 Nov 2026).
+    stations = KitchenStation.objects.for_outlet(tenant, outlet)
     staff    = User.objects.filter(tenant=tenant, outlet=outlet).order_by("role", "username")
     config, _ = PaymentConfig.for_outlet(outlet, tenant)
     feature_summary = tcs.get_feature_summary(tenant)

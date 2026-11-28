@@ -61,6 +61,29 @@ class PubNightTest(TestCase):
         self.assertEqual(report["orders"], 8)
         self.assertGreater(paid, D("10000"))
 
+    def test_a_night_played_in_the_morning_stays_in_todays_report(self):
+        """Seeded at 7:27 am, three hours back is 4:27, before the business
+        day began at 6: the night is fitted to 6:00 to 7:27, and today's
+        report has all of it (until 28 Nov 2026 part of it fell on the day
+        before, and this test's neighbour failed from 6 to 9 every morning)."""
+        from datetime import datetime, time
+
+        from django.utils import timezone
+
+        from accounts.models import User
+        from core.utils import get_business_date
+        from devtools.pub_night import start_the_night
+
+        staff = {u.role: u for u in User.objects.filter(tenant=self.tenant)}
+        morning = timezone.make_aware(datetime.combine(timezone.localdate(), time(7, 27)))
+        start_the_night(self.tenant, self.outlet, staff, now=morning)
+        today = get_business_date(morning, self.outlet)
+        report = daily_sales(self.tenant, self.outlet, start_date=today, end_date=today)
+        paid = sum(p.amount for p in Payment.objects.filter(order__outlet=self.outlet))
+        self.assertEqual(D(str(report["total_sales"])).quantize(D("0.01")), paid)
+        self.assertEqual(report["orders"], 8)
+        self.assertTrue(all(p.paid_at <= morning for p in Payment.objects.filter(order__outlet=self.outlet)))
+
     def test_running_it_again_starts_the_night_over(self):
         call_command("seed_pub_demo", stdout=StringIO())
         self.assertEqual(Payment.objects.filter(order__outlet=self.outlet).count(), 8)

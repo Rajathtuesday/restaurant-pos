@@ -1,8 +1,10 @@
 /*
  * Menu management, the parts with no page in sight (node tests them):
  * the dish form's fields, the search, the AI imports' polling answers,
- * the branch sync's words, and posting a form with a file.
+ * the branch sync's words, posting a form with a file, and the AI menu
+ * import from the photo to its last answer (the Menu page and setup step 2).
  */
+import { withId } from "../billing/urls.js";
 
 /* The fields a dish form sends. `form` holds what the page has: a value is
    undefined when the page has no such field (the QSR page has no station,
@@ -96,4 +98,29 @@ export async function pollUntil({ get, step, every = 2000, limit = 150, sleep = 
     if (next.state !== "wait") return next;
   }
   return { state: "failed", words: "The import is taking too long. Please try again." };
+}
+
+/* The AI menu import, from the photo (or text) to its last answer: the one
+   importer both the Menu page and setup step 2 use. The importer
+   (menu.views.ai_views.ai_menu_importer) reads "file" and "text"; it queues
+   the job and answers {queued, task_id}, so this asks `statusUrl` (with
+   "/0/" for the task id) until the job is done. When the queue is down it
+   reads the menu there and then and answers {message}. Returns
+   {state: "done" | "failed", words}; never throws.
+
+   Until 28 Nov 2026 step 2 had its own copy: it sent the photo as "image"
+   and took the queued answer for a failure, so a new owner only ever read
+   "Import failed. Try again." */
+export async function importMenu({ fetchFn, csrf, url, statusUrl, file, text = "", onQueued = () => {},
+  every = 2000, sleep }) {
+  const form = new FormData();
+  if (file) form.append("file", file);
+  form.append("text", text);
+  const sent = await postForm({ fetchFn, csrf, url, form });
+  if (!sent.ok) return { state: "failed", words: sent.message };
+  if (!sent.data.queued) return { state: "done", words: sent.data.message || "Menu imported." };
+  onQueued();
+  const get = async () => (await fetchFn(withId(statusUrl, sent.data.task_id),
+    { headers: { Accept: "application/json" } })).json();
+  return pollUntil({ get, step: menuImportStep, every, ...(sleep ? { sleep } : {}) });
 }

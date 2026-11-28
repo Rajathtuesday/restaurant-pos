@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  dishFields, dishProblem, hiddenBySearch, menuImportStep, pollUntil, postForm, recipeImportStep, syncWords,
+  dishFields, dishProblem, hiddenBySearch, importMenu, menuImportStep, pollUntil, postForm, recipeImportStep, syncWords,
 } from "../menu/manage_parts.js";
 
 const qsrForm = { name: " Burger ", price: "120", category: "3", isVeg: false };
@@ -65,4 +65,49 @@ test("posting a form: refusal, HTML page, dropped connection, success", async ()
 test("the sync's words", () => {
   assert.equal(syncWords({ categories_created: 2, items_created: 9, recipes_created: 4, outlets_updated: 3 }),
     "Sync complete: 2 categories, 9 dishes, 4 recipes across 3 branches.");
+});
+
+/* A fetch that answers in turn, and notes what it was asked. */
+function server(...answers) {
+  const asked = [];
+  const fetchFn = async (url, options = {}) => {
+    asked.push({ url, options });
+    const [status, body] = answers.shift();
+    return { ok: status < 400, status, json: async () => body };
+  };
+  return { fetchFn, asked };
+}
+const quick = { every: 0, sleep: async () => {} };
+const photo = new Blob(["png"], { type: "image/png" });
+
+test("the AI import sends the photo as file, then asks for the queued job until it is done", async () => {
+  const { fetchFn, asked } = server(
+    [200, { queued: true, task_id: "t-9" }],
+    [200, { status: "processing" }],
+    [200, { status: "done", message: "AI imported 3 items." }],
+  );
+  let queued = false;
+  const end = await importMenu({ fetchFn, csrf: () => "tok", url: "/menu/ai-import/", statusUrl: "/menu/ai-import-status/0/",
+    file: photo, onQueued: () => { queued = true; }, ...quick });
+  assert.deepEqual(end, { state: "done", words: "AI imported 3 items." });
+  assert.ok(queued);
+  // the importer reads "file" (setup step 2 sent "image" until 28 Nov 2026)
+  assert.equal(asked[0].options.body.get("file").type, "image/png");
+  assert.equal(asked[0].options.body.get("image"), null);
+  assert.equal(asked[0].options.headers["X-CSRFToken"], "tok");
+  assert.deepEqual(asked.slice(1).map((a) => a.url), ["/menu/ai-import-status/t-9/", "/menu/ai-import-status/t-9/"]);
+});
+
+test("the AI import: read at once when the queue is down, and a failed job says why", async () => {
+  const at_once = server([200, { success: true, message: "Imported 12 dishes." }]);
+  assert.deepEqual(await importMenu({ fetchFn: at_once.fetchFn, csrf: () => "", url: "/i/", statusUrl: "/s/0/",
+    file: photo, ...quick }), { state: "done", words: "Imported 12 dishes." });
+
+  const failed = server([200, { queued: true, task_id: "t-1" }], [200, { status: "error", error: "Could not read the photo." }]);
+  assert.deepEqual(await importMenu({ fetchFn: failed.fetchFn, csrf: () => "", url: "/i/", statusUrl: "/s/0/",
+    file: photo, ...quick }), { state: "failed", words: "AI import failed: Could not read the photo." });
+
+  const refused = server([400, { error: "Image too large: please use a photo under 15 MB." }]);
+  assert.deepEqual(await importMenu({ fetchFn: refused.fetchFn, csrf: () => "", url: "/i/", statusUrl: "/s/0/",
+    file: photo, ...quick }), { state: "failed", words: "Image too large: please use a photo under 15 MB." });
 });

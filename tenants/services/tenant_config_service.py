@@ -190,7 +190,8 @@ def update_outlet_from_post(outlet, post):
 def update_printer_from_post(tenant, post):
     """Applies the "update_printer" POST action. Returns the saved station."""
     from django.shortcuts import get_object_or_404
-    station = get_object_or_404(KitchenStation, id=post.get("station_id"), tenant=tenant)
+    # for_tenant: the restaurant being managed, not the signed-in superuser's own
+    station = get_object_or_404(KitchenStation.objects.for_tenant(tenant), id=post.get("station_id"))
     station.printer_ip     = post.get("printer_ip", "").strip() or None
     station.printer_port   = int(post.get("printer_port") or 9100)
     station.paper_width_mm = int(post.get("paper_width_mm") or 80)

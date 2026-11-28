@@ -144,7 +144,7 @@
                 <div style="font-size:1.5rem;margin-bottom:0.4rem;">📷</div>
                 <div style="font-size:0.8rem;font-weight:600;margin-bottom:0.25rem;">AI Import</div>
                 <div style="font-size:0.72rem;color:var(--muted);line-height:1.4;">Upload a photo of your paper menu</div>
-                <input type="file" id="ai-file-input" accept="image/*" style="display:none;" data-action="ai.import" data-url="{% url 'ai_menu_importer' %}">
+                <input type="file" id="ai-file-input" accept="image/*" style="display:none;" data-action="ai.import" data-url="{% url 'ai_menu_importer' %}" data-status-url="{% url 'ai_import_status' '0' %}">
             </div>
             {% endif %}
             <form method="post" action="/setup/sample-menu/" id="sample-menu-form">

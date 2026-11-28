@@ -21,6 +21,8 @@ from decimal import Decimal as D
 
 from django.utils import timezone
 
+from core.utils import get_business_date, get_business_date_range
+
 from inventory.models import InventoryItem, InventoryTransaction, KegChange
 from menu.models import MenuItem
 from notifications.models import Notification
@@ -81,7 +83,19 @@ def start_the_night(tenant, outlet, staff, now=None):
     Notification.objects.filter(tenant=tenant).delete()
     CashSession.objects.filter(tenant=tenant, outlet=outlet).delete()
 
-    start = now - timedelta(hours=3)
+    # Tonight is the last three hours, but never from before today's business
+    # day began (6 am unless the outlet says otherwise): a night across that
+    # line split its takings between two days, and today's report showed less
+    # than the pub took (test_pub_night failed every morning from 6 to about
+    # 9, 28 Nov 2026). Every moment below is a minute of a three-hour night,
+    # fitted to tonight's real length and never after now.
+    day_began, _ = get_business_date_range(get_business_date(now, outlet), outlet)
+    start = max(now - timedelta(hours=3), day_began)
+    scale = (now - start) / timedelta(hours=3)
+
+    def at(minute):
+        return min(start + timedelta(minutes=minute) * scale, now)
+
     session = CashSession.objects.create(tenant=tenant, outlet=outlet, opened_by=staff["manager"],
                                          opening_balance=OPEN_FLOAT, status="open")
     CashSession.objects.filter(pk=session.pk).update(opened_at=start)
@@ -98,15 +112,16 @@ def start_the_night(tenant, outlet, staff, now=None):
     tables = {t.name: t for t in Table.objects.filter(outlet=outlet)}
     paid_total = D("0")
     for n, (table, lines, method) in enumerate(PAID):
-        when = start + timedelta(minutes=15 + n * 18 + rng.randint(0, 8))
-        order = _order(tenant, outlet, tables[table], lines, staff["captain"], when)
+        minute = 15 + n * 18 + rng.randint(0, 8)
+        order = _order(tenant, outlet, tables[table], lines, staff["captain"], at(minute))
         payment = Payment.objects.create(order=order, method=method, amount=order.grand_total,
                                          created_by=staff["cashier"])
-        Order.objects.filter(pk=order.pk).update(status="closed", closed_at=when + timedelta(minutes=40))
-        Payment.objects.filter(pk=payment.pk).update(paid_at=when + timedelta(minutes=40))
+        Order.objects.filter(pk=order.pk).update(status="closed", closed_at=at(minute + 40))
+        Payment.objects.filter(pk=payment.pk).update(paid_at=at(minute + 40))
         paid_total += order.grand_total
     for n, (table, lines) in enumerate(OPEN):
-        _order(tenant, outlet, tables[table], lines, staff["captain"], now - timedelta(minutes=50 - n * 10))
+        # 50, 40, 30... minutes before the end of the night
+        _order(tenant, outlet, tables[table], lines, staff["captain"], at(130 + n * 10))
 
     keg.refresh_from_db()
     return {"paid": len(PAID), "open": len(OPEN), "takings": paid_total, "keg_left_ml": keg.stock}

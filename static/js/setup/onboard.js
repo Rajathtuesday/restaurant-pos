@@ -7,6 +7,7 @@
  * Enter and Space as well as a tap.
  */
 import { delegate } from "../core/dom.js";
+import { importMenu } from "../menu/manage_parts.js";
 
 /* The address as it may be: lower case letters, digits and dashes. */
 export function cleanSlug(typed) {
@@ -72,21 +73,21 @@ async function aiImport(input) {
   spinner.hidden = false;
   done.hidden = true;
   failed.hidden = true;
-  const form = new FormData();
-  form.append("image", input.files[0]);
-  form.append("csrfmiddlewaretoken", document.querySelector("[name=csrfmiddlewaretoken]").value);
-  let data;
-  try {
-    data = await (await fetch(input.dataset.url, { method: "POST", body: form })).json();
-  } catch (down) {
-    data = { success: false, message: "Network error. Please try again." };
-  }
+  // The Menu page's importer: it sends "file" and waits for the queued job
+  // (setup/tests/test_onboarding_ai_browser.py).
+  const end = await importMenu({
+    fetchFn: (...args) => fetch(...args),
+    csrf: () => document.querySelector("[name=csrfmiddlewaretoken]").value,
+    url: input.dataset.url,
+    statusUrl: input.dataset.statusUrl,
+    file: input.files[0],
+  });
   spinner.hidden = true;
-  if (data.success) {
-    el("ai-success-msg").textContent = data.message;
+  if (end.state === "done") {
+    el("ai-success-msg").textContent = end.words;
     done.hidden = false;
   } else {
-    failed.textContent = data.message || "Import failed. Try again.";
+    failed.textContent = end.words;
     failed.hidden = false;
   }
 }

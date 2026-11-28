@@ -7,6 +7,19 @@ the source of truth.
 
 ---
 
+## 2026-11-28: Three faults the production logs showed, and a test that failed every morning
+
+The owner made a test pub (Tuesdays) from the superuser panel, tried the AI menu import on a phone at setup step 2 and read "Import failed", and pasted the server's logs. Fixed on his "yes fix all three".
+
+### Fixed
+- **Setup step 2's AI Import never worked since the import was queued.** The importer answers `{queued, task_id}` and the Menu page asks for the result until it is done; step 2's own copy waited for `{success, message}`, so it said "Import failed. Try again." at once, and it sent the photo as `image` while the importer reads `file`, so the job never saw it. Both pages now use one importer (`importMenu` in `static/js/menu/manage_parts.js`).
+- **The superuser panel crashed (500) on every restaurant but the superuser's own.** Production's superuser also belongs to a restaurant, and every restaurant-scoped query is scoped to the signed-in user's restaurant (`core/models.py`), so the panel saw none of another restaurant's stations or payment setup, tried to make a second payment setup and failed. The panel names the restaurant it manages (`.for_outlet`, `.for_tenant`), and `PaymentConfig.for_outlet` / `AggregatorConfig.for_outlet` scope to the outlet's own restaurant whoever is signed in.
+- **A request for an unknown host got a 500 instead of a 400** (bots trying the server's bare IP, about one a day since 21 Nov). The host is refused before sign-in, and the 400 page's context processors read `request.user` (not there yet) and asked the refused host for itself again. They now answer as for a visitor and fall back to the main site's host.
+- **The demo pub's night (`seed_pub_demo`) crossed the 6 am business-day line when seeded in the morning**, so part of "tonight" fell in yesterday's report, and `devtools.tests.test_pub_night` failed every morning from 6 to about 9 (it failed this run at 7:27, on the last commit too). The night now runs from three hours ago or from the start of today's business day, whichever is later, every moment fitted into it and none after now (`devtools/pub_night.py`).
+
+### Tests
+- `setup/tests/test_onboarding_ai_browser.py` (new): a phone picks a menu photo at step 2, the queued job reads it, the dishes appear and the owner is told; a failed job says why (both fail on the old code with "Import failed. Try again."). `static/js/tests/menu_management.test.mjs`: the shared importer sends `file`, asks for the queued job, reads at once when the queue is down. `accounts/tests/test_superuser_panel.py`: a superuser who belongs to one restaurant opens, saves printers and payments for, and applies a preset to another (two fail on the old code with production's error). `core/tests/test_error_pages_early.py` (new): every context processor answers a request with no user and a refused host; an unknown host gets a 400 (four fail on the old code). `devtools/tests/test_pub_night.py`: a night seeded at 7:27 am is all in today's report (fails on the old seed at any hour).
+
 ## 2026-11-27: The Android app is off rasova.net
 
 The owner tried the app on a phone (the wrong logo, the wrong colours, endless loading after a scan) and paused work on it: "we will pause mobile dev on rasova", then "remove the apk download". A Rasova box keeps its own copy (`box/docker/android/rasova.apk`, Connect a device): untouched.
