@@ -78,6 +78,10 @@
         </div>
     </header>
 
+    {% if moved_from_another_restaurant %}
+    {# core.decorators.to_own_restaurant: a page opened at another restaurant's address #}
+    <div class="moved-note" role="status">That address belongs to another restaurant. You're signed in to {{ user.tenant.name }}, so here is {{ user.tenant.name }}.</div>
+    {% endif %}
     <main class="flex-grow-1 d-flex flex-column">
         {% block content %}{% endblock %}
     </main>

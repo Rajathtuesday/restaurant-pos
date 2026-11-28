@@ -234,6 +234,14 @@ body {
 .app-update-banner span { flex: 1 1 16rem; }
 .app-update-banner .btn-luxury { background: #fff; color: #dc2626; border-color: #fff; }
 
+/* Why the page moved: it was opened at another restaurant's address
+   (core/decorators.py, to_own_restaurant). Shown once, in the theme. */
+.moved-note {
+    padding: 0.7rem 1rem; font-size: 0.9rem; color: var(--text-main);
+    background: var(--panel-bg); border-bottom: 1px solid var(--border-color);
+    border-left: 3px solid var(--gold-text);
+}
+
 /* A list with nothing in it yet (core/_empty_state.html, core/empty_state.js). */
 .rv-empty {
     text-align: center; padding: 3.5rem 1.5rem; margin: 1rem auto; max-width: 34rem;

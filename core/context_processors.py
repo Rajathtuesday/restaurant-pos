@@ -73,8 +73,13 @@ def frontend(request):
     # An Android app older than the server needs: base.html shows the
     # "update the app" banner (core/app_version.py).
     from core.app_version import app_update
+    from core.decorators import MOVED_FROM_ANOTHER_RESTAURANT
+    # Taken here, once: the next page drawn says why it moved
+    # (core.decorators.to_own_restaurant).
+    moved = bool(authenticated and hasattr(session, "pop") and session.pop(MOVED_FROM_ANOTHER_RESTAURANT, False))
     return {"rasova_page": page, "app_update": app_update(request),
-            "show_setup_checklist": shows_setup_checklist(request.path)}
+            "show_setup_checklist": shows_setup_checklist(request.path),
+            "moved_from_another_restaurant": moved}
 
 
 # Where the "Setup 3/5 complete" checklist is offered: the pages an owner

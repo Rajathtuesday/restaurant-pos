@@ -7,6 +7,16 @@ the source of truth.
 
 ---
 
+## 2026-11-28: Another restaurant's address takes you to your own
+
+One browser holds one login for every `*.rasova.net` address. The owner signed in as Tuesdays from Spice Garden's page, and Spice's page, still open, answered "403 Forbidden". On his "yes do the redirect instead of 403 and also a message while redirecting".
+
+### Changed
+- **A page opened at another restaurant's address** now goes to the same page at the signed-in person's own address, which says once at the top: "That address belongs to another restaurant. You're signed in to Tuesdays, so here is Tuesdays." It never names the other restaurant. A script's request there (a poll, a form post) is still refused with the 403, so one restaurant's login still never reads another's rows (`core/decorators.py`, `to_own_restaurant`; the note in `templates/core/base.html`, in the theme's own colours).
+
+### Tests
+- `core/tests/test_other_restaurants_address.py` (new): the redirect keeps the path and query; the note shows once and names only your own restaurant; polls, XHR and posts there still get 403; your own address is unchanged (three fail on the old code).
+
 ## 2026-11-28: The AI import says why, and the heartbeat reaches the worker
 
 The morning's logs, after the first fixes went live: the owner gave the photo reader the Rasova menu file (JSON) at setup step 2, and the worker was throwing a task away every minute. Fixed on his "yes fix A and B".

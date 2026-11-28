@@ -65,6 +65,37 @@ def open_when(check, refusal):
     return decorator
 
 
+# The session flag that makes base.html say, once, why the page moved
+# (core.context_processors.frontend). The session cookie is shared by every
+# *.rasova.net address, so the flag set at one restaurant's address is read
+# at the other's.
+MOVED_FROM_ANOTHER_RESTAURANT = "moved_from_another_restaurant"
+
+
+def to_own_restaurant(request):
+    """A page opened at another restaurant's address by someone signed in to
+    their own: a redirect to the same page at their own address, which then
+    says why. None when that isn't a person opening a page (a script's
+    request, a form post) or there is no own address (on a laptop in DEBUG,
+    on a box): the caller refuses those.
+
+    Until 28 Nov 2026 every such page answered a bare 403: one browser holds
+    one login for every *.rasova.net address, so an owner who signed in as
+    another restaurant from Spice Garden's page met it on Spice's page."""
+    if request.method not in ("GET", "HEAD"):
+        return None
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return None
+    if "text/html" not in request.headers.get("Accept", ""):
+        return None
+    from accounts.views.auth_views import _subdomain_redirect
+    url = _subdomain_redirect(request.user, request.get_full_path())
+    if not url:
+        return None
+    request.session[MOVED_FROM_ANOTHER_RESTAURANT] = True
+    return redirect(url)
+
+
 def tenant_required(view_func):
     """
     Ensures the request user has a tenant and outlet assigned,
@@ -95,12 +126,17 @@ def tenant_required(view_func):
                 "Your account is not assigned to any restaurant."
             )
 
-        # Cross-tenant isolation: subdomain must match user's tenant.
+        # Cross-tenant isolation: subdomain must match user's tenant. A page
+        # opened there goes to the same page at the user's own address, with
+        # a note; anything else (a script's request, a form post) is refused.
         if (
             hasattr(request, "tenant")
             and request.tenant
             and request.tenant != request.user.tenant
         ):
+            moved = to_own_restaurant(request)
+            if moved is not None:
+                return moved
             raise PermissionDenied(
                 "Cross-tenant access detected. You are logged into a different restaurant."
             )
