@@ -5,6 +5,8 @@ from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.core.cache import cache
 
+from core.errors import UserError
+
 logger = logging.getLogger("pos.menu")
 
 CACHE_TTL = 600  # 10 minutes: enough for any reasonable import
@@ -86,6 +88,13 @@ def ai_import_menu(self, tenant_id, outlet_id, text, image_b64, mime_type):
             "error": "The menu took too long to read. Try a smaller or clearer file: "
                      "for a big PDF, split it into a few pages and import them one at a time.",
         }, CACHE_TTL)
+
+    except UserError as e:
+        # The reader's own words for the owner ("Couldn't read that file.
+        # Please upload a photo..."): shown as they are, not hidden behind
+        # the plain line below (28 Nov 2026).
+        logger.warning("AI import refused: %s", e.message)
+        cache.set(cache_key, {"status": "error", "error": e.message}, CACHE_TTL)
 
     except Exception:
         logger.exception("AI import task failed")

@@ -31,6 +31,8 @@ import json
 import logging
 import os
 
+from core.errors import UserError
+
 logger = logging.getLogger("pos.ai")
 
 MENU_MODEL = os.getenv("AI_MENU_MODEL", "claude-sonnet-5-5")
@@ -63,6 +65,13 @@ RECIPE_SCHEMA = _schema({"ingredients": {"type": "array", "items": _schema({
 MATCH_SCHEMA = _schema({"matches": {"type": "array", "items": _schema({
     "ingredient": {"type": "string"}, "inventory_item": {"anyOf": [{"type": "string"}, {"type": "null"}]},
 })}})
+
+
+class AIReadError(UserError):
+    """The reader's refusal, written for the owner ("Couldn't read that file.
+    Please upload a photo..."). A background job shows these words as they
+    are; any other error gets its plain "Something went wrong" line. Until
+    28 Nov 2026 these were plain Exceptions, and the jobs hid them too."""
 
 
 class AIService:
@@ -198,7 +207,7 @@ class AIService:
                 "data": base64.standard_b64encode(jpeg).decode("ascii")}}
         except Exception as e:
             logger.warning("Unreadable upload (mime=%s): %s", mime_type, e)
-            raise Exception(
+            raise AIReadError(
                 "Couldn't read that file. Please upload a photo (JPG/PNG), a PDF, "
                 "a Word document (.docx), an Excel sheet (.xlsx), or plain text/CSV. "
                 "(iPhone HEIC photos aren't supported: screenshot the menu instead.)"
@@ -209,7 +218,7 @@ class AIService:
         try:
             from docx import Document
         except ImportError:
-            raise Exception(
+            raise AIReadError(
                 "Word import isn't available on the server yet. Save the menu as "
                 "a PDF or take a screenshot, and upload that instead."
             )
@@ -313,10 +322,10 @@ class AIService:
 
             # A real photo genuinely needs AI/OCR -- no local text to fall back to.
             if image_bytes:
-                raise Exception("Image parsing requires an AI activation key. Please add it to your configuration.")
+                raise AIReadError("Image parsing requires an AI activation key. Please add it to your configuration.")
 
             # If they provided neither or empty text
-            raise Exception("No menu data provided to parse.")
+            raise AIReadError("No menu data provided to parse.")
 
         prompt = """
         Analyze this restaurant menu and extract all items.
@@ -527,11 +536,11 @@ class AIService:
         just raises a clear "AI not configured" error rather than guessing.
         """
         if not self.client:
-            raise Exception(
+            raise AIReadError(
                 "AI recipe import requires an AI activation key. Please add it to your configuration."
             )
         if not (text and text.strip()) and not image_bytes:
-            raise Exception("No recipe document provided to parse.")
+            raise AIReadError("No recipe document provided to parse.")
 
         prompt = """
         You are extracting the ingredient list from a recipe document for ONE dish.
@@ -559,7 +568,7 @@ class AIService:
             return answer["ingredients"]
         except Exception as e:
             logger.error("AI recipe extraction error: %s", e)
-            raise Exception("Couldn't read that recipe. Try a clearer photo or a text/PDF export.")
+            raise AIReadError("Couldn't read that recipe. Try a clearer photo or a text/PDF export.")
 
     def match_ingredients(self, unmatched_names, inventory_names):
         """

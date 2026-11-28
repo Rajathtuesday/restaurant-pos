@@ -4,6 +4,8 @@ from celery import shared_task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.db import transaction
 
+from core.errors import UserError
+
 logger = logging.getLogger("pos.inventory")
 
 # rapidfuzz score (0-100) below which a name is sent to the batched Claude
@@ -128,6 +130,14 @@ def ai_import_recipe(self, job_id, text, image_b64, mime_type):
         job.error_message = (
             "The recipe document took too long to read. Try a smaller or clearer file."
         )
+        job.save(update_fields=["status", "error_message"])
+
+    except UserError as e:
+        # The reader's own words ("Couldn't read that recipe..."), shown as
+        # they are (28 Nov 2026); anything else gets the plain line below.
+        logger.warning("AI recipe import refused for job %s: %s", job_id, e.message)
+        job.status = "failed"
+        job.error_message = e.message
         job.save(update_fields=["status", "error_message"])
 
     except Exception:

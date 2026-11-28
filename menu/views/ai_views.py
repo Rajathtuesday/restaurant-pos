@@ -1,5 +1,6 @@
 """AI menu importer and multi-outlet menu sync."""
 import base64
+import json
 import logging
 from decimal import Decimal
 
@@ -10,6 +11,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
 from core.celery_utils import dispatch
+from core.errors import UserError
 from core.decorators import tenant_required, feature_required, role_required
 from menu.models import MenuCategory, MenuItem, VatClass
 
@@ -18,6 +20,22 @@ logger = logging.getLogger("pos.menu")
 # Module-level so tests can patch it to something tiny rather than actually
 # waiting out a 100-second timeout to exercise that code path.
 SYNC_PARSE_TIMEOUT_SECONDS = 100
+
+# A Rasova menu file (menu/services/menu_file.py) is not a menu to read: it
+# goes in on Menu, Menu file, which checks it before anything changes. On
+# 28 Nov 2026 one was given to the photo reader at setup step 2, which could
+# only say it couldn't read it.
+MENU_FILE_HERE = ("That's a Rasova menu file, not a menu to read: load it on Menu, Menu file "
+                  "(/menu/file/), which checks it before anything changes.")
+
+
+def _is_menu_file(raw):
+    from menu.services.menu_file import FORMAT
+    try:
+        data = json.loads(raw)
+    except (ValueError, UnicodeDecodeError):
+        return False
+    return isinstance(data, dict) and data.get("format") == FORMAT
 
 
 @login_required
@@ -44,7 +62,10 @@ def ai_menu_importer(request):
                     {"error": "Image too large: please use a photo under 15 MB."},
                     status=400,
                 )
-            image_b64 = base64.b64encode(file.read()).decode()
+            raw = file.read()
+            if _is_menu_file(raw):
+                return JsonResponse({"error": MENU_FILE_HERE}, status=400)
+            image_b64 = base64.b64encode(raw).decode()
             mime_type = file.content_type
 
         from menu.tasks import ai_import_menu
@@ -63,6 +84,9 @@ def ai_menu_importer(request):
             logger.warning("Celery unavailable for AI import: running synchronously")
             return _run_sync(request, text, image_b64, mime_type)
 
+    except UserError as e:
+        # The reader's own words (read here when the queue is down)
+        return JsonResponse({"error": e.message}, status=400)
     except Exception:
         logger.exception("AI Import error")
         return JsonResponse({"error": "Could not import the menu. Please try again."}, status=400)

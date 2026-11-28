@@ -11,6 +11,11 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Auto-discover tasks in every installed app's tasks.py
 app.autodiscover_tasks()
+# ...and core's: core is the project package, not an installed app, so the
+# line above never imports core/tasks.py. Until 28 Nov 2026 the worker threw
+# beat's heartbeat away every minute as an unregistered task
+# (core/tests/test_celery_tasks_known.py).
+app.autodiscover_tasks(["core"])
 
 
 # Registered once, here, so that any task dispatched via

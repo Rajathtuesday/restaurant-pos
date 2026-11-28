@@ -394,6 +394,26 @@ class RecipeImportJobLifecycleTests(TestCase):
         discard_resp = attacker_client.post(reverse("recipe-import-discard", args=[job_id]))
         self.assertEqual(discard_resp.status_code, 404)
 
+    def test_the_readers_own_reason_reaches_the_review(self):
+        """A file the reader can't read: the reader's own words, not
+        "Something went wrong" (28 Nov 2026, the menu import showed the
+        generic line for a JSON file and the owner never learned why)."""
+        import base64
+        import os
+
+        from core.tests.fake_claude import FakeClaude
+        from inventory.tasks import ai_import_recipe
+
+        job = RecipeImportJob.objects.create(
+            tenant=self.tenant, outlet=self.outlet, menu_item=self.menu_item, status="processing",
+        )
+        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}), \
+                patch("core.ai_service.anthropic.Anthropic", return_value=FakeClaude({"ingredients": []})):
+            ai_import_recipe(job.id, "", base64.b64encode(b'{"not": "a photo"}').decode(), "application/json")
+        job.refresh_from_db()
+        self.assertEqual(job.status, "failed")
+        self.assertTrue(job.error_message.startswith("Couldn't read"), job.error_message)
+
     @patch("core.ai_service.AIService.parse_recipe")
     def test_task_failure_stores_a_generic_message_not_the_raw_exception(self, mock_parse_recipe):
         """The recipe-import task must never leak a raw exception string into

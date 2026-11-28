@@ -7,6 +7,18 @@ the source of truth.
 
 ---
 
+## 2026-11-28: The AI import says why, and the heartbeat reaches the worker
+
+The morning's logs, after the first fixes went live: the owner gave the photo reader the Rasova menu file (JSON) at setup step 2, and the worker was throwing a task away every minute. Fixed on his "yes fix A and B".
+
+### Fixed
+- **The AI import hid its reason behind "Something went wrong".** The reader knew ("Couldn't read that file. Please upload a photo (JPG/PNG), a PDF, ..."), but its refusals were plain Exceptions and both background jobs, the menu import and the recipe import, swapped every error for the generic line; the menu importer's own fallback did the same. The reader's refusals are now `AIReadError` (a `UserError`) and their words reach the screen; a real crash still gets the plain line.
+- **A Rasova menu file given to the photo reader** is now answered at once: "That's a Rasova menu file, not a menu to read: load it on Menu, Menu file", before any job is queued (`menu/views/ai_views.py`).
+- **The worker never knew the heartbeat task.** Beat sends `core.tasks.heartbeat` every minute (since 13 Nov), but `core` is the project package, not an installed app, so `app.autodiscover_tasks()` never imported `core/tasks.py`: production's worker logged "Received unregistered task" about 1,440 times a day, and `/health/`'s heartbeat check could never pass. `core/celery.py` now names `core` as well.
+
+### Tests
+- `menu/tests/test_ai_import_reasons.py` (new): a menu file is sent to Menu file and nothing is queued; an unreadable upload, read by the real reader with a fake Claude client, reaches the owner in the reader's words, in the job and with the queue down; a crash still gets the plain line (three fail on the old code). `inventory/tests/test_recipe_import.py`: the same for a recipe (fails on the old code). `core/tests/test_celery_tasks_known.py` (new): a fresh process loaded as the worker loads knows every task beat sends (fails on the old code: `core.tasks.heartbeat`).
+
 ## 2026-11-28: Three faults the production logs showed, and a test that failed every morning
 
 The owner made a test pub (Tuesdays) from the superuser panel, tried the AI menu import on a phone at setup step 2 and read "Import failed", and pasted the server's logs. Fixed on his "yes fix all three".
