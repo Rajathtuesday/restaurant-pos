@@ -17,7 +17,8 @@ import { pageData } from "../core/page_data.js";
 import { withId } from "../billing/urls.js";
 import { goTo } from "../core/site_path.js";
 import {
-  dishFields, dishProblem, hiddenBySearch, importMenu, pollUntil, postForm, recipeImportStep, syncWords,
+  dishFields, dishProblem, hiddenBySearch, importMenu, pollUntil, postForm, recipeImportStep, sendToMenuFileCheck,
+  syncWords,
 } from "./manage_parts.js";
 
 const data = pageData("page-data");
@@ -201,6 +202,11 @@ async function runMenuImport(btn) {
     fetchFn: (...args) => fetch(...args), csrf: api.getCsrf, url: data.urls.aiImport,
     statusUrl: data.urls.aiStatus, file, text, onQueued: () => busyButton(btn, "AI is processing…"),
   });
+  if (end.state === "menu_file") {
+    // A Rasova menu file: Menu file's check shows what it would add
+    sendToMenuFileCheck({ url: data.urls.menuFileCheck, csrf: api.getCsrf, file });
+    return;
+  }
   if (end.state === "done") {
     ui.toast(end.words, "success");
     setTimeout(reload, 1500);

@@ -34,6 +34,8 @@ def menu_page_data(categories, kind):
             "sync": reverse("sync_menu_to_outlets"),
             "aiImport": reverse("ai_menu_importer"),
             "aiStatus": reverse("ai_import_status", args=["0"]),
+            # a Rasova menu file given to the AI import goes to its check
+            "menuFileCheck": reverse("menu_file_check"),
             "recipeStart": reverse("recipe-import-start"),
             "recipeStatus": reverse("recipe-import-status", args=[0]),
             "recipeReview": reverse("recipe-import-review", args=[0]),

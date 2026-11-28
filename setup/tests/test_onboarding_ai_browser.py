@@ -31,6 +31,9 @@ MENU = [
                                         {"name": "Chicken Wings", "price": 420, "is_veg": False}]},
 ]
 
+# The Menu page itself, not just any /menu/ address (/menu/file/check/ is one)
+MENU_PAGE = {"selector": "#menuManagementSearch"}  # in the Menu page body (the header folds on a phone)
+
 PICK_A_PHOTO = """
 const input = document.getElementById("ai-file-input");
 const bytes = Uint8Array.from(atob("PNG"), (c) => c.charCodeAt(0));
@@ -75,6 +78,56 @@ class StepTwoAiImportTest(BrowserTestCase):
         self.assertTrue(parse.call_args.kwargs["image_bytes"].startswith(b"\x89PNG"))
         names = set(MenuItem.objects.for_outlet(self.tenant, self.outlet).values_list("name", flat=True))
         self.assertEqual(names, {"Lager Pint", "Masala Peanuts", "Chicken Wings"})
+
+    def menu_file_from_another_pub(self):
+        """A Rasova menu file, as Menu file's Save gives it: Beta's menu
+        (made once per test), and how many dishes it holds."""
+        import json
+
+        from core.tests.test_tenant_walk import Restaurant
+        from menu.services.menu_file import export_menu
+        if not hasattr(self, "_menu_file"):
+            beta = Restaurant("Beta", "photo-beta")
+            self._menu_file = (json.dumps(export_menu(beta.outlet)),
+                               MenuItem.objects.for_outlet(beta.tenant, beta.outlet).count())
+        return self._menu_file
+
+    def pick_menu_file(self, page, input_id, then=""):
+        """Pick the menu file into `input_id` (as the phone's picker would)."""
+        text, _ = self.menu_file_from_another_pub()
+        return f"""
+            const files = new DataTransfer();
+            files.items.add(new File([{text!r}], "menu.json", {{ type: "application/json" }}));
+            const input = document.getElementById("{input_id}");
+            input.files = files.files;
+            input.dispatchEvent(new Event("change", {{ bubbles: true }}));
+            {then}"""
+
+    def test_a_menu_file_at_step_two_goes_straight_to_its_check(self):
+        """28 Nov 2026: the owner gave the menu file to step 2's AI card four
+        times; each time it said where to go, and he never got there. Now
+        it goes there itself: Menu file's check screen, the file already read."""
+        _, dishes = self.menu_file_from_another_pub()
+        with patch("menu.views.ai_views.dispatch", side_effect=queued) as dispatch:
+            seen = self.run_page("/setup/onboard/?step=2", [
+                ("pick", self.pick_menu_file(None, "ai-file-input"), "/menu/file/check/"),
+                ("check", 'return document.body.innerText.includes("Ready to load");'),
+                ("load", 't.click("#loadMenuFile");', MENU_PAGE),
+            ], user=self.owner, viewport=PHONE)
+        self.assertEqual(seen["errors"], [])
+        self.assertTrue(seen["results"]["check"])
+        dispatch.assert_not_called()
+        self.assertEqual(MenuItem.objects.for_outlet(self.tenant, self.outlet).count(), dishes)
+
+    def test_a_menu_file_in_the_menu_pages_ai_import_goes_there_too(self):
+        _, dishes = self.menu_file_from_another_pub()
+        open_and_pick = self.pick_menu_file(None, "aiMenuFile", then='t.click("#aiProcessBtn");')
+        seen = self.run_page("/menu/", [
+            ("pick", open_and_pick, "/menu/file/check/"),
+            ("load", 't.click("#loadMenuFile");', MENU_PAGE),
+        ], user=self.owner, viewport=PHONE)
+        self.assertEqual(seen["errors"], [])
+        self.assertEqual(MenuItem.objects.for_outlet(self.tenant, self.outlet).count(), dishes)
 
     def test_a_job_that_fails_says_why(self):
         seen, _ = self.pick(side_effect=RuntimeError("the reader broke"))

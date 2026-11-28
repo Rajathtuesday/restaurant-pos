@@ -529,6 +529,8 @@ From `CLAUDE.md` and the owner's standing rules:
 | Demo data | `python manage.py seed_pub_demo` (a Friday night at a pub; `--no-night`) |
 | What changed and why | `CHANGELOG.md` |
 
+Setting up a new restaurant, step by step: `docs/NEW_RESTAURANT_SETUP.md`.
+
 Other docs in `docs/`: `USER_MANUAL.md`, `SUBSCRIPTION_TIERS.md`, `MARKET_COMPARISON.md`,
 `LOAD_TESTING.md`, `THEME_SYSTEM.md`, `TEMPLATE_INHERITANCE.md`, `PRINTER_SETUP.md`,
 `ELI5_PRINTING_ARCHITECTURE.md`, `parcel_charge_explainer.md`.

@@ -4,6 +4,8 @@
 > Django 6.0 · PostgreSQL · Celery + Redis · Multi-tenant SaaS · ESC/POS thermal printing.
 
 **New here, or an AI assistant?** Read [`docs/RASOVA.md`](docs/RASOVA.md): the whole system in one file.
+
+**Setting up a new restaurant?** [`docs/NEW_RESTAURANT_SETUP.md`](docs/NEW_RESTAURANT_SETUP.md): from "a restaurant said yes" to its first printed bill, step by step.
 See [`CHANGELOG.md`](CHANGELOG.md) for what's changed recently.
 
 ---

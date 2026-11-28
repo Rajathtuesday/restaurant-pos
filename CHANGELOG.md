@@ -7,6 +7,21 @@ the source of truth.
 
 ---
 
+## 2026-11-28: A menu file given to the AI import goes straight to its check
+
+After the morning's fix the owner gave the Rasova menu file to the AI import four more times, was told each time to load it on Menu, Menu file, and never got there: on a phone that page sits two menus deep (the header's More, then the Menu page's More options), and setup step 2 had no way to it at all. On his "yes build that".
+
+### Changed
+- **A Rasova menu file given to the AI import** (setup step 2's card, or the Menu page's AI Smart Import) is recognised on the phone before anything is uploaded, and sent to Menu file's own check screen, which shows what loading it would add ("Ready to load: 33 dishes in 7 sections") one tap from done. The existing check-then-load path is reused; nothing new on the server (`isMenuFile`, `sendToMenuFileCheck` in `static/js/menu/manage_parts.js`).
+- Step 2's card says "Upload a photo of your paper menu, or a Rasova menu file", and both file pickers offer `.json` files.
+
+### Docs (on his "update all the doc files so that it will be easy to set up")
+- **`docs/NEW_RESTAURANT_SETUP.md`** (new): from "a restaurant said yes" to its first printed bill. What to ask the restaurant first; Part A, Rasova creates it on the superuser panel (fields, preset, outlet info, subscription); Part B, the owner's five setup steps as the screens are (the menu by photo, menu file, sample or hand), printers and the print agent, staff and approval PINs, the discount limit, licensed hours and the pub tools; Part C, the go-live check; and a table of what each setup message means.
+- `docs/USER_MANUAL.md`: the setup steps in their real order (the old list had them out of order and pointed at a "Settings, Menu, AI Import" that doesn't exist). `docs/DEPLOY.md` Part 16: the go-live checklist starts at the superuser panel, not "Tenant created in Django admin", without repeats. `docs/PRINTER_SETUP.md`: a "Start here" for rasova.net (the PC agent's two ways, or a box). `README.md` and `docs/RASOVA.md` point to the guide.
+
+### Tests
+- `setup/tests/test_onboarding_ai_browser.py`: a phone picks a menu file at step 2, and in the Menu page's AI import, lands on the check and loads every dish with one tap (both fail on the old code). `static/js/tests/menu_management.test.mjs`: a menu file is known before any upload, and goes to the check as its own form would send it.
+
 ## 2026-11-28: Another restaurant's address takes you to your own
 
 One browser holds one login for every `*.rasova.net` address. The owner signed in as Tuesdays from Spice Garden's page, and Spice's page, still open, answered "403 Forbidden". On his "yes do the redirect instead of 403 and also a message while redirecting".

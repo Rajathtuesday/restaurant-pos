@@ -1,5 +1,21 @@
 # Rasova Printer Setup Guide
 
+## Start here (28 November 2026)
+
+Every bill and KOT waits in Rasova's print queue until a device in the restaurant, on the printers' Wi-Fi, collects
+it and sends it to the printer. On rasova.net that device is:
+
+1. **A PC at the counter running the print agent** (`agent/rasova_agent.py`, downloaded on **Setup, Printers, The
+   counter PC**):
+   - bills and KOTs made in that PC's browser: `python rasova_agent.py --install` once (starts with Windows);
+   - orders taken on phones, printed by that PC: `python rasova_agent.py --server https://<slug>.rasova.net --key <outlet print key>`
+     (the key comes from Rasova; it is not on a screen yet).
+2. **Or a Rasova box**, which prints by itself: [`BOX_GUIDE.md`](BOX_GUIDE.md).
+
+The Android print app is paused and not offered on rasova.net (27 November 2026); the Android sections below use the
+agent in Termux, not the app. Each printer's address, paper and test print are on **Setup, Printers**. The whole setup of a new restaurant:
+[`NEW_RESTAURANT_SETUP.md`](NEW_RESTAURANT_SETUP.md).
+
 ## What Changed (v1.2: Printer Overhaul)
 
 ### Problem Solved

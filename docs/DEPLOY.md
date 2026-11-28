@@ -564,19 +564,19 @@ Domain:           rasova.net
 
 ## PART 16: Checklist before going live with a new client
 
-- [ ] Tenant created in Django admin
-- [ ] Owner account created and linked to tenant
-- [ ] Outlet created with correct address, GSTIN, FSSAI
-- [ ] Menu imported (AI import or manual)
-- [ ] Payment methods configured (Cash / UPI / Card)
-- [ ] GST pricing mode set (Inclusive for QSR, Exclusive for fine dining)
-- [ ] Kitchen station created (if using thermal printer, enter printer IP)
-- [ ] Test order placed → KOT printed → payment processed → receipt printed
-- [ ] Staff accounts created (Manager, Cashier, Waiter as needed)
-- [ ] Reports dashboard checked: correct data showing
-- [ ] Staff discount limit set in Outlet Settings (off by default, so otherwise cashiers and captains can give any discount, and captains any free dish)
-- [ ] Printing: the PC print agent running on a counter PC on the printers' Wi-Fi (Setup, Printers, The counter PC). The Android app is not offered on rasova.net since 27 Nov 2026
-- [ ] Client given login URL and credentials
+The step-by-step guide, with the screens and what to ask the restaurant first: [`NEW_RESTAURANT_SETUP.md`](NEW_RESTAURANT_SETUP.md).
+
+- [ ] Restaurant created on the superuser panel (rasova.net/superuser/, Add a Restaurant): this makes the outlet, the owner's login, a Counter station and the payment setup in one go
+- [ ] The type's preset applied on the restaurant's settings page (Pub / Bar for a pub)
+- [ ] Outlet info correct: address, GSTIN, FSSAI, SAC, GST pricing
+- [ ] Menu loaded (AI import from a photo or PDF, a Rasova menu file, or by hand), each dish on the right station
+- [ ] Payment methods configured (Cash / UPI with the UPI ID / Card)
+- [ ] Printers: each one's address saved on Setup, Printers, and **Test print** says "Printed" for each
+- [ ] Printing: the print agent running on a counter PC on the printers' Wi-Fi (Setup, Printers, The counter PC), or a Rasova box. The Android app is not offered on rasova.net since 27 Nov 2026
+- [ ] Staff accounts created (Manager, Cashier, Captain, Chef as needed); each manager has set an approval PIN
+- [ ] Staff discount limit set in Outlet Settings (off by default, so otherwise cashiers and captains can give any discount, and captains any free dish); for a pub, the licensed hours too
+- [ ] Go-live check done: test order on a phone, KOT and bar ticket printed, bill printed, payment taken, the sale on Reports
+- [ ] Client given their address (`https://<slug>.rasova.net/login/`) and credentials
 
 ---
 

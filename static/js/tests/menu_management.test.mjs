@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  dishFields, dishProblem, hiddenBySearch, importMenu, menuImportStep, pollUntil, postForm, recipeImportStep, syncWords,
+  dishFields, dishProblem, hiddenBySearch, importMenu, isMenuFile, menuImportStep, pollUntil, postForm, recipeImportStep,
+  sendToMenuFileCheck, syncWords,
 } from "../menu/manage_parts.js";
 
 const qsrForm = { name: " Burger ", price: "120", category: "3", isVeg: false };
@@ -110,4 +111,45 @@ test("the AI import: read at once when the queue is down, and a failed job says 
   const refused = server([400, { error: "Image too large: please use a photo under 15 MB." }]);
   assert.deepEqual(await importMenu({ fetchFn: refused.fetchFn, csrf: () => "", url: "/i/", statusUrl: "/s/0/",
     file: photo, ...quick }), { state: "failed", words: "Image too large: please use a photo under 15 MB." });
+});
+
+const menuFile = new Blob([JSON.stringify({ format: "rasova-menu", version: 1, categories: [] })], { type: "application/json" });
+
+test("a Rasova menu file is known on the phone, before any upload", async () => {
+  assert.equal(await isMenuFile(menuFile), true);
+  assert.equal(await isMenuFile(new Blob(['{"format": "something else"}'])), false);
+  assert.equal(await isMenuFile(new Blob(["not json at all"])), false);
+  assert.equal(await isMenuFile(photo), false);
+  assert.equal(await isMenuFile(undefined), false);
+  // the AI import hands it back untouched: nothing is sent to the reader
+  const { fetchFn, asked } = server();
+  assert.deepEqual(await importMenu({ fetchFn, csrf: () => "", url: "/i/", statusUrl: "/s/0/", file: menuFile, ...quick }),
+    { state: "menu_file" });
+  assert.equal(asked.length, 0);
+});
+
+test("a menu file goes to Menu file's check as its own form would send it", () => {
+  const made = [];
+  const doc = {
+    createElement: (tag) => { const el = { tag, children: [], append: (...k) => el.children.push(...k) }; made.push(el); return el; },
+    body: { append: (el) => { el.inBody = true; } },
+  };
+  let submitted = null;
+  const realDataTransfer = globalThis.DataTransfer;
+  globalThis.DataTransfer = class { constructor() { const list = []; this.items = { add: (f) => list.push(f) }; this.files = list; } };
+  try {
+    made.length = 0;
+    const formProto = { submit() { submitted = this; } };
+    const make = doc.createElement;
+    doc.createElement = (tag) => Object.assign(make(tag), tag === "form" ? formProto : {});
+    sendToMenuFileCheck({ doc, url: "/menu/file/check/", csrf: () => "tok", file: menuFile });
+  } finally {
+    globalThis.DataTransfer = realDataTransfer;
+  }
+  const form = made.find((el) => el.tag === "form");
+  assert.equal(submitted, form);
+  assert.deepEqual([form.method, form.action, form.enctype, form.inBody], ["post", "/menu/file/check/", "multipart/form-data", true]);
+  const [token, input] = form.children;
+  assert.deepEqual([token.name, token.value], ["csrfmiddlewaretoken", "tok"]);
+  assert.deepEqual([input.type, input.name, input.files[0]], ["file", "menu_file", menuFile]);
 });

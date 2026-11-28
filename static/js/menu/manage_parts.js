@@ -113,6 +113,9 @@ export async function pollUntil({ get, step, every = 2000, limit = 150, sleep = 
    "Import failed. Try again." */
 export async function importMenu({ fetchFn, csrf, url, statusUrl, file, text = "", onQueued = () => {},
   every = 2000, sleep }) {
+  // A Rasova menu file is not a menu to read: the page sends it to Menu
+  // file's check instead (sendToMenuFileCheck), before any upload.
+  if (await isMenuFile(file)) return { state: "menu_file" };
   const form = new FormData();
   if (file) form.append("file", file);
   form.append("text", text);
@@ -123,4 +126,42 @@ export async function importMenu({ fetchFn, csrf, url, statusUrl, file, text = "
   const get = async () => (await fetchFn(withId(statusUrl, sent.data.task_id),
     { headers: { Accept: "application/json" } })).json();
   return pollUntil({ get, step: menuImportStep, every, ...(sleep ? { sleep } : {}) });
+}
+
+/* Is `file` a Rasova menu file ("format": "rasova-menu", what Menu file's
+   Save gives)? Read here, on the phone, before anything is sent. */
+export async function isMenuFile(file) {
+  if (!file || file.size > 2 * 1024 * 1024 || typeof file.text !== "function") return false;
+  try {
+    const data = JSON.parse(await file.text());
+    return Boolean(data) && data.format === "rasova-menu";
+  } catch (notJson) {
+    return false;
+  }
+}
+
+/* Sends a menu file to Menu file's check (menu.views.file_views
+   .menu_file_check), as its own form would: the page then shows what
+   loading it would add, one tap from done. 28 Nov 2026: the owner gave the
+   file to the AI import four times, was told where it goes, and never got
+   there; now it goes there itself. */
+export function sendToMenuFileCheck({ doc = document, url, csrf, file }) {
+  const form = doc.createElement("form");
+  form.method = "post";
+  form.action = url;
+  form.enctype = "multipart/form-data";
+  form.hidden = true;
+  const token = doc.createElement("input");
+  token.type = "hidden";
+  token.name = "csrfmiddlewaretoken";
+  token.value = csrf();
+  const input = doc.createElement("input");
+  input.type = "file";
+  input.name = "menu_file";
+  const files = new DataTransfer();
+  files.items.add(file);
+  input.files = files.files;
+  form.append(token, input);
+  doc.body.append(form);
+  form.submit();
 }

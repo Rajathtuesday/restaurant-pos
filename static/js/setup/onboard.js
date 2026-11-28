@@ -7,7 +7,7 @@
  * Enter and Space as well as a tap.
  */
 import { delegate } from "../core/dom.js";
-import { importMenu } from "../menu/manage_parts.js";
+import { importMenu, sendToMenuFileCheck } from "../menu/manage_parts.js";
 
 /* The address as it may be: lower case letters, digits and dashes. */
 export function cleanSlug(typed) {
@@ -82,6 +82,12 @@ async function aiImport(input) {
     statusUrl: input.dataset.statusUrl,
     file: input.files[0],
   });
+  if (end.state === "menu_file") {
+    // A Rasova menu file: Menu file's check shows what it would add
+    sendToMenuFileCheck({ url: input.dataset.menuFileUrl, file: input.files[0],
+      csrf: () => document.querySelector("[name=csrfmiddlewaretoken]").value });
+    return;
+  }
   spinner.hidden = true;
   if (end.state === "done") {
     el("ai-success-msg").textContent = end.words;

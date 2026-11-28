@@ -61,14 +61,21 @@ If you try to open a page that isn't meant for your role, Rasova will simply tak
 
 ### Setting Up Your Restaurant
 
-The first time you log in, Rasova walks you through a short setup wizard:
+The first time you log in, Rasova walks you through five short steps. The whole path, from a new account to the first
+printed bill, is in [`NEW_RESTAURANT_SETUP.md`](NEW_RESTAURANT_SETUP.md).
 
-1. **Menu**: add your categories and dishes, or photograph your existing paper menu and let Rasova's AI import it automatically (Settings → Menu → AI Import).
-   **Menu, Menu file** saves the whole menu as one file and loads one into another outlet (you see what it adds and changes first; nothing is removed).
-2. **Tables** (fine dining): bulk-create tables in one click, or add them one at a time.
-3. **Staff**: create logins for your team (see below).
-4. **Payment methods**: turn on Cash, UPI, and/or Card, and customize how each one is labeled on the bill.
-5. **Printer**: connect your kitchen and billing printers.
+1. **Restaurant info**: name, type, web address, address, phone, FSSAI, GST pricing and GSTIN (they print on bills).
+2. **Menu**: photograph your paper menu (or choose a PDF) on the **AI Import** card and Rasova reads it; or choose a
+   **Rasova menu file** (`.json`) on the same card and Rasova shows what it would add, one tap from loading; or load
+   the sample menu; or type a section and its first dishes.
+   Later, the Menu page's **More options** has the same AI import and **Menu File**, which also saves your whole menu
+   as one file to load into another outlet (you see what it adds and changes first; nothing is removed).
+3. **Staff**: create the first login for your team (see below for more).
+4. **Tables**: create them in one go (8 tables named T1 to T8), or one by name.
+5. **Payment methods**: turn on Cash, UPI (your UPI ID prints on bills) and/or Card.
+
+Then **Setup, Printers**: type each printer's address, Save, and press **Test print**. Printing needs the Rasova print
+agent on a PC at the counter (or a Rasova box); see [`NEW_RESTAURANT_SETUP.md`](NEW_RESTAURANT_SETUP.md).
 
 You can revisit any of these later from the **Setup** menu; nothing here is a one-time-only step.
 
